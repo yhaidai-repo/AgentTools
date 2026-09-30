@@ -1,0 +1,11 @@
+{
+  "name": "adoa",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "db:generate": "npm run generate -w @adoa/db",
+    "db:migrate": "npm run migrate -w @adoa/db",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": { "node": ">=22" }
+}
