@@ -1,0 +1,24 @@
+{
+  "name": "@adoa/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "typecheck": "tsc -p .",
+    "sync:once": "tsx src/syncOnce.ts"
+  },
+  "dependencies": {
+    "@adoa/ado": "*",
+    "@adoa/core": "*",
+    "@adoa/db": "*",
+    "@adoa/vault": "*",
+    "drizzle-orm": "^0.45.3",
+    "pg-boss": "^12.35.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

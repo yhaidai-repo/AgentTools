@@ -1,11 +1,18 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import * as schema from "./schema.js";
+import * as schema from "./schema";
+import type { AdoaDb } from "./models/AdoaDb";
 
-export * from "./schema.js";
+export * from "./schema";
+export type { AdoaDb } from "./models/AdoaDb";
 
 export function createDb(url = process.env.DATABASE_URL) {
-  if (!url) throw new Error("DATABASE_URL is not set");
+  if (!url) {
+    throw new Error("DATABASE_URL is not set");
+  }
+
   const pool = new pg.Pool({ connectionString: url });
-  return { db: drizzle(pool, { schema }), pool };
+  const db: AdoaDb = drizzle(pool, { schema });
+
+  return { db, pool };
 }

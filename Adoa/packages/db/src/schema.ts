@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, text, integer, smallint, boolean, numeric, jsonb, date,
+  pgTable, pgEnum, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision,
   timestamp, bigserial, bigint, serial, primaryKey, index, uniqueIndex, check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -56,6 +56,8 @@ export const workItem = pgTable("work_item", {
   areaPath: text("area_path"),
   assignedTo: text("assigned_to"),
   priority: integer("priority"),
+  backlogPriority: doublePrecision("backlog_priority"),
+  tags: text("tags"),
   effort: numeric("effort"),
   remainingWork: numeric("remaining_work"),
   rev: integer("rev").notNull(),

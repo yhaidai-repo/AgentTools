@@ -1,0 +1,22 @@
+import { AdoClient, type AdoIteration } from "@adoa/ado";
+import { isAdoConfigured, type AdoSettings } from "@adoa/core";
+
+// Dated team sprints, newest first; null when ADO can't be reached, so the form falls back to a text field.
+export async function loadSprintOptions(ado: AdoSettings | null): Promise<AdoIteration[] | null> {
+  const pat = process.env.ADO_PAT;
+
+  if (!isAdoConfigured(ado) || !pat) {
+    return null;
+  }
+
+  try {
+    const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat });
+    const iterations = await client.getIterations(false);
+
+    return iterations
+      .filter((iteration) => iteration.startDate !== null)
+      .sort((a, b) => (b.startDate ?? "").localeCompare(a.startDate ?? ""));
+  } catch {
+    return null;
+  }
+}

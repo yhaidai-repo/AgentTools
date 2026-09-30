@@ -1,0 +1,18 @@
+{
+  "name": "@adoa/core",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@adoa/db": "*",
+    "drizzle-orm": "^0.45.3",
+    "pg-boss": "^12.35.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

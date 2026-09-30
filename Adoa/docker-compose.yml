@@ -1,5 +1,12 @@
 name: adoa
 
+x-app: &app
+  image: adoa-app
+  pull_policy: never
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
 services:
   db:
     image: postgres:16-alpine
@@ -19,15 +26,38 @@ services:
       retries: 20
 
   migrate:
-    build:
-      context: .
-      dockerfile: packages/db/Dockerfile
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    <<: *app
+    build: .  # builds adoa-app once; worker and web reuse it
+    command: ["npm", "run", "migrate", "-w", "@adoa/db"]
     depends_on:
       db:
         condition: service_healthy
     restart: "no"
+
+  worker:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@adoa/worker"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      VAULT_ROOT: /vault
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@adoa/web"]
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3100}:3000"
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault:ro
+    depends_on:
+      worker:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   pgdata:
