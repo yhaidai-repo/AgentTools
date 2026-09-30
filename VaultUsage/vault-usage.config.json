@@ -1,0 +1,10 @@
+{
+  "vaults": [
+    "D:/Claude/work-projects",
+    "D:/Claude/personal-projects"
+  ],
+  "extensions": [".md"],
+  "excludeFolders": [".obsidian", ".usage", ".trash"],
+  "logFolder": ".usage",
+  "logFile": "usage.jsonl"
+}
