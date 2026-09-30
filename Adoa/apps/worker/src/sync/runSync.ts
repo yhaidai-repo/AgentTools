@@ -1,12 +1,10 @@
 import { AdoClient } from "@adoa/ado";
 import { finishRun, isAdoConfigured, readAdoSettings, readSyncSettings, startRun, type AdoSettings } from "@adoa/core";
 import type { AdoaDb } from "@adoa/db";
-import { VaultWriter } from "@adoa/vault";
-import { requireEnv, vaultRoot } from "../env";
+import { requireEnv } from "../env";
 import { loadScope } from "./loadScope";
 import type { SyncContext } from "./models/SyncContext";
 import type { SyncResult } from "./models/SyncResult";
-import { renderIndexNote, renderSprintNotes } from "./renderOverviewNotes";
 import { snapshotCurrentSprint } from "./snapshotSprint";
 import { syncRepositories } from "./syncRepositories";
 import { syncWorkItems } from "./syncWorkItems";
@@ -42,22 +40,20 @@ async function syncOnce(db: AdoaDb, runId: number): Promise<SyncResult> {
     return { outcome: "no-op", message: `Sprint "${sync.sprint}" not found in the team's iterations` };
   }
 
-  const notesWritten = await syncWorkItems(ctx, scope);
+  const changed = await syncWorkItems(ctx, scope);
 
   await snapshotCurrentSprint(db, scope.sprints);
-  await renderSprintNotes(ctx, scope.sprints);
-  await renderIndexNote(ctx, scope.sprints);
 
   const repositories = await syncRepositories(ctx);
 
   return {
     outcome: "success",
-    message: `${scope.sprints[0].name}: ${scope.allIds.length} PBIs in scope, ${notesWritten} notes written, ${repositories} repos`,
+    message: `${scope.sprints[0].name}: ${scope.allIds.length} PBIs in scope, ${changed} changed, ${repositories} repos`,
   };
 }
 
 function createContext(db: AdoaDb, ado: AdoSettings, runId: number): SyncContext {
   const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat: requireEnv("ADO_PAT") });
 
-  return { db, client, ado, writer: new VaultWriter(vaultRoot()), runId };
+  return { db, client, ado, runId };
 }

@@ -1,13 +1,16 @@
+import { workItemUrl, type AdoSettings } from "@adoa/core";
 import type { workItem } from "@adoa/db";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
-export function PbiTable({ rows, itemUrlBase }: { rows: WorkItemRow[]; itemUrlBase: string | null }) {
+// Checkboxes post `adoId` values with the surrounding PrepareForm.
+export function PbiTable({ rows, ado }: { rows: WorkItemRow[]; ado: AdoSettings | null }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
+            <th aria-label="Select" />
             <th>ID</th>
             <th>Title</th>
             <th>Type</th>
@@ -20,7 +23,10 @@ export function PbiTable({ rows, itemUrlBase }: { rows: WorkItemRow[]; itemUrlBa
         <tbody>
           {rows.map((row) => (
             <tr key={row.adoId} className={row.outOfScope ? "out-of-scope" : undefined} title={row.outOfScope ? "Out of scope" : undefined}>
-              <td>{itemUrlBase ? <a href={`${itemUrlBase}${row.adoId}`} target="_blank" rel="noreferrer">{row.adoId}</a> : row.adoId}</td>
+              <td>
+                <input type="checkbox" name="adoId" value={row.adoId} aria-label={`Select ${row.adoId}`} />
+              </td>
+              <td>{ado ? <a href={workItemUrl(ado, row.adoId)} target="_blank" rel="noreferrer">{row.adoId}</a> : row.adoId}</td>
               <td className="title">{row.title}</td>
               <td>{row.type}</td>
               <td>{row.adoState}</td>

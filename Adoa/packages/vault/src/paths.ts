@@ -1,6 +1,7 @@
 const SLUG_MAX = 40;
 
 export const BACKLOG_INDEX_PATH = "backlog-index.md";
+export const PBI_TEMPLATE_PATH = "_templates/pbi.md";
 
 export function pbiNoteName(adoId: number): string {
   return `PBI-${adoId}`;
@@ -11,14 +12,6 @@ export function pbiNotePath(adoId: number, title: string): string {
   const name = pbiNoteName(adoId);
 
   return `pbi/${name}-${slugify(title)}/${name}.md`;
-}
-
-export function sprintNoteName(iterationPath: string): string {
-  return `SPR-${iterationPath.replaceAll("\\", "-").replaceAll(/[^\w.-]+/g, "-")}`;
-}
-
-export function sprintNotePath(iterationPath: string): string {
-  return `sprints/${sprintNoteName(iterationPath)}.md`;
 }
 
 function slugify(title: string): string {

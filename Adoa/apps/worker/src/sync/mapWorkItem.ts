@@ -1,4 +1,5 @@
 import { FIELD, type AdoWorkItem } from "@adoa/ado";
+import { htmlToMarkdown } from "@adoa/vault";
 import { createHash } from "node:crypto";
 import type { MappedWorkItem } from "./models/MappedWorkItem";
 
@@ -24,8 +25,8 @@ export function mapWorkItem(item: AdoWorkItem): MappedWorkItem {
     tags: splitTags(text(fields, FIELD.tags)),
     adoCreatedAt: toDate(text(fields, FIELD.createdDate)),
     adoChangedAt: toDate(text(fields, FIELD.changedDate)),
-    descriptionHtml,
-    acceptanceCriteriaHtml,
+    descriptionMd: htmlToMarkdown(descriptionHtml),
+    acceptanceCriteriaMd: htmlToMarkdown(acceptanceCriteriaHtml),
     contentHash: hashContent(title, descriptionHtml, acceptanceCriteriaHtml),
   };
 }

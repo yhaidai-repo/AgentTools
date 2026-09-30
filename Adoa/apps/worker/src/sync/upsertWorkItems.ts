@@ -1,6 +1,5 @@
 import { setPbiStatus } from "@adoa/core";
 import { workItem } from "@adoa/db";
-import { pbiNotePath } from "@adoa/vault";
 import { eq } from "drizzle-orm";
 import type { MappedWorkItem } from "./models/MappedWorkItem";
 import type { SyncContext } from "./models/SyncContext";
@@ -8,7 +7,7 @@ import { initialStatus, nextStatus } from "./nextStatus";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
-// Returns the items whose mirror changed, i.e. whose notes need re-rendering.
+// Returns the items whose mirror changed.
 export async function upsertWorkItems(ctx: SyncContext, items: MappedWorkItem[]): Promise<MappedWorkItem[]> {
   const changed: MappedWorkItem[] = [];
 
@@ -49,7 +48,6 @@ async function insertWorkItem(ctx: SyncContext, item: MappedWorkItem): Promise<v
     ...mirrorColumns(item),
     adoId: item.adoId,
     pipelineStatus: status,
-    vaultPath: pbiNotePath(item.adoId, item.title),
   });
   await setPbiStatus(ctx.db, item.adoId, null, status, "sync", ctx.runId);
 }
@@ -78,6 +76,8 @@ function mirrorColumns(item: MappedWorkItem) {
     tags: item.tags.join("; ") || null,
     rev: item.rev,
     contentHash: item.contentHash,
+    descriptionMd: item.descriptionMd,
+    acceptanceCriteriaMd: item.acceptanceCriteriaMd,
     adoChangedAt: item.adoChangedAt,
     outOfScope: false,
     syncedAt: new Date(),

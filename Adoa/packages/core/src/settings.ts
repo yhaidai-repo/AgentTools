@@ -31,9 +31,9 @@ export async function saveSyncSettings(db: AdoaDb, settings: SyncSettings): Prom
   await saveValue(db, SYNC_KEY, settings);
 }
 
-// `user` is optional: empty means PBIs of every assignee.
+// Sync pulls only the PBIs assigned to `user`, so it is required.
 export function isAdoConfigured(settings: AdoSettings | null): settings is AdoSettings {
-  return !!settings && [settings.orgUrl, settings.project, settings.team].every(Boolean);
+  return !!settings && [settings.orgUrl, settings.project, settings.team, settings.user].every(Boolean);
 }
 
 async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {

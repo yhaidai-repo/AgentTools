@@ -6,6 +6,7 @@ import type { BacklogFilter } from "@/models/BacklogFilter";
 import { BacklogFilters } from "./BacklogFilters";
 import { LastSync } from "./LastSync";
 import { PbiTable } from "./PbiTable";
+import { PrepareForm } from "./PrepareForm";
 import { StatusChips } from "./StatusChips";
 import { SyncNowButton } from "./SyncNowButton";
 
@@ -29,7 +30,9 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
       </div>
       <BacklogFilters filter={filter} sprints={await distinctValues(db, workItem.iterationPath)} states={await distinctValues(db, workItem.adoState)} />
       <StatusChips rows={rows} />
-      <PbiTable rows={rows} itemUrlBase={await itemUrlBase(db)} />
+      <PrepareForm>
+        <PbiTable rows={rows} ado={await readAdoSettings(db)} />
+      </PrepareForm>
       {rows.length === 0 && <p className="muted">No PBIs match. Check the filters or Settings, then run a sync.</p>}
     </>
   );
@@ -61,10 +64,4 @@ async function distinctValues(db: AdoaDb, column: typeof workItem.iterationPath 
   const rows = await db.selectDistinct({ value: column }).from(workItem).orderBy(desc(column));
 
   return rows.map((row) => row.value).filter((value): value is string => !!value);
-}
-
-async function itemUrlBase(db: AdoaDb): Promise<string | null> {
-  const ado = await readAdoSettings(db);
-
-  return ado ? `${ado.orgUrl.replace(/\/+$/, "")}/${encodeURIComponent(ado.project)}/_workitems/edit/` : null;
 }

@@ -14,7 +14,7 @@ export interface MappedWorkItem {
   tags: string[];
   adoCreatedAt: Date | null;
   adoChangedAt: Date | null;
-  descriptionHtml: string;
-  acceptanceCriteriaHtml: string;
+  descriptionMd: string;
+  acceptanceCriteriaMd: string;
   contentHash: string;
 }

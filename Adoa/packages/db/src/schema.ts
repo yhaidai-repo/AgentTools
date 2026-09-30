@@ -12,7 +12,7 @@ const updatedAt = () => ts("updated_at").notNull().defaultNow();
 // Enums
 
 export const pipelineStatus = pgEnum("pipeline_status", [
-  "new", "refining", "needs-research", "researching", "waiting-human",
+  "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human",
   "ready-for-design", "designing", "ready-for-dev", "stale", "closed",
 ]);
 
@@ -62,6 +62,8 @@ export const workItem = pgTable("work_item", {
   remainingWork: numeric("remaining_work"),
   rev: integer("rev").notNull(),
   contentHash: text("content_hash").notNull(),
+  descriptionMd: text("description_md"),
+  acceptanceCriteriaMd: text("acceptance_criteria_md"),
   adoChangedAt: ts("ado_changed_at"),
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
   outOfScope: boolean("out_of_scope").notNull().default(false),

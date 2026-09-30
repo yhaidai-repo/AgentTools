@@ -20,6 +20,21 @@ export class VaultWriter {
 
     return true;
   }
+
+  // Creates the file with the default content when missing; never overwrites a user-edited file.
+  async readOrCreate(relativePath: string, defaultContent: string): Promise<string> {
+    const fullPath = join(this.root, relativePath);
+    const existing = await readIfExists(fullPath);
+
+    if (existing !== null) {
+      return existing;
+    }
+
+    await mkdir(dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, defaultContent, "utf8");
+
+    return defaultContent;
+  }
 }
 
 async function readIfExists(path: string): Promise<string | null> {

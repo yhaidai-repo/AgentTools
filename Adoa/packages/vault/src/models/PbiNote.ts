@@ -5,16 +5,13 @@ export interface PbiNote {
   adoState: string;
   adoUrl: string;
   pipelineStatus: string;
-  outOfScope: boolean;
   iterationPath: string | null;
-  isSprintKnown: boolean;
   areaPath: string | null;
   assignedTo: string | null;
   priority: number | null;
-  effort: number | null;
   tags: string[];
-  descriptionHtml: string;
-  acceptanceCriteriaHtml: string;
+  descriptionMd: string | null;
+  acceptanceCriteriaMd: string | null;
   created: Date;
   updated: Date;
 }

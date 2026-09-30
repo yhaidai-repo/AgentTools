@@ -40,8 +40,8 @@ export function SettingsForm({ ado, sync, sprintOptions }: SettingsFormProps) {
         <input name="states" defaultValue={sync.states.join(", ")} placeholder="New, Ready for Dev" />
       </label>
       <label>
-        Assigned to (optional, empty = everyone)
-        <input name="user" defaultValue={ado.user} placeholder="name@company.com" />
+        Assigned to (only this user's PBIs are pulled)
+        <input name="user" defaultValue={ado.user} placeholder="name@company.com" required />
       </label>
       <label>
         Sync schedule (cron)

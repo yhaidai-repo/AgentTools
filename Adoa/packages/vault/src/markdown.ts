@@ -2,10 +2,13 @@ import TurndownService from "turndown";
 
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-", codeBlockStyle: "fenced" });
 
-export function htmlToMarkdown(html: string): string {
-  const markdown = turndown.turndown(html ?? "").trim();
+const HTML_TAG = /<\/?[a-z][a-z0-9]*[\s>/]/i;
 
-  return markdown || "_Empty in Azure DevOps._";
+// ADO multiline fields can be HTML or, in markdown mode, already markdown; converting markdown would escape it.
+export function htmlToMarkdown(value: string): string {
+  const text = value ?? "";
+
+  return HTML_TAG.test(text) ? turndown.turndown(text).trim() : text.trim();
 }
 
 export function isoDate(date: Date): string {

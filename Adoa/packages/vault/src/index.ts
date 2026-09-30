@@ -1,9 +1,8 @@
 export { VaultWriter } from "./VaultWriter";
-export { renderPbiNote } from "./renderPbiNote";
-export { renderSprintNote } from "./renderSprintNote";
+export { renderPreparedPbi, fillTemplate } from "./renderPreparedPbi";
 export { renderBacklogIndex } from "./renderBacklogIndex";
-export { BACKLOG_INDEX_PATH, pbiNoteName, pbiNotePath, sprintNoteName, sprintNotePath } from "./paths";
+export { DEFAULT_PBI_TEMPLATE } from "./defaultPbiTemplate";
+export { htmlToMarkdown } from "./markdown";
+export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, pbiNoteName, pbiNotePath } from "./paths";
 export type { PbiNote } from "./models/PbiNote";
-export type { SprintNote } from "./models/SprintNote";
-export type { SprintNoteRow } from "./models/SprintNoteRow";
 export type { IndexRow } from "./models/IndexRow";
