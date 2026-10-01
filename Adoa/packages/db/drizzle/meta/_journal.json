@@ -127,6 +127,13 @@
       "when": 1790878185917,
       "tag": "0017_tech_writer_stage",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790888261805,
+      "tag": "0018_repo_vault_documented",
+      "breakpoints": true
     }
   ]
 }

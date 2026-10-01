@@ -1,6 +1,6 @@
 "use server";
 
-import { pbiSkillProblems, savePbiSkills } from "@adoa/core";
+import { pbiSkillProblems, savePbiRepos, savePbiSkills } from "@adoa/core";
 import { storeAttachment } from "@adoa/attachments";
 import { workItem, type PbiSkill } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -28,6 +28,20 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
   await afterItemChange(adoId);
 
   return { ok: true, message: `Uploaded as ATT-${stored.value}.` };
+}
+
+// The user's repo list (user decision 2026-10-02); answers refinement's open repo question too.
+export async function saveRepos(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoId = Number(form.get("adoId"));
+  const saved = await savePbiRepos(getDb(), adoId, form.getAll("repo").map(String));
+
+  if (!saved.ok) {
+    return { ok: false, message: saved.error };
+  }
+
+  await afterItemChange(adoId);
+
+  return { ok: true, message: `Saved ${saved.value} repo(s). Research and design clone these.` };
 }
 
 // The user's list for the PBI's later agents; from now on refinement leaves it. Skills kept from the list keep who added them.

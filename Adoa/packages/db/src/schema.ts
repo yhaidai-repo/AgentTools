@@ -40,7 +40,8 @@ export const runOutcome = pgEnum("run_outcome", [
   "timeout", "aborted", "max-turns",
 ]);
 
-export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed"]);
+// vault-documented: a vault project's index names the repo (`repo:` line), so refinement doesn't ask about it.
+export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 
 // Settings (ADO org/project/team/user, crons, models, budgets…)
 

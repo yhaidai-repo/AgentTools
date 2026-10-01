@@ -7,6 +7,7 @@ import type { NewHumanTask } from "./models/NewHumanTask";
 import { nextItemId } from "./localItemIds";
 import { itemOfPbi, pbiLabel } from "./itemScope";
 import { setItemStatus } from "./pbiStatus";
+import { applyRepoAnswer, repoAnswerProblem } from "./repoConfirmation";
 import { extractUrls } from "./urls";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -41,7 +42,9 @@ export async function findClosableItem(db: AdoaDb, request: CloseItemRequest): P
     return { ok: false, error: "Write an answer or attach a file." };
   }
 
-  return { ok: true, value: item };
+  const repoProblem = await repoAnswerProblem(db, item, request);
+
+  return repoProblem ? { ok: false, error: repoProblem } : { ok: true, value: item };
 }
 
 // Closes an item checked by findClosableItem; status_history records the person as the actor.
@@ -49,6 +52,7 @@ export async function closeHumanItem(db: AdoaDb, item: ItemRow, request: CloseIt
   const status = DECISIONS[item.kind][request.decision]!;
 
   await db.update(localItem).set({ resolution: request.resolution }).where(eq(localItem.id, item.id));
+  await applyRepoAnswer(db, item, request);
   await setItemStatus(db, item.id, item.status, status, "human");
 
   return status;

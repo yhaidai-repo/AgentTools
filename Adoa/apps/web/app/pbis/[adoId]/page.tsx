@@ -1,4 +1,6 @@
 import { attachmentRef, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
+import { repo } from "@adoa/db";
+import { eq } from "drizzle-orm";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,6 +13,7 @@ import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
+import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +52,8 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <TextBlock text={pbi.acceptanceCriteriaMd} />
       <h2>Refinement</h2>
       <Refinement detail={detail} />
+      <h2>Repos</h2>
+      <Repos detail={detail} />
       <h2>Skills for later agents</h2>
       <PbiSkills adoId={pbi.adoId} skills={pbi.skills} editedAt={pbi.skillsEditedAt} />
       <h2>Questions</h2>
@@ -141,6 +146,20 @@ function isUnmerged(draft: DraftRow): boolean {
 
 function draftState(draft: DraftRow): string {
   return DRAFT_STATES[draft.status] ?? `rejected: ${draft.errors.join("; ")} (handed to you as a human task)`;
+}
+
+// What research and design clone: repos the vault documents or you confirmed; refinement's guesses wait for you.
+async function Repos({ detail }: { detail: PbiDetail }) {
+  const catalog = await getDb().select({ name: repo.name }).from(repo).where(eq(repo.excluded, false)).orderBy(repo.name);
+  const fromRefinement = (detail.refinement?.repos ?? []).map((choice) => ({ name: choice.name, source: "refinement", questionId: null }));
+  const repos = detail.repos.length > 0 ? detail.repos : fromRefinement;
+
+  return (
+    <>
+      {/* Keyed by the saved list, so the form starts over from what was saved. */}
+      <PbiReposForm key={JSON.stringify(repos)} adoId={detail.pbi.adoId} repos={repos} catalog={catalog.map((row) => row.name)} />
+    </>
+  );
 }
 
 function TextBlock({ text }: { text: string | null }) {

@@ -37,4 +37,5 @@ export type { BlockerKind } from "./models/BlockerKind";
 export * from "./textSimilarity";
 export type { RegisterJob } from "./models/RegisterJob";
 export * from "./findings";
+export * from "./pbiRepos";
 export type { SubmitFindingRequest } from "./models/SubmitFindingRequest";

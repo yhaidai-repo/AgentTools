@@ -13,7 +13,7 @@ import { commitTechWriter } from "./commitTechWriter";
 import { requireNoDraftLinks } from "./draftLinks";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
-import { projectRepoName } from "./projectRepo";
+import { projectRepoName } from "../docsRepos";
 import { createTechWriterTools } from "./techWriterTools";
 
 type ItemRow = typeof localItem.$inferSelect;

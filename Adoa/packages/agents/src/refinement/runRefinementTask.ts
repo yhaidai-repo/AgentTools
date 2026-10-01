@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
+import { documentedRepos } from "../docsRepos";
 import { createWebResearchTool } from "../webResearch";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
@@ -38,7 +39,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
   const session = await AgentRunSession.begin(deps, info);
   const ran = await session.execute(info, () => prepare(context, session, row, draft));
   const commit = async () => {
-    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement! }, await docsReadInRun(deps, session.runId));
+    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement! }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
   };
 
   return session.finish(ran, commit);

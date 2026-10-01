@@ -1,11 +1,19 @@
-import { refinement, repo, type AdoaDb } from "@adoa/db";
+import { pbiRepo, refinement, repo, type AdoaDb } from "@adoa/db";
 import type { RepoRef } from "@agenttools/runtime";
 import { desc, eq } from "drizzle-orm";
 
 const DEFAULT_BRANCH = "main";
+const CLONED_SOURCES: string[] = ["vault-documented", "user-confirmed"];
 
-// Repos for a PBI: the latest refinement's list matched to the org repo catalog by name.
+// Repos for a PBI: the ones a vault project documents or the user confirmed (user decision 2026-10-02); an unconfirmed
+// guess isn't cloned. PBIs refined before repos were recorded (no pbi_repo rows) keep the latest refinement's list.
 export async function resolveRepos(db: AdoaDb, adoId: number): Promise<{ repos: RepoRef[]; unknown: string[] }> {
+  const recorded = await db.select({ source: pbiRepo.source, name: repo.name }).from(pbiRepo).innerJoin(repo, eq(repo.id, pbiRepo.repoId)).where(eq(pbiRepo.pbiId, adoId));
+
+  if (recorded.length > 0) {
+    return reposByName(db, recorded.filter((row) => CLONED_SOURCES.includes(row.source)).map((row) => row.name));
+  }
+
   const [latest] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
 
   return reposByName(db, (latest?.repos ?? []).map((choice) => choice.name));
