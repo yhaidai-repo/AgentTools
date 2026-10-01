@@ -26,7 +26,7 @@ export default async function AgentPage({ params, searchParams }: { params: Para
   return (
     <>
       <h1>Agent: {agent}</h1>
-      <p><Link href="/agents">← All agents</Link></p>
+      <p><Link href="/agents">← All agents</Link> · <Link href={`/agents/${agent}/config`}>Config</Link></p>
       <RangeFilter range={range} />
       <div className="table-wrap">
         <table>

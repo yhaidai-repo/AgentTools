@@ -21,8 +21,8 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
   }
 
   await store.save(checked.value);
-  revalidatePath("/settings");
   revalidatePath("/agents");
+  revalidatePath(`/agents/${checked.value.id}/config`);
 
   return { ok: true, message: `${checked.value.label} saved. The agent-runner applies it right away.` };
 }

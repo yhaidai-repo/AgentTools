@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import type { AgentsGlobal } from "@agenttools/config";
 import type { ActionResult } from "@/models/ActionResult";
-import { saveGlobalAction } from "./actions";
+import { saveGlobalAction } from "../agents/configActions";
 
 export function GlobalAgentForm({ global }: { global: AgentsGlobal }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveGlobalAction, null);

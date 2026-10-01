@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
 import type { ActionResult } from "@/models/ActionResult";
-import { saveAgentAction } from "./actions";
+import { saveAgentAction } from "../../configActions";
 
 // Generic: renders any agent definition, so new agents need no UI changes.
 export function AgentForm({ agent, catalog }: { agent: AgentDefinition; catalog: CatalogModel[] }) {
@@ -13,7 +13,6 @@ export function AgentForm({ agent, catalog }: { agent: AgentDefinition; catalog:
   return (
     <form action={action} className="card">
       <input type="hidden" name="id" value={agent.id} />
-      <h2>{agent.label}</h2>
       <p className="muted">{agent.description}</p>
       <label className="inline">
         <input name="enabled" type="checkbox" defaultChecked={agent.enabled} />

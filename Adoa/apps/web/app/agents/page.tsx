@@ -49,9 +49,10 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
           </tbody>
         </table>
       </div>
+      {agents.length === 0 && <p className="muted">No agents yet: they appear once the agent-runner has started.</p>}
       <h2>Job errors</h2>
       <JobErrors errors={jobErrors} />
-      <p className="muted">Tokens = input + output + cache read + cache write. Cost is an API-price estimate; on the Max token nothing is billed. Configure agents in Settings.</p>
+      <p className="muted">Tokens = input + output + cache read + cache write. Cost is an API-price estimate; on the Max token nothing is billed. Runs opens an agent's runs, Config its settings.</p>
     </>
   );
 }
@@ -108,15 +109,18 @@ function AgentRow({ agent, totals, range, isPaused }: AgentRowProps) {
 
   return (
     <tr>
-      <td><Link href={`/agents/${agent.id}?range=${range}`}>{agent.label}</Link>{agent.enabled ? "" : " (off)"}</td>
+      <td>{agent.label}{agent.enabled ? "" : " (off)"}</td>
       <td>{agent.model.provider}/{agent.model.model}</td>
-      <td>{runs}</td>
+      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{runs}</Link></td>
       <td className={totals?.failures ? "result-error" : undefined}>{totals?.failures ?? 0}</td>
       <td>{formatTokens(tokens)} / {formatTokens(Math.round(average(tokens, runs)))}</td>
       <td>{formatUsd(totals?.costUsd ?? 0)} / {formatUsd(average(totals?.costUsd ?? 0, runs))}</td>
       <td>{formatDuration(totals?.durationMs ?? 0)} / {formatDuration(average(totals?.durationMs ?? 0, runs))}</td>
       <td><LocalTime date={totals?.lastRunAt ?? null} /> {totals?.lastOutcome ? `(${totals.lastOutcome})` : ""}</td>
-      <td><RunNowButton agentId={agent.id} disabled={isPaused || !agent.enabled} /></td>
+      <td className="actions">
+        <Link href={`/agents/${agent.id}/config`} className="button secondary">Config</Link>
+        <RunNowButton agentId={agent.id} disabled={isPaused || !agent.enabled} />
+      </td>
     </tr>
   );
 }
