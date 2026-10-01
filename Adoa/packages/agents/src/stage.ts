@@ -1,5 +1,7 @@
 import type { AgentDefinition, AgentsGlobal } from "@agenttools/config";
-import { createSkillTools, loadSkills, skillsPromptSection } from "@agenttools/runtime";
+import { workItem } from "@adoa/db";
+import { createSkillTools, listSkills, loadSkills, skillsPromptSection } from "@agenttools/runtime";
+import { eq } from "drizzle-orm";
 import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { StageSkills } from "./models/StageSkills";
@@ -14,10 +16,27 @@ export function dailyGuard(deps: AgentDeps, agent: AgentDefinition, global: Agen
   }, deps.usageStore);
 }
 
-export async function loadStageSkills(deps: AgentDeps, agent: AgentDefinition): Promise<StageSkills> {
-  const skills = await loadSkills(deps.skillFolders, agent.skills);
+// The agent's configured skills (a missing one fails the run) plus the PBI's skills (a missing one is skipped), configured first.
+export async function loadStageSkills(deps: AgentDeps, agent: AgentDefinition, pbiId: number): Promise<StageSkills> {
+  const [pbi] = await deps.db.select({ skills: workItem.skills }).from(workItem).where(eq(workItem.adoId, pbiId));
+  const available = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name);
+  const pbiNames = (pbi?.skills ?? []).map((skill) => skill.name).filter((name) => !agent.skills.includes(name));
+  const fromPbi = pbiNames.filter((name) => available.includes(name));
+  const skills = await loadSkills(deps.skillFolders, [...agent.skills, ...fromPbi]);
 
-  return { skills, tools: createSkillTools(skills), promptSection: skillsPromptSection(skills) };
+  return {
+    skills,
+    tools: createSkillTools(skills),
+    promptSection: skillsPromptSection(skills),
+    configured: agent.skills,
+    fromPbi,
+    skipped: pbiNames.filter((name) => !available.includes(name)),
+  };
+}
+
+// What the executors put in their `context` phase, so the trace shows where each skill came from.
+export function skillsTrace(skills: StageSkills): Record<string, string[]> {
+  return { configured: skills.configured, fromPbi: skills.fromPbi, skippedPbiSkills: skills.skipped };
 }
 
 // Provider limit hit: pause every agent until it resets (or an hour when the reset time is unknown).

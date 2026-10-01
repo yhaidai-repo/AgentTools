@@ -1,4 +1,4 @@
-import { createHumanTask } from "@adoa/core";
+import { createHumanTask, draftKey } from "@adoa/core";
 import { vaultCapture, type AdoaDb } from "@adoa/db";
 import { and, eq } from "drizzle-orm";
 import { VaultCaptureCli } from "./VaultCaptureCli";
@@ -50,7 +50,7 @@ async function handOver(db: AdoaDb, capture: CaptureRow, errors: string[]): Prom
     title: `Fix the rejected vault draft "${capture.name}"`,
     body: `VaultCapture rejected the draft CAP-${capture.id} (target ${capture.target}):\n${errors.map((error) => `- ${error}`).join("\n")}\n\nCaptured facts:\n${facts}\n\nSave them in the docs vault by hand (or decide they aren't needed), then close this task.`,
     runId: capture.runId,
-    data: { captureId: capture.id },
+    data: { captureId: capture.id, key: draftKey(capture.id) },
   });
 
   console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${errors.join("; ")}; handed to the user as ${taskId}`);

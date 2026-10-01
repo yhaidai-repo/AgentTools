@@ -28,5 +28,5 @@ export async function prepareSelected(_previous: ActionResult | null, form: Form
 
   await (await getBoss()).send(PREPARE_QUEUE, job);
 
-  return { ok: true, message: `${adoIds.length} PBI(s) queued. Refresh in a moment.` };
+  return { ok: true, message: `${adoIds.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
 }

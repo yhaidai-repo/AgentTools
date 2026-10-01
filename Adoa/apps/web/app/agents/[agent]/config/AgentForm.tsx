@@ -69,7 +69,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
         Web access (search and fetch)
       </label>
       <PipelineFields agent={agent} agentIds={agentIds} blockerKinds={blockerKinds} />
-      <SkillsField selected={agent.skills} catalog={skills} folders={skillFolders} />
+      <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
       <OptionsFields agent={agent} />
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : `Save ${agent.label}`}</button>

@@ -1,4 +1,4 @@
-import { attachmentRef } from "@adoa/core";
+import { attachmentRef, isDeletableItem, isRerunnableTask } from "@adoa/core";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +6,8 @@ import { NoteLink } from "@/components/NoteLink";
 import { loadItemDetail, type ItemDetail } from "@/lib/pbiDetail";
 import { CloseItemForm } from "../../CloseItemForm";
 import { isOpen } from "../../ItemList";
+import { DeleteItemButton } from "./DeleteItemButton";
+import { RerunTaskButton } from "./RerunTaskButton";
 import { ItemContent } from "./ItemContent";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +34,11 @@ export default async function ItemPage({ params }: { params: Promise<{ adoId: st
         {item.createdByRun && <Link className="chip" href={`/agents/runs/${item.createdByRun}`}>created by RUN-{item.createdByRun}</Link>}
         {item.parentId && <Link className="chip" href={`/pbis/${adoId}/items/${item.parentId}`}>from {item.parentId}</Link>}
       </div>
+      <p className="actions">
+        {isRerunnableTask(item) && <RerunTaskButton adoId={adoId} itemId={item.id} />}
+        {isDeletableItem(item) && <DeleteItemButton adoId={adoId} itemId={item.id} />}
+      </p>
+      {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       {item.status === "open" && item.heldBy.length > 0 && <p className="result-error">Held by the dispatcher: {item.heldBy.join("; ")}</p>}
       <ItemContent item={item} />
       <Results detail={detail} />

@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { extractNotesSection } from "./notesSection";
 
@@ -33,6 +33,11 @@ export class VaultWriter {
     await writeFile(fullPath, bytes);
 
     return true;
+  }
+
+  // A note whose item the user deleted; a file that is already gone is fine.
+  async remove(relativePath: string): Promise<void> {
+    await rm(this.pathOf(relativePath), { force: true });
   }
 
   // Creates the file with the default content when missing; never overwrites a user-edited file.

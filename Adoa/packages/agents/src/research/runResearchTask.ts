@@ -2,13 +2,15 @@ import { localItem, workItem } from "@adoa/db";
 import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
+import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
+import { createWebResearchTool } from "../webResearch";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
-import { docsReadInRun, numberOption } from "../stage";
+import { docsReadInRun, numberOption, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitResearch } from "./commitResearch";
 import type { ResearchContext } from "./models/ResearchContext";
@@ -33,7 +35,7 @@ export async function runResearchTask(context: TaskContext, task: ItemRow): Prom
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ResearchRun = { research: null, commits: {}, acquired: [], draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [] } };
+  const run: ResearchRun = { research: null, commits: {}, acquired: [], draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [], webResearch: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -55,13 +57,14 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const { deps, agent, prompt, skills } = context;
   const depth = Number((task.data as { depth?: number } | null)?.depth ?? 1);
 
-  await session.phase("context", { task: task.id, depth, skills: skills.skills.map((skill) => skill.name) });
+  await session.phase("context", { task: task.id, depth, skills: skillsTrace(skills) });
   run.research = await loadResearchContext(deps, task);
   await session.phase("repos", { repos: run.research.repos.map((repo) => repo.name), unknown: run.research.unknownRepos });
   run.commits = await deps.repoCache.acquire(run.research.repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
   run.acquired = run.research.repos;
 
   const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.commits);
+  const guard = await DuplicateGuard.load(deps.db, task.pbiId);
 
   await session.phase("first-message", { chars: firstMessage.length });
 
@@ -74,7 +77,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
       ...skills.tools,
       createAttachmentTool(deps.db, task.pbiId),
-      ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2)),
+      ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
+      ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

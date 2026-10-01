@@ -4,6 +4,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { PbiSkill } from "./models/PbiSkill";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -26,6 +27,7 @@ export const itemStatus = pgEnum("item_status", [
   "open", "in-progress", "done", "blocked", "cancelled",
   "answered", "dismissed",
   "draft", "final", "superseded",
+  "deleted", // removed by the user: hidden everywhere, kept so agents don't create it again
 ]);
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
@@ -70,6 +72,9 @@ export const workItem = pgTable("work_item", {
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
   outOfScope: boolean("out_of_scope").notNull().default(false),
   vaultPath: text("vault_path"),
+  // App data, never written by sync. Refinement replaces the list until the user saves it (skills_edited_at set).
+  skills: jsonb("skills").$type<PbiSkill[]>().notNull().default([]),
+  skillsEditedAt: ts("skills_edited_at"),
   syncedAt: ts("synced_at").notNull().defaultNow(),
   createdAt: createdAt(),
 }, (t) => [
@@ -122,6 +127,8 @@ export const localItem = pgTable("local_item", {
 }, (t) => [
   index("local_item_pbi_status_idx").on(t.pbiId, t.status),
   index("local_item_kind_status_idx").on(t.kind, t.status),
+  // App-generated items are unique per subject (data.key); see core itemKeys.
+  uniqueIndex("local_item_pbi_key_uq").on(t.pbiId, sql`(${t.data}->>'key')`).where(sql`${t.data}->>'key' IS NOT NULL`),
 ]);
 
 // Every status change, written in the same transaction by core.transition().
@@ -156,6 +163,7 @@ export const refinement = pgTable("refinement", {
   // Handoff to research: docs the agent chose (path + why) and every doc it actually read.
   relevantDocs: jsonb("relevant_docs").$type<{ path: string; why: string }[]>().notNull().default([]),
   docsRead: jsonb("docs_read").$type<string[]>().notNull().default([]),
+  skills: jsonb("skills").$type<{ name: string; reason: string }[]>().notNull().default([]), // what this version recommended
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
 
@@ -257,3 +265,13 @@ export const attachment = pgTable("attachment", {
   vaultPath: text("vault_path"),
   createdAt: createdAt(),
 }, (t) => [index("attachment_pbi_idx").on(t.pbiId)]);
+
+// Earlier versions of skills edited in the web UI (the personal skills folder has no git history); newest last.
+
+export const skillRevision = pgTable("skill_revision", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  folder: text("folder").notNull(),
+  content: text("content").notNull(), // the SKILL.md as it was before a save replaced it
+  savedAt: createdAt(),
+}, (t) => [index("skill_revision_name_idx").on(t.name, t.savedAt)]);

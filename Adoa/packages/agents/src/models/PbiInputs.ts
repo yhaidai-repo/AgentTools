@@ -1,8 +1,8 @@
 import type { AttachmentSummary } from "./AttachmentSummary";
-import type { ClosedHumanItem } from "./ClosedHumanItem";
+import type { ExistingItem } from "./ExistingItem";
 
-// What the user added to a PBI in adoa: uploads, answers and finished human tasks.
+// What the PBI already has beyond its note: the user's uploads, and every question and task (open or closed).
 export interface PbiInputs {
   attachments: AttachmentSummary[];
-  closedItems: ClosedHumanItem[];
+  items: ExistingItem[];
 }

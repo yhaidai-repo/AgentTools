@@ -1,6 +1,6 @@
 import { localItem, refinement, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
 import { listAttachments } from "./attachments";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { escapeCell, refinementNoteName } from "@adoa/vault";
 
 type WorkItemRow = typeof workItem.$inferSelect;
@@ -59,7 +59,7 @@ function draftState(draft: typeof vaultCapture.$inferSelect): string {
 }
 
 async function itemsTable(db: AdoaDb, adoId: number): Promise<string> {
-  const items = await db.select().from(localItem).where(eq(localItem.pbiId, adoId)).orderBy(localItem.id);
+  const items = await db.select().from(localItem).where(and(eq(localItem.pbiId, adoId), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
   if (items.length === 0) {
     return "None yet.";

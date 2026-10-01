@@ -1,13 +1,16 @@
 import { localItem, workItem } from "@adoa/db";
-import { createDocTools } from "@agenttools/runtime";
+import { isRecommendableSkill } from "@adoa/core";
+import { createDocTools, createListSkillsTool, listSkills } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
+import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
+import { createWebResearchTool } from "../webResearch";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
-import { docsReadInRun } from "../stage";
+import { docsReadInRun, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import { buildPbiMessage } from "./pbiMessage";
@@ -30,7 +33,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [] };
+  const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [] };
   const session = await AgentRunSession.begin(deps, info);
   const ran = await session.execute(info, () => prepare(context, session, row, draft));
   const commit = async () => {
@@ -43,9 +46,11 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
 async function prepare(context: TaskContext, session: AgentRunSession, row: WorkItemRow, draft: RefinementDraft): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
 
-  await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skills.skills.map((skill) => skill.name) });
+  await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
 
   const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
+  const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
+  const guard = await DuplicateGuard.load(deps.db, row.adoId);
 
   await session.phase("first-message", { chars: pbiMessage.length });
 
@@ -53,7 +58,14 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage: pbiMessage,
-    tools: [...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }), ...skills.tools, createAttachmentTool(deps.db, row.adoId), ...createRefinementTools(deps.db, draft, pbiMessage)],
+    tools: [
+      ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
+      ...skills.tools,
+      createListSkillsTool(deps.skillFolders, isRecommendableSkill),
+      createAttachmentTool(deps.db, row.adoId),
+      ...createRefinementTools(deps.db, draft, pbiMessage, recommendable, guard),
+      ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
+    ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     hasRequiredOutput: () => draft.refinement !== null,

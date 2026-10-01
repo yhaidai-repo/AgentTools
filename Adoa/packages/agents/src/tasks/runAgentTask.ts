@@ -39,7 +39,7 @@ export async function runAgentTask(deps: AgentDeps, job: AgentRunJob): Promise<A
 }
 
 async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Promise<AgentRunResult | null> {
-  const context = await loadTaskContext(deps, agentId);
+  const context = await loadTaskContext(deps, agentId, task.pbiId);
   const refusal = await refusalReason(context, agentId);
 
   if (refusal) {
@@ -56,7 +56,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
   return result;
 }
 
-async function loadTaskContext(deps: AgentDeps, agentId: string): Promise<TaskContext> {
+async function loadTaskContext(deps: AgentDeps, agentId: string, pbiId: number): Promise<TaskContext> {
   const agent = await deps.config.get(agentId);
 
   if (!agent) {
@@ -70,7 +70,7 @@ async function loadTaskContext(deps: AgentDeps, agentId: string): Promise<TaskCo
     agent,
     global: await deps.config.getGlobal(),
     prompt: EXECUTORS[agentId] ? await loadPrompt(agentId, { team }) : { text: "", version: "none" },
-    skills: await loadStageSkills(deps, agent),
+    skills: await loadStageSkills(deps, agent, pbiId),
   };
 }
 

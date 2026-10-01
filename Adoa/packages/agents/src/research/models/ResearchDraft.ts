@@ -3,6 +3,7 @@ import type { ResearchTaskDraft } from "../../refinement/models/ResearchTaskDraf
 import type { CaptureDraft } from "../../models/CaptureDraft";
 import type { HumanTaskDraft } from "./HumanTaskDraft";
 import type { ResearchResultOutput } from "./ResearchResultOutput";
+import type { WebResearchDraft } from "../../models/WebResearchDraft";
 
 // Collected in memory during a run and written to the DB only if the run succeeds.
 export interface ResearchDraft {
@@ -11,4 +12,5 @@ export interface ResearchDraft {
   humanTasks: HumanTaskDraft[];
   questions: QuestionDraft[];
   captures: CaptureDraft[];
+  webResearch: WebResearchDraft[];
 }

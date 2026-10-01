@@ -35,4 +35,4 @@ export async function setItemStatus(db: AdoaDb, itemId: string, from: string | n
   });
 }
 
-const CLOSED_ITEM_STATUSES: ItemStatus[] = ["done", "cancelled", "answered", "dismissed"];
+const CLOSED_ITEM_STATUSES: ItemStatus[] = ["done", "cancelled", "answered", "dismissed", "deleted"];

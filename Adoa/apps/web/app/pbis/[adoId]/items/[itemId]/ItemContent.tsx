@@ -7,6 +7,8 @@ type ItemData = {
   goal?: string;
   repos?: string[];
   depth?: number;
+  needsWeb?: boolean;
+  sources?: string[];
   confidence?: string;
   findings?: string[];
   evidence?: { location: string; note: string }[];
@@ -42,9 +44,10 @@ function QuestionContent(item: ItemRow, data: ItemData) {
 function ResearchTaskContent(item: ItemRow, data: ItemData) {
   return (
     <>
+      {data.needsWeb && <p className="result-error">Needs web research: research runs it only with web access on (its Config page).</p>}
       <Section title="Question" text={item.body} />
-      <Section title="Goal" text={data.goal} />
-      <Bullets title="Repos" items={data.repos} />
+      <Section title="Goal" text={data.goal ?? data.why} />
+      {data.needsWeb ? <Bullets title="Suggested sources" items={data.sources} /> : <Bullets title="Repos" items={data.repos} />}
       <p className="muted">Depth {data.depth ?? 1} · attempts {item.attempts}</p>
     </>
   );

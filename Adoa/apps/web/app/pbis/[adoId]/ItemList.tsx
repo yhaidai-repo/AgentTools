@@ -28,6 +28,7 @@ export function ItemList({ adoId, items, empty, results = [] }: ItemListProps) {
           <span className={isOpen(item) && item.assignee === "human" ? "result-error" : "muted"}>{item.status}</span>
           {" · "}
           {item.title}
+          {(item.data as { needsWeb?: boolean } | null)?.needsWeb && <span className="chip"> needs web</span>}
           <ResultNote result={latestResult(item, results)} />
           <HeldNote item={item} />
         </li>

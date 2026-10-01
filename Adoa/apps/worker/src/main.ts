@@ -34,9 +34,9 @@ await boss.work(SYNC_QUEUE, () => logged(SYNC_QUEUE, async () => {
 }));
 await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async () => {
   for (const job of jobs) {
-    const prepared = await preparePbis(context, job.data.adoIds);
+    const queued = await preparePbis(context, job.data.adoIds);
 
-    console.log(`prepare: ${prepared} of ${job.data.adoIds.length} PBIs ready for refinement`);
+    console.log(`prepare: ${job.data.adoIds.length} PBI note(s) written, ${queued} refinement task(s) queued (a PBI with an open one gets none)`);
   }
 }));
 // Every message: the PBIs referenced by queued agent tasks are brought up to date (documents, merged drafts, next tasks,

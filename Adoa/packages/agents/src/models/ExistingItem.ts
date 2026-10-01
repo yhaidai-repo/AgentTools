@@ -1,9 +1,10 @@
-// A question or human task the user closed, with their answer or outcome note.
-export interface ClosedHumanItem {
+// A question or task the PBI already has (any status), as the agents' first message lists it.
+export interface ExistingItem {
   id: string;
   kind: string;
   status: string;
-  title: string;
+  text: string;
+  /** The person's answer or outcome note, if any. */
   resolution: string | null;
   attachmentIds: string[];
 }

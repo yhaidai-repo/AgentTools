@@ -2,15 +2,15 @@ import { attachmentRef } from "@adoa/core";
 import { attachment, localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { AttachmentSummary } from "./models/AttachmentSummary";
-import type { ClosedHumanItem } from "./models/ClosedHumanItem";
+import type { ExistingItem } from "./models/ExistingItem";
 import type { PbiInputs } from "./models/PbiInputs";
 
-const CLOSED_HUMAN_STATUSES = ["answered", "dismissed", "done", "cancelled"] as const;
+const LISTED_KINDS = ["question", "human", "research"] as const;
 
 export async function loadPbiInputs(db: AdoaDb, adoId: number): Promise<PbiInputs> {
   const attachments = await loadAttachments(db, adoId);
 
-  return { attachments, closedItems: await loadClosedItems(db, adoId, attachments) };
+  return { attachments, items: await loadItems(db, adoId, attachments) };
 }
 
 export function attachmentsBlock(attachments: AttachmentSummary[]): string {
@@ -23,18 +23,24 @@ export function attachmentsBlock(attachments: AttachmentSummary[]): string {
   return ["<attachments>", "Uploaded by the user. Read them with read_attachment.", ...lines, "</attachments>"].join("\n");
 }
 
-export function answersBlock(items: ClosedHumanItem[]): string {
+// Every question and task the PBI has, so a rerun or a later agent never asks or creates the same again
+// (user decision 2026-10-01); the tools also reject near-identical text.
+export function itemsBlock(items: ExistingItem[]): string {
   if (items.length === 0) {
-    return "<answers>none</answers>";
+    return "<existing-items>none</existing-items>";
   }
 
-  return ["<answers>", "Questions and human tasks the user closed.", ...items.map(answerLine), "</answers>"].join("\n");
+  const header = "Questions and tasks this PBI already has. Never create one of these again, also not reworded: refer to its id. Answers are the team's decisions.";
+
+  return ["<existing-items>", header, ...items.map(itemLine), "</existing-items>"].join("\n");
 }
 
-function answerLine(item: ClosedHumanItem): string {
+function itemLine(item: ExistingItem): string {
   const files = item.attachmentIds.length > 0 ? ` (see ${item.attachmentIds.join(", ")})` : "";
+  const answer = item.resolution || files ? `\n  Answer: ${item.resolution ?? "-"}${files}` : "";
+  const status = item.status === "deleted" ? "deleted by the user: never create it again" : item.status;
 
-  return `- ${item.id} (${item.kind}, ${item.status}): ${item.title}\n  Answer: ${item.resolution ?? "-"}${files}`;
+  return `- ${item.id} (${item.kind}, ${status}): ${item.text}${answer}`;
 }
 
 async function loadAttachments(db: AdoaDb, adoId: number): Promise<AttachmentSummary[]> {
@@ -47,18 +53,18 @@ async function loadAttachments(db: AdoaDb, adoId: number): Promise<AttachmentSum
   return rows.map((row) => ({ ...row, id: attachmentRef(row.id) }));
 }
 
-async function loadClosedItems(db: AdoaDb, adoId: number, attachments: AttachmentSummary[]): Promise<ClosedHumanItem[]> {
+async function loadItems(db: AdoaDb, adoId: number, attachments: AttachmentSummary[]): Promise<ExistingItem[]> {
   const rows = await db
     .select()
     .from(localItem)
-    .where(and(eq(localItem.pbiId, adoId), eq(localItem.assignee, "human"), inArray(localItem.status, [...CLOSED_HUMAN_STATUSES])))
+    .where(and(eq(localItem.pbiId, adoId), inArray(localItem.kind, [...LISTED_KINDS])))
     .orderBy(localItem.id);
 
   return rows.map((row) => ({
     id: row.id,
     kind: row.kind,
     status: row.status,
-    title: row.title,
+    text: row.body ?? row.title,
     resolution: row.resolution,
     attachmentIds: attachments.filter((entry) => entry.itemId === row.id).map((entry) => entry.id),
   }));

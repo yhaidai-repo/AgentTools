@@ -18,15 +18,16 @@ export async function buildResearchMessage(db: AdoaDb, vaultRoot: string, contex
 }
 
 function taskBlock(context: ResearchContext): string {
-  const data = (context.task.data ?? {}) as { goal?: string; depth?: number };
+  const data = (context.task.data ?? {}) as { goal?: string; depth?: number; needsWeb?: boolean; why?: string; sources?: string[] };
 
   return [
     "<task>",
     `Id: ${context.task.id}`,
     `Title: ${context.task.title}`,
     `Question: ${context.task.body ?? context.task.title}`,
-    `Goal: ${data.goal ?? "-"}`,
+    `Goal: ${data.goal ?? data.why ?? "-"}`,
     `Depth: ${data.depth ?? 1}`,
+    ...(data.needsWeb ? [`Needs web research: yes. Use your web tools first. Suggested sources: ${data.sources?.join(", ") || "none"}`] : []),
     "</task>",
   ].join("\n");
 }

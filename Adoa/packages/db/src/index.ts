@@ -5,6 +5,7 @@ import type { AdoaDb } from "./models/AdoaDb";
 
 export * from "./schema";
 export type { AdoaDb } from "./models/AdoaDb";
+export type { PbiSkill } from "./models/PbiSkill";
 
 export function createDb(url = process.env.DATABASE_URL) {
   if (!url) {

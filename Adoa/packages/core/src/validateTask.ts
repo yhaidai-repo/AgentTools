@@ -18,11 +18,18 @@ const CHECKS: Record<string, Check> = {
 
 // Why the agent may not start this task yet (empty = it may). Reads the DB only, so the dispatcher can check every
 // task on every tick; the worker keeps the data current (merged drafts, linked documents).
-export async function validateTask(db: AdoaDb, task: ItemRow, agentId: string, waitFor: string[]): Promise<string[]> {
+export async function validateTask(db: AdoaDb, task: ItemRow, agentId: string, waitFor: string[], capabilities: { webAccess: boolean }): Promise<string[]> {
   const unknown = waitFor.filter((key) => !CHECKS[key]).map((key) => `Unknown blocker "${key}" in the agent's config`);
   const reasons = await Promise.all(waitFor.filter((key) => CHECKS[key]).map((key) => CHECKS[key](db, task, agentId)));
 
-  return [...unknown, ...reasons.flat()];
+  return [...webAccessMissing(task, agentId, capabilities), ...unknown, ...reasons.flat()];
+}
+
+// Always checked, not a waitFor box: a task that needs the web can't be done without web access (user decision 2026-10-02).
+function webAccessMissing(task: ItemRow, agentId: string, capabilities: { webAccess: boolean }): string[] {
+  const needsWeb = (task.data as { needsWeb?: boolean } | null)?.needsWeb === true;
+
+  return needsWeb && !capabilities.webAccess ? [`Needs web access: turn it on in ${agentId}'s Config, or delete this task`] : [];
 }
 
 async function openHumanItems(db: AdoaDb, task: ItemRow): Promise<string[]> {

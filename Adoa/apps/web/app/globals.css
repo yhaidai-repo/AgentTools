@@ -304,3 +304,37 @@ ul.item-list li {
 .result-section {
   margin-top: 16px;
 }
+
+.skill-choice > span {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+
+.skill-choice input[type="text"],
+.skill-choice input:not([type]) {
+  width: 100%;
+}
+
+.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skill-choice {
+  display: flex;
+  gap: 6px;
+}
+
+.skill-choice button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+textarea.skill-editor {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}

@@ -1,5 +1,5 @@
 import { agentRun, attachment, localItem, refinement, vaultCapture, workItem } from "@adoa/db";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./db";
 
 // Uploads without their bytes (downloads read those on their own).
@@ -23,7 +23,8 @@ export async function loadPbiDetail(adoId: number) {
     return null;
   }
 
-  const items = await db.select().from(localItem).where(eq(localItem.pbiId, adoId)).orderBy(localItem.id);
+  // Items the user deleted stay in the DB (so agents don't recreate them) but aren't shown.
+  const items = await db.select().from(localItem).where(and(eq(localItem.pbiId, adoId), ne(localItem.status, "deleted"))).orderBy(localItem.id);
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.pbiId, adoId)).orderBy(attachment.id);
   const runs = await db.select().from(agentRun).where(eq(agentRun.pbiId, adoId)).orderBy(desc(agentRun.id));
   const [latestRefinement] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);

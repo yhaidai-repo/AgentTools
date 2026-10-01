@@ -85,6 +85,34 @@
       "when": 1790868925367,
       "tag": "0011_agent_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790870598169,
+      "tag": "0012_pbi_skills",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790872271294,
+      "tag": "0013_item_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790872801125,
+      "tag": "0014_deleted_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790873459911,
+      "tag": "0015_skill_revisions",
+      "breakpoints": true
     }
   ]
 }

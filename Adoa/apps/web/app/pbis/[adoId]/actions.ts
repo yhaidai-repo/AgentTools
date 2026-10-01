@@ -1,10 +1,14 @@
 "use server";
 
-import { DISPATCH_QUEUE, closeDocumentTasks, closeHumanItem, findClosableItem, linkedUrlOf, type CloseDecision, type CloseItemRequest, type DispatchJob } from "@adoa/core";
+import { DISPATCH_QUEUE, closeDocumentTasks, deleteItem, rerunTask, closeHumanItem, findClosableItem, linkedUrlOf, pbiSkillProblems, savePbiSkills, type CloseDecision, type CloseItemRequest, type DispatchJob } from "@adoa/core";
 import { storeAttachment, type UploadedFile } from "@adoa/attachments";
+import { workItem, type PbiSkill } from "@adoa/db";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
+import { loadSkillCatalog } from "@/lib/skills";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Answer / dismiss a question, finish / cancel a human task. An attached file is stored first, and only if the item can be closed.
@@ -52,6 +56,49 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
   await afterChange(adoId);
 
   return { ok: true, message: `Uploaded as ATT-${stored.value}.${closed.length > 0 ? ` Closed ${closed.join(", ")}.` : ""}` };
+}
+
+// Soft delete: gone from the pages and the Vault, kept so agents don't create it again. Back to the PBI page after.
+export async function deleteItemAction(adoId: number, itemId: string): Promise<ActionResult> {
+  const deleted = await deleteItem(getDb(), adoId, itemId);
+
+  if (!deleted.ok) {
+    return { ok: false, message: deleted.error };
+  }
+
+  await afterChange(adoId);
+  redirect(`/pbis/${adoId}`);
+}
+
+export async function rerunTaskAction(adoId: number, itemId: string): Promise<ActionResult> {
+  const reopened = await rerunTask(getDb(), adoId, itemId);
+
+  if (!reopened.ok) {
+    return { ok: false, message: reopened.error };
+  }
+
+  await afterChange(adoId);
+
+  return { ok: true, message: `${itemId} is open again: it runs on the agent's next schedule or "Run now".` };
+}
+
+// The user's list for the PBI's later agents; from now on refinement leaves it. Skills kept from the list keep who added them.
+export async function saveSkills(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoId = Number(form.get("adoId"));
+  const names = form.getAll("skill").map(String);
+  const problems = pbiSkillProblems(names, (await loadSkillCatalog()).skills.map((skill) => skill.name));
+
+  if (problems.length > 0) {
+    return { ok: false, message: `Not saved: ${problems.join("; ")}.` };
+  }
+
+  const [pbi] = await getDb().select({ skills: workItem.skills }).from(workItem).where(eq(workItem.adoId, adoId));
+  const skills: PbiSkill[] = names.map((name) => ({ name, reason: text(form, `reason:${name}`) ?? "", by: pbi?.skills.find((skill) => skill.name === name)?.by ?? "user" }));
+
+  await savePbiSkills(getDb(), adoId, skills);
+  revalidatePath(`/pbis/${adoId}`);
+
+  return { ok: true, message: `Saved ${skills.length} skill(s). The next agent runs on this PBI load them.` };
 }
 
 // The web writes the DB only; a dispatcher tick now (instead of within the minute) updates the statuses and the Vault.

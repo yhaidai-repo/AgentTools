@@ -6,7 +6,9 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { loadJobErrors, type JobError } from "@/lib/jobErrors";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { DEFAULT_RANGE, rangeStart } from "@/lib/ranges";
+import { loadRunCounts } from "@/lib/runCounts";
 import { getUsageStore } from "@/lib/usage";
+import type { RunCounts } from "@/models/RunCounts";
 import { PauseControl, RunNowButton } from "./AgentControls";
 import { RangeFilter } from "./RangeFilter";
 
@@ -19,6 +21,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   const global = await config.getGlobal();
   const totals = await getUsageStore().totals({ from: rangeStart(range) }, "agent");
   const byAgent = new Map(totals.map((row) => [row.group, row]));
+  const runCounts = await loadRunCounts(rangeStart(range));
   const jobErrors = await loadJobErrors(rangeStart(range));
 
   return (
@@ -38,13 +41,13 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
               <th>Tokens total / avg</th>
               <th>Cost total / avg</th>
               <th>Duration total / avg</th>
-              <th>Last run</th>
+              <th>Last run started</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {agents.map((agent) => (
-              <AgentRow key={agent.id} agent={agent} totals={byAgent.get(agent.id)} range={range} isPaused={isPaused(global)} />
+              <AgentRow key={agent.id} agent={agent} totals={byAgent.get(agent.id)} counts={runCounts.get(agent.id)} range={range} isPaused={isPaused(global)} />
             ))}
           </tbody>
         </table>
@@ -99,11 +102,14 @@ function PauseState({ global }: { global: AgentsGlobal }) {
 interface AgentRowProps {
   agent: AgentDefinition;
   totals?: UsageTotals;
+  counts?: RunCounts;
   range: string;
   isPaused: boolean;
 }
 
-function AgentRow({ agent, totals, range, isPaused }: AgentRowProps) {
+// Runs, failures and last run come from the run table (running runs included); tokens, cost and duration only exist for
+// finished runs, so their averages are over finished runs.
+function AgentRow({ agent, totals, counts, range, isPaused }: AgentRowProps) {
   const runs = totals?.runs ?? 0;
   const tokens = totals ? totals.inputTokens + totals.outputTokens + totals.cacheReadTokens + totals.cacheWriteTokens : 0;
 
@@ -111,12 +117,12 @@ function AgentRow({ agent, totals, range, isPaused }: AgentRowProps) {
     <tr>
       <td>{agent.label}{agent.enabled ? "" : " (off)"}</td>
       <td>{agent.model.provider}/{agent.model.model}</td>
-      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{runs}</Link></td>
-      <td className={totals?.failures ? "result-error" : undefined}>{totals?.failures ?? 0}</td>
+      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{counts?.runs ?? 0}</Link>{counts?.running ? ` (${counts.running} running)` : ""}</td>
+      <td className={counts?.failures ? "result-error" : undefined}>{counts?.failures ?? 0}</td>
       <td>{formatTokens(tokens)} / {formatTokens(Math.round(average(tokens, runs)))}</td>
       <td>{formatUsd(totals?.costUsd ?? 0)} / {formatUsd(average(totals?.costUsd ?? 0, runs))}</td>
       <td>{formatDuration(totals?.durationMs ?? 0)} / {formatDuration(average(totals?.durationMs ?? 0, runs))}</td>
-      <td><LocalTime date={totals?.lastRunAt ?? null} /> {totals?.lastOutcome ? `(${totals.lastOutcome})` : ""}</td>
+      <td><LocalTime date={counts?.lastStartedAt ?? null} /> {counts?.lastOutcome ? `(${counts.lastOutcome})` : ""}</td>
       <td className="actions">
         <Link href={`/agents/${agent.id}/config`} className="button secondary">Config</Link>
         <RunNowButton agentId={agent.id} disabled={isPaused || !agent.enabled} />

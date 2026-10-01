@@ -5,9 +5,11 @@ import { eq } from "drizzle-orm";
 import type { WorkerContext } from "../models/WorkerContext";
 import { refreshPbi } from "../refreshPbi";
 
-const PREPARABLE: PipelineStatus[] = ["new", "stale"];
+// Statuses sync sets that the pipeline can't derive from tasks; prepare takes the PBI out of them.
+const NOT_IN_PIPELINE: PipelineStatus[] = ["new", "stale"];
 
-// Manual step (user selects PBIs): creates the note from the Vault template and a refinement task for the dispatcher.
+// Manual step (user selects PBIs): writes the note from the Vault template and queues a refinement task, also for a PBI
+// already in the pipeline (a re-refinement). Returns how many refinement tasks were queued.
 export async function preparePbis(context: WorkerContext, adoIds: number[]): Promise<number> {
   const ado = await readAdoSettings(context.db);
 
@@ -16,19 +18,20 @@ export async function preparePbis(context: WorkerContext, adoIds: number[]): Pro
   }
 
   const notes = await PbiNoteWriter.create(context.db, ado, context.vaultRoot);
-  let prepared = 0;
+  let queued = 0;
 
   for (const adoId of adoIds) {
-    const isPrepared = await prepareOne(context, notes, adoId);
+    const isQueued = await prepareOne(context, notes, adoId);
 
-    prepared += isPrepared ? 1 : 0;
+    queued += isQueued ? 1 : 0;
   }
 
   await notes.writeIndex();
 
-  return prepared;
+  return queued;
 }
 
+// False when the PBI is unknown or already has an open refinement task.
 async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: number): Promise<boolean> {
   const [row] = await context.db.select().from(workItem).where(eq(workItem.adoId, adoId));
 
@@ -36,17 +39,18 @@ async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: n
     return false;
   }
 
-  const status = PREPARABLE.includes(row.pipelineStatus) ? "ready-for-refinement" : row.pipelineStatus;
+  const status = NOT_IN_PIPELINE.includes(row.pipelineStatus) ? "ready-for-refinement" : row.pipelineStatus;
 
   await notes.writePbi(row, status);
 
   if (status !== row.pipelineStatus) {
     await setPbiStatus(context.db, adoId, row.pipelineStatus, status, "human");
-    await ensureAgentTask(context.db, "refinement", adoId, null);
   }
 
-  // Linked documents become attachments or human tasks now, so refinement doesn't start without them.
+  const taskId = await ensureAgentTask(context.db, "refinement", adoId, null);
+
+  // Linked documents become attachments or human tasks now; the status then follows the new task.
   await refreshPbi(context, adoId);
 
-  return true;
+  return taskId !== null;
 }

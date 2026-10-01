@@ -10,6 +10,7 @@ import { obsidianDocsLink } from "@/lib/obsidian";
 import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
 import { ItemList, isOpen } from "./ItemList";
+import { PbiSkills } from "./PbiSkills";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,8 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <TextBlock text={pbi.acceptanceCriteriaMd} />
       <h2>Refinement</h2>
       <Refinement detail={detail} />
+      <h2>Skills for later agents</h2>
+      <PbiSkills adoId={pbi.adoId} skills={pbi.skills} editedAt={pbi.skillsEditedAt} />
       <h2>Questions</h2>
       <ItemList adoId={pbi.adoId} items={items.filter((item) => item.kind === "question")} empty="None." />
       <h2>Human tasks</h2>

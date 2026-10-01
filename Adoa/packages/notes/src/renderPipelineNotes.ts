@@ -45,8 +45,28 @@ async function writeItems(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, ado
   for (const item of items) {
     const files = attachments.filter((entry) => entry.itemId === item.id).map((entry) => entry.vaultName);
 
-    await writeItem(db, notes, pbiPath, item, files);
+    await publishItem(db, notes, pbiPath, item, files);
   }
+}
+
+async function publishItem(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, item: ItemRow, attachments: string[]): Promise<void> {
+  if (item.status === "deleted") {
+    await removeItemNote(db, notes, item);
+
+    return;
+  }
+
+  await writeItem(db, notes, pbiPath, item, attachments);
+}
+
+// A deleted item leaves the Vault: its note goes, and the PBI note's table no longer lists it.
+async function removeItemNote(db: AdoaDb, notes: PbiNoteWriter, item: ItemRow): Promise<void> {
+  if (!item.vaultPath) {
+    return;
+  }
+
+  await notes.writer.remove(item.vaultPath);
+  await db.update(localItem).set({ vaultPath: null }).where(eq(localItem.id, item.id));
 }
 
 async function writeItem(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, item: ItemRow, attachments: string[]): Promise<void> {

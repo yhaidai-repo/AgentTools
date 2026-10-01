@@ -2,12 +2,12 @@ import type { AdoaDb, workItem } from "@adoa/db";
 import { resolveInside } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
 import { linkedDocuments, linksBlock } from "../links";
-import { answersBlock, attachmentsBlock, loadPbiInputs } from "../pbiInputs";
+import { attachmentsBlock, itemsBlock, loadPbiInputs } from "../pbiInputs";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
 // The first message: the prepared PBI note as the user sees it (incl. their Notes), plus ADO fields,
-// linked documents, the user's uploads and their answers.
+// linked documents, the user's uploads, and every question and task the PBI already has.
 export async function buildPbiMessage(db: AdoaDb, vaultRoot: string, row: WorkItemRow): Promise<string> {
   const note = row.vaultPath ? await readFile(resolveInside(vaultRoot, row.vaultPath), "utf8") : "(no note)";
   const fields = [
@@ -27,6 +27,6 @@ export async function buildPbiMessage(db: AdoaDb, vaultRoot: string, row: WorkIt
     `<pbi>\n${fields.join("\n")}\n\n${note.trim()}\n</pbi>`,
     linksBlock(linkedDocuments(row), inputs.attachments),
     attachmentsBlock(inputs.attachments),
-    answersBlock(inputs.closedItems),
+    itemsBlock(inputs.items),
   ].join("\n\n");
 }

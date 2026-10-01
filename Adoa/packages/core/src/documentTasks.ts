@@ -1,6 +1,7 @@
 import { attachment, localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { createHumanTask } from "./humanItems";
+import { documentKey, hasItemWithKey } from "./itemKeys";
 import { setItemStatus } from "./pbiStatus";
 import { linkedDocumentKind } from "./urls";
 
@@ -17,7 +18,12 @@ export async function handledDocumentUrls(db: AdoaDb, adoId: number): Promise<st
   return [...uploaded, ...asked].map((row) => row.url as string);
 }
 
-export async function createDocumentTask(db: AdoaDb, adoId: number, url: string, problem: string | null): Promise<string> {
+// Null when a task for this document already exists (any status).
+export async function createDocumentTask(db: AdoaDb, adoId: number, url: string, problem: string | null): Promise<string | null> {
+  if (await hasItemWithKey(db, adoId, documentKey(url))) {
+    return null;
+  }
+
   const label = KIND_LABELS[linkedDocumentKind(url)];
   const why = problem ? `adoa couldn't fetch it: ${problem}` : "Agents can't open it (no access to Confluence or the web).";
 
@@ -26,7 +32,7 @@ export async function createDocumentTask(db: AdoaDb, adoId: number, url: string,
     title: `Attach the content of the linked ${label}`,
     body: `The PBI links ${url}\n\n${why}\n\nUpload it here (PDF, Word, saved HTML or text). Cancel the task if the agents don't need it.`,
     runId: null,
-    data: { url },
+    data: { url, key: documentKey(url) },
   });
 }
 

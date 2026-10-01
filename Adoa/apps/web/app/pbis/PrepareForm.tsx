@@ -12,7 +12,7 @@ export function PrepareForm({ children }: { children: ReactNode }) {
     <form action={action}>
       <div className="toolbar">
         <button type="submit" disabled={isPending}>{isPending ? "Queuing…" : "Prepare for refinement"}</button>
-        <span className="muted">Creates the PBI note from the Vault template for the selected rows.</span>
+        <span className="muted">Writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined).</span>
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
       </div>
       {children}

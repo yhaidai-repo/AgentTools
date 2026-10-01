@@ -55,7 +55,7 @@ async function openTasks(context: WorkerContext, agentId: string): Promise<ItemR
 }
 
 async function tryStart(context: WorkerContext, agent: AgentDefinition, task: ItemRow): Promise<boolean> {
-  const reasons = await validateTask(context.db, task, agent.id, agent.waitFor);
+  const reasons = await validateTask(context.db, task, agent.id, agent.waitFor, agent.capabilities);
 
   if (reasons.length > 0) {
     await context.db.update(localItem).set({ heldBy: reasons }).where(eq(localItem.id, task.id));
