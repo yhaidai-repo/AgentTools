@@ -6,5 +6,6 @@
   "extensions": [".md"],
   "excludeFolders": [".obsidian", ".usage", ".trash"],
   "logFolder": ".usage",
-  "logFile": "usage.jsonl"
+  "logFile": "usage.jsonl",
+  "selfLoggingCommands": ["vault-capture.ps1", "vault-usage.ps1"]
 }

@@ -8,12 +8,28 @@ function Find-VaultFileReference {
     )
 
     $usageConfig = if ($Config) { $Config } else { Get-VaultUsageConfig -ConfigPath $ConfigPath }
+    if (Test-SelfLoggingCommand -Text $Text -Config $usageConfig) {
+        return @()
+    }
+
     $basePaths = @(Get-ChangeDirectoryTarget -Text $Text -Cwd $Cwd) + @(Get-AbsoluteBasePath -BasePath $Cwd)
 
     return @(Get-PathToken -Text $Text -Extensions $usageConfig.extensions |
         ForEach-Object { Resolve-ReferencedNote -Token $_ -BasePaths $basePaths -Config $usageConfig } |
         Where-Object { $_ } |
         Sort-Object -Unique)
+}
+
+# Vault tools log their own usage; note paths in their input are mentions, not reads.
+function Test-SelfLoggingCommand {
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
+        [Parameter(Mandatory)][object]$Config
+    )
+
+    $matchingCommands = @($Config.selfLoggingCommands | Where-Object { $_ -and $Text.Contains($_, [StringComparison]::OrdinalIgnoreCase) })
+
+    return $matchingCommands.Count -gt 0
 }
 
 function Get-PathToken {
