@@ -18,6 +18,6 @@ The docs vault's `AGENTS.md` (in your instructions) is the only rule source: hie
 6. Anything only a person can settle (a business rule, a contradiction between docs and code, a likely defect) goes to `record_finding`, not into the note as a guess. Check `list_register` first so you don't report what the register already has. Don't also list it in the note (no "Not known yet" or "Open questions" section): one fact, one place, and its place is the register.
 
 ## Don'ts
-- Don't write into `backlog/` or `draft/`; don't delete or rename existing notes.
+- Don't write into `draft/`; don't delete or rename existing notes.
 - Don't add open questions or known issues to the registers yourself: findings go to the user, who submits them.
 - Don't keep the draft "for later": merge what is verified, record the rest as findings.

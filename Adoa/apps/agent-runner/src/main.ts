@@ -77,7 +77,7 @@ async function runAndPublish(job: AgentRunJob): Promise<void> {
 }
 
 // The docs vault the tech-writer merges drafts into (mounted writable; VaultWriter keeps every path inside it and the
-// tech-writer's tools refuse backlog/ and draft/).
+// tech-writer's tools refuse draft/ and root files).
 function docsVaultWriter(): AgentDeps["docsVault"] {
   const vaultName = process.env.DOCS_VAULT_NAME;
 

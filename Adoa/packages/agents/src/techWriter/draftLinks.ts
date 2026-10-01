@@ -2,8 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { NoteEdit } from "./models/NoteEdit";
 
-// Folders whose links don't count: the draft folder itself, and the app-rendered backlog (agents never write there).
-const SKIPPED = ["draft", "backlog"];
+// Links inside draft/ don't count: drafts are merged and deleted themselves.
+const SKIPPED = ["draft"];
 
 // Notes that would still link the draft once it's deleted (Obsidian turns a click on such a link into an empty root
 // note). The run's own edits count in their new version.

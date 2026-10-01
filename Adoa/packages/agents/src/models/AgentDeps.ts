@@ -14,7 +14,7 @@ export interface AgentDeps {
   prices: PriceBook;
   /** Read-only docs vault root. */
   docsRoot: string;
-  /** Folders inside the docs root hidden from agents (e.g. the rendered backlog). */
+  /** Folders inside the docs root hidden from agents. */
   docsExclude: string[];
   /** Rendered Vault (backlog) root: agents read the PBI note from it. */
   vaultRoot: string;

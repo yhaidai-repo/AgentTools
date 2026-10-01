@@ -1,10 +1,10 @@
 import { posix } from "node:path";
 
-// Folders of the docs vault the tech-writer never writes: the rendered backlog (adoa's own output) and the drafts it merges.
-const PROTECTED_FOLDERS = ["backlog", "draft"];
+// The folder of the docs vault the tech-writer never writes: the drafts it merges (deleted by the app on success).
+const PROTECTED_FOLDERS = ["draft"];
 
 // Why the tech-writer may not write this path (null = it may): a Markdown note inside a project folder of the docs vault,
-// never a root file (AGENTS.md, index…), never backlog/ or draft/, never outside the vault.
+// never a root file (AGENTS.md, index…), never draft/, never outside the vault.
 export function notePathProblem(path: string): string | null {
   const normalized = posix.normalize(path.replaceAll("\\", "/"));
   const [folder, ...rest] = normalized.split("/");

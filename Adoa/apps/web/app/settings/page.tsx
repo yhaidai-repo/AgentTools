@@ -2,6 +2,7 @@ import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core
 import Link from "next/link";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { getDb } from "@/lib/db";
+import { backlogFolder } from "@/lib/obsidian";
 import { loadSprintChoices } from "@/lib/sprints";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { SettingsForm } from "./SettingsForm";
@@ -23,7 +24,7 @@ export default async function SettingsPage() {
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
       <h2>From .env (restart to change)</h2>
       <p className="muted">
-        Vault folder: <code>{process.env.VAULT_PATH ?? "not set"}</code> · ADO access token:{" "}
+        Vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> · backlog folder: <code>{backlogFolder() || "(vault root)"}</code> · ADO access token:{" "}
         {process.env.ADO_PAT ? "set" : "missing"}
       </p>
     </>

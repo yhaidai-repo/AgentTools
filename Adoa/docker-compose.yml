@@ -45,7 +45,7 @@ services:
     environment:
       DATABASE_URL: *db-url
       ADO_PAT: ${ADO_PAT}
-      VAULT_ROOT: /vault
+      VAULT_ROOT: /vault/${BACKLOG_FOLDER-backlog}  # adoa renders into this folder of the vault; empty = the vault root
       VAULT_CAPTURE_HOME: /app/VaultCapture
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}
       ADOA_SEED_ADO_ORG_URL: ${ADOA_SEED_ADO_ORG_URL:-}
@@ -72,15 +72,15 @@ services:
       ADO_PAT: ${ADO_PAT}
       REPO_CACHE_ROOT: /repo-cache
       DOCS_ROOT: /docs
-      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-backlog}  # the rendered backlog is inside the docs vault; agents must not read their own output
-      VAULT_ROOT: /vault
+      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-}  # folders of the docs vault hidden from agents (the backlog has its own vault)
+      VAULT_ROOT: /vault/${BACKLOG_FOLDER-backlog}
       SKILL_FOLDERS: /app/Adoa/skills:/skills
       VAULT_CAPTURE_HOME: /app/VaultCapture
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}
     volumes:
       - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
       - ${VAULT_PATH:?set in .env}:/vault
-      # Writable: the tech-writer merges drafts into the docs vault (user decision 2026-10-02); its tools refuse backlog/ and draft/.
+      # Writable: the tech-writer merges drafts into the docs vault (user decision 2026-10-02); its tools refuse draft/ and root files.
       - ${DOCS_VAULT_PATH}:/vaults/${DOCS_VAULT_NAME}
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ./skills:/app/Adoa/skills:ro  # from the repo, so skill edits apply without a rebuild
@@ -97,6 +97,7 @@ services:
       DATABASE_URL: *db-url
       ADO_PAT: ${ADO_PAT}
       VAULT_PATH: ${VAULT_PATH}
+      BACKLOG_FOLDER: ${BACKLOG_FOLDER-backlog}
       SKILL_FOLDERS: /app/Adoa/skills:/skills  # same as agent-runner, to list the skills an agent may use
       SKILLS_PATH: ${SKILLS_PATH}
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}  # links to agents' draft notes

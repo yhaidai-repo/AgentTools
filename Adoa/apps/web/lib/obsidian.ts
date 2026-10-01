@@ -1,18 +1,21 @@
-import { basename, dirname } from "node:path";
+import { basename } from "node:path";
 
-// Opens a rendered note in Obsidian. VAULT_PATH is a folder inside an Obsidian vault
-// (e.g. D:/Claude/work-projects/backlog): the vault is its parent folder.
-export function obsidianLink(vaultRelativePath: string): string | null {
+// Opens a rendered note in Obsidian. VAULT_PATH is adoa's vault (its folder name is the vault name); notes are rendered
+// into its BACKLOG_FOLDER, and their stored paths are relative to that folder.
+export function obsidianLink(backlogRelativePath: string): string | null {
   const vaultPath = process.env.VAULT_PATH?.replaceAll("\\", "/").replace(/\/+$/, "");
 
   if (!vaultPath) {
     return null;
   }
 
-  const vault = basename(dirname(vaultPath));
-  const file = `${basename(vaultPath)}/${vaultRelativePath}`;
+  const file = [backlogFolder(), backlogRelativePath].filter(Boolean).join("/");
 
-  return `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(file)}`;
+  return `obsidian://open?vault=${encodeURIComponent(basename(vaultPath))}&file=${encodeURIComponent(file)}`;
+}
+
+export function backlogFolder(): string {
+  return (process.env.BACKLOG_FOLDER ?? "backlog").replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
 }
 
 // Opens a file of the docs vault (e.g. an agent's draft/ note); DOCS_VAULT_NAME is that vault's folder name.
