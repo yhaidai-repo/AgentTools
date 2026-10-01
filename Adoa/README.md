@@ -9,11 +9,16 @@ Azure DevOps agent pipeline. Design notes: personal docs vault `D:/Claude/person
 ## Run
 ```bash
 cp .env.example .env      # fill in passwords, paths, ADO_PAT, seed values
+docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it
 docker compose up -d --build
 ```
 - Web UI: http://localhost:3100 (`WEB_PORT`).
 - DB on `127.0.0.1:${DB_PORT}` (default 5442; 5432 is often taken by a local Postgres).
 - ADO org/project/team/user live in the DB and are edited in Settings; `ADOA_SEED_*` only fill them on first start.
+
+## Backups
+- `backup` service: one `pg_dump` at start, then daily at `BACKUP_CRON` (UTC) into `BACKUP_PATH` (default `./backups`); keeps `BACKUP_KEEP_DAYS` (14).
+- Restore: `docker compose stop worker web`, then `docker compose run --rm backup sh /scripts/restore.sh /backups/<file>.dump`, then `docker compose start worker web`.
 
 ## Layout
 | Path | Role |
