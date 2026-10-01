@@ -1,6 +1,7 @@
 import type { AgentBudgets } from "./AgentBudgets";
 import type { AgentCapabilities } from "./AgentCapabilities";
 import type { AgentLimits } from "./AgentLimits";
+import type { AgentOptionSpec } from "./AgentOptionSpec";
 import type { AgentOptionValue } from "./AgentOptionValue";
 import type { ModelChoice } from "./ModelChoice";
 
@@ -18,6 +19,12 @@ export interface AgentDefinition {
   capabilities: AgentCapabilities;
   /** Skill names the agent may load on demand. */
   skills: string[];
-  /** Agent-specific settings, e.g. { batchSize: 2, maxFailures: 3 }. */
+  /** Agent-specific settings, e.g. { batchSize: 2, maxFailures: 3 }; only keys declared in optionSpecs. */
   options: Record<string, AgentOptionValue>;
+  /** Agent to call after a successful task (the app creates its task), or null. */
+  next: string | null;
+  /** Blockers the app checks before starting this agent, e.g. ["questions", "drafts"]; the app defines the keys. */
+  waitFor: string[];
+  /** The options this agent's code reads. Always taken from the code's defaults, so stored copies can't drift. */
+  optionSpecs: AgentOptionSpec[];
 }

@@ -13,15 +13,16 @@ export class RepoCache {
 
   constructor(private readonly options: RepoCacheOptions) {}
 
-  /** Clones or refreshes the repos, marks them in use, and returns their current commits. Reports each repo. */
-  async acquire(repos: RepoRef[], onProgress?: (progress: RepoProgress) => Promise<void>): Promise<Record<string, string>> {
+  /** Clones or refreshes the repos, marks them in use, and returns their current commits. Reports each repo.
+   *  `refreshMinutes` lets one agent refresh more or less often than the cache default. */
+  async acquire(repos: RepoRef[], onProgress?: (progress: RepoProgress) => Promise<void>, refreshMinutes = this.options.refreshMinutes): Promise<Record<string, string>> {
     const commits: Record<string, string> = {};
     const acquired: RepoRef[] = [];
 
     // On a failure the repos taken so far are released, so a failed run never pins them.
     try {
       for (const repo of repos) {
-        const progress = await this.acquireOne(repo);
+        const progress = await this.acquireOne(repo, refreshMinutes);
 
         acquired.push(repo);
         commits[repo.name] = progress.commit;
@@ -39,9 +40,9 @@ export class RepoCache {
     repos.forEach((repo) => this.inUse.set(repo.name, Math.max(0, (this.inUse.get(repo.name) ?? 1) - 1)));
   }
 
-  private async acquireOne(repo: RepoRef): Promise<RepoProgress> {
+  private async acquireOne(repo: RepoRef, refreshMinutes: number): Promise<RepoProgress> {
     const started = Date.now();
-    const action = await this.ensure(repo);
+    const action = await this.ensure(repo, refreshMinutes);
 
     this.inUse.set(repo.name, (this.inUse.get(repo.name) ?? 0) + 1);
 
@@ -50,7 +51,7 @@ export class RepoCache {
     return { repo: repo.name, action, durationMs: Date.now() - started, commit };
   }
 
-  private async ensure(repo: RepoRef): Promise<RepoProgress["action"]> {
+  private async ensure(repo: RepoRef, refreshMinutes: number): Promise<RepoProgress["action"]> {
     const isCloned = await this.isHealthyCheckout(repo);
 
     if (!isCloned) {
@@ -59,7 +60,7 @@ export class RepoCache {
       return "clone";
     }
 
-    if (!this.isRefreshDue(repo)) {
+    if (!this.isRefreshDue(repo, refreshMinutes)) {
       return "reuse";
     }
 
@@ -95,11 +96,11 @@ export class RepoCache {
     this.lastFetch.set(repo.name, Date.now());
   }
 
-  private isRefreshDue(repo: RepoRef): boolean {
+  private isRefreshDue(repo: RepoRef, refreshMinutes: number): boolean {
     const isIdle = (this.inUse.get(repo.name) ?? 0) === 0;
     const age = Date.now() - (this.lastFetch.get(repo.name) ?? 0);
 
-    return isIdle && age >= this.options.refreshMinutes * 60_000;
+    return isIdle && age >= refreshMinutes * 60_000;
   }
 
   private git(args: string[], cwd?: string, needsAuth = false): Promise<string> {

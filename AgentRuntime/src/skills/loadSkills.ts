@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SkillInfo } from "../models/SkillInfo";
+import { frontmatterField } from "./skillFrontmatter";
 
 // Loads the allowed skills (`<dir>/<name>/SKILL.md`); the first folder that has a skill wins.
 export async function loadSkills(folders: string[], allowedNames: string[]): Promise<SkillInfo[]> {
@@ -28,11 +29,4 @@ async function readFirst(paths: string[]): Promise<string | null> {
   const results = await Promise.all(paths.map((path) => readFile(path, "utf8").catch(() => null)));
 
   return results.find((text) => text !== null) ?? null;
-}
-
-function frontmatterField(text: string, field: string): string | null {
-  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
-  const value = new RegExp(`^${field}:\\s*(.+)$`, "m").exec(frontmatter)?.[1];
-
-  return value?.trim().replace(/^["']|["']$/g, "") ?? null;
 }

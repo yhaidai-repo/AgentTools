@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { AgentDefinition } from "./models/AgentDefinition";
+import type { AgentOptionSpec } from "./models/AgentOptionSpec";
+import type { AgentOptionValue } from "./models/AgentOptionValue";
 import type { AgentsGlobal } from "./models/AgentsGlobal";
 import type { ValidationResult } from "./models/ValidationResult";
 
@@ -28,13 +30,44 @@ export const agentDefinitionSchema = z.object({
   capabilities: z.object({ webAccess: z.boolean() }),
   skills: z.array(z.string().min(1)),
   options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
-});
+  next: z.string().regex(/^[a-z][a-z0-9-]*$/, "an agent id").nullable(),
+  waitFor: z.array(z.string().min(1)),
+  optionSpecs: z.array(z.object({
+    key: z.string().min(1),
+    label: z.string().min(1),
+    description: z.string(),
+    min: z.number(),
+    max: z.number(),
+  })),
+}).superRefine(checkOptions);
 
 export const agentsGlobalSchema = z.object({
   paused: z.boolean(),
   pausedUntil: z.string().datetime().nullable(),
   dailyBudgetUsd: z.number().nonnegative(),
 });
+
+// An option the code doesn't read would be saved and silently ignored, so it is rejected instead.
+function checkOptions(agent: Pick<AgentDefinition, "options" | "optionSpecs">, context: z.RefinementCtx): void {
+  const specs = new Map(agent.optionSpecs.map((spec) => [spec.key, spec]));
+  const problems = Object.entries(agent.options).map(([key, value]) => ({ key, message: optionProblem(specs.get(key), value) }));
+
+  problems
+    .filter((problem) => problem.message !== null)
+    .forEach((problem) => context.addIssue({ code: "custom", path: ["options", problem.key], message: problem.message! }));
+}
+
+function optionProblem(spec: AgentOptionSpec | undefined, value: AgentOptionValue): string | null {
+  if (!spec) {
+    return "unknown option: the agent doesn't read it";
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "must be a number";
+  }
+
+  return value < spec.min || value > spec.max ? `must be between ${spec.min} and ${spec.max}` : null;
+}
 
 export function validateAgent(input: unknown): ValidationResult<AgentDefinition> {
   return toResult(agentDefinitionSchema.safeParse(input));

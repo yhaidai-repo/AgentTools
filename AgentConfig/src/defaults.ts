@@ -2,7 +2,11 @@ import type { AgentDefinition } from "./models/AgentDefinition";
 import type { AgentsGlobal } from "./models/AgentsGlobal";
 
 // Stored values win; fields that newer defaults added (and the stored copy lacks) are filled in.
+// Option specs always come from the defaults (the code), and options the code no longer declares are dropped.
 export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: AgentDefinition): AgentDefinition {
+  const options = { ...defaults.options, ...stored.options };
+  const declared = new Set(defaults.optionSpecs.map((spec) => spec.key));
+
   return {
     ...defaults,
     ...stored,
@@ -10,7 +14,8 @@ export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: Ag
     limits: { ...defaults.limits, ...stored.limits },
     budgets: { ...defaults.budgets, ...stored.budgets },
     capabilities: { ...defaults.capabilities, ...stored.capabilities },
-    options: { ...defaults.options, ...stored.options },
+    options: Object.fromEntries(Object.entries(options).filter(([key]) => declared.has(key))),
+    optionSpecs: defaults.optionSpecs,
   };
 }
 
