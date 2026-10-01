@@ -7,6 +7,7 @@ export { createDocTools } from "./tools/docTools";
 export { resolveInside } from "./tools/safePath";
 export { loadSkills } from "./skills/loadSkills";
 export { listSkills } from "./skills/listSkills";
+export { createListSkillsTool } from "./skills/listSkillsTool";
 export { createSkillTools, skillsPromptSection } from "./skills/skillTools";
 export type { AgentRuntime } from "./models/AgentRuntime";
 export type { AgentRequest } from "./models/AgentRequest";
