@@ -61,7 +61,8 @@ function ConvertFrom-RepoValue {
 
     $folder = if ($Matches.folder) { $Matches.folder.Trim('/', '\') } else { '' }
 
-    return [IO.Path]::GetFullPath((Join-Path $Matches.path.Trim() $folder)).TrimEnd('\', '/')
+    # Plain string combine: Join-Path needs the drive to exist, and a host path like "D:/Projects/PVS" has none in a Linux container.
+    return [IO.Path]::GetFullPath([IO.Path]::Combine($Matches.path.Trim(), $folder)).TrimEnd('\', '/')
 }
 
 function Find-NoteOutsideDraft {
