@@ -157,7 +157,7 @@ async function prepare(context: BatchContext, session: AgentRunSession, task: Ta
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
       ...skills.tools,
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2)),
-      createVaultCaptureTool(run.draft.captures),
+      ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

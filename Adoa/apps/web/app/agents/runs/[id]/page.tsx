@@ -1,4 +1,4 @@
-import { agentRun, localItem, refinement, workItem } from "@adoa/db";
+import { agentRun, localItem, refinement, vaultCapture, workItem } from "@adoa/db";
 import type { StoredTraceEvent, UsageRecord } from "@agenttools/usage";
 import { and, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
@@ -35,6 +35,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
       <RunSummary run={run} usage={usage} />
       <h2>Outputs</h2>
       <Outputs run={run} />
+      <Captures runId={run.id} />
       {run.outcome !== "success" && run.outcome !== "running" && <Failure run={run} trace={trace} />}
       <h2>Input (first message)</h2>
       <details>
@@ -86,6 +87,28 @@ async function Outputs({ run }: { run: RunRow }) {
         <li key={item.id}>{item.vaultPath ? <NoteLink path={item.vaultPath} label={item.id} /> : item.id} · {item.kind} · {item.status} · {item.title}</li>
       ))}
     </ul>
+  );
+}
+
+// VaultCapture results: created / appended drafts, or the module's reasons for rejecting.
+async function Captures({ runId }: { runId: number }) {
+  const captures = await getDb().select().from(vaultCapture).where(eq(vaultCapture.runId, runId));
+
+  if (captures.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <h2>Vault captures</h2>
+      <ul>
+        {captures.map((capture) => (
+          <li key={capture.id} className={capture.status === "rejected" ? "result-error" : undefined}>
+            {capture.name} · {capture.status}{capture.filePath ? ` · ${capture.filePath}` : ""}{capture.errors.length > 0 ? ` · ${capture.errors.join("; ")}` : ""}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

@@ -21,7 +21,7 @@ export async function renderPipelineNotes(db: AdoaDb, adoId: number): Promise<vo
 
   await writeRefinement(db, notes, pbiPath, adoId);
   await writeItems(db, notes, pbiPath, adoId);
-  await writeCaptures(db, process.env.DOCS_DRAFT_ROOT, adoId);
+  await writeCaptures(db, adoId);
   await notes.writeIndex();
 }
 

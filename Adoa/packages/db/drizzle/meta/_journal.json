@@ -57,6 +57,13 @@
       "when": 1790859812050,
       "tag": "0007_vault_capture",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790861134849,
+      "tag": "0008_vault_capture_module",
+      "breakpoints": true
     }
   ]
 }

@@ -155,19 +155,24 @@ export const refinement = pgTable("refinement", {
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
 
-// Unverified findings an agent captured for the docs vault; the worker writes them as draft/ notes.
+// Unverified findings an agent captured for the docs vault; the worker saves them through the VaultCapture module.
 
 export const vaultCapture = pgTable("vault_capture", {
   id: serial("id").primaryKey(),
   runId: bigint("run_id", { mode: "number" }).notNull().references(() => agentRun.id),
   pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
   itemId: text("item_id").references(() => localItem.id),
+  /** VaultCapture note name: kebab-case, project-prefixed, unique in the vault. */
+  name: text("name").notNull(),
   title: text("title").notNull(),
   project: text("project").notNull(),
   target: text("target").notNull(),
-  captured: jsonb("captured").$type<{ fact: string; evidence: string }[]>().notNull(),
+  captured: jsonb("captured").$type<string[]>().notNull(),
+  assumptions: jsonb("assumptions").$type<string[]>().notNull().default([]),
   toFill: jsonb("to_fill").$type<string[]>().notNull(),
-  /** Set once the worker wrote the draft note (path relative to the docs vault). */
+  /** pending → created | appended | rejected (VaultCapture's result, written by the worker). */
+  status: text("status").notNull().default("pending"),
+  errors: jsonb("errors").$type<string[]>().notNull().default([]),
   filePath: text("file_path"),
   createdAt: createdAt(),
 }, (t) => [index("vault_capture_pbi_idx").on(t.pbiId)]);

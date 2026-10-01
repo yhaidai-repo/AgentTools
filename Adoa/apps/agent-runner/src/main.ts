@@ -1,4 +1,4 @@
-import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, recoverInterruptedRuns, runRefinementBatch, runResearchBatch, type AgentDeps } from "@adoa/agents";
+import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runRefinementBatch, runResearchBatch, type AgentDeps } from "@adoa/agents";
 import { RENDER_QUEUE, applyAgentSchedule, createWorkerBoss, ensureQueues, type RenderJob } from "@adoa/core";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore, type AgentConfigStore } from "@agenttools/config";
@@ -32,6 +32,12 @@ await config.ensureDefaults(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
 await recoverInterruptedRuns(db);
 
 const repoCacheRoot = requireEnv("REPO_CACHE_ROOT");
+const captureRules = await loadCaptureRules(process.env.VAULT_CAPTURE_HOME);
+
+if (!captureRules) {
+  console.error("VAULT_CAPTURE_HOME is not set: agents get no vault_capture tool");
+}
+
 const deps: AgentDeps = {
   db,
   config,
@@ -44,6 +50,7 @@ const deps: AgentDeps = {
   skillFolders: skillFolders(),
   repoCache: new RepoCache({ root: repoCacheRoot, authHeader: adoAuthHeader(), refreshMinutes: REPO_REFRESH_MINUTES }),
   repoCacheRoot,
+  captureRules,
   enqueueRender: async (adoId) => {
     const job: RenderJob = { adoId };
 

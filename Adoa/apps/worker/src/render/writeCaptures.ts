@@ -1,40 +1,92 @@
 import { vaultCapture, type AdoaDb } from "@adoa/db";
-import { captureFileName, renderCaptureNote } from "@adoa/vault";
-import { and, eq, isNull } from "drizzle-orm";
-import { access, mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-
-const DRAFT_FOLDER = "draft";
+import { and, eq } from "drizzle-orm";
+import { spawn } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 
 type CaptureRow = typeof vaultCapture.$inferSelect;
 
-// Writes the PBI's not-yet-written captures into the docs vault's draft/ folder (the only place the worker
-// may write in the docs vault). Never overwrites: a name clash gets the capture id.
-export async function writeCaptures(db: AdoaDb, draftRoot: string | undefined, adoId: number): Promise<void> {
-  if (!draftRoot) {
+interface CaptureResult {
+  ok: boolean;
+  mode: "created" | "appended" | "rejected";
+  path: string | null;
+  errors: string[];
+}
+
+const CONFIG_FILE = "/tmp/vault-capture.config.json";
+const TIMEOUT_MS = 60_000;
+
+// Saves the PBI's pending captures through the VaultCapture module (its CLI), which owns the vault rules.
+// Every result is stored on the capture; a rejection is logged and shown on the run page, never dropped.
+export async function writeCaptures(db: AdoaDb, adoId: number): Promise<void> {
+  const moduleHome = process.env.VAULT_CAPTURE_HOME;
+  const vaultName = process.env.DOCS_VAULT_NAME;
+
+  if (!moduleHome || !vaultName) {
     return;
   }
 
-  const pending = await db.select().from(vaultCapture).where(and(eq(vaultCapture.pbiId, adoId), isNull(vaultCapture.filePath)));
+  const pending = await db.select().from(vaultCapture).where(and(eq(vaultCapture.pbiId, adoId), eq(vaultCapture.status, "pending")));
 
-  await mkdir(draftRoot, { recursive: true });
+  await writeFile(CONFIG_FILE, JSON.stringify({ vaults: [vaultRoot(vaultName)] }), "utf8");
 
   for (const capture of pending) {
-    await writeCapture(db, draftRoot, capture);
+    await saveCapture(db, moduleHome, vaultName, capture);
   }
 }
 
-async function writeCapture(db: AdoaDb, draftRoot: string, capture: CaptureRow): Promise<void> {
-  const preferred = captureFileName(capture.project, capture.title, capture.id, false);
-  const isTaken = await exists(join(draftRoot, preferred));
-  const fileName = isTaken ? captureFileName(capture.project, capture.title, capture.id, true) : preferred;
-  const source = `agent research RUN-${capture.runId} (${capture.itemId ?? "-"}, PBI-${capture.pbiId})`;
-  const content = renderCaptureNote({ ...capture, source, created: capture.createdAt });
+async function saveCapture(db: AdoaDb, moduleHome: string, vaultName: string, capture: CaptureRow): Promise<void> {
+  const request = {
+    vault: vaultName,
+    project: capture.project,
+    name: capture.name,
+    title: capture.title,
+    source: `session finding: adoa ${capture.itemId ?? "agent"} run RUN-${capture.runId} (PBI-${capture.pbiId})`,
+    target: capture.target,
+    captured: capture.captured,
+    assumptions: capture.assumptions,
+    toFill: capture.toFill,
+  };
+  const result = await runCapture(moduleHome, JSON.stringify(request));
+  const filePath = result.ok && result.path ? relative(vaultRoot(vaultName), result.path) : null;
 
-  await writeFile(join(draftRoot, fileName), content, { encoding: "utf8", flag: "wx" });
-  await db.update(vaultCapture).set({ filePath: `${DRAFT_FOLDER}/${fileName}` }).where(eq(vaultCapture.id, capture.id));
+  if (!result.ok) {
+    console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${result.errors.join("; ")}`);
+  }
+
+  await db.update(vaultCapture).set({ status: result.mode, errors: result.errors, filePath }).where(eq(vaultCapture.id, capture.id));
 }
 
-async function exists(path: string): Promise<boolean> {
-  return access(path).then(() => true, () => false);
+function vaultRoot(vaultName: string): string {
+  return `/vaults/${vaultName}`;
+}
+
+function runCapture(moduleHome: string, input: string): Promise<CaptureResult> {
+  return new Promise((resolve) => {
+    const child = spawn("pwsh", ["-NoProfile", "-NonInteractive", "-File", join(moduleHome, "vault-capture.ps1"), "capture"], {
+      env: { ...process.env, VAULT_CAPTURE_CONFIG: CONFIG_FILE, NO_COLOR: "1" },
+      timeout: TIMEOUT_MS,
+    });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.on("error", (error) => resolve(failed(`could not run VaultCapture: ${error.message}`)));
+    child.on("close", (code) => resolve(parseResult(stdout, stderr, code)));
+    child.stdin.end(input, "utf8");
+  });
+}
+
+// The CLI prints one JSON result (also when rejecting, with exit code 1); anything else is a failure to report.
+function parseResult(stdout: string, stderr: string, code: number | null): CaptureResult {
+  try {
+    return JSON.parse(stdout.trim().split("\n").pop() ?? "") as CaptureResult;
+  } catch {
+    return failed(`VaultCapture exited with ${code}: ${(stderr || stdout).trim().slice(0, 500)}`);
+  }
+}
+
+function failed(message: string): CaptureResult {
+  return { ok: false, mode: "rejected", path: null, errors: [message] };
 }
