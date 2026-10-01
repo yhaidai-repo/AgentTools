@@ -1,21 +1,21 @@
 function Format-VaultReport {
     param(
-        [Parameter(Mandatory)][object[]]$Reports,
+        [Parameter(Mandatory)][object]$Report,
         [Parameter(Mandatory)][ValidateSet('object', 'markdown', 'json', 'csv')][string]$Format
     )
 
     switch ($Format) {
         'object' {
-            return $Reports
+            return $Report
         }
         'json' {
-            return $Reports | ConvertTo-Json -Depth 5
+            return $Report | ConvertTo-Json -Depth 5
         }
         'csv' {
-            return $Reports | ForEach-Object { ConvertTo-VaultNoteRow -Report $_ } | ConvertTo-Csv -NoTypeInformation
+            return ConvertTo-VaultNoteRow -Report $Report | ConvertTo-Csv -NoTypeInformation
         }
         'markdown' {
-            return ($Reports | ForEach-Object { ConvertTo-UsageMarkdown -Report $_ }) -join ([Environment]::NewLine * 2)
+            return ConvertTo-UsageMarkdown -Report $Report
         }
     }
 }

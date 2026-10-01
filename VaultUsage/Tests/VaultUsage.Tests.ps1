@@ -92,7 +92,7 @@ Describe 'Get-VaultUsageReport' {
     }
 
     It 'counts usage per note' {
-        $report = Get-VaultUsageReport -Format object -Config $config
+        $report = Get-VaultUsageReport -Vault $vaultRoot -Format object -Config $config
         $index = $report.Notes | Where-Object File -EQ 'index.md'
 
         $index.Reads | Should -Be 1
@@ -102,14 +102,14 @@ Describe 'Get-VaultUsageReport' {
     }
 
     It 'lists unused notes with zero usage' {
-        $report = Get-VaultUsageReport -Format object -Config $config
+        $report = Get-VaultUsageReport -Vault $vaultRoot -Format object -Config $config
         $never = $report.Notes | Where-Object File -EQ 'never.md'
 
         $never.Total | Should -Be 0
     }
 
     It 'ignores usage before -Since' {
-        $report = Get-VaultUsageReport -Format object -Since ([datetime]::UtcNow.AddDays(1)) -Config $config
+        $report = Get-VaultUsageReport -Vault $vaultRoot -Format object -Since ([datetime]::UtcNow.AddDays(1)) -Config $config
         $index = $report.Notes | Where-Object File -EQ 'index.md'
 
         $index.Total | Should -Be 0
@@ -118,7 +118,7 @@ Describe 'Get-VaultUsageReport' {
     It 'marks logged notes that no longer exist' {
         Remove-Item (Join-Path $vaultRoot 'index.md')
 
-        $report = Get-VaultUsageReport -Format object -Config $config
+        $report = Get-VaultUsageReport -Vault $vaultRoot -Format object -Config $config
         $index = $report.Notes | Where-Object File -EQ 'index.md'
 
         $index.Exists | Should -BeFalse

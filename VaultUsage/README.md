@@ -41,10 +41,10 @@ pwsh -NoProfile -File vault-usage.ps1 record -Path D:/Claude/work-projects/index
 ## Report
 
 ```bash
-pwsh -NoProfile -File vault-usage.ps1 report -Since 2026-09-01 -Format markdown -OutFile usage-report.md
+pwsh -NoProfile -File vault-usage.ps1 report -Vault D:/Claude/work-projects -Since 2026-09-01 -Format markdown -OutFile usage-report.md
 ```
 
-`-Vault` limits to one vault. `-Format`: `markdown` (default), `json`, `csv`, `object`.
+`-Vault` (required): one vault per report. `-Format`: `markdown` (default), `json`, `csv`, `object`.
 Sections: used notes (reads, searches, shell, writes, sessions, last used, last read), never used, logged but missing.
 
 ## Log contract

@@ -1,7 +1,7 @@
 function Get-VaultUsageReport {
     [CmdletBinding()]
     param(
-        [string[]]$Vault,
+        [Parameter(Mandatory)][string]$Vault,
         [Nullable[datetime]]$Since,
         [ValidateSet('object', 'markdown', 'json', 'csv')][string]$Format = 'markdown',
         [string]$OutFile,
@@ -10,9 +10,8 @@ function Get-VaultUsageReport {
     )
 
     $usageConfig = if ($Config) { $Config } else { Get-VaultUsageConfig -ConfigPath $ConfigPath }
-    $vaultRoots = if ($Vault) { $Vault | ForEach-Object { ConvertTo-NativePath -Path $_ } } else { $usageConfig.vaults }
-    $reports = @($vaultRoots | ForEach-Object { Measure-VaultUsage -VaultRoot $_ -Config $usageConfig -Since $Since })
-    $output = Format-VaultReport -Reports $reports -Format $Format
+    $report = Measure-VaultUsage -VaultRoot (ConvertTo-NativePath -Path $Vault) -Config $usageConfig -Since $Since
+    $output = Format-VaultReport -Report $report -Format $Format
 
     if (-not $OutFile) {
         return $output
