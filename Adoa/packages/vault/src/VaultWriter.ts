@@ -35,6 +35,10 @@ export class VaultWriter {
     return true;
   }
 
+  readText(relativePath: string): Promise<string | null> {
+    return readIfExists(this.pathOf(relativePath));
+  }
+
   // A whole file as given (e.g. a docs-vault note the tech-writer merged); unchanged content isn't rewritten.
   async writeText(relativePath: string, content: string): Promise<boolean> {
     const fullPath = this.pathOf(relativePath);

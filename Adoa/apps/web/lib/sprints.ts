@@ -1,5 +1,6 @@
 import { AdoClient, type AdoIteration } from "@adoa/ado";
 import { isAdoConfigured, type AdoSettings } from "@adoa/core";
+import type { SprintOption } from "@/models/SprintOption";
 
 // Dated team sprints, newest first; null when ADO can't be reached, so the form falls back to a text field.
 export async function loadSprintOptions(ado: AdoSettings | null): Promise<AdoIteration[] | null> {
@@ -19,4 +20,11 @@ export async function loadSprintOptions(ado: AdoSettings | null): Promise<AdoIte
   } catch {
     return null;
   }
+}
+
+// The sprint choices of the Settings and Backlog sync forms.
+export async function loadSprintChoices(ado: AdoSettings | null): Promise<SprintOption[] | null> {
+  const sprints = await loadSprintOptions(ado);
+
+  return sprints?.map((sprint) => ({ path: sprint.path, label: `${sprint.path} (${sprint.timeFrame ?? "?"})` })) ?? null;
 }

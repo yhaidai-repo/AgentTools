@@ -1,5 +1,4 @@
 export interface BacklogFilter {
-  sprint: string;
-  state: string;
-  showOutOfScope: boolean;
+  /** Pipeline status; "" = all. */
+  status: string;
 }

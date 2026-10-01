@@ -28,6 +28,7 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
         <span className="chip">for: {item.assignee}</span>
         {item.createdByRun && <Link className="chip" href={`/agents/runs/${item.createdByRun}`}>created by RUN-{item.createdByRun}</Link>}
         {item.parentId && <Link className="chip" href={itemPath({ id: item.parentId, pbiId: adoId })}>from {item.parentId}</Link>}
+        {detail.runs.map((run) => <Link key={run.id} className="chip" href={`/agents/runs/${run.id}`}>RUN-{run.id} · {run.outcome}</Link>)}
       </div>
       <p className="actions">
         {isRerunnableTask(item) && <RerunTaskButton adoId={adoId} itemId={item.id} />}

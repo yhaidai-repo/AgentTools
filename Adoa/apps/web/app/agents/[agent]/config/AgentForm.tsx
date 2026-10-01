@@ -40,15 +40,14 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
         Model: provider / model id / effort
         <span className="actions">
           <input name="provider" defaultValue={agent.model.provider} required />
-          <input name="model" defaultValue={agent.model.model} list={`models-${agent.id}`} required />
+          <select name="model" defaultValue={agent.model.model} required>
+            {modelChoices(catalog, agent).map((entry) => <option key={`${entry.provider}/${entry.model}`} value={entry.model} title={entry.model}>{entry.label}</option>)}
+          </select>
           <select name="effort" defaultValue={agent.model.effort ?? ""}>
             <option value="">default</option>
             {["low", "medium", "high", "xhigh", "max"].map((level) => <option key={level} value={level}>{level}</option>)}
           </select>
         </span>
-        <datalist id={`models-${agent.id}`}>
-          {catalog.map((entry) => <option key={`${entry.provider}/${entry.model}`} value={entry.model}>{entry.label}</option>)}
-        </datalist>
       </label>
       <label>
         Max turns · timeout (minutes)
@@ -77,4 +76,11 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
       {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
     </form>
   );
+}
+
+// The catalog's models, plus the configured one when the catalog doesn't list it (so saving never changes it silently).
+function modelChoices(catalog: CatalogModel[], agent: AgentDefinition): CatalogModel[] {
+  const isListed = catalog.some((entry) => entry.model === agent.model.model);
+
+  return isListed ? catalog : [...catalog, { provider: agent.model.provider, model: agent.model.model, label: "Configured" }];
 }

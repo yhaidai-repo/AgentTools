@@ -88,6 +88,7 @@ function docsVaultWriter(): AgentDeps["docsVault"] {
   const writer = new VaultWriter(`/vaults/${vaultName}`);
 
   return {
+    readNote: (path) => writer.readText(path),
     writeNote: async (path, content) => {
       await writer.writeText(path, content);
     },

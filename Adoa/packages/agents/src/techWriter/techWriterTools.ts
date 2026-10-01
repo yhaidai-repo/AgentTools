@@ -2,6 +2,7 @@ import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
+import { hasFrontmatter } from "./noteAuthors";
 import { normalizeNotePath, notePathProblem } from "./notePaths";
 
 // Pipeline tools of the tech-writer. They only fill the draft; nothing is written until the run succeeds.
@@ -18,7 +19,7 @@ function writeNoteTool(draft: TechWriterDraft) {
       content: z.string().min(1).describe("The complete note"),
     },
     handler: async (input) => {
-      const problem = notePathProblem(input.path);
+      const problem = notePathProblem(input.path) ?? (hasFrontmatter(input.content) ? null : "a note opens with its frontmatter (see the vault rules)");
 
       if (problem) {
         return { text: `Not saved: ${problem}`, isError: true };

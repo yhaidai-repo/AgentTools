@@ -4,17 +4,23 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { DocsVault } from "../models/DocsVault";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { FindingDraft } from "./models/FindingDraft";
+import type { NoteAuthor } from "./models/NoteAuthor";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
+import { withAuthor } from "./noteAuthors";
 
 type ItemRow = typeof localItem.$inferSelect;
+
+const AUTHOR = "adoa tech-writer";
 
 // A successful run: the notes are written, the draft leaves draft/ (the point of the job), adoa's capture of it is
 // merged, and each finding becomes an item for the user's review. Returns what was written and created, for the outputs.
 export async function commitTechWriter(db: AdoaDb, docsVault: DocsVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<string[]> {
   const data = task.data as DraftTaskData;
 
+  const author: NoteAuthor = { writer: AUTHOR, context: `RUN-${runId}`, date: new Date().toISOString().slice(0, 10) };
+
   for (const edit of draft.edits) {
-    await docsVault.writeNote(edit.path, edit.content);
+    await docsVault.writeNote(edit.path, withAuthor(edit.content, await docsVault.readNote(edit.path), author));
   }
 
   await docsVault.removeFile(data.path);

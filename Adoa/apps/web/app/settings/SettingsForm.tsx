@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { AdoSettings, SyncSettings } from "@adoa/core";
 import type { ActionResult } from "@/models/ActionResult";
+import { SprintField } from "@/components/SprintField";
 import type { SprintOption } from "@/models/SprintOption";
 import { saveSettings, testConnection } from "./actions";
 
@@ -10,9 +11,10 @@ interface SettingsFormProps {
   ado: AdoSettings;
   sync: SyncSettings;
   sprintOptions: SprintOption[] | null;
+  currentSprint: string | null;
 }
 
-export function SettingsForm({ ado, sync, sprintOptions }: SettingsFormProps) {
+export function SettingsForm({ ado, sync, sprintOptions, currentSprint }: SettingsFormProps) {
   const [saveResult, saveAction, isSaving] = useActionState<ActionResult | null, FormData>(saveSettings, null);
   const [testResult, testAction, isTesting] = useActionState<ActionResult | null, FormData>(testConnection, null);
   const result = saveResult ?? testResult;
@@ -33,7 +35,7 @@ export function SettingsForm({ ado, sync, sprintOptions }: SettingsFormProps) {
       </label>
       <label>
         Sprint to sync
-        <SprintField value={sync.sprint} options={sprintOptions} />
+        <SprintField value={sync.sprint} options={sprintOptions} current={currentSprint} />
       </label>
       <label>
         ADO states to pull (comma-separated, empty = all)
@@ -59,21 +61,5 @@ export function SettingsForm({ ado, sync, sprintOptions }: SettingsFormProps) {
       </div>
       {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
     </form>
-  );
-}
-
-// Falls back to a text field when ADO can't list the team's sprints.
-function SprintField({ value, options }: { value: string; options: SprintOption[] | null }) {
-  if (!options) {
-    return <input name="sprint" defaultValue={value} placeholder="current or AA\2026\26.3.7" required />;
-  }
-
-  return (
-    <select name="sprint" defaultValue={value}>
-      <option value="current">Current sprint (from ADO)</option>
-      {options.map((option) => (
-        <option key={option.path} value={option.path}>{option.label}</option>
-      ))}
-    </select>
   );
 }

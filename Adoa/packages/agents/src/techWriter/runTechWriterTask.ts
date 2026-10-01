@@ -10,6 +10,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { resolveRepos, reposByName } from "../research/resolveRepos";
 import { numberOption } from "../stage";
 import { commitTechWriter } from "./commitTechWriter";
+import { requireNoDraftLinks } from "./draftLinks";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
 import { projectRepoName } from "./projectRepo";
@@ -49,6 +50,7 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
     const commit = async () => {
+      await requireNoDraftLinks(deps.docsRoot, (task.data as DraftTaskData).draft, run.draft.edits);
       await commitTechWriter(deps.db, docsVault, task, session.runId, run.draft);
     };
 

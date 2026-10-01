@@ -1,5 +1,5 @@
 import { localItem } from "@adoa/db";
-import { and, desc, eq, inArray, isNull, ne, notInArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, notInArray, sql, type SQL } from "drizzle-orm";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { getDb } from "./db";
 
@@ -11,7 +11,28 @@ export const TASK_KINDS = ["question", "human", "finding", "refinement", "resear
 
 // Every task, question and finding across PBIs, plus those without one (e.g. a chat draft's tech-writer task).
 export async function loadTaskList(filter: TaskFilter) {
-  return getDb().select().from(localItem).where(and(...filterConditions(filter))).orderBy(desc(localItem.createdAt)).limit(LIST_LIMIT);
+  return getDb()
+    .select({ ...getTableColumns(localItem), latestRunId: latestRunId(), latestRunOutcome: latestRunOutcome() })
+    .from(localItem)
+    .where(and(...filterConditions(filter)))
+    .orderBy(sortOrder(filter), desc(localItem.id))
+    .limit(LIST_LIMIT);
+}
+
+// The run that last worked on the item (an agent task's run; questions and findings have none). The column is written
+// out: inside a select, drizzle renders it as a bare "id", which the subquery would read as agent_run's own id.
+function latestRunId(): SQL<number | null> {
+  return sql<number | null>`(SELECT max(r.id)::int FROM agent_run r WHERE r.item_id = "local_item"."id")`;
+}
+
+function latestRunOutcome(): SQL<string | null> {
+  return sql<string | null>`(SELECT r.outcome::text FROM agent_run r WHERE r.item_id = "local_item"."id" ORDER BY r.id DESC LIMIT 1)`;
+}
+
+function sortOrder(filter: TaskFilter): SQL {
+  const column = filter.sort === "updated" ? localItem.updatedAt : localItem.createdAt;
+
+  return filter.dir === "asc" ? asc(column) : desc(column);
 }
 
 function filterConditions(filter: TaskFilter): SQL[] {

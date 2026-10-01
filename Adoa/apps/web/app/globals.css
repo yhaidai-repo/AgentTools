@@ -136,6 +136,7 @@ tr.out-of-scope {
 
 form.card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   max-width: 560px;
   padding: 16px;
@@ -196,6 +197,11 @@ button:disabled {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+.actions > input,
+.actions > select {
+  min-width: 0;
 }
 
 .result-ok {

@@ -1,10 +1,18 @@
 "use server";
 
-import { PREPARE_QUEUE, SYNC_QUEUE, type PrepareJob } from "@adoa/core";
+import { PREPARE_QUEUE, SYNC_QUEUE, readSyncSettings, saveSyncSettings, type PrepareJob } from "@adoa/core";
+import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
+import { getDb } from "@/lib/db";
+import { formText } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
 
-export async function syncNow(): Promise<ActionResult> {
+// The picked sprint becomes the sync setting (user decision 2026-10-02): Sync now, the scheduled sync and the Backlog
+// list all follow it.
+export async function syncNow(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  await saveSyncSprint(formText(form, "sprint") ?? "current");
+  revalidatePath("/pbis");
+
   const boss = await getBoss();
   const jobId = await boss.send(SYNC_QUEUE);
 
@@ -14,6 +22,14 @@ export async function syncNow(): Promise<ActionResult> {
   }
 
   return { ok: true, message: "Sync queued. Refresh in a moment." };
+}
+
+async function saveSyncSprint(sprint: string): Promise<void> {
+  const settings = await readSyncSettings(getDb());
+
+  if (settings.sprint !== sprint) {
+    await saveSyncSettings(getDb(), { ...settings, sprint });
+  }
 }
 
 // The web never writes the Vault; the worker renders the notes.

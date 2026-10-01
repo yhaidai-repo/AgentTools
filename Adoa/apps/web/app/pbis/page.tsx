@@ -1,24 +1,30 @@
-import { readAdoSettings } from "@adoa/core";
-import { agentRun, workItem, type AdoaDb } from "@adoa/db";
+import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core";
+import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
 import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { loadSprintChoices } from "@/lib/sprints";
 import type { BacklogFilter } from "@/models/BacklogFilter";
 import type { BacklogRow } from "@/models/BacklogRow";
-import { BacklogFilters } from "./BacklogFilters";
 import { LastSync } from "./LastSync";
 import { PbiTable } from "./PbiTable";
 import { PrepareForm } from "./PrepareForm";
 import { StatusChips } from "./StatusChips";
-import { SyncNowButton } from "./SyncNowButton";
+import { StatusFilter } from "./StatusFilter";
+import { SyncForm } from "./SyncForm";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ sprint?: string; state?: string; outOfScope?: string }>;
+type SearchParams = Promise<{ status?: string }>;
 
+const STATUSES: string[] = pipelineStatus.enumValues;
+
+// Every synced PBI in scope; the sprint picker only says what the sync pulls.
 export default async function PbisPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const filter: BacklogFilter = { sprint: params.sprint ?? "", state: params.state ?? "", showOutOfScope: params.outOfScope === "1" };
+  const filter: BacklogFilter = { status: STATUSES.find((status) => status === params.status) ?? "" };
   const db = getDb();
+  const sync = await readSyncSettings(db);
+  const ado = await readAdoSettings(db);
   const rows = await loadRows(db, filter);
   const [lastSync] = await db.select().from(agentRun).where(eq(agentRun.stage, "sync")).orderBy(desc(agentRun.id)).limit(1);
 
@@ -26,47 +32,33 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
     <>
       <h1>Backlog</h1>
       <div className="toolbar">
-        <SyncNowButton />
+        <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db)} />
         <LastSync run={lastSync} />
       </div>
-      <BacklogFilters filter={filter} sprints={await distinctValues(db, workItem.iterationPath)} states={await distinctValues(db, workItem.adoState)} />
+      <StatusFilter status={filter.status} statuses={STATUSES} />
       <StatusChips rows={rows} />
       <PrepareForm>
-        <PbiTable rows={rows} ado={await readAdoSettings(db)} />
+        <PbiTable rows={rows} ado={ado} />
       </PrepareForm>
-      {rows.length === 0 && <p className="muted">No PBIs match. Check the filters or Settings, then run a sync.</p>}
+      {rows.length === 0 && <p className="muted">No PBIs match. Check the status, or sync a sprint.</p>}
     </>
   );
 }
 
 async function loadRows(db: AdoaDb, filter: BacklogFilter): Promise<BacklogRow[]> {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(workItem.outOfScope, false)];
 
-  if (!filter.showOutOfScope) {
-    conditions.push(eq(workItem.outOfScope, false));
-  }
-
-  if (filter.sprint) {
-    conditions.push(eq(workItem.iterationPath, filter.sprint));
-  }
-
-  if (filter.state) {
-    conditions.push(eq(workItem.adoState, filter.state));
+  if (filter.status) {
+    conditions.push(sql`${workItem.pipelineStatus} = ${filter.status}`);
   }
 
   return db
     .select({ ...getTableColumns(workItem), openForYou: openForYou() })
     .from(workItem)
     .where(and(...conditions))
-    .orderBy(asc(workItem.outOfScope), asc(workItem.backlogPriority), asc(workItem.adoId));
+    .orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 }
 
 function openForYou(): SQL<number> {
   return sql<number>`(SELECT count(*)::int FROM local_item i WHERE i.pbi_id = ${workItem.adoId} AND i.assignee = 'human' AND i.status IN ('open', 'in-progress'))`;
-}
-
-async function distinctValues(db: AdoaDb, column: typeof workItem.iterationPath | typeof workItem.adoState): Promise<string[]> {
-  const rows = await db.selectDistinct({ value: column }).from(workItem).orderBy(desc(column));
-
-  return rows.map((row) => row.value).filter((value): value is string => !!value);
 }

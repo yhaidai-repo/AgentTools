@@ -47,7 +47,9 @@ export async function loadItemDetail(itemId: string) {
   const results = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "research-result"))).orderBy(localItem.id);
   const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
-  return { item, attachments, results, findings };
+  const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
+
+  return { item, attachments, results, findings, runs };
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;

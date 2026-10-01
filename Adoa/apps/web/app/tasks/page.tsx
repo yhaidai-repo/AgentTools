@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { isOpen, itemPath } from "@/lib/items";
-import { loadTaskList, type TaskRow } from "@/lib/taskList";
+import { TASK_KINDS, loadTaskList, type TaskRow } from "@/lib/taskList";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { TaskFilters } from "./TaskFilters";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string }>;
+type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; sort?: string; dir?: string }>;
 
 const STATUS_FILTERS: TaskFilter["status"][] = ["open", "closed", "all"];
 
@@ -16,26 +16,28 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const filter: TaskFilter = {
     kind: params.kind ?? "",
-    status: STATUS_FILTERS.find((status) => status === params.status) ?? "open",
+    status: STATUS_FILTERS.find((status) => status === params.status) ?? "all",
     pbi: (params.pbi ?? "").trim(),
+    sort: params.sort === "updated" ? "updated" : "created",
+    dir: params.dir === "asc" ? "asc" : "desc",
   };
   const rows = await loadTaskList(filter);
 
   return (
     <>
       <h1>Tasks</h1>
-      <TaskFilters filter={filter} />
-      {rows.length === 0 ? <p className="muted">Nothing matches.</p> : <TaskTable rows={rows} />}
+      <TaskFilters filter={filter} kinds={TASK_KINDS} />
+      {rows.length === 0 ? <p className="muted">Nothing matches.</p> : <TaskTable rows={rows} filter={filter} />}
     </>
   );
 }
 
-function TaskTable({ rows }: { rows: TaskRow[] }) {
+function TaskTable({ rows, filter }: { rows: TaskRow[]; filter: TaskFilter }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
-          <tr><th>Id</th><th>Kind</th><th>Status</th><th>For</th><th>PBI</th><th>Title</th><th>Created</th></tr>
+          <tr><th>Id</th><th>Kind</th><th>Status</th><th>For</th><th>PBI</th><th>Run</th><th>Title</th><SortHeader filter={filter} column="created" label="Created" /><SortHeader filter={filter} column="updated" label="Updated" /></tr>
         </thead>
         <tbody>
           {rows.map((row) => (
@@ -45,12 +47,24 @@ function TaskTable({ rows }: { rows: TaskRow[] }) {
               <td className={isOpen(row) && row.assignee === "human" ? "result-error" : undefined}>{row.status}{row.heldBy.length > 0 && row.status === "open" ? " (held)" : ""}</td>
               <td>{row.assignee.replace("agent:", "")}</td>
               <td>{row.pbiId === null ? "–" : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}</td>
+              <td>{row.latestRunId === null ? "–" : <Link href={`/agents/runs/${row.latestRunId}`}>RUN-{row.latestRunId} · {row.latestRunOutcome}</Link>}</td>
               <td>{row.title}</td>
               <td><LocalTime date={row.createdAt} /></td>
+              <td><LocalTime date={row.updatedAt} /></td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
+}
+
+// Click to sort by this date, newest first; click again to flip the order. The filters stay as they are.
+function SortHeader({ filter, column, label }: { filter: TaskFilter; column: TaskFilter["sort"]; label: string }) {
+  const isActive = filter.sort === column;
+  const dir = isActive && filter.dir === "desc" ? "asc" : "desc";
+  const query = new URLSearchParams({ kind: filter.kind, status: filter.status, pbi: filter.pbi, sort: column, dir });
+  const arrow = filter.dir === "desc" ? " ↓" : " ↑";
+
+  return <th><Link href={`/tasks?${query}`}>{label}{isActive ? arrow : ""}</Link></th>;
 }

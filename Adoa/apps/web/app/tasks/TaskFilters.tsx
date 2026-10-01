@@ -1,30 +1,36 @@
-import { TASK_KINDS } from "@/lib/taskList";
+"use client";
+
 import type { TaskFilter } from "@/models/TaskFilter";
 
-// Plain GET form: filters live in the URL, no client state needed.
-export function TaskFilters({ filter }: { filter: TaskFilter }) {
+// Applies on change (the PBI field on Enter): the filters live in the URL, no Filter button.
+export function TaskFilters({ filter, kinds }: { filter: TaskFilter; kinds: readonly string[] }) {
   return (
     <form method="get" className="toolbar filters">
+      <input type="hidden" name="sort" value={filter.sort} />
+      <input type="hidden" name="dir" value={filter.dir} />
       <label>
         Kind
-        <select name="kind" defaultValue={filter.kind}>
+        <select name="kind" defaultValue={filter.kind} onChange={submitForm}>
           <option value="">All</option>
-          {TASK_KINDS.map((kind) => <option key={kind} value={kind}>{kind}</option>)}
+          {kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}
         </select>
       </label>
       <label>
         Status
-        <select name="status" defaultValue={filter.status}>
+        <select name="status" defaultValue={filter.status} onChange={submitForm}>
+          <option value="all">All</option>
           <option value="open">Open</option>
           <option value="closed">Closed</option>
-          <option value="all">All</option>
         </select>
       </label>
       <label>
         PBI
-        <input name="pbi" defaultValue={filter.pbi} placeholder="any, none or an id" size={14} />
+        <input name="pbi" defaultValue={filter.pbi} placeholder="any, none or an id (Enter)" size={22} />
       </label>
-      <button type="submit" className="secondary">Filter</button>
     </form>
   );
+}
+
+function submitForm(event: React.ChangeEvent<HTMLSelectElement>) {
+  event.currentTarget.form?.requestSubmit();
 }

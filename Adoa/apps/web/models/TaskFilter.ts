@@ -3,4 +3,6 @@ export interface TaskFilter {
   kind: string;
   status: "open" | "closed" | "all";
   pbi: string;
+  sort: "created" | "updated";
+  dir: "asc" | "desc";
 }
