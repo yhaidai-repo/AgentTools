@@ -10,7 +10,7 @@ PowerShell 7+, cross-platform, no dependencies.
 | `VaultCapture.psd1` (core module) | no | validates a capture against the vault rules, creates or appends a draft, logs the write |
 | `vault-rules.json` | no | the rules: guidance for agents and draft constraints |
 | `vault-capture.ps1` (CLI) | no | `rules` and `capture` for any agent or script |
-| `Adapters/ClaudeCode/` | Claude Code only | `PreCompact` hook that pauses compaction once and tells the agent to save |
+| `Adapters/ClaudeCode/` | Claude Code only | `Stop` hook that tells the agent to save once its context is nearly full |
 
 ## Rules
 
@@ -74,32 +74,35 @@ echo '{"vault":"work-projects","project":"pvs","kind":"issues","title":"Short ti
 
 ## Claude Code adapter
 
-`Invoke-PreCompactHook.ps1`, settings in `pre-compact.config.json` (`VAULT_CAPTURE_PRECOMPACT_CONFIG` overrides):
+`Invoke-ContextLimitHook.ps1`, a `Stop` hook. Settings in `context-limit.config.json` (`VAULT_CAPTURE_CONTEXT_LIMIT_CONFIG` overrides):
 
 | Key | Meaning |
 |---|---|
-| `blockOn` | triggers to pause: `auto`, `manual` |
-| `markerTtlMinutes` | how long the "already asked" marker counts |
-| `stateFolder` | marker files, one per session |
+| `warnAtPercent` | context fill that triggers the warning (70) |
+| `windows` | context window per model pattern, first match wins; ends with `*` |
+| `transcriptTailLines` | transcript lines read to find the last assistant turn |
+| `markerTtlMinutes` | after this, a session still over the limit is warned again |
+| `stateFolder` | marker files (one per session) and `warnings.jsonl` (one line per warning) |
 
-Cycle: 1st compaction attempt → exit 2, the rules and capture command go to the agent → the agent saves → the next attempt is allowed. Errors always allow compaction.
-On `manual`, the user runs `/compact` again after the agent saved.
+After each turn the hook reads the context size from the transcript (last main-conversation assistant turn: input + cache + output tokens). At the limit it blocks the stop once with `{"decision":"block","reason":…}`; Claude gets the rules and capture command, saves, and stops. The marker is cleared when the context drops below the limit (after compaction), so the next cycle warns again. Never blocks while `stop_hook_active`; errors let Claude stop. Runtime-verified 2026-10-02.
 
 Hook in `~/.claude/settings.json`:
 
 ```json
-"PreCompact": [
+"Stop": [
   {
     "hooks": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -NonInteractive -File \"D:/Projects/AgentTools/VaultCapture/Adapters/ClaudeCode/Invoke-PreCompactHook.ps1\"",
+        "command": "pwsh -NoProfile -NonInteractive -File \"D:/Projects/AgentTools/VaultCapture/Adapters/ClaudeCode/Invoke-ContextLimitHook.ps1\"",
         "timeout": 30
       }
     ]
   }
 ]
 ```
+
+`Invoke-PreCompactHook.ps1` (with `pre-compact.config.json`) is kept but not used: a blocked `PreCompact` shows its message to the user, not to Claude, so the agent never saves.
 
 Other agents: call `Get-CaptureInstruction` (or `vault-capture.ps1 rules`) from their own pre-compaction hook, or run `rules` and `capture` by hand.
 

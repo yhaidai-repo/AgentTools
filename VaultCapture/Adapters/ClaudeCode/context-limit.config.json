@@ -1,0 +1,10 @@
+{
+  "warnAtPercent": 70,
+  "windows": [
+    { "model": "claude-opus-5-5*", "tokens": 1000000 },
+    { "model": "*", "tokens": 200000 }
+  ],
+  "transcriptTailLines": 400,
+  "markerTtlMinutes": 1440,
+  "stateFolder": "~/.vault-capture/context-limit"
+}
