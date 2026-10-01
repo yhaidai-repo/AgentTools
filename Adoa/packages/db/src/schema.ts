@@ -33,6 +33,7 @@ export const stage = pgEnum("stage", ["sync", "refinement", "research", "design"
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
+  "timeout", "aborted", "max-turns",
 ]);
 
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed"]);
@@ -87,13 +88,10 @@ export const agentRun = pgTable("agent_run", {
   startedAt: ts("started_at").notNull().defaultNow(),
   endedAt: ts("ended_at"),
   outcome: runOutcome("outcome").notNull().default("running"),
-  turns: integer("turns"),
-  inputTokens: bigint("input_tokens", { mode: "number" }).notNull().default(0),
-  outputTokens: bigint("output_tokens", { mode: "number" }).notNull().default(0),
-  cacheReadTokens: bigint("cache_read_tokens", { mode: "number" }).notNull().default(0),
-  cacheWriteTokens: bigint("cache_write_tokens", { mode: "number" }).notNull().default(0),
-  costUsd: numeric("cost_usd", { precision: 12, scale: 6 }),
   error: text("error"),
+  // Tokens, cost and trace live in AgentUsage (schema agent_usage), keyed by this id.
+  input: text("input"),
+  outputs: jsonb("outputs").$type<string[]>(),
 }, (t) => [
   index("agent_run_stage_started_idx").on(t.stage, t.startedAt),
   index("agent_run_pbi_idx").on(t.pbiId),
@@ -109,6 +107,8 @@ export const localItem = pgTable("local_item", {
   title: text("title").notNull(),
   status: itemStatus("status").notNull(),
   assignee: text("assignee").notNull(), // agent:<stage> | human
+  body: text("body"),
+  data: jsonb("data"),
   attempts: integer("attempts").notNull().default(0),
   createdByRun: bigint("created_by_run", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
   vaultPath: text("vault_path"),
@@ -134,6 +134,23 @@ export const statusHistory = pgTable("status_history", {
 }, (t) => [
   index("status_history_entity_idx").on(t.entityKind, t.entityId, t.at),
 ]);
+
+// Refinement results, one version per agent run; the Vault note is rendered from this.
+
+export const refinement = pgTable("refinement", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  version: integer("version").notNull(),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
+  summary: text("summary").notNull(),
+  scopeIn: jsonb("scope_in").$type<string[]>().notNull(),
+  scopeOut: jsonb("scope_out").$type<string[]>().notNull(),
+  acGaps: jsonb("ac_gaps").$type<{ gap: string; suggestion: string }[]>().notNull(),
+  dependencies: jsonb("dependencies").$type<string[]>().notNull(),
+  repos: jsonb("repos").$type<{ name: string; reason: string }[]>().notNull(),
+  assumptions: jsonb("assumptions").$type<string[]>().notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
 
 // Design facts for metrics; body lives in the Vault note.
 

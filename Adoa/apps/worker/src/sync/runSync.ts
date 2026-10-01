@@ -1,5 +1,5 @@
 import { AdoClient } from "@adoa/ado";
-import { finishRun, isAdoConfigured, readAdoSettings, readSyncSettings, startRun, type AdoSettings } from "@adoa/core";
+import { finishRun, isAdoConfigured, readAdoSettings, readSyncSettings, saveCurrentSprint, startRun, type AdoSettings } from "@adoa/core";
 import type { AdoaDb } from "@adoa/db";
 import { requireEnv } from "../env";
 import { loadScope } from "./loadScope";
@@ -41,6 +41,11 @@ async function syncOnce(db: AdoaDb, runId: number): Promise<SyncResult> {
   }
 
   const changed = await syncWorkItems(ctx, scope);
+  const current = scope.sprints.find((sprint) => sprint.timeframe === "current");
+
+  if (current) {
+    await saveCurrentSprint(db, current.path);
+  }
 
   await snapshotCurrentSprint(db, scope.sprints);
 

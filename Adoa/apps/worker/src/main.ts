@@ -1,7 +1,8 @@
-import { PREPARE_QUEUE, SYNC_QUEUE, applySyncSchedule, createWorkerBoss, ensureQueues, readSyncSettings, type PrepareJob } from "@adoa/core";
+import { PREPARE_QUEUE, RENDER_QUEUE, SYNC_QUEUE, applySyncSchedule, createWorkerBoss, ensureQueues, readSyncSettings, type PrepareJob, type RenderJob } from "@adoa/core";
 import { createDb } from "@adoa/db";
 import { requireEnv } from "./env";
 import { preparePbis } from "./prepare/preparePbis";
+import { renderPipelineNotes } from "./render/renderPipelineNotes";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
 import { runSync } from "./sync/runSync";
 
@@ -21,6 +22,12 @@ await boss.work<PrepareJob>(PREPARE_QUEUE, async (jobs) => {
     const prepared = await preparePbis(db, job.data.adoIds);
 
     console.log(`prepare: ${prepared} of ${job.data.adoIds.length} PBIs ready for refinement`);
+  }
+});
+
+await boss.work<RenderJob>(RENDER_QUEUE, async (jobs) => {
+  for (const job of jobs) {
+    await renderPipelineNotes(db, job.data.adoId);
   }
 });
 

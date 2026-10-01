@@ -22,6 +22,27 @@
       "when": 1790794125953,
       "tag": "0002_prepare_for_refinement",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790849055468,
+      "tag": "0003_agent_run_drop_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790849056740,
+      "tag": "0004_agent_runs_and_refinement",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790849105558,
+      "tag": "0005_run_outcomes",
+      "breakpoints": true
     }
   ]
 }

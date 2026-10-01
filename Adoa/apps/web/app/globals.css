@@ -204,3 +204,43 @@ button:disabled {
 .result-error {
   color: var(--error);
 }
+
+pre {
+  margin: 8px 0;
+  padding: 10px;
+  max-height: 480px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+ol.trace {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+ol.trace li {
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 6px;
+}
+
+ol.trace summary {
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trace-tool_call { border-left-color: var(--accent); }
+.trace-tool_result { border-left-color: var(--muted); }
+.trace-text, .trace-result { border-left-color: var(--ok); }
+.trace-error { border-left-color: var(--error); }

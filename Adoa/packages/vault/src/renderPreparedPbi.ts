@@ -1,5 +1,6 @@
 import { frontmatter } from "./frontmatter";
 import { isoDate } from "./markdown";
+import { replaceRegions } from "./regions";
 import type { PbiNote } from "./models/PbiNote";
 import { pbiNoteName } from "./paths";
 
@@ -8,8 +9,9 @@ const EMPTY_TEXT = "_Empty in Azure DevOps._";
 const NOTES_HEADING = /^## Notes[ \t]*$/m;
 
 // Frontmatter is always written by the app so metadata stays uniform; the body comes from the user's template.
-export function renderPreparedPbi(template: string, note: PbiNote, notesSection: string): string {
-  const body = fillTemplate(template, placeholderValues(note));
+// `regions` fills generated regions (e.g. refinement, items) with pipeline content.
+export function renderPreparedPbi(template: string, note: PbiNote, notesSection: string, regions: Record<string, string> = {}): string {
+  const body = replaceRegions(fillTemplate(template, placeholderValues(note)), regions);
 
   return `${renderFrontmatter(note)}\n\n${withoutNotes(body).trimEnd()}\n\n${notesSection}`;
 }

@@ -1,11 +1,12 @@
 name: adoa
 
+# Each service gets only the variables it needs: the ADO token never reaches the agent-runner,
+# the Claude token never reaches the worker or web.
+x-db-url: &db-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
 x-app: &app
   image: adoa-app
   pull_policy: never
-  env_file: .env
-  environment:
-    DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
 services:
   db:
@@ -27,8 +28,12 @@ services:
 
   migrate:
     <<: *app
-    build: .  # builds adoa-app once; worker and web reuse it
+    build:  # builds adoa-app once; the other app services reuse it
+      context: ..
+      dockerfile: Adoa/Dockerfile
     command: ["npm", "run", "migrate", "-w", "@adoa/db"]
+    environment:
+      DATABASE_URL: *db-url
     depends_on:
       db:
         condition: service_healthy
@@ -38,10 +43,35 @@ services:
     <<: *app
     command: ["npm", "run", "start", "-w", "@adoa/worker"]
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: *db-url
+      ADO_PAT: ${ADO_PAT}
       VAULT_ROOT: /vault
+      ADOA_SEED_ADO_ORG_URL: ${ADOA_SEED_ADO_ORG_URL:-}
+      ADOA_SEED_ADO_PROJECT: ${ADOA_SEED_ADO_PROJECT:-}
+      ADOA_SEED_ADO_TEAM: ${ADOA_SEED_ADO_TEAM:-}
+      ADOA_SEED_ADO_USER: ${ADOA_SEED_ADO_USER:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Agent runs (refinement, later research/design). Read-only docs, Vault and skills; writes only the DB.
+  agent-runner:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@adoa/agent-runner"]
+    environment:
+      DATABASE_URL: *db-url
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      DOCS_ROOT: /docs
+      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-backlog}  # the rendered backlog is inside the docs vault; agents must not read their own output
+      VAULT_ROOT: /vault
+      SKILL_FOLDERS: /app/Adoa/skills:/skills
+    volumes:
+      - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
+      - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -50,6 +80,10 @@ services:
   web:
     <<: *app
     command: ["npm", "run", "start", "-w", "@adoa/web"]
+    environment:
+      DATABASE_URL: *db-url
+      ADO_PAT: ${ADO_PAT}
+      VAULT_PATH: ${VAULT_PATH}
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:

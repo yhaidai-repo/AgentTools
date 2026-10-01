@@ -1,0 +1,61 @@
+{
+  "source": "Anthropic published API prices ($ per million tokens), as of 2026-06-24. Cache write = 1-hour TTL (2x input), which Claude Code agents use; 5-minute writes cost 1.25x, so budgets slightly over-estimate. Override or extend from the host app.",
+  "prices": [
+    {
+      "model": "claude-fable-5-1",
+      "from": "2026-01-01",
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "cacheReadPerMTok": 0.25,
+      "cacheWritePerMTok": 20
+    },
+    {
+      "model": "claude-opus-5-5",
+      "from": "2026-01-01",
+      "inputPerMTok": 4,
+      "outputPerMTok": 20,
+      "cacheReadPerMTok": 0.2,
+      "cacheWritePerMTok": 8
+    },
+    {
+      "model": "claude-opus-5",
+      "from": "2026-01-01",
+      "inputPerMTok": 5,
+      "outputPerMTok": 25,
+      "cacheReadPerMTok": 0.5,
+      "cacheWritePerMTok": 10
+    },
+    {
+      "model": "claude-opus-4-8",
+      "from": "2026-01-01",
+      "inputPerMTok": 5,
+      "outputPerMTok": 25,
+      "cacheReadPerMTok": 0.5,
+      "cacheWritePerMTok": 10
+    },
+    {
+      "model": "claude-sonnet-5",
+      "from": "2026-01-01",
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.2,
+      "cacheWritePerMTok": 4
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "from": "2026-01-01",
+      "inputPerMTok": 3,
+      "outputPerMTok": 15,
+      "cacheReadPerMTok": 0.3,
+      "cacheWritePerMTok": 6
+    },
+    {
+      "model": "claude-haiku-4-5",
+      "from": "2026-01-01",
+      "inputPerMTok": 1,
+      "outputPerMTok": 5,
+      "cacheReadPerMTok": 0.1,
+      "cacheWritePerMTok": 2
+    }
+  ]
+}

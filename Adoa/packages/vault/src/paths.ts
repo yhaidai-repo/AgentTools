@@ -14,6 +14,23 @@ export function pbiNotePath(adoId: number, title: string): string {
   return `pbi/${name}-${slugify(title)}/${name}.md`;
 }
 
+export function refinementNoteName(adoId: number): string {
+  return `${pbiNoteName(adoId)}-refinement`;
+}
+
+// Refinement and item notes live in the PBI's folder, next to its note.
+export function refinementNotePath(pbiNotePath: string, adoId: number): string {
+  return `${folderOf(pbiNotePath)}/${refinementNoteName(adoId)}.md`;
+}
+
+export function itemNotePath(pbiNotePath: string, itemId: string, kind: string): string {
+  return `${folderOf(pbiNotePath)}/${kind === "question" ? "questions" : "tasks"}/${itemId}.md`;
+}
+
+function folderOf(path: string): string {
+  return path.slice(0, path.lastIndexOf("/"));
+}
+
 function slugify(title: string): string {
   const slug = title
     .toLowerCase()

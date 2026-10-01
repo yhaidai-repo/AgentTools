@@ -1,8 +1,13 @@
 export { VaultWriter } from "./VaultWriter";
 export { renderPreparedPbi, fillTemplate } from "./renderPreparedPbi";
 export { renderBacklogIndex } from "./renderBacklogIndex";
+export { renderRefinementNote } from "./renderRefinementNote";
+export { renderItemNote } from "./renderItemNote";
+export { replaceRegions } from "./regions";
 export { DEFAULT_PBI_TEMPLATE } from "./defaultPbiTemplate";
 export { htmlToMarkdown } from "./markdown";
-export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, pbiNoteName, pbiNotePath } from "./paths";
+export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, itemNotePath, pbiNoteName, pbiNotePath, refinementNoteName, refinementNotePath } from "./paths";
 export type { PbiNote } from "./models/PbiNote";
 export type { IndexRow } from "./models/IndexRow";
+export type { RefinementNote } from "./models/RefinementNote";
+export type { ItemNote } from "./models/ItemNote";

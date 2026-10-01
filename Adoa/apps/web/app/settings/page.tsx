@@ -1,7 +1,8 @@
-import { readAdoSettings, readSyncSettings } from "@adoa/core";
+import { readAdoSettings, readAgentSettings, readSyncSettings } from "@adoa/core";
 import { getDb } from "@/lib/db";
 import { loadSprintOptions } from "@/lib/sprints";
 import type { SprintOption } from "@/models/SprintOption";
+import { AgentSettingsForm } from "./AgentSettingsForm";
 import { SettingsForm } from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ export default async function SettingsPage() {
     <>
       <h1>Settings</h1>
       <SettingsForm ado={ado ?? { orgUrl: "", project: "", team: "", user: "" }} sync={sync} sprintOptions={sprintOptions} />
+      <h2>Agents</h2>
+      <AgentSettingsForm settings={await readAgentSettings(db)} />
       <h2>From .env (restart to change)</h2>
       <p className="muted">
         Vault folder: <code>{process.env.VAULT_PATH ?? "not set"}</code> · ADO access token:{" "}

@@ -4,11 +4,12 @@ Azure DevOps agent pipeline. Design notes: personal docs vault `D:/Claude/person
 
 ## Status
 - Phase 1: Docker Compose + Postgres schema.
-- Phase 2: ADO sync into the Vault, web UI (Backlog, Settings).
+- Phase 2: ADO sync (DB), manual "Prepare for refinement" into the Vault, web UI (Backlog, Settings).
+- Phase 3: refinement agent in `agent-runner` (AgentRuntime + AgentUsage from `../AgentRuntime`, `../AgentUsage`), Agents page with metrics, runs and traces.
 
 ## Run
 ```bash
-cp .env.example .env      # fill in passwords, paths, ADO_PAT, seed values
+cp .env.example .env      # fill in passwords, paths, ADO_PAT, CLAUDE_CODE_OAUTH_TOKEN, seed values
 docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it
 docker compose up -d --build
 ```
@@ -27,12 +28,17 @@ docker compose up -d --build
 | `packages/core` | settings, queues (pg-boss), status history, runs |
 | `packages/ado` | read-only Azure DevOps REST client |
 | `packages/vault` | note rendering; keeps each note's `## Notes` section |
-| `apps/worker` | pg-boss worker: scheduled `sync` job |
+| `packages/agents` | prompts (`prompts/*.md`, versioned), `runAgent`, refinement agent |
+| `apps/worker` | pg-boss worker: `sync`, `prepare`, `render`; the only Vault writer |
+| `apps/agent-runner` | pg-boss worker: agent jobs (`refinement`); Claude token, read-only docs/Vault/skills |
+| `skills/` | adoa's own skills for agents |
 | `apps/web` | Next.js UI |
+
+Workspace root is `D:/Projects/AgentTools` (npm workspaces incl. `AgentRuntime`, `AgentUsage`); Docker builds from there.
 
 ## Local development
 ```bash
-npm install
+npm install                                                      # in D:/Projects/AgentTools
 npm run dev:web                                                  # needs DATABASE_URL, ADO_PAT in env
 node --env-file=.env --import tsx apps/worker/src/syncOnce.ts   # one sync; needs DATABASE_URL
 ```
