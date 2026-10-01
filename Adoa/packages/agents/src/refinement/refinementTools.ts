@@ -44,6 +44,7 @@ function writeRefinementTool(draft: RefinementDraft) {
       dependencies: z.array(z.string()).describe("Systems, events, data or other PBIs this depends on"),
       repos: z.array(z.object({ name: z.string(), reason: z.string() })).describe("Repos from list_repos the work likely touches"),
       assumptions: z.array(z.string()).describe("Assumptions you made"),
+      relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).describe("Docs (paths as the docs tools show them) research and design should read, and why"),
     },
     handler: async (input) => {
       draft.refinement = {
@@ -54,6 +55,7 @@ function writeRefinementTool(draft: RefinementDraft) {
         dependencies: input.dependencies,
         repos: input.repos,
         assumptions: input.assumptions,
+        relevantDocs: input.relevant_docs,
       };
 
       return { text: "Refinement saved." };

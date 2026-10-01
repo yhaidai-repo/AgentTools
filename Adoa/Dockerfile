@@ -6,6 +6,7 @@ ENV NODE_OPTIONS=--no-network-family-autoselection \
 RUN apk add --no-cache git
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY AgentConfig/package.json AgentConfig/
 COPY AgentRuntime/package.json AgentRuntime/
 COPY AgentUsage/package.json AgentUsage/
 COPY Adoa/packages/db/package.json Adoa/packages/db/
@@ -17,6 +18,7 @@ COPY Adoa/apps/worker/package.json Adoa/apps/worker/
 COPY Adoa/apps/agent-runner/package.json Adoa/apps/agent-runner/
 COPY Adoa/apps/web/package.json Adoa/apps/web/
 RUN npm ci --no-fund --no-audit
+COPY AgentConfig AgentConfig
 COPY AgentRuntime AgentRuntime
 COPY AgentUsage AgentUsage
 COPY Adoa Adoa

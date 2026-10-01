@@ -1,7 +1,7 @@
 name: adoa
 
-# Each service gets only the variables it needs: the ADO token never reaches the agent-runner,
-# the Claude token never reaches the worker or web.
+# Each service gets only the variables it needs: the Claude token never reaches the worker or web.
+# The agent-runner has the ADO token only to clone repos (user decision 2026-10-01).
 x-db-url: &db-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
 x-app: &app
@@ -46,12 +46,15 @@ services:
       DATABASE_URL: *db-url
       ADO_PAT: ${ADO_PAT}
       VAULT_ROOT: /vault
+      DOCS_DRAFT_ROOT: /docs-draft
       ADOA_SEED_ADO_ORG_URL: ${ADOA_SEED_ADO_ORG_URL:-}
       ADOA_SEED_ADO_PROJECT: ${ADOA_SEED_ADO_PROJECT:-}
       ADOA_SEED_ADO_TEAM: ${ADOA_SEED_ADO_TEAM:-}
       ADOA_SEED_ADO_USER: ${ADOA_SEED_ADO_USER:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
+      # VaultCapture drafts: the only folder of the docs vault the worker may write.
+      - ${DOCS_VAULT_PATH:?set in .env}/draft:/docs-draft
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -64,6 +67,8 @@ services:
     environment:
       DATABASE_URL: *db-url
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      ADO_PAT: ${ADO_PAT}
+      REPO_CACHE_ROOT: /repo-cache
       DOCS_ROOT: /docs
       DOCS_EXCLUDE: ${DOCS_EXCLUDE:-backlog}  # the rendered backlog is inside the docs vault; agents must not read their own output
       VAULT_ROOT: /vault
@@ -72,6 +77,7 @@ services:
       - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
       - ${VAULT_PATH:?set in .env}:/vault:ro
       - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - repo-cache:/repo-cache
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -112,6 +118,8 @@ services:
         condition: service_healthy
 
 volumes:
+  # One read-only checkout per repo, shared by research and design; refreshed at most every 30 min.
+  repo-cache:
   # external: `docker compose down -v` cannot delete it. First run: docker volume create adoa_pgdata
   pgdata:
     external: true

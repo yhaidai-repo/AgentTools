@@ -1,7 +1,9 @@
 import type { AgentEvent, ResultEvent } from "@agenttools/runtime";
-import type { BudgetGuard, TraceRecorder, UsageTracker } from "@agenttools/usage";
+import type { BudgetGuard, UsageTracker } from "@agenttools/usage";
 
-// Watches one run's events: records the trace, adds usage, and aborts when the per-run budget is used up.
+type Record = (entry: { type: string; [field: string]: unknown }) => Promise<void>;
+
+// Watches one run's agent events: traces them, adds usage, and aborts when the per-run budget is used up.
 export class RunObserver {
   readonly abort = new AbortController();
   private result: ResultEvent | null = null;
@@ -10,8 +12,8 @@ export class RunObserver {
 
   constructor(
     private readonly tracker: UsageTracker,
-    private readonly trace: TraceRecorder,
     private readonly guard: BudgetGuard,
+    private readonly record: Record,
   ) {}
 
   get resultEvent(): ResultEvent | null {
@@ -27,7 +29,9 @@ export class RunObserver {
   }
 
   async observe(event: AgentEvent): Promise<void> {
-    await this.trace.record({ ...event });
+    const { runId, seq, at, ...body } = event;
+
+    await this.record(body);
 
     switch (event.type) {
       case "usage":

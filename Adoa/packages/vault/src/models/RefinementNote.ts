@@ -10,4 +10,6 @@ export interface RefinementNote {
   dependencies: string[];
   repos: { name: string; reason: string }[];
   assumptions: string[];
+  relevantDocs: { path: string; why: string }[];
+  docsRead: string[];
 }

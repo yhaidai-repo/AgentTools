@@ -1,27 +1,34 @@
 "use server";
 
-import { REFINEMENT_QUEUE, readAgentSettings, saveAgentSettings } from "@adoa/core";
 import { revalidatePath } from "next/cache";
+import { getAgentConfig } from "@/lib/agentConfig";
 import { getBoss } from "@/lib/boss";
-import { getDb } from "@/lib/db";
 import type { ActionResult } from "@/models/ActionResult";
 
-// Kill switch: also clears a rate-limit pause on resume.
+// Kill switch through AgentConfig; resuming also clears a rate-limit pause.
 export async function setAgentsPaused(paused: boolean): Promise<ActionResult> {
-  const settings = await readAgentSettings(getDb());
+  const store = getAgentConfig();
+  const global = await store.getGlobal();
 
-  await saveAgentSettings(getDb(), { ...settings, paused, pausedUntil: paused ? settings.pausedUntil : null });
+  await store.saveGlobal({ ...global, paused, pausedUntil: paused ? global.pausedUntil : null });
   revalidatePath("/agents");
 
   return { ok: true, message: paused ? "All agents paused." : "Agents resumed." };
 }
 
-export async function runRefinementNow(): Promise<ActionResult> {
-  const jobId = await (await getBoss()).send(REFINEMENT_QUEUE);
+// Agent queues are named after the agent id.
+export async function runAgentNow(agentId: string): Promise<ActionResult> {
+  const agent = await getAgentConfig().get(agentId);
 
-  if (!jobId) {
-    return { ok: true, message: "A refinement batch is already queued or running." };
+  if (!agent) {
+    return { ok: false, message: "Unknown agent." };
   }
 
-  return { ok: true, message: "Refinement batch queued. Refresh in a minute." };
+  const jobId = await (await getBoss()).send(agent.id);
+
+  if (!jobId) {
+    return { ok: true, message: `A ${agent.label} batch is already queued or running.` };
+  }
+
+  return { ok: true, message: `${agent.label} batch queued. Refresh in a minute.` };
 }

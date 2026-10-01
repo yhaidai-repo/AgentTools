@@ -1,6 +1,7 @@
 import type { workItem } from "@adoa/db";
 import { resolveInside } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
+import { linkedDocuments, linksBlock } from "../links";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
@@ -17,5 +18,5 @@ export async function buildPbiMessage(vaultRoot: string, row: WorkItemRow): Prom
     `Tags: ${row.tags ?? "-"}`,
   ];
 
-  return `Refine this PBI.\n\n<pbi>\n${fields.join("\n")}\n\n${note.trim()}\n</pbi>`;
+  return `Refine this PBI.\n\n<pbi>\n${fields.join("\n")}\n\n${note.trim()}\n</pbi>\n\n${linksBlock(linkedDocuments(row))}`;
 }

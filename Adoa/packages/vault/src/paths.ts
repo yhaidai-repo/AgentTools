@@ -23,8 +23,10 @@ export function refinementNotePath(pbiNotePath: string, adoId: number): string {
   return `${folderOf(pbiNotePath)}/${refinementNoteName(adoId)}.md`;
 }
 
+const ITEM_FOLDERS: Record<string, string> = { question: "questions", "research-result": "research" };
+
 export function itemNotePath(pbiNotePath: string, itemId: string, kind: string): string {
-  return `${folderOf(pbiNotePath)}/${kind === "question" ? "questions" : "tasks"}/${itemId}.md`;
+  return `${folderOf(pbiNotePath)}/${ITEM_FOLDERS[kind] ?? "tasks"}/${itemId}.md`;
 }
 
 function folderOf(path: string): string {

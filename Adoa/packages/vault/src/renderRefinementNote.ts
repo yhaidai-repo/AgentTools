@@ -35,6 +35,10 @@ export function renderRefinementNote(note: RefinementNote, notesSection: string)
     bullets(note.repos.map((item) => `\`${item.name}\`: ${item.reason}`)),
     "## Assumptions",
     bullets(note.assumptions),
+    "## Relevant docs (for research and design)",
+    bullets(note.relevantDocs.map((doc) => `\`${doc.path}\`: ${doc.why}`)),
+    "## Docs read",
+    bullets(note.docsRead.map((path) => `\`${path}\``)),
     notesSection,
   ].join("\n\n");
 }

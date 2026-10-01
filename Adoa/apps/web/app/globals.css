@@ -162,7 +162,8 @@ label.inline {
 }
 
 input,
-select {
+select,
+textarea {
   padding: 6px 8px;
   font: inherit;
   color: var(--text);

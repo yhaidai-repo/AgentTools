@@ -1,10 +1,12 @@
 import type { AdoaDb } from "@adoa/db";
-import type { AgentRuntime } from "@agenttools/runtime";
+import type { AgentConfigStore } from "@agenttools/config";
+import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import type { PriceBook, UsageStore } from "@agenttools/usage";
 
 export interface AgentDeps {
   db: AdoaDb;
-  runtime: AgentRuntime;
+  config: AgentConfigStore;
+  runtimes: RuntimeRegistry;
   usageStore: UsageStore;
   prices: PriceBook;
   /** Read-only docs vault root. */
@@ -15,4 +17,8 @@ export interface AgentDeps {
   vaultRoot: string;
   /** Folders searched for skills, first match wins. */
   skillFolders: string[];
+  repoCache: RepoCache;
+  repoCacheRoot: string;
+  /** Asks the worker (the only Vault writer) to render a PBI's notes. */
+  enqueueRender: (adoId: number) => Promise<void>;
 }

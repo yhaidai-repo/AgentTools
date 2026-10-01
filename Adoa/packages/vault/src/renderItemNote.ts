@@ -3,9 +3,26 @@ import { isoDate } from "./markdown";
 import type { ItemNote } from "./models/ItemNote";
 import { pbiNoteName } from "./paths";
 
-const ITEM_TYPES: Record<string, string> = { research: "research-task", design: "design-task", human: "human-task", question: "question" };
+const ITEM_TYPES: Record<string, string> = {
+  research: "research-task",
+  design: "design-task",
+  human: "human-task",
+  question: "question",
+  "research-result": "research-result",
+};
+
+type Sections = (item: ItemNote) => string[];
+
+const SECTIONS: Record<string, Sections> = {
+  question: questionSections,
+  human: humanTaskSections,
+  "research-result": researchResultSections,
+};
 
 export function renderItemNote(item: ItemNote, notesSection: string): string {
+  const parentLink = item.parentId ? ` · From: [[${item.parentId}]]` : "";
+  const sections = SECTIONS[item.kind] ?? taskSections;
+
   return [
     frontmatter({
       id: item.id,
@@ -13,34 +30,60 @@ export function renderItemNote(item: ItemNote, notesSection: string): string {
       title: item.title,
       status: item.status,
       pbi: `[[${pbiNoteName(item.adoId)}]]`,
+      parent: item.parentId ? `[[${item.parentId}]]` : null,
       assignee: item.assignee,
       run: item.runId === null ? null : `RUN-${item.runId}`,
-      created_by: "agent:refinement",
+      created_by: item.parentId ? "agent:research" : "agent:refinement",
       created: isoDate(item.created),
       updated: isoDate(item.updated),
       tags: ["adoa", `pbi-${item.adoId}`, ITEM_TYPES[item.kind] ?? item.kind],
       related: [`[[${pbiNoteName(item.adoId)}]]`],
     }),
     `# ${item.id} ${item.title}`,
-    `PBI: [[${pbiNoteName(item.adoId)}]] · Status: ${item.status} · Assignee: ${item.assignee}`,
-    ...(item.kind === "question" ? questionSections(item) : taskSections(item)),
+    `PBI: [[${pbiNoteName(item.adoId)}]]${parentLink} · Status: ${item.status} · Assignee: ${item.assignee}`,
+    ...sections(item),
     notesSection,
   ].join("\n\n");
 }
 
 function taskSections(item: ItemNote): string[] {
-  const repos = (item.data?.repos as string[] | undefined) ?? [];
+  const repos = list<string>(item, "repos").map((name) => `- \`${name}\``);
 
-  return ["## Question", item.body ?? "–", "## Goal", String(item.data?.goal ?? "–"), "## Repos", repos.map((name) => `- \`${name}\``).join("\n") || "None."];
+  return ["## Question", item.body ?? "–", "## Goal", String(item.data?.goal ?? "–"), "## Repos", repos.join("\n") || "None."];
+}
+
+function humanTaskSections(item: ItemNote): string[] {
+  return ["## Task", item.body ?? "–", "_Close it in the adoa dashboard (or note the outcome below)._"];
 }
 
 function questionSections(item: ItemNote): string[] {
-  const options = (item.data?.options as string[] | undefined) ?? [];
+  const options = list<string>(item, "options").map((option) => `- ${option}`);
 
   return [
     "## Question", item.body ?? "–",
     "## Why it matters", String(item.data?.why ?? "–"),
-    "## Options", options.map((option) => `- ${option}`).join("\n") || "None given.",
+    "## Options", options.join("\n") || "None given.",
     "_Answer in the adoa dashboard (or below in Notes for now)._",
   ];
+}
+
+function researchResultSections(item: ItemNote): string[] {
+  const evidence = list<{ location: string; note: string }>(item, "evidence").map((entry) => `- \`${entry.location}\`: ${entry.note}`);
+  const docs = list<{ path: string; why: string }>(item, "relevantDocs").map((doc) => `- \`${doc.path}\`: ${doc.why}`);
+  const code = list<{ location: string; why: string }>(item, "codeRefs").map((ref) => `- \`${ref.location}\`: ${ref.why}`);
+  const commits = Object.entries((item.data?.commits as Record<string, string> | undefined) ?? {}).map(([repo, sha]) => `- ${repo} @ \`${sha.slice(0, 10)}\``);
+
+  return [
+    "## Conclusion", item.body ?? "–",
+    `Confidence: **${String(item.data?.confidence ?? "–")}**`,
+    "## Findings", list<string>(item, "findings").map((finding) => `- ${finding}`).join("\n") || "None.",
+    "## Evidence", evidence.join("\n") || "None.",
+    "## For design: docs", docs.join("\n") || "None.",
+    "## For design: code", code.join("\n") || "None.",
+    "## Code version read", commits.join("\n") || "No repos.",
+  ];
+}
+
+function list<T>(item: ItemNote, field: string): T[] {
+  return (item.data?.[field] as T[] | undefined) ?? [];
 }

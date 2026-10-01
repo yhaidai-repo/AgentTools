@@ -16,25 +16,35 @@ await boss.start();
 await ensureQueues(boss);
 await seedAdoSettingsFromEnv(db);
 await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
-await boss.work(SYNC_QUEUE, async () => runSync(db));
-await boss.work<PrepareJob>(PREPARE_QUEUE, async (jobs) => {
+await boss.work(SYNC_QUEUE, () => logged(SYNC_QUEUE, () => runSync(db)));
+await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async () => {
   for (const job of jobs) {
     const prepared = await preparePbis(db, job.data.adoIds);
 
     console.log(`prepare: ${prepared} of ${job.data.adoIds.length} PBIs ready for refinement`);
   }
-});
+}));
 
-await boss.work<RenderJob>(RENDER_QUEUE, async (jobs) => {
+await boss.work<RenderJob>(RENDER_QUEUE, (jobs) => logged(RENDER_QUEUE, async () => {
   for (const job of jobs) {
     await renderPipelineNotes(db, job.data.adoId);
   }
-});
+}));
 
 console.log("worker started");
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
+
+// No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).
+async function logged(job: string, work: () => Promise<void>): Promise<void> {
+  try {
+    await work();
+  } catch (error) {
+    console.error(`${job} job failed:`, error);
+    throw error;
+  }
+}
 
 async function stop(): Promise<void> {
   await boss.stop();

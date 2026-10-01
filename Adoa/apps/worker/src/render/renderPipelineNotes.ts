@@ -3,6 +3,7 @@ import { localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
 import { itemNotePath, refinementNotePath, renderItemNote, renderRefinementNote } from "@adoa/vault";
 import { desc, eq } from "drizzle-orm";
 import { PbiNoteWriter } from "./pbiNotes";
+import { writeCaptures } from "./writeCaptures";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -20,6 +21,7 @@ export async function renderPipelineNotes(db: AdoaDb, adoId: number): Promise<vo
 
   await writeRefinement(db, notes, pbiPath, adoId);
   await writeItems(db, notes, pbiPath, adoId);
+  await writeCaptures(db, process.env.DOCS_DRAFT_ROOT, adoId);
   await notes.writeIndex();
 }
 
@@ -51,6 +53,7 @@ async function writeItem(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, item
       id: item.id,
       kind: item.kind,
       adoId: item.pbiId,
+      parentId: item.parentId,
       title: item.title,
       status: item.status,
       assignee: item.assignee,

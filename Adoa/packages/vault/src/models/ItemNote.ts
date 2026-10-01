@@ -2,6 +2,7 @@ export interface ItemNote {
   id: string;
   kind: string;
   adoId: number;
+  parentId: string | null;
   title: string;
   status: string;
   assignee: string;

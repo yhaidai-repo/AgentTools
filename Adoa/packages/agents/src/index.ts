@@ -1,8 +1,11 @@
-export { runAgent } from "./runAgent";
+export { AgentRunSession } from "./AgentRunSession";
+export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
 export { loadPrompt } from "./prompts";
 export { runRefinementBatch } from "./refinement/runRefinementBatch";
+export { runResearchBatch } from "./research/runResearchBatch";
+export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export type { AgentDeps } from "./models/AgentDeps";
-export type { AgentRunSpec } from "./models/AgentRunSpec";
+export type { AgentRunInfo } from "./models/AgentRunInfo";
+export type { AgentRunInput } from "./models/AgentRunInput";
 export type { AgentRunResult } from "./models/AgentRunResult";
 export type { LoadedPrompt } from "./models/LoadedPrompt";
-export type { RefinementBatchDeps } from "./refinement/models/RefinementBatchDeps";

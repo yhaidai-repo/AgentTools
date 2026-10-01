@@ -1,3 +1,4 @@
+import type { RelevantDoc } from "../../models/RelevantDoc";
 import type { AcGap } from "./AcGap";
 import type { RepoChoice } from "./RepoChoice";
 
@@ -9,4 +10,5 @@ export interface RefinementOutput {
   dependencies: string[];
   repos: RepoChoice[];
   assumptions: string[];
+  relevantDocs: RelevantDoc[];
 }

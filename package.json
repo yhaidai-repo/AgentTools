@@ -2,6 +2,7 @@
   "name": "agenttools",
   "private": true,
   "workspaces": [
+    "AgentConfig",
     "AgentRuntime",
     "AgentUsage",
     "Adoa/packages/*",

@@ -1,4 +1,7 @@
 export { ClaudeAgentSdkRuntime } from "./adapters/claude/ClaudeAgentSdkRuntime";
+export { RuntimeRegistry } from "./RuntimeRegistry";
+export { RepoCache } from "./repos/RepoCache";
+export { createRepoTools } from "./repos/repoTools";
 export { defineTool } from "./defineTool";
 export { createDocTools } from "./tools/docTools";
 export { resolveInside } from "./tools/safePath";
@@ -21,3 +24,8 @@ export type { ToolDefinition } from "./models/ToolDefinition";
 export type { ToolResult } from "./models/ToolResult";
 export type { DocToolOptions } from "./models/DocToolOptions";
 export type { SkillInfo } from "./models/SkillInfo";
+export type { AgentCapabilities } from "./models/AgentCapabilities";
+export type { RepoRef } from "./models/RepoRef";
+export type { RepoCacheOptions } from "./models/RepoCacheOptions";
+export type { RepoToolOptions } from "./models/RepoToolOptions";
+export type { RepoProgress } from "./models/RepoProgress";

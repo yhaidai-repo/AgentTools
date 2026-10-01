@@ -8,6 +8,7 @@ import { MessageMapper } from "./MessageMapper";
 import { TOOL_SERVER_NAME, createToolServer, sdkToolNames } from "./toSdkTools";
 
 const CLIENT_APP = "agenttools-runtime/1.0";
+const WEB_TOOLS = ["WebSearch", "WebFetch"];
 
 // Claude via the Claude Agent SDK, with every Claude Code built-in tool and setting source disabled:
 // the agent sees only the request's tools, so it behaves the same as on any other adapter.
@@ -40,6 +41,11 @@ async function* streamEvents(request: AgentRequest, abort: RunAbort, mapper: Mes
   }
 }
 
+// The webAccess capability maps to Claude's own web tools; every other built-in stays off.
+function builtInTools(request: AgentRequest): string[] {
+  return request.capabilities?.webAccess ? WEB_TOOLS : [];
+}
+
 function buildOptions(request: AgentRequest, abort: RunAbort): Options {
   return {
     model: request.model.model,
@@ -47,9 +53,9 @@ function buildOptions(request: AgentRequest, abort: RunAbort): Options {
     systemPrompt: request.systemPrompt,
     maxTurns: request.limits.maxTurns,
     abortController: abort.controller,
-    tools: [],
+    tools: builtInTools(request),
     mcpServers: { [TOOL_SERVER_NAME]: createToolServer(request.tools) },
-    allowedTools: sdkToolNames(request.tools),
+    allowedTools: [...sdkToolNames(request.tools), ...builtInTools(request)],
     permissionMode: "dontAsk",
     settingSources: [],
     persistSession: false,

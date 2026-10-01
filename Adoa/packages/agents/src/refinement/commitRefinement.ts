@@ -1,6 +1,8 @@
 import { nextItemId, setPbiStatus } from "@adoa/core";
-import { agentRun, localItem, refinement, type AdoaDb } from "@adoa/db";
+import { agentRun, localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
 import { eq, max } from "drizzle-orm";
+import { linkedDocuments } from "../links";
+import type { LinkedDocument } from "../models/LinkedDocument";
 import type { QuestionDraft } from "./models/QuestionDraft";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementOutput } from "./models/RefinementOutput";
@@ -10,10 +12,12 @@ const ACTOR = "agent:refinement";
 
 // Writes a successful run's draft: refinement version, research tasks, questions (incl. repo confirmation),
 // then moves the PBI on. Returns the ids of everything created, for the run's outputs.
-export async function commitRefinement(db: AdoaDb, adoId: number, runId: number, draft: RefinementDraft & { refinement: RefinementOutput }): Promise<string[]> {
-  const version = await insertRefinement(db, adoId, runId, draft.refinement);
+export async function commitRefinement(db: AdoaDb, adoId: number, runId: number, draft: RefinementDraft & { refinement: RefinementOutput }, docsRead: string[]): Promise<string[]> {
+  const version = await insertRefinement(db, adoId, runId, draft.refinement, docsRead);
   const taskIds = await insertResearchTasks(db, adoId, runId, draft.researchTasks);
-  const questionIds = await insertQuestions(db, adoId, runId, withRepoConfirmation(adoId, draft));
+  const [pbi] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
+  const questions = [...withRepoConfirmation(adoId, draft), ...(await linkQuestions(db, adoId, draft.questions, pbi ? linkedDocuments(pbi) : []))];
+  const questionIds = await insertQuestions(db, adoId, runId, questions);
   const outputs = [`PBI-${adoId}-refinement v${version}`, ...taskIds, ...questionIds];
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
@@ -22,11 +26,11 @@ export async function commitRefinement(db: AdoaDb, adoId: number, runId: number,
   return outputs;
 }
 
-async function insertRefinement(db: AdoaDb, adoId: number, runId: number, output: RefinementOutput): Promise<number> {
+async function insertRefinement(db: AdoaDb, adoId: number, runId: number, output: RefinementOutput, docsRead: string[]): Promise<number> {
   const [{ latest }] = await db.select({ latest: max(refinement.version) }).from(refinement).where(eq(refinement.pbiId, adoId));
   const version = (latest ?? 0) + 1;
 
-  await db.insert(refinement).values({ pbiId: adoId, version, runId, ...output });
+  await db.insert(refinement).values({ pbiId: adoId, version, runId, ...output, docsRead });
 
   return version;
 }
@@ -39,7 +43,7 @@ async function insertResearchTasks(db: AdoaDb, adoId: number, runId: number, tas
 
     await db.insert(localItem).values({
       id, kind: "research", pbiId: adoId, title: task.title, status: "open", assignee: "agent:research",
-      body: task.question, data: { goal: task.goal, repos: task.repos }, createdByRun: runId,
+      body: task.question, data: { goal: task.goal, repos: task.repos, depth: 1 }, createdByRun: runId,
     });
     ids.push(id);
   }
@@ -61,6 +65,19 @@ async function insertQuestions(db: AdoaDb, adoId: number, runId: number, questio
   }
 
   return ids;
+}
+
+// Guard, not prompt: every linked document the agent couldn't read and no question mentions gets its own question.
+async function linkQuestions(db: AdoaDb, adoId: number, drafts: QuestionDraft[], links: LinkedDocument[]): Promise<QuestionDraft[]> {
+  const existing = await db.select({ body: localItem.body }).from(localItem).where(eq(localItem.pbiId, adoId));
+  const asked = [...existing.map((item) => item.body ?? ""), ...drafts.map((draft) => draft.question)].join("\n");
+  const missing = links.filter((link) => link.kind !== "ado-attachment" && !asked.includes(link.url));
+
+  return missing.map((link) => ({
+    question: `Provide the content of the linked ${link.kind === "confluence" ? "Confluence page" : "document"}: ${link.url}`,
+    why: "The PBI links it, but agents cannot open it, so its content is missing from refinement and research. Paste the relevant part into the PBI note's Notes section or the docs vault.",
+    options: ["Paste content into the PBI note (Notes)", "Add it to the docs vault", "Not needed"],
+  }));
 }
 
 // The agent guesses the repos; the user confirms them (user decision 2026-09-27).

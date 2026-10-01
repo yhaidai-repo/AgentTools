@@ -149,8 +149,28 @@ export const refinement = pgTable("refinement", {
   dependencies: jsonb("dependencies").$type<string[]>().notNull(),
   repos: jsonb("repos").$type<{ name: string; reason: string }[]>().notNull(),
   assumptions: jsonb("assumptions").$type<string[]>().notNull(),
+  // Handoff to research: docs the agent chose (path + why) and every doc it actually read.
+  relevantDocs: jsonb("relevant_docs").$type<{ path: string; why: string }[]>().notNull().default([]),
+  docsRead: jsonb("docs_read").$type<string[]>().notNull().default([]),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
+
+// Unverified findings an agent captured for the docs vault; the worker writes them as draft/ notes.
+
+export const vaultCapture = pgTable("vault_capture", {
+  id: serial("id").primaryKey(),
+  runId: bigint("run_id", { mode: "number" }).notNull().references(() => agentRun.id),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  itemId: text("item_id").references(() => localItem.id),
+  title: text("title").notNull(),
+  project: text("project").notNull(),
+  target: text("target").notNull(),
+  captured: jsonb("captured").$type<{ fact: string; evidence: string }[]>().notNull(),
+  toFill: jsonb("to_fill").$type<string[]>().notNull(),
+  /** Set once the worker wrote the draft note (path relative to the docs vault). */
+  filePath: text("file_path"),
+  createdAt: createdAt(),
+}, (t) => [index("vault_capture_pbi_idx").on(t.pbiId)]);
 
 // Design facts for metrics; body lives in the Vault note.
 

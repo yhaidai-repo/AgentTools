@@ -16,3 +16,10 @@ export function docsExclude(): string[] {
 export function skillFolders(): string[] {
   return (process.env.SKILL_FOLDERS ?? "").split(":").filter(Boolean);
 }
+
+// Git auth for the repo cache: the ADO token as a Basic header, passed per git command and never stored.
+export function adoAuthHeader(): string | undefined {
+  const pat = process.env.ADO_PAT;
+
+  return pat ? `Authorization: Basic ${Buffer.from(`:${pat}`).toString("base64")}` : undefined;
+}
