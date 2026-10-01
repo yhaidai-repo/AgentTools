@@ -1,8 +1,7 @@
 export { AgentRunSession } from "./AgentRunSession";
 export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
 export { loadPrompt } from "./prompts";
-export { runRefinementBatch } from "./refinement/runRefinementBatch";
-export { runResearchBatch } from "./research/runResearchBatch";
+export { runAgentTask } from "./tasks/runAgentTask";
 export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export { loadCaptureRules } from "./vaultCapture";
 export type { AgentDeps } from "./models/AgentDeps";

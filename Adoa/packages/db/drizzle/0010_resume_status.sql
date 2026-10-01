@@ -1,0 +1,1 @@
+ALTER TABLE "work_item" ADD COLUMN "resume_status" "pipeline_status";

@@ -1,11 +1,9 @@
 import { workItemUrl, type AdoSettings } from "@adoa/core";
-import type { workItem } from "@adoa/db";
 import Link from "next/link";
-
-type WorkItemRow = typeof workItem.$inferSelect;
+import type { BacklogRow } from "@/models/BacklogRow";
 
 // Checkboxes post `adoId` values with the surrounding PrepareForm.
-export function PbiTable({ rows, ado }: { rows: WorkItemRow[]; ado: AdoSettings | null }) {
+export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings | null }) {
   return (
     <div className="table-wrap">
       <table>
@@ -31,7 +29,7 @@ export function PbiTable({ rows, ado }: { rows: WorkItemRow[]; ado: AdoSettings 
               <td className="title"><Link href={`/pbis/${row.adoId}`}>{row.title}</Link></td>
               <td>{row.type}</td>
               <td>{row.adoState}</td>
-              <td>{row.pipelineStatus}</td>
+              <td>{row.pipelineStatus}<NeedsAction row={row} /></td>
               <td>{row.iterationPath}</td>
               <td>{row.assignedTo ?? "–"}</td>
             </tr>
@@ -40,4 +38,12 @@ export function PbiTable({ rows, ado }: { rows: WorkItemRow[]; ado: AdoSettings 
       </table>
     </div>
   );
+}
+
+function NeedsAction({ row }: { row: BacklogRow }) {
+  if (row.openForYou === 0) {
+    return null;
+  }
+
+  return <> · <Link href={`/pbis/${row.adoId}`} className="result-error">needs your action ({row.openForYou})</Link></>;
 }

@@ -1,43 +1,29 @@
+import { createHumanTask } from "@adoa/core";
 import { vaultCapture, type AdoaDb } from "@adoa/db";
 import { and, eq } from "drizzle-orm";
-import { spawn } from "node:child_process";
-import { writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { VaultCaptureCli } from "./VaultCaptureCli";
 
 type CaptureRow = typeof vaultCapture.$inferSelect;
 
-interface CaptureResult {
-  ok: boolean;
-  mode: "created" | "appended" | "rejected";
-  path: string | null;
-  errors: string[];
-}
+// Saves the PBI's pending drafts through the VaultCapture module. None may stay pending: each ends written
+// (it then blocks the other agents until merged), or rejected and handed to the user as a human task.
+export async function writeDrafts(db: AdoaDb, adoId: number): Promise<void> {
+  const pending = await db.select().from(vaultCapture).where(and(eq(vaultCapture.pbiId, adoId), eq(vaultCapture.status, "pending")));
 
-const CONFIG_FILE = "/tmp/vault-capture.config.json";
-const TIMEOUT_MS = 60_000;
-
-// Saves the PBI's pending captures through the VaultCapture module (its CLI), which owns the vault rules.
-// Every result is stored on the capture; a rejection is logged and shown on the run page, never dropped.
-export async function writeCaptures(db: AdoaDb, adoId: number): Promise<void> {
-  const moduleHome = process.env.VAULT_CAPTURE_HOME;
-  const vaultName = process.env.DOCS_VAULT_NAME;
-
-  if (!moduleHome || !vaultName) {
+  if (pending.length === 0) {
     return;
   }
 
-  const pending = await db.select().from(vaultCapture).where(and(eq(vaultCapture.pbiId, adoId), eq(vaultCapture.status, "pending")));
-
-  await writeFile(CONFIG_FILE, JSON.stringify({ vaults: [vaultRoot(vaultName)] }), "utf8");
+  const cli = await VaultCaptureCli.fromEnv(`PBI-${adoId} has ${pending.length} vault draft(s) to write`);
 
   for (const capture of pending) {
-    await saveCapture(db, moduleHome, vaultName, capture);
+    await saveDraft(db, cli, capture);
   }
 }
 
-async function saveCapture(db: AdoaDb, moduleHome: string, vaultName: string, capture: CaptureRow): Promise<void> {
-  const request = {
-    vault: vaultName,
+async function saveDraft(db: AdoaDb, cli: VaultCaptureCli, capture: CaptureRow): Promise<void> {
+  const result = await cli.capture({
+    vault: cli.vaultName,
     project: capture.project,
     name: capture.name,
     title: capture.title,
@@ -46,47 +32,26 @@ async function saveCapture(db: AdoaDb, moduleHome: string, vaultName: string, ca
     captured: capture.captured,
     assumptions: capture.assumptions,
     toFill: capture.toFill,
-  };
-  const result = await runCapture(moduleHome, JSON.stringify(request));
-  const filePath = result.ok && result.path ? relative(vaultRoot(vaultName), result.path) : null;
-
-  if (!result.ok) {
-    console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${result.errors.join("; ")}`);
-  }
+  });
+  const filePath = result.ok && result.path ? cli.relativePath(result.path) : null;
 
   await db.update(vaultCapture).set({ status: result.mode, errors: result.errors, filePath }).where(eq(vaultCapture.id, capture.id));
-}
 
-function vaultRoot(vaultName: string): string {
-  return `/vaults/${vaultName}`;
-}
-
-function runCapture(moduleHome: string, input: string): Promise<CaptureResult> {
-  return new Promise((resolve) => {
-    const child = spawn("pwsh", ["-NoProfile", "-NonInteractive", "-File", join(moduleHome, "vault-capture.ps1"), "capture"], {
-      env: { ...process.env, VAULT_CAPTURE_CONFIG: CONFIG_FILE, NO_COLOR: "1" },
-      timeout: TIMEOUT_MS,
-    });
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (chunk) => (stdout += chunk));
-    child.stderr.on("data", (chunk) => (stderr += chunk));
-    child.on("error", (error) => resolve(failed(`could not run VaultCapture: ${error.message}`)));
-    child.on("close", (code) => resolve(parseResult(stdout, stderr, code)));
-    child.stdin.end(input, "utf8");
-  });
-}
-
-// The CLI prints one JSON result (also when rejecting, with exit code 1); anything else is a failure to report.
-function parseResult(stdout: string, stderr: string, code: number | null): CaptureResult {
-  try {
-    return JSON.parse(stdout.trim().split("\n").pop() ?? "") as CaptureResult;
-  } catch {
-    return failed(`VaultCapture exited with ${code}: ${(stderr || stdout).trim().slice(0, 500)}`);
+  if (!result.ok) {
+    await handOver(db, capture, result.errors);
   }
 }
 
-function failed(message: string): CaptureResult {
-  return { ok: false, mode: "rejected", path: null, errors: [message] };
+// The draft will never be written, so the person gets a task (which blocks the agents) with the reasons and the facts to save by hand.
+async function handOver(db: AdoaDb, capture: CaptureRow, errors: string[]): Promise<void> {
+  const facts = capture.captured.map((fact) => `- ${fact}`).join("\n");
+  const taskId = await createHumanTask(db, {
+    adoId: capture.pbiId,
+    title: `Fix the rejected vault draft "${capture.name}"`,
+    body: `VaultCapture rejected the draft CAP-${capture.id} (target ${capture.target}):\n${errors.map((error) => `- ${error}`).join("\n")}\n\nCaptured facts:\n${facts}\n\nSave them in the docs vault by hand (or decide they aren't needed), then close this task.`,
+    runId: capture.runId,
+    data: { captureId: capture.id },
+  });
+
+  console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${errors.join("; ")}; handed to the user as ${taskId}`);
 }

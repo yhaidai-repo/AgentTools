@@ -1,0 +1,19 @@
+{
+  "name": "@adoa/notes",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@adoa/core": "*",
+    "@adoa/db": "*",
+    "@adoa/vault": "*",
+    "drizzle-orm": "^0.45.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

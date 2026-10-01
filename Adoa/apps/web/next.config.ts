@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript sources.
-  transpilePackages: ["@adoa/db", "@adoa/core", "@adoa/ado", "@adoa/attachments", "@adoa/vault", "@agenttools/usage", "@agenttools/config"],
+  transpilePackages: ["@adoa/db", "@adoa/core", "@adoa/ado", "@adoa/attachments", "@adoa/vault", "@agenttools/usage", "@agenttools/config", "@agenttools/runtime"],
   // The PDF and Word readers load their own workers and files at runtime, so they stay unbundled.
   serverExternalPackages: ["pg", "pg-boss", "unpdf", "mammoth"],
   experimental: {

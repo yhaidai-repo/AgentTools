@@ -1,7 +1,54 @@
-import type { AgentDefinition, AgentsGlobal } from "@agenttools/config";
+import type { AgentDefinition, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 
 // adoa's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
+
+// What each option does, shown next to its field in the web UI. Keys are the ones the stage code reads (numberOption).
+function batchSizeOption(unit: string): AgentOptionSpec {
+  return {
+    key: "batchSize",
+    label: `${unit} per scheduled run`,
+    description: `Most ${unit.toLowerCase()} the dispatcher starts per scheduled run; the rest wait for the next one. Higher = faster throughput, more tokens per hour.`,
+    min: 1,
+    max: 20,
+  };
+}
+
+const REFINEMENT_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("PBIs"),
+  {
+    key: "maxFailures",
+    label: "Failures before skipping a PBI",
+    description: "After this many failed runs on one PBI, refinement stops picking it until you prepare it again in the Backlog.",
+    min: 1,
+    max: 10,
+  },
+];
+
+const RESEARCH_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Tasks"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a task",
+    description: "After this many failed runs, the research task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "maxDepth",
+    label: "Follow-up depth",
+    description: "How deep research may create follow-up research tasks. 1 = no follow-ups; 2 = tasks from refinement may create one level of follow-ups.",
+    min: 1,
+    max: 5,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
   {
@@ -16,6 +63,9 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false },
     skills: ["adoa-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
+    optionSpecs: REFINEMENT_OPTIONS,
+    next: "design",
+    waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
     id: "research",
@@ -29,5 +79,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false },
     skills: ["adoa-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
+    optionSpecs: RESEARCH_OPTIONS,
+    next: "design",
+    waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
 ];

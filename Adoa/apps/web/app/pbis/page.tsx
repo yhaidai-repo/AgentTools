@@ -1,8 +1,9 @@
 import { readAdoSettings } from "@adoa/core";
 import { agentRun, workItem, type AdoaDb } from "@adoa/db";
-import { and, asc, desc, eq, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import type { BacklogFilter } from "@/models/BacklogFilter";
+import type { BacklogRow } from "@/models/BacklogRow";
 import { BacklogFilters } from "./BacklogFilters";
 import { LastSync } from "./LastSync";
 import { PbiTable } from "./PbiTable";
@@ -38,7 +39,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
   );
 }
 
-async function loadRows(db: AdoaDb, filter: BacklogFilter) {
+async function loadRows(db: AdoaDb, filter: BacklogFilter): Promise<BacklogRow[]> {
   const conditions: SQL[] = [];
 
   if (!filter.showOutOfScope) {
@@ -54,10 +55,14 @@ async function loadRows(db: AdoaDb, filter: BacklogFilter) {
   }
 
   return db
-    .select()
+    .select({ ...getTableColumns(workItem), openForYou: openForYou() })
     .from(workItem)
     .where(and(...conditions))
     .orderBy(asc(workItem.outOfScope), asc(workItem.backlogPriority), asc(workItem.adoId));
+}
+
+function openForYou(): SQL<number> {
+  return sql<number>`(SELECT count(*)::int FROM local_item i WHERE i.pbi_id = ${workItem.adoId} AND i.assignee = 'human' AND i.status IN ('open', 'in-progress'))`;
 }
 
 async function distinctValues(db: AdoaDb, column: typeof workItem.iterationPath | typeof workItem.adoState): Promise<string[]> {

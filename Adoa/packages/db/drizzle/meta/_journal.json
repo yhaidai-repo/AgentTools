@@ -71,6 +71,20 @@
       "when": 1790862478016,
       "tag": "0009_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790865077988,
+      "tag": "0010_resume_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790868925367,
+      "tag": "0011_agent_tasks",
+      "breakpoints": true
     }
   ]
 }

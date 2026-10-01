@@ -14,3 +14,10 @@ export function obsidianLink(vaultRelativePath: string): string | null {
 
   return `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(file)}`;
 }
+
+// Opens a file of the docs vault (e.g. an agent's draft/ note); DOCS_VAULT_NAME is that vault's folder name.
+export function obsidianDocsLink(docsRelativePath: string): string | null {
+  const vault = process.env.DOCS_VAULT_NAME;
+
+  return vault ? `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(docsRelativePath)}` : null;
+}

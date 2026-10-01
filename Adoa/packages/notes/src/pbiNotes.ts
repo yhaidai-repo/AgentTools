@@ -11,13 +11,12 @@ import {
   type PbiNote,
 } from "@adoa/vault";
 import { asc, eq, isNotNull } from "drizzle-orm";
-import { vaultRoot } from "../env";
 import { writeAttachmentFiles } from "./attachments";
 import { pipelineRegions } from "./pipelineRegions";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
-// Shared by prepare and render, so a PBI note always looks the same whichever job wrote it.
+// Shared by prepare and publishPbi, so a PBI note always looks the same whichever process wrote it.
 export class PbiNoteWriter {
   private constructor(
     readonly writer: VaultWriter,
@@ -26,8 +25,8 @@ export class PbiNoteWriter {
     private readonly template: string,
   ) {}
 
-  static async create(db: AdoaDb, ado: AdoSettings): Promise<PbiNoteWriter> {
-    const writer = new VaultWriter(vaultRoot());
+  static async create(db: AdoaDb, ado: AdoSettings, vaultRoot: string): Promise<PbiNoteWriter> {
+    const writer = new VaultWriter(vaultRoot);
     const template = await writer.readOrCreate(PBI_TEMPLATE_PATH, DEFAULT_PBI_TEMPLATE);
 
     return new PbiNoteWriter(writer, db, ado, template);

@@ -1,13 +1,13 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { extractNotesSection } from "./notesSection";
 
-// Only the worker writes the Vault. Files are rewritten only when content changes.
+// Writes inside one Vault folder only (a path that would leave it is refused). Files are rewritten only when content changes.
 export class VaultWriter {
   constructor(private readonly root: string) {}
 
   async write(relativePath: string, render: (notesSection: string) => string): Promise<boolean> {
-    const fullPath = join(this.root, relativePath);
+    const fullPath = this.pathOf(relativePath);
     const existing = await readIfExists(fullPath);
     const content = render(extractNotesSection(existing));
 
@@ -23,7 +23,7 @@ export class VaultWriter {
 
   // Uploaded files never change once written, so an existing file is left alone.
   async writeOnce(relativePath: string, bytes: Buffer): Promise<boolean> {
-    const fullPath = join(this.root, relativePath);
+    const fullPath = this.pathOf(relativePath);
 
     if (await exists(fullPath)) {
       return false;
@@ -37,7 +37,7 @@ export class VaultWriter {
 
   // Creates the file with the default content when missing; never overwrites a user-edited file.
   async readOrCreate(relativePath: string, defaultContent: string): Promise<string> {
-    const fullPath = join(this.root, relativePath);
+    const fullPath = this.pathOf(relativePath);
     const existing = await readIfExists(fullPath);
 
     if (existing !== null) {
@@ -49,6 +49,21 @@ export class VaultWriter {
 
     return defaultContent;
   }
+
+  private pathOf(relativePath: string): string {
+    return insideRoot(this.root, relativePath);
+  }
+}
+
+function insideRoot(root: string, relativePath: string): string {
+  const fullPath = resolve(root, relativePath);
+  const fromRoot = relative(resolve(root), fullPath);
+
+  if (fromRoot === "" || fromRoot.startsWith("..") || resolve(fromRoot) === fromRoot) {
+    throw new Error(`Refused to write outside the Vault folder: ${relativePath}`);
+  }
+
+  return fullPath;
 }
 
 async function exists(path: string): Promise<boolean> {

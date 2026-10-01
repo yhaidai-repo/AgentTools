@@ -1,4 +1,4 @@
-import { isPaused, type AgentDefinition, type AgentsGlobal } from "@agenttools/config";
+import type { AgentDefinition, AgentsGlobal } from "@agenttools/config";
 import { createSkillTools, loadSkills, skillsPromptSection } from "@agenttools/runtime";
 import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -6,14 +6,7 @@ import type { StageSkills } from "./models/StageSkills";
 
 const RATE_LIMIT_PAUSE_MS = 60 * 60 * 1000;
 
-// Pieces every agent stage shares: config, daily budgets, skills, rate-limit pause, docs read.
-export async function loadRunnableStage(deps: AgentDeps, agentId: string): Promise<{ agent: AgentDefinition; global: AgentsGlobal } | null> {
-  const agent = await deps.config.get(agentId);
-  const global = await deps.config.getGlobal();
-
-  return agent && agent.enabled && !isPaused(global) ? { agent, global } : null;
-}
-
+// Pieces every agent shares: daily budgets, skills, rate-limit pause, docs read.
 export function dailyGuard(deps: AgentDeps, agent: AgentDefinition, global: AgentsGlobal): BudgetGuard {
   return new BudgetGuard({
     perRunUsd: null,

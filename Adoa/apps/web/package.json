@@ -14,6 +14,7 @@
     "@adoa/core": "*",
     "@adoa/db": "*",
     "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
     "@agenttools/usage": "*",
     "drizzle-orm": "^0.45.3",
     "next": "^16.3.7",

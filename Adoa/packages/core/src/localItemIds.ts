@@ -1,7 +1,7 @@
 import { localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, like } from "drizzle-orm";
 
-export type ItemPrefix = "AT" | "HT" | "Q" | "RR";
+export type ItemPrefix = "RT" | "AT" | "DT" | "HT" | "Q" | "RR";
 
 // Ids are `<prefix>-<adoId>-<nnn>`, numbered per PBI and prefix; never reused.
 export async function nextItemId(db: AdoaDb, prefix: ItemPrefix, adoId: number): Promise<string> {

@@ -2,6 +2,7 @@ import type { AdoConnection } from "./models/AdoConnection";
 import type { AdoIteration } from "./models/AdoIteration";
 import type { AdoRepository } from "./models/AdoRepository";
 import type { AdoWorkItem } from "./models/AdoWorkItem";
+import type { DownloadedFile } from "./models/DownloadedFile";
 import type { IterationDto } from "./models/IterationDto";
 import type { RepositoryDto } from "./models/RepositoryDto";
 import { AdoRequestError } from "./models/AdoRequestError";
@@ -50,6 +51,23 @@ export class AdoClient {
     const body = await this.request<{ value: RepositoryDto[] }>(`${this.orgUrl}/_apis/git/repositories?${API_VERSION}`);
 
     return body.value.map(toRepository);
+  }
+
+  // A work item attachment linked from a description. The token is only ever sent to this organization.
+  async downloadAttachment(url: string): Promise<DownloadedFile> {
+    if (!url.toLowerCase().startsWith(`${this.orgUrl.toLowerCase()}/`)) {
+      throw new AdoRequestError(400, `not an attachment of ${this.orgUrl}: ${url}`);
+    }
+
+    const response = await fetch(url, { headers: { Authorization: this.headers().Authorization, Accept: "*/*" } });
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+
+    // An expired token answers with the HTML sign-in page instead of the file.
+    if (!response.ok || contentType.includes("text/html")) {
+      throw new AdoRequestError(response.status, `download failed (${response.status} ${contentType}): ${url}`);
+    }
+
+    return { fileName: new URL(url).searchParams.get("fileName") ?? "attachment", contentType, bytes: Buffer.from(await response.arrayBuffer()) };
   }
 
   private async getWorkItemBatch(ids: number[], fields: string[]): Promise<AdoWorkItem[]> {

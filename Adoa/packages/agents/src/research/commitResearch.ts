@@ -1,6 +1,6 @@
-import { nextItemId, setItemStatus, setPbiStatus } from "@adoa/core";
-import { agentRun, localItem, workItem, type AdoaDb } from "@adoa/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { nextItemId, setItemStatus } from "@adoa/core";
+import { agentRun, localItem, type AdoaDb } from "@adoa/db";
+import { eq } from "drizzle-orm";
 import type { QuestionDraft } from "../refinement/models/QuestionDraft";
 import type { ResearchTaskDraft } from "../refinement/models/ResearchTaskDraft";
 import { commitCaptures } from "../vaultCapture";
@@ -11,7 +11,7 @@ import type { ResearchResultOutput } from "./models/ResearchResultOutput";
 
 const ACTOR = "agent:research";
 
-// Writes a successful run: result, follow-ups, human tasks, questions; closes the task and moves the PBI on.
+// Writes a successful run: result, follow-ups, human tasks, questions, drafts; closes the task.
 export async function commitResearch(
   db: AdoaDb,
   context: ResearchContext,
@@ -30,31 +30,8 @@ export async function commitResearch(
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
   await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
-  await moveResearchedPbi(db, pbi.adoId, runId);
 
   return outputs;
-}
-
-// All research of the PBI done or cancelled → ready-for-design; a blocked task keeps the PBI waiting.
-export async function moveResearchedPbi(db: AdoaDb, adoId: number, runId?: number): Promise<void> {
-  const remaining = await db
-    .select({ id: localItem.id, status: localItem.status })
-    .from(localItem)
-    .where(and(eq(localItem.pbiId, adoId), eq(localItem.kind, "research"), inArray(localItem.status, ["open", "in-progress", "blocked"])));
-  const [pbi] = await db.select({ status: workItem.pipelineStatus }).from(workItem).where(eq(workItem.adoId, adoId));
-  const next = nextResearchStatus(remaining.map((item) => item.status));
-
-  if (pbi && pbi.status !== next && ["needs-research", "researching"].includes(pbi.status)) {
-    await setPbiStatus(db, adoId, pbi.status, next, ACTOR, runId);
-  }
-}
-
-function nextResearchStatus(openStatuses: string[]): "ready-for-design" | "researching" | "needs-research" {
-  if (openStatuses.length === 0) {
-    return "ready-for-design";
-  }
-
-  return openStatuses.includes("in-progress") ? "researching" : "needs-research";
 }
 
 async function insertFollowUps(db: AdoaDb, context: ResearchContext, runId: number, tasks: ResearchTaskDraft[], depth: number): Promise<string[]> {

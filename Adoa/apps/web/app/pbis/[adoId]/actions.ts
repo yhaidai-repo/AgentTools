@@ -1,6 +1,6 @@
 "use server";
 
-import { RENDER_QUEUE, closeHumanItem, findClosableItem, linkedUrlOf, type CloseDecision, type CloseItemRequest, type RenderJob } from "@adoa/core";
+import { DISPATCH_QUEUE, closeDocumentTasks, closeHumanItem, findClosableItem, linkedUrlOf, type CloseDecision, type CloseItemRequest, type DispatchJob } from "@adoa/core";
 import { storeAttachment, type UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
@@ -40,23 +40,26 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
     return { ok: false, message: "Choose a file." };
   }
 
-  const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl: text(form, "sourceUrl") });
+  const sourceUrl = text(form, "sourceUrl");
+  const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl });
 
   if (!stored.ok) {
     return { ok: false, message: stored.error };
   }
 
+  const closed = sourceUrl ? await closeDocumentTasks(getDb(), adoId, sourceUrl, `Uploaded as ATT-${stored.value}.`) : [];
+
   await afterChange(adoId);
 
-  return { ok: true, message: `Uploaded as ATT-${stored.value}.` };
+  return { ok: true, message: `Uploaded as ATT-${stored.value}.${closed.length > 0 ? ` Closed ${closed.join(", ")}.` : ""}` };
 }
 
-// The web writes the DB only; the worker copies the change into the Vault.
+// The web writes the DB only; a dispatcher tick now (instead of within the minute) updates the statuses and the Vault.
 async function afterChange(adoId: number): Promise<void> {
-  const job: RenderJob = { adoId };
+  const job: DispatchJob = {};
 
-  await (await getBoss()).send(RENDER_QUEUE, job);
-  revalidatePath(`/pbis/${adoId}`);
+  await (await getBoss()).send(DISPATCH_QUEUE, job);
+  revalidatePath(`/pbis/${adoId}`, "layout"); // the PBI page and its item pages
 }
 
 function readCloseRequest(form: FormData, hasAttachment: boolean): CloseItemRequest {

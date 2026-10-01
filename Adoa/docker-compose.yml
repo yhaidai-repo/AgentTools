@@ -62,7 +62,8 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
-  # Agent runs (refinement, later research/design). Read-only docs, Vault and skills; writes only the DB.
+  # Agent runs: one dispatched task per job. Writes the DB, then the task's PBI notes (backlog) and its drafts (via
+  # VaultCapture, draft/ only). Docs, skills and the rest of the docs vault are read-only.
   agent-runner:
     <<: *app
     command: ["npm", "run", "start", "-w", "@adoa/agent-runner"]
@@ -76,9 +77,12 @@ services:
       VAULT_ROOT: /vault
       SKILL_FOLDERS: /app/Adoa/skills:/skills
       VAULT_CAPTURE_HOME: /app/VaultCapture
+      DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}
     volumes:
       - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
-      - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${VAULT_PATH:?set in .env}:/vault
+      - ${DOCS_VAULT_PATH}:/vaults/${DOCS_VAULT_NAME}:ro
+      - ${DOCS_VAULT_PATH}/draft:/vaults/${DOCS_VAULT_NAME}/draft
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - repo-cache:/repo-cache
     depends_on:
@@ -93,10 +97,14 @@ services:
       DATABASE_URL: *db-url
       ADO_PAT: ${ADO_PAT}
       VAULT_PATH: ${VAULT_PATH}
+      SKILL_FOLDERS: /app/Adoa/skills:/skills  # same as agent-runner, to list the skills an agent may use
+      SKILLS_PATH: ${SKILLS_PATH}
+      DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}  # links to agents' draft notes
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
     depends_on:
       worker:
         condition: service_started

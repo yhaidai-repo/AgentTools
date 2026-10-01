@@ -1,26 +1,22 @@
-import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runRefinementBatch, runResearchBatch, type AgentDeps } from "@adoa/agents";
-import { RENDER_QUEUE, applyAgentSchedule, createWorkerBoss, ensureQueues, type RenderJob } from "@adoa/core";
+import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
+import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, type AgentRunJob } from "@adoa/core";
 import { createDb } from "@adoa/db";
-import { PostgresAgentConfigStore, type AgentConfigStore } from "@agenttools/config";
+import { publishPbi } from "@adoa/notes";
+import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
-import type { PgBoss } from "pg-boss";
 import { adoAuthHeader, docsExclude, requireEnv, skillFolders } from "./env";
 
 const TRACE_RETENTION_DAYS = 30;
 const REPO_REFRESH_MINUTES = 30;
-
-// Each agent's batch job; the queue name is the agent id from AgentConfig.
-const BATCHES: Record<string, (deps: AgentDeps) => Promise<string>> = {
-  refinement: runRefinementBatch,
-  research: runResearchBatch,
-};
+const ACTOR = "agent-runner";
 
 const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
 const boss = createWorkerBoss(databaseUrl);
 const usageStore = new PostgresUsageStore(pool);
 const config = new PostgresAgentConfigStore(pool);
+const vaultRoot = requireEnv("VAULT_ROOT");
 
 boss.on("error", (error) => console.error("pg-boss:", error));
 
@@ -46,44 +42,36 @@ const deps: AgentDeps = {
   prices: new PriceBook(),
   docsRoot: requireEnv("DOCS_ROOT"),
   docsExclude: docsExclude(),
-  vaultRoot: requireEnv("VAULT_ROOT"),
+  vaultRoot,
   skillFolders: skillFolders(),
   repoCache: new RepoCache({ root: repoCacheRoot, authHeader: adoAuthHeader(), refreshMinutes: REPO_REFRESH_MINUTES }),
   repoCacheRoot,
   captureRules,
-  enqueueRender: async (adoId) => {
-    const job: RenderJob = { adoId };
-
-    await boss.send(RENDER_QUEUE, job);
-  },
 };
 
-await applySchedules(boss, config);
-await config.onChange(() => {
-  applySchedules(boss, config).catch((error) => console.error("applying schedules after a config change failed:", error));
-});
-
-for (const [agentId, runBatch] of Object.entries(BATCHES)) {
-  await boss.work(agentId, () => logged(agentId, async () => {
-    await purgeOldTraces();
-    console.log(`${agentId} batch: ${await runBatch(deps)}`);
-  }));
-}
+// One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).
+await boss.work<AgentRunJob>(AGENT_RUN_QUEUE, (jobs) => logged(AGENT_RUN_QUEUE, async () => {
+  for (const job of jobs) {
+    await runAndPublish(job.data);
+  }
+}));
 
 console.log(`agent-runner started; providers: ${deps.runtimes.providers().join(", ")}`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
-// Config is the source of truth for schedules; any client's change is applied here.
-async function applySchedules(target: PgBoss, store: AgentConfigStore): Promise<void> {
-  const agents = await store.list();
+// The Vault shows the task's outcome right away (user decision 2026-10-01: the runner writes the notes itself),
+// also when the run failed.
+async function runAndPublish(job: AgentRunJob): Promise<void> {
+  await purgeOldTraces();
 
-  for (const agent of agents) {
-    await applyAgentSchedule(target, agent.id, agent.schedule, agent.enabled);
+  try {
+    await runAgentTask(deps, job);
+  } finally {
+    await syncPipelineStatus(db, job.pbiId, ACTOR);
+    await publishPbi(db, vaultRoot, job.pbiId);
   }
-
-  console.log(`schedules applied: ${agents.map((agent) => `${agent.id}=${agent.enabled ? agent.schedule : "off"}`).join(", ")}`);
 }
 
 // No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).

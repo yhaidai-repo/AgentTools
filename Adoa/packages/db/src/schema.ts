@@ -18,7 +18,7 @@ export const pipelineStatus = pgEnum("pipeline_status", [
 ]);
 
 export const itemKind = pgEnum("item_kind", [
-  "research", "design", "human", "question", "research-result",
+  "research", "design", "human", "question", "research-result", "refinement",
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -98,7 +98,7 @@ export const agentRun = pgTable("agent_run", {
   index("agent_run_pbi_idx").on(t.pbiId),
 ]);
 
-// Tasks, questions, results. Ids: AT-/HT-/Q-/RR-<adoId>-<nnn>.
+// Tasks, questions, results. Ids: RT-/AT-/DT-/HT-/Q-/RR-<adoId>-<nnn>. Items assigned to `agent:<id>` are agent tasks the worker dispatches.
 
 export const localItem = pgTable("local_item", {
   id: text("id").primaryKey(),
@@ -111,6 +111,8 @@ export const localItem = pgTable("local_item", {
   body: text("body"),
   data: jsonb("data"),
   resolution: text("resolution"), // the person's answer (question) or outcome note (human task)
+  heldBy: jsonb("held_by").$type<string[]>().notNull().default([]), // why the dispatcher didn't start this agent task (validator reasons)
+  handedOnAt: ts("handed_on_at"), // when the worker created the next agent's task after this one succeeded
   attempts: integer("attempts").notNull().default(0),
   createdByRun: bigint("created_by_run", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
   vaultPath: text("vault_path"),
@@ -172,7 +174,7 @@ export const vaultCapture = pgTable("vault_capture", {
   captured: jsonb("captured").$type<string[]>().notNull(),
   assumptions: jsonb("assumptions").$type<string[]>().notNull().default([]),
   toFill: jsonb("to_fill").$type<string[]>().notNull(),
-  /** pending → created | appended | rejected (VaultCapture's result, written by the worker). */
+  /** pending → created | appended | rejected (VaultCapture's result, written by the worker); created/appended → merged once gone from draft/. */
   status: text("status").notNull().default("pending"),
   errors: jsonb("errors").$type<string[]>().notNull().default([]),
   filePath: text("file_path"),

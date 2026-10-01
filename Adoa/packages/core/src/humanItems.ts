@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import type { CloseDecision, CloseItemRequest } from "./models/CloseItemRequest";
 import type { ItemStatus } from "./models/ItemStatus";
 import type { Outcome } from "./models/Outcome";
+import type { NewHumanTask } from "./models/NewHumanTask";
+import { nextItemId } from "./localItemIds";
 import { setItemStatus } from "./pbiStatus";
 import { extractUrls } from "./urls";
 
@@ -55,4 +57,15 @@ export function linkedUrlOf(item: ItemRow): string | null {
   const urls = extractUrls(item.body ?? "");
 
   return stored ?? (urls.length === 1 ? urls[0] : null);
+}
+
+export async function createHumanTask(db: AdoaDb, task: NewHumanTask): Promise<string> {
+  const id = await nextItemId(db, "HT", task.adoId);
+
+  await db.insert(localItem).values({
+    id, kind: "human", pbiId: task.adoId, title: task.title.slice(0, 120), status: "open", assignee: "human",
+    body: task.body, data: task.data, createdByRun: task.runId,
+  });
+
+  return id;
 }

@@ -246,11 +246,6 @@ ol.trace summary {
 .trace-text, .trace-result { border-left-color: var(--ok); }
 .trace-error { border-left-color: var(--error); }
 
-.item-cards {
-  display: grid;
-  gap: 12px;
-}
-
 .card {
   padding: 12px 16px;
   background: var(--surface);
@@ -279,4 +274,33 @@ a.button {
 a.button.secondary {
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+fieldset.field-group {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+label.choice {
+  align-items: flex-start;
+}
+
+.text-block {
+  white-space: pre-wrap;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+ul.item-list li {
+  margin: 2px 0;
+}
+
+.result-section {
+  margin-top: 16px;
 }

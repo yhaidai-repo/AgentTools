@@ -1,23 +1,25 @@
-import { readAdoSettings, setPbiStatus, type PipelineStatus } from "@adoa/core";
-import { workItem, type AdoaDb } from "@adoa/db";
+import { ensureAgentTask, readAdoSettings, setPbiStatus, type PipelineStatus } from "@adoa/core";
+import { workItem } from "@adoa/db";
+import { PbiNoteWriter } from "@adoa/notes";
 import { eq } from "drizzle-orm";
-import { PbiNoteWriter } from "../render/pbiNotes";
+import type { WorkerContext } from "../models/WorkerContext";
+import { refreshPbi } from "../refreshPbi";
 
 const PREPARABLE: PipelineStatus[] = ["new", "stale"];
 
-// Manual step (user selects PBIs): creates the note from the Vault template and hands the PBI to refinement.
-export async function preparePbis(db: AdoaDb, adoIds: number[]): Promise<number> {
-  const ado = await readAdoSettings(db);
+// Manual step (user selects PBIs): creates the note from the Vault template and a refinement task for the dispatcher.
+export async function preparePbis(context: WorkerContext, adoIds: number[]): Promise<number> {
+  const ado = await readAdoSettings(context.db);
 
   if (!ado) {
     throw new Error("ADO settings are not configured");
   }
 
-  const notes = await PbiNoteWriter.create(db, ado);
+  const notes = await PbiNoteWriter.create(context.db, ado, context.vaultRoot);
   let prepared = 0;
 
   for (const adoId of adoIds) {
-    const isPrepared = await prepareOne(db, notes, adoId);
+    const isPrepared = await prepareOne(context, notes, adoId);
 
     prepared += isPrepared ? 1 : 0;
   }
@@ -27,8 +29,8 @@ export async function preparePbis(db: AdoaDb, adoIds: number[]): Promise<number>
   return prepared;
 }
 
-async function prepareOne(db: AdoaDb, notes: PbiNoteWriter, adoId: number): Promise<boolean> {
-  const [row] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
+async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: number): Promise<boolean> {
+  const [row] = await context.db.select().from(workItem).where(eq(workItem.adoId, adoId));
 
   if (!row) {
     return false;
@@ -39,8 +41,12 @@ async function prepareOne(db: AdoaDb, notes: PbiNoteWriter, adoId: number): Prom
   await notes.writePbi(row, status);
 
   if (status !== row.pipelineStatus) {
-    await setPbiStatus(db, adoId, row.pipelineStatus, status, "human");
+    await setPbiStatus(context.db, adoId, row.pipelineStatus, status, "human");
+    await ensureAgentTask(context.db, "refinement", adoId, null);
   }
+
+  // Linked documents become attachments or human tasks now, so refinement doesn't start without them.
+  await refreshPbi(context, adoId);
 
   return true;
 }

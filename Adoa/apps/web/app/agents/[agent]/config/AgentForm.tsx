@@ -1,14 +1,28 @@
 "use client";
 
 import { useActionState } from "react";
+import type { BlockerKind } from "@adoa/core";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
+import type { SkillCatalog } from "@agenttools/runtime/skills";
 import type { ActionResult } from "@/models/ActionResult";
+import type { SkillFolder } from "@/models/SkillFolder";
 import { saveAgentAction } from "../../configActions";
+import { OptionsFields } from "./OptionsFields";
+import { PipelineFields } from "./PipelineFields";
+import { SkillsField } from "./SkillsField";
 
-// Generic: renders any agent definition, so new agents need no UI changes.
-export function AgentForm({ agent, catalog }: { agent: AgentDefinition; catalog: CatalogModel[] }) {
+interface AgentFormProps {
+  agent: AgentDefinition;
+  catalog: CatalogModel[];
+  skills: SkillCatalog;
+  skillFolders: SkillFolder[];
+  agentIds: string[];
+  blockerKinds: BlockerKind[];
+}
+
+// Generic: renders any agent definition (its declared options included), so new agents need no UI changes.
+export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, blockerKinds }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
-  const options = Object.entries(agent.options).map(([key, value]) => `${key} = ${value}`).join("\n");
 
   return (
     <form action={action} className="card">
@@ -54,14 +68,9 @@ export function AgentForm({ agent, catalog }: { agent: AgentDefinition; catalog:
         <input name="webAccess" type="checkbox" defaultChecked={agent.capabilities.webAccess} />
         Web access (search and fetch)
       </label>
-      <label>
-        Skills (comma-separated)
-        <input name="skills" defaultValue={agent.skills.join(", ")} />
-      </label>
-      <label>
-        Options (one "key = value" per line)
-        <textarea name="options" rows={Math.max(2, Object.keys(agent.options).length)} defaultValue={options} />
-      </label>
+      <PipelineFields agent={agent} agentIds={agentIds} blockerKinds={blockerKinds} />
+      <SkillsField selected={agent.skills} catalog={skills} folders={skillFolders} />
+      <OptionsFields agent={agent} />
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : `Save ${agent.label}`}</button>
       </div>

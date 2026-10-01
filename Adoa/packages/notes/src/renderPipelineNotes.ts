@@ -5,12 +5,11 @@ import { desc, eq } from "drizzle-orm";
 import { listAttachments } from "./attachments";
 import type { VaultAttachment } from "./models/VaultAttachment";
 import { PbiNoteWriter } from "./pbiNotes";
-import { writeCaptures } from "./writeCaptures";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// Render job (queued by the agent-runner): refinement note, item notes, PBI note regions and the index.
-export async function renderPipelineNotes(db: AdoaDb, adoId: number): Promise<void> {
+// A PBI's notes from the DB: refinement note, item notes, PBI note regions and the index (VaultWriter skips unchanged files).
+export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: number): Promise<void> {
   const [row] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
   const ado = await readAdoSettings(db);
 
@@ -19,13 +18,12 @@ export async function renderPipelineNotes(db: AdoaDb, adoId: number): Promise<vo
     return;
   }
 
-  const notes = await PbiNoteWriter.create(db, ado);
+  const notes = await PbiNoteWriter.create(db, ado, vaultRoot);
   const pbiPath = await notes.writePbi(row, row.pipelineStatus);
   const attachments = await listAttachments(db, adoId);
 
   await writeRefinement(db, notes, pbiPath, adoId);
   await writeItems(db, notes, pbiPath, adoId, attachments);
-  await writeCaptures(db, adoId);
   await notes.writeIndex();
 }
 

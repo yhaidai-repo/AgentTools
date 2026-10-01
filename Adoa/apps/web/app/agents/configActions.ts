@@ -52,24 +52,16 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     limits: { maxTurns: Number(text(form, "maxTurns")), timeoutMinutes: Number(text(form, "timeoutMinutes")) },
     budgets: { perRunUsd: Number(text(form, "perRunUsd")), dailyUsd: Number(text(form, "dailyUsd")) },
     capabilities: { webAccess: form.get("webAccess") === "on" },
-    skills: text(form, "skills").split(",").map((skill) => skill.trim()).filter(Boolean),
-    options: readOptions(text(form, "options"), current.options),
+    skills: form.getAll("skills").map(String),
+    options: readOptions(form, current),
+    next: text(form, "next") || null,
+    waitFor: form.getAll("waitFor").map(String),
   };
 }
 
-// "key = value" per line; numbers and true/false keep their type.
-function readOptions(raw: string, current: Record<string, AgentOptionValue>): Record<string, AgentOptionValue> {
-  const entries = raw.split("\n").map((line) => line.split("=").map((part) => part.trim())).filter(([key]) => key);
-
-  return entries.length > 0 ? Object.fromEntries(entries.map(([key, value]) => [key, parseOption(value ?? "")])) : current;
-}
-
-function parseOption(value: string): AgentOptionValue {
-  if (value === "true" || value === "false") {
-    return value === "true";
-  }
-
-  return value !== "" && Number.isFinite(Number(value)) ? Number(value) : value;
+// One field per declared option (`option:<key>`); AgentConfig checks the ranges.
+function readOptions(form: FormData, current: AgentDefinition): Record<string, AgentOptionValue> {
+  return Object.fromEntries(current.optionSpecs.map((spec) => [spec.key, Number(text(form, `option:${spec.key}`))]));
 }
 
 function text(form: FormData, name: string): string {

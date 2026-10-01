@@ -1,28 +1,20 @@
-import { nextItemId, setPbiStatus } from "@adoa/core";
-import { agentRun, localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
+import { nextItemId } from "@adoa/core";
+import { agentRun, localItem, refinement, type AdoaDb } from "@adoa/db";
 import { eq, max } from "drizzle-orm";
-import { linkedDocuments, providedUrls } from "../links";
-import { loadPbiInputs } from "../pbiInputs";
-import type { LinkedDocument } from "../models/LinkedDocument";
 import type { QuestionDraft } from "./models/QuestionDraft";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementOutput } from "./models/RefinementOutput";
 import type { ResearchTaskDraft } from "./models/ResearchTaskDraft";
 
-const ACTOR = "agent:refinement";
-
-// Writes a successful run's draft: refinement version, research tasks, questions (incl. repo confirmation),
-// then moves the PBI on. Returns the ids of everything created, for the run's outputs.
+// Writes a successful run's draft: refinement version, research tasks, questions (incl. repo confirmation).
+// Returns the ids of everything created, for the run's outputs. Ending the task and the PBI status follow from the tasks.
 export async function commitRefinement(db: AdoaDb, adoId: number, runId: number, draft: RefinementDraft & { refinement: RefinementOutput }, docsRead: string[]): Promise<string[]> {
   const version = await insertRefinement(db, adoId, runId, draft.refinement, docsRead);
   const taskIds = await insertResearchTasks(db, adoId, runId, draft.researchTasks);
-  const [pbi] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
-  const questions = [...withRepoConfirmation(adoId, draft), ...(await linkQuestions(db, adoId, draft.questions, pbi ? linkedDocuments(pbi) : []))];
-  const questionIds = await insertQuestions(db, adoId, runId, questions);
+  const questionIds = await insertQuestions(db, adoId, runId, withRepoConfirmation(adoId, draft));
   const outputs = [`PBI-${adoId}-refinement v${version}`, ...taskIds, ...questionIds];
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
-  await setPbiStatus(db, adoId, "refining", taskIds.length > 0 ? "needs-research" : "ready-for-design", ACTOR, runId);
 
   return outputs;
 }
@@ -60,27 +52,12 @@ async function insertQuestions(db: AdoaDb, adoId: number, runId: number, questio
 
     await db.insert(localItem).values({
       id, kind: "question", pbiId: adoId, title: question.question.slice(0, 120), status: "open", assignee: "human",
-      body: question.question, data: { why: question.why, options: question.options, url: question.url }, createdByRun: runId,
+      body: question.question, data: { why: question.why, options: question.options }, createdByRun: runId,
     });
     ids.push(id);
   }
 
   return ids;
-}
-
-// Guard, not prompt: every linked document whose content wasn't uploaded and no question mentions gets its own question.
-async function linkQuestions(db: AdoaDb, adoId: number, drafts: QuestionDraft[], links: LinkedDocument[]): Promise<QuestionDraft[]> {
-  const existing = await db.select({ body: localItem.body }).from(localItem).where(eq(localItem.pbiId, adoId));
-  const asked = [...existing.map((item) => item.body ?? ""), ...drafts.map((draft) => draft.question)].join("\n");
-  const provided = providedUrls((await loadPbiInputs(db, adoId)).attachments);
-  const missing = links.filter((link) => link.kind !== "ado-attachment" && !asked.includes(link.url) && !provided.includes(link.url));
-
-  return missing.map((link) => ({
-    question: `Provide the content of the linked ${link.kind === "confluence" ? "Confluence page" : "document"}: ${link.url}`,
-    why: "The PBI links it, but agents cannot open it, so its content is missing from refinement and research. Upload it (PDF, Word, saved HTML or text) on the PBI's page in adoa.",
-    options: ["Upload the document", "Answer with the relevant part as text", "Not needed"],
-    url: link.url,
-  }));
 }
 
 // The agent guesses the repos; the user confirms them (user decision 2026-09-27).

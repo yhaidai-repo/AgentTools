@@ -1,14 +1,15 @@
-import { pbiLinkedUrls } from "@adoa/core";
+import { linkedDocumentKind, pbiLinkedUrls } from "@adoa/core";
 import type { workItem } from "@adoa/db";
 import type { AttachmentSummary } from "./models/AttachmentSummary";
 import type { LinkedDocument } from "./models/LinkedDocument";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
-// Every link in the PBI's description and acceptance criteria. Agents can't open any of them
-// (no web access, and Confluence/ADO need a login), so each is missing input unless the user uploaded its content.
+// Every link in the PBI's description and acceptance criteria. Agents can't open any of them; the worker downloads
+// ADO attachments and asks the user (a blocking human task) for the rest, so by the time an agent runs each has content
+// or the user decided it isn't needed.
 export function linkedDocuments(row: WorkItemRow): LinkedDocument[] {
-  return pbiLinkedUrls(row).map((url) => ({ url, kind: kindOf(url) }));
+  return pbiLinkedUrls(row).map((url) => ({ url, kind: linkedDocumentKind(url) }));
 }
 
 export function linksBlock(links: LinkedDocument[], attachments: AttachmentSummary[]): string {
@@ -18,24 +19,11 @@ export function linksBlock(links: LinkedDocument[], attachments: AttachmentSumma
 
   const lines = links.map((link) => `- ${link.url} (${link.kind}): ${linkContent(link, attachments)}`);
 
-  return ["<linked-documents>", "Linked from the PBI. You cannot open these links; read the user's upload with read_attachment where one is given.", ...lines, "</linked-documents>"].join("\n");
-}
-
-// URLs whose content the user uploaded; refinement asks no question for them.
-export function providedUrls(attachments: AttachmentSummary[]): string[] {
-  return attachments.flatMap((attachment) => (attachment.sourceUrl ? [attachment.sourceUrl] : []));
+  return ["<linked-documents>", "Linked from the PBI. You cannot open these links; read the content with read_attachment where one is given.", ...lines, "</linked-documents>"].join("\n");
 }
 
 function linkContent(link: LinkedDocument, attachments: AttachmentSummary[]): string {
   const ids = attachments.filter((attachment) => attachment.sourceUrl === link.url).map((attachment) => attachment.id);
 
-  return ids.length > 0 ? `content provided as ${ids.join(", ")}` : "content missing";
-}
-
-function kindOf(url: string): LinkedDocument["kind"] {
-  if (/atlassian\.net\/wiki/i.test(url)) {
-    return "confluence";
-  }
-
-  return /_apis\/wit\/attachments/i.test(url) ? "ado-attachment" : "web";
+  return ids.length > 0 ? `content provided as ${ids.join(", ")}` : "no content: the user decided agents don't need it";
 }

@@ -14,7 +14,7 @@ export interface AgentDeps {
   docsRoot: string;
   /** Folders inside the docs root hidden from agents (e.g. the rendered backlog). */
   docsExclude: string[];
-  /** Read-only rendered Vault (backlog) root. */
+  /** Rendered Vault (backlog) root: agents read the PBI note from it. */
   vaultRoot: string;
   /** Folders searched for skills, first match wins. */
   skillFolders: string[];
@@ -22,6 +22,4 @@ export interface AgentDeps {
   /** VaultCapture rules; null when the module is not available (then agents get no vault_capture tool). */
   captureRules: CaptureRules | null;
   repoCacheRoot: string;
-  /** Asks the worker (the only Vault writer) to render a PBI's notes. */
-  enqueueRender: (adoId: number) => Promise<void>;
 }

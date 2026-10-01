@@ -6,16 +6,24 @@ import { LocalTime } from "@/components/LocalTime";
 import { NoteLink } from "@/components/NoteLink";
 import { getDb } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
+import { obsidianDocsLink } from "@/lib/obsidian";
 import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
-import { CloseItemForm } from "./CloseItemForm";
+import { ItemList, isOpen } from "./ItemList";
 
 export const dynamic = "force-dynamic";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
-const OPEN_STATUSES = ["open", "in-progress"];
 
-type ItemRow = PbiDetail["items"][number];
+type DraftRow = PbiDetail["drafts"][number];
+
+// Every state but merged (and rejected, which is a human task instead) blocks the other agents.
+const DRAFT_STATES: Record<string, string> = {
+  pending: "not written yet: blocks the other agents",
+  created: "in draft/, waiting to be verified and merged: blocks the other agents",
+  appended: "in draft/, waiting to be verified and merged: blocks the other agents",
+  merged: "merged into the docs vault",
+};
 
 export default async function PbiPage({ params }: { params: Promise<{ adoId: string }> }) {
   const adoId = Number((await params).adoId);
@@ -26,23 +34,36 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
   }
 
   const { pbi, items } = detail;
-  const humanItems = items.filter((item) => item.assignee === "human");
 
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
       <p><Link href="/pbis">← Backlog</Link></p>
       <Summary detail={detail} adoUrl={await adoUrl(pbi.adoId)} />
-      <h2>Waiting for you</h2>
-      <OpenItems adoId={pbi.adoId} items={humanItems.filter(isOpen)} />
+      <Blockers detail={detail} />
+      <h2>Description</h2>
+      <TextBlock text={pbi.descriptionMd} />
+      <h2>Acceptance criteria</h2>
+      <TextBlock text={pbi.acceptanceCriteriaMd} />
+      <h2>Refinement</h2>
+      <Refinement detail={detail} />
+      <h2>Questions</h2>
+      <ItemList adoId={pbi.adoId} items={items.filter((item) => item.kind === "question")} empty="None." />
+      <h2>Human tasks</h2>
+      <ItemList adoId={pbi.adoId} items={items.filter((item) => item.kind === "human")} empty="None." />
+      <h2>Agent tasks</h2>
+      <ItemList
+        adoId={pbi.adoId}
+        items={items.filter((item) => item.assignee !== "human" && item.kind !== "research-result")}
+        results={items.filter((item) => item.kind === "research-result")}
+        empty="None yet."
+      />
+      <h2>Vault drafts</h2>
+      <Drafts detail={detail} />
       <h2>Linked documents</h2>
       <LinkedDocuments detail={detail} />
       <h2>Attachments</h2>
       <Attachments detail={detail} />
-      <h2>Answered and closed</h2>
-      <ClosedItems detail={detail} items={humanItems.filter((item) => !isOpen(item))} />
-      <h2>Agent items</h2>
-      <AgentItems items={items.filter((item) => item.assignee !== "human")} />
       <h2>Runs</h2>
       <Runs detail={detail} />
     </>
@@ -64,38 +85,72 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
   );
 }
 
-function OpenItems({ adoId, items }: { adoId: number; items: ItemRow[] }) {
-  if (items.length === 0) {
-    return <p className="muted">Nothing open.</p>;
+// What the user must do, and what the agents' tasks are waiting for (the dispatcher's last check).
+function Blockers({ detail }: { detail: PbiDetail }) {
+  const open = detail.items.filter(isOpen);
+  const forYou = open.filter((item) => item.assignee === "human");
+  const forAgents = open.filter((item) => item.assignee !== "human");
+  const pendingDrafts = detail.drafts.filter(isUnmerged);
+
+  if (open.length === 0 && pendingDrafts.length === 0) {
+    return <p className="result-ok">No blockers: agents may work on this PBI.</p>;
   }
 
   return (
-    <div className="item-cards">
-      {items.map((item) => (
-        <section key={item.id} className="card">
-          <h3>{item.id} · {item.kind === "question" ? "question" : "human task"}</h3>
-          <p>{item.body ?? item.title}</p>
-          <ItemContext item={item} />
-          <CloseItemForm adoId={adoId} itemId={item.id} kind={item.kind} accept={ACCEPT} />
-        </section>
-      ))}
+    <div className="card">
+      {forYou.length > 0 && <p className="result-error">Needs your action: {forYou.length} open {forYou.length === 1 ? "item" : "items"}. Agents don't work on this PBI until you close them.</p>}
+      {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${item.assignee.replace("agent:", "")}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
+      {pendingDrafts.length > 0 && <p className="muted">Vault drafts not merged yet: {pendingDrafts.map((draft) => draft.name).join(", ")}. Until they are verified and moved out of draft/, only the agent that captured them may work.</p>}
     </div>
   );
 }
 
-function ItemContext({ item }: { item: ItemRow }) {
-  const data = (item.data ?? {}) as { why?: string; options?: string[] };
+// Facts agents captured for the docs vault (draft/ notes for a person to verify and merge).
+function Drafts({ detail }: { detail: PbiDetail }) {
+  if (detail.drafts.length === 0) {
+    return <p className="muted">None.</p>;
+  }
 
   return (
-    <>
-      {data.why && <p className="muted">Why: {data.why}</p>}
-      {data.options && data.options.length > 0 && <p className="muted">Options: {data.options.join(" · ")}</p>}
-    </>
+    <ul>
+      {detail.drafts.map((draft) => (
+        <li key={draft.id} className={draft.status === "merged" ? undefined : "result-error"}>
+          <DraftName draft={draft} /> · {draftState(draft)} · <Link href={`/agents/runs/${draft.runId}`}>RUN-{draft.runId}</Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
+function DraftName({ draft }: { draft: DraftRow }) {
+  // A merged draft is gone from draft/, so only unmerged ones get a link.
+  const href = draft.filePath && draft.status !== "merged" ? obsidianDocsLink(draft.filePath) : null;
+
+  return href ? <a href={href}>{draft.name}</a> : <span>{draft.name}</span>;
+}
+
+function isUnmerged(draft: DraftRow): boolean {
+  return ["pending", "created", "appended"].includes(draft.status);
+}
+
+function draftState(draft: DraftRow): string {
+  return DRAFT_STATES[draft.status] ?? `rejected: ${draft.errors.join("; ")} (handed to you as a human task)`;
+}
+
+function TextBlock({ text }: { text: string | null }) {
+  return text ? <div className="text-block">{text}</div> : <p className="muted">Empty in Azure DevOps.</p>;
+}
+
+function Refinement({ detail }: { detail: PbiDetail }) {
+  if (!detail.refinement) {
+    return <p className="muted">Not refined yet.</p>;
+  }
+
+  return <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>;
+}
+
 function LinkedDocuments({ detail }: { detail: PbiDetail }) {
-  const urls = linkedUrls(detail);
+  const urls = pbiLinkedUrls(detail.pbi);
 
   if (urls.length === 0) {
     return <p className="muted">None in the description or acceptance criteria.</p>;
@@ -103,24 +158,24 @@ function LinkedDocuments({ detail }: { detail: PbiDetail }) {
 
   return (
     <ul>
-      {urls.map((url) => {
-        const provided = detail.attachments.filter((entry) => entry.sourceUrl === url).map((entry) => attachmentRef(entry.id));
-
-        return (
-          <li key={url}>
-            <a href={url} target="_blank" rel="noreferrer">{url}</a> · {provided.length > 0 ? <span className="result-ok">content provided ({provided.join(", ")})</span> : <span className="result-error">content missing for agents</span>}
-          </li>
-        );
-      })}
+      {urls.map((url) => <LinkedDocument key={url} url={url} provided={providedBy(detail, url)} />)}
     </ul>
   );
+}
+
+function LinkedDocument({ url, provided }: { url: string; provided: string[] }) {
+  const state = provided.length > 0
+    ? <span className="result-ok">content provided ({provided.join(", ")})</span>
+    : <span className="result-error">content missing for agents</span>;
+
+  return <li><a href={url} target="_blank" rel="noreferrer">{url}</a> · {state}</li>;
 }
 
 function Attachments({ detail }: { detail: PbiDetail }) {
   return (
     <>
       {detail.attachments.length === 0 ? <p className="muted">None.</p> : <AttachmentTable detail={detail} />}
-      <AttachmentForm adoId={detail.pbi.adoId} linkedUrls={linkedUrls(detail)} accept={ACCEPT} />
+      <AttachmentForm adoId={detail.pbi.adoId} linkedUrls={pbiLinkedUrls(detail.pbi)} accept={ACCEPT} />
       <p className="muted">PDF, Word (.docx), HTML (e.g. a saved Confluence page), Markdown or text are converted to text for the agents; images are stored only. Max 20 MB.</p>
     </>
   );
@@ -138,7 +193,7 @@ function AttachmentTable({ detail }: { detail: PbiDetail }) {
             <tr key={entry.id}>
               <td>{attachmentRef(entry.id)}</td>
               <td><a href={`/pbis/${detail.pbi.adoId}/attachments/${entry.id}`}>{entry.fileName}</a></td>
-              <td>{entry.itemId ?? "–"}</td>
+              <td>{entry.itemId ? <Link href={`/pbis/${detail.pbi.adoId}/items/${entry.itemId}`}>{entry.itemId}</Link> : "–"}</td>
               <td>{entry.sourceUrl ?? "–"}</td>
               <td>{formatBytes(entry.sizeBytes)}</td>
               <td>{entry.textChars === null ? "no text (image)" : `${entry.textChars} chars`}</td>
@@ -148,36 +203,6 @@ function AttachmentTable({ detail }: { detail: PbiDetail }) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-function ClosedItems({ detail, items }: { detail: PbiDetail; items: ItemRow[] }) {
-  if (items.length === 0) {
-    return <p className="muted">None.</p>;
-  }
-
-  return (
-    <ul>
-      {items.map((item) => {
-        const files = detail.attachments.filter((entry) => entry.itemId === item.id).map((entry) => attachmentRef(entry.id));
-
-        return <li key={item.id}>{item.id} · {item.status} · {item.title}{item.resolution ? ` → ${item.resolution}` : ""}{files.length > 0 ? ` (${files.join(", ")})` : ""}</li>;
-      })}
-    </ul>
-  );
-}
-
-function AgentItems({ items }: { items: ItemRow[] }) {
-  if (items.length === 0) {
-    return <p className="muted">None yet.</p>;
-  }
-
-  return (
-    <ul>
-      {items.map((item) => (
-        <li key={item.id}>{item.vaultPath ? <NoteLink path={item.vaultPath} label={item.id} /> : item.id} · {item.kind} · {item.status} · {item.title}</li>
-      ))}
-    </ul>
   );
 }
 
@@ -195,12 +220,8 @@ function Runs({ detail }: { detail: PbiDetail }) {
   );
 }
 
-function isOpen(item: ItemRow): boolean {
-  return OPEN_STATUSES.includes(item.status);
-}
-
-function linkedUrls(detail: PbiDetail): string[] {
-  return pbiLinkedUrls(detail.pbi);
+function providedBy(detail: PbiDetail, url: string): string[] {
+  return detail.attachments.filter((entry) => entry.sourceUrl === url).map((entry) => attachmentRef(entry.id));
 }
 
 async function adoUrl(adoId: number): Promise<string | null> {

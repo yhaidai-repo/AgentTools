@@ -1,10 +1,13 @@
 import { PgBoss } from "pg-boss";
+import type { DispatchJob } from "./models/DispatchJob";
 
 export const SYNC_QUEUE = "sync";
 export const PREPARE_QUEUE = "prepare";
-export const REFINEMENT_QUEUE = "refinement";
-export const RESEARCH_QUEUE = "research";
-export const RENDER_QUEUE = "render";
+export const DISPATCH_QUEUE = "dispatch";
+export const AGENT_RUN_QUEUE = "agent-run";
+
+const TICK_KEY = "tick";
+const TICK_CRON = "* * * * *";
 
 // Worker owns pg-boss maintenance and cron; the web only sends and schedules.
 export function createWorkerBoss(url: string): PgBoss {
@@ -15,32 +18,40 @@ export function createSenderBoss(url: string): PgBoss {
   return new PgBoss({ connectionString: url, supervise: false, schedule: false, migrate: false });
 }
 
-// Agent batches can run for hours (several runs, first clones): a long expiry, and no automatic retry,
-// because a failed batch already recorded its failures and the next scheduled run picks the work up.
-const AGENT_QUEUE_OPTIONS = { expireInSeconds: 4 * 60 * 60, retryLimit: 0 };
+// One agent run can take long (first clones, slow models): a long expiry, and no automatic retry, because a failed
+// run already counted the attempt on its task and the dispatcher hands the task out again.
+const AGENT_RUN_OPTIONS = { expireInSeconds: 4 * 60 * 60, retryLimit: 0 };
 
 export async function ensureQueues(boss: PgBoss): Promise<void> {
-  // exclusive: at most one queued or running, so "run now" can't pile up.
+  // exclusive: at most one queued or running, so "sync now" can't pile up.
   await ensureQueue(boss, SYNC_QUEUE, "exclusive");
   await ensureQueue(boss, PREPARE_QUEUE, "standard");
-  await ensureQueue(boss, RENDER_QUEUE, "standard");
-  await ensureQueue(boss, REFINEMENT_QUEUE, "exclusive", AGENT_QUEUE_OPTIONS);
-  await ensureQueue(boss, RESEARCH_QUEUE, "exclusive", AGENT_QUEUE_OPTIONS);
+  await ensureQueue(boss, DISPATCH_QUEUE, "standard");
+  await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
   await boss.schedule(SYNC_QUEUE, cron);
 }
 
-// Agent queues are named after the agent id; a disabled agent or one without a schedule runs only on demand.
+// The dispatcher's every-minute tick keeps statuses, notes and hand-ons current between agent schedules.
+export async function applyDispatchTick(boss: PgBoss): Promise<void> {
+  const tick: DispatchJob = {};
+
+  await boss.schedule(DISPATCH_QUEUE, TICK_CRON, tick, { key: TICK_KEY });
+}
+
+// An agent's schedule sends a dispatch for that agent; a disabled agent or one without a schedule runs only on "Run now".
 export async function applyAgentSchedule(boss: PgBoss, agentId: string, cron: string | null, enabled: boolean): Promise<void> {
   if (!enabled || !cron) {
-    await boss.unschedule(agentId);
+    await boss.unschedule(DISPATCH_QUEUE, agentId);
 
     return;
   }
 
-  await boss.schedule(agentId, cron);
+  const job: DispatchJob = { agentId };
+
+  await boss.schedule(DISPATCH_QUEUE, cron, job, { key: agentId });
 }
 
 async function ensureQueue(boss: PgBoss, name: string, policy: "exclusive" | "standard", options: { expireInSeconds?: number; retryLimit?: number } = {}): Promise<void> {
