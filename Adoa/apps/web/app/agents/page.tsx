@@ -5,12 +5,14 @@ import { LocalTime } from "@/components/LocalTime";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadJobErrors, type JobError } from "@/lib/jobErrors";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
-import { DEFAULT_RANGE, rangeStart } from "@/lib/ranges";
+import { DEFAULT_RANGE, rangeOptions, rangeStart } from "@/lib/ranges";
 import { loadRunCounts } from "@/lib/runCounts";
+import { loadSubscriptionStatus } from "@/lib/subscription";
 import { getUsageStore } from "@/lib/usage";
 import type { RunCounts } from "@/models/RunCounts";
 import { PauseControl, RunNowButton } from "./AgentControls";
 import { RangeFilter } from "./RangeFilter";
+import { SubscriptionPanel } from "./SubscriptionPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +29,17 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <h1>Agents</h1>
+      <SubscriptionPanel statuses={await loadSubscriptionStatus()} />
       <PauseState global={global} />
       <PauseControl isPaused={isPaused(global)} />
-      <RangeFilter range={range} />
+      <RangeFilter range={range} ranges={rangeOptions()} />
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Agent</th>
               <th>Model</th>
-              <th>Runs</th>
+              <th>Runs period / total</th>
               <th>Failures</th>
               <th>Tokens total / avg</th>
               <th>Cost total / avg</th>
@@ -117,7 +120,7 @@ function AgentRow({ agent, totals, counts, range, isPaused }: AgentRowProps) {
     <tr>
       <td>{agent.label}{agent.enabled ? "" : " (off)"}</td>
       <td>{agent.model.provider}/{agent.model.model}</td>
-      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{counts?.runs ?? 0}</Link>{counts?.running ? ` (${counts.running} running)` : ""}</td>
+      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{counts?.runs ?? 0}</Link> / {counts?.totalRuns ?? 0}{counts?.running ? ` (${counts.running} running)` : ""}</td>
       <td className={counts?.failures ? "result-error" : undefined}>{counts?.failures ?? 0}</td>
       <td>{formatTokens(tokens)} / {formatTokens(Math.round(average(tokens, runs)))}</td>
       <td>{formatUsd(totals?.costUsd ?? 0)} / {formatUsd(average(totals?.costUsd ?? 0, runs))}</td>

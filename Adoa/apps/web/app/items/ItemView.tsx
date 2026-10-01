@@ -2,6 +2,7 @@ import { attachmentRef, isDeletableItem, isRerunnableTask } from "@adoa/core";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
 import { NoteLink } from "@/components/NoteLink";
+import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import type { FindingData } from "@/models/FindingData";
@@ -20,12 +21,13 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
 
   return (
     <>
-      <h1>{item.id} · {item.title}</h1>
+      <h1>{item.id} · <PbiLinkedText text={item.title} /></h1>
       <p>{adoId === null ? <Link href="/tasks">← Tasks</Link> : <Link href={`/pbis/${adoId}`}>← PBI-{adoId}</Link>}{item.vaultPath && <> · <NoteLink path={item.vaultPath} label="open note" /></>}</p>
       <div className="chips">
         <span className="chip">{item.kind}</span>
         <span className={`chip ${isOpen(item) && item.assignee === "human" ? "result-error" : ""}`}>status: {item.status}</span>
         <span className="chip">for: {item.assignee}</span>
+        {adoId !== null && <Link className="chip" href={`/pbis/${adoId}`}>PBI-{adoId}</Link>}
         {item.createdByRun && <Link className="chip" href={`/agents/runs/${item.createdByRun}`}>created by RUN-{item.createdByRun}</Link>}
         {item.parentId && <Link className="chip" href={itemPath({ id: item.parentId, pbiId: adoId })}>from {item.parentId}</Link>}
         {detail.runs.map((run) => <Link key={run.id} className="chip" href={`/agents/runs/${run.id}`}>RUN-{run.id} · {run.outcome}</Link>)}

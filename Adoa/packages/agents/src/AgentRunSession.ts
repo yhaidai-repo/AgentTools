@@ -1,4 +1,5 @@
 import { agentRun } from "@adoa/db";
+import type { AgentRuntime } from "@agenttools/runtime";
 import { BudgetGuard, TraceRecorder, UsageTracker, toOutcome, type RunOutcome } from "@agenttools/usage";
 import { eq } from "drizzle-orm";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -85,9 +86,15 @@ export class AgentRunSession {
     await this.deps.db.update(agentRun).set({ input: input.firstMessage }).where(eq(agentRun.id, this.runId));
     await this.phase("agent", { turnsLimit: input.limits.maxTurns, timeoutMs: input.limits.timeoutMs });
 
-    for await (const event of this.deps.runtimes.get(info.model.provider).run({ runId: String(this.runId), model: info.model, ...input, signal: observer.abort.signal })) {
+    const runtime = this.deps.runtimes.get(info.model.provider);
+
+    await this.sampleSubscription(runtime);
+
+    for await (const event of runtime.run({ runId: String(this.runId), model: info.model, ...input, signal: observer.abort.signal })) {
       await observer.observe(event);
     }
+
+    await this.sampleSubscription(runtime);
 
     return this.agentResult(observer, input);
   }
@@ -102,6 +109,20 @@ export class AgentRunSession {
     }
 
     return this.result(reported, reported === "success" ? null : (result?.message ?? reported), observer.rateLimitResetsAt);
+  }
+
+  // A run's share of the subscription: free for runtimes that report it during the run, otherwise asked before and
+  // after. A failed reading doesn't fail the run; the trace says why.
+  private async sampleSubscription(runtime: AgentRuntime): Promise<void> {
+    if (runtime.reportsSubscriptionInRuns) {
+      return;
+    }
+
+    try {
+      this.tracker.addSubscription((await runtime.subscriptionUsage()).windows);
+    } catch (error) {
+      await this.phase("subscription", { error: errorMessage(error) });
+    }
   }
 
   private async commitIfSuccess(result: AgentRunResult, commit: Commit | null): Promise<AgentRunResult> {

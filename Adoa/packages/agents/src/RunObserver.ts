@@ -38,6 +38,7 @@ export class RunObserver {
         this.addUsage(event);
         break;
       case "rate_limit":
+        this.tracker.addSubscription(event.windows ?? []);
         this.resetsAt = event.status === "rejected" ? event.resetsAt : this.resetsAt;
         break;
       case "result":

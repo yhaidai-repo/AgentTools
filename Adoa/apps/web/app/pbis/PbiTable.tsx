@@ -16,7 +16,6 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
             <th>ADO state</th>
             <th>Pipeline</th>
             <th>Sprint</th>
-            <th>Assigned to</th>
           </tr>
         </thead>
         <tbody>
@@ -31,7 +30,6 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
               <td>{row.adoState}</td>
               <td>{row.pipelineStatus}<NeedsAction row={row} /></td>
               <td>{row.iterationPath}</td>
-              <td>{row.assignedTo ?? "–"}</td>
             </tr>
           ))}
         </tbody>

@@ -3,6 +3,7 @@ import { modelCatalog } from "@agenttools/config";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { spentToday } from "@/lib/budgetUsage";
 import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "./AgentForm";
 
@@ -28,6 +29,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         skillFolders={skillFolders()}
         agentIds={(await store.list()).map((entry) => entry.id)}
         blockerKinds={BLOCKER_KINDS}
+        spentTodayUsd={await spentToday({ agent: agent.id })}
       />
     </>
   );

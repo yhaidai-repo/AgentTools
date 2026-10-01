@@ -259,6 +259,18 @@ ol.trace summary {
   border-radius: 8px;
 }
 
+.subscription-panel {
+  margin-bottom: 16px;
+}
+
+.subscription-panel > :last-child {
+  margin-bottom: 0;
+}
+
+.subscription-panel > p {
+  margin: 0;
+}
+
 .card h3 {
   margin: 0 0 6px;
   font-size: 15px;

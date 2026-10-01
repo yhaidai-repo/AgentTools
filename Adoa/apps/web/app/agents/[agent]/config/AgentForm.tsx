@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { BlockerKind } from "@adoa/core";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
 import type { SkillCatalog } from "@agenttools/runtime/skills";
+import { DailyBudgetStatus } from "@/components/DailyBudgetStatus";
 import type { ActionResult } from "@/models/ActionResult";
 import type { SkillFolder } from "@/models/SkillFolder";
 import { saveAgentAction } from "../../configActions";
@@ -18,10 +19,12 @@ interface AgentFormProps {
   skillFolders: SkillFolder[];
   agentIds: string[];
   blockerKinds: BlockerKind[];
+  /** This agent's finished runs today, what its daily budget counts. */
+  spentTodayUsd: number;
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes.
-export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, blockerKinds }: AgentFormProps) {
+export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, blockerKinds, spentTodayUsd }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
@@ -62,6 +65,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
           <input name="perRunUsd" type="number" step="0.1" min={0} defaultValue={agent.budgets.perRunUsd} required />
           <input name="dailyUsd" type="number" step="0.5" min={0} defaultValue={agent.budgets.dailyUsd} required />
         </span>
+        <DailyBudgetStatus spentUsd={spentTodayUsd} limitUsd={agent.budgets.dailyUsd} />
       </label>
       <label className="inline">
         <input name="webAccess" type="checkbox" defaultChecked={agent.capabilities.webAccess} />

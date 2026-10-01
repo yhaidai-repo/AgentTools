@@ -37,6 +37,8 @@ function summaryOf(event: StoredTraceEvent): string {
       return String(payload.text).slice(0, 120);
     case "result":
       return `${payload.reason}, ${payload.turns} turns`;
+    case "rate_limit":
+      return [payload.status, ...(payload.windows ?? []).map((window: { window: string; utilization: number }) => `${window.window} ${Math.round(window.utilization * 100)}%`)].join(" · ");
     default:
       return payload.message ? String(payload.message).slice(0, 120) : "";
   }

@@ -27,3 +27,13 @@ export function formatBytes(bytes: number): string {
 
   return bytes >= 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${bytes} B`;
 }
+
+// A 0–1 fraction as whole percent.
+export function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 100)}%`;
+}
+
+// A run's share is a split of a whole period's change, so it is finer than the provider's whole percents.
+export function formatSharePercent(fraction: number): string {
+  return `${(fraction * 100).toFixed(1)}%`;
+}

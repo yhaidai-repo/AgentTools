@@ -1,6 +1,7 @@
 import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core";
 import Link from "next/link";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { spentToday } from "@/lib/budgetUsage";
 import { getDb } from "@/lib/db";
 import { backlogFolder } from "@/lib/obsidian";
 import { loadSprintChoices } from "@/lib/sprints";
@@ -20,7 +21,7 @@ export default async function SettingsPage() {
       <h1>Settings</h1>
       <SettingsForm ado={ado ?? { orgUrl: "", project: "", team: "", user: "" }} sync={sync} sprintOptions={sprintOptions} currentSprint={await readCurrentSprint(db)} />
       <h2>Agents</h2>
-      <GlobalAgentForm global={await getAgentConfig().getGlobal()} />
+      <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
       <h2>From .env (restart to change)</h2>
       <p className="muted">

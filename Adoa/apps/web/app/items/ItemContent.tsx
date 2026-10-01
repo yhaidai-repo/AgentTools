@@ -1,3 +1,4 @@
+import { PbiLinkedText } from "@/components/PbiLinkedText";
 import type { ItemRow } from "@/lib/pbiDetail";
 
 type ItemData = {
@@ -101,7 +102,7 @@ function Section({ title, text }: { title: string; text: string | null | undefin
   return (
     <>
       <h2>{title}</h2>
-      {text ? <div className="text-block">{text}</div> : <p className="muted">–</p>}
+      {text ? <div className="text-block"><PbiLinkedText text={text} /></div> : <p className="muted">–</p>}
     </>
   );
 }
