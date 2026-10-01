@@ -120,7 +120,7 @@ function AgentRow({ agent, totals, counts, range, isPaused }: AgentRowProps) {
     <tr>
       <td>{agent.label}{agent.enabled ? "" : " (off)"}</td>
       <td>{agent.model.provider}/{agent.model.model}</td>
-      <td><Link href={`/agents/${agent.id}?range=${range}`} title="Show runs">{counts?.runs ?? 0}</Link> / {counts?.totalRuns ?? 0}{counts?.running ? ` (${counts.running} running)` : ""}</td>
+      <td><Link href={`/runs?agent=${agent.id}&range=${range}`} title="Show runs">{counts?.runs ?? 0}</Link> / {counts?.totalRuns ?? 0}{counts?.running ? ` (${counts.running} running)` : ""}</td>
       <td className={counts?.failures ? "result-error" : undefined}>{counts?.failures ?? 0}</td>
       <td>{formatTokens(tokens)} / {formatTokens(Math.round(average(tokens, runs)))}</td>
       <td>{formatUsd(totals?.costUsd ?? 0)} / {formatUsd(average(totals?.costUsd ?? 0, runs))}</td>

@@ -47,7 +47,7 @@ function TaskTable({ rows, filter }: { rows: TaskRow[]; filter: TaskFilter }) {
               <td className={isOpen(row) && row.assignee === "human" ? "result-error" : undefined}>{row.status}{row.heldBy.length > 0 && row.status === "open" ? " (held)" : ""}</td>
               <td>{row.assignee.replace("agent:", "")}</td>
               <td>{row.pbiId === null ? "–" : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}</td>
-              <td>{row.latestRunId === null ? "–" : <Link href={`/agents/runs/${row.latestRunId}`}>RUN-{row.latestRunId} · {row.latestRunOutcome}</Link>}</td>
+              <td><TaskRuns runs={row.runs} /></td>
               <td>{row.title}</td>
               <td><LocalTime date={row.createdAt} /></td>
               <td><LocalTime date={row.updatedAt} /></td>
@@ -57,6 +57,33 @@ function TaskTable({ rows, filter }: { rows: TaskRow[]; filter: TaskFilter }) {
       </table>
     </div>
   );
+}
+
+const SHOWN_RUNS = 3;
+
+// The task's runs, newest first; failures in red, so a failed run stays visible after a later success.
+function TaskRuns({ runs }: { runs: TaskRow["runs"] }) {
+  if (runs.length === 0) {
+    return <>–</>;
+  }
+
+  const hidden = runs.length - SHOWN_RUNS;
+
+  return (
+    <>
+      {runs.slice(0, SHOWN_RUNS).map((run, index) => (
+        <span key={run.id}>
+          {index > 0 && ", "}
+          <Link href={`/agents/runs/${run.id}`} className={isFailure(run.outcome) ? "result-error" : undefined}>RUN-{run.id} · {run.outcome}</Link>
+        </span>
+      ))}
+      {hidden > 0 && <span className="muted"> +{hidden} more</span>}
+    </>
+  );
+}
+
+function isFailure(outcome: string): boolean {
+  return !["success", "running", "no-op"].includes(outcome);
 }
 
 // Click to sort by this date, newest first; click again to flip the order. The filters stay as they are.

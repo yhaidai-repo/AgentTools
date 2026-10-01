@@ -2,6 +2,7 @@
 
 import { REGISTER_QUEUE, closeHumanItem, deleteItem, findClosableItem, linkedUrlOf, rerunTask, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
 import { storeAttachment, type UploadedFile } from "@adoa/attachments";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
@@ -67,6 +68,8 @@ export async function rerunTaskAction(adoId: number | null, itemId: string): Pro
   }
 
   await afterItemChange(adoId);
+  revalidatePath("/runs");
+  revalidatePath("/agents/runs", "layout");
 
   return { ok: true, message: `${itemId} is open again: it runs on the agent's next schedule or "Run now".` };
 }

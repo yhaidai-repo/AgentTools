@@ -12,21 +12,17 @@ export const TASK_KINDS = ["question", "human", "finding", "refinement", "resear
 // Every task, question and finding across PBIs, plus those without one (e.g. a chat draft's tech-writer task).
 export async function loadTaskList(filter: TaskFilter) {
   return getDb()
-    .select({ ...getTableColumns(localItem), latestRunId: latestRunId(), latestRunOutcome: latestRunOutcome() })
+    .select({ ...getTableColumns(localItem), runs: taskRuns() })
     .from(localItem)
     .where(and(...filterConditions(filter)))
     .orderBy(sortOrder(filter), desc(localItem.id))
     .limit(LIST_LIMIT);
 }
 
-// The run that last worked on the item (an agent task's run; questions and findings have none). The column is written
+// Every run that worked on the item, newest first (agent tasks; questions and findings have none). The column is written
 // out: inside a select, drizzle renders it as a bare "id", which the subquery would read as agent_run's own id.
-function latestRunId(): SQL<number | null> {
-  return sql<number | null>`(SELECT max(r.id)::int FROM agent_run r WHERE r.item_id = "local_item"."id")`;
-}
-
-function latestRunOutcome(): SQL<string | null> {
-  return sql<string | null>`(SELECT r.outcome::text FROM agent_run r WHERE r.item_id = "local_item"."id" ORDER BY r.id DESC LIMIT 1)`;
+function taskRuns(): SQL<{ id: number; outcome: string }[]> {
+  return sql<{ id: number; outcome: string }[]>`(SELECT coalesce(json_agg(json_build_object('id', r.id, 'outcome', r.outcome) ORDER BY r.id DESC), '[]'::json) FROM agent_run r WHERE r.item_id = "local_item"."id")`;
 }
 
 function sortOrder(filter: TaskFilter): SQL {

@@ -4,11 +4,13 @@ import { and, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { LocalTime } from "@/components/LocalTime";
 import { NoteLink } from "@/components/NoteLink";
 import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
 import { getUsageStore } from "@/lib/usage";
+import { RunRerun } from "@/app/runs/RunRerun";
 import { TraceView } from "./TraceView";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +30,14 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   const store = getUsageStore();
   const [usage] = await store.records({ from: new Date(0), match: { run: String(run.id) } }, 1);
   const trace = await store.trace(String(run.id));
+  const [task] = run.itemId ? await getDb().select().from(localItem).where(eq(localItem.id, run.itemId)) : [];
 
   return (
     <>
       <h1>RUN-{run.id} · {run.stage}</h1>
-      <p><Link href={`/agents/${run.stage}`}>← {run.stage} runs</Link></p>
+      <p><Link href={`/runs?agent=${run.stage}`}>← {run.stage} runs</Link></p>
       <RunSummary run={run} usage={usage} />
+      <p className="actions"><RunRerun task={task ?? null} /></p>
       <h2>Outputs</h2>
       <Outputs run={run} />
       <Captures runId={run.id} />
@@ -53,7 +57,8 @@ function RunSummary({ run, usage }: { run: RunRow; usage?: UsageRecord }) {
   return (
     <div className="chips">
       <span className="chip">outcome: {run.outcome}</span>
-      <span className="chip">PBI-{run.pbiId}</span>
+      <AutoRefresh active={run.outcome === "running"} />
+      {run.pbiId && <Link className="chip" href={`/pbis/${run.pbiId}`}>PBI-{run.pbiId}</Link>}
       <span className="chip">model: {run.model}</span>
       <span className="chip">prompt: {run.promptVersion}</span>
       <span className="chip">started: <LocalTime date={run.startedAt} /></span>
