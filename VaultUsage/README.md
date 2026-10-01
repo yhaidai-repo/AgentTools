@@ -23,7 +23,6 @@ New agent = new folder under `Adapters/` that maps its tool calls to `record`. T
 | `extensions` | tracked note types (`.md`) |
 | `excludeFolders` | folders never tracked (`.obsidian`, `.usage`) |
 | `logFolder`, `logFile` | log location inside each vault (`.usage/usage.jsonl`, hidden from Obsidian) |
-| `selfLoggingCommands` | vault tools that log their own usage; shell commands running them are not scanned for note paths |
 
 ## Record usage (any agent)
 

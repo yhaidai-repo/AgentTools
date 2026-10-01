@@ -23,9 +23,8 @@ BeforeAll {
             vaults         = @([IO.Path]::GetFullPath($VaultRoot))
             extensions     = @('.md')
             excludeFolders = @('.obsidian', '.usage')
-            logFolder           = '.usage'
-            logFile             = 'usage.jsonl'
-            selfLoggingCommands = @('vault-capture.ps1')
+            logFolder      = '.usage'
+            logFile        = 'usage.jsonl'
         }
     }
 }
@@ -74,14 +73,6 @@ Describe 'Find-VaultFileReference' {
         $paths = Find-VaultFileReference -Text $command -Config $config
 
         $paths.Count | Should -Be 2
-    }
-
-    It 'ignores note paths passed to a self-logging vault tool' {
-        $command = "echo '{""target"":""$(Join-Path $vaultRoot 'index.md')""}' | pwsh -File vault-capture.ps1 capture"
-
-        $paths = Find-VaultFileReference -Text $command -Config $config
-
-        $paths.Count | Should -Be 0
     }
 
     It 'finds absolute note paths' {
