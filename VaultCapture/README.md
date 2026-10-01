@@ -62,6 +62,16 @@ pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-
 - `is-draft`: `{"ok":true,"drafts":{"pvs-topic":true,"pvs-other":false}}`. `false` = no longer in `draft/` (merged or deleted). A caller waiting for drafts polls this.
 - Both return `{"ok":false,"errors":[…]}` with exit code 1 for an unknown vault or a name that isn't a note name.
 
+### Registers (open questions, known issues)
+
+```bash
+pwsh -NoProfile -File vault-capture.ps1 register -Vault work-projects -Project pvs -Kind questions
+echo '{"vault":"work-projects","project":"pvs","kind":"issues","title":"Short title","text":"1-3 lines","default":["bullet"]}' | pwsh -NoProfile -File vault-capture.ps1 register-add
+```
+
+- `register`: `{"ok":true,"records":[{"id":"OQ-001","title":"…","status":"Open","resolved":false}],"path":"…"}` from `<project>/<project>-open-questions.md` or `-known-issues.md`. Reads the AGENTS.md record layout and the older one (title as a bold line under `## OQ-001`).
+- `register-add`: appends a record with the next id in the AGENTS.md layout (heading with id and title, `> **Open** · Created … · Updated …`, `**Question**`/`**Issue**`, optional `**Default**` and numbered `**Options**`). Returns `{"ok":true,"id":"OQ-009","path":"…"}`. The caller must have the user's yes (vault rule "ask the user first").
+
 ## Claude Code adapter
 
 `Invoke-PreCompactHook.ps1`, settings in `pre-compact.config.json` (`VAULT_CAPTURE_PRECOMPACT_CONFIG` overrides):

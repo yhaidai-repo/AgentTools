@@ -1,0 +1,91 @@
+BeforeAll {
+    Import-Module (Join-Path $PSScriptRoot '..' 'VaultCapture.psd1') -Force
+
+    function New-RegisterVault {
+        $vaultRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
+        $projectRoot = Join-Path $vaultRoot 'pvs'
+
+        New-Item -ItemType Directory -Path $projectRoot -Force | Out-Null
+        @('---', 'project: pvs', 'repo: D:/Projects/PVS', '---') | Set-Content (Join-Path $projectRoot 'pvs-index.md')
+        @(
+            '---', 'title: Open questions', '---', '# Open questions', '',
+            '## OQ-001', '**Older layout title**', '> **Open** · Created 2026-09-23 · Updated 2026-09-23', '',
+            '## [RESOLVED] OQ-002 Rule layout title', '> **Resolved** · Created 2026-09-24 · Updated 2026-09-25'
+        ) | Set-Content (Join-Path $projectRoot 'pvs-open-questions.md')
+        @('---', 'title: Known issues', '---', '# Known issues') | Set-Content (Join-Path $projectRoot 'pvs-known-issues.md')
+
+        return $vaultRoot
+    }
+}
+
+Describe 'Get-VaultRegister' {
+    BeforeEach {
+        $vaultRoot = New-RegisterVault
+        $config = [pscustomobject]@{ vaults = @([IO.Path]::GetFullPath($vaultRoot)) }
+        $vaultName = Split-Path -Leaf $vaultRoot
+    }
+
+    It 'reads records in both layouts' {
+        $result = Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'questions' -Config $config
+
+        $result.ok | Should -BeTrue
+        $result.records.id | Should -Be @('OQ-001', 'OQ-002')
+        $result.records[0].title | Should -Be 'Older layout title'
+        $result.records[1].title | Should -Be 'Rule layout title'
+        $result.records[1].resolved | Should -BeTrue
+        $result.records[1].status | Should -Be 'Resolved'
+    }
+
+    It 'reads an empty register' {
+        $result = Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'issues' -Config $config
+
+        $result.ok | Should -BeTrue
+        @($result.records).Count | Should -Be 0
+    }
+
+    It 'rejects an unknown kind or project' {
+        (Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'todos' -Config $config).ok | Should -BeFalse
+        (Get-VaultRegister -Vault $vaultName -Project 'nope' -Kind 'issues' -Config $config).errors | Should -Contain "project 'nope' has no known-issues register."
+    }
+}
+
+Describe 'Add-VaultRegisterRecord' {
+    BeforeEach {
+        $vaultRoot = New-RegisterVault
+        $config = [pscustomobject]@{ vaults = @([IO.Path]::GetFullPath($vaultRoot)) }
+        $vaultName = Split-Path -Leaf $vaultRoot
+    }
+
+    It 'appends the next question in the rule layout' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'questions'; title = 'Which states?'; text = 'Only MA, MD?'; default = @('MA and MD only'); options = @('Keep', 'Extend') }
+
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-open-questions.md')
+
+        $result.ok | Should -BeTrue
+        $result.id | Should -Be 'OQ-003'
+        $content | Should -Contain '## OQ-003 Which states?'
+        ($content | Where-Object { $_ -like '> **Open** · Created *' }).Count | Should -Be 2
+        $content | Should -Contain '**Question**: Only MA, MD?'
+        $content | Should -Contain '- MA and MD only'
+        $content | Should -Contain '2. Extend'
+    }
+
+    It 'starts an empty register at 001 with the issue label' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
+
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+
+        $result.id | Should -Be 'KI-001'
+        Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') | Should -Contain '**Issue**: Sums twice.'
+    }
+
+    It 'rejects a record without title or text' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = ''; text = 'x' }
+
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+
+        $result.ok | Should -BeFalse
+        $result.errors | Should -Contain 'title is required.'
+    }
+}

@@ -7,7 +7,9 @@
     PowerShellVersion = '7.0'
     FunctionsToExport = @(
         'Get-CaptureInstruction'
+        'Add-VaultRegisterRecord'
         'Get-VaultDraft'
+        'Get-VaultRegister'
         'Get-VaultRules'
         'Save-VaultCapture'
         'Test-VaultDraft'

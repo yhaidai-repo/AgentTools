@@ -71,6 +71,26 @@ function Invoke-IsDraftCommand {
     Write-QueryResult -Result (Test-VaultDraft -Vault $Vault -Name $Name)
 }
 
+# The records of a project's register: register -Vault work-projects -Project pvs -Kind questions|issues
+function Invoke-RegisterCommand {
+    param(
+        [Parameter(Mandatory)][string]$Vault,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][string]$Kind
+    )
+
+    Write-QueryResult -Result (Get-VaultRegister -Vault $Vault -Project $Project -Kind $Kind)
+}
+
+# A new record, JSON on stdin (or -InputFile): {"vault","project","kind":"questions|issues","title","text","default":[],"options":[]}
+function Invoke-RegisterAddCommand {
+    param([string]$InputFile)
+
+    $json = if ($InputFile) { Get-Content -LiteralPath $InputFile -Raw } else { [Console]::In.ReadToEnd() }
+
+    Write-QueryResult -Result (Add-VaultRegisterRecord -InputObject ($json | ConvertFrom-Json))
+}
+
 function Write-QueryResult {
     param([Parameter(Mandatory)][object]$Result)
 
@@ -85,6 +105,8 @@ $commands = @{
     capture    = 'Invoke-CaptureCommand'
     drafts     = 'Invoke-DraftsCommand'
     'is-draft' = 'Invoke-IsDraftCommand'
+    register   = 'Invoke-RegisterCommand'
+    'register-add' = 'Invoke-RegisterAddCommand'
 }
 
 if (-not $commands.ContainsKey([string]$Command)) {
