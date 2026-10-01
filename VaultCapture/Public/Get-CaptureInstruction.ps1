@@ -2,21 +2,11 @@ function Get-CaptureInstruction {
     [CmdletBinding()]
     param(
         [string]$Reason = 'Save valuable information to the vault.',
-        [string]$Agent,
-        [string]$Session,
         [object]$Config
     )
 
     $rules = Get-VaultRules -Config $Config
     $example = $rules.capture.example
-
-    if ($Agent) {
-        $example.agent = $Agent
-    }
-
-    if ($Session) {
-        $example.session = $Session
-    }
 
     $lines = @(
         $Reason

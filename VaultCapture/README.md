@@ -1,7 +1,7 @@
 # VaultCapture
 
 Saves valuable session findings into vault drafts before an agent's context is compacted. The vault rules live in this module and are enforced in code.
-PowerShell 7+, cross-platform. Depends on the sibling `VaultUsage` module (vault list, usage logging, CLI parser).
+PowerShell 7+, cross-platform, no dependencies.
 
 ## Layout
 
@@ -19,7 +19,7 @@ PowerShell 7+, cross-platform. Depends on the sibling `VaultUsage` module (vault
 - `guidance`: what agents must know before writing (shown by `rules` and in the hook message).
 - `draft`: folder, name pattern, allowed sources, max lines, section names, default "To fill" bullet.
 
-Vaults come from VaultUsage's config. Projects are discovered: a top-level folder with a `<key>-index.md`.
+Vault roots: `vault-capture.config.json`, or the file named by `VAULT_CAPTURE_CONFIG`. Projects are discovered: a top-level folder with a `<key>-index.md`.
 
 ## CLI
 
@@ -41,7 +41,6 @@ Input JSON (stdin, or `-InputFile <path>`):
 | `captured` | required | optional | bullets, one fact each |
 | `sections` | optional | optional | `{ "Heading": ["bullet"] }` |
 | `assumptions`, `toFill` | optional | optional | bullets |
-| `agent`, `session` | optional | optional | written to the usage log |
 
 Output: `{"ok":true,"mode":"created|appended|rejected","path":"…","errors":[]}`; exit code 1 when rejected.
 An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, name clash with a verified note, appending to a non-draft or another project's draft, more than `maxLines`.

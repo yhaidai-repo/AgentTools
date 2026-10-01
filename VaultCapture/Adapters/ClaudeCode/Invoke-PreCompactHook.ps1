@@ -29,7 +29,7 @@ function Invoke-PreCompactHook {
     }
 
     Set-CaptureRequested -Config $config -Session $session
-    [Console]::Error.WriteLine((Get-CaptureInstruction -Reason (Get-BlockReason -Trigger $payload.trigger) -Agent 'claude-code' -Session $session))
+    [Console]::Error.WriteLine((Get-CaptureInstruction -Reason (Get-BlockReason -Trigger $payload.trigger)))
 
     return $script:BlockExitCode
 }

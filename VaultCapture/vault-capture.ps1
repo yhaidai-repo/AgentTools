@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.Encoding]::UTF8
 
 Import-Module (Join-Path $PSScriptRoot 'VaultCapture.psd1') -Force
-. (Join-Path $PSScriptRoot '..' 'VaultUsage' 'Cli' 'ConvertTo-ParameterTable.ps1')
+. (Join-Path $PSScriptRoot 'Cli' 'ConvertTo-ParameterTable.ps1')
 
 function Invoke-RulesCommand {
     param([ValidateSet('text', 'json')][string]$Format = 'text')

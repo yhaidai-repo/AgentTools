@@ -38,7 +38,5 @@ function Get-CaptureExample {
         sections    = [pscustomobject]@{ Decisions = @('Optional extra section: heading -> bullets.') }
         assumptions = @('Optional.')
         toFill      = @('What still needs verification.')
-        agent       = 'your-agent-name'
-        session     = 'your-session-id'
     }
 }

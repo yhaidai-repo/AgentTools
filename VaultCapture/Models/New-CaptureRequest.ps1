@@ -6,9 +6,7 @@ function New-CaptureRequest {
         [string]$Title,
         [string]$Source,
         [string]$Target,
-        [Collections.Specialized.OrderedDictionary]$Sections = [ordered]@{},
-        [string]$Agent,
-        [string]$Session
+        [Collections.Specialized.OrderedDictionary]$Sections = [ordered]@{}
     )
 
     return [pscustomobject]@{
@@ -19,7 +17,5 @@ function New-CaptureRequest {
         Source   = $Source
         Target   = $Target
         Sections = $Sections
-        Agent    = $Agent
-        Session  = $Session
     }
 }

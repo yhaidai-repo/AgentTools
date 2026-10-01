@@ -16,8 +16,7 @@ function ConvertFrom-CaptureInput {
 
     return New-CaptureRequest -Vault $InputObject.vault -Project $InputObject.project `
         -Name ([string]$InputObject.name -replace '\.md$', '') -Title $InputObject.title `
-        -Source $InputObject.source -Target $InputObject.target -Sections $sections `
-        -Agent $InputObject.agent -Session $InputObject.session
+        -Source $InputObject.source -Target $InputObject.target -Sections $sections
 }
 
 function Get-ExtraSectionProperty {

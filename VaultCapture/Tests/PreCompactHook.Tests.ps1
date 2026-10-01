@@ -18,21 +18,20 @@ Describe 'Invoke-PreCompactHook' {
     BeforeEach {
         $vaultRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
         $stateFolder = Join-Path $TestDrive ([guid]::NewGuid().Guid)
-        $usageConfigPath = Join-Path $TestDrive 'usage.json'
+        $captureConfigPath = Join-Path $TestDrive 'capture.json'
         $hookConfigPath = Join-Path $TestDrive 'hook.json'
 
         New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs') -Force | Out-Null
         'x' | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
-        @{ vaults = @($vaultRoot); extensions = @('.md'); excludeFolders = @('.usage'); logFolder = '.usage'; logFile = 'usage.jsonl' } |
-            ConvertTo-Json | Set-Content $usageConfigPath
+        @{ vaults = @($vaultRoot) } | ConvertTo-Json | Set-Content $captureConfigPath
         @{ blockOn = @('auto'); markerTtlMinutes = 30; stateFolder = $stateFolder } | ConvertTo-Json | Set-Content $hookConfigPath
 
-        $env:VAULT_USAGE_CONFIG = $usageConfigPath
+        $env:VAULT_CAPTURE_CONFIG = $captureConfigPath
         $env:VAULT_CAPTURE_PRECOMPACT_CONFIG = $hookConfigPath
     }
 
     AfterEach {
-        Remove-Item Env:\VAULT_USAGE_CONFIG, Env:\VAULT_CAPTURE_PRECOMPACT_CONFIG -ErrorAction SilentlyContinue
+        Remove-Item Env:\VAULT_CAPTURE_CONFIG, Env:\VAULT_CAPTURE_PRECOMPACT_CONFIG -ErrorAction SilentlyContinue
     }
 
     It 'blocks the first compaction with the capture instruction' {

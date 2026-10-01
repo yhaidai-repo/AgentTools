@@ -15,11 +15,7 @@ BeforeAll {
         param([string]$VaultRoot)
 
         return [pscustomobject]@{
-            vaults         = @([IO.Path]::GetFullPath($VaultRoot))
-            extensions     = @('.md')
-            excludeFolders = @('.obsidian', '.usage')
-            logFolder      = '.usage'
-            logFile        = 'usage.jsonl'
+            vaults = @([IO.Path]::GetFullPath($VaultRoot))
         }
     }
 
@@ -108,14 +104,6 @@ Describe 'Save-VaultCapture' {
         $result.ok | Should -BeFalse
         Test-Path -LiteralPath $draftPath | Should -BeFalse
     }
-
-    It 'logs the write in the usage log' {
-        Save-VaultCapture -InputObject (New-TestInput -Override @{ agent = 'codex' }) -Config $config | Out-Null
-        $usage = Get-Content -LiteralPath (Join-Path $vaultRoot '.usage' 'usage.jsonl') | ConvertFrom-Json
-
-        $usage.kind | Should -Be 'write'
-        $usage.agent | Should -Be 'codex'
-    }
 }
 
 Describe 'Get-CaptureInstruction' {
@@ -123,7 +111,7 @@ Describe 'Get-CaptureInstruction' {
         $vaultRoot = New-TestVault
         $config = New-TestConfig -VaultRoot $vaultRoot
 
-        $instruction = Get-CaptureInstruction -Reason 'Test.' -Agent 'claude-code' -Config $config
+        $instruction = Get-CaptureInstruction -Reason 'Test.' -Config $config
 
         $instruction | Should -Match 'Vault rules:'
         $instruction | Should -Match "$(Split-Path -Leaf $vaultRoot): pvs"

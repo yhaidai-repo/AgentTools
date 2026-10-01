@@ -1,9 +1,9 @@
 function Get-CaptureVault {
     param([object]$Config)
 
-    $usageConfig = if ($Config) { $Config } else { Get-VaultUsageConfig }
+    $captureConfig = if ($Config) { $Config } else { Get-CaptureConfig }
 
-    return @($usageConfig.vaults | ForEach-Object {
+    return @($captureConfig.vaults | ForEach-Object {
         New-CaptureVault -Name (Split-Path -Leaf $_) -Root $_ -Projects (Get-VaultProject -VaultRoot $_)
     })
 }
