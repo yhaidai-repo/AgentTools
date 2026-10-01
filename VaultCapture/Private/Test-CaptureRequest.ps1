@@ -120,7 +120,7 @@ function Get-FailedCheckError {
 
 function Get-FrontmatterValue {
     param(
-        [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines,
+        [Parameter(Mandatory)][AllowEmptyString()][AllowEmptyCollection()][string[]]$Lines,
         [Parameter(Mandatory)][string]$Key
     )
 
@@ -131,7 +131,7 @@ function Get-FrontmatterValue {
 }
 
 function Get-FrontmatterLine {
-    param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines)
+    param([Parameter(Mandatory)][AllowEmptyString()][AllowEmptyCollection()][string[]]$Lines)
 
     $hasFrontmatter = $Lines.Count -gt 0 -and $Lines[0] -eq '---'
     if (-not $hasFrontmatter) {

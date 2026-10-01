@@ -8,6 +8,10 @@
         pwsh -NoProfile -File vault-capture.ps1 capture
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 capture -InputFile capture.json
+.EXAMPLE
+    pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: adoa"
+.EXAMPLE
+    pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
 #>
 param([string]$Command)
 
@@ -47,9 +51,40 @@ function Invoke-CaptureCommand {
     }
 }
 
+# Drafts for a writer to verify and merge; -PreferSource puts e.g. a pipeline's drafts first.
+function Invoke-DraftsCommand {
+    param(
+        [Parameter(Mandatory)][string]$Vault,
+        [string]$PreferSource
+    )
+
+    Write-QueryResult -Result (Get-VaultDraft -Vault $Vault -PreferSource $PreferSource)
+}
+
+# -Name repeats: is-draft -Vault work-projects -Name pvs-a -Name pvs-b
+function Invoke-IsDraftCommand {
+    param(
+        [Parameter(Mandatory)][string]$Vault,
+        [Parameter(Mandatory)][string[]]$Name
+    )
+
+    Write-QueryResult -Result (Test-VaultDraft -Vault $Vault -Name $Name)
+}
+
+function Write-QueryResult {
+    param([Parameter(Mandatory)][object]$Result)
+
+    $Result | ConvertTo-Json -Compress -Depth 5
+    if (-not $Result.ok) {
+        exit 1
+    }
+}
+
 $commands = @{
-    rules   = 'Invoke-RulesCommand'
-    capture = 'Invoke-CaptureCommand'
+    rules      = 'Invoke-RulesCommand'
+    capture    = 'Invoke-CaptureCommand'
+    drafts     = 'Invoke-DraftsCommand'
+    'is-draft' = 'Invoke-IsDraftCommand'
 }
 
 if (-not $commands.ContainsKey([string]$Command)) {

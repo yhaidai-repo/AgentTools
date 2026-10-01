@@ -7,8 +7,10 @@
     PowerShellVersion = '7.0'
     FunctionsToExport = @(
         'Get-CaptureInstruction'
+        'Get-VaultDraft'
         'Get-VaultRules'
         'Save-VaultCapture'
+        'Test-VaultDraft'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

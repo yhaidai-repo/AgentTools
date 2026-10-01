@@ -51,6 +51,17 @@ Input JSON (stdin, or `-InputFile <path>`). `rules` and `capture` take `-Cwd` (d
 Output: `{"ok":true,"mode":"created|appended|rejected","path":"…","errors":[]}`; exit code 1 when rejected.
 An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, another project than the working directory's, name clash with a verified note, note file paths instead of `[[note]]` links, appending to a non-draft or another project's draft, more than `maxLines`.
 
+### Drafts waiting to be merged
+
+```bash
+pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: adoa"
+pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
+```
+
+- `drafts`: every note in the vault's `draft/` folder (name, title, project, captured, source, target, path, preferred), for a writer to verify and merge. Drafts whose `source` starts with `-PreferSource` come first, then the oldest `captured` first.
+- `is-draft`: `{"ok":true,"drafts":{"pvs-topic":true,"pvs-other":false}}`. `false` = no longer in `draft/` (merged or deleted). A caller waiting for drafts polls this.
+- Both return `{"ok":false,"errors":[…]}` with exit code 1 for an unknown vault or a name that isn't a note name.
+
 ## Claude Code adapter
 
 `Invoke-PreCompactHook.ps1`, settings in `pre-compact.config.json` (`VAULT_CAPTURE_PRECOMPACT_CONFIG` overrides):
