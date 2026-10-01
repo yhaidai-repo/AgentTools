@@ -1,6 +1,6 @@
 "use server";
 
-import { DISPATCH_QUEUE, closeDocumentTasks, deleteItem, rerunTask, closeHumanItem, findClosableItem, linkedUrlOf, pbiSkillProblems, savePbiSkills, type CloseDecision, type CloseItemRequest, type DispatchJob } from "@adoa/core";
+import { DISPATCH_QUEUE, deleteItem, rerunTask, closeHumanItem, findClosableItem, linkedUrlOf, pbiSkillProblems, savePbiSkills, type CloseDecision, type CloseItemRequest, type DispatchJob } from "@adoa/core";
 import { storeAttachment, type UploadedFile } from "@adoa/attachments";
 import { workItem, type PbiSkill } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -44,18 +44,15 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
     return { ok: false, message: "Choose a file." };
   }
 
-  const sourceUrl = text(form, "sourceUrl");
-  const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl });
+  const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl: null });
 
   if (!stored.ok) {
     return { ok: false, message: stored.error };
   }
 
-  const closed = sourceUrl ? await closeDocumentTasks(getDb(), adoId, sourceUrl, `Uploaded as ATT-${stored.value}.`) : [];
-
   await afterChange(adoId);
 
-  return { ok: true, message: `Uploaded as ATT-${stored.value}.${closed.length > 0 ? ` Closed ${closed.join(", ")}.` : ""}` };
+  return { ok: true, message: `Uploaded as ATT-${stored.value}.` };
 }
 
 // Soft delete: gone from the pages and the Vault, kept so agents don't create it again. Back to the PBI page after.

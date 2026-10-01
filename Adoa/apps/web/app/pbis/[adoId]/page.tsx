@@ -178,7 +178,7 @@ function Attachments({ detail }: { detail: PbiDetail }) {
   return (
     <>
       {detail.attachments.length === 0 ? <p className="muted">None.</p> : <AttachmentTable detail={detail} />}
-      <AttachmentForm adoId={detail.pbi.adoId} linkedUrls={pbiLinkedUrls(detail.pbi)} accept={ACCEPT} />
+      <AttachmentForm adoId={detail.pbi.adoId} accept={ACCEPT} />
       <p className="muted">PDF, Word (.docx), HTML (e.g. a saved Confluence page), Markdown or text are converted to text for the agents; images are stored only. Max 20 MB.</p>
     </>
   );

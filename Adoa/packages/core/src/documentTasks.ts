@@ -1,8 +1,7 @@
 import { attachment, localItem, type AdoaDb } from "@adoa/db";
-import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { createHumanTask } from "./humanItems";
 import { documentKey, hasItemWithKey } from "./itemKeys";
-import { setItemStatus } from "./pbiStatus";
 import { linkedDocumentKind } from "./urls";
 
 const KIND_LABELS = { confluence: "Confluence page", "ado-attachment": "ADO attachment", web: "document" };
@@ -34,19 +33,4 @@ export async function createDocumentTask(db: AdoaDb, adoId: number, url: string,
     runId: null,
     data: { url, key: documentKey(url) },
   });
-}
-
-// An upload for a linked document (from its task or from "Add attachment") closes the tasks asking for it.
-export async function closeDocumentTasks(db: AdoaDb, adoId: number, url: string, resolution: string): Promise<string[]> {
-  const open = await db
-    .select({ id: localItem.id, status: localItem.status })
-    .from(localItem)
-    .where(and(eq(localItem.pbiId, adoId), eq(localItem.kind, "human"), inArray(localItem.status, ["open", "in-progress"]), sql`${localItem.data}->>'url' = ${url}`));
-
-  for (const task of open) {
-    await db.update(localItem).set({ resolution }).where(eq(localItem.id, task.id));
-    await setItemStatus(db, task.id, task.status, "done", "human");
-  }
-
-  return open.map((task) => task.id);
 }

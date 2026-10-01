@@ -4,18 +4,15 @@ import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { addAttachment } from "./actions";
 
-// An upload not tied to a question; optionally the content of one of the PBI's linked documents.
-export function AttachmentForm({ adoId, linkedUrls, accept }: { adoId: number; linkedUrls: string[]; accept: string }) {
+// Any document useful for the PBI. The content of a linked document is uploaded on its "Attach the content" task's page,
+// which closes the task (user decision 2026-10-02).
+export function AttachmentForm({ adoId, accept }: { adoId: number; accept: string }) {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(addAttachment, null);
 
   return (
     <form action={action} className="toolbar">
       <input type="hidden" name="adoId" value={adoId} />
       <input type="file" name="file" accept={accept} required />
-      <select name="sourceUrl" defaultValue="">
-        <option value="">Not a linked document</option>
-        {linkedUrls.map((url) => <option key={url} value={url}>Content of {url}</option>)}
-      </select>
       <button type="submit" disabled={isPending}>{isPending ? "Uploading…" : "Add attachment"}</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
     </form>
