@@ -4,7 +4,9 @@ function Get-CaptureVault {
     $captureConfig = if ($Config) { $Config } else { Get-CaptureConfig }
 
     return @($captureConfig.vaults | ForEach-Object {
-        New-CaptureVault -Name (Split-Path -Leaf $_) -Root $_ -Projects (Get-VaultProject -VaultRoot $_)
+        $vaultName = Split-Path -Leaf $_
+
+        New-CaptureVault -Name $vaultName -Root $_ -Projects (Get-VaultProject -VaultRoot $_ -VaultName $vaultName)
     })
 }
 
@@ -17,13 +19,49 @@ function Resolve-CaptureVault {
     return $Vaults | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
 }
 
-# A project is a top-level folder holding its "<key>-index.md" entry note.
+# A project is a top-level folder whose "<key>-index.md" names its repository in "repo:".
+# Folders without it (e.g. app-generated ones) are not projects agents capture into.
 function Get-VaultProject {
-    param([Parameter(Mandatory)][string]$VaultRoot)
+    param(
+        [Parameter(Mandatory)][string]$VaultRoot,
+        [Parameter(Mandatory)][string]$VaultName
+    )
 
     return @(Get-ChildItem -LiteralPath $VaultRoot -Directory |
-        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "$($_.Name)-index.md") -PathType Leaf } |
-        ForEach-Object { $_.Name })
+        ForEach-Object { ConvertTo-CaptureProject -Folder $_ -VaultName $VaultName } |
+        Where-Object { $_ })
+}
+
+function ConvertTo-CaptureProject {
+    param(
+        [Parameter(Mandatory)][IO.DirectoryInfo]$Folder,
+        [Parameter(Mandatory)][string]$VaultName
+    )
+
+    $indexPath = Join-Path $Folder.FullName "$($Folder.Name)-index.md"
+    if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
+        return $null
+    }
+
+    $repoPath = ConvertFrom-RepoValue -Value (Get-FrontmatterValue -Lines @(Get-Content -LiteralPath $indexPath) -Key 'repo')
+    if (-not $repoPath) {
+        return $null
+    }
+
+    return New-CaptureProject -Key $Folder.Name -Vault $VaultName -RepoPath $repoPath
+}
+
+# "repo:" holds a path, optionally followed by "(folder Sub/)" when the project lives in a subfolder of the repository.
+function ConvertFrom-RepoValue {
+    param([string]$Value)
+
+    if ($Value -notmatch '^(?<path>[^(]+?)\s*(?:\(folder\s+(?<folder>[^)]+?)\)\s*)?$') {
+        return $null
+    }
+
+    $folder = if ($Matches.folder) { $Matches.folder.Trim('/', '\') } else { '' }
+
+    return [IO.Path]::GetFullPath((Join-Path $Matches.path.Trim() $folder)).TrimEnd('\', '/')
 }
 
 function Find-NoteOutsideDraft {

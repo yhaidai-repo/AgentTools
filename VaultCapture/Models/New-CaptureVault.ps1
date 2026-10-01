@@ -2,7 +2,7 @@ function New-CaptureVault {
     param(
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$Root,
-        [string[]]$Projects = @()
+        [object[]]$Projects = @()
     )
 
     return [pscustomobject]@{

@@ -3,9 +3,12 @@ BeforeAll {
 
     function New-TestVault {
         $vaultRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
+        $script:RepoRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs' 'feature'), (Join-Path $vaultRoot 'draft') -Force | Out-Null
-        'x' | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs' 'feature'), (Join-Path $vaultRoot 'draft'), (Join-Path $vaultRoot 'backlog') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:RepoRoot 'src') -Force | Out-Null
+        @('---', 'project: pvs', "repo: $($script:RepoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        @('---', 'title: "Backlog"', '---') | Set-Content (Join-Path $vaultRoot 'backlog' 'backlog-index.md')
         'x' | Set-Content (Join-Path $vaultRoot 'pvs' 'feature' 'pvs-taken.md')
 
         return $vaultRoot
@@ -116,15 +119,64 @@ Describe 'Save-VaultCapture' {
     }
 }
 
-Describe 'Get-CaptureInstruction' {
-    It 'lists the rules, the projects and the capture command' {
+Describe 'Save-VaultCapture in a project repository' {
+    BeforeEach {
         $vaultRoot = New-TestVault
         $config = New-TestConfig -VaultRoot $vaultRoot
+        $script:VaultName = Split-Path -Leaf $vaultRoot
+        $cwd = Join-Path $script:RepoRoot 'src'
+    }
 
+    It 'fills vault and project from the working directory' {
+        $captureInput = New-TestInput -Override @{ vault = $null; project = $null }
+
+        $result = Save-VaultCapture -InputObject $captureInput -Cwd $cwd -Config $config
+        $content = Get-Content -LiteralPath $result.path
+
+        $result.ok | Should -BeTrue
+        $content | Should -Contain 'project: pvs'
+    }
+
+    It 'rejects a capture for another project' {
+        $result = Save-VaultCapture -InputObject (New-TestInput -Override @{ project = 'pvsi' }) -Cwd $cwd -Config $config
+
+        $result.ok | Should -BeFalse
+        $result.errors | Should -Match "works on project 'pvs'"
+    }
+
+    It 'resolves a git worktree to its main repository' -Skip:(-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        $worktree = Join-Path $TestDrive ([guid]::NewGuid().Guid)
+
+        git -C $script:RepoRoot init -q
+        git -C $script:RepoRoot -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
+        git -C $script:RepoRoot worktree add -q $worktree
+        New-Item -ItemType Directory -Path (Join-Path $worktree 'src') -Force | Out-Null
+
+        $result = Save-VaultCapture -InputObject (New-TestInput -Override @{ vault = $null; project = $null }) -Cwd (Join-Path $worktree 'src') -Config $config
+
+        $result.ok | Should -BeTrue
+    }
+}
+
+Describe 'Get-CaptureInstruction' {
+    BeforeEach {
+        $vaultRoot = New-TestVault
+        $config = New-TestConfig -VaultRoot $vaultRoot
+    }
+
+    It 'lists the rules, the projects with a repository and the capture command' {
         $instruction = Get-CaptureInstruction -Reason 'Test.' -Config $config
 
         $instruction | Should -Match 'Vault rules:'
-        $instruction | Should -Match "$(Split-Path -Leaf $vaultRoot): pvs"
+        $instruction | Should -Match "(?m)^- $(Split-Path -Leaf $vaultRoot): pvs\r?$"
+        $instruction | Should -Not -Match 'backlog'
         $instruction | Should -Match 'vault-capture.ps1" capture'
+    }
+
+    It 'names the session project when the working directory is in its repository' {
+        $instruction = Get-CaptureInstruction -Reason 'Test.' -Cwd (Join-Path $script:RepoRoot 'src') -Config $config
+
+        $instruction | Should -Match 'This session works on project pvs'
+        $instruction | Should -Not -Match '"project":'
     }
 }

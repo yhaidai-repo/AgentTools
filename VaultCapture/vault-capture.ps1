@@ -18,21 +18,28 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'VaultCapture.psd1') -Force
 . (Join-Path $PSScriptRoot 'Cli' 'ConvertTo-ParameterTable.ps1')
 
+# The caller's working directory decides the project it captures into, so -Cwd defaults to where the command runs.
 function Invoke-RulesCommand {
-    param([ValidateSet('text', 'json')][string]$Format = 'text')
+    param(
+        [ValidateSet('text', 'json')][string]$Format = 'text',
+        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath
+    )
 
     if ($Format -eq 'json') {
-        return Get-VaultRules | ConvertTo-Json -Depth 5
+        return Get-VaultRules -Cwd $Cwd | ConvertTo-Json -Depth 5
     }
 
-    return Get-CaptureInstruction
+    return Get-CaptureInstruction -Cwd $Cwd
 }
 
 function Invoke-CaptureCommand {
-    param([string]$InputFile)
+    param(
+        [string]$InputFile,
+        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath
+    )
 
     $json = if ($InputFile) { Get-Content -LiteralPath $InputFile -Raw } else { [Console]::In.ReadToEnd() }
-    $result = Save-VaultCapture -InputObject ($json | ConvertFrom-Json)
+    $result = Save-VaultCapture -InputObject ($json | ConvertFrom-Json) -Cwd $Cwd
 
     $result | ConvertTo-Json -Compress
     if (-not $result.ok) {

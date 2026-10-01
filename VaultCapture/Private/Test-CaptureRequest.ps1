@@ -46,8 +46,8 @@ function Test-ProjectKey {
         [Parameter(Mandatory)][object]$Vault
     )
 
-    if ($Vault.Projects -notcontains $Request.Project) {
-        return "project '$($Request.Project)' is not in vault '$($Vault.Name)'. Known: $($Vault.Projects -join ', ')."
+    if (@($Vault.Projects.Key) -notcontains $Request.Project) {
+        return "project '$($Request.Project)' is not in vault '$($Vault.Name)'. Known: $(@($Vault.Projects.Key) -join ', ')."
     }
 }
 

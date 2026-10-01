@@ -21,8 +21,10 @@ Describe 'Invoke-PreCompactHook' {
         $captureConfigPath = Join-Path $TestDrive 'capture.json'
         $hookConfigPath = Join-Path $TestDrive 'hook.json'
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs') -Force | Out-Null
-        'x' | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        $repoRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
+
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs'), $repoRoot -Force | Out-Null
+        @('---', "repo: $($repoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
         @{ vaults = @($vaultRoot) } | ConvertTo-Json | Set-Content $captureConfigPath
         @{ blockOn = @('auto'); markerTtlMinutes = 30; stateFolder = $stateFolder } | ConvertTo-Json | Set-Content $hookConfigPath
 
@@ -39,6 +41,14 @@ Describe 'Invoke-PreCompactHook' {
 
         $result.ExitCode | Should -Be 2
         $result.Stderr | Should -Match 'Vault rules:'
+    }
+
+    It 'names the project of the session working directory' {
+        $payload = @{ session_id = 's2'; trigger = 'auto'; cwd = $repoRoot } | ConvertTo-Json
+
+        $result = Invoke-Hook -Payload $payload
+
+        $result.Stderr | Should -Match 'This session works on project pvs'
     }
 
     It 'allows the second compaction of the same cycle, then blocks the next cycle' {

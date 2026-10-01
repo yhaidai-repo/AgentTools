@@ -19,7 +19,12 @@ PowerShell 7+, cross-platform, no dependencies.
 - `guidance`: what agents must know before writing (shown by `rules` and in the hook message).
 - `draft`: folder, name pattern, allowed sources, max lines, section names, default "To fill" bullet.
 
-Vault roots: `vault-capture.config.json`, or the file named by `VAULT_CAPTURE_CONFIG`. Projects are discovered: a top-level folder with a `<key>-index.md`.
+Vault roots: `vault-capture.config.json`, or the file named by `VAULT_CAPTURE_CONFIG`.
+
+## Session project
+
+A project is a top-level vault folder whose `<key>-index.md` frontmatter has `repo:` (a path, optionally `(folder Sub/)`). Folders without `repo:` (e.g. app-generated `backlog/`) are not projects.
+The caller's working directory picks the project: the one whose repository contains it. A git worktree resolves to its main repository. Then `vault` and `project` are filled in, and a capture for another project is rejected. Outside any project repository, the caller passes `vault` and `project`.
 
 ## CLI
 
@@ -32,18 +37,19 @@ pwsh -NoProfile -File vault-capture.ps1 rules -Format json
 echo '{"vault":"work-projects","project":"pvs","name":"pvs-topic","title":"Topic","source":"session finding","target":"[[pvs-index]]","captured":["fact"]}' | pwsh -NoProfile -File vault-capture.ps1 capture
 ```
 
-Input JSON (stdin, or `-InputFile <path>`):
+Input JSON (stdin, or `-InputFile <path>`). `rules` and `capture` take `-Cwd` (default: where the command runs).
 
 | Field | New draft | Append | Notes |
 |---|---|---|---|
-| `vault`, `project`, `name` | required | required | `name` = file name, kebab-case, unique in the vault |
+| `vault`, `project` | outside a project repository | same | filled from the working directory inside one |
+| `name` | required | required | file name, kebab-case, unique in the vault |
 | `title`, `target`, `source` | required | ignored | `source`: `user message`, `session finding`, `spec <id>` |
 | `captured` | required | optional | bullets, one fact each |
 | `sections` | optional | optional | `{ "Heading": ["bullet"] }` |
 | `assumptions`, `toFill` | optional | optional | bullets |
 
 Output: `{"ok":true,"mode":"created|appended|rejected","path":"…","errors":[]}`; exit code 1 when rejected.
-An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, name clash with a verified note, note file paths instead of `[[note]]` links, appending to a non-draft or another project's draft, more than `maxLines`.
+An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, another project than the working directory's, name clash with a verified note, note file paths instead of `[[note]]` links, appending to a non-draft or another project's draft, more than `maxLines`.
 
 ## Claude Code adapter
 
