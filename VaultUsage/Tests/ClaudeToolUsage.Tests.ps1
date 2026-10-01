@@ -36,6 +36,57 @@ Describe 'ConvertFrom-ClaudeToolCall' {
     }
 }
 
+Describe 'ConvertFrom-ClaudeToolCall for shell commands with output' {
+    BeforeEach {
+        $notePath = Join-Path $vaultRoot 'note.md'
+        $draftPath = Join-Path $vaultRoot 'draft.md'
+
+        'x' | Set-Content $notePath
+        'x' | Set-Content $draftPath
+        (Get-Item $notePath).LastWriteTimeUtc = [datetime]::UtcNow.AddHours(-1)
+    }
+
+    It 'counts a note printed by the command and modified by it as a write' {
+        $response = [pscustomobject]@{ stdout = "{""ok"":true,""path"":""$($draftPath.Replace('\', '\\'))""}"; stderr = '' }
+        $toolCall = New-ClaudeToolCall -Id 't1' -Name 'Bash' -ToolInput ([pscustomobject]@{ command = 'vault-tool save' }) `
+            -ToolResponse $response -Cwd $vaultRoot
+
+        $fileUses = @(ConvertFrom-ClaudeToolCall -ToolCall $toolCall -Config $config)
+        $written = $fileUses | Where-Object Kind -EQ 'write'
+
+        $written.Paths | Should -Be @([IO.Path]::GetFullPath($draftPath))
+    }
+
+    It 'counts a note named in the command and modified by it as a write' {
+        $toolCall = New-ClaudeToolCall -Id 't1' -Name 'Bash' -ToolInput ([pscustomobject]@{ command = 'sed -i s/x/y/ draft.md' }) `
+            -ToolResponse ([pscustomobject]@{ stdout = '' }) -Cwd $vaultRoot
+
+        $fileUses = @(ConvertFrom-ClaudeToolCall -ToolCall $toolCall -Config $config)
+
+        ($fileUses | Where-Object Kind -EQ 'write').Paths.Count | Should -Be 1
+        ($fileUses | Where-Object Kind -EQ 'shell').Paths.Count | Should -Be 0
+    }
+
+    It 'keeps an unmodified note named in the command as shell' {
+        $toolCall = New-ClaudeToolCall -Id 't1' -Name 'Bash' -ToolInput ([pscustomobject]@{ command = 'cat note.md' }) `
+            -ToolResponse ([pscustomobject]@{ stdout = 'x' }) -Cwd $vaultRoot
+
+        $fileUses = @(ConvertFrom-ClaudeToolCall -ToolCall $toolCall -Config $config)
+
+        ($fileUses | Where-Object Kind -EQ 'shell').Paths.Count | Should -Be 1
+        ($fileUses | Where-Object Kind -EQ 'write').Paths.Count | Should -Be 0
+    }
+
+    It 'ignores an unmodified note that only appears in the output' {
+        $toolCall = New-ClaudeToolCall -Id 't1' -Name 'Bash' -ToolInput ([pscustomobject]@{ command = 'ls' }) `
+            -ToolResponse ([pscustomobject]@{ stdout = $notePath }) -Cwd $vaultRoot
+
+        $fileUses = @(ConvertFrom-ClaudeToolCall -ToolCall $toolCall -Config $config)
+
+        @($fileUses.Paths | Where-Object { $_ }).Count | Should -Be 0
+    }
+}
+
 Describe 'Add-ClaudeToolUsage' {
     It 'records the subagent and event id' {
         $toolCall = New-ClaudeToolCall -Id 't9' -Name 'Read' -ToolInput ([pscustomobject]@{ file_path = 'index.md' }) `

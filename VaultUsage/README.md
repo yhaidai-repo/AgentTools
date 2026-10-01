@@ -23,6 +23,7 @@ New agent = new folder under `Adapters/` that maps its tool calls to `record`. T
 | `extensions` | tracked note types (`.md`) |
 | `excludeFolders` | folders never tracked (`.obsidian`, `.usage`) |
 | `logFolder`, `logFile` | log location inside each vault (`.usage/usage.jsonl`, hidden from Obsidian) |
+| `writeWindowSeconds` | hook only: a note modified within this many seconds of a shell command counts as written by it (default 15) |
 
 ## Record usage (any agent)
 
@@ -86,11 +87,14 @@ Hook in `~/.claude/settings.json`:
 ```
 
 Mapping: `Read` → read, `Edit`/`Write` → write, `Grep` on a file → search, `Bash`/`PowerShell` → shell (note paths found in the command, relative paths resolved against `cd` targets and cwd).
+In the live hook, a note named in a shell command or printed in its output that the command modified counts as write instead (`sed -i`, redirects, tools that print the path they wrote). Unmodified notes seen only in the output are ignored.
 
 ## Limits
 
 - Files an agent loads without a tool call (`CLAUDE.md`, `@imports`) are not counted.
-- `shell` cannot tell a read from a write.
+- `shell` means named in a command and not modified: a read, or only a mention (e.g. a path inside a tool's JSON input).
+- The history import has no command output and files changed since, so all its shell notes stay `shell`.
+- A note modified by something else within the write window right before a shell command names it counts as written by that command.
 - Agents without hooks count only if they call `record` themselves.
 
 ## Tests

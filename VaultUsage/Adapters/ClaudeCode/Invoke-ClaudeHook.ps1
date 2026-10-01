@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 function Invoke-ClaudeHook {
     $payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
     $toolCall = New-ClaudeToolCall -Id $payload.tool_use_id -Name $payload.tool_name -ToolInput $payload.tool_input `
-        -Cwd $payload.cwd -Session $payload.session_id -Subagent $payload.agent_type
+        -ToolResponse $payload.tool_response -Cwd $payload.cwd -Session $payload.session_id -Subagent $payload.agent_type
 
     Add-ClaudeToolUsage -ToolCall $toolCall -Source 'hook' -Config (Get-VaultUsageConfig) | Out-Null
 }
