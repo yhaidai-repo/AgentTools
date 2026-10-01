@@ -23,6 +23,9 @@ export class PostgresAgentConfigStore implements AgentConfigStore {
     }
 
     await this.writeGlobal(mergeGlobal(await this.readGlobal(), global));
+
+    // Announced like a save: hosts that started first (e.g. a scheduler) would otherwise miss newly added agents.
+    await this.notify({ kind: "global", id: null });
   }
 
   async list(): Promise<AgentDefinition[]> {
