@@ -6,7 +6,7 @@ export { renderItemNote } from "./renderItemNote";
 export { replaceRegions } from "./regions";
 export { DEFAULT_PBI_TEMPLATE } from "./defaultPbiTemplate";
 export { htmlToMarkdown } from "./markdown";
-export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, itemNotePath, pbiNoteName, pbiNotePath, refinementNoteName, refinementNotePath } from "./paths";
+export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, attachmentFileName, attachmentPath, itemNotePath, pbiNoteName, pbiNotePath, refinementNoteName, refinementNotePath } from "./paths";
 export type { PbiNote } from "./models/PbiNote";
 export type { IndexRow } from "./models/IndexRow";
 export type { RefinementNote } from "./models/RefinementNote";

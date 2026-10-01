@@ -29,6 +29,15 @@ export function itemNotePath(pbiNotePath: string, itemId: string, kind: string):
   return `${folderOf(pbiNotePath)}/${ITEM_FOLDERS[kind] ?? "tasks"}/${itemId}.md`;
 }
 
+// Uploads keep their name, prefixed with the attachment id so two files of the same name never clash.
+export function attachmentFileName(ref: string, fileName: string): string {
+  return `${ref}-${fileName.replaceAll(/[^A-Za-z0-9._-]+/g, "-")}`;
+}
+
+export function attachmentPath(pbiNotePath: string, ref: string, fileName: string): string {
+  return `${folderOf(pbiNotePath)}/attachments/${attachmentFileName(ref, fileName)}`;
+}
+
 function folderOf(path: string): string {
   return path.slice(0, path.lastIndexOf("/"));
 }

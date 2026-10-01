@@ -53,7 +53,7 @@ function taskSections(item: ItemNote): string[] {
 }
 
 function humanTaskSections(item: ItemNote): string[] {
-  return ["## Task", item.body ?? "–", "_Close it in the adoa dashboard (or note the outcome below)._"];
+  return ["## Task", item.body ?? "–", ...closedSection(item, "## Outcome", "_Close it on the PBI's page in adoa._")];
 }
 
 function questionSections(item: ItemNote): string[] {
@@ -63,8 +63,19 @@ function questionSections(item: ItemNote): string[] {
     "## Question", item.body ?? "–",
     "## Why it matters", String(item.data?.why ?? "–"),
     "## Options", options.join("\n") || "None given.",
-    "_Answer in the adoa dashboard (or below in Notes for now)._",
+    ...closedSection(item, "## Answer", "_Answer on the PBI's page in adoa._"),
   ];
+}
+
+// Open items say where to close them; closed ones show what the person answered and uploaded.
+function closedSection(item: ItemNote, heading: string, openHint: string): string[] {
+  if (item.status === "open") {
+    return [openHint];
+  }
+
+  const files = item.attachments.map((name) => `- [[${name}]]`);
+
+  return [heading, `${item.status}: ${item.resolution ?? "–"}`, ...(files.length > 0 ? [files.join("\n")] : [])];
 }
 
 function researchResultSections(item: ItemNote): string[] {

@@ -64,6 +64,13 @@
       "when": 1790861134849,
       "tag": "0008_vault_capture_module",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790862478016,
+      "tag": "0009_attachments",
+      "breakpoints": true
     }
   ]
 }

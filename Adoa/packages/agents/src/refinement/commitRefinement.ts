@@ -1,7 +1,8 @@
 import { nextItemId, setPbiStatus } from "@adoa/core";
 import { agentRun, localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
 import { eq, max } from "drizzle-orm";
-import { linkedDocuments } from "../links";
+import { linkedDocuments, providedUrls } from "../links";
+import { loadPbiInputs } from "../pbiInputs";
 import type { LinkedDocument } from "../models/LinkedDocument";
 import type { QuestionDraft } from "./models/QuestionDraft";
 import type { RefinementDraft } from "./models/RefinementDraft";
@@ -59,7 +60,7 @@ async function insertQuestions(db: AdoaDb, adoId: number, runId: number, questio
 
     await db.insert(localItem).values({
       id, kind: "question", pbiId: adoId, title: question.question.slice(0, 120), status: "open", assignee: "human",
-      body: question.question, data: { why: question.why, options: question.options }, createdByRun: runId,
+      body: question.question, data: { why: question.why, options: question.options, url: question.url }, createdByRun: runId,
     });
     ids.push(id);
   }
@@ -67,16 +68,18 @@ async function insertQuestions(db: AdoaDb, adoId: number, runId: number, questio
   return ids;
 }
 
-// Guard, not prompt: every linked document the agent couldn't read and no question mentions gets its own question.
+// Guard, not prompt: every linked document whose content wasn't uploaded and no question mentions gets its own question.
 async function linkQuestions(db: AdoaDb, adoId: number, drafts: QuestionDraft[], links: LinkedDocument[]): Promise<QuestionDraft[]> {
   const existing = await db.select({ body: localItem.body }).from(localItem).where(eq(localItem.pbiId, adoId));
   const asked = [...existing.map((item) => item.body ?? ""), ...drafts.map((draft) => draft.question)].join("\n");
-  const missing = links.filter((link) => link.kind !== "ado-attachment" && !asked.includes(link.url));
+  const provided = providedUrls((await loadPbiInputs(db, adoId)).attachments);
+  const missing = links.filter((link) => link.kind !== "ado-attachment" && !asked.includes(link.url) && !provided.includes(link.url));
 
   return missing.map((link) => ({
     question: `Provide the content of the linked ${link.kind === "confluence" ? "Confluence page" : "document"}: ${link.url}`,
-    why: "The PBI links it, but agents cannot open it, so its content is missing from refinement and research. Paste the relevant part into the PBI note's Notes section or the docs vault.",
-    options: ["Paste content into the PBI note (Notes)", "Add it to the docs vault", "Not needed"],
+    why: "The PBI links it, but agents cannot open it, so its content is missing from refinement and research. Upload it (PDF, Word, saved HTML or text) on the PBI's page in adoa.",
+    options: ["Upload the document", "Answer with the relevant part as text", "Not needed"],
+    url: link.url,
   }));
 }
 

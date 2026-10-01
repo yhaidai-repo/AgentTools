@@ -16,6 +16,7 @@ COPY Adoa/packages/db/package.json Adoa/packages/db/
 COPY Adoa/packages/core/package.json Adoa/packages/core/
 COPY Adoa/packages/ado/package.json Adoa/packages/ado/
 COPY Adoa/packages/vault/package.json Adoa/packages/vault/
+COPY Adoa/packages/attachments/package.json Adoa/packages/attachments/
 COPY Adoa/packages/agents/package.json Adoa/packages/agents/
 COPY Adoa/apps/worker/package.json Adoa/apps/worker/
 COPY Adoa/apps/agent-runner/package.json Adoa/apps/agent-runner/

@@ -245,3 +245,38 @@ ol.trace summary {
 .trace-tool_result { border-left-color: var(--muted); }
 .trace-text, .trace-result { border-left-color: var(--ok); }
 .trace-error { border-left-color: var(--error); }
+
+.item-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+form.close-item {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+}
+
+a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+a.button.secondary {
+  color: var(--text);
+  border: 1px solid var(--border);
+}

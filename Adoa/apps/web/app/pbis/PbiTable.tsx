@@ -1,5 +1,6 @@
 import { workItemUrl, type AdoSettings } from "@adoa/core";
 import type { workItem } from "@adoa/db";
+import Link from "next/link";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
@@ -27,7 +28,7 @@ export function PbiTable({ rows, ado }: { rows: WorkItemRow[]; ado: AdoSettings 
                 <input type="checkbox" name="adoId" value={row.adoId} aria-label={`Select ${row.adoId}`} />
               </td>
               <td>{ado ? <a href={workItemUrl(ado, row.adoId)} target="_blank" rel="noreferrer">{row.adoId}</a> : row.adoId}</td>
-              <td className="title">{row.title}</td>
+              <td className="title"><Link href={`/pbis/${row.adoId}`}>{row.title}</Link></td>
               <td>{row.type}</td>
               <td>{row.adoState}</td>
               <td>{row.pipelineStatus}</td>

@@ -15,6 +15,7 @@ import { dailyGuard, docsReadInRun, loadRunnableStage, loadStageSkills, numberOp
 import { claimPbi } from "./claimPbi";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
+import { createAttachmentTool } from "../attachmentTools";
 import { buildPbiMessage } from "./pbiMessage";
 import { createRefinementTools } from "./refinementTools";
 import { selectCandidates } from "./selectCandidates";
@@ -120,7 +121,7 @@ async function prepare(context: BatchContext, session: AgentRunSession, row: Wor
 
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skills.skills.map((skill) => skill.name) });
 
-  const pbiMessage = await buildPbiMessage(deps.vaultRoot, row);
+  const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
 
   await session.phase("first-message", { chars: pbiMessage.length });
 
@@ -128,7 +129,7 @@ async function prepare(context: BatchContext, session: AgentRunSession, row: Wor
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage: pbiMessage,
-    tools: [...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }), ...skills.tools, ...createRefinementTools(deps.db, draft, pbiMessage)],
+    tools: [...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }), ...skills.tools, createAttachmentTool(deps.db, row.adoId), ...createRefinementTools(deps.db, draft, pbiMessage)],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     hasRequiredOutput: () => draft.refinement !== null,

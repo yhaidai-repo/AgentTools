@@ -1,27 +1,35 @@
+import { pbiLinkedUrls } from "@adoa/core";
 import type { workItem } from "@adoa/db";
+import type { AttachmentSummary } from "./models/AttachmentSummary";
 import type { LinkedDocument } from "./models/LinkedDocument";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
-const URL_PATTERN = /https?:\/\/[^\s)\]>"'`]+/g;
-
 // Every link in the PBI's description and acceptance criteria. Agents can't open any of them
-// (no web access, and Confluence/ADO need a login), so each is listed as a missing input.
+// (no web access, and Confluence/ADO need a login), so each is missing input unless the user uploaded its content.
 export function linkedDocuments(row: WorkItemRow): LinkedDocument[] {
-  const text = `${row.descriptionMd ?? ""}\n${row.acceptanceCriteriaMd ?? ""}`;
-  const urls = [...new Set(text.match(URL_PATTERN) ?? [])].map(trimTrailingPunctuation);
-
-  return [...new Set(urls)].map((url) => ({ url, kind: kindOf(url) }));
+  return pbiLinkedUrls(row).map((url) => ({ url, kind: kindOf(url) }));
 }
 
-export function linksBlock(links: LinkedDocument[]): string {
+export function linksBlock(links: LinkedDocument[], attachments: AttachmentSummary[]): string {
   if (links.length === 0) {
     return "<linked-documents>none</linked-documents>";
   }
 
-  const lines = links.map((link) => `- ${link.url} (${link.kind})`);
+  const lines = links.map((link) => `- ${link.url} (${link.kind}): ${linkContent(link, attachments)}`);
 
-  return ["<linked-documents>", "Linked from the PBI. You cannot open these; treat their content as missing input.", ...lines, "</linked-documents>"].join("\n");
+  return ["<linked-documents>", "Linked from the PBI. You cannot open these links; read the user's upload with read_attachment where one is given.", ...lines, "</linked-documents>"].join("\n");
+}
+
+// URLs whose content the user uploaded; refinement asks no question for them.
+export function providedUrls(attachments: AttachmentSummary[]): string[] {
+  return attachments.flatMap((attachment) => (attachment.sourceUrl ? [attachment.sourceUrl] : []));
+}
+
+function linkContent(link: LinkedDocument, attachments: AttachmentSummary[]): string {
+  const ids = attachments.filter((attachment) => attachment.sourceUrl === link.url).map((attachment) => attachment.id);
+
+  return ids.length > 0 ? `content provided as ${ids.join(", ")}` : "content missing";
 }
 
 function kindOf(url: string): LinkedDocument["kind"] {
@@ -30,8 +38,4 @@ function kindOf(url: string): LinkedDocument["kind"] {
   }
 
   return /_apis\/wit\/attachments/i.test(url) ? "ado-attachment" : "web";
-}
-
-function trimTrailingPunctuation(url: string): string {
-  return url.replace(/[.,;:!?]+$/, "");
 }

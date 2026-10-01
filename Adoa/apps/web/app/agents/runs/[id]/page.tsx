@@ -5,8 +5,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { LocalTime } from "@/components/LocalTime";
+import { NoteLink } from "@/components/NoteLink";
 import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
-import { obsidianLink } from "@/lib/obsidian";
 import { getUsageStore } from "@/lib/usage";
 import { TraceView } from "./TraceView";
 
@@ -110,12 +110,6 @@ async function Captures({ runId }: { runId: number }) {
       </ul>
     </>
   );
-}
-
-function NoteLink({ path, label }: { path: string; label: string }) {
-  const href = obsidianLink(path);
-
-  return href ? <a href={href}>{label}</a> : <span>{label} ({path})</span>;
 }
 
 function Failure({ run, trace }: { run: RunRow; trace: StoredTraceEvent[] }) {

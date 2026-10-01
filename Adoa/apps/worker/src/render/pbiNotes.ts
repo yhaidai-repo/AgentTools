@@ -12,6 +12,7 @@ import {
 } from "@adoa/vault";
 import { asc, eq, isNotNull } from "drizzle-orm";
 import { vaultRoot } from "../env";
+import { writeAttachmentFiles } from "./attachments";
 import { pipelineRegions } from "./pipelineRegions";
 
 type WorkItemRow = typeof workItem.$inferSelect;
@@ -32,7 +33,7 @@ export class PbiNoteWriter {
     return new PbiNoteWriter(writer, db, ado, template);
   }
 
-  // Writes the note and stores its path; returns the path.
+  // Writes the note and the PBI's uploads, stores the note's path; returns the path.
   async writePbi(row: WorkItemRow, status: PipelineStatus): Promise<string> {
     const vaultPath = row.vaultPath ?? pbiNotePath(row.adoId, row.title);
     const note = toPbiNote(row, status, this.ado);
@@ -40,6 +41,7 @@ export class PbiNoteWriter {
 
     await this.writer.write(vaultPath, (notes) => renderPreparedPbi(this.template, note, notes, regions));
     await this.db.update(workItem).set({ vaultPath }).where(eq(workItem.adoId, row.adoId));
+    await writeAttachmentFiles(this.db, this.writer, vaultPath, row.adoId);
 
     return vaultPath;
   }

@@ -6,7 +6,7 @@ import type { ResearchContext } from "./models/ResearchContext";
 // The first message: the task, the PBI, the refinement and what refinement found worth reading.
 export async function buildResearchMessage(db: AdoaDb, vaultRoot: string, context: ResearchContext, commits: Record<string, string>): Promise<string> {
   const [latest] = await db.select().from(refinement).where(eq(refinement.pbiId, context.pbi.adoId)).orderBy(desc(refinement.version)).limit(1);
-  const pbi = (await buildPbiMessage(vaultRoot, context.pbi)).replace(/^Refine this PBI\.\n\n/, "");
+  const pbi = (await buildPbiMessage(db, vaultRoot, context.pbi)).replace(/^Refine this PBI\.\n\n/, "");
 
   return [
     "Answer this research task.",

@@ -1,4 +1,5 @@
 import { localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
+import { listAttachments } from "./attachments";
 import { escapeCell } from "./escapeCell";
 import { desc, eq } from "drizzle-orm";
 import { refinementNoteName } from "@adoa/vault";
@@ -23,7 +24,12 @@ async function refinementRegion(db: AdoaDb, adoId: number): Promise<string> {
   return `${latest.summary}\n\nDetails: [[${refinementNoteName(adoId)}]] (v${latest.version})`;
 }
 
+// The items table, then the user's uploads (kept in this region so the user's PBI template needs no change).
 async function itemsRegion(db: AdoaDb, adoId: number): Promise<string> {
+  return [await itemsTable(db, adoId), await attachmentsTable(db, adoId)].filter(Boolean).join("\n\n");
+}
+
+async function itemsTable(db: AdoaDb, adoId: number): Promise<string> {
   const items = await db.select().from(localItem).where(eq(localItem.pbiId, adoId)).orderBy(localItem.id);
 
   if (items.length === 0) {
@@ -33,4 +39,16 @@ async function itemsRegion(db: AdoaDb, adoId: number): Promise<string> {
   const lines = items.map((item) => `| [[${item.id}]] | ${item.kind} | ${item.status} | ${escapeCell(item.title)} |`);
 
   return ["| Item | Kind | Status | Title |", "|---|---|---|---|", ...lines].join("\n");
+}
+
+async function attachmentsTable(db: AdoaDb, adoId: number): Promise<string | null> {
+  const attachments = await listAttachments(db, adoId);
+
+  if (attachments.length === 0) {
+    return null;
+  }
+
+  const lines = attachments.map((entry) => `| [[${entry.vaultName}]] | ${entry.itemId ? `[[${entry.itemId}]]` : "–"} | ${entry.sourceUrl ?? "–"} |`);
+
+  return ["**Attachments**", "", "| File | For | Content of |", "|---|---|---|", ...lines].join("\n");
 }

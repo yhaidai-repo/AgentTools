@@ -19,3 +19,11 @@ export function formatDuration(ms: number): string {
 export function average(total: number, count: number): number {
   return count > 0 ? total / count : 0;
 }
+
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  return bytes >= 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${bytes} B`;
+}

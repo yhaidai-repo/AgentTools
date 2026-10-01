@@ -20,6 +20,7 @@ import type { ResearchContext } from "./models/ResearchContext";
 import type { ResearchDraft } from "./models/ResearchDraft";
 import type { ResearchRun } from "./models/ResearchRun";
 import { buildResearchMessage } from "./researchMessage";
+import { createAttachmentTool } from "../attachmentTools";
 import { createResearchTools } from "./researchTools";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { resolveRepos } from "./resolveRepos";
@@ -156,6 +157,7 @@ async function prepare(context: BatchContext, session: AgentRunSession, task: Ta
       ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
       ...skills.tools,
+      createAttachmentTool(deps.db, task.pbiId),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2)),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],

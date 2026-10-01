@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision,
-  timestamp, bigserial, bigint, serial, primaryKey, index, uniqueIndex, check,
+  timestamp, bigserial, bigint, serial, primaryKey, index, uniqueIndex, check, customType,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
 const updatedAt = () => ts("updated_at").notNull().defaultNow();
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
 // Enums
 
@@ -109,6 +110,7 @@ export const localItem = pgTable("local_item", {
   assignee: text("assignee").notNull(), // agent:<stage> | human
   body: text("body"),
   data: jsonb("data"),
+  resolution: text("resolution"), // the person's answer (question) or outcome note (human task)
   attempts: integer("attempts").notNull().default(0),
   createdByRun: bigint("created_by_run", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
   vaultPath: text("vault_path"),
@@ -236,3 +238,20 @@ export const pbiRepo = pgTable("pbi_repo", {
   source: repoSource("source").notNull(),
   questionId: text("question_id").references(() => localItem.id),
 }, (t) => [primaryKey({ columns: [t.pbiId, t.repoId] })]);
+
+// Files the user uploads for a PBI (e.g. a linked Confluence page), optionally answering a question or human task.
+// The file and its extracted text live here so the nightly backup has them; the worker copies the file into the Vault.
+
+export const attachment = pgTable("attachment", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  itemId: text("item_id").references(() => localItem.id),
+  sourceUrl: text("source_url"), // the linked document whose content this is
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  content: bytea("content").notNull(),
+  text: text("text"), // null when agents can't read it (images)
+  vaultPath: text("vault_path"),
+  createdAt: createdAt(),
+}, (t) => [index("attachment_pbi_idx").on(t.pbiId)]);
