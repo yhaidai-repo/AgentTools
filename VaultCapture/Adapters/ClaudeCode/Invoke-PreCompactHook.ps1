@@ -12,6 +12,7 @@ Import-Module (Join-Path $PSScriptRoot '..' '..' 'VaultCapture.psd1')
 
 $script:BlockExitCode = 2
 $script:AllowExitCode = 0
+$script:CaptureSource = 'session finding: context shrink'
 
 function Invoke-PreCompactHook {
     $payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
@@ -29,7 +30,9 @@ function Invoke-PreCompactHook {
     }
 
     Set-CaptureRequested -Config $config -Session $session
-    [Console]::Error.WriteLine((Get-CaptureInstruction -Reason (Get-BlockReason -Trigger $payload.trigger) -Cwd $payload.cwd))
+    $instruction = Get-CaptureInstruction -Reason (Get-BlockReason -Trigger $payload.trigger) -Cwd $payload.cwd -Source $script:CaptureSource
+
+    [Console]::Error.WriteLine($instruction)
 
     return $script:BlockExitCode
 }

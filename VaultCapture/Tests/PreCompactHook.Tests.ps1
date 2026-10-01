@@ -51,6 +51,12 @@ Describe 'Invoke-PreCompactHook' {
         $result.Stderr | Should -Match 'This session works on project pvs'
     }
 
+    It 'asks for the context shrink source' {
+        $result = Invoke-Hook -Payload '{"session_id":"s3","trigger":"auto"}'
+
+        $result.Stderr | Should -Match '"source":"session finding: context shrink"'
+    }
+
     It 'allows the second compaction of the same cycle, then blocks the next cycle' {
         $exitCodes = 1..3 | ForEach-Object { (Invoke-Hook -Payload '{"session_id":"s1","trigger":"auto"}').ExitCode }
 

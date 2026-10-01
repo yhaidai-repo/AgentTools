@@ -2,6 +2,7 @@ function Get-VaultRules {
     [CmdletBinding()]
     param(
         [string]$Cwd,
+        [string]$Source = 'session finding',
         [object]$Config
     )
 
@@ -17,7 +18,7 @@ function Get-VaultRules {
         draft          = $rules.draft
         capture        = [pscustomobject][ordered]@{
             command = Get-CaptureCommand
-            example = Get-CaptureExample -Project $exampleProject -IsSessionProject ([bool]$sessionProject)
+            example = Get-CaptureExample -Project $exampleProject -IsSessionProject ([bool]$sessionProject) -Source $Source
         }
     }
 }
@@ -51,7 +52,8 @@ function Get-CaptureCommand {
 function Get-CaptureExample {
     param(
         [object]$Project,
-        [bool]$IsSessionProject
+        [bool]$IsSessionProject,
+        [string]$Source = 'session finding'
     )
 
     $key = if ($Project) { $Project.Key } else { 'key' }
@@ -64,7 +66,7 @@ function Get-CaptureExample {
 
     $example.name = "$key-short-topic"
     $example.title = 'Short topic (draft)'
-    $example.source = 'session finding'
+    $example.source = $Source
     $example.target = '[[note]] or folder where the facts belong'
     $example.captured = @('One fact per bullet, as found.')
     $example.sections = [pscustomobject]@{ Decisions = @('Optional extra section: heading -> bullets.') }

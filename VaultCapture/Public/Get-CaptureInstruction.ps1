@@ -3,10 +3,11 @@ function Get-CaptureInstruction {
     param(
         [string]$Reason = 'Save valuable information to the vault.',
         [string]$Cwd,
+        [string]$Source = 'session finding',
         [object]$Config
     )
 
-    $rules = Get-VaultRules -Cwd $Cwd -Config $Config
+    $rules = Get-VaultRules -Cwd $Cwd -Source $Source -Config $Config
 
     $lines = @(
         $Reason
@@ -17,7 +18,7 @@ function Get-CaptureInstruction {
         ''
         (Get-ProjectInstruction -Rules $rules)
         ''
-        "Save each topic as a draft in <vault>/$($rules.draft.folder)/. The same name appends bullets to that draft. Run the command from your working directory and pipe JSON to it:"
+        "Save each topic as a draft in <vault>/$($rules.draft.folder)/ with source `"$Source`". The same name appends bullets to that draft. Run the command from your working directory and pipe JSON to it:"
         "  $($rules.capture.command)"
         ($rules.capture.example | ConvertTo-Json -Depth 4 -Compress)
         'The command prints {ok, mode, path, errors}. If ok is false, fix the errors and run it again.'
