@@ -1,12 +1,20 @@
 import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { EventBody } from "../../EventSequence";
 import type { RunEndReason } from "../../models/RunEndReason";
+import { fromEpochSeconds, windowsOfRateLimit } from "./claudeWindows";
 import { toNeutralToolName } from "./toSdkTools";
 import { TurnUsageTracker } from "./TurnUsageTracker";
 
 type AssistantMessage = Extract<SDKMessage, { type: "assistant" }>;
 type UserMessage = Extract<SDKMessage, { type: "user" }>;
 type RateLimitMessage = Extract<SDKMessage, { type: "rate_limit_event" }>;
+type RateLimitInfo = RateLimitMessage["rate_limit_info"];
+
+const RATE_LIMIT_STATUS: Record<RateLimitInfo["status"], "allowed" | "warning" | "rejected"> = {
+  allowed: "allowed",
+  allowed_warning: "warning",
+  rejected: "rejected",
+};
 
 // Maps Claude Agent SDK messages to neutral events; other message kinds are ignored.
 export class MessageMapper {
@@ -41,20 +49,18 @@ export class MessageMapper {
     return [...finishedTurn, ...message.message.content.flatMap(mapContentBlock)];
   }
 
+  // Every status is passed on, so hosts can follow the subscription's usage, not only its warnings.
   private mapRateLimit(message: RateLimitMessage): EventBody[] {
     const info = message.rate_limit_info;
-
-    if (info.status === "allowed") {
-      return [];
-    }
 
     this.isRateLimited ||= info.status === "rejected";
 
     return [{
       type: "rate_limit",
-      status: info.status === "rejected" ? "rejected" : "warning",
-      resetsAt: info.resetsAt ? new Date(info.resetsAt * 1000) : null,
+      status: RATE_LIMIT_STATUS[info.status],
+      resetsAt: fromEpochSeconds(info.resetsAt),
       utilization: info.utilization ?? null,
+      windows: windowsOfRateLimit(info),
     }];
   }
 

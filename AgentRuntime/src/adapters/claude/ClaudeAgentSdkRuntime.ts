@@ -3,7 +3,10 @@ import { EventSequence } from "../../EventSequence";
 import type { AgentEvent } from "../../models/AgentEvent";
 import type { AgentRequest } from "../../models/AgentRequest";
 import type { AgentRuntime } from "../../models/AgentRuntime";
+import type { SubscriptionQuery } from "../../models/SubscriptionQuery";
+import type { SubscriptionReport } from "../../models/SubscriptionReport";
 import { RunAbort } from "../../RunAbort";
+import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
 import { TOOL_SERVER_NAME, createToolServer, sdkToolNames } from "./toSdkTools";
 
@@ -14,6 +17,8 @@ const WEB_TOOLS = ["WebSearch", "WebFetch"];
 // the agent sees only the request's tools, so it behaves the same as on any other adapter.
 export class ClaudeAgentSdkRuntime implements AgentRuntime {
   readonly provider = "anthropic";
+  readonly reportsSubscriptionInRuns = true;
+  private lastSeen: SubscriptionReport | null = null;
 
   async *run(request: AgentRequest): AsyncIterable<AgentEvent> {
     const events = new EventSequence(request.runId);
@@ -21,7 +26,10 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     const mapper = new MessageMapper();
 
     try {
-      yield* streamEvents(request, abort, mapper, events);
+      for await (const event of streamEvents(request, abort, mapper, events)) {
+        this.remember(event);
+        yield event;
+      }
     } catch (error) {
       yield events.next({ type: "error", message: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -31,6 +39,37 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     // An aborted or crashed run may end without a result message; every run still ends with exactly one.
     if (!mapper.hasResult) {
       yield events.next({ type: "result", reason: abort.stopReason ?? "failed", turns: 0, durationMs: 0, providerCostUsd: null, message: abort.stopReason });
+    }
+  }
+
+  // The free /usage call first; then, when the host allows it, one probe request; then what the latest run reported.
+  async subscriptionUsage(query: SubscriptionQuery = {}): Promise<SubscriptionReport> {
+    const free = await readUsageCall();
+
+    if (free.windows.length > 0) {
+      return free;
+    }
+
+    const probed = query.probe ? await this.probe() : null;
+
+    return probed ?? this.lastSeen ?? free;
+  }
+
+  private async probe(): Promise<SubscriptionReport> {
+    try {
+      const probed = report(null, await probeWindows(), "the probe request reported no windows");
+
+      this.lastSeen = probed.windows.length > 0 ? probed : this.lastSeen;
+
+      return probed;
+    } catch (error) {
+      return report(null, [], `the probe request failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private remember(event: AgentEvent): void {
+    if (event.type === "rate_limit" && event.windows.length > 0) {
+      this.lastSeen = report(null, event.windows, null, event.at);
     }
   }
 }
