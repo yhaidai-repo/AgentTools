@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS agent_usage.usage_record (
   provider_cost_usd numeric(14, 6),
   models jsonb NOT NULL
 );
+ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS subscription jsonb NOT NULL DEFAULT '[]';
 CREATE INDEX IF NOT EXISTS usage_record_started_idx ON agent_usage.usage_record (started_at);
 CREATE INDEX IF NOT EXISTS usage_record_labels_idx ON agent_usage.usage_record USING gin (labels);
 
@@ -31,4 +32,12 @@ CREATE TABLE IF NOT EXISTS agent_usage.run_event (
   PRIMARY KEY (run_id, seq)
 );
 CREATE INDEX IF NOT EXISTS run_event_at_idx ON agent_usage.run_event (at);
+
+CREATE TABLE IF NOT EXISTS agent_usage.subscription_snapshot (
+  provider text PRIMARY KEY,
+  plan text,
+  windows jsonb NOT NULL,
+  checked_at timestamptz NOT NULL,
+  unavailable text
+);
 `;

@@ -1,3 +1,4 @@
+import { budgetDayStart } from "./budgetDay";
 import type { BudgetDecision } from "./models/BudgetDecision";
 import type { BudgetPolicy } from "./models/BudgetPolicy";
 import type { DailyBudget } from "./models/DailyBudget";
@@ -14,7 +15,7 @@ export class BudgetGuard {
 
   async canStart(labels: UsageLabels, now = new Date()): Promise<BudgetDecision> {
     const applicable = this.policy.daily.filter((budget) => matches(labels, budget.match));
-    const dayStart = startOfUtcDay(now);
+    const dayStart = budgetDayStart(now);
     const decisions = await Promise.all(applicable.map((budget) => this.checkDaily(budget, dayStart)));
 
     return decisions.find((decision) => !decision.allowed) ?? { allowed: true, reason: null };
@@ -36,8 +37,4 @@ export class BudgetGuard {
 
 function matches(labels: UsageLabels, match: UsageLabels): boolean {
   return Object.entries(match).every(([key, value]) => labels[key] === value);
-}
-
-function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
