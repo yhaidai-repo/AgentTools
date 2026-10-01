@@ -88,12 +88,22 @@ Describe 'Save-VaultCapture' {
         @{ Case = 'a new draft without target'; Override = @{ target = $null } }
         @{ Case = 'no bullets'; Override = @{ captured = @() } }
         @{ Case = 'an unknown vault'; Override = @{ vault = 'other' } }
+        @{ Case = 'a note file path as target'; Override = @{ target = 'pvs/pvs-index.md' } }
+        @{ Case = 'a note file path in a bullet'; Override = @{ captured = @('See D:/vault/pvs/pvs-index.md for details') } }
     ) {
         $result = Save-VaultCapture -InputObject (New-TestInput -Override $Override) -Config $config
 
         $result.ok | Should -BeFalse
         $result.errors | Should -Not -BeNullOrEmpty
         Test-Path -LiteralPath $draftPath | Should -BeFalse
+    }
+
+    It 'accepts [[note]] links and folder targets' {
+        $captureInput = New-TestInput -Override @{ target = 'pvs/feature'; captured = @('Same as [[pvs-index]]') }
+
+        $result = Save-VaultCapture -InputObject $captureInput -Config $config
+
+        $result.ok | Should -BeTrue
     }
 
     It 'rejects a draft over the line limit' {

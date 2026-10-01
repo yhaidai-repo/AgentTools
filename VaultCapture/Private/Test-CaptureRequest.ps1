@@ -10,6 +10,7 @@ function Test-CaptureRequest {
         Test-NoteName -Request $Request -Vault $Vault -Rules $Rules
         Test-ProjectKey -Request $Request -Vault $Vault
         Test-HasBullets -Request $Request
+        Test-NoNotePath -Request $Request -Rules $Rules
     )
 
     if ($ExistingDraft) {
@@ -55,6 +56,24 @@ function Test-HasBullets {
 
     if ($Request.Sections.Count -eq 0) {
         return 'nothing to save: give at least one bullet in captured.'
+    }
+}
+
+# Vault notes link by [[name]]. A file path is not a link, and usage tracking would also count it as a use of that note.
+function Test-NoNotePath {
+    param(
+        [Parameter(Mandatory)][object]$Request,
+        [Parameter(Mandatory)][object]$Rules
+    )
+
+    $texts = @($Request.Title, $Request.Target) + @($Request.Sections.Values | ForEach-Object { $_ })
+    $notePaths = @($texts |
+        Where-Object { $_ } |
+        ForEach-Object { [regex]::Matches($_, $Rules.draft.notePathPattern).Value } |
+        Sort-Object -Unique)
+
+    if ($notePaths.Count -gt 0) {
+        return "use [[note]] links instead of file paths: $($notePaths -join ', ')."
     }
 }
 

@@ -43,7 +43,7 @@ Input JSON (stdin, or `-InputFile <path>`):
 | `assumptions`, `toFill` | optional | optional | bullets |
 
 Output: `{"ok":true,"mode":"created|appended|rejected","path":"…","errors":[]}`; exit code 1 when rejected.
-An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, name clash with a verified note, appending to a non-draft or another project's draft, more than `maxLines`.
+An existing draft with the same name gets only the new bullets, in place. Rejected: unknown vault or project, name clash with a verified note, note file paths instead of `[[note]]` links, appending to a non-draft or another project's draft, more than `maxLines`.
 
 ## Claude Code adapter
 
