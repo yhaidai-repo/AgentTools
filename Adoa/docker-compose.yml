@@ -54,9 +54,8 @@ services:
       ADOA_SEED_ADO_USER: ${ADOA_SEED_ADO_USER:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
-      # VaultCapture validates against the whole docs vault (read-only) and writes only its draft/ folder.
-      - ${DOCS_VAULT_PATH:?set in .env}:/vaults/${DOCS_VAULT_NAME}:ro
-      - ${DOCS_VAULT_PATH:?set in .env}/draft:/vaults/${DOCS_VAULT_NAME}/draft
+      # Writable: VaultCapture writes drafts and, when the user submits a finding, register records (user decision 2026-10-02).
+      - ${DOCS_VAULT_PATH:?set in .env}:/vaults/${DOCS_VAULT_NAME}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -81,8 +80,8 @@ services:
     volumes:
       - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
       - ${VAULT_PATH:?set in .env}:/vault
-      - ${DOCS_VAULT_PATH}:/vaults/${DOCS_VAULT_NAME}:ro
-      - ${DOCS_VAULT_PATH}/draft:/vaults/${DOCS_VAULT_NAME}/draft
+      # Writable: the tech-writer merges drafts into the docs vault (user decision 2026-10-02); its tools refuse backlog/ and draft/.
+      - ${DOCS_VAULT_PATH}:/vaults/${DOCS_VAULT_NAME}
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ./skills:/app/Adoa/skills:ro  # from the repo, so skill edits apply without a rebuild
       - repo-cache:/repo-cache

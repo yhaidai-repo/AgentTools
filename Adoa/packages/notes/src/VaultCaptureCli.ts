@@ -1,8 +1,13 @@
 import { spawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import type { Outcome } from "@adoa/core";
 import type { CaptureResult } from "./models/CaptureResult";
 import type { CliOutput } from "./models/CliOutput";
+import type { CliResult } from "./models/CliResult";
+import type { NewRegisterRecord } from "./models/NewRegisterRecord";
+import type { RegisterRecord } from "./models/RegisterRecord";
+import type { VaultDraft } from "./models/VaultDraft";
 
 const CONFIG_FILE = "/tmp/vault-capture.config.json";
 const TIMEOUT_MS = 60_000;
@@ -48,6 +53,32 @@ export class VaultCaptureCli {
     return result.drafts;
   }
 
+  // The drafts in the order a writer takes them: those whose source starts with `preferSource` first, then oldest first.
+  async listDrafts(preferSource: string): Promise<VaultDraft[]> {
+    const result = await this.query(["drafts", "-Vault", this.vaultName, "-PreferSource", preferSource]);
+
+    return result.ok ? (result.drafts as VaultDraft[] | null) ?? [] : failQuery("drafts", result);
+  }
+
+  async listRegister(project: string, kind: NewRegisterRecord["kind"]): Promise<RegisterRecord[]> {
+    const result = await this.query(["register", "-Vault", this.vaultName, "-Project", project, "-Kind", kind]);
+
+    return result.ok ? (result.records as RegisterRecord[] | null) ?? [] : failQuery("register", result);
+  }
+
+  // Invalid input (unknown project, missing title) comes back as errors; the new record's id otherwise.
+  async addRegisterRecord(record: NewRegisterRecord): Promise<Outcome<string>> {
+    const result = await this.query(["register-add"], JSON.stringify({ vault: this.vaultName, ...record }));
+
+    return result.ok ? { ok: true, value: String(result.id) } : { ok: false, error: result.errors.join("; ") };
+  }
+
+  private async query(args: string[], input = ""): Promise<CliResult> {
+    const output = await this.run(args, input);
+
+    return output.ok ? (output.json as CliResult) : { ok: false, errors: [output.error] };
+  }
+
   // Draft paths as stored: relative to the docs vault (e.g. draft/pvs-topic.md).
   relativePath(path: string): string {
     return relative(this.vaultRoot(), path);
@@ -82,4 +113,9 @@ function parseOutput(stdout: string, stderr: string, code: number | null): CliOu
   } catch {
     return { ok: false, error: `VaultCapture exited with ${code}: ${(stderr || stdout).trim().slice(0, 500)}` };
   }
+}
+
+// A listing that fails is unexpected (missing module, unreadable vault) and fails the job.
+function failQuery(command: string, result: CliResult): never {
+  throw new Error(`VaultCapture ${command} failed: ${result.errors.join("; ")}`);
 }

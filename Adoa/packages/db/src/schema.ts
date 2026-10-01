@@ -20,6 +20,7 @@ export const pipelineStatus = pgEnum("pipeline_status", [
 
 export const itemKind = pgEnum("item_kind", [
   "research", "design", "human", "question", "research-result", "refinement",
+  "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -32,7 +33,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -108,7 +109,7 @@ export const agentRun = pgTable("agent_run", {
 export const localItem = pgTable("local_item", {
   id: text("id").primaryKey(),
   kind: itemKind("kind").notNull(),
-  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  pbiId: integer("pbi_id").references(() => workItem.adoId), // null for items no PBI is behind (e.g. a chat draft's tech-writer task)
   parentId: text("parent_id").references((): AnyPgColumn => localItem.id),
   title: text("title").notNull(),
   status: itemStatus("status").notNull(),

@@ -14,6 +14,14 @@ type ItemData = {
   evidence?: { location: string; note: string }[];
   relevantDocs?: { path: string; why: string }[];
   codeRefs?: { location: string; why: string }[];
+  type?: string;
+  project?: string;
+  default?: string[];
+  draft?: string;
+  path?: string;
+  target?: string;
+  source?: string;
+  captured?: string;
 };
 
 const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode> = {
@@ -21,6 +29,8 @@ const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode
   human: (item) => <Section title="Task" text={item.body} />,
   research: ResearchTaskContent,
   "research-result": ResearchResultContent,
+  finding: FindingContent,
+  docs: DocsTaskContent,
 };
 
 // The full content of one item, laid out per kind.
@@ -62,6 +72,27 @@ function ResearchResultContent(item: ItemRow, data: ItemData) {
       <Bullets title="Evidence" items={data.evidence?.map((entry) => `${entry.location}: ${entry.note}`)} />
       <Bullets title="For design: docs" items={data.relevantDocs?.map((doc) => `${doc.path}: ${doc.why}`)} />
       <Bullets title="For design: code" items={data.codeRefs?.map((ref) => `${ref.location}: ${ref.why}`)} />
+    </>
+  );
+}
+
+function FindingContent(item: ItemRow, data: ItemData) {
+  return (
+    <>
+      <p>{data.type === "issue" ? "Known issue" : "Open question"} for <strong>{data.project ?? "–"}</strong></p>
+      <Section title={data.type === "issue" ? "Issue" : "Question"} text={item.body} />
+      <Bullets title="Default" items={data.default} />
+      <Bullets title="Options" items={data.options} />
+    </>
+  );
+}
+
+function DocsTaskContent(_item: ItemRow, data: ItemData) {
+  return (
+    <>
+      <h2>Draft</h2>
+      <p><code>{data.path ?? data.draft ?? "–"}</code> → {data.project ?? "–"}{data.target ? ` (${data.target})` : ""}</p>
+      <p className="muted">Captured {data.captured ?? "–"} · source: {data.source ?? "–"}</p>
     </>
   );
 }

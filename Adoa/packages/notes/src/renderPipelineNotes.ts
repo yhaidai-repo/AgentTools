@@ -76,7 +76,7 @@ async function writeItem(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, item
     renderItemNote({
       id: item.id,
       kind: item.kind,
-      adoId: item.pbiId,
+      adoId: item.pbiId ?? 0,
       parentId: item.parentId,
       title: item.title,
       status: item.status,

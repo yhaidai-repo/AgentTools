@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { LocalTime } from "@/components/LocalTime";
 import { NoteLink } from "@/components/NoteLink";
 import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
+import { itemPath } from "@/lib/items";
 import { getUsageStore } from "@/lib/usage";
 import { TraceView } from "./TraceView";
 
@@ -75,7 +76,10 @@ async function Outputs({ run }: { run: RunRow }) {
   const [pbi] = run.pbiId ? await db.select().from(workItem).where(eq(workItem.adoId, run.pbiId)) : [];
   const [version] = run.pbiId ? await db.select().from(refinement).where(and(eq(refinement.pbiId, run.pbiId), eq(refinement.runId, run.id))) : [];
 
-  if (!version && items.length === 0) {
+  // The tech-writer's outputs are also the notes it wrote and the draft it removed.
+  const notes = ids.filter((output) => !items.some((item) => item.id === output));
+
+  if (!version && items.length === 0 && notes.length === 0) {
     return <p className="muted">None.</p>;
   }
 
@@ -84,8 +88,9 @@ async function Outputs({ run }: { run: RunRow }) {
       {pbi?.vaultPath && <li><NoteLink path={pbi.vaultPath} label={`PBI-${pbi.adoId} note`} /></li>}
       {version && pbi?.vaultPath && <li><NoteLink path={pbi.vaultPath.replace(/[^/]+$/, `PBI-${pbi.adoId}-refinement.md`)} label={`Refinement v${version.version}`} /></li>}
       {items.map((item) => (
-        <li key={item.id}>{item.vaultPath ? <NoteLink path={item.vaultPath} label={item.id} /> : item.id} · {item.kind} · {item.status} · {item.title}</li>
+        <li key={item.id}><Link href={itemPath(item)}>{item.id}</Link>{item.vaultPath && <> (<NoteLink path={item.vaultPath} label="note" />)</>} · {item.kind} · {item.status} · {item.title}</li>
       ))}
+      {notes.map((note) => <li key={note}><code>{note}</code></li>)}
     </ul>
   );
 }

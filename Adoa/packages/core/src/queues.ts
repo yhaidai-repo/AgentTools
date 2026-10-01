@@ -5,6 +5,10 @@ export const SYNC_QUEUE = "sync";
 export const PREPARE_QUEUE = "prepare";
 export const DISPATCH_QUEUE = "dispatch";
 export const AGENT_RUN_QUEUE = "agent-run";
+export const DRAFTS_QUEUE = "drafts";
+export const REGISTER_QUEUE = "register";
+
+const DRAFTS_CRON = "*/10 * * * *";
 
 const TICK_KEY = "tick";
 const TICK_CRON = "* * * * *";
@@ -28,6 +32,8 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, PREPARE_QUEUE, "standard");
   await ensureQueue(boss, DISPATCH_QUEUE, "standard");
   await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
+  await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
+  await ensureQueue(boss, REGISTER_QUEUE, "standard");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
@@ -39,6 +45,11 @@ export async function applyDispatchTick(boss: PgBoss): Promise<void> {
   const tick: DispatchJob = {};
 
   await boss.schedule(DISPATCH_QUEUE, TICK_CRON, tick, { key: TICK_KEY });
+}
+
+// The drafts job (user decision 2026-10-02): its own queue and schedule, the only reader of the draft folder.
+export async function applyDraftsSchedule(boss: PgBoss): Promise<void> {
+  await boss.schedule(DRAFTS_QUEUE, DRAFTS_CRON);
 }
 
 // An agent's schedule sends a dispatch for that agent; a disabled agent or one without a schedule runs only on "Run now".

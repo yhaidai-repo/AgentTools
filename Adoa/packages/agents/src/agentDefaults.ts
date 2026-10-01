@@ -50,6 +50,24 @@ const RESEARCH_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const TECH_WRITER_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Drafts"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a draft's task",
+    description: "After this many failed runs, the draft's tech-writer task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 export const AGENT_DEFAULTS: AgentDefinition[] = [
   {
     id: "refinement",
@@ -82,5 +100,21 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: RESEARCH_OPTIONS,
     next: "design",
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
+  },
+  {
+    id: "tech-writer",
+    label: "Tech-writer",
+    description: "Moves one vault draft per task into the docs vault: verifies it against the code, merges it into its target, deletes the draft; findings go to the user.",
+    enabled: true,
+    schedule: "15 */2 * * *",
+    model: { provider: "anthropic", model: "claude-sonnet-5" },
+    limits: { maxTurns: 40, timeoutMinutes: 15 },
+    budgets: { perRunUsd: 1, dailyUsd: 3 },
+    capabilities: { webAccess: false },
+    skills: ["adoa-tech-writer", "adoa-documentation"],
+    options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
+    optionSpecs: TECH_WRITER_OPTIONS,
+    next: null,
+    waitFor: [],
   },
 ];

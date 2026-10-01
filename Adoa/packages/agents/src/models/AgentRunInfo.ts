@@ -5,7 +5,7 @@ import type { UsageLabels } from "@agenttools/usage";
 // Known before any preparation, so the run is visible from its first step.
 export interface AgentRunInfo {
   stage: Stage;
-  pbiId: number;
+  pbiId: number | null;
   itemId?: string;
   labels: UsageLabels;
   model: ModelRef;

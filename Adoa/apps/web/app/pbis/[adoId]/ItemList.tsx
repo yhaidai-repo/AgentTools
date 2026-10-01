@@ -1,10 +1,8 @@
 import Link from "next/link";
+import { isOpen, itemPath } from "@/lib/items";
 import type { ItemRow } from "@/lib/pbiDetail";
 
-const OPEN_STATUSES = ["open", "in-progress"];
-
 interface ItemListProps {
-  adoId: number;
   items: ItemRow[];
   empty: string;
   /** Results of the listed tasks (research results); shown inside their task, not as rows of their own. */
@@ -12,7 +10,7 @@ interface ItemListProps {
 }
 
 // Short list: open items first, each linking to its page with the full content (and the answer form).
-export function ItemList({ adoId, items, empty, results = [] }: ItemListProps) {
+export function ItemList({ items, empty, results = [] }: ItemListProps) {
   if (items.length === 0) {
     return <p className="muted">{empty}</p>;
   }
@@ -23,7 +21,7 @@ export function ItemList({ adoId, items, empty, results = [] }: ItemListProps) {
     <ul className="item-list">
       {sorted.map((item) => (
         <li key={item.id}>
-          <Link href={`/pbis/${adoId}/items/${item.id}`}>{item.id}</Link>
+          <Link href={itemPath(item)}>{item.id}</Link>
           {" · "}
           <span className={isOpen(item) && item.assignee === "human" ? "result-error" : "muted"}>{item.status}</span>
           {" · "}
@@ -35,10 +33,6 @@ export function ItemList({ adoId, items, empty, results = [] }: ItemListProps) {
       ))}
     </ul>
   );
-}
-
-export function isOpen(item: ItemRow): boolean {
-  return OPEN_STATUSES.includes(item.status);
 }
 
 // The task's current result: the final one, else the newest.

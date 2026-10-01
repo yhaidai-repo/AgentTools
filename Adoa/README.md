@@ -29,8 +29,8 @@ docker compose up -d --build
 | `packages/ado` | read-only Azure DevOps REST client |
 | `packages/vault` | note rendering; keeps each note's `## Notes` section |
 | `packages/agents` | prompts (`prompts/*.md`, versioned), `runAgent`, refinement agent |
-| `apps/worker` | pg-boss worker: `sync`, `prepare`, `render`; the only Vault writer |
-| `apps/agent-runner` | pg-boss worker: agent jobs (`refinement`); Claude token, read-only docs/Vault/skills |
+| `apps/worker` | pg-boss worker: `sync`, `prepare`, `dispatch` (validates and starts agent tasks), `drafts` (tech-writer tasks for docs-vault drafts), `register` (submitted findings) |
+| `apps/agent-runner` | pg-boss worker: `agent-run` (refinement, research, tech-writer); Claude token; skills read-only, docs vault writable for the tech-writer's merges |
 | `skills/` | adoa's own skills for agents |
 | `apps/web` | Next.js UI |
 

@@ -1,7 +1,8 @@
 import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
 import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, type AgentRunJob } from "@adoa/core";
 import { createDb } from "@adoa/db";
-import { publishPbi } from "@adoa/notes";
+import { VaultCaptureCli, publishPbi } from "@adoa/notes";
+import { VaultWriter } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
@@ -47,6 +48,8 @@ const deps: AgentDeps = {
   repoCache: new RepoCache({ root: repoCacheRoot, authHeader: adoAuthHeader(), refreshMinutes: REPO_REFRESH_MINUTES }),
   repoCacheRoot,
   captureRules,
+  docsVault: docsVaultWriter(),
+  listRegister: async (project, kind) => (await VaultCaptureCli.fromEnv("the tech-writer lists a register")).listRegister(project, kind),
 };
 
 // One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).
@@ -69,9 +72,37 @@ async function runAndPublish(job: AgentRunJob): Promise<void> {
   try {
     await runAgentTask(deps, job);
   } finally {
-    await syncPipelineStatus(db, job.pbiId, ACTOR);
-    await publishPbi(db, vaultRoot, job.pbiId);
+    await publishTaskPbi(job.pbiId);
   }
+}
+
+// The docs vault the tech-writer merges drafts into (mounted writable; VaultWriter keeps every path inside it and the
+// tech-writer's tools refuse backlog/ and draft/).
+function docsVaultWriter(): AgentDeps["docsVault"] {
+  const vaultName = process.env.DOCS_VAULT_NAME;
+
+  if (!vaultName) {
+    return null;
+  }
+
+  const writer = new VaultWriter(`/vaults/${vaultName}`);
+
+  return {
+    writeNote: async (path, content) => {
+      await writer.writeText(path, content);
+    },
+    removeFile: (path) => writer.remove(path),
+  };
+}
+
+// A task without a PBI (a chat draft's tech-writer task) has no PBI status or notes to update.
+async function publishTaskPbi(pbiId: number | null): Promise<void> {
+  if (pbiId === null) {
+    return;
+  }
+
+  await syncPipelineStatus(db, pbiId, ACTOR);
+  await publishPbi(db, vaultRoot, pbiId);
 }
 
 // No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).

@@ -35,6 +35,20 @@ export class VaultWriter {
     return true;
   }
 
+  // A whole file as given (e.g. a docs-vault note the tech-writer merged); unchanged content isn't rewritten.
+  async writeText(relativePath: string, content: string): Promise<boolean> {
+    const fullPath = this.pathOf(relativePath);
+
+    if ((await readIfExists(fullPath)) === content) {
+      return false;
+    }
+
+    await mkdir(dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, content, "utf8");
+
+    return true;
+  }
+
   // A note whose item the user deleted; a file that is already gone is fine.
   async remove(relativePath: string): Promise<void> {
     await rm(this.pathOf(relativePath), { force: true });

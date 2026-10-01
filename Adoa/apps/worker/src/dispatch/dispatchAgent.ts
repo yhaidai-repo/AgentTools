@@ -1,7 +1,7 @@
 import { AGENT_RUN_QUEUE, readCurrentSprint, setItemStatus, syncPipelineStatus, validateTask, type AgentRunJob } from "@adoa/core";
 import { localItem, workItem } from "@adoa/db";
 import { isPaused, type AgentDefinition } from "@agenttools/config";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import type { WorkerContext } from "../models/WorkerContext";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -47,8 +47,8 @@ async function openTasks(context: WorkerContext, agentId: string): Promise<ItemR
   const rows = await context.db
     .select({ task: localItem })
     .from(localItem)
-    .innerJoin(workItem, eq(workItem.adoId, localItem.pbiId))
-    .where(and(eq(localItem.assignee, `agent:${agentId}`), eq(localItem.status, "open"), eq(workItem.outOfScope, false)))
+    .leftJoin(workItem, eq(workItem.adoId, localItem.pbiId)) // tasks without a PBI too (a chat draft's tech-writer task)
+    .where(and(eq(localItem.assignee, `agent:${agentId}`), eq(localItem.status, "open"), or(isNull(localItem.pbiId), eq(workItem.outOfScope, false))))
     .orderBy(sql`${workItem.iterationPath} = ${currentSprint} DESC NULLS LAST`, sql`${workItem.backlogPriority} ASC NULLS LAST`, asc(localItem.createdAt));
 
   return rows.map((row) => row.task);
@@ -70,7 +70,10 @@ async function tryStart(context: WorkerContext, agent: AgentDefinition, task: It
   const job: AgentRunJob = { taskId: task.id, agentId: agent.id, pbiId: task.pbiId };
 
   await context.boss.send(AGENT_RUN_QUEUE, job);
-  await syncPipelineStatus(context.db, task.pbiId, ACTOR);
+
+  if (task.pbiId !== null) {
+    await syncPipelineStatus(context.db, task.pbiId, ACTOR);
+  }
 
   return true;
 }

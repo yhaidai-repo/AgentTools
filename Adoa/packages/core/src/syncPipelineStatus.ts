@@ -32,14 +32,15 @@ export async function syncPipelineStatus(db: AdoaDb, adoId: number, actor: strin
 
 // A running agent wins, then the user's open items, then the earliest stage with a waiting task; design done → ready for dev.
 function deriveStatus(items: ItemRow[]): PipelineStatus | null {
-  const agentTasks = items.filter((item) => agentIdOf(item.assignee) !== null);
+  // Only pipeline stages move the status; e.g. a tech-writer task on the PBI doesn't.
+  const agentTasks = items.filter((item) => AGENT_STAGES[agentIdOf(item.assignee) ?? ""] !== undefined);
   const running = agentTasks.find((task) => task.status === "in-progress");
 
   if (running) {
     return AGENT_STAGES[agentIdOf(running.assignee)!]?.running ?? null;
   }
 
-  if (items.some((item) => item.assignee === "human" && isOpen(item))) {
+  if (items.some((item) => item.assignee === "human" && item.kind !== "finding" && isOpen(item))) {
     return "waiting-human";
   }
 

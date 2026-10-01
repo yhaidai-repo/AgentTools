@@ -16,6 +16,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <span className="brand">adoa</span>
           <nav>
             <Link href="/pbis">Backlog</Link>
+            <Link href="/tasks">Tasks</Link>
             <Link href="/agents">Agents</Link>
             <Link href="/settings">Settings</Link>
           </nav>

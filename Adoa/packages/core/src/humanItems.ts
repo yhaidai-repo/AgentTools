@@ -5,6 +5,7 @@ import type { ItemStatus } from "./models/ItemStatus";
 import type { Outcome } from "./models/Outcome";
 import type { NewHumanTask } from "./models/NewHumanTask";
 import { nextItemId } from "./localItemIds";
+import { itemOfPbi, pbiLabel } from "./itemScope";
 import { setItemStatus } from "./pbiStatus";
 import { extractUrls } from "./urls";
 
@@ -15,15 +16,17 @@ const CLOSABLE_STATUSES: ItemStatus[] = ["open", "in-progress"];
 // Which decisions each human item kind takes, and the status each one leads to.
 const DECISIONS: Record<string, Partial<Record<CloseDecision, ItemStatus>>> = {
   question: { answer: "answered", dismiss: "dismissed" },
+  // A finding is closed with an answer here; "submit to vault" goes through the worker's register job.
+  finding: { answer: "answered", dismiss: "dismissed" },
   human: { done: "done", cancel: "cancelled" },
 };
 
 // Checks the request before anything is stored, so a rejected request leaves no upload behind.
 export async function findClosableItem(db: AdoaDb, request: CloseItemRequest): Promise<Outcome<ItemRow>> {
-  const [item] = await db.select().from(localItem).where(and(eq(localItem.id, request.itemId), eq(localItem.pbiId, request.adoId)));
+  const [item] = await db.select().from(localItem).where(and(eq(localItem.id, request.itemId), itemOfPbi(request.adoId)));
 
   if (!item || item.assignee !== "human") {
-    return { ok: false, error: `${request.itemId} is not a question or human task of PBI-${request.adoId}.` };
+    return { ok: false, error: `${request.itemId} is not a question, human task or finding of ${pbiLabel(request.adoId)}.` };
   }
 
   if (!CLOSABLE_STATUSES.includes(item.status)) {

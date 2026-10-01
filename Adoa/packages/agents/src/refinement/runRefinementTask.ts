@@ -1,5 +1,5 @@
 import { localItem, workItem } from "@adoa/db";
-import { isRecommendableSkill } from "@adoa/core";
+import { isRecommendableSkill, requirePbiId } from "@adoa/core";
 import { createDocTools, createListSkillsTool, listSkills } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
@@ -24,10 +24,11 @@ const AGENT = "refinement";
 // One refinement task (RT-…): one run on its PBI; on success the refinement, research tasks and questions are committed.
 export async function runRefinementTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps } = context;
-  const [row] = await deps.db.select().from(workItem).where(eq(workItem.adoId, task.pbiId));
+  const pbiId = requirePbiId(task);
+  const [row] = await deps.db.select().from(workItem).where(eq(workItem.adoId, pbiId));
   const info: AgentRunInfo = {
     stage: "refinement",
-    pbiId: task.pbiId,
+    pbiId,
     itemId: task.id,
     labels: { agent: AGENT, item: task.id },
     model: context.agent.model,
@@ -37,7 +38,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
   const session = await AgentRunSession.begin(deps, info);
   const ran = await session.execute(info, () => prepare(context, session, row, draft));
   const commit = async () => {
-    await commitRefinement(deps.db, task.pbiId, session.runId, { ...draft, refinement: draft.refinement! }, await docsReadInRun(deps, session.runId));
+    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement! }, await docsReadInRun(deps, session.runId));
   };
 
   return session.finish(ran, commit);

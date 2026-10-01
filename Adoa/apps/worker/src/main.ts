@@ -1,8 +1,10 @@
-import { DISPATCH_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, applyDispatchTick, applySyncSchedule, createWorkerBoss, ensureQueues, readSyncSettings, type DispatchJob, type PrepareJob } from "@adoa/core";
+import { DISPATCH_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applySyncSchedule, createWorkerBoss, ensureQueues, readSyncSettings, type DispatchJob, type PrepareJob, type RegisterJob } from "@adoa/core";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
+import { submitFinding } from "./drafts/submitFinding";
+import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { requireEnv, vaultRoot } from "./env";
 import type { WorkerContext } from "./models/WorkerContext";
 import { preparePbis } from "./prepare/preparePbis";
@@ -24,6 +26,7 @@ await config.ensureSchema();
 await seedAdoSettingsFromEnv(db);
 await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
 await applyDispatchTick(boss);
+await applyDraftsSchedule(boss);
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
@@ -44,6 +47,16 @@ await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async
 await boss.work<DispatchJob>(DISPATCH_QUEUE, (jobs) => logged(DISPATCH_QUEUE, async () => {
   for (const job of jobs) {
     await dispatch(job.data);
+  }
+}));
+
+// The drafts job: every vault draft gets a tech-writer task; tasks whose draft is gone are done.
+await boss.work(DRAFTS_QUEUE, () => logged(DRAFTS_QUEUE, async () => {
+  console.log(`drafts: ${await syncDraftTasks(db)}`);
+}));
+await boss.work<RegisterJob>(REGISTER_QUEUE, (jobs) => logged(REGISTER_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`register: ${await submitFinding(db, job.data)}`);
   }
 }));
 

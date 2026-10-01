@@ -17,8 +17,9 @@ export function dailyGuard(deps: AgentDeps, agent: AgentDefinition, global: Agen
 }
 
 // The agent's configured skills (a missing one fails the run) plus the PBI's skills (a missing one is skipped), configured first.
-export async function loadStageSkills(deps: AgentDeps, agent: AgentDefinition, pbiId: number): Promise<StageSkills> {
-  const [pbi] = await deps.db.select({ skills: workItem.skills }).from(workItem).where(eq(workItem.adoId, pbiId));
+// A task without a PBI gets only the configured ones.
+export async function loadStageSkills(deps: AgentDeps, agent: AgentDefinition, pbiId: number | null): Promise<StageSkills> {
+  const [pbi] = pbiId === null ? [] : await deps.db.select({ skills: workItem.skills }).from(workItem).where(eq(workItem.adoId, pbiId));
   const available = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name);
   const pbiNames = (pbi?.skills ?? []).map((skill) => skill.name).filter((name) => !agent.skills.includes(name));
   const fromPbi = pbiNames.filter((name) => available.includes(name));

@@ -33,10 +33,11 @@ export async function loadPbiDetail(adoId: number) {
   return { pbi, items, attachments, runs, drafts, refinement: latestRefinement ?? null };
 }
 
-// One item with its uploads and, for a task, its results (shown inside the task).
-export async function loadItemDetail(adoId: number, itemId: string) {
+// One item with its uploads, for a task its results (shown inside the task), and the findings it raised. The route
+// checks the item belongs to its URL (a PBI's page, or Tasks for items without one).
+export async function loadItemDetail(itemId: string) {
   const db = getDb();
-  const [item] = await db.select().from(localItem).where(and(eq(localItem.id, itemId), eq(localItem.pbiId, adoId)));
+  const [item] = await db.select().from(localItem).where(eq(localItem.id, itemId));
 
   if (!item) {
     return null;
@@ -44,8 +45,9 @@ export async function loadItemDetail(adoId: number, itemId: string) {
 
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.itemId, itemId)).orderBy(attachment.id);
   const results = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "research-result"))).orderBy(localItem.id);
+  const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
-  return { item, attachments, results };
+  return { item, attachments, results, findings };
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;

@@ -2,6 +2,6 @@
 export interface AgentRunJob {
   taskId: string;
   agentId: string;
-  /** The task's PBI, whose notes the runner publishes after the run. */
-  pbiId: number;
+  /** The task's PBI, whose notes the runner publishes after the run; null for tasks without one. */
+  pbiId: number | null;
 }

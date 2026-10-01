@@ -1,3 +1,4 @@
+import { requirePbiId } from "@adoa/core";
 import { localItem, workItem } from "@adoa/db";
 import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
@@ -29,7 +30,7 @@ export async function runResearchTask(context: TaskContext, task: ItemRow): Prom
   const { deps } = context;
   const info: AgentRunInfo = {
     stage: "research",
-    pbiId: task.pbiId,
+    pbiId: requirePbiId(task),
     itemId: task.id,
     labels: { agent: AGENT, item: task.id },
     model: context.agent.model,
@@ -64,7 +65,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   run.acquired = run.research.repos;
 
   const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.commits);
-  const guard = await DuplicateGuard.load(deps.db, task.pbiId);
+  const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
 
   await session.phase("first-message", { chars: firstMessage.length });
 
@@ -76,7 +77,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
       ...skills.tools,
-      createAttachmentTool(deps.db, task.pbiId),
+      createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
@@ -88,8 +89,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 }
 
 async function loadResearchContext(deps: AgentDeps, task: ItemRow): Promise<ResearchContext> {
-  const [pbi] = await deps.db.select().from(workItem).where(eq(workItem.adoId, task.pbiId));
-  const { repos, unknown } = await resolveRepos(deps.db, task.pbiId);
+  const [pbi] = await deps.db.select().from(workItem).where(eq(workItem.adoId, requirePbiId(task)));
+  const { repos, unknown } = await resolveRepos(deps.db, requirePbiId(task));
 
   return { task, pbi, repos, unknownRepos: unknown };
 }

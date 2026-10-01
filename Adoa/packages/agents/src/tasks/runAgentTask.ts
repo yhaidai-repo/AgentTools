@@ -9,6 +9,7 @@ import type { TaskExecutor } from "../models/TaskExecutor";
 import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
+import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
 import { endTask, failAfterError, releaseTask } from "./endTask";
 
@@ -17,6 +18,7 @@ type ItemRow = typeof localItem.$inferSelect;
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
+  "tech-writer": runTechWriterTask,
 };
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.
@@ -56,7 +58,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
   return result;
 }
 
-async function loadTaskContext(deps: AgentDeps, agentId: string, pbiId: number): Promise<TaskContext> {
+async function loadTaskContext(deps: AgentDeps, agentId: string, pbiId: number | null): Promise<TaskContext> {
   const agent = await deps.config.get(agentId);
 
   if (!agent) {

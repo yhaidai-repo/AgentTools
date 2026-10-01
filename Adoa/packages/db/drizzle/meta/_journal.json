@@ -113,6 +113,20 @@
       "when": 1790873459911,
       "tag": "0015_skill_revisions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790877794036,
+      "tag": "0016_tech_writer",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790878185917,
+      "tag": "0017_tech_writer_stage",
+      "breakpoints": true
     }
   ]
 }

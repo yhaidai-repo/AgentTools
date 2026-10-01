@@ -9,7 +9,8 @@ import { formatBytes } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
-import { ItemList, isOpen } from "./ItemList";
+import { isOpen } from "@/lib/items";
+import { ItemList } from "./ItemList";
 import { PbiSkills } from "./PbiSkills";
 
 export const dynamic = "force-dynamic";
@@ -51,12 +52,13 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <h2>Skills for later agents</h2>
       <PbiSkills adoId={pbi.adoId} skills={pbi.skills} editedAt={pbi.skillsEditedAt} />
       <h2>Questions</h2>
-      <ItemList adoId={pbi.adoId} items={items.filter((item) => item.kind === "question")} empty="None." />
+      <ItemList items={items.filter((item) => item.kind === "question")} empty="None." />
       <h2>Human tasks</h2>
-      <ItemList adoId={pbi.adoId} items={items.filter((item) => item.kind === "human")} empty="None." />
+      <ItemList items={items.filter((item) => item.kind === "human")} empty="None." />
+      <h2>Findings</h2>
+      <ItemList items={items.filter((item) => item.kind === "finding")} empty="None." />
       <h2>Agent tasks</h2>
       <ItemList
-        adoId={pbi.adoId}
         items={items.filter((item) => item.assignee !== "human" && item.kind !== "research-result")}
         results={items.filter((item) => item.kind === "research-result")}
         empty="None yet."
@@ -90,7 +92,8 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
 
 // What the user must do, and what the agents' tasks are waiting for (the dispatcher's last check).
 function Blockers({ detail }: { detail: PbiDetail }) {
-  const open = detail.items.filter(isOpen);
+  // Findings wait for the user's review but don't hold the agents back (the dispatcher skips them too).
+  const open = detail.items.filter((item) => isOpen(item) && item.kind !== "finding");
   const forYou = open.filter((item) => item.assignee === "human");
   const forAgents = open.filter((item) => item.assignee !== "human");
   const pendingDrafts = detail.drafts.filter(isUnmerged);

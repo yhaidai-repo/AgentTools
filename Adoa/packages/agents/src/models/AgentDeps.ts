@@ -3,6 +3,8 @@ import type { AgentConfigStore } from "@agenttools/config";
 import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import type { PriceBook, UsageStore } from "@agenttools/usage";
 import type { CaptureRules } from "./CaptureRules";
+import type { DocsVault } from "./DocsVault";
+import type { RegisterEntry } from "./RegisterEntry";
 
 export interface AgentDeps {
   db: AdoaDb;
@@ -22,4 +24,8 @@ export interface AgentDeps {
   /** VaultCapture rules; null when the module is not available (then agents get no vault_capture tool). */
   captureRules: CaptureRules | null;
   repoCacheRoot: string;
+  /** Writable docs vault for the tech-writer; null where adoa may not write it. */
+  docsVault: DocsVault | null;
+  /** A project's register records (VaultCapture `register`); null where the module isn't available. */
+  listRegister: ((project: string, kind: "questions" | "issues") => Promise<RegisterEntry[]>) | null;
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { rerunTaskAction } from "../../actions";
+import { rerunTaskAction } from "./actions";
 
 // Reopens a finished agent task; it runs on the agent's next dispatch or "Run now".
-export function RerunTaskButton({ adoId, itemId }: { adoId: number; itemId: string }) {
+export function RerunTaskButton({ adoId, itemId }: { adoId: number | null; itemId: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

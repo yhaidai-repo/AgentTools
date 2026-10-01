@@ -28,7 +28,7 @@ export async function ensureAgentTask(db: AdoaDb, agentId: string, adoId: number
 // After a successful task: the agent's configured next agent gets a task (user decision 2026-10-01). Marked as handed on
 // either way, so the worker's loop does this once per task.
 export async function handOn(db: AdoaDb, task: ItemRow, nextAgentId: string | null): Promise<string | null> {
-  const created = nextAgentId ? await ensureAgentTask(db, nextAgentId, task.pbiId, null) : null;
+  const created = nextAgentId && task.pbiId !== null ? await ensureAgentTask(db, nextAgentId, task.pbiId, null) : null;
 
   await db.update(localItem).set({ handedOnAt: new Date() }).where(eq(localItem.id, task.id));
 
@@ -43,4 +43,13 @@ async function hasOpenTask(db: AdoaDb, agentId: string, adoId: number): Promise<
     .limit(1);
 
   return rows.length > 0;
+}
+
+// Pipeline stages (refinement, research, design) always work on a PBI; a task of theirs without one is a bug.
+export function requirePbiId(task: ItemRow): number {
+  if (task.pbiId === null) {
+    throw new Error(`${task.id} has no PBI, but ${task.assignee} works only on PBIs`);
+  }
+
+  return task.pbiId;
 }

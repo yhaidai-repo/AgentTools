@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteItemAction } from "../../actions";
+import { deleteItemAction } from "./actions";
 
 // Asks first: a deleted item disappears from the pages and the Vault, and agents won't create it again.
-export function DeleteItemButton({ adoId, itemId }: { adoId: number; itemId: string }) {
+export function DeleteItemButton({ adoId, itemId }: { adoId: number | null; itemId: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
