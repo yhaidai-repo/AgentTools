@@ -1,6 +1,7 @@
 import { localItem } from "@adoa/db";
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, notInArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, ne, notInArray, sql, type SQL } from "drizzle-orm";
 import type { TaskFilter } from "@/models/TaskFilter";
+import { rangeStart } from "./ranges";
 import { getDb } from "./db";
 
 const OPEN_STATUSES: ("open" | "in-progress" | "blocked")[] = ["open", "in-progress", "blocked"];
@@ -32,7 +33,7 @@ function sortOrder(filter: TaskFilter): SQL {
 }
 
 function filterConditions(filter: TaskFilter): SQL[] {
-  const conditions: SQL[] = [ne(localItem.kind, "research-result"), ne(localItem.status, "deleted")];
+  const conditions: SQL[] = [ne(localItem.kind, "research-result"), ne(localItem.status, "deleted"), gte(localItem.createdAt, rangeStart(filter.range))];
   const kind = TASK_KINDS.find((entry) => entry === filter.kind);
 
   if (kind) {

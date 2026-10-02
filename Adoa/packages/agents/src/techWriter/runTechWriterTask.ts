@@ -1,4 +1,5 @@
 import { localItem } from "@adoa/db";
+import { createConfluenceTools } from "../confluenceTools";
 import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -85,6 +86,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createRepoTools({ root: deps.repoCacheRoot, repos: run.repos.map((repo) => repo.name) }),
       ...skills.tools,
       ...createTechWriterTools(deps, run.draft),
+      ...createConfluenceTools(deps, agent),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

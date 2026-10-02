@@ -1,16 +1,20 @@
-import { DISPATCH_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applySyncSchedule, createWorkerBoss, ensureQueues, readSyncSettings, type DispatchJob, type PrepareJob, type RegisterJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
+import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
+import { loadLinkedPage } from "./documents/confluencePages";
 import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { requireEnv, vaultRoot } from "./env";
 import type { WorkerContext } from "./models/WorkerContext";
+import { deletePbi } from "./pbi/deletePbi";
 import { preparePbis } from "./prepare/preparePbis";
-import { refreshQueuedPbis } from "./refreshPbi";
+import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
 import { runSync } from "./sync/runSync";
+import { syncOnePbi } from "./sync/syncOnePbi";
 
 const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
@@ -24,6 +28,8 @@ await boss.start();
 await ensureQueues(boss);
 await config.ensureSchema();
 await seedAdoSettingsFromEnv(db);
+// Settings shows whether Confluence pages can be fetched; the web never sees the token.
+await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
 await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
@@ -57,6 +63,21 @@ await boss.work(DRAFTS_QUEUE, () => logged(DRAFTS_QUEUE, async () => {
 await boss.work<RegisterJob>(REGISTER_QUEUE, (jobs) => logged(REGISTER_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`register: ${await submitFinding(db, job.data)}`);
+  }
+}));
+
+// "Load from Confluence" on the PBI page; the PBI is refreshed after, so its statuses and Vault show the page.
+await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENCE_QUEUE, async () => {
+  for (const job of jobs) {
+    await loadLinkedPage(context, job.data.adoId, job.data.url);
+    await refreshPbi(context, job.data.adoId);
+  }
+}));
+
+// "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page.
+await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`pbi: ${job.data.action === "sync" ? await syncOnePbi(context, job.data.adoId) : await deletePbi(context, job.data.adoId)}`);
   }
 }));
 

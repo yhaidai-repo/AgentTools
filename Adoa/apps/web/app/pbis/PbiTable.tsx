@@ -13,6 +13,7 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
             <th>ID</th>
             <th>Title</th>
             <th>Type</th>
+            <th>Priority</th>
             <th>ADO state</th>
             <th>Pipeline</th>
             <th>Sprint</th>
@@ -27,6 +28,7 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
               <td>{ado ? <a href={workItemUrl(ado, row.adoId)} target="_blank" rel="noreferrer">{row.adoId}</a> : row.adoId}</td>
               <td className="title"><Link href={`/pbis/${row.adoId}`}>{row.title}</Link></td>
               <td>{row.type}</td>
+              <td>{row.priority ?? "–"}</td>
               <td>{row.adoState}</td>
               <td>{row.pipelineStatus}<NeedsAction row={row} /></td>
               <td>{row.iterationPath}</td>

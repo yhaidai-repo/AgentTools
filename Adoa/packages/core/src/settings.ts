@@ -1,10 +1,12 @@
 import { config, type AdoaDb } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import type { AdoSettings } from "./models/AdoSettings";
+import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { SyncSettings } from "./models/SyncSettings";
 
 const ADO_KEY = "ado";
 const SYNC_KEY = "sync";
+const CONFLUENCE_KEY = "confluence";
 
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
@@ -34,6 +36,15 @@ export async function saveSyncSettings(db: AdoaDb, settings: SyncSettings): Prom
 // Sync pulls only the PBIs assigned to `user`, so it is required.
 export function isAdoConfigured(settings: AdoSettings | null): settings is AdoSettings {
   return !!settings && [settings.orgUrl, settings.project, settings.team, settings.user].every(Boolean);
+}
+
+export async function saveConfluenceStatus(db: AdoaDb, status: ConfluenceStatus): Promise<void> {
+  await saveValue(db, CONFLUENCE_KEY, status);
+}
+
+// Null until a worker has started with this build.
+export async function readConfluenceStatus(db: AdoaDb): Promise<ConfluenceStatus | null> {
+  return readValue<ConfluenceStatus>(db, CONFLUENCE_KEY);
 }
 
 async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {

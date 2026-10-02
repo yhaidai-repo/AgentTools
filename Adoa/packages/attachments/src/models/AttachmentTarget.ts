@@ -3,4 +3,8 @@ export interface AttachmentTarget {
   adoId: number;
   itemId: string | null;
   sourceUrl: string | null;
+  /** Who stored it: the user (default) or the worker fetching a linked document. */
+  origin?: "upload" | "ado" | "confluence";
+  /** The linked page's version when fetched (Confluence). */
+  sourceVersion?: number | null;
 }

@@ -2,6 +2,8 @@ import { isPaused, type AgentDefinition, type AgentsGlobal } from "@agenttools/c
 import type { UsageTotals } from "@agenttools/usage";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
+import { RememberFilters } from "@/components/RememberFilters";
+import { rememberedParams } from "@/lib/rememberedFilters";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadJobErrors, type JobError } from "@/lib/jobErrors";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
@@ -17,7 +19,7 @@ import { SubscriptionPanel } from "./SubscriptionPanel";
 export const dynamic = "force-dynamic";
 
 export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const range = (await searchParams).range ?? DEFAULT_RANGE;
+  const range = (await rememberedParams("/agents", await searchParams)).range ?? DEFAULT_RANGE;
   const config = getAgentConfig();
   const agents = await config.list();
   const global = await config.getGlobal();
@@ -29,10 +31,11 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <h1>Agents</h1>
+      <RememberFilters />
       <SubscriptionPanel statuses={await loadSubscriptionStatus()} />
       <PauseState global={global} />
       <PauseControl isPaused={isPaused(global)} />
-      <RangeFilter range={range} ranges={rangeOptions()} />
+      <RangeFilter key={range} range={range} ranges={rangeOptions()} />
       <div className="table-wrap">
         <table>
           <thead>

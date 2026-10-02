@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@adoa/agents": "*",
+    "@adoa/confluence": "*",
     "@adoa/core": "*",
     "@adoa/db": "*",
     "@adoa/notes": "*",

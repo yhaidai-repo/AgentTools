@@ -1,4 +1,4 @@
-import { attachmentRef, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
+import { attachmentRef, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
 import { repo } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
@@ -13,6 +13,10 @@ import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
+import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
+import { DeletePbiButton } from "./DeletePbiButton";
+import { LoadFromConfluenceButton } from "./LoadFromConfluenceButton";
+import { RemoveLinkButton } from "./RemoveLinkButton";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
 
@@ -43,7 +47,7 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
-      <p><Link href="/pbis">← Backlog</Link></p>
+      <p className="actions"><Link href="/pbis">← Backlog</Link> <DeletePbiButton adoId={pbi.adoId} /></p>
       <Summary detail={detail} adoUrl={await adoUrl(pbi.adoId)} />
       <Blockers detail={detail} />
       <h2>Description</h2>
@@ -183,35 +187,45 @@ function LinkedDocuments({ detail }: { detail: PbiDetail }) {
 
   return (
     <ul>
-      {urls.map((url) => <LinkedDocument key={url} url={url} provided={providedBy(detail, url)} />)}
+      {urls.map((url) => <LinkedDocument key={url} adoId={detail.pbi.adoId} url={url} provided={providedBy(detail, url)} />)}
     </ul>
   );
 }
 
-function LinkedDocument({ url, provided }: { url: string; provided: string[] }) {
-  const state = provided.length > 0
-    ? <span className="result-ok">content provided ({provided.join(", ")})</span>
-    : <span className="result-error">content missing for agents</span>;
+// A missing Confluence page can be loaded right here (the worker fetches it); other documents are uploaded below.
+function LinkedDocument({ adoId, url, provided }: { adoId: number; url: string; provided: string[] }) {
+  if (provided.length > 0) {
+    return <li><a href={url} target="_blank" rel="noreferrer">{url}</a> · <span className="result-ok">content provided ({provided.join(", ")})</span></li>;
+  }
 
-  return <li><a href={url} target="_blank" rel="noreferrer">{url}</a> · {state}</li>;
+  return (
+    <li>
+      <a href={url} target="_blank" rel="noreferrer">{url}</a> · <span className="result-error">content missing for agents</span>
+      {linkedDocumentKind(url) === "confluence" && <> <LoadFromConfluenceButton adoId={adoId} url={url} /></>}
+    </li>
+  );
 }
 
 function Attachments({ detail }: { detail: PbiDetail }) {
   return (
     <>
-      {detail.attachments.length === 0 ? <p className="muted">None.</p> : <AttachmentTable detail={detail} />}
+      {detail.attachments.length + detail.pbi.confluencePages.length === 0 ? <p className="muted">None.</p> : <AttachmentTable detail={detail} />}
       <AttachmentForm adoId={detail.pbi.adoId} accept={ACCEPT} />
+      <ConfluenceLinkForm adoId={detail.pbi.adoId} />
       <p className="muted">PDF, Word (.docx), HTML (e.g. a saved Confluence page), Markdown or text are converted to text for the agents; images are stored only. Max 20 MB.</p>
     </>
   );
 }
+
+// Who added the file: the user, or the worker fetching a linked document (refreshed when that document changes).
+const ORIGINS: Record<string, string> = { upload: "you", ado: "ADO (linked)", confluence: "Confluence (linked)" };
 
 function AttachmentTable({ detail }: { detail: PbiDetail }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
-          <tr><th>Id</th><th>File</th><th>For</th><th>Content of</th><th>Size</th><th>Agents read</th><th>Uploaded</th></tr>
+          <tr><th>Id</th><th>File</th><th>For</th><th>Content of</th><th>From</th><th>Size</th><th>Agents read</th><th>Added</th><th /></tr>
         </thead>
         <tbody>
           {detail.attachments.map((entry) => (
@@ -220,14 +234,39 @@ function AttachmentTable({ detail }: { detail: PbiDetail }) {
               <td><a href={`/pbis/${detail.pbi.adoId}/attachments/${entry.id}`}>{entry.fileName}</a></td>
               <td>{entry.itemId ? <Link href={`/pbis/${detail.pbi.adoId}/items/${entry.itemId}`}>{entry.itemId}</Link> : "–"}</td>
               <td>{entry.sourceUrl ?? "–"}</td>
+              <td>{ORIGINS[entry.origin]}{entry.sourceVersion ? ` v${entry.sourceVersion}` : ""}</td>
               <td>{formatBytes(entry.sizeBytes)}</td>
               <td>{entry.textChars === null ? "no text (image)" : `${entry.textChars} chars`}</td>
               <td><LocalTime date={entry.createdAt} /></td>
+              <td />
             </tr>
           ))}
+          {detail.pbi.confluencePages.map((page) => <ConfluenceLinkRow key={page.url} adoId={detail.pbi.adoId} page={page} />)}
         </tbody>
       </table>
     </div>
+  );
+}
+
+const LINK_ADDED_BY: Record<string, string> = { user: "you", refinement: "refinement", research: "research" };
+
+// A Confluence page as a link (not fetched): agents with the Confluence tools open it; the reason shows under the title.
+function ConfluenceLinkRow({ adoId, page }: { adoId: number; page: PbiDetail["pbi"]["confluencePages"][number] }) {
+  return (
+    <tr>
+      <td>link</td>
+      <td>
+        <a href={page.url} target="_blank" rel="noreferrer">{page.title}</a>
+        {page.why && <div className="muted">{page.why}</div>}
+      </td>
+      <td>–</td>
+      <td>–</td>
+      <td>Confluence link ({LINK_ADDED_BY[page.by] ?? page.by})</td>
+      <td>–</td>
+      <td>as a link (Confluence tools)</td>
+      <td>–</td>
+      <td><RemoveLinkButton adoId={adoId} url={page.url} /></td>
+    </tr>
   );
 }
 

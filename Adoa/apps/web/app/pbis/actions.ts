@@ -1,7 +1,8 @@
 "use server";
 
-import { PREPARE_QUEUE, SYNC_QUEUE, readSyncSettings, saveSyncSettings, type PrepareJob } from "@adoa/core";
+import { PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, parsePbiReference, pbiDeleteProblem, readSyncSettings, saveSyncSettings, type PbiJob, type PrepareJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
@@ -45,4 +46,34 @@ export async function prepareSelected(_previous: ActionResult | null, form: Form
   await (await getBoss()).send(PREPARE_QUEUE, job);
 
   return { ok: true, message: `${adoIds.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
+}
+
+// One PBI by id or ADO link (user decision 2026-10-02); the worker holds the ADO token, so it fetches it.
+export async function syncOnePbi(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoId = parsePbiReference(String(form.get("pbi") ?? ""));
+
+  if (adoId === null) {
+    return { ok: false, message: "Enter a PBI id or its Azure DevOps link." };
+  }
+
+  const job: PbiJob = { action: "sync", adoId };
+
+  await (await getBoss()).send(PBI_QUEUE, job);
+
+  return { ok: true, message: `PBI-${adoId} queued; reload in a few seconds (a failure shows under Job errors on the Agents page).` };
+}
+
+// Deletes in adoa only, through the worker (it removes the PBI's notes too). Refused while an agent runs on it.
+export async function deletePbiAction(adoId: number): Promise<ActionResult> {
+  const problem = await pbiDeleteProblem(getDb(), adoId);
+
+  if (problem) {
+    return { ok: false, message: problem };
+  }
+
+  const job: PbiJob = { action: "delete", adoId };
+
+  await (await getBoss()).send(PBI_QUEUE, job);
+  revalidatePath("/pbis");
+  redirect("/pbis");
 }

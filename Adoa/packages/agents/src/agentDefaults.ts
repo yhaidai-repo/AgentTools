@@ -1,4 +1,5 @@
-import type { AgentDefinition, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
+import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
+import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 
 // adoa's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -68,6 +69,15 @@ const TECH_WRITER_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+// Outside systems adoa can give an agent tools for; each one is switched on per agent in its Config (user decision 2026-10-02).
+const INTEGRATIONS: AgentIntegrationSpec[] = [
+  {
+    key: CONFLUENCE_INTEGRATION,
+    label: "Confluence (read)",
+    description: "The agent may read and search Confluence pages during its runs.",
+  },
+];
+
 export const AGENT_DEFAULTS: AgentDefinition[] = [
   {
     id: "refinement",
@@ -78,10 +88,11 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 10 },
     budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
     skills: ["adoa-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
     optionSpecs: REFINEMENT_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
     next: "design",
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
@@ -94,10 +105,11 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: false },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
     skills: ["adoa-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
     optionSpecs: RESEARCH_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
     next: "design",
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
@@ -110,10 +122,11 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
     skills: ["adoa-tech-writer", "adoa-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: TECH_WRITER_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
     next: null,
     waitFor: [],
   },

@@ -1,3 +1,4 @@
+import type { ConfluenceClient } from "@adoa/confluence";
 import type { AdoaDb } from "@adoa/db";
 import type { AgentConfigStore } from "@agenttools/config";
 import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
@@ -28,4 +29,8 @@ export interface AgentDeps {
   docsVault: DocsVault | null;
   /** A project's register records (VaultCapture `register`); null where the module isn't available. */
   listRegister: ((project: string, kind: "questions" | "issues") => Promise<RegisterEntry[]>) | null;
+  /** Confluence account for agents with the integration on; null when CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN aren't set. */
+  confluence: ConfluenceClient | null;
+  /** The Confluence site agents search (CONFLUENCE_SITE); null = no search tool, page links still work. */
+  confluenceSite: string | null;
 }

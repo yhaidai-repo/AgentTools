@@ -7,6 +7,8 @@ const ATTACHMENT_SUMMARY = {
   id: attachment.id,
   itemId: attachment.itemId,
   sourceUrl: attachment.sourceUrl,
+  origin: attachment.origin,
+  sourceVersion: attachment.sourceVersion,
   fileName: attachment.fileName,
   sizeBytes: attachment.sizeBytes,
   textChars: sql<number | null>`length(${attachment.text})`,

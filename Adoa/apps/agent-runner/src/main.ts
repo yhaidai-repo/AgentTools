@@ -1,5 +1,6 @@
 import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
 import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, type AgentRunJob } from "@adoa/core";
+import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { VaultCaptureCli, publishPbi } from "@adoa/notes";
 import { VaultWriter } from "@adoa/vault";
@@ -50,6 +51,8 @@ const deps: AgentDeps = {
   captureRules,
   docsVault: docsVaultWriter(),
   listRegister: async (project, kind) => (await VaultCaptureCli.fromEnv("the tech-writer lists a register")).listRegister(project, kind),
+  confluence: ConfluenceClient.fromEnv(),
+  confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
 };
 
 // One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).

@@ -1,0 +1,1 @@
+ALTER TABLE "work_item" ADD COLUMN "confluence_pages" jsonb DEFAULT '[]'::jsonb NOT NULL;

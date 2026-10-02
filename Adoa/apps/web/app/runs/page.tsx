@@ -1,6 +1,8 @@
 import type { RunSubscriptionShare } from "@agenttools/usage";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
+import { RememberFilters } from "@/components/RememberFilters";
+import { rememberedParams } from "@/lib/rememberedFilters";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { formatDuration, formatSharePercent, formatTokens, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
@@ -18,7 +20,7 @@ type Search = Promise<{ agent?: string; range?: string; outcome?: string }>;
 
 // Every agent's runs, filtered by agent and period; the tasks of selected runs can be re-run together.
 export default async function RunsPage({ searchParams }: { searchParams: Search }) {
-  const params = await searchParams;
+  const params = await rememberedParams("/runs", await searchParams);
   const filter: RunListFilter = { agent: params.agent ?? "", range: params.range ?? DEFAULT_RANGE, outcome: params.outcome ?? "" };
   const rows = await loadRunList(filter, rangeStart(filter.range));
   const shares = await loadRunShares();
@@ -27,8 +29,9 @@ export default async function RunsPage({ searchParams }: { searchParams: Search 
   return (
     <>
       <h1>Runs</h1>
+      <RememberFilters />
       {filter.agent && <p><Link href={`/agents/${filter.agent}/config`}>{filter.agent} config</Link></p>}
-      <RunFilters filter={filter} agents={agents} ranges={rangeOptions()} />
+      <RunFilters key={JSON.stringify(filter)} filter={filter} agents={agents} ranges={rangeOptions()} />
       {rows.length === 0 ? <p className="muted">No runs in this period.</p> : <RerunForm><RunTable rows={rows} shares={shares} /></RerunForm>}
     </>
   );

@@ -51,7 +51,7 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     model: { provider: text(form, "provider"), model: text(form, "model"), ...(effort ? { effort: effort as AgentDefinition["model"]["effort"] } : {}) },
     limits: { maxTurns: Number(text(form, "maxTurns")), timeoutMinutes: Number(text(form, "timeoutMinutes")) },
     budgets: { perRunUsd: Number(text(form, "perRunUsd")), dailyUsd: Number(text(form, "dailyUsd")) },
-    capabilities: { webAccess: form.get("webAccess") === "on" },
+    capabilities: { webAccess: form.get("webAccess") === "on", integrations: readIntegrations(form, current) },
     skills: form.getAll("skills").map(String),
     options: readOptions(form, current),
     next: text(form, "next") || null,
@@ -62,6 +62,11 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
 // One field per declared option (`option:<key>`); AgentConfig checks the ranges.
 function readOptions(form: FormData, current: AgentDefinition): Record<string, AgentOptionValue> {
   return Object.fromEntries(current.optionSpecs.map((spec) => [spec.key, Number(text(form, `option:${spec.key}`))]));
+}
+
+// One checkbox per integration the host declares (`integration:<key>`); undeclared keys never reach the definition.
+function readIntegrations(form: FormData, current: AgentDefinition): Record<string, boolean> {
+  return Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, form.get(`integration:${spec.key}`) === "on"]));
 }
 
 function text(form: FormData, name: string): string {

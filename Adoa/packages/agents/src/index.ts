@@ -3,6 +3,7 @@ export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
 export { loadPrompt } from "./prompts";
 export { runAgentTask } from "./tasks/runAgentTask";
 export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
+export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { loadCaptureRules } from "./vaultCapture";
 export type { AgentDeps } from "./models/AgentDeps";
 export type { AgentRunInfo } from "./models/AgentRunInfo";

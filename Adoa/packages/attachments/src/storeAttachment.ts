@@ -18,6 +18,8 @@ export async function storeAttachment(db: AdoaDb, file: UploadedFile, target: At
       pbiId: target.adoId,
       itemId: target.itemId,
       sourceUrl: target.sourceUrl,
+      origin: target.origin ?? "upload",
+      sourceVersion: target.sourceVersion ?? null,
       fileName: file.fileName,
       contentType: file.contentType || "application/octet-stream",
       sizeBytes: file.bytes.length,

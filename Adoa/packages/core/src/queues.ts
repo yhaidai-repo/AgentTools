@@ -7,6 +7,10 @@ export const DISPATCH_QUEUE = "dispatch";
 export const AGENT_RUN_QUEUE = "agent-run";
 export const DRAFTS_QUEUE = "drafts";
 export const REGISTER_QUEUE = "register";
+// Sent only by the PBI page's "Load from Confluence" (no schedule).
+export const CONFLUENCE_QUEUE = "confluence";
+// Sent only by "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page (no schedule).
+export const PBI_QUEUE = "pbi";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -34,6 +38,8 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
   await ensureQueue(boss, REGISTER_QUEUE, "standard");
+  await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
+  await ensureQueue(boss, PBI_QUEUE, "standard");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {

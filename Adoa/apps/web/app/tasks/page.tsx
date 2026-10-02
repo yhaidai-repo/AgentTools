@@ -1,23 +1,27 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
+import { RememberFilters } from "@/components/RememberFilters";
+import { rememberedParams } from "@/lib/rememberedFilters";
 import { isOpen, itemPath } from "@/lib/items";
+import { DEFAULT_RANGE, RANGES, rangeOptions } from "@/lib/ranges";
 import { TASK_KINDS, loadTaskList, type TaskRow } from "@/lib/taskList";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { TaskFilters } from "./TaskFilters";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; sort?: string; dir?: string }>;
+type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; sort?: string; dir?: string }>;
 
 const STATUS_FILTERS: TaskFilter["status"][] = ["open", "closed", "all"];
 
 // All tasks, questions and findings, including those of no PBI (e.g. tech-writer tasks for drafts captured in chat).
 export default async function TasksPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = await searchParams;
+  const params = await rememberedParams("/tasks", await searchParams);
   const filter: TaskFilter = {
     kind: params.kind ?? "",
     status: STATUS_FILTERS.find((status) => status === params.status) ?? "all",
     pbi: (params.pbi ?? "").trim(),
+    range: params.range && RANGES[params.range] ? params.range : DEFAULT_RANGE,
     sort: params.sort === "updated" ? "updated" : "created",
     dir: params.dir === "asc" ? "asc" : "desc",
   };
@@ -26,7 +30,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   return (
     <>
       <h1>Tasks</h1>
-      <TaskFilters filter={filter} kinds={TASK_KINDS} />
+      <RememberFilters />
+      <TaskFilters key={JSON.stringify(filter)} filter={filter} kinds={TASK_KINDS} ranges={rangeOptions()} />
       {rows.length === 0 ? <p className="muted">Nothing matches.</p> : <TaskTable rows={rows} filter={filter} />}
     </>
   );
@@ -90,7 +95,7 @@ function isFailure(outcome: string): boolean {
 function SortHeader({ filter, column, label }: { filter: TaskFilter; column: TaskFilter["sort"]; label: string }) {
   const isActive = filter.sort === column;
   const dir = isActive && filter.dir === "desc" ? "asc" : "desc";
-  const query = new URLSearchParams({ kind: filter.kind, status: filter.status, pbi: filter.pbi, sort: column, dir });
+  const query = new URLSearchParams({ kind: filter.kind, status: filter.status, pbi: filter.pbi, range: filter.range, sort: column, dir });
   const arrow = filter.dir === "desc" ? " ↓" : " ↑";
 
   return <th><Link href={`/tasks?${query}`}>{label}{isActive ? arrow : ""}</Link></th>;

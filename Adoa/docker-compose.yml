@@ -45,6 +45,9 @@ services:
     environment:
       DATABASE_URL: *db-url
       ADO_PAT: ${ADO_PAT}
+      # Read-only Confluence access for the pages PBIs link (empty = those links become tasks for you).
+      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
       VAULT_ROOT: /vault/${BACKLOG_FOLDER-backlog}  # adoa renders into this folder of the vault; empty = the vault root
       VAULT_CAPTURE_HOME: /app/VaultCapture
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}
@@ -69,6 +72,10 @@ services:
     environment:
       DATABASE_URL: *db-url
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      # Agents with the Confluence integration on in their Config read and search pages with this account.
+      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      CONFLUENCE_SITE: ${CONFLUENCE_SITE:-}
       ADO_PAT: ${ADO_PAT}
       REPO_CACHE_ROOT: /repo-cache
       DOCS_ROOT: /docs

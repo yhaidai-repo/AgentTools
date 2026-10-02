@@ -2,6 +2,8 @@ import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core
 import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
 import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { RememberFilters } from "@/components/RememberFilters";
+import { rememberedParams } from "@/lib/rememberedFilters";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { BacklogFilter } from "@/models/BacklogFilter";
 import type { BacklogRow } from "@/models/BacklogRow";
@@ -11,6 +13,7 @@ import { PrepareForm } from "./PrepareForm";
 import { StatusChips } from "./StatusChips";
 import { StatusFilter } from "./StatusFilter";
 import { SyncForm } from "./SyncForm";
+import { SyncPbiForm } from "./SyncPbiForm";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +23,7 @@ const STATUSES: string[] = pipelineStatus.enumValues;
 
 // Every synced PBI in scope; the sprint picker only says what the sync pulls.
 export default async function PbisPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = await searchParams;
+  const params = await rememberedParams("/pbis", await searchParams);
   const filter: BacklogFilter = { status: STATUSES.find((status) => status === params.status) ?? "" };
   const db = getDb();
   const sync = await readSyncSettings(db);
@@ -31,11 +34,13 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
   return (
     <>
       <h1>Backlog</h1>
+      <RememberFilters />
       <div className="toolbar">
         <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db)} />
         <LastSync run={lastSync} />
+        <SyncPbiForm />
       </div>
-      <StatusFilter status={filter.status} statuses={STATUSES} />
+      <StatusFilter key={filter.status} status={filter.status} statuses={STATUSES} />
       <StatusChips rows={rows} />
       <PrepareForm>
         <PbiTable rows={rows} ado={ado} />

@@ -2,6 +2,7 @@ import { AGENT_RUN_QUEUE, readCurrentSprint, setItemStatus, syncPipelineStatus, 
 import { localItem, workItem } from "@adoa/db";
 import { isPaused, type AgentDefinition } from "@agenttools/config";
 import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
+import { syncConfluencePages } from "../documents/confluencePages";
 import type { WorkerContext } from "../models/WorkerContext";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -54,7 +55,11 @@ async function openTasks(context: WorkerContext, agentId: string): Promise<ItemR
   return rows.map((row) => row.task);
 }
 
+// The PBI's Confluence pages are checked when a task on it is about to start (user decision 2026-10-02): a page still
+// missing is fetched before the checks, and a valid task's pages are brought to their current version before it runs.
 async function tryStart(context: WorkerContext, agent: AgentDefinition, task: ItemRow): Promise<boolean> {
+  await syncTaskPages(context, task, "missing");
+
   const reasons = await validateTask(context.db, task, agent.id, agent.waitFor, agent.capabilities);
 
   if (reasons.length > 0) {
@@ -62,6 +67,8 @@ async function tryStart(context: WorkerContext, agent: AgentDefinition, task: It
 
     return false;
   }
+
+  await syncTaskPages(context, task, "all");
 
   if (!(await claim(context, task))) {
     return false;
@@ -99,4 +106,10 @@ function batchSize(agent: AgentDefinition): number {
   const value = agent.options.batchSize;
 
   return typeof value === "number" ? value : 1;
+}
+
+async function syncTaskPages(context: WorkerContext, task: ItemRow, which: "missing" | "all"): Promise<void> {
+  if (task.pbiId !== null) {
+    await syncConfluencePages(context, task.pbiId, which);
+  }
 }

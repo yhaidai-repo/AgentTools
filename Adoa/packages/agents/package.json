@@ -7,13 +7,15 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@adoa/confluence": "*",
     "@adoa/core": "*",
     "@adoa/db": "*",
+    "@adoa/vault": "*",
+    "@agenttools/config": "*",
     "@agenttools/runtime": "*",
     "@agenttools/usage": "*",
     "drizzle-orm": "^0.45.3",
-    "zod": "^4.0.0",
-    "@agenttools/config": "*"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

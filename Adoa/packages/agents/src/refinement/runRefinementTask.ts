@@ -5,13 +5,16 @@ import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
+import { createConfluenceTools } from "../confluenceTools";
 import { documentedRepos } from "../docsRepos";
+import { createVaultCaptureTool } from "../vaultCapture";
 import { createWebResearchTool } from "../webResearch";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
-import { docsReadInRun, skillsTrace } from "../stage";
+import { withPagesRead } from "../relevantPages";
+import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import { buildPbiMessage } from "./pbiMessage";
@@ -35,11 +38,13 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [] };
+  const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [], captures: [], pages: [] };
   const session = await AgentRunSession.begin(deps, info);
   const ran = await session.execute(info, () => prepare(context, session, row, draft));
   const commit = async () => {
-    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement! }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
+    const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
+
+    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
   };
 
   return session.finish(ran, commit);
@@ -67,6 +72,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
       createAttachmentTool(deps.db, row.adoId),
       ...createRefinementTools(deps.db, draft, pbiMessage, recommendable, guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
+      ...createConfluenceTools(deps, agent),
+      ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

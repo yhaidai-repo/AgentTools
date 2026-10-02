@@ -60,6 +60,18 @@ export async function docsReadInRun(deps: AgentDeps, runId: number): Promise<str
   return [...new Set(paths)];
 }
 
+// Confluence pages the agent read successfully in this run (read_confluence_page calls whose result wasn't an error).
+export async function confluencePagesReadInRun(deps: AgentDeps, runId: number): Promise<string[]> {
+  const events = await deps.usageStore.trace(String(runId));
+  const failed = new Set(events.filter((event) => event.type === "tool_result" && event.payload.isError === true).map((event) => String(event.payload.callId)));
+  const urls = events
+    .filter((event) => event.type === "tool_call" && event.payload.name === "read_confluence_page" && !failed.has(String(event.payload.callId)))
+    .map((event) => String((event.payload.input as { url?: string } | undefined)?.url ?? ""))
+    .filter(Boolean);
+
+  return [...new Set(urls)];
+}
+
 export function numberOption(agent: AgentDefinition, name: string, fallback: number): number {
   const value = agent.options[name];
 

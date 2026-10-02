@@ -71,6 +71,12 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
         <input name="webAccess" type="checkbox" defaultChecked={agent.capabilities.webAccess} />
         Web access (search and fetch)
       </label>
+      {(agent.integrationSpecs ?? []).map((spec) => (
+        <label key={spec.key} className="inline" title={spec.description}>
+          <input name={`integration:${spec.key}`} type="checkbox" defaultChecked={agent.capabilities.integrations?.[spec.key] === true} />
+          {spec.label} <span className="muted">· {spec.description}</span>
+        </label>
+      ))}
       <PipelineFields agent={agent} agentIds={agentIds} blockerKinds={blockerKinds} />
       <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
       <OptionsFields agent={agent} />

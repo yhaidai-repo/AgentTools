@@ -4,6 +4,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { PbiConfluencePage } from "./models/PbiConfluencePage";
 import type { PbiSkill } from "./models/PbiSkill";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
@@ -41,6 +42,9 @@ export const runOutcome = pgEnum("run_outcome", [
 ]);
 
 // vault-documented: a vault project's index names the repo (`repo:` line), so refinement doesn't ask about it.
+// upload: the user's own file; ado / confluence: fetched by the worker from a linked document (replaced when it changes).
+export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "confluence"]);
+
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 
 // Settings (ADO org/project/team/user, crons, models, budgets…)
@@ -77,6 +81,10 @@ export const workItem = pgTable("work_item", {
   // App data, never written by sync. Refinement replaces the list until the user saves it (skills_edited_at set).
   skills: jsonb("skills").$type<PbiSkill[]>().notNull().default([]),
   skillsEditedAt: ts("skills_edited_at"),
+  // Useful Confluence pages for the later agents: added by refinement, research and the user (links only).
+  confluencePages: jsonb("confluence_pages").$type<PbiConfluencePage[]>().notNull().default([]),
+  // Synced by hand ("Sync one PBI"): kept in scope and refreshed by every full sync, whatever sprint it is in.
+  syncedByHand: boolean("synced_by_hand").notNull().default(false),
   syncedAt: ts("synced_at").notNull().defaultNow(),
   createdAt: createdAt(),
 }, (t) => [
@@ -223,6 +231,13 @@ export const sprintSnapshot = pgTable("sprint_snapshot", {
 
 // ADO state history (from /updates) for actual cycle time.
 
+// PBIs deleted in adoa (ADO untouched): sync skips them until the user syncs one by hand again (user decision 2026-10-02).
+export const deletedPbi = pgTable("deleted_pbi", {
+  adoId: integer("ado_id").primaryKey(),
+  title: text("title").notNull(),
+  deletedAt: ts("deleted_at").notNull().defaultNow(),
+});
+
 export const adoStateChange = pgTable("ado_state_change", {
   adoId: integer("ado_id").notNull(),
   rev: integer("rev").notNull(),
@@ -259,6 +274,8 @@ export const attachment = pgTable("attachment", {
   pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
   itemId: text("item_id").references(() => localItem.id),
   sourceUrl: text("source_url"), // the linked document whose content this is
+  origin: attachmentOrigin("origin").notNull().default("upload"),
+  sourceVersion: integer("source_version"), // the linked page's version when fetched (Confluence)
   fileName: text("file_name").notNull(),
   contentType: text("content_type").notNull(),
   sizeBytes: integer("size_bytes").notNull(),

@@ -1,4 +1,4 @@
-import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core";
+import { readAdoSettings, readConfluenceStatus, readCurrentSprint, readSyncSettings, type ConfluenceStatus } from "@adoa/core";
 import Link from "next/link";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { spentToday } from "@/lib/budgetUsage";
@@ -26,8 +26,17 @@ export default async function SettingsPage() {
       <h2>From .env (restart to change)</h2>
       <p className="muted">
         Vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> · backlog folder: <code>{backlogFolder() || "(vault root)"}</code> · ADO access token:{" "}
-        {process.env.ADO_PAT ? "set" : "missing"}
+        {process.env.ADO_PAT ? "set" : "missing"} · Confluence: <ConfluenceAccess status={await readConfluenceStatus(db)} />
       </p>
     </>
   );
+}
+
+// As the worker reported it at startup (it holds the token): the account, or what to set.
+function ConfluenceAccess({ status }: { status: ConfluenceStatus | null }) {
+  if (!status) {
+    return <>unknown (restart the worker)</>;
+  }
+
+  return status.email ? <>set ({status.email})</> : <span className="result-error">missing (CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN)</span>;
 }

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
+import { createConfluenceTools } from "../confluenceTools";
 import { createWebResearchTool } from "../webResearch";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
@@ -36,7 +37,7 @@ export async function runResearchTask(context: TaskContext, task: ItemRow): Prom
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ResearchRun = { research: null, commits: {}, acquired: [], draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [], webResearch: [] } };
+  const run: ResearchRun = { research: null, commits: {}, acquired: [], draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [], webResearch: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -80,6 +81,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
+      ...createConfluenceTools(deps, agent),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

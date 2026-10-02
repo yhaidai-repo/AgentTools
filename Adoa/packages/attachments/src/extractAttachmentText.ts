@@ -2,13 +2,12 @@ import { htmlToMarkdown } from "@adoa/vault";
 import mammoth from "mammoth";
 import { extname } from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
-import { ACCEPTED_EXTENSIONS, MAX_ATTACHMENT_BYTES } from "./limits";
+import { ACCEPTED_EXTENSIONS, IMAGE_EXTENSIONS, MAX_ATTACHMENT_BYTES } from "./limits";
 import type { ExtractedText } from "./models/ExtractedText";
 import type { UploadedFile } from "./models/UploadedFile";
 
 type Reader = (bytes: Buffer) => Promise<string | null>;
 
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 
 const READERS: Record<string, Reader> = {
   ".pdf": readPdf,

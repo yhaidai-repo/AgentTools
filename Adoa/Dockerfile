@@ -15,6 +15,7 @@ COPY AgentUsage/package.json AgentUsage/
 COPY Adoa/packages/db/package.json Adoa/packages/db/
 COPY Adoa/packages/core/package.json Adoa/packages/core/
 COPY Adoa/packages/ado/package.json Adoa/packages/ado/
+COPY Adoa/packages/confluence/package.json Adoa/packages/confluence/
 COPY Adoa/packages/vault/package.json Adoa/packages/vault/
 COPY Adoa/packages/attachments/package.json Adoa/packages/attachments/
 COPY Adoa/packages/notes/package.json Adoa/packages/notes/

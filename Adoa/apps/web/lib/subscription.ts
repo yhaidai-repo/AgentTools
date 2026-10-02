@@ -8,7 +8,7 @@ const MAX_RECORDS = 2000;
 // Each provider's windows as the latest run reported them, and adoa's share of them (no snapshots: usage is read during
 // runs only, user decision 2026-10-02).
 export async function loadSubscriptionStatus(): Promise<SubscriptionStatus[]> {
-  return subscriptionStatus([], await recentRecords());
+  return subscriptionStatus(await recentRecords());
 }
 
 // Every run's share of the window periods it ran in. Periods span all agents, so all their runs are loaded.

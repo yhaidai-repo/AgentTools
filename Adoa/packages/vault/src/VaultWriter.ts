@@ -58,6 +58,15 @@ export class VaultWriter {
     await rm(this.pathOf(relativePath), { force: true });
   }
 
+  // A deleted PBI's folder with all its notes and attachments; the vault root itself is never removed.
+  async removeFolder(relativePath: string): Promise<void> {
+    if (!relativePath.replace(/[\\/.]/g, "")) {
+      throw new Error("refusing to remove the vault root");
+    }
+
+    await rm(this.pathOf(relativePath), { recursive: true, force: true });
+  }
+
   // Creates the file with the default content when missing; never overwrites a user-edited file.
   async readOrCreate(relativePath: string, defaultContent: string): Promise<string> {
     const fullPath = this.pathOf(relativePath);

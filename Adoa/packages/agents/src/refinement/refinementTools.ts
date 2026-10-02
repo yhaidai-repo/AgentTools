@@ -1,4 +1,5 @@
 import { MAX_PBI_SKILLS, pbiSkillProblems } from "@adoa/core";
+import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
 import { repo, type AdoaDb } from "@adoa/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
@@ -49,12 +50,13 @@ function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) 
       assumptions: z.array(z.string()).describe("Assumptions you made"),
       relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).describe("Docs (paths as the docs tools show them) research and design should read, and why"),
       skills: z.array(z.object({ name: z.string(), reason: z.string() })).default([]).describe(`Up to ${MAX_PBI_SKILLS} skills from list_skills that help the later agents on this PBI, each with why; none is fine`),
+      relevant_pages: relevantPagesInput,
     },
     handler: async (input) => {
-      const problems = pbiSkillProblems(input.skills.map((skill) => skill.name), availableSkills);
+      const problems = [...pbiSkillProblems(input.skills.map((skill) => skill.name), availableSkills), ...relevantPageProblems(input.relevant_pages)];
 
       if (problems.length > 0) {
-        return { text: `Not saved, fix the skills and retry: ${problems.join("; ")}.`, isError: true };
+        return { text: `Not saved, fix and retry: ${problems.join("; ")}.`, isError: true };
       }
 
       draft.refinement = {
@@ -68,6 +70,7 @@ function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) 
         relevantDocs: input.relevant_docs,
         skills: input.skills,
       };
+      draft.pages = input.relevant_pages;
 
       return { text: "Refinement saved." };
     },

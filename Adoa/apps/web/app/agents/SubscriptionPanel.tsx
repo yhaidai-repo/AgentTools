@@ -17,14 +17,13 @@ export function SubscriptionPanel({ statuses }: { statuses: SubscriptionStatus[]
 function ProviderUsage({ status }: { status: SubscriptionStatus }) {
   return (
     <div className="chips">
-      <span className="chip">{status.provider}{status.plan ? ` (${status.plan})` : ""}</span>
+      <span className="chip">{status.provider}</span>
       {status.windows.map((window) => (
         <span key={window.window} className={`chip ${window.utilization >= WARN_AT ? "result-error" : ""}`}>
           {window.label}: {formatPercent(window.utilization)} used · adoa {formatPercent(window.share)} · resets <LocalTime date={window.resetsAt} />
         </span>
       ))}
       {status.asOf && <span className="muted">as of <LocalTime date={status.asOf} /></span>}
-      {status.unavailable && <span className="result-error">{status.unavailable}</span>}
     </div>
   );
 }

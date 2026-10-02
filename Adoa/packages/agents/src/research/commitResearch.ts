@@ -1,4 +1,5 @@
 import { nextItemId, setItemStatus } from "@adoa/core";
+import { commitRelevantPages } from "../relevantPages";
 import { agentRun, localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, ne } from "drizzle-orm";
 import type { QuestionDraft } from "../refinement/models/QuestionDraft";
@@ -27,6 +28,9 @@ export async function commitResearch(
   const humanIds = await insertHumanTasks(db, context, runId, draft.humanTasks);
   const questionIds = await insertQuestions(db, context, runId, draft.questions);
   const captureIds = await commitCaptures(db, runId, pbi.adoId, task.id, draft.captures);
+
+  await commitRelevantPages(db, pbi.adoId, draft.pages, "research");
+
   const webIds = await insertWebResearchTasks(db, pbi.adoId, runId, task.id, depth, draft.webResearch);
   const outputs = [resultId, ...followUpIds, ...webIds, ...humanIds, ...questionIds, ...captureIds];
 

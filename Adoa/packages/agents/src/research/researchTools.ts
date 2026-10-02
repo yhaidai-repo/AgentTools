@@ -1,4 +1,5 @@
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
+import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
 import { z } from "zod";
 import type { DuplicateGuard } from "../DuplicateGuard";
 import type { ResearchDraft } from "./models/ResearchDraft";
@@ -19,8 +20,16 @@ function writeResultTool(draft: ResearchDraft) {
       confidence: z.enum(["high", "medium", "low"]),
       relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).describe("Docs the design agent should read"),
       code_refs: z.array(z.object({ location: z.string(), why: z.string() })).describe("Code locations the design agent should start from"),
+      relevant_pages: relevantPagesInput,
     },
     handler: async (input) => {
+      const problems = relevantPageProblems(input.relevant_pages);
+
+      if (problems.length > 0) {
+        return { text: `Not saved, fix and retry: ${problems.join("; ")}.`, isError: true };
+      }
+
+      draft.pages = input.relevant_pages;
       draft.result = {
         conclusion: input.conclusion,
         findings: input.findings,

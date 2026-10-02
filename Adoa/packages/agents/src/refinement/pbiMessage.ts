@@ -3,6 +3,7 @@ import { resolveInside } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
 import { linkedDocuments, linksBlock } from "../links";
 import { attachmentsBlock, itemsBlock, loadPbiInputs } from "../pbiInputs";
+import { confluencePagesBlock } from "../relevantPages";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
@@ -27,6 +28,7 @@ export async function buildPbiMessage(db: AdoaDb, vaultRoot: string, row: WorkIt
     `<pbi>\n${fields.join("\n")}\n\n${note.trim()}\n</pbi>`,
     linksBlock(linkedDocuments(row), inputs.attachments),
     attachmentsBlock(inputs.attachments),
+    confluencePagesBlock(row.confluencePages),
     itemsBlock(inputs.items),
   ].join("\n\n");
 }

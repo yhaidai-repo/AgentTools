@@ -1,7 +1,8 @@
 import { attachment, localItem, type AdoaDb } from "@adoa/db";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { createHumanTask } from "./humanItems";
 import { documentKey, hasItemWithKey } from "./itemKeys";
+import { setItemStatus } from "./pbiStatus";
 import { linkedDocumentKind } from "./urls";
 
 const KIND_LABELS = { confluence: "Confluence page", "ado-attachment": "ADO attachment", web: "document" };
@@ -33,4 +34,18 @@ export async function createDocumentTask(db: AdoaDb, adoId: number, url: string,
     runId: null,
     data: { url, key: documentKey(url) },
   });
+}
+
+// The content arrived after all (e.g. a Confluence page fetched once the credentials were set): the open task asking for
+// it is done, with how it was resolved.
+export async function resolveDocumentTask(db: AdoaDb, adoId: number, url: string, resolution: string): Promise<void> {
+  const open = await db
+    .select({ id: localItem.id, status: localItem.status })
+    .from(localItem)
+    .where(and(eq(localItem.pbiId, adoId), eq(localItem.kind, "human"), inArray(localItem.status, ["open", "in-progress"]), sql`${localItem.data}->>'key' = ${documentKey(url)}`));
+
+  for (const task of open) {
+    await db.update(localItem).set({ resolution }).where(eq(localItem.id, task.id));
+    await setItemStatus(db, task.id, task.status, "done", "worker");
+  }
 }

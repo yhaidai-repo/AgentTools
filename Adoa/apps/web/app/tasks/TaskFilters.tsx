@@ -3,7 +3,7 @@
 import type { TaskFilter } from "@/models/TaskFilter";
 
 // Applies on change (the PBI field on Enter): the filters live in the URL, no Filter button.
-export function TaskFilters({ filter, kinds }: { filter: TaskFilter; kinds: readonly string[] }) {
+export function TaskFilters({ filter, kinds, ranges }: { filter: TaskFilter; kinds: readonly string[]; ranges: { key: string; label: string }[] }) {
   return (
     <form method="get" className="toolbar filters">
       <input type="hidden" name="sort" value={filter.sort} />
@@ -21,6 +21,12 @@ export function TaskFilters({ filter, kinds }: { filter: TaskFilter; kinds: read
           <option value="all">All</option>
           <option value="open">Open</option>
           <option value="closed">Closed</option>
+        </select>
+      </label>
+      <label>
+        Period
+        <select name="range" defaultValue={filter.range} onChange={submitForm}>
+          {ranges.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
         </select>
       </label>
       <label>

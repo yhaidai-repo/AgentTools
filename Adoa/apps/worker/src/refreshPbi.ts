@@ -22,7 +22,7 @@ export async function refreshPbi(context: WorkerContext, adoId: number): Promise
     return;
   }
 
-  await collectLinkedDocuments(db, await createAdoClient(db), row);
+  await collectLinkedDocuments(context, await createAdoClient(db), row);
   await handOnFinishedTasks(context, adoId);
   await syncPipelineStatus(db, adoId, ACTOR);
   await publishPbi(db, context.vaultRoot, adoId);

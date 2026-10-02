@@ -1,6 +1,8 @@
 import { nextItemId, recommendPbiSkills } from "@adoa/core";
 import { agentRun, localItem, refinement, type AdoaDb } from "@adoa/db";
 import { eq, max } from "drizzle-orm";
+import { commitRelevantPages } from "../relevantPages";
+import { commitCaptures } from "../vaultCapture";
 import { insertWebResearchTasks } from "../webResearch";
 import { confirmRepos } from "./confirmRepos";
 import { insertQuestions } from "./insertQuestions";
@@ -8,7 +10,7 @@ import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementOutput } from "./models/RefinementOutput";
 import type { ResearchTaskDraft } from "./models/ResearchTaskDraft";
 
-// Writes a successful run's draft: refinement version, research tasks, questions (incl. repo confirmation), and the
+// Writes a successful run's draft: refinement version, research tasks, questions (incl. repo confirmation), vault drafts, and the
 // recommended skills for the PBI (unless the user already saved its list).
 // Returns the ids of everything created, for the run's outputs. Ending the task and the PBI status follow from the tasks.
 // `documented`: the repos vault projects name (see documentedRepos), which need no confirmation.
@@ -18,10 +20,12 @@ export async function commitRefinement(db: AdoaDb, adoId: number, runId: number,
   const questionIds = await insertQuestions(db, adoId, runId, draft.questions);
   const repoQuestionIds = await confirmRepos(db, adoId, runId, draft.refinement.repos.map((choice) => choice.name), documented);
   const webIds = await insertWebResearchTasks(db, adoId, runId, null, 1, draft.webResearch);
-  const outputs = [`PBI-${adoId}-refinement v${version}`, ...taskIds, ...webIds, ...questionIds, ...repoQuestionIds];
+  const captureIds = await commitCaptures(db, runId, adoId, null, draft.captures);
+  const outputs = [`PBI-${adoId}-refinement v${version}`, ...taskIds, ...webIds, ...questionIds, ...repoQuestionIds, ...captureIds];
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
   await recommendPbiSkills(db, adoId, draft.refinement.skills);
+  await commitRelevantPages(db, adoId, draft.pages, "refinement");
 
   return outputs;
 }

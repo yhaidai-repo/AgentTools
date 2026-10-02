@@ -3,6 +3,7 @@ import { workItem } from "@adoa/db";
 import { PbiNoteWriter } from "@adoa/notes";
 import { eq } from "drizzle-orm";
 import type { WorkerContext } from "../models/WorkerContext";
+import { syncConfluencePages } from "../documents/confluencePages";
 import { refreshPbi } from "../refreshPbi";
 
 // Statuses sync sets that the pipeline can't derive from tasks; prepare takes the PBI out of them.
@@ -49,7 +50,9 @@ async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: n
 
   const taskId = await ensureAgentTask(context.db, "refinement", adoId, null);
 
-  // Linked documents become attachments or human tasks now; the status then follows the new task.
+  // Linked documents become attachments or human tasks now (Confluence pages re-checked for a newer version); the
+  // status then follows the new task.
+  await syncConfluencePages(context, adoId, "all");
   await refreshPbi(context, adoId);
 
   return taskId !== null;
