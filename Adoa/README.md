@@ -29,7 +29,7 @@ docker compose up -d --build
 | `packages/ado` | read-only Azure DevOps REST client |
 | `packages/vault` | note rendering; keeps each note's `## Notes` section |
 | `packages/agents` | prompts (`prompts/*.md`, versioned), `runAgent`, refinement agent |
-| `apps/worker` | pg-boss worker: `sync`, `prepare`, `dispatch` (validates and starts agent tasks), `drafts` (tech-writer tasks for docs-vault drafts), `register` (submitted findings) |
+| `apps/worker` | pg-boss worker: `sync`, `prepare`, `dispatch` (validates and starts agent tasks), `drafts` (tech-writer tasks for docs-vault drafts), `register` (submitted findings), `pbi-import` (reads every import source) |
 | `apps/agent-runner` | pg-boss worker: `agent-run` (refinement, research, tech-writer); Claude token; skills read-only, docs vault writable for the tech-writer's merges |
 | `skills/` | adoa's own skills for agents |
 | `apps/web` | Next.js UI |
@@ -42,6 +42,11 @@ npm install                                                      # in D:/Project
 npm run dev:web                                                  # needs DATABASE_URL, ADO_PAT in env
 node --env-file=.env --import tsx apps/worker/src/syncOnce.ts   # one sync; needs DATABASE_URL
 ```
+
+## PBI import
+The `pbi-import` job (Settings schedule, default every 5 min, or **Import now** on the Backlog) reads every import source (`apps/worker/src/import/importSources.ts`), syncs the PBIs each item links and prepares the new ones. Both sources read folders under `IMPORT_INBOX_PATH` (default `./import-inbox`); read files are deleted, unusable ones move to `failed/` with a `.reason.txt`. Write `<name>.json.tmp`, then rename to `.json`.
+- `outlook`: `import-inbox/outlook/*.json`, mails written by `tools/outlook-export` (classic Outlook, Inbox by subject).
+- `inbox`: `import-inbox/*.json`, a ready request from any tool: `source`, `sourceRef`, optional `title`, `from`, `occurredAt`, and `adoIds` and/or `html` / `text` with ADO work item links; `prepare` defaults to true.
 
 ## Schema changes
 1. Edit `packages/db/src/schema.ts`.

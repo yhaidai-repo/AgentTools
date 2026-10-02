@@ -31,7 +31,7 @@ async function upsertWorkItem(ctx: SyncContext, item: MappedWorkItem): Promise<b
     return true;
   }
 
-  if (existing.rev === item.rev && !existing.outOfScope) {
+  if (existing.rev === item.rev) {
     return false;
   }
 
@@ -79,7 +79,6 @@ function mirrorColumns(item: MappedWorkItem) {
     descriptionMd: item.descriptionMd,
     acceptanceCriteriaMd: item.acceptanceCriteriaMd,
     adoChangedAt: item.adoChangedAt,
-    outOfScope: false,
     syncedAt: new Date(),
   };
 }

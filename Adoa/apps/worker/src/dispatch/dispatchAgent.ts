@@ -1,7 +1,7 @@
 import { AGENT_RUN_QUEUE, readCurrentSprint, setItemStatus, syncPipelineStatus, validateTask, type AgentRunJob } from "@adoa/core";
 import { localItem, workItem } from "@adoa/db";
 import { isPaused, type AgentDefinition } from "@agenttools/config";
-import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { syncConfluencePages } from "../documents/confluencePages";
 import type { WorkerContext } from "../models/WorkerContext";
 
@@ -49,7 +49,7 @@ async function openTasks(context: WorkerContext, agentId: string): Promise<ItemR
     .select({ task: localItem })
     .from(localItem)
     .leftJoin(workItem, eq(workItem.adoId, localItem.pbiId)) // tasks without a PBI too (a chat draft's tech-writer task)
-    .where(and(eq(localItem.assignee, `agent:${agentId}`), eq(localItem.status, "open"), or(isNull(localItem.pbiId), eq(workItem.outOfScope, false))))
+    .where(and(eq(localItem.assignee, `agent:${agentId}`), eq(localItem.status, "open")))
     .orderBy(sql`${workItem.iterationPath} = ${currentSprint} DESC NULLS LAST`, sql`${workItem.backlogPriority} ASC NULLS LAST`, asc(localItem.createdAt));
 
   return rows.map((row) => row.task);

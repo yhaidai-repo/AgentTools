@@ -1,5 +1,5 @@
 import { SYNC_FIELDS } from "@adoa/ado";
-import { finishRun, forgetDeletedPbi, readAdoSettings, startRun } from "@adoa/core";
+import { canEnterAdoa, entryRefusal, finishRun, forgetDeletedPbi, readAdoSettings, startRun, type Outcome } from "@adoa/core";
 import { workItem } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { createAdoClient } from "../adoClient";
@@ -7,24 +7,25 @@ import type { WorkerContext } from "../models/WorkerContext";
 import { mapWorkItem } from "./mapWorkItem";
 import { upsertWorkItems } from "./upsertWorkItems";
 
-// "Sync PBI" on the Backlog (user decision 2026-10-02): one PBI by id, from any sprint. It stays in scope from now on (full
-// syncs refresh it too), and a PBI deleted in adoa comes back. Recorded as a sync run.
-export async function syncOnePbi(context: WorkerContext, adoId: number): Promise<string> {
+// One PBI by id, from any sprint (user decision 2026-10-02). Like every PBI in adoa, full syncs refresh it from now on; a
+// PBI deleted in adoa comes back. With `onlyNotStarted` (imports), a new PBI already started in ADO is refused (an error
+// result); the Backlog's "Sync PBI" brings any PBI (user decision 2026-10-02). Recorded as a sync run.
+export async function syncOnePbi(context: WorkerContext, adoId: number, onlyNotStarted: boolean): Promise<Outcome<string>> {
   const runId = await startRun(context.db, "sync");
 
   try {
-    const message = await fetchAndStore(context, runId, adoId);
+    const outcome = await fetchAndStore(context, runId, adoId, onlyNotStarted);
 
     await finishRun(context.db, runId, "success", null);
 
-    return message;
+    return outcome;
   } catch (error) {
     await finishRun(context.db, runId, "failed", (error as Error).message);
     throw error;
   }
 }
 
-async function fetchAndStore(context: WorkerContext, runId: number, adoId: number): Promise<string> {
+async function fetchAndStore(context: WorkerContext, runId: number, adoId: number, onlyNotStarted: boolean): Promise<Outcome<string>> {
   const client = await createAdoClient(context.db);
   const [item] = await client.getWorkItems([adoId], SYNC_FIELDS);
 
@@ -32,9 +33,20 @@ async function fetchAndStore(context: WorkerContext, runId: number, adoId: numbe
     throw new Error(`PBI ${adoId} isn't in Azure DevOps, or the token can't see it`);
   }
 
-  await forgetDeletedPbi(context.db, adoId);
-  await upsertWorkItems({ db: context.db, client, ado: (await readAdoSettings(context.db))!, runId }, [mapWorkItem(item)]);
-  await context.db.update(workItem).set({ syncedByHand: true }).where(eq(workItem.adoId, adoId));
+  const mapped = mapWorkItem(item);
 
-  return `PBI-${adoId} synced`;
+  if (onlyNotStarted && !canEnterAdoa(mapped.adoState) && !(await isInAdoa(context, adoId))) {
+    return { ok: false, error: entryRefusal(adoId, mapped.adoState) };
+  }
+
+  await forgetDeletedPbi(context.db, adoId);
+  await upsertWorkItems({ db: context.db, client, ado: (await readAdoSettings(context.db))!, runId }, [mapped]);
+
+  return { ok: true, value: `PBI-${adoId} synced` };
+}
+
+async function isInAdoa(context: WorkerContext, adoId: number): Promise<boolean> {
+  const [row] = await context.db.select({ adoId: workItem.adoId }).from(workItem).where(eq(workItem.adoId, adoId));
+
+  return !!row;
 }

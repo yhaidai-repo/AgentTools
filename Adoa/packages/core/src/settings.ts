@@ -2,17 +2,26 @@ import { config, type AdoaDb } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import type { AdoSettings } from "./models/AdoSettings";
 import type { ConfluenceStatus } from "./models/ConfluenceStatus";
+import type { ImportRunStatus } from "./models/ImportRunStatus";
+import type { ImportSettings } from "./models/ImportSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 
 const ADO_KEY = "ado";
 const SYNC_KEY = "sync";
 const CONFLUENCE_KEY = "confluence";
+const IMPORT_KEY = "import";
+const IMPORT_STATUS_KEY = "importStatus";
 
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
   maxItemsPerRun: 400,
   sprint: "current",
   states: ["New", "Ready for Dev"],
+};
+
+export const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
+  cron: "*/5 * * * *",
+  maxItemsPerRun: 50,
 };
 
 export async function readAdoSettings(db: AdoaDb): Promise<AdoSettings | null> {
@@ -45,6 +54,25 @@ export async function saveConfluenceStatus(db: AdoaDb, status: ConfluenceStatus)
 // Null until a worker has started with this build.
 export async function readConfluenceStatus(db: AdoaDb): Promise<ConfluenceStatus | null> {
   return readValue<ConfluenceStatus>(db, CONFLUENCE_KEY);
+}
+
+export async function readImportSettings(db: AdoaDb): Promise<ImportSettings> {
+  const stored = await readValue<Partial<ImportSettings>>(db, IMPORT_KEY);
+
+  return { ...DEFAULT_IMPORT_SETTINGS, ...stored };
+}
+
+export async function saveImportSettings(db: AdoaDb, settings: ImportSettings): Promise<void> {
+  await saveValue(db, IMPORT_KEY, settings);
+}
+
+export async function saveImportStatus(db: AdoaDb, status: ImportRunStatus): Promise<void> {
+  await saveValue(db, IMPORT_STATUS_KEY, status);
+}
+
+// Null until the pbi-import job has run once.
+export async function readImportStatus(db: AdoaDb): Promise<ImportRunStatus | null> {
+  return readValue<ImportRunStatus>(db, IMPORT_STATUS_KEY);
 }
 
 async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {

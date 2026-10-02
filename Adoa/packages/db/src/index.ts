@@ -7,6 +7,7 @@ export * from "./schema";
 export type { AdoaDb } from "./models/AdoaDb";
 export type { PbiSkill } from "./models/PbiSkill";
 export type { PbiConfluencePage } from "./models/PbiConfluencePage";
+export type { PbiImportResult } from "./models/PbiImportResult";
 export type { DesignAlternative } from "./models/DesignAlternative";
 export type { DesignPlanStep } from "./models/DesignPlanStep";
 export type { DesignRisk } from "./models/DesignRisk";

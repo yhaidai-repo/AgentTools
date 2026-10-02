@@ -7,7 +7,6 @@
   --accent: #2f6feb;
   --ok: #1a7f37;
   --error: #cf222e;
-  --dim: 0.5;
   color-scheme: light;
 }
 
@@ -94,6 +93,21 @@ h2 {
   margin-bottom: 16px;
 }
 
+/* Chips inside a table cell: the row's padding already spaces them. */
+td .chips {
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+/* A section heading with its actions on one line (e.g. "Imports" + "Import now"). */
+.section-head {
+  margin: 24px 0 8px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
 .chip {
   padding: 2px 10px;
   border: 1px solid var(--border);
@@ -128,10 +142,6 @@ td.title {
 
 tr:last-child td {
   border-bottom: none;
-}
-
-tr.out-of-scope {
-  opacity: var(--dim);
 }
 
 form.card {

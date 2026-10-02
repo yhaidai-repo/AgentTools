@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore } from "@agenttools/config";
@@ -8,6 +8,7 @@ import { loadLinkedPage } from "./documents/confluencePages";
 import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { requireEnv, vaultRoot } from "./env";
+import { runPbiImport } from "./import/runPbiImport";
 import type { WorkerContext } from "./models/WorkerContext";
 import { deletePbi } from "./pbi/deletePbi";
 import { preparePbis } from "./prepare/preparePbis";
@@ -33,6 +34,7 @@ await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env
 await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
+await applyPbiImportSchedule(boss, (await readImportSettings(db)).cron);
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
@@ -77,14 +79,30 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
 // "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page.
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
-    console.log(`pbi: ${job.data.action === "sync" ? await syncOnePbi(context, job.data.adoId) : await deletePbi(context, job.data.adoId)}`);
+    console.log(`pbi: ${job.data.action === "sync" ? await syncOrThrow(job.data.adoId) : await deletePbi(context, job.data.adoId)}`);
   }
+}));
+
+// PBI import (user decision 2026-10-02): one job reads every import source (Outlook mails, inbox requests, …).
+await boss.work(PBI_IMPORT_QUEUE, () => logged(PBI_IMPORT_QUEUE, async () => {
+  console.log(`pbi-import: ${await runPbiImport(context)}`);
 }));
 
 console.log("worker started");
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
+
+// "Sync PBI" brings any PBI, whatever its ADO state (user decision 2026-10-02).
+async function syncOrThrow(adoId: number): Promise<string> {
+  const synced = await syncOnePbi(context, adoId, false);
+
+  if (!synced.ok) {
+    throw new Error(synced.error);
+  }
+
+  return synced.value;
+}
 
 async function dispatch(job: DispatchJob): Promise<void> {
   await refreshQueuedPbis(context, job.agentId);

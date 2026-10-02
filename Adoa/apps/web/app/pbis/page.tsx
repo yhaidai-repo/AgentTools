@@ -1,6 +1,6 @@
-import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core";
+import { readAdoSettings, readCurrentSprint, readRecentImports, readSyncSettings } from "@adoa/core";
 import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
-import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
+import { asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -8,6 +8,7 @@ import { rememberedParams } from "@/lib/rememberedFilters";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { BacklogFilter } from "@/models/BacklogFilter";
 import type { BacklogRow } from "@/models/BacklogRow";
+import { ImportsPanel } from "./ImportsPanel";
 import { LastSync } from "./LastSync";
 import { PbiTable } from "./PbiTable";
 import { PrepareForm } from "./PrepareForm";
@@ -20,12 +21,14 @@ export const dynamic = "force-dynamic";
 
 // Agents move PBIs between statuses all the time; the grid follows without a reload (user decision 2026-10-02).
 const BACKLOG_REFRESH_MS = 10_000;
+const IMPORTS_SHOWN = 20;
 
 type SearchParams = Promise<{ status?: string }>;
 
 const STATUSES: string[] = pipelineStatus.enumValues;
 
-// Every synced PBI in scope; the sprint picker only says what the sync pulls.
+// Every PBI in adoa, also those the sync no longer pulls (user decision 2026-10-02): status is the only filter. The
+// sprint picker only says what the sync pulls.
 export default async function PbisPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await rememberedParams("/pbis", await searchParams);
   const filter: BacklogFilter = { status: STATUSES.find((status) => status === params.status) ?? "" };
@@ -39,7 +42,9 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
     <>
       <h1>Backlog</h1>
       <RememberFilters />
-      <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
+      <div className="chips">
+        <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
+      </div>
       <div className="toolbar">
         <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db)} />
         <LastSync run={lastSync} />
@@ -51,21 +56,18 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
         <PbiTable rows={rows} ado={ado} />
       </PrepareForm>
       {rows.length === 0 && <p className="muted">No PBIs match. Check the status, or sync a sprint.</p>}
+      <ImportsPanel imports={await readRecentImports(db, null, IMPORTS_SHOWN)} />
     </>
   );
 }
 
 async function loadRows(db: AdoaDb, filter: BacklogFilter): Promise<BacklogRow[]> {
-  const conditions: SQL[] = [eq(workItem.outOfScope, false)];
-
-  if (filter.status) {
-    conditions.push(sql`${workItem.pipelineStatus} = ${filter.status}`);
-  }
+  const byStatus = filter.status ? sql`${workItem.pipelineStatus} = ${filter.status}` : undefined;
 
   return db
     .select({ ...getTableColumns(workItem), openForYou: openForYou() })
     .from(workItem)
-    .where(and(...conditions))
+    .where(byStatus)
     .orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 }
 

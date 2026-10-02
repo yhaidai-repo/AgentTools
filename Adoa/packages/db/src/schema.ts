@@ -9,6 +9,7 @@ import type { DesignPlanStep } from "./models/DesignPlanStep";
 import type { DesignRisk } from "./models/DesignRisk";
 import type { DesignTest } from "./models/DesignTest";
 import type { PbiConfluencePage } from "./models/PbiConfluencePage";
+import type { PbiImportResult } from "./models/PbiImportResult";
 import type { PbiSkill } from "./models/PbiSkill";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
@@ -80,15 +81,12 @@ export const workItem = pgTable("work_item", {
   acceptanceCriteriaMd: text("acceptance_criteria_md"),
   adoChangedAt: ts("ado_changed_at"),
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
-  outOfScope: boolean("out_of_scope").notNull().default(false),
   vaultPath: text("vault_path"),
   // App data, never written by sync. Refinement replaces the list until the user saves it (skills_edited_at set).
   skills: jsonb("skills").$type<PbiSkill[]>().notNull().default([]),
   skillsEditedAt: ts("skills_edited_at"),
   // Useful Confluence pages for the later agents: added by refinement, research and the user (links only).
   confluencePages: jsonb("confluence_pages").$type<PbiConfluencePage[]>().notNull().default([]),
-  // Synced by hand ("Sync one PBI"): kept in scope and refreshed by every full sync, whatever sprint it is in.
-  syncedByHand: boolean("synced_by_hand").notNull().default(false),
   syncedAt: ts("synced_at").notNull().defaultNow(),
   createdAt: createdAt(),
 }, (t) => [
@@ -249,6 +247,23 @@ export const deletedPbi = pgTable("deleted_pbi", {
   title: text("title").notNull(),
   deletedAt: ts("deleted_at").notNull().defaultNow(),
 });
+
+// PBIs brought in from a source (Outlook, a script, a future job): one row per source item, so a re-sent item isn't
+// imported twice. An item with a failed PBI is imported again when re-sent.
+export const pbiImport = pgTable("pbi_import", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull(),
+  sourceRef: text("source_ref").notNull(),
+  title: text("title"),
+  sender: text("sender"),
+  occurredAt: ts("occurred_at"),
+  results: jsonb("results").$type<PbiImportResult[]>().notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex("pbi_import_source_ref_uq").on(t.source, t.sourceRef),
+  index("pbi_import_updated_idx").on(t.updatedAt),
+]);
 
 export const adoStateChange = pgTable("ado_state_change", {
   adoId: integer("ado_id").notNull(),

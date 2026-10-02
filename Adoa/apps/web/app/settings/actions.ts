@@ -1,7 +1,7 @@
 "use server";
 
 import { checkConnection } from "@adoa/ado";
-import { applySyncSchedule, saveAdoSettings, saveSyncSettings, type AdoSettings, type SyncSettings } from "@adoa/core";
+import { applyPbiImportSchedule, applySyncSchedule, saveAdoSettings, saveImportSettings, saveSyncSettings, type AdoSettings, type ImportSettings, type SyncSettings } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
@@ -26,6 +26,25 @@ export async function saveSettings(_previous: ActionResult | null, form: FormDat
   revalidatePath("/settings");
 
   return { ok: true, message: "Saved. The next sync uses these settings." };
+}
+
+export async function saveImportSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const settings: ImportSettings = { cron: field(form, "cron"), maxItemsPerRun: Number(field(form, "maxItemsPerRun")) };
+
+  if (!Number.isInteger(settings.maxItemsPerRun) || settings.maxItemsPerRun < 1) {
+    return { ok: false, message: "Max items per run must be a whole number above 0." };
+  }
+
+  try {
+    await applyPbiImportSchedule(await getBoss(), settings.cron);
+  } catch (error) {
+    return { ok: false, message: `Schedule not saved: ${errorMessage(error)}` };
+  }
+
+  await saveImportSettings(getDb(), settings);
+  revalidatePath("/settings");
+
+  return { ok: true, message: "Saved. The next import uses these settings." };
 }
 
 export async function testConnection(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

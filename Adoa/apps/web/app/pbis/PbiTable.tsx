@@ -21,7 +21,7 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.adoId} className={row.outOfScope ? "out-of-scope" : undefined} title={row.outOfScope ? "Out of scope" : undefined}>
+            <tr key={row.adoId}>
               <td>
                 <input type="checkbox" name="adoId" value={row.adoId} aria-label={`Select ${row.adoId}`} />
               </td>

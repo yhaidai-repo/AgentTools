@@ -1,6 +1,6 @@
 "use server";
 
-import { PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, parsePbiReference, pbiDeleteProblem, readSyncSettings, saveSyncSettings, type PbiJob, type PrepareJob } from "@adoa/core";
+import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, parsePbiReference, pbiDeleteProblem, readSyncSettings, saveSyncSettings, type PbiJob, type PrepareJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
@@ -61,6 +61,13 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
   await (await getBoss()).send(PBI_QUEUE, job);
 
   return { ok: true, message: `PBI-${adoId} queued; reload in a few seconds (a failure shows under Job errors on the Agents page).` };
+}
+
+// The worker reads the import sources; the queue is exclusive, so a second click while one is queued does nothing.
+export async function importNow(): Promise<ActionResult> {
+  const jobId = await (await getBoss()).send(PBI_IMPORT_QUEUE);
+
+  return { ok: true, message: jobId ? "Import queued; the list updates in a few seconds." : "An import is already queued or running." };
 }
 
 // Deletes in adoa only, through the worker (it removes the PBI's notes too). Refused while an agent runs on it.

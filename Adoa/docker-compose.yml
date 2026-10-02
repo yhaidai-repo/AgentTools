@@ -55,8 +55,11 @@ services:
       ADOA_SEED_ADO_PROJECT: ${ADOA_SEED_ADO_PROJECT:-}
       ADOA_SEED_ADO_TEAM: ${ADOA_SEED_ADO_TEAM:-}
       ADOA_SEED_ADO_USER: ${ADOA_SEED_ADO_USER:-}
+      IMPORT_INBOX_ROOT: /import-inbox
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
+      # PBI import requests from tools outside Docker (e.g. the Outlook exporter); read files are deleted.
+      - ${IMPORT_INBOX_PATH:-./import-inbox}:/import-inbox
       # Writable: VaultCapture writes drafts and, when the user submits a finding, register records (user decision 2026-10-02).
       - ${DOCS_VAULT_PATH:?set in .env}:/vaults/${DOCS_VAULT_NAME}
     depends_on:
@@ -105,6 +108,7 @@ services:
       ADO_PAT: ${ADO_PAT}
       VAULT_PATH: ${VAULT_PATH}
       BACKLOG_FOLDER: ${BACKLOG_FOLDER-backlog}
+      IMPORT_INBOX_PATH: ${IMPORT_INBOX_PATH:-./import-inbox}  # shown in Settings; only the worker reads the folder
       SKILL_FOLDERS: /app/Adoa/skills:/skills  # same as agent-runner, to list the skills an agent may use
       SKILLS_PATH: ${SKILLS_PATH}
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}  # links to agents' draft notes

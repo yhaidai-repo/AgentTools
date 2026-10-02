@@ -11,6 +11,9 @@ export const REGISTER_QUEUE = "register";
 export const CONFLUENCE_QUEUE = "confluence";
 // Sent only by "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page (no schedule).
 export const PBI_QUEUE = "pbi";
+// Imports from every import source (user decision 2026-10-02: one job, sources behind one abstraction); scheduled, and
+// the Backlog's "Import now".
+export const PBI_IMPORT_QUEUE = "pbi-import";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -40,10 +43,15 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, REGISTER_QUEUE, "standard");
   await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
   await ensureQueue(boss, PBI_QUEUE, "standard");
+  await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
   await boss.schedule(SYNC_QUEUE, cron);
+}
+
+export async function applyPbiImportSchedule(boss: PgBoss, cron: string): Promise<void> {
+  await boss.schedule(PBI_IMPORT_QUEUE, cron);
 }
 
 // The dispatcher's every-minute tick keeps statuses, notes and hand-ons current between agent schedules.

@@ -7,3 +7,5 @@ next-env.d.ts
 /vault/
 *.log
 /backups/
+/import-inbox/
+/tools/outlook-export/state.json

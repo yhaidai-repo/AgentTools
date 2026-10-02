@@ -4,5 +4,4 @@ export interface IndexRow {
   adoState: string;
   pipelineStatus: string;
   iterationPath: string | null;
-  outOfScope: boolean;
 }
