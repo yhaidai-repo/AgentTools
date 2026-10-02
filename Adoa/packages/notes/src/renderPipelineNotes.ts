@@ -1,6 +1,6 @@
 import { readAdoSettings } from "@adoa/core";
-import { localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
-import { itemNotePath, refinementNotePath, renderItemNote, renderRefinementNote } from "@adoa/vault";
+import { design, localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
+import { designNotePath, itemNotePath, refinementNotePath, renderDesignNote, renderItemNote, renderRefinementNote } from "@adoa/vault";
 import { desc, eq } from "drizzle-orm";
 import { listAttachments } from "./attachments";
 import type { VaultAttachment } from "./models/VaultAttachment";
@@ -8,7 +8,7 @@ import { PbiNoteWriter } from "./pbiNotes";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// A PBI's notes from the DB: refinement note, item notes, PBI note regions and the index (VaultWriter skips unchanged files).
+// A PBI's notes from the DB: refinement note, design note, item notes, PBI note regions and the index (VaultWriter skips unchanged files).
 export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: number): Promise<void> {
   const [row] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
   const ado = await readAdoSettings(db);
@@ -23,6 +23,7 @@ export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: 
   const attachments = await listAttachments(db, adoId);
 
   await writeRefinement(db, notes, pbiPath, adoId);
+  await writeDesign(db, notes, pbiPath, adoId);
   await writeItems(db, notes, pbiPath, adoId, attachments);
   await notes.writeIndex();
 }
@@ -36,6 +37,18 @@ async function writeRefinement(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string
 
   await notes.writer.write(refinementNotePath(pbiPath, adoId), (notesSection) =>
     renderRefinementNote({ ...latest, adoId, created: latest.createdAt }, notesSection),
+  );
+}
+
+async function writeDesign(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, adoId: number): Promise<void> {
+  const [latest] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
+
+  if (!latest) {
+    return;
+  }
+
+  await notes.writer.write(designNotePath(pbiPath, adoId), (notesSection) =>
+    renderDesignNote({ ...latest, adoId, created: latest.createdAt }, notesSection),
   );
 }
 

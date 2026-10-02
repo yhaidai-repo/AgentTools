@@ -51,6 +51,24 @@ const RESEARCH_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const DESIGN_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("PBIs"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a design task",
+    description: "After this many failed runs, the design task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 const TECH_WRITER_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("Drafts"),
   {
@@ -112,6 +130,23 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: "design",
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
+  },
+  {
+    id: "design",
+    label: "Design",
+    description: "Writes one implementation design per PBI from refinement and research: approach, alternatives, plan, risks, tests, estimates.",
+    enabled: true,
+    schedule: "45 */2 * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 60, timeoutMinutes: 20 },
+    budgets: { perRunUsd: 3, dailyUsd: 6 },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: true } },
+    skills: ["adoa-design-checklist"],
+    options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
+    optionSpecs: DESIGN_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    next: null,
+    waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
   },
   {
     id: "tech-writer",

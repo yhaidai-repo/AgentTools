@@ -6,6 +6,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
+import { runDesignTask } from "../design/runDesignTask";
 import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
@@ -18,6 +19,7 @@ type ItemRow = typeof localItem.$inferSelect;
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
+  design: runDesignTask,
   "tech-writer": runTechWriterTask,
 };
 

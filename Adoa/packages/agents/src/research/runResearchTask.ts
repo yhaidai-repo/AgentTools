@@ -1,13 +1,11 @@
 import { requirePbiId } from "@adoa/core";
-import { localItem, workItem } from "@adoa/db";
+import { localItem } from "@adoa/db";
 import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
-import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createWebResearchTool } from "../webResearch";
-import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
@@ -15,11 +13,10 @@ import type { TaskContext } from "../models/TaskContext";
 import { docsReadInRun, numberOption, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitResearch } from "./commitResearch";
-import type { ResearchContext } from "./models/ResearchContext";
+import { loadResearchContext } from "./loadResearchContext";
 import type { ResearchRun } from "./models/ResearchRun";
 import { buildResearchMessage } from "./researchMessage";
 import { createResearchTools } from "./researchTools";
-import { resolveRepos } from "./resolveRepos";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -88,13 +85,6 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     perRunBudgetUsd: agent.budgets.perRunUsd,
     hasRequiredOutput: () => run.draft.result !== null,
   };
-}
-
-async function loadResearchContext(deps: AgentDeps, task: ItemRow): Promise<ResearchContext> {
-  const [pbi] = await deps.db.select().from(workItem).where(eq(workItem.adoId, requirePbiId(task)));
-  const { repos, unknown } = await resolveRepos(deps.db, requirePbiId(task));
-
-  return { task, pbi, repos, unknownRepos: unknown };
 }
 
 function repoNames(repos: RepoRef[]): string[] {

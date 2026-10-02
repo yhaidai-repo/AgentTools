@@ -4,6 +4,10 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { DesignAlternative } from "./models/DesignAlternative";
+import type { DesignPlanStep } from "./models/DesignPlanStep";
+import type { DesignRisk } from "./models/DesignRisk";
+import type { DesignTest } from "./models/DesignTest";
 import type { PbiConfluencePage } from "./models/PbiConfluencePage";
 import type { PbiSkill } from "./models/PbiSkill";
 
@@ -199,7 +203,8 @@ export const vaultCapture = pgTable("vault_capture", {
   createdAt: createdAt(),
 }, (t) => [index("vault_capture_pbi_idx").on(t.pbiId)]);
 
-// Design facts for metrics; body lives in the Vault note.
+// One design per run of the design agent; the latest version counts. Rendered into the Vault like the refinement.
+// Estimates: human h = a developer without an agent; agent h = an agent implementing the plan (user decision 2026-10-02).
 
 export const design = pgTable("design", {
   id: serial("id").primaryKey(),
@@ -211,6 +216,13 @@ export const design = pgTable("design", {
   confidence: text("confidence"),
   riskCount: integer("risk_count").notNull().default(0),
   testCount: integer("test_count").notNull().default(0),
+  approach: text("approach").notNull().default(""),
+  alternatives: jsonb("alternatives").$type<DesignAlternative[]>().notNull().default([]),
+  plan: jsonb("plan").$type<DesignPlanStep[]>().notNull().default([]),
+  risks: jsonb("risks").$type<DesignRisk[]>().notNull().default([]),
+  tests: jsonb("tests").$type<DesignTest[]>().notNull().default([]),
+  assumptions: jsonb("assumptions").$type<string[]>().notNull().default([]),
+  estimateBasis: text("estimate_basis").notNull().default(""),
   runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
   createdAt: createdAt(),
 }, (t) => [

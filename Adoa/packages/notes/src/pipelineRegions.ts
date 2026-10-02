@@ -1,7 +1,7 @@
-import { localItem, refinement, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
+import { design, localItem, refinement, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
 import { listAttachments } from "./attachments";
 import { and, desc, eq, ne } from "drizzle-orm";
-import { escapeCell, refinementNoteName } from "@adoa/vault";
+import { designNoteName, escapeCell, refinementNoteName } from "@adoa/vault";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
@@ -20,7 +20,18 @@ async function refinementRegion(db: AdoaDb, adoId: number): Promise<string> {
     return "Pending.";
   }
 
-  return `${latest.summary}\n\nDetails: [[${refinementNoteName(adoId)}]] (v${latest.version})`;
+  return [`${latest.summary}\n\nDetails: [[${refinementNoteName(adoId)}]] (v${latest.version})`, await designLine(db, adoId)].filter(Boolean).join("\n\n");
+}
+
+// The design shares the refinement region, so the user's PBI template needs no new region.
+async function designLine(db: AdoaDb, adoId: number): Promise<string | null> {
+  const [latest] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
+
+  if (!latest) {
+    return null;
+  }
+
+  return `Design: [[${designNoteName(adoId)}]] (v${latest.version}): ${latest.estHumanH ?? "?"} h human, ${latest.estAgentH ?? "?"} h agent, complexity ${latest.complexity ?? "?"}/5, confidence ${latest.confidence ?? "?"}.`;
 }
 
 // The items table, then the user's uploads and the agents' vault drafts (kept in this region so the user's PBI template needs no change).

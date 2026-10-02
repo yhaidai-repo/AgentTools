@@ -32,7 +32,7 @@ function taskBlock(context: ResearchContext): string {
   ].join("\n");
 }
 
-function refinementBlock(latest: typeof refinement.$inferSelect): string {
+export function refinementBlock(latest: typeof refinement.$inferSelect): string {
   const docs = latest.relevantDocs.map((doc) => `- ${doc.path}: ${doc.why}`);
   const read = latest.docsRead.map((path) => `- ${path}`);
 
@@ -47,7 +47,7 @@ function refinementBlock(latest: typeof refinement.$inferSelect): string {
   ].join("\n");
 }
 
-function reposBlock(context: ResearchContext, commits: Record<string, string>): string {
+export function reposBlock(context: ResearchContext, commits: Record<string, string>): string {
   const available = context.repos.map((repo) => `- ${repo.name} @ ${commits[repo.name]?.slice(0, 10) ?? "?"} (branch ${repo.defaultBranch})`);
   const unknown = context.unknownRepos.map((name) => `- ${name}: not in the repo catalog`);
 

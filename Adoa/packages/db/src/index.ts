@@ -7,6 +7,10 @@ export * from "./schema";
 export type { AdoaDb } from "./models/AdoaDb";
 export type { PbiSkill } from "./models/PbiSkill";
 export type { PbiConfluencePage } from "./models/PbiConfluencePage";
+export type { DesignAlternative } from "./models/DesignAlternative";
+export type { DesignPlanStep } from "./models/DesignPlanStep";
+export type { DesignRisk } from "./models/DesignRisk";
+export type { DesignTest } from "./models/DesignTest";
 
 export function createDb(url = process.env.DATABASE_URL) {
   if (!url) {

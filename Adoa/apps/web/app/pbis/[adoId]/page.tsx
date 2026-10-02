@@ -15,6 +15,7 @@ import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
 import { DeletePbiButton } from "./DeletePbiButton";
+import { DesignSection } from "./DesignSection";
 import { LoadFromConfluenceButton } from "./LoadFromConfluenceButton";
 import { RemoveLinkButton } from "./RemoveLinkButton";
 import { PbiReposForm } from "./PbiReposForm";
@@ -56,6 +57,8 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <TextBlock text={pbi.acceptanceCriteriaMd} />
       <h2>Refinement</h2>
       <Refinement detail={detail} />
+      <h2>Design</h2>
+      <DesignSection design={detail.design} />
       <h2>Repos</h2>
       <Repos detail={detail} />
       <h2>Skills for later agents</h2>
@@ -248,7 +251,7 @@ function AttachmentTable({ detail }: { detail: PbiDetail }) {
   );
 }
 
-const LINK_ADDED_BY: Record<string, string> = { user: "you", refinement: "refinement", research: "research" };
+const LINK_ADDED_BY: Record<string, string> = { user: "you", refinement: "refinement", research: "research", design: "design" };
 
 // A Confluence page as a link (not fetched): agents with the Confluence tools open it; the reason shows under the title.
 function ConfluenceLinkRow({ adoId, page }: { adoId: number; page: PbiDetail["pbi"]["confluencePages"][number] }) {

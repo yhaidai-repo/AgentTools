@@ -18,9 +18,17 @@ export function refinementNoteName(adoId: number): string {
   return `${pbiNoteName(adoId)}-refinement`;
 }
 
-// Refinement and item notes live in the PBI's folder, next to its note.
+export function designNoteName(adoId: number): string {
+  return `${pbiNoteName(adoId)}-design`;
+}
+
+// Refinement, design and item notes live in the PBI's folder, next to its note.
 export function refinementNotePath(pbiNotePath: string, adoId: number): string {
   return `${folderOf(pbiNotePath)}/${refinementNoteName(adoId)}.md`;
+}
+
+export function designNotePath(pbiNotePath: string, adoId: number): string {
+  return `${folderOf(pbiNotePath)}/${designNoteName(adoId)}.md`;
 }
 
 const ITEM_FOLDERS: Record<string, string> = { question: "questions", "research-result": "research" };

@@ -4,5 +4,5 @@ export interface PbiConfluencePage {
   url: string;
   title: string;
   why: string;
-  by: "user" | "refinement" | "research";
+  by: "user" | "refinement" | "research" | "design";
 }

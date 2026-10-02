@@ -1,4 +1,4 @@
-import { agentRun, attachment, localItem, pbiRepo, refinement, repo, vaultCapture, workItem } from "@adoa/db";
+import { agentRun, attachment, design, localItem, pbiRepo, refinement, repo, vaultCapture, workItem } from "@adoa/db";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./db";
 
@@ -30,10 +30,11 @@ export async function loadPbiDetail(adoId: number) {
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.pbiId, adoId)).orderBy(attachment.id);
   const runs = await db.select().from(agentRun).where(eq(agentRun.pbiId, adoId)).orderBy(desc(agentRun.id));
   const [latestRefinement] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
+  const [latestDesign] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
   const drafts = await db.select().from(vaultCapture).where(eq(vaultCapture.pbiId, adoId)).orderBy(vaultCapture.id);
   const repos = await db.select({ name: repo.name, source: pbiRepo.source, questionId: pbiRepo.questionId }).from(pbiRepo).innerJoin(repo, eq(repo.id, pbiRepo.repoId)).where(eq(pbiRepo.pbiId, adoId)).orderBy(repo.name);
 
-  return { pbi, items, attachments, runs, drafts, repos, refinement: latestRefinement ?? null };
+  return { pbi, items, attachments, runs, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null };
 }
 
 // One item with its uploads, for a task its results (shown inside the task), and the findings it raised. The route
