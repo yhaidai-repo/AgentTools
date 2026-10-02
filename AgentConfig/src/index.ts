@@ -11,6 +11,7 @@ export type { AgentBudgets } from "./models/AgentBudgets";
 export type { AgentCapabilities } from "./models/AgentCapabilities";
 export type { AgentOptionValue } from "./models/AgentOptionValue";
 export type { AgentOptionSpec } from "./models/AgentOptionSpec";
+export type { AgentIntegrationSpec } from "./models/AgentIntegrationSpec";
 export type { ModelChoice } from "./models/ModelChoice";
 export type { CatalogModel } from "./models/CatalogModel";
 export type { ConfigChange } from "./models/ConfigChange";

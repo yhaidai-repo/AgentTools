@@ -27,7 +27,7 @@ export const agentDefinitionSchema = z.object({
     perRunUsd: z.number().nonnegative(),
     dailyUsd: z.number().nonnegative(),
   }),
-  capabilities: z.object({ webAccess: z.boolean() }),
+  capabilities: z.object({ webAccess: z.boolean(), integrations: z.record(z.string(), z.boolean()).default({}) }),
   skills: z.array(z.string().min(1)),
   options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   next: z.string().regex(/^[a-z][a-z0-9-]*$/, "an agent id").nullable(),
@@ -39,7 +39,12 @@ export const agentDefinitionSchema = z.object({
     min: z.number(),
     max: z.number(),
   })),
-}).superRefine(checkOptions);
+  integrationSpecs: z.array(z.object({
+    key: z.string().min(1),
+    label: z.string().min(1),
+    description: z.string(),
+  })).default([]),
+}).superRefine(checkOptions).superRefine(checkIntegrations);
 
 export const agentsGlobalSchema = z.object({
   paused: z.boolean(),
@@ -55,6 +60,15 @@ function checkOptions(agent: Pick<AgentDefinition, "options" | "optionSpecs">, c
   problems
     .filter((problem) => problem.message !== null)
     .forEach((problem) => context.addIssue({ code: "custom", path: ["options", problem.key], message: problem.message! }));
+}
+
+// Same reason: an integration the host doesn't offer would be switched on and silently do nothing.
+function checkIntegrations(agent: Pick<AgentDefinition, "capabilities" | "integrationSpecs">, context: z.RefinementCtx): void {
+  const declared = new Set(agent.integrationSpecs.map((spec) => spec.key));
+
+  Object.keys(agent.capabilities.integrations)
+    .filter((key) => !declared.has(key))
+    .forEach((key) => context.addIssue({ code: "custom", path: ["capabilities", "integrations", key], message: "unknown integration: the host doesn't offer it" }));
 }
 
 function optionProblem(spec: AgentOptionSpec | undefined, value: AgentOptionValue): string | null {

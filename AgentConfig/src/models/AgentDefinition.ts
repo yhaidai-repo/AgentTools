@@ -1,3 +1,4 @@
+import type { AgentIntegrationSpec } from "./AgentIntegrationSpec";
 import type { AgentBudgets } from "./AgentBudgets";
 import type { AgentCapabilities } from "./AgentCapabilities";
 import type { AgentLimits } from "./AgentLimits";
@@ -27,4 +28,6 @@ export interface AgentDefinition {
   waitFor: string[];
   /** The options this agent's code reads. Always taken from the code's defaults, so stored copies can't drift. */
   optionSpecs: AgentOptionSpec[];
+  /** The integrations the host can give this agent. Always taken from the code's defaults, like optionSpecs. */
+  integrationSpecs: AgentIntegrationSpec[];
 }
