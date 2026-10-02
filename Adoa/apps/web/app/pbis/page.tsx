@@ -2,6 +2,7 @@ import { readAdoSettings, readCurrentSprint, readSyncSettings } from "@adoa/core
 import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
 import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { RememberFilters } from "@/components/RememberFilters";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { loadSprintChoices } from "@/lib/sprints";
@@ -16,6 +17,9 @@ import { SyncForm } from "./SyncForm";
 import { SyncPbiForm } from "./SyncPbiForm";
 
 export const dynamic = "force-dynamic";
+
+// Agents move PBIs between statuses all the time; the grid follows without a reload (user decision 2026-10-02).
+const BACKLOG_REFRESH_MS = 10_000;
 
 type SearchParams = Promise<{ status?: string }>;
 
@@ -35,6 +39,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
     <>
       <h1>Backlog</h1>
       <RememberFilters />
+      <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
       <div className="toolbar">
         <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db)} />
         <LastSync run={lastSync} />
