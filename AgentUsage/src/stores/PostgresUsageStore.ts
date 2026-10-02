@@ -1,7 +1,6 @@
 import type { Pool } from "pg";
 import type { RunOutcome } from "../models/RunOutcome";
 import type { StoredTraceEvent } from "../models/StoredTraceEvent";
-import type { SubscriptionSnapshot } from "../models/SubscriptionSnapshot";
 import type { UsageLabels } from "../models/UsageLabels";
 import type { UsageQuery } from "../models/UsageQuery";
 import type { UsageRecord } from "../models/UsageRecord";
@@ -88,23 +87,6 @@ export class PostgresUsageStore implements UsageStore {
     return result.rowCount ?? 0;
   }
 
-  async saveSnapshot(snapshot: SubscriptionSnapshot): Promise<void> {
-    await this.pool.query(
-      `INSERT INTO agent_usage.subscription_snapshot (provider, plan, windows, checked_at, unavailable) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (provider) DO UPDATE SET
-         plan = coalesce(excluded.plan, agent_usage.subscription_snapshot.plan),
-         windows = CASE WHEN jsonb_array_length(excluded.windows) > 0 THEN excluded.windows ELSE agent_usage.subscription_snapshot.windows END,
-         checked_at = CASE WHEN jsonb_array_length(excluded.windows) > 0 THEN excluded.checked_at ELSE agent_usage.subscription_snapshot.checked_at END,
-         unavailable = excluded.unavailable`,
-      [snapshot.provider, snapshot.plan, JSON.stringify(snapshot.windows), snapshot.checkedAt, snapshot.unavailable],
-    );
-  }
-
-  async latestSnapshots(): Promise<SubscriptionSnapshot[]> {
-    const result = await this.pool.query("SELECT * FROM agent_usage.subscription_snapshot ORDER BY provider");
-
-    return result.rows.map((row: Row) => ({ provider: row.provider, plan: row.plan, windows: row.windows, checkedAt: row.checked_at, unavailable: row.unavailable }));
-  }
 }
 
 function toTotals(row: Row): UsageTotals {

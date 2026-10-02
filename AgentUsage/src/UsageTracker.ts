@@ -13,6 +13,9 @@ import { addTokens, emptyTokens } from "./tokens";
 // Accumulates one run's usage events into a usage record; cost is fixed with the prices valid at start.
 export class UsageTracker {
   private readonly startedAt = new Date();
+  // Working time comes from the monotonic clock: it stands still while the machine (or Docker's VM) sleeps, so a run that
+  // was paused overnight isn't recorded as running for hours. startedAt / endedAt stay wall-clock times.
+  private readonly startedTick = performance.now();
   private readonly perModel = new Map<string, TokenTotals>();
   private readonly subscription = new Map<string, SubscriptionUsage>();
 
@@ -48,7 +51,7 @@ export class UsageTracker {
       labels: this.labels,
       startedAt: this.startedAt,
       endedAt,
-      durationMs: endedAt.getTime() - this.startedAt.getTime(),
+      durationMs: Math.round(performance.now() - this.startedTick),
       turns: info.turns,
       outcome: info.outcome,
       error: info.error ?? null,

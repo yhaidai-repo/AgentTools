@@ -1,5 +1,4 @@
 import type { SubscriptionSample } from "./models/SubscriptionSample";
-import type { SubscriptionSnapshot } from "./models/SubscriptionSnapshot";
 import type { SubscriptionStatus } from "./models/SubscriptionStatus";
 import type { SubscriptionStatusWindow } from "./models/SubscriptionStatusWindow";
 import type { SubscriptionUsage } from "./models/SubscriptionUsage";
@@ -11,33 +10,28 @@ type Reading = Omit<SubscriptionStatusWindow, "share">;
 // Folds a sample into the run's windows: the first sample sets the start, every later one the end.
 export function addSubscriptionSample(windows: Map<string, SubscriptionUsage>, sample: SubscriptionSample): void {
   const key = `${sample.provider}:${sample.window}`;
-  const resetsAt = toIso(sample.resetsAt);
+  const resetsAt = sample.resetsAt?.toISOString() ?? null;
   const seen = windows.get(key);
   const startUtilization = startOf(seen, sample, resetsAt);
 
   windows.set(key, { provider: sample.provider, window: sample.window, label: sample.label, startUtilization, endUtilization: sample.utilization, resetsAt });
 }
 
-// Per provider: the newest reading (a snapshot or a run's last sample) and how much the runs used of each current
-// window period (see SubscriptionPeriod).
-// `records` (newest first) should cover the longest window, e.g. the last 8 days for a weekly limit.
-export function subscriptionStatus(snapshots: SubscriptionSnapshot[], records: UsageRecord[]): SubscriptionStatus[] {
-  const providers = new Set([...snapshots.map((snapshot) => snapshot.provider), ...records.flatMap(providersOf)]);
+// Per provider: the windows as its latest run reported them, and how much the runs used of each current window period
+// (see SubscriptionPeriod). `records` (newest first) should cover the longest window, e.g. the last 8 days for a weekly limit.
+export function subscriptionStatus(records: UsageRecord[]): SubscriptionStatus[] {
+  const providers = new Set(records.flatMap(providersOf));
 
-  return [...providers].map((provider) => providerStatus(provider, snapshots.find((snapshot) => snapshot.provider === provider) ?? null, records));
+  return [...providers].map((provider) => providerStatus(provider, records));
 }
 
-function providerStatus(provider: string, snapshot: SubscriptionSnapshot | null, records: UsageRecord[]): SubscriptionStatus {
+function providerStatus(provider: string, records: UsageRecord[]): SubscriptionStatus {
   const latestRun = records.find((record) => providersOf(record).includes(provider)) ?? null;
-  const useSnapshot = snapshot !== null && snapshot.windows.length > 0 && (!latestRun || snapshot.checkedAt > latestRun.endedAt);
-  const readings = useSnapshot ? snapshot.windows.map(fromSample) : runReadings(latestRun, provider);
-  const asOf = useSnapshot ? snapshot.checkedAt : (latestRun?.endedAt ?? null);
+  const readings = runReadings(latestRun, provider);
 
   return {
     provider,
-    plan: snapshot?.plan ?? null,
-    asOf,
-    unavailable: readings.length > 0 ? null : (snapshot?.unavailable ?? null),
+    asOf: latestRun?.endedAt ?? null,
     windows: readings.map((reading) => ({ ...reading, share: periodChange(records, provider, reading) })),
   };
 }
@@ -54,17 +48,8 @@ function runReadings(record: UsageRecord | null, provider: string): Reading[] {
   return usages.map((usage) => ({ window: usage.window, label: usage.label, utilization: usage.endUtilization, resetsAt: usage.resetsAt }));
 }
 
-function fromSample(sample: SubscriptionSample): Reading {
-  return { window: sample.window, label: sample.label, utilization: sample.utilization, resetsAt: toIso(sample.resetsAt) };
-}
-
 function providersOf(record: UsageRecord): string[] {
   return record.subscription.map((usage) => usage.provider);
-}
-
-// Samples straight from a runtime hold Dates; stored ones (jsonb, JSON files) hold ISO strings.
-function toIso(value: Date | string | null): string | null {
-  return value === null ? null : new Date(value).toISOString();
 }
 
 // A window that reset during the run (its reset time moved on) counts from 0 again.

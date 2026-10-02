@@ -3,9 +3,7 @@ import type { SubscriptionStatusWindow } from "./SubscriptionStatusWindow";
 // One provider's subscription as a host shows it: each window's current use and the recorded runs' share of it.
 export interface SubscriptionStatus {
   provider: string;
-  plan: string | null;
-  /** When the numbers were read: the latest snapshot or run, whichever is newer. */
+  /** When the numbers were read: the end of the latest run that reported them. */
   asOf: Date | null;
-  unavailable: string | null;
   windows: SubscriptionStatusWindow[];
 }

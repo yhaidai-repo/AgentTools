@@ -32,12 +32,4 @@ CREATE TABLE IF NOT EXISTS agent_usage.run_event (
   PRIMARY KEY (run_id, seq)
 );
 CREATE INDEX IF NOT EXISTS run_event_at_idx ON agent_usage.run_event (at);
-
-CREATE TABLE IF NOT EXISTS agent_usage.subscription_snapshot (
-  provider text PRIMARY KEY,
-  plan text,
-  windows jsonb NOT NULL,
-  checked_at timestamptz NOT NULL,
-  unavailable text
-);
 `;

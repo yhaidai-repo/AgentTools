@@ -26,7 +26,6 @@ export type { UsageTotals } from "./models/UsageTotals";
 export type { UsageStore } from "./models/UsageStore";
 export type { SubscriptionSample } from "./models/SubscriptionSample";
 export type { SubscriptionUsage } from "./models/SubscriptionUsage";
-export type { SubscriptionSnapshot } from "./models/SubscriptionSnapshot";
 export type { SubscriptionStatus } from "./models/SubscriptionStatus";
 export type { SubscriptionStatusWindow } from "./models/SubscriptionStatusWindow";
 export type { SubscriptionPeriod } from "./models/SubscriptionPeriod";
