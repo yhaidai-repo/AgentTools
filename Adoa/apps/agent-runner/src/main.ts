@@ -1,4 +1,4 @@
-import { AGENT_DEFAULTS, GLOBAL_DEFAULTS, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
+import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
 import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, type AgentRunJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
@@ -30,6 +30,8 @@ await config.ensureDefaults(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
 await recoverInterruptedRuns(db);
 
 const repoCacheRoot = requireEnv("REPO_CACHE_ROOT");
+
+await clearReviewCheckouts(repoCacheRoot);
 const captureRules = await loadCaptureRules(process.env.VAULT_CAPTURE_HOME);
 
 if (!captureRules) {
@@ -53,6 +55,7 @@ const deps: AgentDeps = {
   listRegister: async (project, kind) => (await VaultCaptureCli.fromEnv("the tech-writer lists a register")).listRegister(project, kind),
   confluence: ConfluenceClient.fromEnv(),
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
+  docUsageLog: docUsageLog(),
 };
 
 // One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).
@@ -97,6 +100,13 @@ function docsVaultWriter(): AgentDeps["docsVault"] {
     },
     removeFile: (path) => writer.remove(path),
   };
+}
+
+// VaultUsage's log in the writable docs vault mount (same place as the tech-writer's merges).
+function docUsageLog(): DocUsageLog | null {
+  const vaultName = process.env.DOCS_VAULT_NAME;
+
+  return vaultName ? new DocUsageLog(`/vaults/${vaultName}/.usage/usage.jsonl`) : null;
 }
 
 // A task without a PBI (a chat draft's tech-writer task) has no PBI status or notes to update.

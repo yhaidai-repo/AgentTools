@@ -4,6 +4,7 @@ import type { AdoSettings } from "./models/AdoSettings";
 import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
+import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 
 const ADO_KEY = "ado";
@@ -11,6 +12,7 @@ const SYNC_KEY = "sync";
 const CONFLUENCE_KEY = "confluence";
 const IMPORT_KEY = "import";
 const IMPORT_STATUS_KEY = "importStatus";
+const PULL_REQUESTS_KEY = "pullRequests";
 
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
@@ -22,6 +24,12 @@ export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
 export const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   cron: "*/5 * * * *",
   maxItemsPerRun: 50,
+};
+
+export const DEFAULT_PULL_REQUEST_SETTINGS: PullRequestSettings = {
+  cron: "*/15 * * * *",
+  maxPullRequestsPerRun: 50,
+  repos: [],
 };
 
 export async function readAdoSettings(db: AdoaDb): Promise<AdoSettings | null> {
@@ -73,6 +81,16 @@ export async function saveImportStatus(db: AdoaDb, status: ImportRunStatus): Pro
 // Null until the pbi-import job has run once.
 export async function readImportStatus(db: AdoaDb): Promise<ImportRunStatus | null> {
   return readValue<ImportRunStatus>(db, IMPORT_STATUS_KEY);
+}
+
+export async function readPullRequestSettings(db: AdoaDb): Promise<PullRequestSettings> {
+  const stored = await readValue<Partial<PullRequestSettings>>(db, PULL_REQUESTS_KEY);
+
+  return { ...DEFAULT_PULL_REQUEST_SETTINGS, ...stored };
+}
+
+export async function savePullRequestSettings(db: AdoaDb, settings: PullRequestSettings): Promise<void> {
+  await saveValue(db, PULL_REQUESTS_KEY, settings);
 }
 
 async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {

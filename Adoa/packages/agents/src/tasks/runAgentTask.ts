@@ -6,6 +6,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
+import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
 import { runDesignTask } from "../design/runDesignTask";
 import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
@@ -21,6 +22,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   research: runResearchTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
+  "code-review": runCodeReviewTask,
 };
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.

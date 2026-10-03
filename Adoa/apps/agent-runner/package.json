@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
+    "backfill:doc-usage": "tsx src/backfillDocUsage.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

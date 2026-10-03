@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MarkdownBlock } from "@/components/MarkdownBlock";
 import type { PbiDetail } from "@/lib/pbiDetail";
 
 type Design = NonNullable<PbiDetail["design"]>;
@@ -16,7 +17,7 @@ export function DesignSection({ design }: { design: PbiDetail["design"] }) {
         {" "}<span className="muted">(v{design.version}{design.runId ? <>, <Link href={`/agents/runs/${design.runId}`}>RUN-{design.runId}</Link></> : null})</span>
       </p>
       {design.estimateBasis && <p className="muted">Basis: {design.estimateBasis}</p>}
-      <div className="text-block">{design.approach}</div>
+      <MarkdownBlock text={design.approach} />
       <h3>Plan</h3>
       <PlanTable design={design} />
       <Bullets title="Alternatives" items={design.alternatives.map((item) => `${item.option}: pros ${item.pros.join("; ") || "none"}; cons ${item.cons.join("; ") || "none"}. Not chosen: ${item.whyNot}`)} />

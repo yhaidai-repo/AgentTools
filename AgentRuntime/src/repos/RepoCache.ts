@@ -1,5 +1,7 @@
 import { access, rm } from "node:fs/promises";
 import { join } from "node:path";
+import type { PullRequestCheckout } from "../models/PullRequestCheckout";
+import type { PullRequestRef } from "../models/PullRequestRef";
 import type { RepoCacheOptions } from "../models/RepoCacheOptions";
 import type { RepoProgress } from "../models/RepoProgress";
 import type { RepoRef } from "../models/RepoRef";
@@ -34,6 +36,41 @@ export class RepoCache {
     }
 
     return commits;
+  }
+
+  /** Fetches a pull request's branches into the repo's cached clone (acquire the repo first) and checks the PR's source
+   *  commit out as a separate worktree at `path`, so the shared default-branch checkout stays as it is. */
+  async checkoutPullRequest(repo: RepoRef, pr: PullRequestRef, path: string): Promise<PullRequestCheckout> {
+    const cwd = this.path(repo);
+    const sourceRef = `refs/adoa/pr/${pr.id}/source`;
+    const targetRef = `refs/adoa/pr/${pr.id}/target`;
+
+    await this.git(["fetch", "origin", `+${pr.sourceRef}:${sourceRef}`, `+${pr.targetRef}:${targetRef}`], cwd, true);
+
+    const sourceCommit = (await this.git(["rev-parse", sourceRef], cwd)).trim();
+    const targetCommit = (await this.git(["rev-parse", targetRef], cwd)).trim();
+    const mergeBase = (await this.git(["merge-base", targetCommit, sourceCommit], cwd)).trim();
+
+    await rm(path, { recursive: true, force: true });
+    // A partial clone downloads the files it checks out, hence the auth.
+    await this.git(["worktree", "add", "--detach", "--force", path, sourceCommit], cwd, true);
+
+    return { path, sourceCommit, targetCommit, mergeBase };
+  }
+
+  /** A unified diff between two commits of the repo, optionally limited to `paths`. File contents of a partial clone are
+   *  downloaded on demand, hence the auth. */
+  diff(repo: RepoRef, base: string, head: string, paths: string[] = []): Promise<string> {
+    return this.git(["diff", "--no-color", "--no-ext-diff", "--find-renames", "--unified=3", base, head, "--", ...paths], this.path(repo), true);
+  }
+
+  /** Removes a worktree made by checkoutPullRequest; also when git no longer knows it (e.g. after a crash). */
+  async removeCheckout(repo: RepoRef, path: string): Promise<void> {
+    const cwd = this.path(repo);
+
+    await this.git(["worktree", "remove", "--force", path], cwd).catch(() => "");
+    await rm(path, { recursive: true, force: true });
+    await this.git(["worktree", "prune"], cwd);
   }
 
   release(repos: RepoRef[]): void {

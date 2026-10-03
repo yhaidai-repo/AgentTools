@@ -1,6 +1,6 @@
 import type { AgentDefinition, AgentsGlobal } from "@agenttools/config";
 import { workItem } from "@adoa/db";
-import { createSkillTools, listSkills, loadSkills, skillsPromptSection } from "@agenttools/runtime";
+import { createDocTools, createSkillTools, listSkills, loadSkills, skillsPromptSection, type ToolDefinition } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -47,6 +47,14 @@ export async function pauseForRateLimit(deps: AgentDeps, resetsAt: Date | null):
 
   await deps.config.saveGlobal({ ...global, pausedUntil: until.toISOString() });
   console.log(`agents paused until ${until.toISOString()} (rate limit)`);
+}
+
+// The docs vault tools every agent gets; what it reads and searches goes to the vault's usage log (user decision 2026-10-02).
+export function createAgentDocTools(deps: AgentDeps, agentId: string, runId: number): ToolDefinition<any>[] {
+  const usageLog = deps.docUsageLog;
+  const onUse = usageLog ? (paths: string[], kind: "read" | "search") => usageLog.record(paths, kind, agentId, runId) : undefined;
+
+  return createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude, onUse });
 }
 
 // Every doc a run opened with read_doc, from its trace: the automatic part of the handoff to the next stage.

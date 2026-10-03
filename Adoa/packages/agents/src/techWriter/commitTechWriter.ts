@@ -1,5 +1,5 @@
 import { nextGlobalItemId } from "@adoa/core";
-import { agentRun, localItem, vaultCapture, type AdoaDb } from "@adoa/db";
+import { agentRun, localItem, vaultCapture, vaultNoteWrite, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray } from "drizzle-orm";
 import type { DocsVault } from "../models/DocsVault";
 import type { DraftTaskData } from "./models/DraftTaskData";
@@ -20,7 +20,10 @@ export async function commitTechWriter(db: AdoaDb, docsVault: DocsVault, task: I
   const author: NoteAuthor = { writer: AUTHOR, context: `RUN-${runId}`, date: new Date().toISOString().slice(0, 10) };
 
   for (const edit of draft.edits) {
-    await docsVault.writeNote(edit.path, withAuthor(edit.content, await docsVault.readNote(edit.path), author));
+    const previous = await docsVault.readNote(edit.path);
+
+    await docsVault.writeNote(edit.path, withAuthor(edit.content, previous, author));
+    await db.insert(vaultNoteWrite).values({ path: edit.path, runId, action: previous === null ? "created" : "updated" });
   }
 
   await docsVault.removeFile(data.path);

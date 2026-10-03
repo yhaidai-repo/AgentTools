@@ -99,6 +99,46 @@ td .chips {
   margin-bottom: 0;
 }
 
+/* Code review: the code under a comment, with line numbers; commented lines highlighted. */
+.code-snippet {
+  padding: 6px 0;
+  white-space: pre;
+}
+
+.code-line {
+  padding: 0 10px;
+}
+
+.code-line.commented {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.line-number {
+  display: inline-block;
+  min-width: 4ch;
+  margin-right: 12px;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+}
+
+.review-comment {
+  margin-bottom: 12px;
+}
+
+.review-comment.closed {
+  opacity: 0.6;
+}
+
+.answer-form {
+  display: grid;
+  gap: 6px;
+}
+
+.answer-form textarea {
+  width: 100%;
+}
+
 /* A section heading with its actions on one line (e.g. "Imports" + "Import now"). */
 .section-head {
   margin: 24px 0 8px;
@@ -170,6 +210,62 @@ label.inline {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Rendered markdown (MarkdownBlock): normal text flow instead of the plain block's pre-wrap. */
+.markdown-block {
+  display: grid;
+  gap: 4px;
+}
+
+.markdown-block > .link-button {
+  justify-self: end;
+}
+
+.text-block.markdown {
+  white-space: normal;
+}
+
+.text-block.markdown > :first-child {
+  margin-top: 0;
+}
+
+.text-block.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.text-block.markdown table {
+  width: auto;
+  margin: 8px 0;
+}
+
+.text-block.markdown th,
+.text-block.markdown td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+}
+
+.text-block.markdown code {
+  font-size: 12px;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Settings: the repos the pull request check covers, in columns. */
+.repo-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
 }
 
 input,

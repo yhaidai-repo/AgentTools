@@ -53,7 +53,7 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
   const adoId = parsePbiReference(String(form.get("pbi") ?? ""));
 
   if (adoId === null) {
-    return { ok: false, message: "Enter a PBI id or its Azure DevOps link." };
+    return { ok: false, message: "Enter a PBI or Task id, or its Azure DevOps link." };
   }
 
   const job: PbiJob = { action: "sync", adoId };

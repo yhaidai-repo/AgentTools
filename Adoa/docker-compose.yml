@@ -112,10 +112,12 @@ services:
       SKILL_FOLDERS: /app/Adoa/skills:/skills  # same as agent-runner, to list the skills an agent may use
       SKILLS_PATH: ${SKILLS_PATH}
       DOCS_VAULT_NAME: ${DOCS_VAULT_NAME:?set in .env}  # links to agents' draft notes
+      DOCS_ROOT: /docs  # the Vault page reads the docs vault's notes and its VaultUsage log
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${DOCS_VAULT_PATH:?set in .env}:/docs:ro
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       # Writable: the Config page edits adoa's own skills only (user decision 2026-10-01); each save keeps the old version in the DB.
       - ./skills:/app/Adoa/skills

@@ -5,6 +5,8 @@ export { runAgentTask } from "./tasks/runAgentTask";
 export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { loadCaptureRules } from "./vaultCapture";
+export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";
+export { DocUsageLog } from "./DocUsageLog";
 export type { AgentDeps } from "./models/AgentDeps";
 export type { AgentRunInfo } from "./models/AgentRunInfo";
 export type { AgentRunInput } from "./models/AgentRunInput";

@@ -27,6 +27,7 @@ export const pipelineStatus = pgEnum("pipeline_status", [
 export const itemKind = pgEnum("item_kind", [
   "research", "design", "human", "question", "research-result", "refinement",
   "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
+  "review", // code-review task: one review of one pull request
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -39,7 +40,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -51,6 +52,16 @@ export const runOutcome = pgEnum("run_outcome", [
 export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "confluence"]);
 
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
+
+// Whether a write made a docs-vault note (it didn't exist) or changed one.
+export const noteWriteAction = pgEnum("note_write_action", ["created", "updated"]);
+
+export const reviewStatus = pgEnum("review_status", ["active", "closed"]);
+
+export const reviewSeverity = pgEnum("review_severity", ["blocker", "major", "minor", "nit"]);
+
+// answered: the user replied, the next run reads it; withdrawn: the agent took it back; outdated: the code under it changed.
+export const reviewCommentStatus = pgEnum("review_comment_status", ["open", "answered", "withdrawn", "outdated"]);
 
 // Settings (ADO org/project/team/user, crons, models, budgets…)
 
@@ -321,3 +332,68 @@ export const skillRevision = pgTable("skill_revision", {
   content: text("content").notNull(), // the SKILL.md as it was before a save replaced it
   savedAt: createdAt(),
 }, (t) => [index("skill_revision_name_idx").on(t.name, t.savedAt)]);
+
+// Every docs-vault note the tech-writer wrote, per run (user decision 2026-10-02: the Vault page tells created from
+// updated; the note's authors stamp keeps only the latest change).
+export const vaultNoteWrite = pgTable("vault_note_write", {
+  id: serial("id").primaryKey(),
+  path: text("path").notNull(), // relative to the docs vault root
+  runId: bigint("run_id", { mode: "number" }).notNull(), // no foreign key: deleting a PBI deletes its runs, the vault keeps the note
+  action: noteWriteAction("action").notNull(),
+  writtenAt: ts("written_at").notNull().defaultNow(),
+}, (t) => [index("vault_note_write_path_idx").on(t.path)]);
+
+// Code review (user decision 2026-10-02): the ADO pull requests the Settings user reviews, adoa's review of each, and the
+// review's comments with the user's answers. ADO is never written; comments live here only.
+
+export const pullRequest = pgTable("pull_request", {
+  id: integer("id").primaryKey(), // ADO pull request id
+  repoId: text("repo_id").notNull(),
+  repoName: text("repo_name").notNull(),
+  title: text("title").notNull(),
+  descriptionMd: text("description_md"),
+  author: text("author"),
+  sourceRef: text("source_ref").notNull(),
+  targetRef: text("target_ref").notNull(),
+  sourceCommit: text("source_commit").notNull(),
+  targetCommit: text("target_commit"),
+  iteration: integer("iteration").notNull().default(1), // ADO iterations = pushes; reviewed_iteration tells how many came since
+  isDraft: boolean("is_draft").notNull().default(false),
+  workItemIds: jsonb("work_item_ids").$type<number[]>().notNull().default([]),
+  url: text("url").notNull(),
+  isListed: boolean("is_listed").notNull().default(true), // false once it left the user's active PRs (completed, abandoned, not a reviewer)
+  adoCreatedAt: ts("ado_created_at"),
+  syncedAt: ts("synced_at").notNull().defaultNow(),
+});
+
+export const codeReview = pgTable("code_review", {
+  prId: integer("pr_id").primaryKey().references(() => pullRequest.id),
+  status: reviewStatus("status").notNull().default("active"),
+  closedReason: text("closed_reason"),
+  reviewedCommit: text("reviewed_commit"),
+  reviewedIteration: integer("reviewed_iteration"),
+  summaryMd: text("summary_md"),
+  reviewedAt: ts("reviewed_at"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const reviewComment = pgTable("review_comment", {
+  id: text("id").primaryKey(), // RC-<prId>-<nnn>
+  prId: integer("pr_id").notNull().references(() => pullRequest.id),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
+  commit: text("commit").notNull(), // the PR commit the comment was made on; its lines and snippet are from it
+  filePath: text("file_path").notNull(),
+  startLine: integer("start_line").notNull(),
+  endLine: integer("end_line").notNull(),
+  severity: reviewSeverity("severity").notNull(),
+  bodyMd: text("body_md").notNull(),
+  codeSnippet: text("code_snippet").notNull(),
+  snippetStartLine: integer("snippet_start_line").notNull(),
+  status: reviewCommentStatus("status").notNull().default("open"),
+  answerMd: text("answer_md"),
+  answeredAt: ts("answered_at"),
+  agentReplyMd: text("agent_reply_md"), // what the agent said about the answer on its next run
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("review_comment_pr_idx").on(t.prId, t.status)]);

@@ -1,7 +1,7 @@
 "use server";
 
 import { checkConnection } from "@adoa/ado";
-import { applyPbiImportSchedule, applySyncSchedule, saveAdoSettings, saveImportSettings, saveSyncSettings, type AdoSettings, type ImportSettings, type SyncSettings } from "@adoa/core";
+import { applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, saveAdoSettings, saveImportSettings, savePullRequestSettings, saveSyncSettings, type AdoSettings, type ImportSettings, type PullRequestSettings, type SyncSettings } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
@@ -45,6 +45,26 @@ export async function saveImportSettingsAction(_previous: ActionResult | null, f
   revalidatePath("/settings");
 
   return { ok: true, message: "Saved. The next import uses these settings." };
+}
+
+export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const repos = form.getAll("repos").map(String).filter(Boolean);
+  const settings: PullRequestSettings = { cron: field(form, "cron"), maxPullRequestsPerRun: Number(field(form, "maxPullRequestsPerRun")), repos };
+
+  if (!Number.isInteger(settings.maxPullRequestsPerRun) || settings.maxPullRequestsPerRun < 1) {
+    return { ok: false, message: "Max PRs per check must be a whole number above 0." };
+  }
+
+  try {
+    await applyPullRequestsSchedule(await getBoss(), settings.cron);
+  } catch (error) {
+    return { ok: false, message: `Schedule not saved: ${errorMessage(error)}` };
+  }
+
+  await savePullRequestSettings(getDb(), settings);
+  revalidatePath("/settings");
+
+  return { ok: true, message: `Saved: ${repos.length === 0 ? "every repo" : `${repos.length} repo(s)`}. The next pull request check uses these settings.` };
 }
 
 export async function testConnection(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

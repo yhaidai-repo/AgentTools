@@ -1,6 +1,6 @@
 import { requirePbiId } from "@adoa/core";
 import { localItem } from "@adoa/db";
-import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
+import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
@@ -11,7 +11,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
 import { loadResearchContext } from "../research/loadResearchContext";
-import { confluencePagesReadInRun, numberOption, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, createAgentDocTools, numberOption, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitDesign } from "./commitDesign";
 import { buildDesignMessage } from "./designMessage";
@@ -72,7 +72,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: [
-      ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
+      ...createAgentDocTools(deps, context.agent.id, session.runId),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.context.repos) }),
       ...skills.tools,
       createAttachmentTool(deps.db, requirePbiId(task)),

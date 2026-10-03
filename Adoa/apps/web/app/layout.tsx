@@ -17,6 +17,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <nav>
             <Link href="/pbis">Backlog</Link>
             <Link href="/tasks">Tasks</Link>
+            <Link href="/reviews">Reviews</Link>
+            <Link href="/vault">Vault</Link>
             <Link href="/agents">Agents</Link>
             <Link href="/runs">Runs</Link>
             <Link href="/settings">Settings</Link>

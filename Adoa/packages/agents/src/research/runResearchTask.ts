@@ -1,6 +1,6 @@
 import { requirePbiId } from "@adoa/core";
 import { localItem } from "@adoa/db";
-import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
+import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
@@ -10,7 +10,7 @@ import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
-import { docsReadInRun, numberOption, skillsTrace } from "../stage";
+import { createAgentDocTools, docsReadInRun, numberOption, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitResearch } from "./commitResearch";
 import { loadResearchContext } from "./loadResearchContext";
@@ -72,7 +72,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: [
-      ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
+      ...createAgentDocTools(deps, context.agent.id, session.runId),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
       ...skills.tools,
       createAttachmentTool(deps.db, requirePbiId(task)),

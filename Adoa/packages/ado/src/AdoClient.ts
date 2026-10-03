@@ -1,14 +1,18 @@
 import type { AdoConnection } from "./models/AdoConnection";
 import type { AdoIteration } from "./models/AdoIteration";
+import type { AdoPullRequest } from "./models/AdoPullRequest";
+import type { AdoPullRequestDetails } from "./models/AdoPullRequestDetails";
 import type { AdoRepository } from "./models/AdoRepository";
 import type { AdoWorkItem } from "./models/AdoWorkItem";
 import type { DownloadedFile } from "./models/DownloadedFile";
 import type { IterationDto } from "./models/IterationDto";
+import type { PullRequestDto } from "./models/PullRequestDto";
 import type { RepositoryDto } from "./models/RepositoryDto";
 import { AdoRequestError } from "./models/AdoRequestError";
 
 const API_VERSION = "api-version=7.1";
 const BATCH_LIMIT = 200;
+const PULL_REQUEST_PAGE = 100;
 
 // Read-only Azure DevOps REST client. Never add write calls: adoa is local-only.
 export class AdoClient {
@@ -53,6 +57,32 @@ export class AdoClient {
     return body.value.map(toRepository);
   }
 
+  // Every active pull request of the project, page by page (ADO returns at most a page per call).
+  async listActivePullRequests(): Promise<AdoPullRequest[]> {
+    const pullRequests: AdoPullRequest[] = [];
+    let page: PullRequestDto[] = [];
+
+    do {
+      const url = `${this.projectUrl()}/_apis/git/pullrequests?searchCriteria.status=active&$top=${PULL_REQUEST_PAGE}&$skip=${pullRequests.length}&${API_VERSION}`;
+
+      page = (await this.request<{ value: PullRequestDto[] }>(url)).value;
+      pullRequests.push(...page.map((dto) => this.toPullRequest(dto)));
+    } while (page.length === PULL_REQUEST_PAGE);
+
+    return pullRequests;
+  }
+
+  async getPullRequestDetails(repoId: string, pullRequestId: number): Promise<AdoPullRequestDetails> {
+    const base = `${this.projectUrl()}/_apis/git/repositories/${repoId}/pullRequests/${pullRequestId}`;
+    const iterations = await this.request<{ value: { id: number }[] }>(`${base}/iterations?${API_VERSION}`);
+    const workItems = await this.request<{ value: { id: string }[] }>(`${base}/workitems?${API_VERSION}`);
+
+    return {
+      iteration: Math.max(1, ...iterations.value.map((iteration) => iteration.id)),
+      workItemIds: workItems.value.map((item) => Number(item.id)).filter(Number.isInteger),
+    };
+  }
+
   // A work item attachment linked from a description. The token is only ever sent to this organization.
   async downloadAttachment(url: string): Promise<DownloadedFile> {
     if (!url.toLowerCase().startsWith(`${this.orgUrl.toLowerCase()}/`)) {
@@ -76,6 +106,27 @@ export class AdoClient {
     const body = await this.request<{ value: (AdoWorkItem | null)[] }>(url, { ids, fields, errorPolicy: "Omit" });
 
     return body.value.filter((item): item is AdoWorkItem => item !== null);
+  }
+
+  private toPullRequest(dto: PullRequestDto): AdoPullRequest {
+    const repoName = dto.repository.name;
+
+    return {
+      id: dto.pullRequestId,
+      repoId: dto.repository.id,
+      repoName,
+      title: dto.title,
+      description: dto.description ?? null,
+      isDraft: dto.isDraft ?? false,
+      author: dto.createdBy?.uniqueName ?? dto.createdBy?.displayName ?? null,
+      sourceRef: dto.sourceRefName,
+      targetRef: dto.targetRefName,
+      sourceCommit: dto.lastMergeSourceCommit?.commitId ?? null,
+      targetCommit: dto.lastMergeTargetCommit?.commitId ?? null,
+      reviewers: (dto.reviewers ?? []).filter((reviewer) => !reviewer.isContainer && reviewer.uniqueName).map((reviewer) => reviewer.uniqueName!),
+      createdAt: dto.creationDate ?? null,
+      url: `${this.projectUrl()}/_git/${encodeURIComponent(repoName)}/pullrequest/${dto.pullRequestId}`,
+    };
   }
 
   private projectUrl(): string {

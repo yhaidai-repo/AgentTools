@@ -40,10 +40,12 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
   );
 }
 
+// Red only for what holds the agents back; findings to review are a quiet note (same split as the PBI page).
 function NeedsAction({ row }: { row: BacklogRow }) {
-  if (row.openForYou === 0) {
-    return null;
-  }
-
-  return <> · <Link href={`/pbis/${row.adoId}`} className="result-error">needs your action ({row.openForYou})</Link></>;
+  return (
+    <>
+      {row.openForYou > 0 && <> · <Link href={`/pbis/${row.adoId}`} className="result-error">needs your action ({row.openForYou})</Link></>}
+      {row.findingsToReview > 0 && <> · <Link href={`/pbis/${row.adoId}`} className="muted">{row.findingsToReview} finding{row.findingsToReview === 1 ? "" : "s"} to review</Link></>}
+    </>
+  );
 }

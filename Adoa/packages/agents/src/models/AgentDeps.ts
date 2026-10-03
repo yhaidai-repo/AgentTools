@@ -3,6 +3,7 @@ import type { AdoaDb } from "@adoa/db";
 import type { AgentConfigStore } from "@agenttools/config";
 import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import type { PriceBook, UsageStore } from "@agenttools/usage";
+import type { DocUsageLog } from "../DocUsageLog";
 import type { CaptureRules } from "./CaptureRules";
 import type { DocsVault } from "./DocsVault";
 import type { RegisterEntry } from "./RegisterEntry";
@@ -33,4 +34,6 @@ export interface AgentDeps {
   confluence: ConfluenceClient | null;
   /** The Confluence site agents search (CONFLUENCE_SITE); null = no search tool, page links still work. */
   confluenceSite: string | null;
+  /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
+  docUsageLog: DocUsageLog | null;
 }

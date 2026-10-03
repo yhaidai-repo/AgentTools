@@ -65,12 +65,17 @@ async function loadRows(db: AdoaDb, filter: BacklogFilter): Promise<BacklogRow[]
   const byStatus = filter.status ? sql`${workItem.pipelineStatus} = ${filter.status}` : undefined;
 
   return db
-    .select({ ...getTableColumns(workItem), openForYou: openForYou() })
+    .select({ ...getTableColumns(workItem), openForYou: openForYou(), findingsToReview: findingsToReview() })
     .from(workItem)
     .where(byStatus)
     .orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 }
 
+// The same items the PBI page calls "needs your action": findings wait for review but hold no agent, so they're counted apart.
 function openForYou(): SQL<number> {
-  return sql<number>`(SELECT count(*)::int FROM local_item i WHERE i.pbi_id = ${workItem.adoId} AND i.assignee = 'human' AND i.status IN ('open', 'in-progress'))`;
+  return sql<number>`(SELECT count(*)::int FROM local_item i WHERE i.pbi_id = ${workItem.adoId} AND i.assignee = 'human' AND i.kind <> 'finding' AND i.status IN ('open', 'in-progress'))`;
+}
+
+function findingsToReview(): SQL<number> {
+  return sql<number>`(SELECT count(*)::int FROM local_item i WHERE i.pbi_id = ${workItem.adoId} AND i.kind = 'finding' AND i.status IN ('open', 'in-progress'))`;
 }

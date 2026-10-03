@@ -16,7 +16,11 @@ export async function nextItemId(db: AdoaDb, prefix: ItemPrefix, adoId: number):
 }
 
 export async function nextGlobalItemId(db: AdoaDb, prefix: GlobalItemPrefix): Promise<string> {
-  const stem = `${prefix}-`;
+  return nextScopedItemId(db, `${prefix}-`);
+}
+
+// The next `<stem><nnn>` across all items, e.g. stem `CR-6322-` for the review tasks of pull request 6322.
+export async function nextScopedItemId(db: AdoaDb, stem: string): Promise<string> {
   const rows = await db.select({ id: localItem.id }).from(localItem).where(like(localItem.id, `${stem}%`));
   const highest = rows.reduce((max, row) => Math.max(max, Number(row.id.slice(stem.length)) || 0), 0);
 

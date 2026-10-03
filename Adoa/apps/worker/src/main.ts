@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore } from "@agenttools/config";
@@ -9,6 +9,7 @@ import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { requireEnv, vaultRoot } from "./env";
 import { runPbiImport } from "./import/runPbiImport";
+import { syncPullRequests } from "./pullRequests/syncPullRequests";
 import type { WorkerContext } from "./models/WorkerContext";
 import { deletePbi } from "./pbi/deletePbi";
 import { preparePbis } from "./prepare/preparePbis";
@@ -35,6 +36,7 @@ await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
 await applyPbiImportSchedule(boss, (await readImportSettings(db)).cron);
+await applyPullRequestsSchedule(boss, (await readPullRequestSettings(db)).cron);
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
@@ -86,6 +88,11 @@ await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
 // PBI import (user decision 2026-10-02): one job reads every import source (Outlook mails, inbox requests, …).
 await boss.work(PBI_IMPORT_QUEUE, () => logged(PBI_IMPORT_QUEUE, async () => {
   console.log(`pbi-import: ${await runPbiImport(context)}`);
+}));
+
+// Code review (user decision 2026-10-02): the ADO pull requests the user reviews; new ones get a code-review task.
+await boss.work(PULL_REQUESTS_QUEUE, () => logged(PULL_REQUESTS_QUEUE, async () => {
+  console.log(`pull-requests: ${await syncPullRequests(context)}`);
 }));
 
 console.log("worker started");

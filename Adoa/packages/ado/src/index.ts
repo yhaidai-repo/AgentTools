@@ -6,6 +6,8 @@ export { sprintScopeQuery } from "./wiql";
 export { AdoRequestError } from "./models/AdoRequestError";
 export type { AdoConnection } from "./models/AdoConnection";
 export type { AdoIteration } from "./models/AdoIteration";
+export type { AdoPullRequest } from "./models/AdoPullRequest";
+export type { AdoPullRequestDetails } from "./models/AdoPullRequestDetails";
 export type { AdoRepository } from "./models/AdoRepository";
 export type { AdoWorkItem } from "./models/AdoWorkItem";
 export type { DownloadedFile } from "./models/DownloadedFile";

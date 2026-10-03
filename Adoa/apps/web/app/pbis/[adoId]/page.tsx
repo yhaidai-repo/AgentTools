@@ -1,4 +1,5 @@
 import { attachmentRef, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
+import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
@@ -102,6 +103,15 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
   );
 }
 
+// Findings wait for the user's review (Submit to vault or dismiss) without holding the agents back.
+function FindingsToReview({ findings }: { findings: PbiDetail["items"] }) {
+  if (findings.length === 0) {
+    return null;
+  }
+
+  return <p className="muted">To review (doesn&apos;t block agents): {findings.map((item) => item.id).join(", ")}, see Findings below.</p>;
+}
+
 // What the user must do, and what the agents' tasks are waiting for (the dispatcher's last check).
 function Blockers({ detail }: { detail: PbiDetail }) {
   // Findings wait for the user's review but don't hold the agents back (the dispatcher skips them too).
@@ -109,13 +119,20 @@ function Blockers({ detail }: { detail: PbiDetail }) {
   const forYou = open.filter((item) => item.assignee === "human");
   const forAgents = open.filter((item) => item.assignee !== "human");
   const pendingDrafts = detail.drafts.filter(isUnmerged);
+  const findings = detail.items.filter((item) => isOpen(item) && item.kind === "finding");
 
   if (open.length === 0 && pendingDrafts.length === 0) {
-    return <p className="result-ok">No blockers: agents may work on this PBI.</p>;
+    return (
+      <>
+        <p className="result-ok">No blockers: agents may work on this PBI.</p>
+        <FindingsToReview findings={findings} />
+      </>
+    );
   }
 
   return (
     <div className="card">
+      <FindingsToReview findings={findings} />
       {forYou.length > 0 && <p className="result-error">Needs your action: {forYou.length} open {forYou.length === 1 ? "item" : "items"}. Agents don't work on this PBI until you close them.</p>}
       {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${item.assignee.replace("agent:", "")}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
       {pendingDrafts.length > 0 && <p className="muted">Vault drafts not merged yet: {pendingDrafts.map((draft) => draft.name).join(", ")}. Until they are verified and moved out of draft/, only the agent that captured them may work.</p>}
@@ -169,8 +186,9 @@ async function Repos({ detail }: { detail: PbiDetail }) {
   );
 }
 
+// Description and acceptance criteria are markdown (sync converts ADO's HTML).
 function TextBlock({ text }: { text: string | null }) {
-  return text ? <div className="text-block">{text}</div> : <p className="muted">Empty in Azure DevOps.</p>;
+  return text ? <MarkdownBlock text={text} /> : <p className="muted">Empty in Azure DevOps.</p>;
 }
 
 function Refinement({ detail }: { detail: PbiDetail }) {

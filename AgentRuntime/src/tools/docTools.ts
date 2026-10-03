@@ -44,10 +44,13 @@ function readDocTool(scope: DocScope, options: DocToolOptions) {
       offset: z.number().int().min(0).default(0),
     },
     handler: async ({ path, offset }) => {
-      const lines = (await readFile(scope.resolve(path), "utf8")).split(/\r?\n/);
+      const file = scope.resolve(path);
+      const lines = (await readFile(file, "utf8")).split(/\r?\n/);
       const page = lines.slice(offset, offset + maxLines);
       const rest = lines.length - offset - page.length;
       const footer = rest > 0 ? `\n… ${rest} more lines; call again with offset ${offset + page.length}.` : "";
+
+      await reportUse(options, [scope.relative(file)], "read");
 
       return { text: page.join("\n") + footer };
     },
@@ -69,9 +72,24 @@ function searchDocsTool(scope: DocScope, options: DocToolOptions) {
       const files = await listFiles(scope, scope.resolve(dir), extensions);
       const matches = await findMatches(scope, files, query.toLowerCase(), maxResults);
 
+      await reportUse(options, [...new Set(matches.map((match) => match.slice(0, match.indexOf(":"))))], "search");
+
       return { text: matches.join("\n") || "No matches." };
     },
   });
+}
+
+// Usage tracking must never break the agent's tool call.
+async function reportUse(options: DocToolOptions, paths: string[], kind: "read" | "search"): Promise<void> {
+  if (!options.onUse || paths.length === 0) {
+    return;
+  }
+
+  try {
+    await options.onUse(paths, kind);
+  } catch (error) {
+    console.error(`doc usage not recorded (${kind} ${paths.join(", ")}):`, error);
+  }
 }
 
 async function listFiles(scope: DocScope, folder: string, extensions: string[]): Promise<string[]> {

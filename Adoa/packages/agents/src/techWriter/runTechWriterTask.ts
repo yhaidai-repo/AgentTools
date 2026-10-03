@@ -1,6 +1,6 @@
 import { localItem } from "@adoa/db";
 import { createConfluenceTools } from "../confluenceTools";
-import { createDocTools, createRepoTools, type RepoRef } from "@agenttools/runtime";
+import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AgentRunSession } from "../AgentRunSession";
@@ -9,7 +9,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { resolveRepos, reposByName } from "../research/resolveRepos";
-import { numberOption } from "../stage";
+import { createAgentDocTools, numberOption } from "../stage";
 import { commitTechWriter } from "./commitTechWriter";
 import { requireNoDraftLinks } from "./draftLinks";
 import type { DraftTaskData } from "./models/DraftTaskData";
@@ -82,7 +82,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, `## Vault rules (the docs vault's AGENTS.md)\n\n${vaultRules}`, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: [
-      ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
+      ...createAgentDocTools(deps, context.agent.id, session.runId),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: run.repos.map((repo) => repo.name) }),
       ...skills.tools,
       ...createTechWriterTools(deps, run.draft),

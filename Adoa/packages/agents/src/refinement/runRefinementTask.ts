@@ -1,6 +1,6 @@
 import { localItem, workItem } from "@adoa/db";
 import { isRecommendableSkill, requirePbiId } from "@adoa/core";
-import { createDocTools, createListSkillsTool, listSkills } from "@agenttools/runtime";
+import { createListSkillsTool, listSkills } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -14,7 +14,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
-import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import { buildPbiMessage } from "./pbiMessage";
@@ -66,7 +66,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage: pbiMessage,
     tools: [
-      ...createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude }),
+      ...createAgentDocTools(deps, context.agent.id, session.runId),
       ...skills.tools,
       createListSkillsTool(deps.skillFolders, isRecommendableSkill),
       createAttachmentTool(deps.db, row.adoId),

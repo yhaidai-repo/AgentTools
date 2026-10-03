@@ -87,6 +87,31 @@ const TECH_WRITER_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const CODE_REVIEW_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Reviews"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a review task",
+    description: "After this many failed runs, the review task is set to blocked; Rerun on the review page queues a new one.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "maxDiffLines",
+    label: "Changed lines reviewed per run",
+    description: "Most changed lines one review covers, largest files first; the rest are listed as not reviewed in the summary. Higher = fuller reviews of big PRs, more tokens.",
+    min: 200,
+    max: 20000,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "The cached repo's default branch is fetched again only when its last fetch is older than this; the PR's own branches are always fetched.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 // Outside systems adoa can give an agent tools for; each one is switched on per agent in its Config (user decision 2026-10-02).
 const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
@@ -161,6 +186,24 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     skills: ["adoa-tech-writer", "adoa-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: TECH_WRITER_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    next: null,
+    waitFor: [],
+  },
+  // Off until the user turns it on (assumption, 2026-10-02): the first pull-requests run queues a review for every open PR.
+  {
+    id: "code-review",
+    label: "Code review",
+    description: "Reviews one pull request you review in ADO: comments on files and lines with the code, a summary; reads your answers on reruns. Never writes to ADO.",
+    enabled: false,
+    schedule: "*/15 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 60, timeoutMinutes: 20 },
+    budgets: { perRunUsd: 3, dailyUsd: 15 },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    skills: ["adoa-code-review"],
+    options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
+    optionSpecs: CODE_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
     waitFor: [],

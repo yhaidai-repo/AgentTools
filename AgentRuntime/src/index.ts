@@ -33,6 +33,8 @@ export type { SkillCatalog } from "./models/SkillCatalog";
 export type { SkillSummary } from "./models/SkillSummary";
 export type { AgentCapabilities } from "./models/AgentCapabilities";
 export type { RepoRef } from "./models/RepoRef";
+export type { PullRequestRef } from "./models/PullRequestRef";
+export type { PullRequestCheckout } from "./models/PullRequestCheckout";
 export type { RepoCacheOptions } from "./models/RepoCacheOptions";
 export type { RepoToolOptions } from "./models/RepoToolOptions";
 export type { RepoProgress } from "./models/RepoProgress";

@@ -9,6 +9,7 @@ export const RANGES: Record<string, { label: string; start: (now: Date) => Date 
   "24h": { label: "24 h", start: (now) => new Date(now.getTime() - 24 * HOUR) },
   "7d": { label: "7 days", start: (now) => new Date(now.getTime() - 7 * 24 * HOUR) },
   "30d": { label: "30 days", start: (now) => new Date(now.getTime() - 30 * 24 * HOUR) },
+  "90d": { label: "90 days", start: (now) => new Date(now.getTime() - 90 * 24 * HOUR) },
   all: { label: "All", start: () => new Date(0) },
 };
 

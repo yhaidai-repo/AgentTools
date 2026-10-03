@@ -8,7 +8,7 @@ const OPEN_STATUSES: ("open" | "in-progress" | "blocked")[] = ["open", "in-progr
 const LIST_LIMIT = 300;
 
 // The kinds the page lists; research results show inside their task.
-export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs"] as const;
+export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review"] as const;
 
 // Every task, question and finding across PBIs, plus those without one (e.g. a chat draft's tech-writer task).
 export async function loadTaskList(filter: TaskFilter) {

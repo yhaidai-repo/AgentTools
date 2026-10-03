@@ -14,6 +14,9 @@ export const PBI_QUEUE = "pbi";
 // Imports from every import source (user decision 2026-10-02: one job, sources behind one abstraction); scheduled, and
 // the Backlog's "Import now".
 export const PBI_IMPORT_QUEUE = "pbi-import";
+// Lists the ADO pull requests the user reviews and queues a code-review task for each new one; scheduled, and the
+// Reviews page's "Check now".
+export const PULL_REQUESTS_QUEUE = "pull-requests";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -44,10 +47,15 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
   await ensureQueue(boss, PBI_QUEUE, "standard");
   await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
+  await ensureQueue(boss, PULL_REQUESTS_QUEUE, "exclusive");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
   await boss.schedule(SYNC_QUEUE, cron);
+}
+
+export async function applyPullRequestsSchedule(boss: PgBoss, cron: string): Promise<void> {
+  await boss.schedule(PULL_REQUESTS_QUEUE, cron);
 }
 
 export async function applyPbiImportSchedule(boss: PgBoss, cron: string): Promise<void> {
