@@ -9,6 +9,7 @@ Go through each point. A point that fails becomes an acceptance-criteria gap, a 
 
 ## The ask
 - The user or system outcome is stated, not only the solution.
+- Bug: symptoms and expected result only, no fix or layer; the first unknown to research is the cause (why the data is in this state).
 - Scope boundaries are clear: what is explicitly out.
 - The PBI is small enough for one sprint; if not, say how it could be split.
 

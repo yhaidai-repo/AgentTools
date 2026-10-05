@@ -15,6 +15,13 @@ description: How the adoa research agent answers one research question with evid
 - Use `git_log` on the key file when "is this used / recent / still true" matters.
 - Stop when the question is answered; don't map the whole system.
 
+## Bugs about data or state
+- Ask first why the data is in this state: what should have changed it, and why didn't it run?
+- Follow the fix's path downstream: what the job, event or consumer updates (projections, counters, other services).
+- Find earlier writers of the same state: backfills, migrations, `deployments/` notes; check they agree with the live path.
+- Before reporting a defect, check guards on the path (global query filters, idempotency checks).
+- End with: does fixing the root cause alone remove every symptom? Yes/no and the evidence.
+
 ## Evidence
 - Each finding cites `<repo>/<path>:<line>` and the symbol, or a doc path.
 - Distinguish: found in code, stated in docs, inferred. Mark inferences.

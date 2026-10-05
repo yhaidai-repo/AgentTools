@@ -9,6 +9,8 @@ description: How the adoa design agent writes an implementation design: plan, al
 - Restate the PBI's goal and its acceptance criteria in a few lines; the plan must cover each criterion.
 - Read the code research pointed to; confirm it still says what the result claims.
 - List what you still don't know. For each: does it change the plan? Yes → gap. No → assumption.
+- Root cause confirmed (config, infra or a broken pipeline) → the first plan is "fix the root cause only". Trace what the existing flow does after that fix; each extra step names the symptom left, with evidence.
+- Runtime assumptions (startup code runs, lag, missing data) are checked in code, or become a gap.
 
 ## Approach and alternatives
 - Prefer extending what exists (helpers, base classes, patterns in the same repo) over new code.
@@ -23,6 +25,11 @@ description: How the adoa design agent writes an implementation design: plan, al
 ## Risks
 - Think: data migration, backwards compatibility, concurrency, performance, security, other consumers of a changed contract.
 - Each risk gets a mitigation that is a concrete action (test, flag, migration step), not "be careful".
+
+## Rollout effects
+- What switching the fix on does to existing data, projections and counters, incl. earlier backfills or migrations that set them.
+- A backfill or any change to historic data only with the user's OK: ask it as a question, not an assumption.
+- Post-deploy checks: data rules to verify after the deploy, each with its query (e.g. no negative counters).
 
 ## Tests
 - One case per acceptance criterion at least, plus edge cases and each risk's check.
