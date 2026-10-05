@@ -16,6 +16,19 @@ export function formatDuration(ms: number): string {
   return seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : `${seconds}s`;
 }
 
+const AGE_UNITS = [
+  { suffix: "d", ms: 24 * 60 * 60 * 1000 },
+  { suffix: "h", ms: 60 * 60 * 1000 },
+  { suffix: "m", ms: 60 * 1000 },
+];
+
+// How long ago, in the largest whole unit: 3d, 5h, 12m.
+export function formatAge(ms: number): string {
+  const unit = AGE_UNITS.find((candidate) => ms >= candidate.ms);
+
+  return unit ? `${Math.floor(ms / unit.ms)}${unit.suffix}` : "<1m";
+}
+
 export function average(total: number, count: number): number {
   return count > 0 ? total / count : 0;
 }

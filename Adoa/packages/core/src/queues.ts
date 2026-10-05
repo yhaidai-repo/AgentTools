@@ -22,6 +22,10 @@ export const PULL_REQUESTS_QUEUE = "pull-requests";
 // Scheduled tasks (user decision 2026-10-03): one queue for every task schedule; each schedule is a pg-boss schedule
 // keyed by its id, so a new schedule needs no new queue.
 export const TASK_SCHEDULE_QUEUE = "task-schedule";
+// Sent only by "Continue with Claude" on a review page (no schedule): the worker renders the PR's review note.
+export const REVIEW_NOTE_QUEUE = "review-note";
+// The www.create command (no schedule): the worker appends the record to its vault's www-log.md.
+export const WWW_QUEUE = "www";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -54,6 +58,8 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
   await ensureQueue(boss, PULL_REQUESTS_QUEUE, "exclusive");
   await ensureQueue(boss, TASK_SCHEDULE_QUEUE, "standard");
+  await ensureQueue(boss, REVIEW_NOTE_QUEUE, "standard");
+  await ensureQueue(boss, WWW_QUEUE, "standard");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {

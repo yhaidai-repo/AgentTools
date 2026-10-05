@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
+import { TimeAgo } from "@/components/TimeAgo";
 import { getDb } from "@/lib/db";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { REVIEW_LIST_STATUSES, loadReviewRows, type ReviewListStatus } from "@/lib/reviews";
@@ -47,6 +48,7 @@ function ReviewTable({ rows }: { rows: ReviewRow[] }) {
       <table>
         <thead>
           <tr>
+            <th>Created</th>
             <th>PR</th>
             <th>Title</th>
             <th>Repo</th>
@@ -62,6 +64,7 @@ function ReviewTable({ rows }: { rows: ReviewRow[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.pr.id}>
+              <td><TimeAgo date={row.pr.adoCreatedAt} /></td>
               <td><a href={row.pr.url} target="_blank" rel="noreferrer">{row.pr.id}</a></td>
               <td><Link href={`/reviews/${row.pr.id}`}>{row.pr.title}</Link>{row.pr.isDraft && <span className="muted"> · draft</span>}</td>
               <td>{row.pr.repoName}</td>

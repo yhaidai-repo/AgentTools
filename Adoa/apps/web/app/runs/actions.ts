@@ -1,10 +1,10 @@
 "use server";
 
-import { DISPATCH_QUEUE, rerunTask, type DispatchJob } from "@adoa/core";
+import { rerunTaskCommand } from "@adoa/core";
 import { localItem } from "@adoa/db";
 import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getBoss } from "@/lib/boss";
+import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import type { ActionResult } from "@/models/ActionResult";
 
@@ -18,12 +18,9 @@ export async function rerunSelected(_previous: ActionResult | null, form: FormDa
   }
 
   const tasks = await getDb().select({ id: localItem.id, pbiId: localItem.pbiId }).from(localItem).where(inArray(localItem.id, ids));
-  const outcomes = await Promise.all(tasks.map((task) => rerunTask(getDb(), task.pbiId, task.id)));
+  const outcomes = await Promise.all(tasks.map((task) => runWebCommand(rerunTaskCommand, { adoId: task.pbiId, itemId: task.id })));
   const reopened = outcomes.filter((outcome) => outcome.ok).length;
   const problems = outcomes.flatMap((outcome) => (outcome.ok ? [] : [outcome.error]));
-  const job: DispatchJob = {};
-
-  await (await getBoss()).send(DISPATCH_QUEUE, job);
   revalidatePath("/", "layout");
 
   const summary = `${reopened} task(s) open again: they run on their agents' next schedule or "Run now".`;

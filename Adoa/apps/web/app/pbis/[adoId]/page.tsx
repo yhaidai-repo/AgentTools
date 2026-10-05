@@ -1,10 +1,11 @@
-import { attachmentRef, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
+import { attachmentRef, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ContinueChat } from "@/components/ContinueChat";
 import { LocalTime } from "@/components/LocalTime";
 import { NoteLink } from "@/components/NoteLink";
 import { getDb } from "@/lib/db";
@@ -16,6 +17,7 @@ import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
 import { DeletePbiButton } from "./DeletePbiButton";
+import { FinishPbiButton } from "./FinishPbiButton";
 import { DesignSection } from "./DesignSection";
 import { LoadFromConfluenceButton } from "./LoadFromConfluenceButton";
 import { RemoveLinkButton } from "./RemoveLinkButton";
@@ -49,7 +51,7 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
-      <p className="actions"><Link href="/pbis">← Backlog</Link> <DeletePbiButton adoId={pbi.adoId} /></p>
+      <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
       <Summary detail={detail} adoUrl={await adoUrl(pbi.adoId)} />
       <Blockers detail={detail} />
       <h2>Description</h2>
@@ -86,6 +88,11 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <Runs detail={detail} />
     </>
   );
+}
+
+// Shown once there is a design; the reason it's disabled comes from the same check the click runs.
+function Continue({ detail }: { detail: PbiDetail }) {
+  return detail.design ? <ContinueChat target={{ kind: "pbi", adoId: detail.pbi.adoId }} /> : null;
 }
 
 function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null }) {

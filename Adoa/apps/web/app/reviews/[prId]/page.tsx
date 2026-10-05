@@ -2,6 +2,7 @@ import type { reviewComment } from "@adoa/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { ContinueChat } from "@/components/ContinueChat";
 import { LocalTime } from "@/components/LocalTime";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { getDb } from "@/lib/db";
@@ -41,6 +42,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ prId: s
         {pr.repoName} · {pr.sourceRef.replace(/^refs\/heads\//, "")} → {pr.targetRef.replace(/^refs\/heads\//, "")} · by {pr.author ?? "–"} · PBIs <LinkedPbis ids={pr.workItemIds} />
       </p>
       <ReviewActions prId={pr.id} isClosed={review.status === "closed"} state={detail.state} hasBeenReviewed={review.reviewedAt !== null} />
+      {review.status === "active" && <p><ContinueChat target={{ kind: "review", prId: pr.id }} /></p>}
       <NewCommitsNotice detail={detail} />
       {review.status === "closed" && <p className="muted">Closed{review.closedReason ? `: ${review.closedReason}` : ""}. Starting a review reopens it.</p>}
       <h2>Summary</h2>

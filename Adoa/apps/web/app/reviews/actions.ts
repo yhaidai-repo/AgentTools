@@ -1,15 +1,14 @@
 "use server";
 
-import { DISPATCH_QUEUE, PULL_REQUESTS_QUEUE, REVIEW_AGENT, closeReview, queueReviewTask, type DispatchJob } from "@adoa/core";
-import { pullRequest, reviewComment } from "@adoa/db";
+import { DISPATCH_QUEUE, PULL_REQUESTS_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview, queueReviewTask, type DispatchJob } from "@adoa/core";
+import { pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
+import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
-
-const ANSWERABLE = ["open", "answered"];
 
 // The pull-requests job is exclusive: a second click while one is queued or running does nothing.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
@@ -20,18 +19,15 @@ export async function checkPullRequestsNow(): Promise<ActionResult> {
 
 // The answer feeds the agent's next run on this PR (user decision 2026-10-02). An empty answer takes it back.
 export async function answerComment(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const commentId = String(form.get("commentId") ?? "");
-  const answer = formText(form, "answer");
-  const [comment] = await getDb().select({ prId: reviewComment.prId, status: reviewComment.status }).from(reviewComment).where(eq(reviewComment.id, commentId));
+  const answered = await runWebCommand(answerReviewCommentCommand, { commentId: String(form.get("commentId") ?? ""), answer: formText(form, "answer") });
 
-  if (!comment || !ANSWERABLE.includes(comment.status)) {
-    return { ok: false, message: comment ? `${commentId} is ${comment.status}; it takes no answer.` : "Unknown comment." };
+  if (!answered.ok) {
+    return { ok: false, message: answered.error };
   }
 
-  await getDb().update(reviewComment).set({ answerMd: answer, answeredAt: answer ? new Date() : null, status: answer ? "answered" : "open", updatedAt: new Date() }).where(eq(reviewComment.id, commentId));
-  revalidatePath(`/reviews/${comment.prId}`);
+  revalidatePath(`/reviews/${answered.value.prId}`);
 
-  return { ok: true, message: answer ? "Answer saved; the next review run reads it." : "Answer removed." };
+  return { ok: true, message: answered.value.answered ? "Answer saved; the next review run reads it." : "Answer removed." };
 }
 
 // Local only: ADO isn't told (user decision 2026-10-02). Rerun reopens it.

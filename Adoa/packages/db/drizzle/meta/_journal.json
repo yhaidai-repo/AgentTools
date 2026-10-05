@@ -197,6 +197,27 @@
       "when": 1791026128559,
       "tag": "0027_scheduled_tasks_vault_review",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791187977457,
+      "tag": "0028_implement_with_claude",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791203910313,
+      "tag": "0029_finish_pbi",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791207773150,
+      "tag": "0030_finish_feedback_www",
+      "breakpoints": true
     }
   ]
 }

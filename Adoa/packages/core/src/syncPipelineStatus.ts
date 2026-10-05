@@ -6,8 +6,8 @@ import { setPbiStatus } from "./pbiStatus";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// Set by sync (new, stale, closed) or by the user (prepare), never derived.
-const FIXED: PipelineStatus[] = ["new", "stale", "closed"];
+// Set by sync (new, stale, closed) or by the user (prepare; "Continue with Claude" → development; Finish → done), never derived.
+const FIXED: PipelineStatus[] = ["new", "development", "done", "stale", "closed"];
 
 // The PBI's pipeline status follows its tasks (user decision 2026-10-01). Called after every change by the worker and
 // the agent-runner; returns the new status, or null when it stayed.

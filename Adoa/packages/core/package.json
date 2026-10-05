@@ -11,7 +11,8 @@
     "@adoa/db": "*",
     "@adoa/vault": "*",
     "drizzle-orm": "^0.45.3",
-    "pg-boss": "^12.35.0"
+    "pg-boss": "^12.35.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

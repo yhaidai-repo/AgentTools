@@ -1,4 +1,4 @@
-import { attachmentRef, isDeletableItem, isHumanTaskData, isRerunnableTask } from "@adoa/core";
+import { attachmentRef, isDeletableItem, isHumanTaskData, type FindingData, isRerunnableTask } from "@adoa/core";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
@@ -6,8 +6,8 @@ import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
-import type { FindingData } from "@/models/FindingData";
 import { CloseItemForm } from "./CloseItemForm";
+import { ContinueItem } from "./ContinueItem";
 import { DeleteItemButton } from "./DeleteItemButton";
 import { FindingForm } from "./FindingForm";
 import { ItemContent } from "./ItemContent";
@@ -35,6 +35,7 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       </div>
       <p className="actions">
         {isRerunnableTask(item) && <RerunTaskButton adoId={adoId} itemId={item.id} />}
+        <ContinueItem item={item} />
         {isDeletableItem(item) && <DeleteItemButton adoId={adoId} itemId={item.id} />}
       </p>
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}

@@ -3,7 +3,7 @@ import { basename } from "node:path";
 // Opens a rendered note in Obsidian. VAULT_PATH is adoa's vault (its folder name is the vault name); notes are rendered
 // into its BACKLOG_FOLDER, and their stored paths are relative to that folder.
 export function obsidianLink(backlogRelativePath: string): string | null {
-  const vaultPath = process.env.VAULT_PATH?.replaceAll("\\", "/").replace(/\/+$/, "");
+  const vaultPath = vaultHostPath();
 
   if (!vaultPath) {
     return null;
@@ -12,6 +12,11 @@ export function obsidianLink(backlogRelativePath: string): string | null {
   const file = [backlogFolder(), backlogRelativePath].filter(Boolean).join("/");
 
   return `obsidian://open?vault=${encodeURIComponent(basename(vaultPath))}&file=${encodeURIComponent(file)}`;
+}
+
+// adoa's vault on the PC (the containers see it as /vault), with forward slashes.
+export function vaultHostPath(): string | null {
+  return process.env.VAULT_PATH?.replaceAll("\\", "/").replace(/\/+$/, "") || null;
 }
 
 export function backlogFolder(): string {

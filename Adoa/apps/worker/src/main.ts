@@ -1,13 +1,14 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
+import { writeReviewNote, writeWwwRecord } from "@adoa/notes";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
 import { loadLinkedPage } from "./documents/confluencePages";
 import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
-import { requireEnv, vaultRoot } from "./env";
+import { requireEnv, vaultRoot, vaultsRoot } from "./env";
 import { runPbiImport } from "./import/runPbiImport";
 import { syncPullRequests } from "./pullRequests/syncPullRequests";
 import type { WorkerContext } from "./models/WorkerContext";
@@ -80,10 +81,10 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
   }
 }));
 
-// "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page.
+// "Sync PBI" on the Backlog, "Delete from adoa" and "Continue with Claude" on a PBI page.
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
-    console.log(`pbi: ${job.data.action === "sync" ? await syncOrThrow(job.data.adoId) : await deletePbi(context, job.data.adoId)}`);
+    console.log(`pbi: ${await runPbiJob(job.data)}`);
   }
 }));
 
@@ -105,12 +106,40 @@ await boss.work<TaskScheduleJob>(TASK_SCHEDULE_QUEUE, (jobs) => logged(TASK_SCHE
   }
 }));
 
+// "Continue with Claude" on a review page: the PR's review note, which the chat reads first.
+await boss.work<ReviewNoteJob>(REVIEW_NOTE_QUEUE, (jobs) => logged(REVIEW_NOTE_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`review-note: ${await writeReviewNote(db, context.vaultRoot, job.data.prId)}`);
+  }
+}));
+
+// WWW records from the www.create command (e.g. the Finish dialog's "what went wrong"): one at a time into the vault's log.
+await boss.work<WwwJob>(WWW_QUEUE, (jobs) => logged(WWW_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`www: ${await writeWwwRecord(db, vaultsRoot(), job.data.recordId)}`);
+  }
+}));
+
 console.log("worker started");
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
 // "Sync PBI" brings any PBI, whatever its ADO state (user decision 2026-10-02).
+async function runPbiJob(job: PbiJob): Promise<string> {
+  if (job.action === "sync") {
+    return syncOrThrow(job.adoId);
+  }
+
+  if (job.action === "delete") {
+    return deletePbi(context, job.adoId);
+  }
+
+  await refreshPbi(context, job.adoId);
+
+  return `PBI-${job.adoId} refreshed`;
+}
+
 async function syncOrThrow(adoId: number): Promise<string> {
   const synced = await syncOnePbi(context, adoId, false);
 

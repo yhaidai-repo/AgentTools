@@ -22,13 +22,37 @@ export function designNoteName(adoId: number): string {
   return `${pbiNoteName(adoId)}-design`;
 }
 
-// Refinement, design and item notes live in the PBI's folder, next to its note.
+export function implementNoteName(adoId: number): string {
+  return `${pbiNoteName(adoId)}-implement`;
+}
+
+// Refinement, design, implement and item notes live in the PBI's folder, next to its note.
 export function refinementNotePath(pbiNotePath: string, adoId: number): string {
   return `${folderOf(pbiNotePath)}/${refinementNoteName(adoId)}.md`;
 }
 
 export function designNotePath(pbiNotePath: string, adoId: number): string {
   return `${folderOf(pbiNotePath)}/${designNoteName(adoId)}.md`;
+}
+
+export function implementNotePath(pbiNotePath: string, adoId: number): string {
+  return `${folderOf(pbiNotePath)}/${implementNoteName(adoId)}.md`;
+}
+
+// A note of the PBI's folder as seen from that folder (e.g. `questions/Q-1-001.md`), for notes that list their siblings.
+export function pathInPbiFolder(pbiNotePath: string, path: string): string {
+  const folder = `${folderOf(pbiNotePath)}/`;
+
+  return path.startsWith(folder) ? path.slice(folder.length) : path;
+}
+
+// A PR's review note (Continue with Claude); reviews have no PBI folder.
+export function reviewNoteName(prId: number): string {
+  return `PR-${prId}`;
+}
+
+export function reviewNotePath(prId: number): string {
+  return `reviews/${reviewNoteName(prId)}.md`;
 }
 
 const ITEM_FOLDERS: Record<string, string> = { question: "questions", "research-result": "research" };

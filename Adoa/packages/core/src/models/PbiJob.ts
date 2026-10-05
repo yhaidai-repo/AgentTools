@@ -1,5 +1,6 @@
 // A one-off action on one PBI that needs the worker (the ADO token, the backlog vault): sent only by the user's buttons.
+// refresh: statuses and notes now, e.g. the handoff note "Continue with Claude" opens the chat on.
 export interface PbiJob {
-  action: "sync" | "delete";
+  action: "sync" | "delete" | "refresh";
   adoId: number;
 }

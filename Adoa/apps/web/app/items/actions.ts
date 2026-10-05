@@ -1,11 +1,12 @@
 "use server";
 
-import { REGISTER_QUEUE, closeHumanItem, deleteItem, findClosableItem, linkedUrlOf, rerunTask, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
+import { REGISTER_QUEUE, closeItemCommand, deleteItem, findClosableItem, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
 import { storeAttachment, type UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
+import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUpload } from "@/lib/formFields";
 import { resolutionFromForm } from "@/lib/humanTaskAnswers";
@@ -27,11 +28,11 @@ export async function closeItem(_previous: ActionResult | null, form: FormData):
     return { ok: false, message: uploadProblem };
   }
 
-  const status = await closeHumanItem(getDb(), found.value, { ...request, resolution: resolutionFromForm(found.value, form, request.resolution) });
+  const closed = await runWebCommand(closeItemCommand, { ...request, resolution: resolutionFromForm(found.value, form, request.resolution) });
 
-  await afterItemChange(request.adoId);
+  revalidateItemPages(request.adoId);
 
-  return { ok: true, message: `${request.itemId} ${status}.` };
+  return closed.ok ? { ok: true, message: `${request.itemId} ${closed.value.status}.` } : { ok: false, message: closed.error };
 }
 
 // "Submit to vault": the worker's register job adds the record to the project's register and closes the finding.
@@ -62,13 +63,13 @@ export async function deleteItemAction(adoId: number | null, itemId: string): Pr
 }
 
 export async function rerunTaskAction(adoId: number | null, itemId: string): Promise<ActionResult> {
-  const reopened = await rerunTask(getDb(), adoId, itemId);
+  const reopened = await runWebCommand(rerunTaskCommand, { adoId, itemId });
 
   if (!reopened.ok) {
     return { ok: false, message: reopened.error };
   }
 
-  await afterItemChange(adoId);
+  revalidateItemPages(adoId);
   revalidatePath("/runs");
   revalidatePath("/agents/runs", "layout");
 
@@ -107,4 +108,9 @@ function readSubmitRequest(form: FormData): SubmitFindingRequest {
     default: formLines(form, "default"),
     options: formLines(form, "options"),
   };
+}
+
+// The commands already told the worker; the pages only need to show the change.
+function revalidateItemPages(adoId: number | null): void {
+  revalidatePath(adoId === null ? "/tasks" : `/pbis/${adoId}`, "layout");
 }

@@ -1,12 +1,14 @@
-import { readAdoSettings } from "@adoa/core";
+import { IMPLEMENTABLE, readAdoSettings } from "@adoa/core";
 import { design, localItem, refinement, workItem, type AdoaDb } from "@adoa/db";
-import { designNotePath, itemNotePath, refinementNotePath, renderDesignNote, renderItemNote, renderRefinementNote } from "@adoa/vault";
+import { designNotePath, implementNotePath, itemNotePath, refinementNotePath, renderDesignNote, renderImplementNote, renderItemNote, renderRefinementNote } from "@adoa/vault";
 import { desc, eq } from "drizzle-orm";
 import { listAttachments } from "./attachments";
+import { implementNote } from "./implementNote";
 import type { VaultAttachment } from "./models/VaultAttachment";
 import { PbiNoteWriter } from "./pbiNotes";
 
 type ItemRow = typeof localItem.$inferSelect;
+type WorkItemRow = typeof workItem.$inferSelect;
 
 // A PBI's notes from the DB: refinement note, design note, item notes, PBI note regions and the index (VaultWriter skips unchanged files).
 export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: number): Promise<void> {
@@ -25,6 +27,7 @@ export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: 
   await writeRefinement(db, notes, pbiPath, adoId);
   await writeDesign(db, notes, pbiPath, adoId);
   await writeItems(db, notes, pbiPath, adoId, attachments);
+  await writeImplement(db, notes, pbiPath, row);
   await notes.writeIndex();
 }
 
@@ -50,6 +53,22 @@ async function writeDesign(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, ad
   await notes.writer.write(designNotePath(pbiPath, adoId), (notesSection) =>
     renderDesignNote({ ...latest, adoId, created: latest.createdAt }, notesSection),
   );
+}
+
+// The handoff note for a PBI chat exists only while the design is current and the PBI is ready or in work.
+async function writeImplement(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, row: WorkItemRow): Promise<void> {
+  const path = implementNotePath(pbiPath, row.adoId);
+  const [latest] = await db.select().from(design).where(eq(design.pbiId, row.adoId)).orderBy(desc(design.version)).limit(1);
+
+  if (!latest || !IMPLEMENTABLE.includes(row.pipelineStatus)) {
+    await notes.writer.remove(path);
+
+    return;
+  }
+
+  const items = await db.select().from(localItem).where(eq(localItem.pbiId, row.adoId));
+
+  await notes.writer.write(path, (notesSection) => renderImplementNote(implementNote(row, latest, items, pbiPath), notesSection));
 }
 
 async function writeItems(db: AdoaDb, notes: PbiNoteWriter, pbiPath: string, adoId: number, attachments: VaultAttachment[]): Promise<void> {

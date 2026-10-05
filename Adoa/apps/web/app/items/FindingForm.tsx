@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
-import type { FindingData } from "@/models/FindingData";
+import type { FindingData } from "@adoa/core";
 import { submitFindingAction } from "./actions";
 
 interface FindingFormProps {

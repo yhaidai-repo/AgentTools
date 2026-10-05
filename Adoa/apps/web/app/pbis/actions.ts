@@ -1,9 +1,10 @@
 "use server";
 
-import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, parsePbiReference, pbiDeleteProblem, readSyncSettings, saveSyncSettings, type PbiJob, type PrepareJob } from "@adoa/core";
+import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, deletePbiCommand, finishPbiCommand, parsePbiReference, readSyncSettings, saveSyncSettings, type PbiFeedback, type PbiJob, type PrepareJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
+import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
@@ -72,15 +73,26 @@ export async function importNow(): Promise<ActionResult> {
 
 // Deletes in adoa only, through the worker (it removes the PBI's notes too). Refused while an agent runs on it.
 export async function deletePbiAction(adoId: number): Promise<ActionResult> {
-  const problem = await pbiDeleteProblem(getDb(), adoId);
+  const deleted = await runWebCommand(deletePbiCommand, { adoId });
 
-  if (problem) {
-    return { ok: false, message: problem };
+  if (!deleted.ok) {
+    return { ok: false, message: deleted.error };
   }
 
-  const job: PbiJob = { action: "delete", adoId };
-
-  await (await getBoss()).send(PBI_QUEUE, job);
   revalidatePath("/pbis");
   redirect("/pbis");
+}
+
+// The Finish dialog, once per PBI (user decision 2026-10-05): done in adoa only (ADO is never written), with the user's
+// rating of the agents, the hours spent and, optionally, what went wrong (a WWW record in the docs vault's log).
+export async function finishPbiAction(feedback: PbiFeedback): Promise<ActionResult> {
+  const finished = await runWebCommand(finishPbiCommand, feedback);
+
+  revalidatePath("/pbis", "layout");
+
+  if (!finished.ok) {
+    return { ok: false, message: finished.error };
+  }
+
+  return { ok: true, message: finished.value.wwwRecordId === null ? finished.value.message : `${finished.value.message} What went wrong is logged in the WWW log.` };
 }

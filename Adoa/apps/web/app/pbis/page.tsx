@@ -11,7 +11,7 @@ import type { BacklogRow } from "@/models/BacklogRow";
 import { ImportsPanel } from "./ImportsPanel";
 import { LastSync } from "./LastSync";
 import { PbiTable } from "./PbiTable";
-import { PrepareForm } from "./PrepareForm";
+import { BacklogForm } from "./BacklogForm";
 import { StatusChips } from "./StatusChips";
 import { StatusFilter } from "./StatusFilter";
 import { SyncForm } from "./SyncForm";
@@ -52,9 +52,9 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
       </div>
       <StatusFilter key={filter.status} status={filter.status} statuses={STATUSES} />
       <StatusChips rows={rows} />
-      <PrepareForm>
+      <BacklogForm>
         <PbiTable rows={rows} ado={ado} />
-      </PrepareForm>
+      </BacklogForm>
       {rows.length === 0 && <p className="muted">No PBIs match. Check the status, or sync a sprint.</p>}
       <ImportsPanel imports={await readRecentImports(db, null, IMPORTS_SHOWN)} />
     </>

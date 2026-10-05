@@ -8,6 +8,11 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+// Every vault's folder (bind-mounted writable): WWW records go to a vault's www-log.md.
+export function vaultsRoot(): string {
+  return requireEnv("VAULTS_DIR");
+}
+
 export function vaultRoot(): string {
   return process.env.VAULT_ROOT || requireEnv("VAULT_PATH");
 }

@@ -1,4 +1,4 @@
-import { agentRun, attachment, deletedPbi, design, localItem, pbiRepo, refinement, statusHistory, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
+import { agentRun, attachment, deletedPbi, design, localItem, pbiFeedback, pbiRepo, refinement, statusHistory, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 import type { Outcome } from "./models/Outcome";
 
@@ -12,9 +12,16 @@ export function parsePbiReference(text: string): number | null {
 
 // Why the PBI can't be deleted now: an agent run on it would write into rows that are gone.
 export async function pbiDeleteProblem(db: AdoaDb, adoId: number): Promise<string | null> {
+  const runId = await runningRunOn(db, adoId);
+
+  return runId === null ? null : `RUN-${runId} is working on PBI-${adoId}; delete it when the run has ended.`;
+}
+
+// The agent run working on the PBI now, if any.
+export async function runningRunOn(db: AdoaDb, adoId: number): Promise<number | null> {
   const [running] = await db.select({ id: agentRun.id }).from(agentRun).where(and(eq(agentRun.pbiId, adoId), eq(agentRun.outcome, "running"))).limit(1);
 
-  return running ? `RUN-${running.id} is working on PBI-${adoId}; delete it when the run has ended.` : null;
+  return running?.id ?? null;
 }
 
 // Deletes the PBI in adoa only (ADO untouched, user decision 2026-10-02): its tasks, questions, runs, attachments, repos,
@@ -37,6 +44,7 @@ export async function deletePbiData(db: AdoaDb, adoId: number): Promise<Outcome<
     await tx.delete(vaultCapture).where(eq(vaultCapture.pbiId, adoId));
     await tx.delete(refinement).where(eq(refinement.pbiId, adoId));
     await tx.delete(design).where(eq(design.pbiId, adoId));
+    await tx.delete(pbiFeedback).where(eq(pbiFeedback.pbiId, adoId)); // its WWW records stay: they are in the vault log
     await tx.delete(agentRun).where(or(eq(agentRun.pbiId, adoId), ofItems));
     await tx.delete(localItem).where(eq(localItem.pbiId, adoId));
     await tx.delete(workItem).where(eq(workItem.adoId, adoId));

@@ -388,15 +388,19 @@ form.close-item {
   max-width: 720px;
 }
 
+/* A link that looks like a button: primary like `button`, or secondary. */
 a.button {
   display: inline-block;
   padding: 6px 14px;
+  color: #fff;
+  background: var(--accent);
   border-radius: 6px;
   text-decoration: none;
 }
 
 a.button.secondary {
   color: var(--text);
+  background: transparent;
   border: 1px solid var(--border);
 }
 
@@ -508,4 +512,51 @@ ol.human-steps p {
 .query-block .actions {
   align-items: center;
   margin-top: 6px;
+}
+
+/* The Finish dialog: rating, effort and what went wrong, one PBI at a time. */
+dialog.modal {
+  width: min(560px, calc(100vw - 32px));
+  padding: 20px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+dialog.modal::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+form.finish-form {
+  display: grid;
+  gap: 12px;
+}
+
+form.finish-form h2,
+form.finish-form p {
+  margin: 0;
+}
+
+form.finish-form label {
+  display: grid;
+  gap: 4px;
+}
+
+fieldset.rating {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+fieldset.rating legend {
+  margin-bottom: 6px;
+}
+
+button.rating-choice {
+  min-width: 36px;
+  padding: 6px 0;
 }

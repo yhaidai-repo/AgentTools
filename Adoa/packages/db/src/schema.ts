@@ -21,7 +21,7 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () =>
 
 export const pipelineStatus = pgEnum("pipeline_status", [
   "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human",
-  "ready-for-design", "designing", "ready-for-dev", "stale", "closed",
+  "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed",
 ]);
 
 export const itemKind = pgEnum("item_kind", [
@@ -430,3 +430,35 @@ export const reviewComment = pgTable("review_comment", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [index("review_comment_pr_idx").on(t.prId, t.status)]);
+
+// Finishing a PBI (user decision 2026-10-05): how the agents did and what it cost the user; one row per finish.
+export const pbiFeedback = pgTable("pbi_feedback", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  rating: smallint("rating").notNull(), // agent performance, 1–10
+  effortHours: numeric("effort_hours").notNull(), // the user's own time on the PBI
+  wwwRecordId: integer("www_record_id").references(() => wwwRecord.id), // set when "what went wrong" was filled
+  createdAt: createdAt(),
+}, (t) => [index("pbi_feedback_pbi_idx").on(t.pbiId)]);
+
+// WWW records adoa appends to a vault's www-log.md (the www-record skill's format). The worker writes them, since only it
+// writes vaults; recordId is the log's WWW-nnn once written.
+export const wwwRecord = pgTable("www_record", {
+  id: serial("id").primaryKey(),
+  vault: text("vault").notNull(), // vault folder under the vaults root
+  project: text("project").notNull(),
+  title: text("title").notNull(),
+  kind: text("kind").notNull(), // complaint | notice
+  planned: text("planned").notNull(),
+  happened: text("happened").notNull(),
+  fault: text("fault").notNull(), // Human | Agent
+  rootCause: text("root_cause"),
+  resolution: text("resolution"),
+  preventiveAction: text("preventive_action"),
+  assumptions: text("assumptions"),
+  source: text("source").notNull(), // what created it, e.g. "PBI-34881 finish"
+  recordId: text("record_id"),
+  writtenAt: ts("written_at"),
+  error: text("error"),
+  createdAt: createdAt(),
+});
