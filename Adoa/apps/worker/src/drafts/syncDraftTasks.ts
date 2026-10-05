@@ -1,7 +1,7 @@
 import { nextGlobalItemId, setItemStatus } from "@adoa/core";
 import { localItem, vaultCapture, type AdoaDb } from "@adoa/db";
 import { VaultCaptureCli, markMergedDrafts, type VaultDraft } from "@adoa/notes";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -70,8 +70,12 @@ async function pbiOfDraft(db: AdoaDb, name: string): Promise<number | null> {
 }
 
 // Merged or deleted outside the tech-writer (also by hand): nothing left to do. A running task is the runner's to end.
+// Only draft tasks: the tech-writer's actualize tasks (from the vault review) have no draft.
 async function closeTasksOfGoneDrafts(db: AdoaDb, cli: VaultCaptureCli): Promise<number> {
-  const waiting = await db.select().from(localItem).where(and(eq(localItem.kind, "docs"), inArray(localItem.status, [...WAITING])));
+  const waiting = await db
+    .select()
+    .from(localItem)
+    .where(and(eq(localItem.kind, "docs"), inArray(localItem.status, [...WAITING]), isNotNull(sql`${localItem.data}->>'draft'`)));
 
   if (waiting.length === 0) {
     return 0;

@@ -1,3 +1,4 @@
+import { frontmatterBlock, noteTitle } from "@adoa/vault";
 import { readFile, readdir } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import type { AdoaNote } from "@/models/AdoaNote";
@@ -39,22 +40,9 @@ async function readNote(root: string, path: string): Promise<VaultNote> {
   return { path, title: noteTitle(text) ?? basename(path, ".md"), authors: authorsOf(text) };
 }
 
-function noteTitle(text: string): string | null {
-  const title = /^title:\s*(.+?)\s*$/m.exec(frontmatter(text))?.[1];
-
-  return title ? unquoted(title) : (/^# (.+)$/m.exec(text)?.[1] ?? null);
-}
-
-// YAML quotes wrap the whole value; a title that only ends with a quote mark (`Rule "Active Hospice…"`) keeps it.
-function unquoted(value: string): string {
-  const isQuoted = value.length > 1 && /^(["']).*\1$/.test(value);
-
-  return isQuoted ? value.slice(1, -1) : value;
-}
-
 // `authors: ["Claude Code (chat, 2026-10-02)", "adoa tech-writer (RUN-36, 2026-10-02)"]`, the vault rules' format.
 function authorsOf(text: string): string[] {
-  const line = /^authors:\s*(\[.*\])\s*$/m.exec(frontmatter(text))?.[1];
+  const line = /^authors:\s*(\[.*\])\s*$/m.exec(frontmatterBlock(text))?.[1];
 
   if (!line) {
     return [];
@@ -65,8 +53,4 @@ function authorsOf(text: string): string[] {
   } catch {
     return [];
   }
-}
-
-function frontmatter(text: string): string {
-  return /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
 }

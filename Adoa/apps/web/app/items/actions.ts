@@ -8,6 +8,7 @@ import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUpload } from "@/lib/formFields";
+import { resolutionFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Answer / dismiss a question or finding, finish / cancel a human task. An attached file is stored first, and only if the item can be closed.
@@ -26,7 +27,7 @@ export async function closeItem(_previous: ActionResult | null, form: FormData):
     return { ok: false, message: uploadProblem };
   }
 
-  const status = await closeHumanItem(getDb(), found.value, request);
+  const status = await closeHumanItem(getDb(), found.value, { ...request, resolution: resolutionFromForm(found.value, form, request.resolution) });
 
   await afterItemChange(request.adoId);
 

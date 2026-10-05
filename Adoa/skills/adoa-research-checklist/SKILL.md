@@ -25,3 +25,4 @@ description: How the adoa research agent answers one research question with evid
 - Confidence: high = read the code path end to end; medium = strong hints, gaps remain; low = mostly inferred.
 - Hand over to design: the docs and code locations to start from.
 - Open points that code can't answer → question; work that needs a person → human task; a new unknown → follow-up task (sparingly).
+- A human task says in short why a person must do it and which problem the answer solves. Each log or data step brings the query to run (KQL, SQL), with the resource, environment and time range filled in; never "check the logs for …" without one.

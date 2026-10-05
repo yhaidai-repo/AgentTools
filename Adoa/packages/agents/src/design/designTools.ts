@@ -1,5 +1,7 @@
+import { renderHumanTaskBody } from "@adoa/core";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
+import { createHumanTaskTool } from "../humanTasks/humanTaskTool";
 import type { DuplicateGuard } from "../DuplicateGuard";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
 import { gapItemKind } from "./gapItems";
@@ -77,17 +79,16 @@ function questionTool(draft: DesignDraft, guard: DuplicateGuard) {
     name: "create_question",
     description: "Ask the user something the design depends on that only a person can answer: a business rule, trade-off, missing spec, or a fact outside the code and docs.",
     input: { question: z.string().min(1), why: z.string().min(1), options: z.array(z.string()).default([]) },
-    handler: async (input) => noteGap(draft, guard, { kind: "question", title: input.question, text: input.question, why: input.why, options: input.options }),
+    handler: async (input) => noteGap(draft, guard, { kind: "question", title: input.question, text: input.question, why: input.why, options: input.options, humanTask: null }),
   });
 }
 
 function taskTool(draft: DesignDraft, guard: DuplicateGuard) {
-  return defineTool({
-    name: "create_task",
-    description: "Create a task for the user that the design needs done: access, an action, a decision, or finding out something outside the code and docs.",
-    input: { title: z.string().min(1), description: z.string().min(1) },
-    handler: async (input) => noteGap(draft, guard, { kind: "task", title: input.title, text: input.description, why: "", options: [] }),
-  });
+  return createHumanTaskTool(
+    "create_task",
+    "Create a task for the user that the design needs done: access, an action, a decision, or finding out something outside the code and docs.",
+    (spec) => noteGap(draft, guard, { kind: "task", title: spec.title, text: renderHumanTaskBody(spec.data), why: spec.data.why, options: [], humanTask: spec.data }),
+  );
 }
 
 function noteGap(draft: DesignDraft, guard: DuplicateGuard, item: GapItem): { text: string; isError?: boolean } {

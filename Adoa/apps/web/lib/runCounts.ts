@@ -1,5 +1,6 @@
+import { JOB_STAGES } from "@adoa/core";
 import { agentRun } from "@adoa/db";
-import { ne, sql } from "drizzle-orm";
+import { notInArray, sql } from "drizzle-orm";
 import type { RunCounts } from "@/models/RunCounts";
 import { getDb } from "./db";
 
@@ -17,7 +18,7 @@ export async function loadRunCounts(from: Date): Promise<Map<string, RunCounts>>
       lastOutcome: sql<string>`(array_agg(${agentRun.outcome} ORDER BY ${agentRun.startedAt} DESC) FILTER (WHERE ${inPeriod}))[1]`,
     })
     .from(agentRun)
-    .where(ne(agentRun.stage, "sync"))
+    .where(notInArray(agentRun.stage, JOB_STAGES))
     .groupBy(agentRun.stage);
 
   return new Map(rows.map((row) => [row.stage, { ...row, lastStartedAt: row.lastStartedAt ? new Date(row.lastStartedAt) : null }]));

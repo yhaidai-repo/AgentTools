@@ -1,11 +1,15 @@
+import { listTaskSchedules } from "@adoa/core";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
+import { getDb } from "@/lib/db";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { isOpen, itemPath } from "@/lib/items";
 import { DEFAULT_RANGE, RANGES, rangeOptions } from "@/lib/ranges";
 import { TASK_KINDS, loadTaskList, type TaskRow } from "@/lib/taskList";
 import type { TaskFilter } from "@/models/TaskFilter";
+import { NewTaskMenu } from "./NewTaskMenu";
+import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +34,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   return (
     <>
       <h1>Tasks</h1>
+      <NewTaskMenu />
+      <h2>Scheduled tasks</h2>
+      <ScheduleTable schedules={await listTaskSchedules(getDb())} />
+      <h2>Tasks</h2>
       <RememberFilters />
       <TaskFilters key={JSON.stringify(filter)} filter={filter} kinds={TASK_KINDS} ranges={rangeOptions()} />
       {rows.length === 0 ? <p className="muted">Nothing matches.</p> : <TaskTable rows={rows} filter={filter} />}

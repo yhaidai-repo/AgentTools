@@ -13,6 +13,7 @@
     "@adoa/attachments": "*",
     "@adoa/core": "*",
     "@adoa/db": "*",
+    "@adoa/vault": "*",
     "@agenttools/config": "*",
     "@agenttools/runtime": "*",
     "@agenttools/usage": "*",

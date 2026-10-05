@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { PostgresAgentConfigStore } from "@agenttools/config";
@@ -17,6 +17,7 @@ import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
 import { runSync } from "./sync/runSync";
 import { syncOnePbi } from "./sync/syncOnePbi";
+import { runScheduledTask } from "./schedules/runScheduledTask";
 
 const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
@@ -37,6 +38,7 @@ await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
 await applyPbiImportSchedule(boss, (await readImportSettings(db)).cron);
 await applyPullRequestsSchedule(boss, (await readPullRequestSettings(db)).cron);
+await applyTaskSchedules(boss, await listTaskSchedules(db));
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
@@ -93,6 +95,14 @@ await boss.work(PBI_IMPORT_QUEUE, () => logged(PBI_IMPORT_QUEUE, async () => {
 // Code review (user decision 2026-10-02): the ADO pull requests the user reviews; new ones get a code-review task.
 await boss.work(PULL_REQUESTS_QUEUE, () => logged(PULL_REQUESTS_QUEUE, async () => {
   console.log(`pull-requests: ${await syncPullRequests(context)}`);
+}));
+
+// Scheduled tasks (user decision 2026-10-03): a schedule's tick (or "Create now") creates its agent's task when one is
+// needed; the agent's own cron decides when the task is picked up.
+await boss.work<TaskScheduleJob>(TASK_SCHEDULE_QUEUE, (jobs) => logged(TASK_SCHEDULE_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`task-schedule ${job.data.scheduleId}: ${await runScheduledTask(context, job.data.scheduleId)}`);
+  }
 }));
 
 console.log("worker started");

@@ -1,4 +1,4 @@
-// One line of VaultUsage's log (`<vault>/.usage/usage.jsonl`), as the page needs it.
+// One line of VaultUsage's log (`<vault>/.usage/usage.jsonl`): the Vault page and the vault review read it.
 export interface VaultUsageEvent {
   at: Date;
   /** Relative to the vault root, `/` separators. */

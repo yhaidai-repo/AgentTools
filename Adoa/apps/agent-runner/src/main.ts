@@ -3,7 +3,7 @@ import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, ty
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb } from "@adoa/db";
 import { VaultCaptureCli, publishPbi } from "@adoa/notes";
-import { VaultWriter } from "@adoa/vault";
+import { VaultWriter, vaultsDir } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
@@ -52,6 +52,8 @@ const deps: AgentDeps = {
   repoCacheRoot,
   captureRules,
   docsVault: docsVaultWriter(),
+  docsVaultName: process.env.DOCS_VAULT_NAME?.trim() || null,
+  vaults: vaultsAccess(),
   listRegister: async (project, kind) => (await VaultCaptureCli.fromEnv("the tech-writer lists a register")).listRegister(project, kind),
   confluence: ConfluenceClient.fromEnv(),
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
@@ -91,8 +93,10 @@ function docsVaultWriter(): AgentDeps["docsVault"] {
     return null;
   }
 
-  const writer = new VaultWriter(`/vaults/${vaultName}`);
+  return docsVaultOf(new VaultWriter(`/vaults/${vaultName}`));
+}
 
+function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
   return {
     readNote: (path) => writer.readText(path),
     writeNote: async (path, content) => {
@@ -100,6 +104,14 @@ function docsVaultWriter(): AgentDeps["docsVault"] {
     },
     removeFile: (path) => writer.remove(path),
   };
+}
+
+// Every vault under the vaults root, writable (user decision 2026-10-03): the vault review's link fixes and removals, the
+// tech-writer's actualize tasks. VaultWriter keeps every path inside its vault.
+function vaultsAccess(): AgentDeps["vaults"] {
+  const root = vaultsDir();
+
+  return root ? { root, writer: (vault) => docsVaultOf(new VaultWriter(`${root}/${vault}`)) } : null;
 }
 
 // VaultUsage's log in the writable docs vault mount (same place as the tech-writer's merges).

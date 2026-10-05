@@ -1,5 +1,7 @@
 import { PgBoss } from "pg-boss";
 import type { DispatchJob } from "./models/DispatchJob";
+import type { TaskSchedule } from "./models/TaskSchedule";
+import type { TaskScheduleJob } from "./models/TaskScheduleJob";
 
 export const SYNC_QUEUE = "sync";
 export const PREPARE_QUEUE = "prepare";
@@ -17,6 +19,9 @@ export const PBI_IMPORT_QUEUE = "pbi-import";
 // Lists the ADO pull requests the user reviews and queues a code-review task for each new one; scheduled, and the
 // Reviews page's "Check now".
 export const PULL_REQUESTS_QUEUE = "pull-requests";
+// Scheduled tasks (user decision 2026-10-03): one queue for every task schedule; each schedule is a pg-boss schedule
+// keyed by its id, so a new schedule needs no new queue.
+export const TASK_SCHEDULE_QUEUE = "task-schedule";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -48,6 +53,7 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, PBI_QUEUE, "standard");
   await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
   await ensureQueue(boss, PULL_REQUESTS_QUEUE, "exclusive");
+  await ensureQueue(boss, TASK_SCHEDULE_QUEUE, "standard");
 }
 
 export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
@@ -72,6 +78,41 @@ export async function applyDispatchTick(boss: PgBoss): Promise<void> {
 // The drafts job (user decision 2026-10-02): its own queue and schedule, the only reader of the draft folder.
 export async function applyDraftsSchedule(boss: PgBoss): Promise<void> {
   await boss.schedule(DRAFTS_QUEUE, DRAFTS_CRON);
+}
+
+// A task schedule ticks on the shared queue under its own key; a disabled one only creates tasks on "Create now".
+export async function applyTaskSchedule(boss: PgBoss, schedule: TaskSchedule): Promise<void> {
+  if (!schedule.enabled) {
+    await removeTaskSchedule(boss, schedule.id);
+
+    return;
+  }
+
+  const job: TaskScheduleJob = { scheduleId: schedule.id };
+
+  await boss.schedule(TASK_SCHEDULE_QUEUE, schedule.cron, job, { key: taskScheduleKey(schedule.id) });
+}
+
+export async function removeTaskSchedule(boss: PgBoss, scheduleId: number): Promise<void> {
+  await boss.unschedule(TASK_SCHEDULE_QUEUE, taskScheduleKey(scheduleId));
+}
+
+// At worker start: every schedule as saved, and pg-boss schedules whose row is gone removed.
+export async function applyTaskSchedules(boss: PgBoss, schedules: TaskSchedule[]): Promise<void> {
+  const keys = new Set(schedules.map((schedule) => taskScheduleKey(schedule.id)));
+  const orphans = (await boss.getSchedules(TASK_SCHEDULE_QUEUE)).filter((entry) => !keys.has(entry.key));
+
+  for (const orphan of orphans) {
+    await boss.unschedule(TASK_SCHEDULE_QUEUE, orphan.key);
+  }
+
+  for (const schedule of schedules) {
+    await applyTaskSchedule(boss, schedule);
+  }
+}
+
+function taskScheduleKey(scheduleId: number): string {
+  return `schedule-${scheduleId}`;
 }
 
 // An agent's schedule sends a dispatch for that agent; a disabled agent or one without a schedule runs only on "Run now".

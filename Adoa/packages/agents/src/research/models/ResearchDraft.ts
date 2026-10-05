@@ -1,7 +1,7 @@
 import type { QuestionDraft } from "../../refinement/models/QuestionDraft";
 import type { ResearchTaskDraft } from "../../refinement/models/ResearchTaskDraft";
 import type { CaptureDraft } from "../../models/CaptureDraft";
-import type { HumanTaskDraft } from "./HumanTaskDraft";
+import type { HumanTaskSpec } from "../../humanTasks/models/HumanTaskSpec";
 import type { ResearchResultOutput } from "./ResearchResultOutput";
 import type { WebResearchDraft } from "../../models/WebResearchDraft";
 import type { RelevantPage } from "../../models/RelevantPage";
@@ -10,7 +10,7 @@ import type { RelevantPage } from "../../models/RelevantPage";
 export interface ResearchDraft {
   result: ResearchResultOutput | null;
   followUps: ResearchTaskDraft[];
-  humanTasks: HumanTaskDraft[];
+  humanTasks: HumanTaskSpec[];
   questions: QuestionDraft[];
   captures: CaptureDraft[];
   webResearch: WebResearchDraft[];

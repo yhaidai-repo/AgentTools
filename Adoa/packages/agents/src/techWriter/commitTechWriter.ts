@@ -1,10 +1,10 @@
-import { nextGlobalItemId } from "@adoa/core";
 import { agentRun, localItem, vaultCapture, vaultNoteWrite, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray } from "drizzle-orm";
-import type { DocsVault } from "../models/DocsVault";
+import { insertFindings } from "../findings";
 import type { DraftTaskData } from "./models/DraftTaskData";
-import type { FindingDraft } from "./models/FindingDraft";
 import type { NoteAuthor } from "./models/NoteAuthor";
+import type { NoteEdit } from "./models/NoteEdit";
+import type { TaskVault } from "./models/TaskVault";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
 import { withAuthor } from "./noteAuthors";
 
@@ -14,42 +14,44 @@ const AUTHOR = "adoa tech-writer";
 
 // A successful run: the notes are written, the draft leaves draft/ (the point of the job), adoa's capture of it is
 // merged, and each finding becomes an item for the user's review. Returns what was written and created, for the outputs.
-export async function commitTechWriter(db: AdoaDb, docsVault: DocsVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<string[]> {
+export async function commitTechWriter(db: AdoaDb, vault: TaskVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<string[]> {
   const data = task.data as DraftTaskData;
 
-  const author: NoteAuthor = { writer: AUTHOR, context: `RUN-${runId}`, date: new Date().toISOString().slice(0, 10) };
-
-  for (const edit of draft.edits) {
-    const previous = await docsVault.readNote(edit.path);
-
-    await docsVault.writeNote(edit.path, withAuthor(edit.content, previous, author));
-    await db.insert(vaultNoteWrite).values({ path: edit.path, runId, action: previous === null ? "created" : "updated" });
-  }
-
-  await docsVault.removeFile(data.path);
+  await writeNotes(db, vault, runId, draft.edits);
+  await vault.writer.removeFile(data.path);
   await db.update(vaultCapture).set({ status: "merged" }).where(and(eq(vaultCapture.name, data.draft), inArray(vaultCapture.status, ["created", "appended"])));
 
   const findingIds = await insertFindings(db, task, runId, draft.findings);
-  const outputs = [...draft.edits.map((edit) => edit.path), `${data.path} removed`, ...findingIds];
 
+  return saveOutputs(db, runId, [...draft.edits.map((edit) => edit.path), `${data.path} removed`, ...findingIds]);
+}
+
+// An actualize task (from the vault review, user decision 2026-10-03): the note is rewritten in place; there is no draft.
+export async function commitActualize(db: AdoaDb, vault: TaskVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<string[]> {
+  await writeNotes(db, vault, runId, draft.edits);
+
+  const findingIds = await insertFindings(db, task, runId, draft.findings);
+
+  return saveOutputs(db, runId, [...draft.edits.map((edit) => `${vault.name}/${edit.path}`), ...findingIds]);
+}
+
+// The Vault page tells created from updated for the docs vault's notes only (vault_note_write paths are relative to it).
+async function writeNotes(db: AdoaDb, vault: TaskVault, runId: number, edits: NoteEdit[]): Promise<void> {
+  const author: NoteAuthor = { writer: AUTHOR, context: `RUN-${runId}`, date: new Date().toISOString().slice(0, 10) };
+
+  for (const edit of edits) {
+    const previous = await vault.writer.readNote(edit.path);
+
+    await vault.writer.writeNote(edit.path, withAuthor(edit.content, previous, author));
+
+    if (vault.isDocsVault) {
+      await db.insert(vaultNoteWrite).values({ path: edit.path, runId, action: previous === null ? "created" : "updated" });
+    }
+  }
+}
+
+async function saveOutputs(db: AdoaDb, runId: number, outputs: string[]): Promise<string[]> {
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
 
   return outputs;
-}
-
-// Linked to the draft's PBI when there is one, and to the task they came from (user decision 2026-10-02).
-async function insertFindings(db: AdoaDb, task: ItemRow, runId: number, findings: FindingDraft[]): Promise<string[]> {
-  const ids: string[] = [];
-
-  for (const finding of findings) {
-    const id = await nextGlobalItemId(db, "F");
-
-    await db.insert(localItem).values({
-      id, kind: "finding", pbiId: task.pbiId, parentId: task.id, title: finding.title.slice(0, 120), status: "open", assignee: "human",
-      body: finding.text, data: { type: finding.type, project: finding.project, default: finding.default, options: finding.options }, createdByRun: runId,
-    });
-    ids.push(id);
-  }
-
-  return ids;
 }

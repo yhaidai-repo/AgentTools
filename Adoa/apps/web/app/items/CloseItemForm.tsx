@@ -1,5 +1,6 @@
 "use client";
 
+import type { HumanTaskStep } from "@adoa/core";
 import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeItem } from "./actions";
@@ -11,14 +12,21 @@ const BUTTONS: Record<string, { decision: string; label: string; secondary?: boo
 };
 
 // One open question, human task or finding: a text answer and/or a file (items of a PBI only), then the decision button.
-export function CloseItemForm({ adoId, itemId, kind, accept }: { adoId: number | null; itemId: string; kind: string; accept: string }) {
+// A structured human task gets one answer box per step (user decision 2026-10-05), the free box becomes a note.
+export function CloseItemForm({ adoId, itemId, kind, accept, steps = [] }: { adoId: number | null; itemId: string; kind: string; accept: string; steps?: HumanTaskStep[] }) {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(closeItem, null);
 
   return (
     <form action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId ?? ""} />
       <input type="hidden" name="itemId" value={itemId} />
-      <textarea name="resolution" rows={3} placeholder={kind === "human" ? "Outcome (optional)" : "Answer"} />
+      {steps.map((step, index) => (
+        <label key={index}>
+          <span>{index + 1}. {step.action} <span className="muted">· {step.reportBack}</span></span>
+          <textarea name={`answer:${index}`} rows={4} />
+        </label>
+      ))}
+      <textarea name="resolution" rows={3} placeholder={resolutionPlaceholder(kind, steps.length > 0)} />
       {adoId !== null && <input type="file" name="file" accept={accept} />}
       <div className="actions">
         {BUTTONS[kind]?.map((button) => (
@@ -31,4 +39,12 @@ export function CloseItemForm({ adoId, itemId, kind, accept }: { adoId: number |
       </div>
     </form>
   );
+}
+
+function resolutionPlaceholder(kind: string, hasSteps: boolean): string {
+  if (kind !== "human") {
+    return "Answer";
+  }
+
+  return hasSteps ? "Note (optional)" : "Outcome (optional)";
 }

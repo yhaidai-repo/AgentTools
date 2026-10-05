@@ -32,7 +32,7 @@ async function insertGapItem(db: AdoaDb, adoId: number, parentId: string, runId:
     status: "open",
     assignee: "human",
     body: item.text,
-    data: kind === "question" ? { why: item.why, options: item.options } : null,
+    data: kind === "question" ? { why: item.why, options: item.options } : item.humanTask,
     createdByRun: runId,
   });
 

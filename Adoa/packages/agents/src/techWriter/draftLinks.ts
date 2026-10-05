@@ -1,3 +1,4 @@
+import { linkKey, parseWikiLinks } from "@adoa/vault";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { NoteEdit } from "./models/NoteEdit";
@@ -8,20 +9,17 @@ const SKIPPED = ["draft"];
 // Notes that would still link the draft once it's deleted (Obsidian turns a click on such a link into an empty root
 // note). The run's own edits count in their new version.
 export async function notesLinkingDraft(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<string[]> {
-  const pattern = linkPattern(draftName);
   const edited = new Map(edits.map((edit) => [edit.path, edit.content]));
   const onDisk = (await markdownFiles(docsRoot, "")).filter((path) => !edited.has(path));
-  const linkingOnDisk = await filterAsync(onDisk, async (path) => pattern.test(await readFile(join(docsRoot, path), "utf8")));
-  const linkingEdits = [...edited].filter(([, content]) => pattern.test(content)).map(([path]) => path);
+  const linkingOnDisk = await filterAsync(onDisk, async (path) => linksTo(path, await readFile(join(docsRoot, path), "utf8"), draftName));
+  const linkingEdits = [...edited].filter(([path, content]) => linksTo(path, content, draftName)).map(([path]) => path);
 
   return [...linkingOnDisk, ...linkingEdits];
 }
 
-// [[name]], [[name|label]] and [[name#heading]]; Obsidian matches names case-insensitively.
-function linkPattern(draftName: string): RegExp {
-  const escaped = draftName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  return new RegExp(String.raw`\[\[${escaped}(\.md)?([|#][^\]]*)?\]\]`, "i");
+// [[name]], [[name|label]] and [[name#heading]], outside code; Obsidian matches names case-insensitively.
+function linksTo(path: string, content: string, draftName: string): boolean {
+  return parseWikiLinks(path, content).some((link) => linkKey(link.target) === linkKey(draftName));
 }
 
 async function markdownFiles(root: string, folder: string): Promise<string[]> {

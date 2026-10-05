@@ -462,3 +462,50 @@ textarea.skill-editor {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px;
 }
+
+/* Tasks page: "New task" menu (a details element, no script). */
+details.menu {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+details.menu > summary {
+  padding: 6px 14px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.menu > ul {
+  position: absolute;
+  z-index: 10;
+  min-width: 200px;
+  margin: 4px 0 0;
+  padding: 6px 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+details.menu li > a {
+  display: block;
+  padding: 6px 14px;
+}
+
+/* Structured human tasks: numbered steps, each query with its language and a Copy button. */
+ol.human-steps > li {
+  margin-bottom: 16px;
+}
+
+ol.human-steps p {
+  margin: 4px 0;
+}
+
+.query-block .actions {
+  align-items: center;
+  margin-top: 6px;
+}

@@ -1,3 +1,5 @@
+import { renderHumanTaskBody } from "@adoa/core";
+import { createHumanTaskTool } from "../humanTasks/humanTaskTool";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
 import { z } from "zod";
@@ -74,22 +76,18 @@ function followUpTool(draft: ResearchDraft, depth: number, maxDepth: number, gua
 }
 
 function humanTaskTool(draft: ResearchDraft, guard: DuplicateGuard) {
-  return defineTool({
-    name: "create_human_task",
-    description: "Create a task for a person: something that needs access, an action or a decision you can't make.",
-    input: { title: z.string().min(1), description: z.string().min(1) },
-    handler: async (input) => {
-      const duplicate = guard.check("human", input.description);
+  return createHumanTaskTool("create_human_task", "Create a task for a person: something that needs access, an action or a decision you can't make.", (spec) => {
+    const text = renderHumanTaskBody(spec.data);
+    const duplicate = guard.check("human", text);
 
-      if (duplicate) {
-        return { text: duplicate, isError: true };
-      }
+    if (duplicate) {
+      return { text: duplicate, isError: true };
+    }
 
-      draft.humanTasks.push(input);
-      guard.remember("human", `human task ${draft.humanTasks.length}`, input.description);
+    draft.humanTasks.push(spec);
+    guard.remember("human", `human task ${draft.humanTasks.length}`, text);
 
-      return { text: `Human task ${draft.humanTasks.length} noted.` };
-    },
+    return { text: `Human task ${draft.humanTasks.length} noted.` };
   });
 }
 

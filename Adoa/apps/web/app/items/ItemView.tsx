@@ -1,6 +1,7 @@
-import { attachmentRef, isDeletableItem, isRerunnableTask } from "@adoa/core";
+import { attachmentRef, isDeletableItem, isHumanTaskData, isRerunnableTask } from "@adoa/core";
 import { ACCEPTED_EXTENSIONS } from "@adoa/attachments";
 import Link from "next/link";
+import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen, itemPath } from "@/lib/items";
@@ -108,7 +109,7 @@ function OpenForms({ detail }: { detail: ItemDetail }) {
     return (
       <>
         <h2>{item.kind === "question" ? "Your answer" : "Close the task"}</h2>
-        <CloseItemForm adoId={item.pbiId} itemId={item.id} kind={item.kind} accept={ACCEPT} />
+        <CloseItemForm adoId={item.pbiId} itemId={item.id} kind={item.kind} accept={ACCEPT} steps={isHumanTaskData(item.data) ? item.data.steps : []} />
       </>
     );
   }
@@ -129,7 +130,8 @@ function ClosedOutcome({ detail }: { detail: ItemDetail }) {
   return (
     <>
       <h2>{item.kind === "human" ? "Outcome" : "Answer"}</h2>
-      <p>{item.status}{item.resolution ? `: ${item.resolution}` : ""}</p>
+      <p>{item.status}</p>
+      {item.resolution && <ResolutionText text={item.resolution} />}
       {attachments.length > 0 && (
         <ul>
           {attachments.map((entry) => <li key={entry.id}><a href={`/pbis/${item.pbiId}/attachments/${entry.id}`}>{attachmentRef(entry.id)} {entry.fileName}</a></li>)}
@@ -137,4 +139,9 @@ function ClosedOutcome({ detail }: { detail: ItemDetail }) {
       )}
     </>
   );
+}
+
+// Per-step answers are markdown (headings, JSON in code blocks); older answers are plain text, kept with their line breaks.
+function ResolutionText({ text }: { text: string }) {
+  return /^### /m.test(text) ? <MarkdownBlock text={text} /> : <div className="text-block">{text}</div>;
 }

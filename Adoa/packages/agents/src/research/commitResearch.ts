@@ -1,4 +1,4 @@
-import { nextItemId, setItemStatus } from "@adoa/core";
+import { nextItemId, setItemStatus, renderHumanTaskBody } from "@adoa/core";
 import { commitRelevantPages } from "../relevantPages";
 import { agentRun, localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, ne } from "drizzle-orm";
@@ -6,7 +6,7 @@ import type { QuestionDraft } from "../refinement/models/QuestionDraft";
 import type { ResearchTaskDraft } from "../refinement/models/ResearchTaskDraft";
 import { commitCaptures } from "../vaultCapture";
 import { insertWebResearchTasks } from "../webResearch";
-import type { HumanTaskDraft } from "./models/HumanTaskDraft";
+import type { HumanTaskSpec } from "../humanTasks/models/HumanTaskSpec";
 import type { ResearchContext } from "./models/ResearchContext";
 import type { ResearchDraft } from "./models/ResearchDraft";
 import type { ResearchResultOutput } from "./models/ResearchResultOutput";
@@ -52,11 +52,12 @@ async function insertFollowUps(db: AdoaDb, context: ResearchContext, runId: numb
   return ids;
 }
 
-async function insertHumanTasks(db: AdoaDb, context: ResearchContext, runId: number, tasks: HumanTaskDraft[]): Promise<string[]> {
+// Structured (user decision 2026-10-05): the body is rendered from the steps, which stay in data for the answer form.
+async function insertHumanTasks(db: AdoaDb, context: ResearchContext, runId: number, tasks: HumanTaskSpec[]): Promise<string[]> {
   const ids: string[] = [];
 
   for (const task of tasks) {
-    ids.push(await insertItem(db, "HT", "human", context, runId, task.title, "open", task.description, null, "human"));
+    ids.push(await insertItem(db, "HT", "human", context, runId, task.title, "open", renderHumanTaskBody(task.data), task.data, "human"));
   }
 
   return ids;

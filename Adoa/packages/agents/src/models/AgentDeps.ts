@@ -7,6 +7,7 @@ import type { DocUsageLog } from "../DocUsageLog";
 import type { CaptureRules } from "./CaptureRules";
 import type { DocsVault } from "./DocsVault";
 import type { RegisterEntry } from "./RegisterEntry";
+import type { VaultsAccess } from "./VaultsAccess";
 
 export interface AgentDeps {
   db: AdoaDb;
@@ -28,6 +29,10 @@ export interface AgentDeps {
   repoCacheRoot: string;
   /** Writable docs vault for the tech-writer; null where adoa may not write it. */
   docsVault: DocsVault | null;
+  /** The docs vault's folder name (DOCS_VAULT_NAME): findings and the Vault page's note writes are about it. */
+  docsVaultName: string | null;
+  /** Every vault under the vaults root, writable; null where it isn't mounted. */
+  vaults: VaultsAccess | null;
   /** A project's register records (VaultCapture `register`); null where the module isn't available. */
   listRegister: ((project: string, kind: "questions" | "issues") => Promise<RegisterEntry[]>) | null;
   /** Confluence account for agents with the integration on; null when CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN aren't set. */

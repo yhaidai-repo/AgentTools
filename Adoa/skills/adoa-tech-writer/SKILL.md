@@ -1,10 +1,10 @@
 ---
 name: adoa-tech-writer
-description: The adoa tech-writer's job - move one draft out of draft/ into verified docs-vault notes, checked against the code, following the vault's AGENTS.md. Use at the start of every tech-writer run.
+description: The adoa tech-writer's job - move one draft out of draft/ into verified docs-vault notes, or bring an outdated note up to date (actualize tasks from the vault review), checked against the code, following the vault's AGENTS.md. Use at the start of every tech-writer run.
 ---
 # Moving a draft into the docs vault
 
-Your task names one draft. The run succeeds only when the draft is merged and leaves `draft/`; that is the point of the job.
+Your task names one draft. The run succeeds only when the draft is merged and leaves `draft/`; that is the point of the job. A task with `Mode: actualize` names an existing note instead: see **Actualize tasks** at the end.
 
 ## Rules
 The docs vault's `AGENTS.md` (in your instructions) is the only rule source: hierarchy, one fact one place, frontmatter, record layout, certainty tags, links. Follow it exactly; when this skill and `AGENTS.md` differ, `AGENTS.md` wins.
@@ -21,3 +21,9 @@ The docs vault's `AGENTS.md` (in your instructions) is the only rule source: hie
 - Don't write into `draft/`; don't delete or rename existing notes.
 - Don't add open questions or known issues to the registers yourself: findings go to the user, who submits them.
 - Don't keep the draft "for later": merge what is verified, record the rest as findings.
+
+## Actualize tasks
+The vault review found the note outdated; `<reasons>` and `<suspect-facts>` say why. The run succeeds only when the note is rewritten.
+1. Read the note and check every fact in the code, the suspect facts first.
+2. Rewrite it in place with `write_note` (same path, whole file): fix or drop what the code contradicts, keep what it confirms, mark certainty as `AGENTS.md` says, bump `last_verified` / `verified_against`, set `status: current` (or keep `needs-review` when you can't verify, and say why).
+3. Findings as above. Don't move, rename or delete the note; a note that should go is the vault review's call.

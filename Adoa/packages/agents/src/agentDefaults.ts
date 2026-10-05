@@ -112,6 +112,52 @@ const CODE_REVIEW_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Review tasks"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a review task",
+    description: "After this many failed runs, the review task is set to blocked; the vault-review job creates no new one while it waits.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "staleDays",
+    label: "Stale after (days without use)",
+    description: "A note nobody read or searched this long is offered as stale; a note changed within this time isn't offered yet. Counts only once the usage log is this old.",
+    min: 7,
+    max: 365,
+  },
+  {
+    key: "recheckDays",
+    label: "Recheck after (days)",
+    description: "A note the agent decided on stays out of its lists this long, unless the note changes.",
+    min: 7,
+    max: 365,
+  },
+  {
+    key: "maxNotesPerRun",
+    label: "Decisions per run",
+    description: "Most notes one run keeps, removes or sends to the tech-writer; the rest wait for the next review task.",
+    min: 1,
+    max: 50,
+  },
+  {
+    key: "maxLinkFixesPerRun",
+    label: "Link fixes per run",
+    description: "Most links one run repoints or drops.",
+    min: 1,
+    max: 200,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 // Outside systems adoa can give an agent tools for; each one is switched on per agent in its Config (user decision 2026-10-02).
 const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
@@ -204,6 +250,24 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     skills: ["adoa-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: CODE_REVIEW_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    next: null,
+    waitFor: [],
+  },
+  // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
+  {
+    id: "vault-review",
+    label: "Vault review",
+    description: "Reviews the vaults chosen in Settings: decides stale and unlinked notes (keep, remove to .trash, actualize via the tech-writer) and fixes invalid links.",
+    enabled: true,
+    schedule: "0 6 * * 1",
+    model: { provider: "anthropic", model: "claude-sonnet-5" },
+    limits: { maxTurns: 40, timeoutMinutes: 15 },
+    budgets: { perRunUsd: 1, dailyUsd: 3 },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    skills: ["adoa-vault-review", "adoa-documentation"],
+    options: { batchSize: 1, maxFailures: 3, staleDays: 60, recheckDays: 90, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, repoRefreshMinutes: 30 },
+    optionSpecs: VAULT_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
     waitFor: [],

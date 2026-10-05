@@ -12,6 +12,7 @@ import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
+import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
 import { endTask, failAfterError, releaseTask } from "./endTask";
 
@@ -23,6 +24,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,
+  "vault-review": runVaultReviewTask,
 };
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.

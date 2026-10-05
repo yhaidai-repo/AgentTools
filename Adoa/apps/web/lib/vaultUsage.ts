@@ -1,25 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isUse, type VaultUsageEvent } from "@adoa/vault";
 import type { NoteUsage } from "@/models/NoteUsage";
 import type { VaultNote } from "@/models/VaultNote";
-import type { VaultUsageEvent } from "@/models/VaultUsageEvent";
 
-// VaultUsage's log contract (its README): one JSON object per line in <vault>/.usage/usage.jsonl. Its PowerShell report
-// isn't in the containers, so the page reads the log itself.
-const LOG_FILE = ".usage/usage.jsonl";
-// Claude Code reads the vault mostly through shell commands (cat, sed, grep), logged as `shell` (user decision 2026-10-02:
-// they count, like in VaultUsage's own report; a few are only mentions). Writes alone don't.
-const USE_KINDS = ["read", "search", "shell"];
+// The log reader and what counts as use live in @adoa/vault, shared with the vault review.
 const ADOA_PREFIX = "adoa:";
 
 export const ALL_AGENTS = "all";
 export const ALL_ADOA = "adoa";
-
-export async function readUsageEvents(root: string): Promise<VaultUsageEvent[]> {
-  const text = await readFile(join(root, LOG_FILE), "utf8").catch(() => "");
-
-  return text.split("\n").filter((line) => line.trim()).map(parseLine).filter((event): event is VaultUsageEvent => event !== null);
-}
 
 // Agents in the log for the filter: Claude Code and each adoa agent, plus "adoa" for all of adoa's together.
 export function agentChoices(events: VaultUsageEvent[]): string[] {
@@ -47,7 +34,7 @@ export function useCount(usage: NoteUsage): number {
 }
 
 function usageOf(note: VaultNote, inPeriod: VaultUsageEvent[], ever: VaultUsageEvent[]): NoteUsage {
-  const uses = ever.filter((event) => USE_KINDS.includes(event.kind));
+  const uses = ever.filter(isUse);
   const lastUsed = uses.reduce<Date | null>((latest, event) => (latest && latest > event.at ? latest : event.at), null);
 
   return {
@@ -57,7 +44,7 @@ function usageOf(note: VaultNote, inPeriod: VaultUsageEvent[], ever: VaultUsageE
     searches: inPeriod.filter((event) => event.kind === "search").length,
     shell: inPeriod.filter((event) => event.kind === "shell").length,
     writes: inPeriod.filter((event) => event.kind === "write").length,
-    agents: [...new Set(inPeriod.filter((event) => USE_KINDS.includes(event.kind)).map((event) => event.agent))].sort(),
+    agents: [...new Set(inPeriod.filter(isUse).map((event) => event.agent))].sort(),
     lastUsed,
   };
 }
@@ -68,14 +55,4 @@ function matchesAgent(eventAgent: string, agent: string): boolean {
   }
 
   return agent === ALL_ADOA ? eventAgent.startsWith(ADOA_PREFIX) : eventAgent === agent;
-}
-
-function parseLine(line: string): VaultUsageEvent | null {
-  try {
-    const raw = JSON.parse(line) as { ts?: string; file?: string; kind?: VaultUsageEvent["kind"]; agent?: string };
-
-    return raw.ts && raw.file && raw.kind ? { at: new Date(raw.ts), file: raw.file, kind: raw.kind, agent: raw.agent ?? "unknown" } : null;
-  } catch {
-    return null;
-  }
 }

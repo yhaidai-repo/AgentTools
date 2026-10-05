@@ -1,13 +1,14 @@
+import { JOB_STAGES } from "@adoa/core";
 import { agentRun, localItem } from "@adoa/db";
 import type { UsageRecord } from "@agenttools/usage";
-import { and, desc, eq, gte, ne, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, notInArray, type SQL } from "drizzle-orm";
 import type { RunListFilter } from "@/models/RunListFilter";
 import { getDb } from "./db";
 import { getUsageStore } from "./usage";
 
 const MAX_RUNS = 200;
 
-// Agent runs (sync runs are the worker's, not an agent's) with the task each one worked on, newest first.
+// Agent runs (job runs, e.g. sync and pull request checks, are the worker's, not an agent's) with the task each one worked on, newest first.
 export async function loadRunList(filter: RunListFilter, from: Date) {
   const runs = await getDb()
     .select({ run: agentRun, task: localItem })
@@ -22,7 +23,7 @@ export async function loadRunList(filter: RunListFilter, from: Date) {
 }
 
 function runConditions(filter: RunListFilter, from: Date): SQL[] {
-  const conditions: SQL[] = [ne(agentRun.stage, "sync"), gte(agentRun.startedAt, from)];
+  const conditions: SQL[] = [notInArray(agentRun.stage, JOB_STAGES), gte(agentRun.startedAt, from)];
 
   if (filter.agent) {
     conditions.push(eq(agentRun.stage, filter.agent as typeof agentRun.$inferSelect["stage"]));

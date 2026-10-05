@@ -50,11 +50,13 @@ export async function pauseForRateLimit(deps: AgentDeps, resetsAt: Date | null):
 }
 
 // The docs vault tools every agent gets; what it reads and searches goes to the vault's usage log (user decision 2026-10-02).
-export function createAgentDocTools(deps: AgentDeps, agentId: string, runId: number): ToolDefinition<any>[] {
-  const usageLog = deps.docUsageLog;
+// Another vault's root (a tech-writer actualize task) gets the same tools without the docs vault's log and exclusions.
+export function createAgentDocTools(deps: AgentDeps, agentId: string, runId: number, root = deps.docsRoot): ToolDefinition<any>[] {
+  const isDocsVault = root === deps.docsRoot;
+  const usageLog = isDocsVault ? deps.docUsageLog : null;
   const onUse = usageLog ? (paths: string[], kind: "read" | "search") => usageLog.record(paths, kind, agentId, runId) : undefined;
 
-  return createDocTools({ root: deps.docsRoot, exclude: deps.docsExclude, onUse });
+  return createDocTools({ root, exclude: isDocsVault ? deps.docsExclude : [], onUse });
 }
 
 // Every doc a run opened with read_doc, from its trace: the automatic part of the handoff to the next stage.

@@ -1,5 +1,7 @@
+import { isHumanTaskData } from "@adoa/core";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import type { ItemRow } from "@/lib/pbiDetail";
+import { HumanTaskContent } from "./HumanTaskContent";
 
 type ItemData = {
   why?: string;
@@ -27,7 +29,7 @@ type ItemData = {
 
 const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode> = {
   question: QuestionContent,
-  human: (item) => <Section title="Task" text={item.body} />,
+  human: HumanContent,
   research: ResearchTaskContent,
   "research-result": ResearchResultContent,
   finding: FindingContent,
@@ -50,6 +52,11 @@ function QuestionContent(item: ItemRow, data: ItemData) {
       {data.url && <p>Linked document: <a href={data.url} target="_blank" rel="noreferrer">{data.url}</a>. Upload its content below to answer.</p>}
     </>
   );
+}
+
+// Agents' tasks are structured since 2026-10-05; older ones and the app's own document tasks are free text.
+function HumanContent(item: ItemRow) {
+  return isHumanTaskData(item.data) ? <HumanTaskContent data={item.data} /> : <Section title="Task" text={item.body} />;
 }
 
 function ResearchTaskContent(item: ItemRow, data: ItemData) {
