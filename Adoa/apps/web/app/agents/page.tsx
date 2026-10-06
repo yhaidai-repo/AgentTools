@@ -1,5 +1,4 @@
 import { isPaused, type AgentDefinition, type AgentsGlobal } from "@agenttools/config";
-import type { UsageTotals } from "@agenttools/usage";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -8,9 +7,12 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { loadJobErrors, type JobError } from "@/lib/jobErrors";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { DEFAULT_RANGE, rangeOptions, rangeStart } from "@/lib/ranges";
+import { loadAgentTotals } from "@/lib/agentTotals";
+import { currentVault } from "@/lib/currentVault";
+import { NoVault } from "@/components/NoVault";
 import { loadRunCounts } from "@/lib/runCounts";
 import { loadSubscriptionStatus } from "@/lib/subscription";
-import { getUsageStore } from "@/lib/usage";
+import type { AgentTotals } from "@/models/AgentTotals";
 import type { RunCounts } from "@/models/RunCounts";
 import { PauseControl, RunNowButton } from "./AgentControls";
 import { RangeFilter } from "./RangeFilter";
@@ -20,18 +22,25 @@ export const dynamic = "force-dynamic";
 
 export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const range = (await rememberedParams("/agents", await searchParams)).range ?? DEFAULT_RANGE;
+  const vault = await currentVault();
+
+  if (!vault) {
+    return <NoVault title="Agents" />;
+  }
+
   const config = getAgentConfig();
   const agents = await config.list();
   const global = await config.getGlobal();
-  const totals = await getUsageStore().totals({ from: rangeStart(range) }, "agent");
-  const byAgent = new Map(totals.map((row) => [row.group, row]));
-  const runCounts = await loadRunCounts(rangeStart(range));
+  // The agents are one set for every vault; their runs, tokens and costs are the selected vault's (user decision 2026-10-06).
+  const byAgent = await loadAgentTotals(rangeStart(range), vault);
+  const runCounts = await loadRunCounts(rangeStart(range), vault);
   const jobErrors = await loadJobErrors(rangeStart(range));
 
   return (
     <>
       <h1>Agents</h1>
       <RememberFilters />
+      <p className="muted">One set of agents for every vault; the runs, tokens and costs below are <code>{vault}</code>&apos;s.</p>
       <SubscriptionPanel statuses={await loadSubscriptionStatus()} />
       <PauseState global={global} />
       <PauseControl isPaused={isPaused(global)} />
@@ -107,7 +116,7 @@ function PauseState({ global }: { global: AgentsGlobal }) {
 
 interface AgentRowProps {
   agent: AgentDefinition;
-  totals?: UsageTotals;
+  totals?: AgentTotals;
   counts?: RunCounts;
   range: string;
   isPaused: boolean;
@@ -117,7 +126,7 @@ interface AgentRowProps {
 // finished runs, so their averages are over finished runs.
 function AgentRow({ agent, totals, counts, range, isPaused }: AgentRowProps) {
   const runs = totals?.runs ?? 0;
-  const tokens = totals ? totals.inputTokens + totals.outputTokens + totals.cacheReadTokens + totals.cacheWriteTokens : 0;
+  const tokens = totals?.tokens ?? 0;
 
   return (
     <tr>

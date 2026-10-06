@@ -1,11 +1,12 @@
 import { JOB_STAGES } from "@adoa/core";
-import { agentRun } from "@adoa/db";
-import { notInArray, sql } from "drizzle-orm";
+import { agentRun, localItem, workItem } from "@adoa/db";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { RunCounts } from "@/models/RunCounts";
 import { getDb } from "./db";
 
-// Per stage (= agent id), in the period, plus all-time runs. Failures: every outcome but success, no-op and running.
-export async function loadRunCounts(from: Date): Promise<Map<string, RunCounts>> {
+// Per stage (= agent id), in the period, plus all-time runs, for the selected vault's runs (a run belongs to the vault of
+// its task, or of its PBI). Failures: every outcome but success, no-op and running.
+export async function loadRunCounts(from: Date, vault: string): Promise<Map<string, RunCounts>> {
   const inPeriod = sql`${agentRun.startedAt} >= ${from}`;
   const rows = await getDb()
     .select({
@@ -18,7 +19,9 @@ export async function loadRunCounts(from: Date): Promise<Map<string, RunCounts>>
       lastOutcome: sql<string>`(array_agg(${agentRun.outcome} ORDER BY ${agentRun.startedAt} DESC) FILTER (WHERE ${inPeriod}))[1]`,
     })
     .from(agentRun)
-    .where(notInArray(agentRun.stage, JOB_STAGES))
+    .leftJoin(localItem, eq(localItem.id, agentRun.itemId))
+    .leftJoin(workItem, eq(workItem.adoId, agentRun.pbiId))
+    .where(and(notInArray(agentRun.stage, JOB_STAGES), sql`coalesce(${localItem.vault}, ${workItem.vault}) = ${vault}`))
     .groupBy(agentRun.stage);
 
   return new Map(rows.map((row) => [row.stage, { ...row, lastStartedAt: row.lastStartedAt ? new Date(row.lastStartedAt) : null }]));
