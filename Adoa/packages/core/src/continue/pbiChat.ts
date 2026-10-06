@@ -9,14 +9,14 @@ import type { PbiJob } from "../models/PbiJob";
 import type { PipelineStatus } from "../models/PipelineStatus";
 import { setPbiStatus } from "../pbiStatus";
 import { PBI_QUEUE } from "../queues";
-import { backlogHostFolder, backlogHostPath, chatHostFolder, repoHostPaths } from "./hostPaths";
+import { backlogHostFolder, backlogHostPath, chatHostFolder } from "./hostPaths";
 import { renderedNoteProblem } from "./renderedNote";
 
 // The statuses a PBI is implemented from; its handoff note exists only then. The first chat moves ready-for-dev → development.
 export const IMPLEMENTABLE: PipelineStatus[] = ["ready-for-dev", "development"];
 
-// The PBI's chat implements the design's plan: it adds the plan's repos (user decision 2026-10-05), then follows the
-// handoff note's Start section: a briefing, and code changes only after the user's yes.
+// The PBI's chat implements the design's plan: it adds only the backlog (repos are attached to the PBI and its agents,
+// not to the prompt), then follows the handoff note's Start section: a briefing, and code changes only after the user's yes.
 export async function pbiChatPlan(env: ContinueEnv, context: CommandContext, adoId: number): Promise<Outcome<ChatPlan>> {
   const [pbi] = await context.db.select().from(workItem).where(eq(workItem.adoId, adoId));
   const [latest] = await context.db.select({ plan: design.plan }).from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
@@ -37,7 +37,7 @@ export async function pbiChatPlan(env: ContinueEnv, context: CommandContext, ado
     title: `Implement PBI-${adoId}: ${pbi.title}`,
     intro: [],
     folder: chatHostFolder(env, pbi.vault),
-    extraFolders: [backlogHostFolder(env, pbi.vault), ...repoHostPaths(env, repos)],
+    extraFolders: [backlogHostFolder(env, pbi.vault)],
     steps: [`Read ${backlogHostPath(env, pbi.vault, notePath)} and follow its Start section: brief me first, and ask before you change anything.`],
   };
 

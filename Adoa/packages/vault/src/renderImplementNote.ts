@@ -50,7 +50,7 @@ export function renderImplementNote(note: ImplementNote, notesSection: string): 
     "## Read first",
     bullets(note.readFirst.map((link) => `[[${link.name}]] \`${link.path}\`: ${link.about}`)),
     "## Repos",
-    "Named in the plan steps; the chat's first message gives their folders.",
+    "Named in the plan steps; the user adds their folders to the session.",
     bullets(note.repos),
     "## Skills",
     bullets(note.skills.map((skill) => `\`${skill.name}\`${skill.reason ? `: ${skill.reason}` : ""}`)),
