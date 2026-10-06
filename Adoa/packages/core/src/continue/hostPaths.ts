@@ -12,8 +12,8 @@ export function chatHostFolder(env: ContinueEnv, vault: string): string {
   return `${env.folder}/${vault}`;
 }
 
-// The backlog lies outside the chat's folder, so a chat that reads backlog notes adds the vault's backlog like a repo.
-export function backlogHostFolder(env: ContinueEnv, vault: string): string {
+// The vault's backlog folder; chats read its notes by absolute path (user decision 2026-10-07: not added to the session).
+function backlogHostFolder(env: ContinueEnv, vault: string): string {
   return `${env.vault}/${vault}`;
 }
 

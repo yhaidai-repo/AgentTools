@@ -9,7 +9,7 @@ import type { FindingData } from "../models/FindingData";
 import type { ItemChat } from "../models/ItemChat";
 import type { Outcome } from "../models/Outcome";
 import { pbiRepoNames } from "../pbiRepos";
-import { backlogHostFolder, backlogHostPath, chatHostFolder, docsProjectHostPath, folderOf, repoHostPaths } from "./hostPaths";
+import { backlogHostPath, chatHostFolder, docsProjectHostPath, folderOf, repoHostPaths } from "./hostPaths";
 import { ITEM_CHATS } from "./itemChats";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -47,7 +47,7 @@ async function pbiItemRequest(env: ContinueEnv, context: CommandContext, item: I
 
   const pbiFolder = backlogHostPath(env, item.vault, folderOf(pbi.vaultPath));
   const read = `Read ${backlogHostPath(env, item.vault, item.vaultPath)}, then the PBI's notes in ${pbiFolder} (${pbiNoteName(adoId)}.md, the refinement, the design when present, research/), and the code they cite where the briefing needs it.`;
-  const folders = [backlogHostFolder(env, item.vault), ...repoHostPaths(env, await pbiRepoNames(context.db, adoId))];
+  const folders = repoHostPaths(env, await pbiRepoNames(context.db, adoId));
 
   return { ok: true, value: itemRequest(env, item, chat, [], folders, [read, ...registersStep(env, item)]) };
 }

@@ -9,7 +9,7 @@ import type { PbiJob } from "../models/PbiJob";
 import type { PipelineStatus } from "../models/PipelineStatus";
 import { setPbiStatus } from "../pbiStatus";
 import { PBI_QUEUE } from "../queues";
-import { backlogHostFolder, backlogHostPath, chatHostFolder } from "./hostPaths";
+import { backlogHostPath, chatHostFolder } from "./hostPaths";
 import { renderedNoteProblem } from "./renderedNote";
 
 // The statuses a PBI is implemented from; its handoff note exists only then. The first chat moves ready-for-dev → development.
@@ -37,7 +37,7 @@ export async function pbiChatPlan(env: ContinueEnv, context: CommandContext, ado
     title: `Implement PBI-${adoId}: ${pbi.title}`,
     intro: [],
     folder: chatHostFolder(env, pbi.vault),
-    extraFolders: [backlogHostFolder(env, pbi.vault)],
+    extraFolders: [],
     steps: [`Read ${backlogHostPath(env, pbi.vault, notePath)} and follow its Start section: brief me first, and ask before you change anything.`],
   };
 
