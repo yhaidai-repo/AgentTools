@@ -17,6 +17,11 @@ export async function listTaskSchedules(db: AdoaDb): Promise<TaskSchedule[]> {
   return db.select().from(taskSchedule).orderBy(asc(taskSchedule.name), asc(taskSchedule.id));
 }
 
+// The selected vault's schedules (the Tasks page and the Maintenance tab show one vault, 2026-10-06).
+export async function listVaultTaskSchedules(db: AdoaDb, vault: string): Promise<TaskSchedule[]> {
+  return db.select().from(taskSchedule).where(eq(taskSchedule.vault, vault)).orderBy(asc(taskSchedule.name), asc(taskSchedule.id));
+}
+
 export async function readTaskSchedule(db: AdoaDb, id: number): Promise<TaskSchedule | null> {
   const [row] = await db.select().from(taskSchedule).where(eq(taskSchedule.id, id));
 

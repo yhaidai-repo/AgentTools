@@ -1,4 +1,4 @@
-import { listTaskSchedules } from "@adoa/core";
+import { listVaultTaskSchedules } from "@adoa/core";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -44,7 +44,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
       <h1>Tasks</h1>
       <NewTaskMenu />
       <h2>Scheduled tasks</h2>
-      <ScheduleTable schedules={await listTaskSchedules(getDb())} />
+      <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
       <h2>Tasks</h2>
       <RememberFilters />
       <TaskFilters key={JSON.stringify(filter)} filter={filter} kinds={TASK_KINDS} ranges={rangeOptions()} />

@@ -1,4 +1,4 @@
-import { VAULT_REVIEW_AGENT, listTaskSchedules, type TaskSchedule } from "@adoa/core";
+import { VAULT_REVIEW_AGENT, listVaultTaskSchedules, type TaskSchedule } from "@adoa/core";
 import { listTrash, type WwwRecord } from "@adoa/vault";
 import { getDb } from "@/lib/db";
 import { WWW_LOG_PATH, isOpenWww, readVaultRegisters } from "@/lib/vaultRegisters";
@@ -13,7 +13,7 @@ import { DocLink } from "./DocLink";
 export async function MaintenanceTab({ root, vault }: { root: string; vault: string }) {
   const registers = await readVaultRegisters(root);
   const trash = await listTrash(root);
-  const schedules = (await listTaskSchedules(getDb())).filter((schedule) => schedule.vault === vault);
+  const schedules = await listVaultTaskSchedules(getDb(), vault);
 
   return (
     <>
