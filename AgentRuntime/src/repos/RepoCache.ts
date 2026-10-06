@@ -129,7 +129,8 @@ export class RepoCache {
 
   private async refresh(repo: RepoRef): Promise<void> {
     await this.git(["fetch", "origin", repo.defaultBranch], this.path(repo), true);
-    await this.git(["reset", "--hard", `origin/${repo.defaultBranch}`], this.path(repo));
+    // A partial clone downloads the files the reset changes, hence the auth.
+    await this.git(["reset", "--hard", `origin/${repo.defaultBranch}`], this.path(repo), true);
     this.lastFetch.set(repo.name, Date.now());
   }
 
