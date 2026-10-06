@@ -36,6 +36,36 @@ export function replaceWikiLinks(content: string, target: string, to: string | n
   }));
 }
 
+// A closed record's heading gets `[RESOLVED]`, so links to it (`[[register#KI-004]]`) break; the vault rules point them
+// at the note instead: `[[register]] (KI-004, resolved)`. In the frontmatter (`related`) the link alone stays, so the
+// value is still a link. `registerPath` is the register's path in the vault.
+export function withRecordLinksResolved(content: string, registerPath: string, recordId: string): string {
+  const keys = [linkKey(registerPath), linkKey(registerPath.split("/").pop()!)];
+  const recordHeading = new RegExp(`^(\\[RESOLVED\\] )?${recordId}\\b`);
+  const frontmatterLines = frontmatterLineCount(content);
+
+  return mapProse(content, (segment, line) => segment.replace(LINK, (whole, embed: string, linked: string, heading: string | undefined, label: string | undefined) => {
+    if (!keys.includes(linkKey(linked)) || !recordHeading.test(heading?.slice(1).trim() ?? "")) {
+      return whole;
+    }
+
+    const link = `${embed}[[${linked}${label ?? ""}]]`;
+
+    return line <= frontmatterLines ? link : `${link} (${recordId}, resolved)`;
+  }));
+}
+
+// Lines up to the closing `---`; 0 when the note has no frontmatter.
+function frontmatterLineCount(content: string): number {
+  const lines = content.split("\n");
+
+  if (lines[0]?.trim() !== "---") {
+    return 0;
+  }
+
+  return lines.findIndex((line, index) => index > 0 && line.trim() === "---") + 1;
+}
+
 // How Obsidian compares link targets: case-insensitive, `.md` optional, `/` separators.
 export function linkKey(target: string): string {
   return target.trim().replaceAll("\\", "/").replace(/\.md$/i, "").toLowerCase();

@@ -20,6 +20,7 @@ import type { VaultReviewDraft } from "./models/VaultReviewDraft";
 import { ReviewScope } from "./ReviewScope";
 import { createVaultReviewActionTools } from "./vaultReviewActionTools";
 import { createVaultReviewReadTools } from "./vaultReviewReadTools";
+import { createVaultReviewRecordTools } from "./vaultReviewRecordTools";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -49,7 +50,7 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ReviewRun = { acquired: [], draft: { decisions: [], linkFixes: [], findings: [], summary: null } };
+  const run: ReviewRun = { acquired: [], draft: { decisions: [], linkFixes: [], records: [], findings: [], summary: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -73,9 +74,13 @@ async function taskVaults(task: ItemRow, vaults: VaultsAccess): Promise<string[]
 
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, scope: ReviewScope, run: ReviewRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
-  const limits: ReviewLimits = { maxNotesPerRun: numberOption(agent, "maxNotesPerRun", 10), maxLinkFixesPerRun: numberOption(agent, "maxLinkFixesPerRun", 30) };
+  const limits: ReviewLimits = {
+    maxNotesPerRun: numberOption(agent, "maxNotesPerRun", 10),
+    maxLinkFixesPerRun: numberOption(agent, "maxLinkFixesPerRun", 30),
+    maxRecordsPerRun: numberOption(agent, "maxRecordsPerRun", 15),
+  };
 
-  await session.phase("context", { task: task.id, vaults: scope.vaults, staleDays: scope.options.staleDays, recheckDays: scope.options.recheckDays, ...limits });
+  await session.phase("context", { task: task.id, vaults: scope.vaults, staleDays: scope.options.staleDays, ...limits });
 
   if (scope.vaults.length === 0) {
     throw new Error("none of the task's vaults is available under the vaults root");
@@ -99,6 +104,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     tools: [
       ...createVaultReviewReadTools(scope),
       ...createVaultReviewActionTools(scope, run.draft, limits),
+      ...createVaultReviewRecordTools(scope, run.draft, limits),
       ...createFindingTools(deps, run.draft.findings),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
       ...skills.tools,
@@ -141,13 +147,18 @@ async function buildFirstMessage(context: TaskContext, task: ItemRow, scope: Rev
   const counts = await Promise.all(scope.vaults.map(async (vault) => {
     const candidates = await scope.candidates(vault);
 
-    return `- ${vault}: ${candidates.stale.length} stale, ${candidates.unlinked.length} unlinked, ${candidates.deadLinks.length} dead link(s) (${candidateCount(candidates)} in all)`;
+    return `- ${vault}: ${candidates.stale.length} stale, ${candidates.unlinked.length} unlinked, ${candidates.deadLinks.length} dead link(s), ${candidates.records.length} open record(s) (${candidateCount(candidates)} in all)`;
   }));
   const docsVault = context.deps.docsVaultName;
+  const caps = [
+    `Decisions this run: at most ${limits.maxNotesPerRun}`,
+    `Link fixes this run: at most ${limits.maxLinkFixesPerRun}`,
+    `Records this run: at most ${limits.maxRecordsPerRun}`,
+  ];
 
   return [
-    "Review the vaults: decide each stale or unlinked note (keep, remove, actualize) and fix invalid links. Pull the candidates with the list tools.",
-    `<task>\nId: ${task.id}\nVaults: ${scope.vaults.join(", ")}\nStale after: ${scope.options.staleDays} days without use\nDecisions this run: at most ${limits.maxNotesPerRun}\nLink fixes this run: at most ${limits.maxLinkFixesPerRun}\n</task>`,
+    "Review the vaults: decide each stale or unlinked note (keep, remove, actualize), fix invalid links, and close or keep each open WWW/KI/OQ record. Pull the candidates with the list tools.",
+    `<task>\nId: ${task.id}\nVaults: ${scope.vaults.join(", ")}\nReview period: ${scope.options.staleDays} days (unused this long = stale)\n${caps.join("\n")}\n</task>`,
     `<candidates>\n${counts.join("\n")}\n</candidates>`,
     `<findings>\n${docsVault ? `Findings go to the registers of the ${docsVault} vault only; for notes of other vaults, put open points in the summary.` : "No register is available: put open points in the summary."}\n</findings>`,
     `<repos>\n${repos.map((repo) => `- ${repo.name} (branch ${repo.defaultBranch})`).join("\n") || "none: no project index names a repo in the catalog"}\n</repos>`,

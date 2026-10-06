@@ -7,6 +7,7 @@ import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
 import type { NoteAuthor } from "../techWriter/models/NoteAuthor";
 import { withAuthor } from "../techWriter/noteAuthors";
 import type { ReviewDecision } from "./models/ReviewDecision";
+import type { RecordDecision } from "./models/RecordDecision";
 import type { VaultChanges } from "./models/VaultChanges";
 import type { VaultReviewDraft } from "./models/VaultReviewDraft";
 import { linksLeftToRemoved, plannedChanges } from "./reviewChanges";
@@ -19,8 +20,9 @@ const TRASH_FOLDER = ".trash";
 const TECH_WRITER = "tech-writer";
 
 // A successful review run (user decision 2026-10-03): every vault is checked before anything is written, then link fixes
-// and status changes are written, removed notes move to the vault's .trash/, actualize decisions become tech-writer
-// tasks, and each decision is recorded so the note drops out of the lists for a while.
+// and status changes are written, closed register records are written (user decision 2026-10-06), removed notes move to
+// the vault's .trash/, actualize decisions become tech-writer tasks, and each decision is recorded so the note or record
+// drops out of the lists for a while.
 export async function commitVaultReview(db: AdoaDb, vaults: VaultsAccess, scope: ReviewScope, task: ItemRow, runId: number, draft: VaultReviewDraft): Promise<string[]> {
   const changes = await changesPerVault(scope, draft);
 
@@ -30,6 +32,9 @@ export async function commitVaultReview(db: AdoaDb, vaults: VaultsAccess, scope:
 
   const decidedAt = new Date();
   const taskIds = await recordDecisions(db, task, runId, draft.decisions, decidedAt);
+
+  await recordRecordDecisions(db, runId, draft.records, decidedAt);
+
   const findingIds = await insertFindings(db, task, runId, draft.findings);
   const outputs = [...summaryLines(draft), ...taskIds, ...findingIds];
 
@@ -41,7 +46,7 @@ export async function commitVaultReview(db: AdoaDb, vaults: VaultsAccess, scope:
 
 // Checked first for every vault: a removed note may not stay linked (write_review_summary already refused that).
 async function changesPerVault(scope: ReviewScope, draft: VaultReviewDraft): Promise<Map<string, VaultChanges>> {
-  const touched = new Set([...draft.decisions.map((decision) => decision.vault), ...draft.linkFixes.map((fix) => fix.vault)]);
+  const touched = new Set([...draft.decisions, ...draft.linkFixes, ...draft.records].map((change) => change.vault));
   const changes = new Map<string, VaultChanges>();
 
   for (const vault of touched) {
@@ -93,6 +98,15 @@ async function recordDecisions(db: AdoaDb, task: ItemRow, runId: number, decisio
   return taskIds;
 }
 
+// A kept record drops out of list_open_records for staleDays; a closed one isn't open any more.
+async function recordRecordDecisions(db: AdoaDb, runId: number, decisions: RecordDecision[], decidedAt: Date): Promise<void> {
+  for (const decision of decisions) {
+    await db.insert(vaultReviewDecision).values({
+      vault: decision.vault, path: decision.path, recordId: decision.recordId, action: decision.action, reasons: decision.reasons, noteMtime: decidedAt, runId, decidedAt,
+    });
+  }
+}
+
 // A tech-writer task in actualize mode (user decision 2026-10-03: a direct task, not a draft), linked to the review task.
 async function createActualizeTask(db: AdoaDb, task: ItemRow, runId: number, decision: ReviewDecision): Promise<string> {
   const id = await nextGlobalItemId(db, "WT");
@@ -126,6 +140,7 @@ async function createActualizeTask(db: AdoaDb, task: ItemRow, runId: number, dec
 function summaryLines(draft: VaultReviewDraft): string[] {
   const decisions = draft.decisions.map((decision) => `${decision.action} ${decision.vault}/${decision.path}${decision.action === "remove" ? ` → ${TRASH_FOLDER}/` : ""}`);
   const fixes = draft.linkFixes.map((fix) => `link ${fix.vault}/${fix.path}: [[${fix.target}]] → ${fix.to === null ? "plain text" : `[[${fix.to}]]`}`);
+  const records = draft.records.map((record) => `${record.action} ${record.vault}/${record.path} ${record.recordId}${record.closing ? ` (${record.closing.status})` : ""}`);
 
-  return [...decisions, ...fixes];
+  return [...decisions, ...fixes, ...records];
 }

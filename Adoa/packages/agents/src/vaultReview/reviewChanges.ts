@@ -1,10 +1,11 @@
 import { linkKey, replaceWikiLinks, withFrontmatterField, type VaultIndex, type WikiLink } from "@adoa/vault";
 import type { VaultChanges } from "./models/VaultChanges";
 import type { VaultReviewDraft } from "./models/VaultReviewDraft";
+import { closeRecords } from "./recordChanges";
 
 // The vault after the run's staged actions: link fixes applied, actualized notes marked for review (the vault rules'
-// "can't re-verify → needs-review"), removed notes gone.
-export function plannedChanges(index: VaultIndex, draft: VaultReviewDraft): VaultChanges {
+// "can't re-verify → needs-review"), closed register records written, removed notes gone.
+export function plannedChanges(index: VaultIndex, draft: VaultReviewDraft, today = new Date().toISOString().slice(0, 10)): VaultChanges {
   const edits = new Map<string, string>();
   const contentOf = (path: string) => edits.get(path) ?? index.note(path)?.content ?? "";
 
@@ -13,6 +14,7 @@ export function plannedChanges(index: VaultIndex, draft: VaultReviewDraft): Vaul
   const ofVault = draft.decisions.filter((decision) => decision.vault === index.vault);
 
   ofVault.filter((decision) => decision.action === "actualize").forEach((decision) => edits.set(decision.path, withFrontmatterField(contentOf(decision.path), "status", "needs-review")));
+  closeRecords(index, draft.records, edits, contentOf, today);
 
   const removed = ofVault.filter((decision) => decision.action === "remove").map((decision) => decision.path);
 

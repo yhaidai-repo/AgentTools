@@ -2,4 +2,5 @@
 export interface ReviewLimits {
   maxNotesPerRun: number;
   maxLinkFixesPerRun: number;
+  maxRecordsPerRun: number;
 }

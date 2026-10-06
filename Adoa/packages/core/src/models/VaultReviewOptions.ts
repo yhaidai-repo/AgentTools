@@ -1,8 +1,7 @@
-// The vault-review agent's options (its Config) that decide which notes are candidates.
+// The vault-review agent's options (its Config) that decide which notes and records are candidates.
 export interface VaultReviewOptions {
-  /** A note unused this long is stale; a note changed within this time isn't offered yet. */
+  /** The review period (user decision 2026-10-06: one period for both): a note unused this long is stale, and a decided
+   *  note or kept record stays out of the lists this long, unless it changes. */
   staleDays: number;
-  /** A decided note stays out of the lists this long, unless it changes. */
-  recheckDays: number;
   now: Date;
 }

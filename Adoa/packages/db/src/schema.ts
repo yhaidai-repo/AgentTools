@@ -58,7 +58,7 @@ export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirme
 export const noteWriteAction = pgEnum("note_write_action", ["created", "updated"]);
 
 // What the vault-review agent decided about a stale note.
-export const vaultReviewAction = pgEnum("vault_review_action", ["keep", "remove", "actualize"]);
+export const vaultReviewAction = pgEnum("vault_review_action", ["keep", "remove", "actualize", "close"]);
 
 export const reviewStatus = pgEnum("review_status", ["active", "closed"]);
 
@@ -368,6 +368,7 @@ export const vaultReviewDecision = pgTable("vault_review_decision", {
   id: serial("id").primaryKey(),
   vault: text("vault").notNull(), // folder name under the vaults root, e.g. work-projects
   path: text("path").notNull(), // relative to the vault root
+  recordId: text("record_id"), // a register record (WWW/KI/OQ id) in the note at `path`; null for a decision on the note
   action: vaultReviewAction("action").notNull(),
   reasons: text("reasons").notNull(),
   noteMtime: ts("note_mtime").notNull(), // the note's mtime when decided: a later change brings it back

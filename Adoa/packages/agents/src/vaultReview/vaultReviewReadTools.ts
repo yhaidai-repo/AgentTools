@@ -1,5 +1,5 @@
 import { textSimilarity } from "@adoa/core";
-import { isLinkEditable, isProtectedNote, type ScannedNote, type VaultIndex, type WikiLink } from "@adoa/vault";
+import { isLinkEditable, isProtectedNote, type MaintenanceRecord, type ScannedNote, type VaultIndex, type WikiLink } from "@adoa/vault";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
 import type { ReviewScope } from "./ReviewScope";
@@ -28,6 +28,7 @@ export function createVaultReviewReadTools(scope: ReviewScope): ToolDefinition<a
     listStaleNotesTool(scope),
     listUnlinkedNotesTool(scope),
     listInvalidLinksTool(scope),
+    listOpenRecordsTool(scope),
     listLinksTool(scope),
     listBacklinksTool(scope),
     listNotesTool(scope),
@@ -71,6 +72,19 @@ function listInvalidLinksTool(scope: ReviewScope) {
       const links = (await scope.candidates(input.vault)).deadLinks;
 
       return pageOf(links, input.offset, input.limit, (link) => deadLinkLine(index, link), "No dead links.");
+    }),
+  });
+}
+
+function listOpenRecordsTool(scope: ReviewScope) {
+  return defineTool({
+    name: "list_open_records",
+    description: "Open records of the vault's registers (www-log.md, <key>-known-issues, <key>-open-questions): register, id, status, last update, title. Records kept recently are left out. Check each with close_record or keep_record.",
+    input: { vault: vaultInput, ...pageInput },
+    handler: async (input) => inVault(scope, input.vault, async () => {
+      const records = (await scope.candidates(input.vault)).records;
+
+      return pageOf(records, input.offset, input.limit, recordLine, "No open records.");
     }),
   });
 }
@@ -169,6 +183,10 @@ function pageOf<T>(items: T[], offset: number, limit: number, render: (item: T) 
 
 function noteLine(index: VaultIndex, note: ScannedNote): string {
   return `${note.path} · "${note.title}" · last used ${day(index.lastUse(note.path))} · ${index.linksTo(note.path).length} inbound link(s) · changed ${day(note.mtime)}`;
+}
+
+function recordLine(record: MaintenanceRecord): string {
+  return `${record.path} · ${record.id} · ${record.status || "no status"} · updated ${record.updated ?? "?"} · "${record.title}"`;
 }
 
 function deadLinkLine(index: VaultIndex, link: WikiLink): string {
