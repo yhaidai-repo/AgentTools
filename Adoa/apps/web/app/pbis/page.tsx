@@ -1,6 +1,9 @@
-import { readAdoSettings, readCurrentSprint, readRecentImports, readSyncSettings } from "@adoa/core";
+import { isAdoActive, readAdoSettings, readCurrentSprint, readRecentImports, readSyncSettings } from "@adoa/core";
 import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
-import { asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
+import Link from "next/link";
+import { NoVault } from "@/components/NoVault";
+import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -33,9 +36,15 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
   const params = await rememberedParams("/pbis", await searchParams);
   const filter: BacklogFilter = { status: STATUSES.find((status) => status === params.status) ?? "" };
   const db = getDb();
-  const sync = await readSyncSettings(db);
-  const ado = await readAdoSettings(db);
-  const rows = await loadRows(db, filter);
+  const vault = await currentVault();
+
+  if (!vault) {
+    return <NoVault title="Backlog" />;
+  }
+
+  const sync = await readSyncSettings(db, vault);
+  const ado = await readAdoSettings(db, vault);
+  const rows = await loadRows(db, filter, vault);
   const [lastSync] = await db.select().from(agentRun).where(eq(agentRun.stage, "sync")).orderBy(desc(agentRun.id)).limit(1);
 
   return (
@@ -44,11 +53,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
       <RememberFilters />
       <div className="chips">
         <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
-      </div>
-      <div className="toolbar">
-        <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db)} />
-        <LastSync run={lastSync} />
-        <SyncPbiForm />
+        <Link className="button" href="/pbis/new">New PBI</Link>
       </div>
       <StatusFilter key={filter.status} status={filter.status} statuses={STATUSES} />
       <StatusChips rows={rows} />
@@ -56,18 +61,31 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
         <PbiTable rows={rows} ado={ado} />
       </BacklogForm>
       {rows.length === 0 && <p className="muted">No PBIs match. Check the status, or sync a sprint.</p>}
-      <ImportsPanel imports={await readRecentImports(db, null, IMPORTS_SHOWN)} />
+      {/* Everything Azure DevOps brings in sits together, only with the vault's integration on (user decision 2026-10-06). */}
+      {isAdoActive(ado) ? (
+        <>
+          <h2>PBI sync</h2>
+          <div className="toolbar">
+            <SyncForm sprint={sync.sprint} options={await loadSprintChoices(ado)} current={await readCurrentSprint(db, vault)} />
+            <LastSync run={lastSync} />
+            <SyncPbiForm />
+          </div>
+          <ImportsPanel imports={await readRecentImports(db, vault, null, IMPORTS_SHOWN)} />
+        </>
+      ) : (
+        <p className="muted">No Azure DevOps integration for <code>{vault}</code>: enable it in <Link href="/settings">Settings</Link> to sync and import PBIs.</p>
+      )}
     </>
   );
 }
 
-async function loadRows(db: AdoaDb, filter: BacklogFilter): Promise<BacklogRow[]> {
+async function loadRows(db: AdoaDb, filter: BacklogFilter, vault: string): Promise<BacklogRow[]> {
   const byStatus = filter.status ? sql`${workItem.pipelineStatus} = ${filter.status}` : undefined;
 
   return db
     .select({ ...getTableColumns(workItem), openForYou: openForYou(), findingsToReview: findingsToReview() })
     .from(workItem)
-    .where(byStatus)
+    .where(and(byStatus, eq(workItem.vault, vault)))
     .orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 }
 

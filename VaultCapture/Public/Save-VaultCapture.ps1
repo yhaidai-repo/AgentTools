@@ -7,7 +7,7 @@ function Save-VaultCapture {
     )
 
     $rules = Get-CaptureRules
-    $vaults = Get-CaptureVault -Config $Config
+    $vaults = Get-CaptureVault -Config $Config -Cwd $Cwd
     $request = ConvertFrom-CaptureInput -InputObject $InputObject -Rules $rules
     $projectError = Set-SessionProject -Request $request -Project (Resolve-CaptureProject -Cwd $Cwd -Vaults $vaults)
     if ($projectError) {

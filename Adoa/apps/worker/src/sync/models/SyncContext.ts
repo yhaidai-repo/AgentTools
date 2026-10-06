@@ -6,5 +6,6 @@ export interface SyncContext {
   db: AdoaDb;
   client: AdoClient;
   ado: AdoSettings;
+  vault: string;
   runId: number;
 }

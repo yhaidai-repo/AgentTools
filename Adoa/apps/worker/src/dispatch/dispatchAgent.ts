@@ -1,7 +1,7 @@
-import { AGENT_RUN_QUEUE, readCurrentSprint, setItemStatus, syncPipelineStatus, validateTask, type AgentRunJob } from "@adoa/core";
+import { AGENT_RUN_QUEUE, readCurrentSprints, setItemStatus, syncPipelineStatus, validateTask, type AgentRunJob } from "@adoa/core";
 import { localItem, workItem } from "@adoa/db";
 import { isPaused, type AgentDefinition } from "@agenttools/config";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { syncConfluencePages } from "../documents/confluencePages";
 import type { WorkerContext } from "../models/WorkerContext";
 
@@ -44,13 +44,15 @@ async function skipReason(context: WorkerContext, agent: AgentDefinition | null)
 }
 
 async function openTasks(context: WorkerContext, agentId: string): Promise<ItemRow[]> {
-  const currentSprint = (await readCurrentSprint(context.db)) ?? "";
+  const currentSprints = await readCurrentSprints(context.db);
+  // Tasks of a vault's current sprint first (inArray refuses an empty list).
+  const isCurrentSprint = currentSprints.length > 0 ? inArray(workItem.iterationPath, currentSprints) : sql`false`;
   const rows = await context.db
     .select({ task: localItem })
     .from(localItem)
     .leftJoin(workItem, eq(workItem.adoId, localItem.pbiId)) // tasks without a PBI too (a chat draft's tech-writer task)
     .where(and(eq(localItem.assignee, `agent:${agentId}`), eq(localItem.status, "open")))
-    .orderBy(sql`${workItem.iterationPath} = ${currentSprint} DESC NULLS LAST`, sql`${workItem.backlogPriority} ASC NULLS LAST`, asc(localItem.createdAt));
+    .orderBy(sql`${isCurrentSprint} DESC NULLS LAST`, sql`${workItem.backlogPriority} ASC NULLS LAST`, asc(localItem.createdAt));
 
   return rows.map((row) => row.task);
 }

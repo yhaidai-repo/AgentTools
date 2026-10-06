@@ -3,4 +3,5 @@
 export interface PbiJob {
   action: "sync" | "delete" | "refresh";
   adoId: number;
+  vault?: string; // sync: the vault the PBI joins (the one selected when the user asked)
 }

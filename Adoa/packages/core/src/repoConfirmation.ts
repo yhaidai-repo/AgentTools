@@ -1,7 +1,7 @@
 import { pbiRepo, repo, type AdoaDb, type localItem } from "@adoa/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import type { CloseItemRequest } from "./models/CloseItemRequest";
-import { catalogRepos } from "./pbiRepos";
+import { catalogRepos } from "./repos";
 
 type ItemRow = typeof localItem.$inferSelect;
 type RepoRow = typeof repo.$inferSelect;
@@ -22,7 +22,7 @@ export async function repoAnswerProblem(db: AdoaDb, item: ItemRow, request: Clos
     return "Answer \"Confirm\", or the repos to use, comma-separated.";
   }
 
-  const known = await catalogRepos(db, names);
+  const known = await catalogRepos(db, item.vault, names);
   const unknown = names.filter((name) => !known.some((row) => row.name.toLowerCase() === name.toLowerCase()));
 
   return unknown.length > 0 ? `Not in the repo catalog: ${unknown.join(", ")}.` : null;
@@ -33,7 +33,7 @@ export async function applyRepoAnswer(db: AdoaDb, item: ItemRow, request: CloseI
     return;
   }
 
-  const asked = await catalogRepos(db, askedRepos(item));
+  const asked = await catalogRepos(db, item.vault, askedRepos(item));
 
   if (request.decision === "dismiss") {
     await dropRepos(db, item.pbiId, asked);
@@ -41,7 +41,7 @@ export async function applyRepoAnswer(db: AdoaDb, item: ItemRow, request: CloseI
     return;
   }
 
-  const chosen = isConfirmation(request.resolution) ? asked : await catalogRepos(db, listedRepos(request.resolution));
+  const chosen = isConfirmation(request.resolution) ? asked : await catalogRepos(db, item.vault, listedRepos(request.resolution));
 
   await confirmRepos(db, item.pbiId, item.id, chosen);
   await dropRepos(db, item.pbiId, asked.filter((row) => !chosen.some((choice) => choice.id === row.id)));

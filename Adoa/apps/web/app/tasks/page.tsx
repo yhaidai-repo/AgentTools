@@ -2,6 +2,8 @@ import { listTaskSchedules } from "@adoa/core";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
+import { NoVault } from "@/components/NoVault";
+import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { isOpen, itemPath } from "@/lib/items";
@@ -29,7 +31,13 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
     sort: params.sort === "updated" ? "updated" : "created",
     dir: params.dir === "asc" ? "asc" : "desc",
   };
-  const rows = await loadTaskList(filter);
+  const vault = await currentVault();
+
+  if (!vault) {
+    return <NoVault title="Tasks" />;
+  }
+
+  const rows = await loadTaskList(filter, vault);
 
   return (
     <>

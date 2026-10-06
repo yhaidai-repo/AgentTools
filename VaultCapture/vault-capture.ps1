@@ -20,14 +20,26 @@ $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Text.Encoding]::UTF8
 
 Import-Module (Join-Path $PSScriptRoot 'VaultCapture.psd1') -Force
+
+# -VaultRoot <path> on any command names the vault to work in (2026-10-06): no configuration needed, several with ";".
+function Use-VaultRoot {
+    param([string]$VaultRoot)
+
+    if ($VaultRoot) {
+        $env:VAULT_CAPTURE_VAULTS = if ($env:VAULT_CAPTURE_VAULTS) { "$($env:VAULT_CAPTURE_VAULTS);$VaultRoot" } else { $VaultRoot }
+    }
+}
 . (Join-Path $PSScriptRoot 'Cli' 'ConvertTo-ParameterTable.ps1')
 
 # The caller's working directory decides the project it captures into, so -Cwd defaults to where the command runs.
 function Invoke-RulesCommand {
     param(
         [ValidateSet('text', 'json')][string]$Format = 'text',
-        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath
+        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath,
+        [string]$VaultRoot
     )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     if ($Format -eq 'json') {
         return Get-VaultRules -Cwd $Cwd | ConvertTo-Json -Depth 5
@@ -39,8 +51,11 @@ function Invoke-RulesCommand {
 function Invoke-CaptureCommand {
     param(
         [string]$InputFile,
-        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath
+        [string]$Cwd = (Get-Location -PSProvider FileSystem).ProviderPath,
+        [string]$VaultRoot
     )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     $json = if ($InputFile) { Get-Content -LiteralPath $InputFile -Raw } else { [Console]::In.ReadToEnd() }
     $result = Save-VaultCapture -InputObject ($json | ConvertFrom-Json) -Cwd $Cwd
@@ -55,8 +70,11 @@ function Invoke-CaptureCommand {
 function Invoke-DraftsCommand {
     param(
         [Parameter(Mandatory)][string]$Vault,
-        [string]$PreferSource
+        [string]$PreferSource,
+        [string]$VaultRoot
     )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     Write-QueryResult -Result (Get-VaultDraft -Vault $Vault -PreferSource $PreferSource)
 }
@@ -65,8 +83,11 @@ function Invoke-DraftsCommand {
 function Invoke-IsDraftCommand {
     param(
         [Parameter(Mandatory)][string]$Vault,
-        [Parameter(Mandatory)][string[]]$Name
+        [Parameter(Mandatory)][string[]]$Name,
+        [string]$VaultRoot
     )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     Write-QueryResult -Result (Test-VaultDraft -Vault $Vault -Name $Name)
 }
@@ -76,15 +97,22 @@ function Invoke-RegisterCommand {
     param(
         [Parameter(Mandatory)][string]$Vault,
         [Parameter(Mandatory)][string]$Project,
-        [Parameter(Mandatory)][string]$Kind
+        [Parameter(Mandatory)][string]$Kind,
+        [string]$VaultRoot
     )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     Write-QueryResult -Result (Get-VaultRegister -Vault $Vault -Project $Project -Kind $Kind)
 }
 
 # A new record, JSON on stdin (or -InputFile): {"vault","project","kind":"questions|issues","title","text","default":[],"options":[]}
 function Invoke-RegisterAddCommand {
-    param([string]$InputFile)
+    param([string]$InputFile,
+        [string]$VaultRoot
+    )
+
+    Use-VaultRoot -VaultRoot $VaultRoot
 
     $json = if ($InputFile) { Get-Content -LiteralPath $InputFile -Raw } else { [Console]::In.ReadToEnd() }
 

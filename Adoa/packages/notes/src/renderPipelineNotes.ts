@@ -13,10 +13,10 @@ type WorkItemRow = typeof workItem.$inferSelect;
 // A PBI's notes from the DB: refinement note, design note, item notes, PBI note regions and the index (VaultWriter skips unchanged files).
 export async function renderPipelineNotes(db: AdoaDb, vaultRoot: string, adoId: number): Promise<void> {
   const [row] = await db.select().from(workItem).where(eq(workItem.adoId, adoId));
-  const ado = await readAdoSettings(db);
+  const ado = row ? await readAdoSettings(db, row.vault) : null;
 
   // A PBI gets its note only from "Prepare for refinement"; until then answers and uploads stay in the DB.
-  if (!row?.vaultPath || !ado) {
+  if (!row?.vaultPath) {
     return;
   }
 

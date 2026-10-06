@@ -54,6 +54,15 @@ a {
   gap: 16px;
 }
 
+/* The vault choice sits at the right end of the top bar. */
+.vault-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--muted);
+}
+
 .brand {
   font-weight: 600;
 }
@@ -80,6 +89,26 @@ h2 {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+/* Tabs of one page (e.g. Vault: Usage, Maintenance); the tab lives in the URL. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs a {
+  padding: 6px 14px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+}
+
+.tabs a.active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .muted {
@@ -522,6 +551,24 @@ dialog.modal {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* The Vaults dialog holds a table and the add form. */
+dialog.vaults-dialog {
+  width: min(760px, calc(100vw - 32px));
+  font-weight: normal;
+}
+
+dialog.vaults-dialog h2 {
+  margin-top: 0;
+}
+
+/* An empty page's hint with its one action. */
+.card.placeholder {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 20px;
 }
 
 dialog.modal::backdrop {

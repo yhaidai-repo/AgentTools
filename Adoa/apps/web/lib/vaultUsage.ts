@@ -6,7 +6,7 @@ import type { VaultNote } from "@/models/VaultNote";
 const ADOA_PREFIX = "adoa:";
 
 export const ALL_AGENTS = "all";
-export const ALL_ADOA = "adoa";
+const ALL_ADOA = "adoa";
 
 // Agents in the log for the filter: Claude Code and each adoa agent, plus "adoa" for all of adoa's together.
 export function agentChoices(events: VaultUsageEvent[]): string[] {

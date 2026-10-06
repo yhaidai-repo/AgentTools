@@ -125,6 +125,7 @@ async function createActualizeTask(db: AdoaDb, task: ItemRow, runId: number, dec
     id,
     kind: "docs",
     pbiId: null,
+    vault: decision.vault,
     parentId: task.id,
     title: `Actualize: ${decision.vault}/${decision.path}`.slice(0, 120),
     status: "open",

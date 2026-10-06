@@ -8,6 +8,7 @@ function Get-VaultUsageConfig {
     }
 
     $config = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    # The list is optional (2026-10-06): any folder with ".obsidian" is a vault; listed ones are tracked without it.
     $config.vaults = @($config.vaults | ForEach-Object { ConvertTo-NativePath -Path $_ })
 
     return $config

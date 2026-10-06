@@ -1,18 +1,25 @@
 "use server";
 
-import { DISPATCH_QUEUE, PULL_REQUESTS_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview, queueReviewTask, type DispatchJob } from "@adoa/core";
+import { DISPATCH_QUEUE, PULL_REQUESTS_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview as closeReviewOf, deleteReviewCommand, isAdoActive, queueReviewTask, readAdoSettings, sendVaultJob, type DispatchJob } from "@adoa/core";
 import { pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
+import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
 
-// The pull-requests job is exclusive: a second click while one is queued or running does nothing.
+// The pull-requests job is exclusive per vault: a second click while one is queued or running does nothing.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
-  const jobId = await (await getBoss()).send(PULL_REQUESTS_QUEUE);
+  const vault = await requireVault();
+
+  if (!isAdoActive(await readAdoSettings(getDb(), vault))) {
+    return { ok: false, message: `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.` };
+  }
+
+  const jobId = await sendVaultJob(await getBoss(), PULL_REQUESTS_QUEUE, vault);
 
   return { ok: true, message: jobId ? "Checking Azure DevOps; new PRs appear in a few seconds." : "A check is already queued or running." };
 }
@@ -34,11 +41,53 @@ export async function answerComment(_previous: ActionResult | null, form: FormDa
 export async function closeReviewAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const prId = Number(form.get("prId"));
 
-  await closeReview(getDb(), prId, formText(form, "reason"), "human");
+  await closeReviewOf(getDb(), prId, formText(form, "reason"), "human");
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
   return { ok: true, message: "Review closed." };
+}
+
+// The grid's bulk actions (user decision 2026-10-06): each selected review in turn; refusals are reported together.
+export async function queueSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return forSelected(form, "queued", queueReview);
+}
+
+export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return forSelected(form, "closed", closeReview);
+}
+
+export async function deleteSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return forSelected(form, "deleted", deleteReview);
+}
+
+async function forSelected(form: FormData, done: string, act: (prId: number) => Promise<ActionResult>): Promise<ActionResult> {
+  const ids = form.getAll("prId").map(Number).filter(Number.isInteger);
+
+  if (ids.length === 0) {
+    return { ok: false, message: "Select at least one review." };
+  }
+
+  const results = await Promise.all(ids.map(act));
+  const problems = results.filter((result) => !result.ok).map((result) => result.message);
+
+  return { ok: problems.length === 0, message: `${ids.length - problems.length} review(s) ${done}.${problems.length > 0 ? ` ${problems.join(" ")}` : ""}` };
+}
+
+// The review page's Close (no reason) and Delete (user decision 2026-10-06: the same actions on the grid and the review page).
+export async function closeReview(prId: number): Promise<ActionResult> {
+  await closeReviewOf(getDb(), prId, null, "human");
+  revalidatePath("/reviews");
+
+  return { ok: true, message: "Review closed." };
+}
+
+export async function deleteReview(prId: number): Promise<ActionResult> {
+  const deleted = await runWebCommand(deleteReviewCommand, { prId });
+
+  revalidatePath("/reviews");
+
+  return deleted.ok ? { ok: true, message: `Review of PR ${prId} deleted.` } : { ok: false, message: deleted.error };
 }
 
 // The user starts every review (user decision 2026-10-02): a full review of the PR's current commit, earlier comments and

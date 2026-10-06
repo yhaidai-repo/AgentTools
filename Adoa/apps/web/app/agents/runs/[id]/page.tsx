@@ -90,10 +90,10 @@ async function Outputs({ run }: { run: RunRow }) {
 
   return (
     <ul>
-      {pbi?.vaultPath && <li><NoteLink path={pbi.vaultPath} label={`PBI-${pbi.adoId} note`} /></li>}
-      {version && pbi?.vaultPath && <li><NoteLink path={pbi.vaultPath.replace(/[^/]+$/, `PBI-${pbi.adoId}-refinement.md`)} label={`Refinement v${version.version}`} /></li>}
+      {pbi?.vaultPath && <li><NoteLink vault={pbi.vault} path={pbi.vaultPath} label={`PBI-${pbi.adoId} note`} /></li>}
+      {version && pbi?.vaultPath && <li><NoteLink vault={pbi.vault} path={pbi.vaultPath.replace(/[^/]+$/, `PBI-${pbi.adoId}-refinement.md`)} label={`Refinement v${version.version}`} /></li>}
       {items.map((item) => (
-        <li key={item.id}><Link href={itemPath(item)}>{item.id}</Link>{item.vaultPath && <> (<NoteLink path={item.vaultPath} label="note" />)</>} · {item.kind} · {item.status} · {item.title}</li>
+        <li key={item.id}><Link href={itemPath(item)}>{item.id}</Link>{item.vaultPath && <> (<NoteLink vault={item.vault} path={item.vaultPath} label="note" />)</>} · {item.kind} · {item.status} · {item.title}</li>
       ))}
       {notes.map((note) => <li key={note}><code>{note}</code></li>)}
     </ul>

@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { Outcome } from "@adoa/core";
 import type { CaptureResult } from "./models/CaptureResult";
@@ -9,7 +8,6 @@ import type { NewRegisterRecord } from "./models/NewRegisterRecord";
 import type { RegisterRecord } from "./models/RegisterRecord";
 import type { VaultDraft } from "./models/VaultDraft";
 
-const CONFIG_FILE = "/tmp/vault-capture.config.json";
 const TIMEOUT_MS = 60_000;
 
 // The user's VaultCapture module (PowerShell CLI), which owns the docs vault's draft rules. Only the worker runs it.
@@ -19,20 +17,17 @@ export class VaultCaptureCli {
     readonly vaultName: string,
   ) {}
 
-  // `reason` names what needs the module, so a missing configuration fails the job with a clear message.
-  static async fromEnv(reason: string): Promise<VaultCaptureCli> {
+  // One vault under the vaults root (user decision 2026-10-05: every vault has its own drafts and registers), named to
+  // the CLI as -VaultRoot (2026-10-06: the tool takes the vault as a parameter, no configuration); `reason` names what
+  // needs the module, so a missing configuration fails the job with a clear message.
+  static async forVault(vaultName: string, reason: string): Promise<VaultCaptureCli> {
     const moduleHome = process.env.VAULT_CAPTURE_HOME;
-    const vaultName = process.env.DOCS_VAULT_NAME;
 
-    if (!moduleHome || !vaultName) {
-      throw new Error(`${reason}, but VAULT_CAPTURE_HOME or DOCS_VAULT_NAME is not set`);
+    if (!moduleHome) {
+      throw new Error(`${reason}, but VAULT_CAPTURE_HOME is not set`);
     }
 
-    const cli = new VaultCaptureCli(moduleHome, vaultName);
-
-    await writeFile(CONFIG_FILE, JSON.stringify({ vaults: [cli.vaultRoot()] }), "utf8");
-
-    return cli;
+    return new VaultCaptureCli(moduleHome, vaultName);
   }
 
   async capture(request: object): Promise<CaptureResult> {
@@ -90,8 +85,8 @@ export class VaultCaptureCli {
 
   private run(args: string[], input = ""): Promise<CliOutput> {
     return new Promise((resolve) => {
-      const child = spawn("pwsh", ["-NoProfile", "-NonInteractive", "-File", join(this.moduleHome, "vault-capture.ps1"), ...args], {
-        env: { ...process.env, VAULT_CAPTURE_CONFIG: CONFIG_FILE, NO_COLOR: "1" },
+      const child = spawn("pwsh", ["-NoProfile", "-NonInteractive", "-File", join(this.moduleHome, "vault-capture.ps1"), ...args, "-VaultRoot", this.vaultRoot()], {
+        env: { ...process.env, VAULT_CAPTURE_CONFIG: "/nonexistent/vault-capture.config.json", NO_COLOR: "1" },
         timeout: TIMEOUT_MS,
       });
       let stdout = "";

@@ -2,7 +2,9 @@ import type { Command } from "../models/Command";
 import { answerReviewCommentCommand } from "./answerReviewCommentCommand";
 import { closeItemCommand } from "./closeItemCommand";
 import { createWwwRecordCommand } from "./createWwwRecordCommand";
+import { createPbiCommand } from "./createPbiCommand";
 import { deletePbiCommand } from "./deletePbiCommand";
+import { deleteReviewCommand } from "./deleteReviewCommand";
 import { finishPbiCommand } from "./finishPbiCommand";
 import { openChatCommand } from "./openChatCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
@@ -15,6 +17,8 @@ import { savePbiSkillsCommand } from "./savePbiSkillsCommand";
 export const COMMANDS: readonly Command<any, any>[] = [
   finishPbiCommand,
   deletePbiCommand,
+  createPbiCommand,
+  deleteReviewCommand,
   savePbiReposCommand,
   savePbiSkillsCommand,
   closeItemCommand,

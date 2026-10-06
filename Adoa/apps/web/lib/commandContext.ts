@@ -3,7 +3,7 @@ import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { getDb } from "./db";
 import { bossJobPort } from "./jobPort";
-import { backlogFolder, vaultHostPath } from "./obsidian";
+import { vaultHostPath } from "./obsidian";
 import { loadSkillCatalog } from "./skills";
 
 // Every web action runs its change as a command (user decision 2026-10-05), so the web, and later an MCP server, share
@@ -19,22 +19,21 @@ export function webCommandContext(): CommandContext {
     jobs: bossJobPort,
     notes: backlogNotes,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
-    docsVaultName: process.env.DOCS_VAULT_NAME?.trim() || null,
     continueEnv: continueEnv(),
   };
 }
 
-// VAULT_ROOT is the backlog folder of the vault, mounted read-only.
+// BACKLOG_MOUNT is adoa's backlog vault, mounted read-only; each vault's backlog is a folder in it.
 const backlogNotes: BacklogNotes = {
-  async exists(backlogRelativePath) {
-    const root = process.env.VAULT_ROOT;
+  async exists(vault, backlogRelativePath) {
+    const root = process.env.BACKLOG_MOUNT;
 
     if (!root) {
       return false;
     }
 
     try {
-      await access(join(root, backlogRelativePath));
+      await access(join(root, vault, backlogRelativePath));
 
       return true;
     } catch {
@@ -53,7 +52,7 @@ function continueEnv(): ContinueEnv | null {
     return null;
   }
 
-  return { launcher: process.env.CONTINUE_LAUNCHER?.trim() || DEFAULT_CHAT_LAUNCHER, folder, reposRoot, vault, backlogFolder: backlogFolder() };
+  return { launcher: process.env.CONTINUE_LAUNCHER?.trim() || DEFAULT_CHAT_LAUNCHER, folder, reposRoot, vault, agentTools: hostPath(process.env.AGENTTOOLS_PATH) };
 }
 
 function hostPath(value: string | undefined): string | null {

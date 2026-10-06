@@ -8,11 +8,6 @@ import type { VaultNote } from "@/models/VaultNote";
 const HIDDEN_FOLDERS = [".obsidian", ".usage", ".trash"];
 const ADOA_AUTHOR = /^adoa tech-writer \((RUN-(\d+)), (\d{4}-\d{2}-\d{2})\)$/;
 
-// The docs vault the agents use, mounted read-only into the web (DOCS_ROOT); null when it isn't.
-export function docsRoot(): string | null {
-  return process.env.DOCS_ROOT || null;
-}
-
 export async function listVaultNotes(root: string): Promise<VaultNote[]> {
   const entries = await readdir(root, { withFileTypes: true, recursive: true });
   const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => join(entry.parentPath, entry.name));

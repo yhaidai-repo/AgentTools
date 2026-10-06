@@ -1,4 +1,6 @@
 import { localItem, pbiRepo, refinement, repo, type AdoaDb } from "@adoa/db";
+import { catalogRepos } from "./repos";
+import { vaultOfPbi } from "./vaults";
 import { and, desc, eq, inArray, like, notInArray, sql } from "drizzle-orm";
 import type { Outcome } from "./models/Outcome";
 import { setItemStatus } from "./pbiStatus";
@@ -26,7 +28,13 @@ export async function pbiRepoNames(db: AdoaDb, adoId: number): Promise<string[]>
 // vault documents keep that source; every other kept or added repo is confirmed by the user; removed ones are dropped.
 // It answers refinement's open repo question too.
 export async function savePbiRepos(db: AdoaDb, adoId: number, names: string[]): Promise<Outcome<number>> {
-  const chosen = await catalogRepos(db, names);
+  const vault = await vaultOfPbi(db, adoId);
+
+  if (!vault) {
+    return { ok: false, error: `PBI-${adoId} isn't in adoa.` };
+  }
+
+  const chosen = await catalogRepos(db, vault, names);
   const unknown = names.filter((name) => !chosen.some((row) => row.name.toLowerCase() === name.toLowerCase()));
 
   if (unknown.length > 0) {
@@ -38,14 +46,6 @@ export async function savePbiRepos(db: AdoaDb, adoId: number, names: string[]): 
   await answerOpenRepoQuestions(db, adoId);
 
   return { ok: true, value: chosen.length };
-}
-
-// Matched by name, case-insensitively, against the repos that aren't excluded.
-export async function catalogRepos(db: AdoaDb, names: string[]): Promise<RepoRow[]> {
-  const wanted = new Set(names.map((name) => name.toLowerCase()));
-  const catalog = await db.select().from(repo).where(eq(repo.excluded, false));
-
-  return catalog.filter((row) => wanted.has(row.name.toLowerCase()));
 }
 
 async function dropOthers(db: AdoaDb, adoId: number, chosen: RepoRow[]): Promise<void> {

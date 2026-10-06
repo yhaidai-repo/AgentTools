@@ -1,5 +1,6 @@
 import { PgBoss } from "pg-boss";
 import type { DispatchJob } from "./models/DispatchJob";
+import type { VaultJob } from "./models/VaultJob";
 import type { TaskSchedule } from "./models/TaskSchedule";
 import type { TaskScheduleJob } from "./models/TaskScheduleJob";
 
@@ -26,6 +27,10 @@ export const TASK_SCHEDULE_QUEUE = "task-schedule";
 export const REVIEW_NOTE_QUEUE = "review-note";
 // The www.create command (no schedule): the worker appends the record to its vault's www-log.md.
 export const WWW_QUEUE = "www";
+// Settings → Add vault (no schedule): the worker creates the vault's folder and files from adoa's templates.
+export const VAULT_INIT_QUEUE = "vault-init";
+// The Maintenance tab's Restore / Delete on a vault's .trash/ (no schedule): the worker moves or removes the file.
+export const VAULT_TRASH_QUEUE = "vault-trash";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -60,18 +65,31 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, TASK_SCHEDULE_QUEUE, "standard");
   await ensureQueue(boss, REVIEW_NOTE_QUEUE, "standard");
   await ensureQueue(boss, WWW_QUEUE, "standard");
+  await ensureQueue(boss, VAULT_INIT_QUEUE, "standard");
+  await ensureQueue(boss, VAULT_TRASH_QUEUE, "standard");
 }
 
-export async function applySyncSchedule(boss: PgBoss, cron: string): Promise<void> {
-  await boss.schedule(SYNC_QUEUE, cron);
+// A per-vault job's schedules (user decision 2026-10-05): one per vault that wants one, keyed by the vault's name; the
+// schedules of vaults that no longer want one are removed. The job's singleton key keeps the exclusive policy per vault.
+export async function applyVaultSchedules(boss: PgBoss, queue: string, cronByVault: Map<string, string>): Promise<void> {
+  const orphans = (await boss.getSchedules(queue)).filter((entry) => !cronByVault.has(entry.key));
+
+  for (const orphan of orphans) {
+    await boss.unschedule(queue, orphan.key);
+  }
+
+  for (const [vault, cron] of cronByVault) {
+    await boss.schedule(queue, cron, vaultJob(vault), { key: vault, singletonKey: vault });
+  }
 }
 
-export async function applyPullRequestsSchedule(boss: PgBoss, cron: string): Promise<void> {
-  await boss.schedule(PULL_REQUESTS_QUEUE, cron);
+// Sends a per-vault job now (Sync now, Import now, Check now); null when the vault's job is queued or running already.
+export async function sendVaultJob(boss: PgBoss, queue: string, vault: string): Promise<string | null> {
+  return boss.send(queue, vaultJob(vault), { singletonKey: vault });
 }
 
-export async function applyPbiImportSchedule(boss: PgBoss, cron: string): Promise<void> {
-  await boss.schedule(PBI_IMPORT_QUEUE, cron);
+function vaultJob(vault: string): VaultJob {
+  return { vault };
 }
 
 // The dispatcher's every-minute tick keeps statuses, notes and hand-ons current between agent schedules.

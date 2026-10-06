@@ -1,6 +1,6 @@
 import { MAX_ATTACHMENT_BYTES, READABLE_EXTENSIONS, storeAttachment } from "@adoa/attachments";
 import { ConfluenceClient, type ConfluenceFile, type ConfluencePage } from "@adoa/confluence";
-import { createDocumentTask, linkedDocumentKind, pbiLinkedUrls, resolveDocumentTask } from "@adoa/core";
+import { createDocumentTask, linkedDocumentKind, pbiLinkedUrls, resolveDocumentTask, vaultBacklogRoot, vaultOfPbi } from "@adoa/core";
 import { attachment, workItem, type AdoaDb } from "@adoa/db";
 import { VaultWriter } from "@adoa/vault";
 import { and, eq, inArray } from "drizzle-orm";
@@ -104,7 +104,8 @@ async function removeCopies(context: WorkerContext, copies: AttachmentRow[]): Pr
     return;
   }
 
-  const vault = new VaultWriter(context.vaultRoot);
+  const vaultName = await vaultOfPbi(context.db, copies[0].pbiId);
+  const vault = new VaultWriter(vaultBacklogRoot(context.backlogMount, vaultName!));
 
   for (const copy of copies.filter((row) => row.vaultPath)) {
     await vault.remove(copy.vaultPath!);

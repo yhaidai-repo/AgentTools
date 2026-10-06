@@ -64,13 +64,13 @@ function taskVault(deps: AgentDeps, task: ItemRow): TaskVault {
   return isActualize(task) ? actualizeVault(deps, task.data as ActualizeTaskData) : draftVault(deps);
 }
 
-// Drafts live in the docs vault (mounted writable; VaultWriter keeps every path inside it).
+// Drafts live in the task's vault (the run's; mounted writable, and VaultWriter keeps every path inside it).
 function draftVault(deps: AgentDeps): TaskVault {
   if (!deps.docsVault) {
-    throw new Error("the docs vault isn't writable for the agent-runner (DOCS_VAULT_NAME and its mount)");
+    throw new Error(`${deps.docsVaultName} isn't writable for the agent-runner (its mount)`);
   }
 
-  return { name: deps.docsVaultName ?? "docs", root: deps.docsRoot, writer: deps.docsVault, isDocsVault: true };
+  return { name: deps.docsVaultName, root: deps.docsRoot, writer: deps.docsVault, isDocsVault: true };
 }
 
 // The note's own vault, read through the docs root when it is the docs vault, so reads still reach its usage log.
@@ -132,7 +132,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 // The project's repo from its index note, plus the PBI's repos for a draft adoa captured.
 async function taskRepos(context: TaskContext, task: ItemRow, vault: TaskVault, project: string): Promise<RepoRef[]> {
   const projectRepo = await projectRepoName(vault.root, project);
-  const fromProject = projectRepo ? (await reposByName(context.deps.db, [projectRepo])).repos : [];
+  const fromProject = projectRepo ? (await reposByName(context.deps.db, vault.name, [projectRepo])).repos : [];
   const fromPbi = task.pbiId === null ? [] : (await resolveRepos(context.deps.db, task.pbiId)).repos;
   const byName = new Map([...fromProject, ...fromPbi].map((repo) => [repo.name, repo]));
 

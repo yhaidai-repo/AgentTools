@@ -1,22 +1,42 @@
+# The vaults a call may capture into: the configured and requested roots, plus the vault the working directory lies in
+# (a chat opened in a vault folder needs no configuration at all, 2026-10-06).
 function Get-CaptureVault {
-    param([object]$Config)
+    param(
+        [object]$Config,
+        [string]$Cwd
+    )
 
     $captureConfig = if ($Config) { $Config } else { Get-CaptureConfig }
+    $roots = @($captureConfig.vaults) + @(Find-VaultRootOf -Path $Cwd)
 
-    return @($captureConfig.vaults | ForEach-Object {
-        $vaultName = Split-Path -Leaf $_
-
-        New-CaptureVault -Name $vaultName -Root $_ -Projects (Get-VaultProject -VaultRoot $_ -VaultName $vaultName)
-    })
+    return @($roots | Where-Object { $_ } | Select-Object -Unique | ForEach-Object { ConvertTo-CaptureVault -Root $_ })
 }
 
+function ConvertTo-CaptureVault {
+    param([Parameter(Mandatory)][string]$Root)
+
+    $vaultName = Split-Path -Leaf $Root
+
+    return New-CaptureVault -Name $vaultName -Root $Root -Projects (Get-VaultProject -VaultRoot $Root -VaultName $vaultName)
+}
+
+# By name among the known vaults, or any vault folder given as a path.
 function Resolve-CaptureVault {
     param(
         [string]$Name,
         [object[]]$Vaults
     )
 
-    return $Vaults | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    $known = $Vaults | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    if ($known) {
+        return $known
+    }
+
+    if ($Name -and (Test-Path -LiteralPath $Name -PathType Container)) {
+        return ConvertTo-CaptureVault -Root ([IO.Path]::GetFullPath($Name).TrimEnd('\', '/'))
+    }
+
+    return $null
 }
 
 # A project is a top-level folder whose "<key>-index.md" names its repository in "repo:".

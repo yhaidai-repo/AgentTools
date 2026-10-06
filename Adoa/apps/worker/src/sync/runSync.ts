@@ -1,7 +1,6 @@
 import { AdoClient } from "@adoa/ado";
 import { finishRun, isAdoConfigured, readAdoSettings, readSyncSettings, saveCurrentSprint, startRun, type AdoSettings } from "@adoa/core";
 import type { AdoaDb } from "@adoa/db";
-import { requireEnv } from "../env";
 import { loadScope } from "./loadScope";
 import type { SyncContext } from "./models/SyncContext";
 import type { SyncResult } from "./models/SyncResult";
@@ -9,14 +8,14 @@ import { snapshotCurrentSprint } from "./snapshotSprint";
 import { syncRepositories } from "./syncRepositories";
 import { syncWorkItems } from "./syncWorkItems";
 
-export async function runSync(db: AdoaDb): Promise<void> {
+export async function runSync(db: AdoaDb, vault: string): Promise<void> {
   const runId = await startRun(db, "sync");
 
   try {
-    const result = await syncOnce(db, runId);
+    const result = await syncOnce(db, vault, runId);
 
     await finishRun(db, runId, result.outcome, result.outcome === "success" ? null : result.message);
-    console.log(`sync ${result.outcome}: ${result.message}`);
+    console.log(`sync ${vault} ${result.outcome}: ${result.message}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
@@ -25,15 +24,15 @@ export async function runSync(db: AdoaDb): Promise<void> {
   }
 }
 
-async function syncOnce(db: AdoaDb, runId: number): Promise<SyncResult> {
-  const ado = await readAdoSettings(db);
+async function syncOnce(db: AdoaDb, vault: string, runId: number): Promise<SyncResult> {
+  const ado = await readAdoSettings(db, vault);
 
   if (!isAdoConfigured(ado)) {
-    return { outcome: "no-op", message: "ADO settings are not configured" };
+    return { outcome: "no-op", message: `ADO settings are not configured for ${vault}` };
   }
 
-  const ctx = createContext(db, ado, runId);
-  const sync = await readSyncSettings(db);
+  const ctx = createContext(db, ado, vault, runId);
+  const sync = await readSyncSettings(db, vault);
   const scope = await loadScope(ctx.client, ado, sync);
 
   if (!scope) {
@@ -44,7 +43,7 @@ async function syncOnce(db: AdoaDb, runId: number): Promise<SyncResult> {
   const current = scope.sprints.find((sprint) => sprint.timeframe === "current");
 
   if (current) {
-    await saveCurrentSprint(db, current.path);
+    await saveCurrentSprint(db, vault, current.path);
   }
 
   await snapshotCurrentSprint(db, scope.sprints);
@@ -57,8 +56,8 @@ async function syncOnce(db: AdoaDb, runId: number): Promise<SyncResult> {
   };
 }
 
-function createContext(db: AdoaDb, ado: AdoSettings, runId: number): SyncContext {
-  const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat: requireEnv("ADO_PAT") });
+function createContext(db: AdoaDb, ado: AdoSettings, vault: string, runId: number): SyncContext {
+  const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat: ado.pat });
 
-  return { db, client, ado, runId };
+  return { db, client, ado, vault, runId };
 }

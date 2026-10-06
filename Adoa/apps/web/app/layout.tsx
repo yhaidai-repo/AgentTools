@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { VaultSelect } from "@/components/VaultSelect";
+import { VaultsDialog } from "@/components/VaultsDialog";
+import { vaultsHostRoot } from "@/lib/obsidian";
+import { vaultChoice } from "@/lib/currentVault";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,7 +12,9 @@ export const metadata: Metadata = {
   description: "Azure DevOps agent pipeline",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const { vaults, current } = await vaultChoice();
+
   return (
     <html lang="en">
       <body>
@@ -23,6 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/runs">Runs</Link>
             <Link href="/settings">Settings</Link>
           </nav>
+          <VaultSelect vaults={vaults} current={current} dialog={<VaultsDialog vaults={vaults} vaultsRoot={vaultsHostRoot() ?? "the vaults root"} />} />
         </header>
         <main>{children}</main>
       </body>

@@ -1,24 +1,32 @@
 "use server";
 
-import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, deletePbiCommand, finishPbiCommand, parsePbiReference, readSyncSettings, saveSyncSettings, type PbiFeedback, type PbiJob, type PrepareJob } from "@adoa/core";
+import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, createPbiCommand, deletePbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback, type PbiJob, type PrepareJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
+import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
-import { formText } from "@/lib/formFields";
+import { storeAttachment } from "@adoa/attachments";
+import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
 
 // The picked sprint becomes the sync setting (user decision 2026-10-02): Sync now, the scheduled sync and the Backlog
 // list all follow it.
 export async function syncNow(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  await saveSyncSprint(formText(form, "sprint") ?? "current");
+  const vault = await requireVault();
+  const problem = await integrationProblem(vault);
+
+  if (problem) {
+    return { ok: false, message: problem };
+  }
+
+  await saveSyncSprint(vault, formText(form, "sprint") ?? "current");
   revalidatePath("/pbis");
 
-  const boss = await getBoss();
-  const jobId = await boss.send(SYNC_QUEUE);
+  const jobId = await sendVaultJob(await getBoss(), SYNC_QUEUE, vault);
 
-  // The sync queue is exclusive: null means a sync is already queued or running.
+  // The sync queue is exclusive per vault: null means this vault's sync is already queued or running.
   if (!jobId) {
     return { ok: true, message: "A sync is already queued or running." };
   }
@@ -26,27 +34,120 @@ export async function syncNow(_previous: ActionResult | null, form: FormData): P
   return { ok: true, message: "Sync queued. Refresh in a moment." };
 }
 
-async function saveSyncSprint(sprint: string): Promise<void> {
-  const settings = await readSyncSettings(getDb());
+// Syncing and importing need the vault's Azure DevOps integration (user decision 2026-10-06).
+async function integrationProblem(vault: string): Promise<string | null> {
+  return isAdoActive(await readAdoSettings(getDb(), vault)) ? null : `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.`;
+}
+
+async function saveSyncSprint(vault: string, sprint: string): Promise<void> {
+  const settings = await readSyncSettings(getDb(), vault);
 
   if (settings.sprint !== sprint) {
-    await saveSyncSettings(getDb(), { ...settings, sprint });
+    await saveSyncSettings(getDb(), vault, { ...settings, sprint });
   }
 }
 
 // The web never writes the Vault; the worker renders the notes.
 export async function prepareSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const adoIds = form.getAll("adoId").map(Number).filter(Number.isInteger);
+  const adoIds = selectedIds(form);
 
-  if (adoIds.length === 0) {
-    return { ok: false, message: "Select at least one PBI." };
-  }
+  return adoIds.length === 0 ? { ok: false, message: "Select at least one PBI." } : preparePbis(adoIds);
+}
 
+// The PBI page's Prepare (user decision 2026-10-06: the Backlog's actions on the PBI too).
+export async function preparePbiAction(adoId: number): Promise<ActionResult> {
+  const result = await preparePbis([adoId]);
+
+  revalidatePath(`/pbis/${adoId}`);
+
+  return result;
+}
+
+async function preparePbis(adoIds: number[]): Promise<ActionResult> {
   const job: PrepareJob = { adoIds };
 
   await (await getBoss()).send(PREPARE_QUEUE, job);
 
   return { ok: true, message: `${adoIds.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
+}
+
+// The Backlog's Delete (user decision 2026-10-06): each selected PBI through the delete command; a refused one is reported.
+export async function deleteSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoIds = selectedIds(form);
+
+  if (adoIds.length === 0) {
+    return { ok: false, message: "Select at least one PBI." };
+  }
+
+  const refused: string[] = [];
+
+  for (const adoId of adoIds) {
+    const deleted = await runWebCommand(deletePbiCommand, { adoId });
+
+    if (!deleted.ok) {
+      refused.push(`PBI-${adoId}: ${deleted.error}`);
+    }
+  }
+
+  revalidatePath("/pbis");
+
+  return { ok: refused.length === 0, message: `${adoIds.length - refused.length} PBI(s) queued for deletion.${refused.length > 0 ? ` ${refused.join(" ")}` : ""}` };
+}
+
+// A PBI created in adoa (user decision 2026-10-06); the page opens on it.
+export async function createPbiAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const created = await runWebCommand(createPbiCommand, {
+    vault: await requireVault(),
+    title: formText(form, "title") ?? "",
+    type: formText(form, "type") ?? "Product Backlog Item",
+    priority: Number(formText(form, "priority") ?? 2),
+    descriptionMd: formText(form, "descriptionMd"),
+    acceptanceCriteriaMd: formText(form, "acceptanceCriteriaMd"),
+  });
+
+  if (!created.ok) {
+    return { ok: false, message: created.error };
+  }
+
+  // Repos and attachments like the PBI page saves them (user decision 2026-10-06); a refused one doesn't undo the PBI.
+  const problems = [...await saveNewPbiRepos(created.value.adoId, form), ...await storeNewPbiFiles(created.value.adoId, form)];
+
+  if (problems.length > 0) {
+    return { ok: false, message: `PBI-${created.value.adoId} created, but: ${problems.join(" ")} Open it to fix this.` };
+  }
+
+  revalidatePath("/pbis");
+  redirect(`/pbis/${created.value.adoId}`);
+}
+
+async function saveNewPbiRepos(adoId: number, form: FormData): Promise<string[]> {
+  const repos = form.getAll("repo").map(String).filter(Boolean);
+
+  if (repos.length === 0) {
+    return [];
+  }
+
+  const saved = await runWebCommand(savePbiReposCommand, { adoId, repos });
+
+  return saved.ok ? [] : [saved.error];
+}
+
+async function storeNewPbiFiles(adoId: number, form: FormData): Promise<string[]> {
+  const problems: string[] = [];
+
+  for (const file of await readUploads(form, "files")) {
+    const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl: null });
+
+    if (!stored.ok) {
+      problems.push(`${file.fileName}: ${stored.error}`);
+    }
+  }
+
+  return problems;
+}
+
+function selectedIds(form: FormData): number[] {
+  return form.getAll("adoId").map(Number).filter(Number.isInteger);
 }
 
 // One PBI by id or ADO link (user decision 2026-10-02); the worker holds the ADO token, so it fetches it.
@@ -57,7 +158,14 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
     return { ok: false, message: "Enter a PBI or Task id, or its Azure DevOps link." };
   }
 
-  const job: PbiJob = { action: "sync", adoId };
+  const vault = await requireVault();
+  const problem = await integrationProblem(vault);
+
+  if (problem) {
+    return { ok: false, message: problem };
+  }
+
+  const job: PbiJob = { action: "sync", adoId, vault };
 
   await (await getBoss()).send(PBI_QUEUE, job);
 
@@ -66,7 +174,14 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
 
 // The worker reads the import sources; the queue is exclusive, so a second click while one is queued does nothing.
 export async function importNow(): Promise<ActionResult> {
-  const jobId = await (await getBoss()).send(PBI_IMPORT_QUEUE);
+  const vault = await requireVault();
+  const problem = await integrationProblem(vault);
+
+  if (problem) {
+    return { ok: false, message: problem };
+  }
+
+  const jobId = await sendVaultJob(await getBoss(), PBI_IMPORT_QUEUE, vault);
 
   return { ok: true, message: jobId ? "Import queued; the list updates in a few seconds." : "An import is already queued or running." };
 }

@@ -36,7 +36,7 @@ export function ItemList({ items, empty, results = [] }: ItemListProps) {
 }
 
 // The task's current result: the final one, else the newest.
-export function latestResult(task: ItemRow, results: ItemRow[]): ItemRow | null {
+function latestResult(task: ItemRow, results: ItemRow[]): ItemRow | null {
   const own = results.filter((result) => result.parentId === task.id);
 
   return own.find((result) => result.status === "final") ?? own.at(-1) ?? null;

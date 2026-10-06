@@ -1,6 +1,6 @@
 // One-off (user decision 2026-10-02): puts the doc reads of adoa's runs from before usage logging into VaultUsage's log,
 // from the run traces (kept 30 days). A run already in the log is skipped, so it's safe to run again.
-// Run in the agent-runner container: npm run backfill:doc-usage -w @adoa/agent-runner
+// Run in the agent-runner container, for one vault: npm run backfill:doc-usage -w @adoa/agent-runner -- <vault>
 import { DocUsageLog } from "@adoa/agents";
 import { agentRun, createDb } from "@adoa/db";
 import { PostgresUsageStore, type StoredTraceEvent } from "@agenttools/usage";
@@ -12,7 +12,13 @@ const TRACE_DAYS = 30;
 
 const { db, pool } = createDb(requireEnv("DATABASE_URL"));
 const usageStore = new PostgresUsageStore(pool);
-const logPath = `/vaults/${requireEnv("DOCS_VAULT_NAME")}/.usage/usage.jsonl`;
+const vault = process.argv[2];
+
+if (!vault) {
+  throw new Error("name the vault: npm run backfill:doc-usage -w @adoa/agent-runner -- <vault>");
+}
+
+const logPath = `/vaults/${vault}/.usage/usage.jsonl`;
 const log = new DocUsageLog(logPath);
 const logged = await loggedRuns(logPath);
 const since = new Date(Date.now() - TRACE_DAYS * 24 * 60 * 60 * 1000);

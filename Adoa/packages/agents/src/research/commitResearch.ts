@@ -1,4 +1,4 @@
-import { nextItemId, setItemStatus, renderHumanTaskBody } from "@adoa/core";
+import { nextItemId, setItemStatus, renderHumanTaskBody, vaultOfPbiSql } from "@adoa/core";
 import { commitRelevantPages } from "../relevantPages";
 import { agentRun, localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, ne } from "drizzle-orm";
@@ -87,7 +87,7 @@ async function insertItem(
 ): Promise<string> {
   const id = await nextItemId(db, prefix, context.pbi.adoId);
 
-  await db.insert(localItem).values({ id, kind, pbiId: context.pbi.adoId, parentId: context.task.id, title, status, assignee, body, data, createdByRun: runId });
+  await db.insert(localItem).values({ id, kind, pbiId: context.pbi.adoId, vault: vaultOfPbiSql(context.pbi.adoId), parentId: context.task.id, title, status, assignee, body, data, createdByRun: runId });
 
   return id;
 }

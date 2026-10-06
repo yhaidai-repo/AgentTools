@@ -1,11 +1,15 @@
-import { readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readSyncSettings, type ConfluenceStatus } from "@adoa/core";
-import { repo, type AdoaDb } from "@adoa/db";
-import { asc, eq } from "drizzle-orm";
+import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type RepoRow } from "@adoa/core";
+import type { AdoaDb } from "@adoa/db";
+import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import { AdoIntegrationForm } from "./AdoIntegrationForm";
+import { JobsPanel } from "./JobsPanel";
+import { RepositoriesPanel } from "./RepositoriesPanel";
 import Link from "next/link";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { spentToday } from "@/lib/budgetUsage";
 import { getDb } from "@/lib/db";
-import { backlogFolder } from "@/lib/obsidian";
+import { currentVault } from "@/lib/currentVault";
+import { NoVault } from "@/components/NoVault";
 import { loadSprintChoices } from "@/lib/sprints";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
@@ -17,38 +21,62 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const db = getDb();
-  const ado = await readAdoSettings(db);
-  const sync = await readSyncSettings(db);
-  const sprintOptions = await loadSprintChoices(ado);
+  const current = await currentVault();
+
+  if (!current) {
+    return <NoVault title="Settings" />;
+  }
+
+  const vault = (await readVault(db, current))!;
+  const ado = await readAdoSettings(db, current);
+  const adoActive = isAdoActive(ado);
+  const repos = await listVaultRepos(db, current);
 
   return (
     <>
       <h1>Settings</h1>
-      <SettingsForm ado={ado ?? { orgUrl: "", project: "", team: "", user: "" }} sync={sync} sprintOptions={sprintOptions} currentSprint={await readCurrentSprint(db)} />
-      <h2>PBI import</h2>
-      <p className="muted">The import job reads every source (Outlook mails from the exporter, JSON requests in the import inbox); each PBI is synced and, if new, prepared for refinement. Results are on the Backlog.</p>
-      <ImportSettingsForm settings={await readImportSettings(db)} />
-      <ImportStatus status={await readImportStatus(db)} activity={await readImportSourceActivity(db)} />
-      <h2>Code review</h2>
-      <p className="muted">Lists the active Azure DevOps PRs where you&apos;re a reviewer; a new PR gets a review on the <Link href="/reviews">Reviews</Link> page. The code-review agent itself is configured on the Agents page.</p>
-      <PullRequestSettingsForm settings={await readPullRequestSettings(db)} repoNames={await loadRepoNames(db)} />
+      <p className="muted">The settings of <code>{current}</code>; each feature has its switch. The Vault menu in the top bar switches, adds and configures vaults.</p>
+      <h2>Azure DevOps integration</h2>
+      <AdoIntegrationForm key={current} values={integrationValues(ado)} />
+      {adoActive ? <AdoSections db={db} current={current} vault={vault} ado={ado} repos={repos} /> : <p className="muted">PBI sync, mail sync and pull request sync need the Azure DevOps integration: enable and save it above.</p>}
+      <h2>Repositories</h2>
+      <p className="muted">What agents clone and the PBI page offers: the integration&apos;s repositories (listed by the PBI sync) and local checkouts, each on or off.</p>
+      <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={adoActive} />
       <h2>Agents</h2>
       <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
+      <h2>Jobs and workers</h2>
+      <JobsPanel />
       <h2>From .env (restart to change)</h2>
       <p className="muted">
-        Vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> · backlog folder: <code>{backlogFolder() || "(vault root)"}</code> · ADO access token:{" "}
-        {process.env.ADO_PAT ? "set" : "missing"} · Confluence: <ConfluenceAccess status={await readConfluenceStatus(db)} />
+        Backlog vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence: <ConfluenceAccess status={await readConfluenceStatus(db)} />
       </p>
     </>
   );
 }
 
-// The repo catalog the sync keeps (excluded repos left out), for the code review repo choice.
-async function loadRepoNames(db: AdoaDb): Promise<string[]> {
-  const rows = await db.select({ name: repo.name }).from(repo).where(eq(repo.excluded, false)).orderBy(asc(repo.name));
+// The three syncs of an active integration (user decision 2026-10-06: not offered without one).
+async function AdoSections({ db, current, vault, ado, repos }: { db: AdoaDb; current: string; vault: NonNullable<Awaited<ReturnType<typeof readVault>>>; ado: AdoSettings; repos: RepoRow[] }) {
+  const sync = await readSyncSettings(db, current);
 
-  return rows.map((row) => row.name);
+  return (
+    <>
+      <h2>PBI sync</h2>
+      <SettingsForm key={current} enabled={vault.features.adoSync} sync={sync} sprintOptions={await loadSprintChoices(ado)} currentSprint={await readCurrentSprint(db, current)} />
+      <h2>Mail sync (PBI import)</h2>
+      <p className="muted">The import job reads every source (Outlook mails from the exporter, JSON requests in the import inbox); each PBI is synced and, if new, prepared for refinement. Results are on the Backlog.</p>
+      <ImportSettingsForm key={current} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} />
+      <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />
+      <h2>Pull request sync (code review)</h2>
+      <p className="muted">Lists the active Azure DevOps PRs where you&apos;re a reviewer; a new PR gets a review on the <Link href="/reviews">Reviews</Link> page. The code-review agent itself is configured on the Agents page.</p>
+      <PullRequestSettingsForm key={current} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
+    </>
+  );
+}
+
+// The browser never gets the token, only whether one is saved.
+function integrationValues(ado: AdoSettings | null): AdoIntegrationValues {
+  return { enabled: ado?.enabled ?? false, orgUrl: ado?.orgUrl ?? "", project: ado?.project ?? "", team: ado?.team ?? "", user: ado?.user ?? "", hasPat: !!ado?.pat };
 }
 
 // As the worker reported it at startup (it holds the token): the account, or what to set.

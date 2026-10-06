@@ -10,11 +10,11 @@ import { syncOnePbi } from "../sync/syncOnePbi";
 const PREPARABLE = ["new", "stale"];
 
 // The one import every source uses (user decision 2026-10-02): sync each PBI the item names, then prepare the new ones.
-export async function importPbis(context: WorkerContext, request: PbiImportRequest): Promise<Outcome<PbiImportOutcome>> {
-  const ado = await readAdoSettings(context.db);
+export async function importPbis(context: WorkerContext, vault: string, request: PbiImportRequest): Promise<Outcome<PbiImportOutcome>> {
+  const ado = await readAdoSettings(context.db, vault);
 
   if (!ado) {
-    return { ok: false, error: "ADO settings are not configured" };
+    return { ok: false, error: `ADO settings are not configured for ${vault}` };
   }
 
   const previous = await findImport(context.db, request.source, request.sourceRef);
@@ -23,9 +23,9 @@ export async function importPbis(context: WorkerContext, request: PbiImportReque
     return { ok: true, value: { importId: previous.id, results: previous.results, repeated: true } };
   }
 
-  const synced = await syncAll(context, requestedPbiIds(ado, request));
+  const synced = await syncAll(context, vault, requestedPbiIds(ado, request));
   const results = request.prepare === false ? synced : await prepareNew(context, synced);
-  const importId = await saveImport(context.db, request, results);
+  const importId = await saveImport(context.db, vault, request, results);
 
   return { ok: true, value: { importId, results, repeated: false } };
 }
@@ -37,21 +37,21 @@ function requestedPbiIds(ado: AdoSettings, request: PbiImportRequest): number[] 
 }
 
 // PBIs deleted in adoa stay deleted (assumption, 2026-10-02): only Sync PBI on the Backlog brings one back.
-async function syncAll(context: WorkerContext, adoIds: number[]): Promise<PbiImportResult[]> {
+async function syncAll(context: WorkerContext, vault: string, adoIds: number[]): Promise<PbiImportResult[]> {
   const deleted = new Set(await deletedPbiIds(context.db));
   const results: PbiImportResult[] = [];
 
   for (const adoId of adoIds) {
-    results.push(deleted.has(adoId) ? { adoId, outcome: "deleted" } : await syncOne(context, adoId));
+    results.push(deleted.has(adoId) ? { adoId, outcome: "deleted" } : await syncOne(context, vault, adoId));
   }
 
   return results;
 }
 
 // One PBI failing (not in ADO, no access) doesn't stop the others; one already started in ADO is refused.
-async function syncOne(context: WorkerContext, adoId: number): Promise<PbiImportResult> {
+async function syncOne(context: WorkerContext, vault: string, adoId: number): Promise<PbiImportResult> {
   try {
-    const synced = await syncOnePbi(context, adoId, true);
+    const synced = await syncOnePbi(context, adoId, true, vault);
 
     return synced.ok ? { adoId, outcome: "synced" } : { adoId, outcome: "refused", detail: synced.error };
   } catch (error) {

@@ -8,6 +8,7 @@ import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
 import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
 import { runDesignTask } from "../design/runDesignTask";
+import { runGoalTask } from "../goal/runGoalTask";
 import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
@@ -47,8 +48,8 @@ export async function runAgentTask(deps: AgentDeps, job: AgentRunJob): Promise<A
 }
 
 async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Promise<AgentRunResult | null> {
-  const context = await loadTaskContext(deps, agentId, task.pbiId);
-  const refusal = await refusalReason(context, agentId);
+  const context = await loadTaskContext(deps, agentId, task);
+  const refusal = await refusalReason(context, agentId, task);
 
   if (refusal) {
     await releaseTask(deps.db, task, refusal);
@@ -56,7 +57,8 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const result = await EXECUTORS[agentId](context, task);
+  const executor = task.kind === "goal" ? runGoalTask : EXECUTORS[agentId];
+  const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
   await endTask(deps, context.agent, task, result);
@@ -64,26 +66,35 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
   return result;
 }
 
-async function loadTaskContext(deps: AgentDeps, agentId: string, pbiId: number | null): Promise<TaskContext> {
+async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow): Promise<TaskContext> {
   const agent = await deps.config.get(agentId);
 
   if (!agent) {
     throw new Error(`agent "${agentId}" is not configured`);
   }
 
-  const team = (await readAdoSettings(deps.db))?.team ?? "";
+  const team = (await readAdoSettings(deps.db, task.vault))?.team ?? "";
 
   return {
     deps,
     agent,
     global: await deps.config.getGlobal(),
-    prompt: EXECUTORS[agentId] ? await loadPrompt(agentId, { team }) : { text: "", version: "none" },
-    skills: await loadStageSkills(deps, agent, pbiId),
+    prompt: await taskPrompt(agentId, task, { team, agent: agent.label }),
+    skills: await loadStageSkills(deps, agent, task.pbiId),
   };
 }
 
-async function refusalReason(context: TaskContext, agentId: string): Promise<string | null> {
-  if (!EXECUTORS[agentId]) {
+// A goal task has its own prompt, whatever the agent (user decision 2026-10-06); every other task uses the agent's.
+async function taskPrompt(agentId: string, task: ItemRow, values: Record<string, string>): Promise<TaskContext["prompt"]> {
+  if (task.kind === "goal") {
+    return loadPrompt("goal", values);
+  }
+
+  return EXECUTORS[agentId] ? loadPrompt(agentId, values) : { text: "", version: "none" };
+}
+
+async function refusalReason(context: TaskContext, agentId: string, task: ItemRow): Promise<string | null> {
+  if (task.kind !== "goal" && !EXECUTORS[agentId]) {
     return `agent "${agentId}" can't run tasks yet`;
   }
 

@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision,
+  pgTable, pgEnum, pgSequence, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision,
   timestamp, bigserial, bigint, serial, primaryKey, index, uniqueIndex, check, customType,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -11,6 +11,7 @@ import type { DesignTest } from "./models/DesignTest";
 import type { PbiConfluencePage } from "./models/PbiConfluencePage";
 import type { PbiImportResult } from "./models/PbiImportResult";
 import type { PbiSkill } from "./models/PbiSkill";
+import type { VaultFeatures } from "./models/VaultFeatures";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -29,6 +30,7 @@ export const itemKind = pgEnum("item_kind", [
   "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
   "review", // code-review task: one review of one pull request
   "vault-review", // one review pass over the selected vaults: stale notes, invalid links
+  "goal", // a scheduled task of any agent: a goal on chosen repositories, no PBI (user decision 2026-10-06)
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -54,6 +56,9 @@ export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "c
 
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 
+// Where a catalog repo comes from: the vault's ADO integration, or a local checkout the user added (2026-10-06).
+export const repoKind = pgEnum("repo_kind", ["ado", "local"]);
+
 // Whether a write made a docs-vault note (it didn't exist) or changed one.
 export const noteWriteAction = pgEnum("note_write_action", ["created", "updated"]);
 
@@ -74,6 +79,24 @@ export const config = pgTable("config", {
   value: jsonb("value").notNull(),
   updatedAt: updatedAt(),
 });
+
+// Vaults as accounts (user decision 2026-10-05): PBIs, their tasks, reviews and settings belong to one vault. The name is
+// the vault's folder under the vaults root.
+export const vault = pgTable("vault", {
+  name: text("name").primaryKey(),
+  features: jsonb("features").$type<VaultFeatures>().notNull(),
+  importFolder: text("import_folder"), // folder inside the import inbox, set when mail sync is enabled
+  removedAt: ts("removed_at"), // removed in Settings: adoa forgets the vault, its rows keep their history
+  createdAt: createdAt(),
+});
+
+const vaultName = () => text("vault").notNull().references(() => vault.name);
+
+// Where a PBI comes from (user decision 2026-10-06): the vault's ADO sync, or created in adoa (no ADO counterpart).
+export const workItemSource = pgEnum("work_item_source", ["ado", "local"]);
+
+// Ids of local PBIs, above every ADO id (assumption: ADO ids stay below 9 million).
+export const localPbiId = pgSequence("local_pbi_id", { startWith: 9_000_001 });
 
 // ADO mirror + pipeline status. ADO columns are written only by sync.
 
@@ -97,6 +120,8 @@ export const workItem = pgTable("work_item", {
   adoChangedAt: ts("ado_changed_at"),
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
   vaultPath: text("vault_path"),
+  vault: vaultName(),
+  source: workItemSource("source").notNull().default("ado"),
   // App data, never written by sync. Refinement replaces the list until the user saves it (skills_edited_at set).
   skills: jsonb("skills").$type<PbiSkill[]>().notNull().default([]),
   skillsEditedAt: ts("skills_edited_at"),
@@ -148,6 +173,7 @@ export const localItem = pgTable("local_item", {
   attempts: integer("attempts").notNull().default(0),
   createdByRun: bigint("created_by_run", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
   vaultPath: text("vault_path"),
+  vault: vaultName(), // the PBI's vault (a database trigger copies it on insert); for an item without a PBI, the vault it is about
   createdAt: createdAt(),
   updatedAt: updatedAt(),
   closedAt: ts("closed_at"),
@@ -257,6 +283,13 @@ export const sprintSnapshot = pgTable("sprint_snapshot", {
 // ADO state history (from /updates) for actual cycle time.
 
 // PBIs deleted in adoa (ADO untouched): sync skips them until the user syncs one by hand again (user decision 2026-10-02).
+// Reviews deleted in adoa (user decision 2026-10-06): the pull request check lists these PRs no more.
+export const deletedPullRequest = pgTable("deleted_pull_request", {
+  id: integer("id").primaryKey(), // ADO pull request id
+  title: text("title").notNull(),
+  deletedAt: ts("deleted_at").notNull().defaultNow(),
+});
+
 export const deletedPbi = pgTable("deleted_pbi", {
   adoId: integer("ado_id").primaryKey(),
   title: text("title").notNull(),
@@ -272,6 +305,7 @@ export const pbiImport = pgTable("pbi_import", {
   title: text("title"),
   sender: text("sender"),
   occurredAt: ts("occurred_at"),
+  vault: vaultName(),
   results: jsonb("results").$type<PbiImportResult[]>().notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -288,10 +322,13 @@ export const adoStateChange = pgTable("ado_state_change", {
   changedAt: ts("changed_at").notNull(),
 }, (t) => [primaryKey({ columns: [t.adoId, t.rev] })]);
 
-// Repo catalog (org-wide) and repos a PBI touches.
+// Repo catalog per vault (user decision 2026-10-06) and repos a PBI touches. ADO repos come from the vault's sync; local
+// ones (folders under the repos root) from Settings. `excluded` = not enabled: hidden from agents and the PBI repo choice.
 
 export const repo = pgTable("repo", {
-  id: text("id").primaryKey(), // ADO repository id
+  id: text("id").primaryKey(), // ADO repository id, or local:<vault>:<folder>
+  vault: vaultName(),
+  kind: repoKind("kind").notNull().default("ado"),
   adoProject: text("ado_project").notNull(),
   name: text("name").notNull(),
   remoteUrl: text("remote_url").notNull(),
@@ -341,7 +378,8 @@ export const skillRevision = pgTable("skill_revision", {
 // updated; the note's authors stamp keeps only the latest change).
 export const vaultNoteWrite = pgTable("vault_note_write", {
   id: serial("id").primaryKey(),
-  path: text("path").notNull(), // relative to the docs vault root
+  vault: vaultName(),
+  path: text("path").notNull(), // relative to the vault root
   runId: bigint("run_id", { mode: "number" }).notNull(), // no foreign key: deleting a PBI deletes its runs, the vault keeps the note
   action: noteWriteAction("action").notNull(),
   writtenAt: ts("written_at").notNull().defaultNow(),
@@ -353,6 +391,7 @@ export const taskSchedule = pgTable("task_schedule", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   agentId: text("agent_id").notNull(),
+  vault: vaultName(), // the vault the schedule maintains (user decision 2026-10-05: configured inside the vault)
   cron: text("cron").notNull(),
   enabled: boolean("enabled").notNull().default(true),
   params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the producer's params, e.g. { vaults: [...] }
@@ -395,6 +434,7 @@ export const pullRequest = pgTable("pull_request", {
   isDraft: boolean("is_draft").notNull().default(false),
   workItemIds: jsonb("work_item_ids").$type<number[]>().notNull().default([]),
   url: text("url").notNull(),
+  vault: vaultName(),
   isListed: boolean("is_listed").notNull().default(true), // false once it left the user's active PRs (completed, abandoned, not a reviewer)
   adoCreatedAt: ts("ado_created_at"),
   syncedAt: ts("synced_at").notNull().defaultNow(),

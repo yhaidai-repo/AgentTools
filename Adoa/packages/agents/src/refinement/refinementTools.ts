@@ -1,16 +1,15 @@
-import { MAX_PBI_SKILLS, pbiSkillProblems } from "@adoa/core";
+import { MAX_PBI_SKILLS, enabledRepos, pbiSkillProblems } from "@adoa/core";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
-import { repo, type AdoaDb } from "@adoa/db";
+import type { AdoaDb } from "@adoa/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { DuplicateGuard } from "../DuplicateGuard";
 import type { RefinementDraft } from "./models/RefinementDraft";
 
 // Pipeline tools of the refinement agent. They only fill the draft; nothing is written until the run succeeds.
 // `availableSkills`: the skills it may recommend for the PBI (what list_skills shows).
-export function createRefinementTools(db: AdoaDb, draft: RefinementDraft, pbiMessage: string, availableSkills: string[], guard: DuplicateGuard): ToolDefinition<any>[] {
-  return [getPbiTool(pbiMessage), listReposTool(db), writeRefinementTool(draft, availableSkills), createResearchTaskTool(draft, guard), createQuestionTool(draft, guard)];
+export function createRefinementTools(db: AdoaDb, vault: string, draft: RefinementDraft, pbiMessage: string, availableSkills: string[], guard: DuplicateGuard): ToolDefinition<any>[] {
+  return [getPbiTool(pbiMessage), listReposTool(db, vault), writeRefinementTool(draft, availableSkills), createResearchTaskTool(draft, guard), createQuestionTool(draft, guard)];
 }
 
 function getPbiTool(pbiMessage: string) {
@@ -22,14 +21,14 @@ function getPbiTool(pbiMessage: string) {
   });
 }
 
-function listReposTool(db: AdoaDb) {
+function listReposTool(db: AdoaDb, vault: string) {
   return defineTool({
     name: "list_repos",
-    description: "List the code repositories of the organization: name, Azure DevOps project, summary.",
+    description: "List the code repositories configured for this vault: name, Azure DevOps project (or local), summary.",
     input: {},
     handler: async () => {
-      const rows = await db.select().from(repo).where(eq(repo.excluded, false));
-      const lines = rows.map((row) => `- ${row.name} (project ${row.adoProject})${row.summary ? `: ${row.summary}` : ""}`);
+      const rows = await enabledRepos(db, vault);
+      const lines = rows.map((row) => `- ${row.name} (${row.kind === "local" ? "local" : `project ${row.adoProject}`})${row.summary ? `: ${row.summary}` : ""}`);
 
       return { text: lines.join("\n") || "No repositories known." };
     },

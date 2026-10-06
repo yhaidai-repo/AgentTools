@@ -45,7 +45,7 @@ async function writeNotes(db: AdoaDb, vault: TaskVault, runId: number, edits: No
     await vault.writer.writeNote(edit.path, withAuthor(edit.content, previous, author));
 
     if (vault.isDocsVault) {
-      await db.insert(vaultNoteWrite).values({ path: edit.path, runId, action: previous === null ? "created" : "updated" });
+      await db.insert(vaultNoteWrite).values({ vault: vault.name, path: edit.path, runId, action: previous === null ? "created" : "updated" });
     }
   }
 }

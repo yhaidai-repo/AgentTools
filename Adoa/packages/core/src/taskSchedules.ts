@@ -8,6 +8,7 @@ import type { TaskProducer } from "./models/TaskProducer";
 import type { TaskSchedule } from "./models/TaskSchedule";
 import type { TaskScheduleInput } from "./models/TaskScheduleInput";
 import { producerFor } from "./taskProducers/taskProducers";
+import { goalParams, goalParamsProblem, insertGoalTask } from "./goalSchedules";
 
 // Blocked counts too: a new task would fail the same way, so the user decides (Rerun or delete) first.
 const WAITING = ["open", "in-progress", "blocked"] as const;
@@ -22,16 +23,18 @@ export async function readTaskSchedule(db: AdoaDb, id: number): Promise<TaskSche
   return row ?? null;
 }
 
-// Only agents with a task producer can be scheduled; params must be the producer's, with values it offers.
+// An agent with a task producer takes the producer's params; any other agent takes a goal and the vault's repos (user
+// decision 2026-10-06).
 export async function saveTaskSchedule(db: AdoaDb, input: TaskScheduleInput): Promise<Outcome<TaskSchedule>> {
   const producer = producerFor(input.agentId);
-  const problem = !input.name.trim() ? "A schedule needs a name." : producer ? await paramsProblem(producer, input.params) : `Agent "${input.agentId}" can't be scheduled.`;
+  const problem = !input.name.trim() ? "A schedule needs a name." : producer ? await paramsProblem(producer, input.params) : await goalParamsProblem(db, input.vault, goalParams(input.params));
 
   if (problem) {
     return { ok: false, error: problem };
   }
 
-  const values = { name: input.name.trim(), agentId: input.agentId, cron: input.cron.trim(), enabled: input.enabled, params: input.params };
+  const params = producer ? producerParams(producer, input.params) : { ...goalParams(input.params) };
+  const values = { name: input.name.trim(), agentId: input.agentId, vault: input.vault, cron: input.cron.trim(), enabled: input.enabled, params };
   const [row] = input.id === null
     ? await db.insert(taskSchedule).values(values).returning()
     : await db.update(taskSchedule).set({ ...values, updatedAt: new Date() }).where(eq(taskSchedule.id, input.id)).returning();
@@ -58,11 +61,16 @@ async function tickResult(db: AdoaDb, schedule: TaskSchedule, agentOptions: Reco
   const producer = producerFor(schedule.agentId);
   const waiting = await waitingTaskId(db, schedule.id);
 
-  if (!producer || waiting) {
-    return waiting ? `${waiting} still waits; no new task` : `agent "${schedule.agentId}" can't be scheduled`;
+  if (waiting) {
+    return `${waiting} still waits; no new task`;
   }
 
-  const produced = await producer.produce({ db, agentOptions }, schedule.params);
+  // A goal task is always wanted when none waits; the agent's result says what it found.
+  if (!producer) {
+    return `${await insertGoalTask(db, schedule)} created`;
+  }
+
+  const produced = await producer.produce({ db, vault: schedule.vault, agentOptions }, schedule.params);
 
   if (!produced.ok) {
     return `no task: ${produced.error}`;
@@ -93,6 +101,7 @@ async function insertTask(db: AdoaDb, schedule: TaskSchedule, producer: TaskProd
     title: task.title.slice(0, 120),
     status: "open",
     assignee: `agent:${schedule.agentId}`,
+    vault: schedule.vault,
     body: task.body,
     data: { ...task.data, scheduleId: schedule.id, key: `schedule:${schedule.id}:${new Date().toISOString()}` },
   });
@@ -100,14 +109,14 @@ async function insertTask(db: AdoaDb, schedule: TaskSchedule, producer: TaskProd
   return id;
 }
 
+// The form sends every field; a producer keeps only its own parameters.
+function producerParams(producer: TaskProducer, params: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(producer.params.filter((spec) => spec.key in params).map((spec) => [spec.key, params[spec.key]]));
+}
+
 async function paramsProblem(producer: TaskProducer, params: Record<string, unknown>): Promise<string | null> {
-  const unknown = Object.keys(params).filter((key) => !producer.params.some((spec) => spec.key === key));
-
-  if (unknown.length > 0) {
-    return `Unknown parameter(s): ${unknown.join(", ")}.`;
-  }
-
-  const problems = await Promise.all(producer.params.map((spec) => paramProblem(spec, params[spec.key])));
+  const own = producerParams(producer, params);
+  const problems = await Promise.all(producer.params.map((spec) => paramProblem(spec, own[spec.key])));
 
   return problems.find(Boolean) ?? null;
 }

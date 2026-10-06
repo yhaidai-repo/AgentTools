@@ -1,16 +1,17 @@
 "use client";
 
-import { useActionState, useRef, useState, type ReactNode } from "react";
+import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { FinishDialog } from "@/components/FinishDialog";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiToFinish } from "@/models/PbiToFinish";
-import { prepareSelected } from "./actions";
+import { deleteSelected, prepareSelected } from "./actions";
 
 // Wraps the server-rendered table so its row checkboxes submit with this form: Prepare the selected PBIs, or Finish them
 // through the Finish dialog, one PBI at a time.
 export function BacklogForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
   const [prepared, prepareAction, isPreparing] = useActionState<ActionResult | null, FormData>(prepareSelected, null);
+  const [deleted, deleteAction, isDeleting] = useActionState<ActionResult | null, FormData>(deleteSelected, null);
   const [toFinish, setToFinish] = useState<PbiToFinish[] | null>(null);
   const [finished, setFinished] = useState<string | null>(null);
 
@@ -33,8 +34,10 @@ export function BacklogForm({ children }: { children: ReactNode }) {
         <div className="toolbar">
           <button type="submit" disabled={isPreparing}>{isPreparing ? "Queuing…" : "Prepare for refinement"}</button>
           <button type="button" className="secondary" onClick={onFinish}>Finish</button>
-          <span className="muted">Prepare writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined). Finish marks the PBIs done in adoa.</span>
+          <button type="submit" className="secondary" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete}>{isDeleting ? "Deleting…" : "Delete"}</button>
+          <span className="muted">Prepare writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined). Finish marks the PBIs done in adoa. Delete removes them from adoa only.</span>
           {prepared && <span className={prepared.ok ? "result-ok" : "result-error"}>{prepared.message}</span>}
+          {deleted && <span className={deleted.ok ? "result-ok" : "result-error"}>{deleted.message}</span>}
           {finished && <span className="muted">{finished}</span>}
         </div>
         {children}
@@ -42,6 +45,15 @@ export function BacklogForm({ children }: { children: ReactNode }) {
       {toFinish && <FinishDialog pbis={toFinish} onDone={onFinishDone} />}
     </>
   );
+}
+
+// Asks first: the selected PBIs and everything adoa made for them go; sync won't bring them back (ADO stays untouched).
+function confirmDelete(event: React.MouseEvent<HTMLButtonElement>): void {
+  const count = selectedPbis(event.currentTarget.form).length;
+
+  if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from adoa? Their tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
+    event.preventDefault();
+  }
 }
 
 // The ticked rows; each checkbox carries its PBI's title for the dialog.

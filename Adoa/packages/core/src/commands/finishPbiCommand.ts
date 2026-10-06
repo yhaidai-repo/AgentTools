@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { feedbackProblem, recordPbiFeedback } from "../feedback/recordPbiFeedback";
+import { recordPbiFeedback } from "../feedback/recordPbiFeedback";
 import { finishPbi } from "../finishPbi";
 import type { Command } from "../models/Command";
 import type { PbiFeedback } from "../models/PbiFeedback";
@@ -16,12 +16,6 @@ export const finishPbiCommand: Command<PbiFeedback, { message: string; wwwRecord
     fault: z.enum(["Human", "Agent"]).default("Agent"),
   }),
   async run(context, input) {
-    const problem = feedbackProblem(context, input);
-
-    if (problem) {
-      return { ok: false, error: problem };
-    }
-
     const finished = await finishPbi(context.db, input.adoId, context.actor);
 
     if (!finished.ok) {

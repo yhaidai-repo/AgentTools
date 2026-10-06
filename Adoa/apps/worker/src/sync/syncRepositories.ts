@@ -2,7 +2,7 @@ import { repo } from "@adoa/db";
 import { sql } from "drizzle-orm";
 import type { SyncContext } from "./models/SyncContext";
 
-// Org-wide catalog the refinement agent picks repos from; `excluded` is user-owned and never overwritten.
+// The vault's catalog of ADO repos, which the refinement agent picks from; `excluded` (enabled) is user-owned and never overwritten.
 export async function syncRepositories(ctx: SyncContext): Promise<number> {
   const repositories = (await ctx.client.listRepositories()).filter((repository) => !repository.isDisabled);
 
@@ -14,6 +14,8 @@ export async function syncRepositories(ctx: SyncContext): Promise<number> {
     .insert(repo)
     .values(repositories.map((repository) => ({
       id: repository.id,
+      vault: ctx.vault,
+      kind: "ado" as const,
       adoProject: repository.project,
       name: repository.name,
       remoteUrl: repository.remoteUrl,

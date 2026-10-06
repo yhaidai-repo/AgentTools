@@ -47,6 +47,7 @@ async function insertWorkItem(ctx: SyncContext, item: MappedWorkItem): Promise<v
   await ctx.db.insert(workItem).values({
     ...mirrorColumns(item),
     adoId: item.adoId,
+    vault: ctx.vault,
     pipelineStatus: status,
   });
   await setPbiStatus(ctx.db, item.adoId, null, status, "sync", ctx.runId);

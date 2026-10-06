@@ -23,7 +23,7 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
   return (
     <>
       <h1>{item.id} · <PbiLinkedText text={item.title} /></h1>
-      <p>{adoId === null ? <Link href="/tasks">← Tasks</Link> : <Link href={`/pbis/${adoId}`}>← PBI-{adoId}</Link>}{item.vaultPath && <> · <NoteLink path={item.vaultPath} label="open note" /></>}</p>
+      <p>{adoId === null ? <Link href="/tasks">← Tasks</Link> : <Link href={`/pbis/${adoId}`}>← PBI-{adoId}</Link>}{item.vaultPath && <> · <NoteLink vault={item.vault} path={item.vaultPath} label="open note" /></>}</p>
       <div className="chips">
         <span className="chip">{item.kind}</span>
         <span className={`chip ${isOpen(item) && item.assignee === "human" ? "result-error" : ""}`}>status: {item.status}</span>

@@ -1,4 +1,4 @@
-import { handOn, syncPipelineStatus, type PipelineStatus } from "@adoa/core";
+import { handOn, syncPipelineStatus, vaultBacklogRoot, type PipelineStatus } from "@adoa/core";
 import { localItem, workItem } from "@adoa/db";
 import { publishPbi } from "@adoa/notes";
 import { and, eq, isNotNull, isNull, like, or } from "drizzle-orm";
@@ -22,10 +22,10 @@ export async function refreshPbi(context: WorkerContext, adoId: number): Promise
     return;
   }
 
-  await collectLinkedDocuments(context, await createAdoClient(db), row);
+  await collectLinkedDocuments(context, await createAdoClient(db, row.vault), row);
   await handOnFinishedTasks(context, adoId);
   await syncPipelineStatus(db, adoId, ACTOR);
-  await publishPbi(db, context.vaultRoot, adoId);
+  await publishPbi(db, vaultBacklogRoot(context.backlogMount, row.vault), adoId);
 }
 
 // The task queue drives the worker (user decision 2026-10-01): only PBIs referenced by agent tasks waiting in it

@@ -1,4 +1,4 @@
-import { attachmentRef, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
+import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@adoa/core";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -17,6 +17,7 @@ import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
 import { DeletePbiButton } from "./DeletePbiButton";
+import { PreparePbiButton } from "./PreparePbiButton";
 import { FinishPbiButton } from "./FinishPbiButton";
 import { DesignSection } from "./DesignSection";
 import { LoadFromConfluenceButton } from "./LoadFromConfluenceButton";
@@ -51,8 +52,8 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
-      <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
-      <Summary detail={detail} adoUrl={await adoUrl(pbi.adoId)} />
+      <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> <PreparePbiButton adoId={pbi.adoId} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
+      <Summary detail={detail} adoUrl={await adoUrl(pbi)} />
       <Blockers detail={detail} />
       <h2>Description</h2>
       <TextBlock text={pbi.descriptionMd} />
@@ -105,7 +106,7 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
       <span className="chip">sprint: {pbi.iterationPath ?? "–"}</span>
       <span className="chip">assigned: {pbi.assignedTo ?? "–"}</span>
       {adoUrl && <a className="chip" href={adoUrl} target="_blank" rel="noreferrer">open in ADO</a>}
-      {pbi.vaultPath ? <span className="chip"><NoteLink path={pbi.vaultPath} label="open note" /></span> : <span className="chip">no note yet (prepare it in the Backlog)</span>}
+      {pbi.vaultPath ? <span className="chip"><NoteLink vault={pbi.vault} path={pbi.vaultPath} label="open note" /></span> : <span className="chip">no note yet (prepare it in the Backlog)</span>}
     </div>
   );
 }
@@ -157,16 +158,16 @@ function Drafts({ detail }: { detail: PbiDetail }) {
     <ul>
       {detail.drafts.map((draft) => (
         <li key={draft.id} className={draft.status === "merged" ? undefined : "result-error"}>
-          <DraftName draft={draft} /> · {draftState(draft)} · <Link href={`/agents/runs/${draft.runId}`}>RUN-{draft.runId}</Link>
+          <DraftName vault={detail.pbi.vault} draft={draft} /> · {draftState(draft)} · <Link href={`/agents/runs/${draft.runId}`}>RUN-{draft.runId}</Link>
         </li>
       ))}
     </ul>
   );
 }
 
-function DraftName({ draft }: { draft: DraftRow }) {
+function DraftName({ vault, draft }: { vault: string; draft: DraftRow }) {
   // A merged draft is gone from draft/, so only unmerged ones get a link.
-  const href = draft.filePath && draft.status !== "merged" ? obsidianDocsLink(draft.filePath) : null;
+  const href = draft.filePath && draft.status !== "merged" ? obsidianDocsLink(draft.filePath, vault) : null;
 
   return href ? <a href={href}>{draft.name}</a> : <span>{draft.name}</span>;
 }
@@ -181,7 +182,7 @@ function draftState(draft: DraftRow): string {
 
 // What research and design clone: repos the vault documents or you confirmed; refinement's guesses wait for you.
 async function Repos({ detail }: { detail: PbiDetail }) {
-  const catalog = await getDb().select({ name: repo.name }).from(repo).where(eq(repo.excluded, false)).orderBy(repo.name);
+  const catalog = await enabledRepos(getDb(), detail.pbi.vault);
   const fromRefinement = (detail.refinement?.repos ?? []).map((choice) => ({ name: choice.name, source: "refinement", questionId: null }));
   const repos = detail.repos.length > 0 ? detail.repos : fromRefinement;
 
@@ -316,8 +317,6 @@ function providedBy(detail: PbiDetail, url: string): string[] {
   return detail.attachments.filter((entry) => entry.sourceUrl === url).map((entry) => attachmentRef(entry.id));
 }
 
-async function adoUrl(adoId: number): Promise<string | null> {
-  const ado = await readAdoSettings(getDb());
-
-  return ado ? workItemUrl(ado, adoId) : null;
+async function adoUrl(pbi: { adoId: number; vault: string; source: "ado" | "local" }): Promise<string | null> {
+  return workItemUrl(await readAdoSettings(getDb(), pbi.vault), pbi);
 }

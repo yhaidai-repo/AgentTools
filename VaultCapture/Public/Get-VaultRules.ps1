@@ -7,7 +7,7 @@ function Get-VaultRules {
     )
 
     $rules = Get-CaptureRules
-    $vaults = Get-CaptureVault -Config $Config
+    $vaults = Get-CaptureVault -Config $Config -Cwd $Cwd
     $sessionProject = Resolve-CaptureProject -Cwd $Cwd -Vaults $vaults
     $exampleProject = if ($sessionProject) { $sessionProject } else { @($vaults.Projects)[0] }
 

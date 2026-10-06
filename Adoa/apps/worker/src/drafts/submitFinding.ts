@@ -14,7 +14,7 @@ export async function submitFinding(db: AdoaDb, job: RegisterJob): Promise<strin
     return `${job.findingId}: not waiting for a submit (${finding?.status ?? "gone"})`;
   }
 
-  const cli = await VaultCaptureCli.fromEnv(`${job.findingId} goes into the ${job.project} register`);
+  const cli = await VaultCaptureCli.forVault(finding.vault, `${job.findingId} goes into the ${job.project} register`);
   const added = await cli.addRegisterRecord({ project: job.project, kind: job.kind, title: job.title, text: job.text, default: job.default, options: job.options });
   const register = job.kind === "questions" ? "open-questions" : "known-issues";
   const resolution = added.ok ? `Recorded as ${added.value} in ${job.project}-${register}.` : `Not recorded: ${added.error}`;

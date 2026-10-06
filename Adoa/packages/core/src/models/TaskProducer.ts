@@ -12,6 +12,8 @@ export interface TaskProducer {
   kind: (typeof itemKind.enumValues)[number];
   prefix: GlobalItemPrefix;
   description: string;
+  /** Scheduled from the vault's Maintenance tab only (user decision 2026-10-06), not from the generic scheduled-task form. */
+  maintenance: boolean;
   params: ProducerParamSpec[];
   /** The task for this tick, saying whether it is needed; an error when none can be made (e.g. no vault left). */
   produce(context: ProducerContext, params: Record<string, unknown>): Promise<Outcome<ProducedTask>>;

@@ -1,4 +1,4 @@
-import { createHumanTask, draftKey } from "@adoa/core";
+import { createHumanTask, draftKey, vaultOfPbi } from "@adoa/core";
 import { vaultCapture, type AdoaDb } from "@adoa/db";
 import { and, eq } from "drizzle-orm";
 import { VaultCaptureCli } from "./VaultCaptureCli";
@@ -14,7 +14,13 @@ export async function writeDrafts(db: AdoaDb, adoId: number): Promise<void> {
     return;
   }
 
-  const cli = await VaultCaptureCli.fromEnv(`PBI-${adoId} has ${pending.length} vault draft(s) to write`);
+  const vault = await vaultOfPbi(db, adoId);
+
+  if (!vault) {
+    throw new Error(`PBI-${adoId} has ${pending.length} vault draft(s) to write, but isn't in adoa`);
+  }
+
+  const cli = await VaultCaptureCli.forVault(vault, `PBI-${adoId} has ${pending.length} vault draft(s) to write`);
 
   for (const capture of pending) {
     await saveDraft(db, cli, capture);

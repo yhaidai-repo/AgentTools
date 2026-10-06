@@ -6,6 +6,7 @@ import type { AdoaDb } from "./models/AdoaDb";
 export * from "./schema";
 export type { AdoaDb } from "./models/AdoaDb";
 export type { PbiSkill } from "./models/PbiSkill";
+export type { VaultFeatures } from "./models/VaultFeatures";
 export type { PbiConfluencePage } from "./models/PbiConfluencePage";
 export type { PbiImportResult } from "./models/PbiImportResult";
 export type { DesignAlternative } from "./models/DesignAlternative";

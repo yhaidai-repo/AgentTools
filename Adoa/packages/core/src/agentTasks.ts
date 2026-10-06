@@ -2,6 +2,7 @@ import { localItem, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { AGENT_STAGES } from "./agentStages";
 import { nextItemId } from "./localItemIds";
+import { vaultOfPbiSql } from "./vaults";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -19,7 +20,7 @@ export async function ensureAgentTask(db: AdoaDb, agentId: string, adoId: number
   const id = await nextItemId(db, stage.prefix, adoId);
 
   await db.insert(localItem).values({
-    id, kind: stage.kind, pbiId: adoId, title: stage.title, status: "open", assignee: `agent:${agentId}`, createdByRun,
+    id, kind: stage.kind, pbiId: adoId, vault: vaultOfPbiSql(adoId), title: stage.title, status: "open", assignee: `agent:${agentId}`, createdByRun,
   });
 
   return id;

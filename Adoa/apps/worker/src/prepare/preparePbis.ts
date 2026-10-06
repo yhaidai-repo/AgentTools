@@ -1,4 +1,4 @@
-import { ensureAgentTask, readAdoSettings, setPbiStatus, type PipelineStatus } from "@adoa/core";
+import { ensureAgentTask, readAdoSettings, setPbiStatus, vaultBacklogRoot, vaultOfPbis, type PipelineStatus } from "@adoa/core";
 import { workItem } from "@adoa/db";
 import { PbiNoteWriter } from "@adoa/notes";
 import { eq } from "drizzle-orm";
@@ -12,13 +12,14 @@ const NOT_IN_PIPELINE: PipelineStatus[] = ["new", "stale"];
 // Manual step (user selects PBIs): writes the note from the Vault template and queues a refinement task, also for a PBI
 // already in the pipeline (a re-refinement). Returns how many refinement tasks were queued.
 export async function preparePbis(context: WorkerContext, adoIds: number[]): Promise<number> {
-  const ado = await readAdoSettings(context.db);
+  // One page's selection: the PBIs are from one vault (the Backlog shows one). Local PBIs need no ADO settings.
+  const vault = await vaultOfPbis(context.db, adoIds);
 
-  if (!ado) {
-    throw new Error("ADO settings are not configured");
+  if (!vault) {
+    throw new Error("none of the PBIs is in adoa");
   }
 
-  const notes = await PbiNoteWriter.create(context.db, ado, context.vaultRoot);
+  const notes = await PbiNoteWriter.create(context.db, await readAdoSettings(context.db, vault), vaultBacklogRoot(context.backlogMount, vault));
   let queued = 0;
 
   for (const adoId of adoIds) {

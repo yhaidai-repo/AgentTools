@@ -70,7 +70,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
       ...skills.tools,
       createListSkillsTool(deps.skillFolders, isRecommendableSkill),
       createAttachmentTool(deps.db, row.adoId),
-      ...createRefinementTools(deps.db, draft, pbiMessage, recommendable, guard),
+      ...createRefinementTools(deps.db, deps.docsVaultName, draft, pbiMessage, recommendable, guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
       ...createConfluenceTools(deps, agent),
       ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),

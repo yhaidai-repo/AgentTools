@@ -6,11 +6,15 @@ import type { ActionResult } from "@/models/ActionResult";
 import { savePullRequestSettingsAction } from "./actions";
 
 // The repo list is the catalog (not excluded); none checked = every repo (user decision 2026-10-02).
-export function PullRequestSettingsForm({ settings, repoNames }: { settings: PullRequestSettings; repoNames: string[] }) {
+export function PullRequestSettingsForm({ enabled, settings, repoNames }: { enabled: boolean; settings: PullRequestSettings; repoNames: string[] }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(savePullRequestSettingsAction, null);
 
   return (
     <form action={action} className="card">
+      <label className="inline">
+        <input type="checkbox" name="enabled" defaultChecked={enabled} />
+        Enabled: list the PRs you review on the pull request schedule
+      </label>
       <label>
         Pull request check schedule (cron)
         <input name="cron" defaultValue={settings.cron} required />

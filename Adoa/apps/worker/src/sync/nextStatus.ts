@@ -5,7 +5,7 @@ const NOT_YET_REFINED: PipelineStatus[] = ["new", "stale"];
 // A finished PBI stays done when its ADO content changes; only ADO Done/Removed moves it (user decision 2026-10-05).
 const NEVER_STALE: PipelineStatus[] = [...NOT_YET_REFINED, "done"];
 
-export function isClosedAdoState(adoState: string): boolean {
+function isClosedAdoState(adoState: string): boolean {
   return CLOSED_ADO_STATES.has(adoState);
 }
 

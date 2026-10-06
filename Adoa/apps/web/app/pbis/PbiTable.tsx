@@ -25,7 +25,7 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
               <td>
                 <input type="checkbox" name="adoId" value={row.adoId} data-title={row.title} aria-label={`Select ${row.adoId}`} />
               </td>
-              <td>{ado ? <a href={workItemUrl(ado, row.adoId)} target="_blank" rel="noreferrer">{row.adoId}</a> : row.adoId}</td>
+              <td><PbiId row={row} ado={ado} /></td>
               <td className="title"><Link href={`/pbis/${row.adoId}`}>{row.title}</Link></td>
               <td>{row.type}</td>
               <td>{row.priority ?? "–"}</td>
@@ -41,6 +41,13 @@ export function PbiTable({ rows, ado }: { rows: BacklogRow[]; ado: AdoSettings |
 }
 
 // Red only for what holds the agents back; findings to review are a quiet note (same split as the PBI page).
+// The ADO link, or the id with "local" for a PBI created in adoa.
+function PbiId({ row, ado }: { row: BacklogRow; ado: AdoSettings | null }) {
+  const url = workItemUrl(ado, row);
+
+  return url ? <a href={url} target="_blank" rel="noreferrer">{row.adoId}</a> : <>{row.adoId}{row.source === "local" && <span className="muted"> local</span>}</>;
+}
+
 function NeedsAction({ row }: { row: BacklogRow }) {
   return (
     <>

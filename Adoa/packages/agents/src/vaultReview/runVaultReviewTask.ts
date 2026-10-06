@@ -118,10 +118,10 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 // The repos the vaults' projects name in their index notes (`repo:`), when the ADO catalog has them; the agent checks
 // whether a note's subject still exists in the code.
 async function vaultRepos(context: TaskContext, scope: ReviewScope): Promise<RepoRef[]> {
-  const names = await Promise.all(scope.vaults.map((vault) => projectRepoNames(scope.vaultRoot(vault))));
-  const unique = [...new Set(names.flat())];
+  const perVault = await Promise.all(scope.vaults.map(async (vault) => (await reposByName(context.deps.db, vault, await projectRepoNames(scope.vaultRoot(vault)))).repos));
+  const byName = new Map(perVault.flat().map((repo) => [repo.name, repo]));
 
-  return unique.length > 0 ? (await reposByName(context.deps.db, unique)).repos : [];
+  return [...byName.values()];
 }
 
 async function projectRepoNames(vaultRoot: string): Promise<string[]> {

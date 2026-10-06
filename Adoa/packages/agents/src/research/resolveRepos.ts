@@ -1,18 +1,19 @@
-import { pbiRepoNames } from "@adoa/core";
-import { repo, type AdoaDb } from "@adoa/db";
+import { enabledRepos, pbiRepoNames, vaultOfPbi } from "@adoa/core";
+import type { repo, AdoaDb } from "@adoa/db";
 import type { RepoRef } from "@agenttools/runtime";
-import { eq } from "drizzle-orm";
 
 const DEFAULT_BRANCH = "main";
 
 // Repos cloned for a PBI: its documented or confirmed ones (`pbiRepoNames`), matched to the catalog.
 export async function resolveRepos(db: AdoaDb, adoId: number): Promise<{ repos: RepoRef[]; unknown: string[] }> {
-  return reposByName(db, await pbiRepoNames(db, adoId));
+  const vault = await vaultOfPbi(db, adoId);
+
+  return vault ? reposByName(db, vault, await pbiRepoNames(db, adoId)) : { repos: [], unknown: [] };
 }
 
-// Repo names matched to the org repo catalog (case-insensitive); the ones it doesn't know are returned as unknown.
-export async function reposByName(db: AdoaDb, wanted: string[]): Promise<{ repos: RepoRef[]; unknown: string[] }> {
-  const catalog = await db.select().from(repo).where(eq(repo.excluded, false));
+// Repo names matched to the vault's enabled repos (case-insensitive); the ones it doesn't know are returned as unknown.
+export async function reposByName(db: AdoaDb, vault: string, wanted: string[]): Promise<{ repos: RepoRef[]; unknown: string[] }> {
+  const catalog = await enabledRepos(db, vault);
   const byName = new Map(catalog.map((row) => [row.name.toLowerCase(), row]));
   const found = wanted.filter((name) => byName.has(name.toLowerCase()));
 

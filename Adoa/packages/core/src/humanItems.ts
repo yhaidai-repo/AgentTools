@@ -9,6 +9,7 @@ import { itemOfPbi, pbiLabel } from "./itemScope";
 import { setItemStatus } from "./pbiStatus";
 import { applyRepoAnswer, repoAnswerProblem } from "./repoConfirmation";
 import { extractUrls } from "./urls";
+import { vaultOfPbiSql } from "./vaults";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -70,7 +71,7 @@ export async function createHumanTask(db: AdoaDb, task: NewHumanTask): Promise<s
   const id = await nextItemId(db, "HT", task.adoId);
 
   await db.insert(localItem).values({
-    id, kind: "human", pbiId: task.adoId, title: task.title.slice(0, 120), status: "open", assignee: "human",
+    id, kind: "human", pbiId: task.adoId, vault: vaultOfPbiSql(task.adoId), title: task.title.slice(0, 120), status: "open", assignee: "human",
     body: task.body, data: task.data, createdByRun: task.runId,
   });
 

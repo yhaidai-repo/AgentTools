@@ -1,8 +1,7 @@
-import { readTaskSchedule } from "@adoa/core";
+import { enabledRepos, readTaskSchedule } from "@adoa/core";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
-import { producerOptions } from "@/lib/taskSchedules";
-import type { ScheduleFormValues } from "@/models/ScheduleFormValues";
+import { agentChoices, scheduleValues } from "@/lib/taskSchedules";
 import { ScheduleForm } from "../ScheduleForm";
 
 export const dynamic = "force-dynamic";
@@ -14,19 +13,10 @@ export default async function EditSchedulePage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  const values: ScheduleFormValues = {
-    id: schedule.id,
-    name: schedule.name,
-    agentId: schedule.agentId,
-    cron: schedule.cron,
-    enabled: schedule.enabled,
-    params: Object.fromEntries(Object.entries(schedule.params).map(([key, value]) => [key, Array.isArray(value) ? value.map(String) : []])),
-  };
-
   return (
     <>
-      <h1>Scheduled task: {schedule.name}</h1>
-      <ScheduleForm values={values} producers={await producerOptions()} />
+      <h1>Scheduled task: {schedule.name} ({schedule.vault})</h1>
+      <ScheduleForm values={scheduleValues(schedule)} agents={await agentChoices(schedule.agentId)} repos={(await enabledRepos(getDb(), schedule.vault)).map((row) => row.name)} />
     </>
   );
 }

@@ -7,6 +7,7 @@ import type { ImportSettings } from "./models/ImportSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 
+// Settings are per vault (user decision 2026-10-05): the key is `vault:<name>:<setting>`. Confluence access is global.
 const ADO_KEY = "ado";
 const SYNC_KEY = "sync";
 const CONFLUENCE_KEY = "confluence";
@@ -14,45 +15,59 @@ const IMPORT_KEY = "import";
 const IMPORT_STATUS_KEY = "importStatus";
 const PULL_REQUESTS_KEY = "pullRequests";
 
-export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
+const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
   maxItemsPerRun: 400,
   sprint: "current",
   states: ["New", "Ready for Dev"],
 };
 
-export const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
+const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   cron: "*/5 * * * *",
   maxItemsPerRun: 50,
 };
 
-export const DEFAULT_PULL_REQUEST_SETTINGS: PullRequestSettings = {
+const DEFAULT_PULL_REQUEST_SETTINGS: PullRequestSettings = {
   cron: "*/15 * * * *",
   maxPullRequestsPerRun: 50,
   repos: [],
 };
 
-export async function readAdoSettings(db: AdoaDb): Promise<AdoSettings | null> {
-  return readValue<AdoSettings>(db, ADO_KEY);
+export function vaultSettingKey(vault: string, setting: string): string {
+  return `vault:${vault}:${setting}`;
 }
 
-export async function saveAdoSettings(db: AdoaDb, settings: AdoSettings): Promise<void> {
-  await saveValue(db, ADO_KEY, settings);
+const DEFAULT_ADO_SETTINGS: AdoSettings = { enabled: false, orgUrl: "", project: "", team: "", user: "", pat: "" };
+
+// Null until the vault's integration was saved once.
+export async function readAdoSettings(db: AdoaDb, vault: string): Promise<AdoSettings | null> {
+  const stored = await readValue<Partial<AdoSettings>>(db, vaultSettingKey(vault, ADO_KEY));
+
+  return stored ? { ...DEFAULT_ADO_SETTINGS, ...stored } : null;
 }
 
-export async function readSyncSettings(db: AdoaDb): Promise<SyncSettings> {
-  const stored = await readValue<Partial<SyncSettings>>(db, SYNC_KEY);
+export async function saveAdoSettings(db: AdoaDb, vault: string, settings: AdoSettings): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, ADO_KEY), settings);
+}
+
+export async function readSyncSettings(db: AdoaDb, vault: string): Promise<SyncSettings> {
+  const stored = await readValue<Partial<SyncSettings>>(db, vaultSettingKey(vault, SYNC_KEY));
 
   return { ...DEFAULT_SYNC_SETTINGS, ...stored };
 }
 
-export async function saveSyncSettings(db: AdoaDb, settings: SyncSettings): Promise<void> {
-  await saveValue(db, SYNC_KEY, settings);
+export async function saveSyncSettings(db: AdoaDb, vault: string, settings: SyncSettings): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, SYNC_KEY), settings);
 }
 
-// Sync pulls only the PBIs assigned to `user`, so it is required.
+// Sync pulls only the PBIs assigned to `user`, so it is required; the token too.
 export function isAdoConfigured(settings: AdoSettings | null): settings is AdoSettings {
-  return !!settings && [settings.orgUrl, settings.project, settings.team, settings.user].every(Boolean);
+  return !!settings && [settings.orgUrl, settings.project, settings.team, settings.user, settings.pat].every(Boolean);
+}
+
+// Switched on and complete: only then do PBI sync, mail sync and pull request sync exist (user decision 2026-10-06).
+export function isAdoActive(settings: AdoSettings | null): settings is AdoSettings {
+  return isAdoConfigured(settings) && settings.enabled;
 }
 
 export async function saveConfluenceStatus(db: AdoaDb, status: ConfluenceStatus): Promise<void> {
@@ -64,42 +79,42 @@ export async function readConfluenceStatus(db: AdoaDb): Promise<ConfluenceStatus
   return readValue<ConfluenceStatus>(db, CONFLUENCE_KEY);
 }
 
-export async function readImportSettings(db: AdoaDb): Promise<ImportSettings> {
-  const stored = await readValue<Partial<ImportSettings>>(db, IMPORT_KEY);
+export async function readImportSettings(db: AdoaDb, vault: string): Promise<ImportSettings> {
+  const stored = await readValue<Partial<ImportSettings>>(db, vaultSettingKey(vault, IMPORT_KEY));
 
   return { ...DEFAULT_IMPORT_SETTINGS, ...stored };
 }
 
-export async function saveImportSettings(db: AdoaDb, settings: ImportSettings): Promise<void> {
-  await saveValue(db, IMPORT_KEY, settings);
+export async function saveImportSettings(db: AdoaDb, vault: string, settings: ImportSettings): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, IMPORT_KEY), settings);
 }
 
-export async function saveImportStatus(db: AdoaDb, status: ImportRunStatus): Promise<void> {
-  await saveValue(db, IMPORT_STATUS_KEY, status);
+export async function saveImportStatus(db: AdoaDb, vault: string, status: ImportRunStatus): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, IMPORT_STATUS_KEY), status);
 }
 
-// Null until the pbi-import job has run once.
-export async function readImportStatus(db: AdoaDb): Promise<ImportRunStatus | null> {
-  return readValue<ImportRunStatus>(db, IMPORT_STATUS_KEY);
+// Null until the vault's pbi-import job has run once.
+export async function readImportStatus(db: AdoaDb, vault: string): Promise<ImportRunStatus | null> {
+  return readValue<ImportRunStatus>(db, vaultSettingKey(vault, IMPORT_STATUS_KEY));
 }
 
-export async function readPullRequestSettings(db: AdoaDb): Promise<PullRequestSettings> {
-  const stored = await readValue<Partial<PullRequestSettings>>(db, PULL_REQUESTS_KEY);
+export async function readPullRequestSettings(db: AdoaDb, vault: string): Promise<PullRequestSettings> {
+  const stored = await readValue<Partial<PullRequestSettings>>(db, vaultSettingKey(vault, PULL_REQUESTS_KEY));
 
   return { ...DEFAULT_PULL_REQUEST_SETTINGS, ...stored };
 }
 
-export async function savePullRequestSettings(db: AdoaDb, settings: PullRequestSettings): Promise<void> {
-  await saveValue(db, PULL_REQUESTS_KEY, settings);
+export async function savePullRequestSettings(db: AdoaDb, vault: string, settings: PullRequestSettings): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, PULL_REQUESTS_KEY), settings);
 }
 
-async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {
+export async function readValue<T>(db: AdoaDb, key: string): Promise<T | null> {
   const rows = await db.select().from(config).where(eq(config.key, key));
 
   return (rows[0]?.value as T | undefined) ?? null;
 }
 
-async function saveValue(db: AdoaDb, key: string, value: object): Promise<void> {
+export async function saveValue(db: AdoaDb, key: string, value: unknown): Promise<void> {
   await db
     .insert(config)
     .values({ key, value })

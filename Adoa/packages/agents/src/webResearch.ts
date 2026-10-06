@@ -1,4 +1,4 @@
-import { nextItemId } from "@adoa/core";
+import { nextItemId, vaultOfPbiSql } from "@adoa/core";
 import { localItem, type AdoaDb } from "@adoa/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
@@ -40,7 +40,7 @@ export async function insertWebResearchTasks(db: AdoaDb, adoId: number, runId: n
     const id = await nextItemId(db, "AT", adoId);
 
     await db.insert(localItem).values({
-      id, kind: "research", pbiId: adoId, parentId, title: `Web research: ${request.topic}`.slice(0, 120), status: "open", assignee: "agent:research",
+      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), parentId, title: `Web research: ${request.topic}`.slice(0, 120), status: "open", assignee: "agent:research",
       body: request.topic, data: { needsWeb: true, why: request.why, sources: request.sources, depth }, createdByRun: runId,
     });
     ids.push(id);

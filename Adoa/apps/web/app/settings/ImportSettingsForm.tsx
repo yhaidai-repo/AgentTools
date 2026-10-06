@@ -5,11 +5,19 @@ import type { ImportSettings } from "@adoa/core";
 import type { ActionResult } from "@/models/ActionResult";
 import { saveImportSettingsAction } from "./actions";
 
-export function ImportSettingsForm({ settings }: { settings: ImportSettings }) {
+export function ImportSettingsForm({ enabled, importFolder, inboxPath, settings }: { enabled: boolean; importFolder: string | null; inboxPath: string; settings: ImportSettings }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveImportSettingsAction, null);
 
   return (
     <form action={action} className="card">
+      <label className="inline">
+        <input type="checkbox" name="enabled" defaultChecked={enabled} />
+        Enabled: import PBIs from the vault&apos;s import folder on the import schedule
+      </label>
+      <label>
+        Import folder inside <code>{inboxPath}</code> (empty = the inbox root)
+        <input name="importFolder" defaultValue={importFolder ?? ""} />
+      </label>
       <label>
         Import schedule (cron)
         <input name="cron" defaultValue={settings.cron} required />

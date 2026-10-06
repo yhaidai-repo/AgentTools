@@ -50,7 +50,7 @@ export async function failAfterError(db: AdoaDb, task: ItemRow, maxFailures: num
   }
 }
 
-export async function countFailure(db: AdoaDb, task: ItemRow, maxFailures: number, runId: number | undefined): Promise<void> {
+async function countFailure(db: AdoaDb, task: ItemRow, maxFailures: number, runId: number | undefined): Promise<void> {
   const attempts = task.attempts + 1;
 
   await db.update(localItem).set({ attempts }).where(eq(localItem.id, task.id));

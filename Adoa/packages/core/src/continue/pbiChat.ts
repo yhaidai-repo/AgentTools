@@ -9,7 +9,7 @@ import type { PbiJob } from "../models/PbiJob";
 import type { PipelineStatus } from "../models/PipelineStatus";
 import { setPbiStatus } from "../pbiStatus";
 import { PBI_QUEUE } from "../queues";
-import { backlogHostPath, repoHostPaths } from "./hostPaths";
+import { backlogHostFolder, backlogHostPath, chatHostFolder, repoHostPaths } from "./hostPaths";
 import { renderedNoteProblem } from "./renderedNote";
 
 // The statuses a PBI is implemented from; its handoff note exists only then. The first chat moves ready-for-dev → development.
@@ -36,12 +36,12 @@ export async function pbiChatPlan(env: ContinueEnv, context: CommandContext, ado
   const request = {
     title: `Implement PBI-${adoId}: ${pbi.title}`,
     intro: [],
-    folder: env.folder,
-    repoFolders: repoHostPaths(env, repos),
-    steps: [`Read ${backlogHostPath(env, notePath)} and follow its Start section: brief me first, and ask before you change anything.`],
+    folder: chatHostFolder(env, pbi.vault),
+    extraFolders: [backlogHostFolder(env, pbi.vault), ...repoHostPaths(env, repos)],
+    steps: [`Read ${backlogHostPath(env, pbi.vault, notePath)} and follow its Start section: brief me first, and ask before you change anything.`],
   };
 
-  return { ok: true, value: { request, prepare: (preparing) => preparePbiChat(preparing, adoId, pbi.pipelineStatus, notePath) } };
+  return { ok: true, value: { request, prepare: (preparing) => preparePbiChat(preparing, adoId, pbi.vault, pbi.pipelineStatus, notePath) } };
 }
 
 function readinessProblem(status: PipelineStatus, repos: string[]): string | null {
@@ -52,12 +52,12 @@ function readinessProblem(status: PipelineStatus, repos: string[]): string | nul
   return repos.length === 0 ? "The design's plan names no repo." : null;
 }
 
-async function preparePbiChat(context: CommandContext, adoId: number, status: PipelineStatus, notePath: string): Promise<string | null> {
+async function preparePbiChat(context: CommandContext, adoId: number, vault: string, status: PipelineStatus, notePath: string): Promise<string | null> {
   const refresh: PbiJob = { action: "refresh", adoId };
 
   if (status === "ready-for-dev") {
     await setPbiStatus(context.db, adoId, "ready-for-dev", "development", context.actor);
   }
 
-  return renderedNoteProblem(context, PBI_QUEUE, refresh, notePath);
+  return renderedNoteProblem(context, PBI_QUEUE, refresh, vault, notePath);
 }

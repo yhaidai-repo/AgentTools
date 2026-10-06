@@ -1,7 +1,8 @@
 {
   "vaults": [
     "D:/Claude/work-projects",
-    "D:/Claude/personal-projects"
+    "D:/Claude/personal-projects",
+    "D:/Claude/personal-life"
   ],
   "extensions": [".md"],
   "excludeFolders": [".obsidian", ".usage", ".trash"],

@@ -1,4 +1,4 @@
-import { nextItemId, recommendPbiSkills } from "@adoa/core";
+import { nextItemId, recommendPbiSkills, vaultOfPbiSql } from "@adoa/core";
 import { agentRun, localItem, refinement, type AdoaDb } from "@adoa/db";
 import { eq, max } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
@@ -46,7 +46,7 @@ async function insertResearchTasks(db: AdoaDb, adoId: number, runId: number, tas
     const id = await nextItemId(db, "AT", adoId);
 
     await db.insert(localItem).values({
-      id, kind: "research", pbiId: adoId, title: task.title, status: "open", assignee: "agent:research",
+      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), title: task.title, status: "open", assignee: "agent:research",
       body: task.question, data: { goal: task.goal, repos: task.repos, depth: 1 }, createdByRun: runId,
     });
     ids.push(id);

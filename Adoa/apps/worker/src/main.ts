@@ -1,14 +1,17 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyPbiImportSchedule, applyPullRequestsSchedule, applySyncSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, createWorkerBoss, ensureQueues, readImportSettings, readPullRequestSettings, readSyncSettings, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, VAULT_INIT_QUEUE, VAULT_TRASH_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type VaultJob, type VaultTrashJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
-import { createDb } from "@adoa/db";
-import { writeReviewNote, writeWwwRecord } from "@adoa/notes";
+import { createDb, pullRequest } from "@adoa/db";
+import { eq } from "drizzle-orm";
+import { initVault, writeReviewNote, writeWwwRecord } from "@adoa/notes";
+import { deleteFromTrash, restoreFromTrash } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
 import { loadLinkedPage } from "./documents/confluencePages";
 import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
-import { requireEnv, vaultRoot, vaultsRoot } from "./env";
+import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
+import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
 import { runPbiImport } from "./import/runPbiImport";
 import { syncPullRequests } from "./pullRequests/syncPullRequests";
 import type { WorkerContext } from "./models/WorkerContext";
@@ -24,7 +27,7 @@ const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
 const boss = createWorkerBoss(databaseUrl);
 const config = new PostgresAgentConfigStore(pool);
-const context: WorkerContext = { db, config, boss, vaultRoot: vaultRoot() };
+const context: WorkerContext = { db, config, boss, backlogMount: backlogMount() };
 
 boss.on("error", (error) => console.error("pg-boss:", error));
 
@@ -32,21 +35,29 @@ await boss.start();
 await ensureQueues(boss);
 await config.ensureSchema();
 await seedAdoSettingsFromEnv(db);
+
+const moved = await migrateLegacyBacklog(db, context.backlogMount, legacyBacklogFolder());
+
+if (moved) {
+  console.log(moved);
+}
+
 // Settings shows whether Confluence pages can be fetched; the web never sees the token.
 await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
-await applySyncSchedule(boss, (await readSyncSettings(db)).cron);
+// The per-vault jobs (sync, pbi-import, pull-requests) as the vaults' features say (user decision 2026-10-05).
+await applyVaultJobSchedules(boss, db);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
-await applyPbiImportSchedule(boss, (await readImportSettings(db)).cron);
-await applyPullRequestsSchedule(boss, (await readPullRequestSettings(db)).cron);
 await applyTaskSchedules(boss, await listTaskSchedules(db));
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
 });
 
-await boss.work(SYNC_QUEUE, () => logged(SYNC_QUEUE, async () => {
-  await runSync(db);
+await boss.work<VaultJob>(SYNC_QUEUE, (jobs) => logged(SYNC_QUEUE, async () => {
+  for (const job of jobs) {
+    await runSync(db, job.data.vault);
+  }
 }));
 await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async () => {
   for (const job of jobs) {
@@ -89,13 +100,17 @@ await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
 }));
 
 // PBI import (user decision 2026-10-02): one job reads every import source (Outlook mails, inbox requests, …).
-await boss.work(PBI_IMPORT_QUEUE, () => logged(PBI_IMPORT_QUEUE, async () => {
-  console.log(`pbi-import: ${await runPbiImport(context)}`);
+await boss.work<VaultJob>(PBI_IMPORT_QUEUE, (jobs) => logged(PBI_IMPORT_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`pbi-import ${job.data.vault}: ${await runPbiImport(context, job.data.vault)}`);
+  }
 }));
 
 // Code review (user decision 2026-10-02): the ADO pull requests the user reviews; new ones get a code-review task.
-await boss.work(PULL_REQUESTS_QUEUE, () => logged(PULL_REQUESTS_QUEUE, async () => {
-  console.log(`pull-requests: ${await syncPullRequests(context)}`);
+await boss.work<VaultJob>(PULL_REQUESTS_QUEUE, (jobs) => logged(PULL_REQUESTS_QUEUE, async () => {
+  for (const job of jobs) {
+    console.log(`pull-requests ${job.data.vault}: ${await syncPullRequests(context, job.data.vault)}`);
+  }
 }));
 
 // Scheduled tasks (user decision 2026-10-03): a schedule's tick (or "Create now") creates its agent's task when one is
@@ -109,7 +124,7 @@ await boss.work<TaskScheduleJob>(TASK_SCHEDULE_QUEUE, (jobs) => logged(TASK_SCHE
 // "Continue with Claude" on a review page: the PR's review note, which the chat reads first.
 await boss.work<ReviewNoteJob>(REVIEW_NOTE_QUEUE, (jobs) => logged(REVIEW_NOTE_QUEUE, async () => {
   for (const job of jobs) {
-    console.log(`review-note: ${await writeReviewNote(db, context.vaultRoot, job.data.prId)}`);
+    console.log(`review-note: ${await writeReviewNote(db, await reviewBacklogRoot(job.data.prId), job.data.prId)}`);
   }
 }));
 
@@ -117,6 +132,25 @@ await boss.work<ReviewNoteJob>(REVIEW_NOTE_QUEUE, (jobs) => logged(REVIEW_NOTE_Q
 await boss.work<WwwJob>(WWW_QUEUE, (jobs) => logged(WWW_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`www: ${await writeWwwRecord(db, vaultsRoot(), job.data.recordId)}`);
+  }
+}));
+
+// Settings → Add vault (user decision 2026-10-05): the folder and its root files, drafts and usage folders; nothing existing is touched.
+await boss.work<VaultJob>(VAULT_INIT_QUEUE, (jobs) => logged(VAULT_INIT_QUEUE, async () => {
+  for (const job of jobs) {
+    const created = await initVault(`${vaultsRoot()}/${job.data.vault}`, vaultTemplateHome(), `${vaultsHostRoot()}/${job.data.vault}`);
+
+    console.log(`vault-init ${job.data.vault}: ${created.length > 0 ? `created ${created.join(", ")}` : "nothing missing"}`);
+  }
+}));
+
+// The Maintenance tab's Restore / Delete on a vault's .trash/ (user decision 2026-10-06).
+await boss.work<VaultTrashJob>(VAULT_TRASH_QUEUE, (jobs) => logged(VAULT_TRASH_QUEUE, async () => {
+  for (const job of jobs) {
+    const root = `${vaultsRoot()}/${job.data.vault}`;
+    const path = job.data.action === "restore" ? await restoreFromTrash(root, job.data.path) : await deleteFromTrash(root, job.data.path);
+
+    console.log(`vault-trash ${job.data.vault}: ${job.data.action === "restore" ? "restored" : "deleted"} ${path}`);
   }
 }));
 
@@ -128,7 +162,7 @@ process.once("SIGINT", stop);
 // "Sync PBI" brings any PBI, whatever its ADO state (user decision 2026-10-02).
 async function runPbiJob(job: PbiJob): Promise<string> {
   if (job.action === "sync") {
-    return syncOrThrow(job.adoId);
+    return syncOrThrow(job.adoId, job.vault);
   }
 
   if (job.action === "delete") {
@@ -140,8 +174,15 @@ async function runPbiJob(job: PbiJob): Promise<string> {
   return `PBI-${job.adoId} refreshed`;
 }
 
-async function syncOrThrow(adoId: number): Promise<string> {
-  const synced = await syncOnePbi(context, adoId, false);
+// A PBI adoa has stays in its vault; a new one joins the vault the user had selected.
+async function syncOrThrow(adoId: number, selectedVault: string | undefined): Promise<string> {
+  const vault = (await vaultOfPbi(db, adoId)) ?? selectedVault;
+
+  if (!vault) {
+    throw new Error(`PBI-${adoId}: no vault to sync it into`);
+  }
+
+  const synced = await syncOnePbi(context, adoId, false, vault);
 
   if (!synced.ok) {
     throw new Error(synced.error);
@@ -156,6 +197,17 @@ async function dispatch(job: DispatchJob): Promise<void> {
   if (job.agentId) {
     console.log(`dispatch ${await dispatchAgent(context, job.agentId)}`);
   }
+}
+
+// The review note goes into the backlog of the PR's vault.
+async function reviewBacklogRoot(prId: number): Promise<string> {
+  const [pr] = await db.select({ vault: pullRequest.vault }).from(pullRequest).where(eq(pullRequest.id, prId));
+
+  if (!pr) {
+    throw new Error(`PR ${prId} isn't in adoa`);
+  }
+
+  return vaultBacklogRoot(context.backlogMount, pr.vault);
 }
 
 // No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).

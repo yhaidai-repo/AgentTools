@@ -1,5 +1,5 @@
 import type { AdoClient, AdoPullRequest } from "@adoa/ado";
-import { closeReview, finishRun, isAdoConfigured, readAdoSettings, readPullRequestSettings, startRun } from "@adoa/core";
+import { closeReview, deletedPullRequestIds, finishRun, isAdoConfigured, readAdoSettings, readPullRequestSettings, startRun } from "@adoa/core";
 import { codeReview, pullRequest, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { createAdoClient } from "../adoClient";
@@ -15,11 +15,11 @@ const REPO_NOT_SELECTED_REASON = "Its repo isn't selected for code review in Set
 // one gets a review, not reviewed yet: the user starts each review on the Reviews page (user decision 2026-10-02, replaces
 // "a review task per new PR"); a new push only updates the mirror; one that left the list closes its review. Recorded as
 // a run of stage pull-requests.
-export async function syncPullRequests(context: WorkerContext): Promise<string> {
+export async function syncPullRequests(context: WorkerContext, vault: string): Promise<string> {
   const runId = await startRun(context.db, "pull-requests");
 
   try {
-    const message = await syncListed(context.db);
+    const message = await syncListed(context.db, vault);
 
     await finishRun(context.db, runId, "success", null);
 
@@ -30,22 +30,24 @@ export async function syncPullRequests(context: WorkerContext): Promise<string> 
   }
 }
 
-async function syncListed(db: AdoaDb): Promise<string> {
-  const ado = await readAdoSettings(db);
+async function syncListed(db: AdoaDb, vault: string): Promise<string> {
+  const ado = await readAdoSettings(db, vault);
 
   if (!isAdoConfigured(ado)) {
-    throw new Error("ADO settings are not configured");
+    throw new Error(`ADO settings are not configured for ${vault}`);
   }
 
-  const client = await createAdoClient(db);
-  const { maxPullRequestsPerRun, repos } = await readPullRequestSettings(db);
-  const mine = (await client.listActivePullRequests()).filter((pr) => isReviewer(pr, ado.user) && !isAuthor(pr, ado.user) && pr.sourceCommit);
+  const client = await createAdoClient(db, vault);
+  const { maxPullRequestsPerRun, repos } = await readPullRequestSettings(db, vault);
+  // A review deleted in adoa stays deleted (user decision 2026-10-06).
+  const deleted = new Set(await deletedPullRequestIds(db));
+  const mine = (await client.listActivePullRequests()).filter((pr) => isReviewer(pr, ado.user) && !isAuthor(pr, ado.user) && pr.sourceCommit && !deleted.has(pr.id));
   const listed = mine.filter((pr) => isSelectedRepo(pr, repos));
   const changed = await changedPullRequests(db, listed);
   const updated = changed.slice(0, maxPullRequestsPerRun);
 
   for (const pr of updated) {
-    await upsertPullRequest(db, client, pr);
+    await upsertPullRequest(db, client, vault, pr);
   }
 
   await markListed(db, listed);
@@ -86,7 +88,7 @@ async function knownPullRequests(db: AdoaDb, ids: number[]): Promise<Map<number,
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-async function upsertPullRequest(db: AdoaDb, client: AdoClient, pr: AdoPullRequest): Promise<void> {
+async function upsertPullRequest(db: AdoaDb, client: AdoClient, vault: string, pr: AdoPullRequest): Promise<void> {
   const details = await client.getPullRequestDetails(pr.repoId, pr.id);
   const values = {
     repoId: pr.repoId,
@@ -107,7 +109,7 @@ async function upsertPullRequest(db: AdoaDb, client: AdoClient, pr: AdoPullReque
     syncedAt: new Date(),
   };
 
-  await db.insert(pullRequest).values({ id: pr.id, ...values }).onConflictDoUpdate({ target: pullRequest.id, set: values });
+  await db.insert(pullRequest).values({ id: pr.id, vault, ...values }).onConflictDoUpdate({ target: pullRequest.id, set: values });
 }
 
 // A PR that comes back to the list (e.g. you were added as a reviewer again) is listed again; its review stays as it was.

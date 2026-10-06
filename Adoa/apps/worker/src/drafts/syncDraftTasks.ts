@@ -1,4 +1,4 @@
-import { nextGlobalItemId, setItemStatus } from "@adoa/core";
+import { nextGlobalItemId, readVaults, setItemStatus } from "@adoa/core";
 import { localItem, vaultCapture, type AdoaDb } from "@adoa/db";
 import { VaultCaptureCli, markMergedDrafts, type VaultDraft } from "@adoa/notes";
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
@@ -9,16 +9,23 @@ const ADOA_SOURCE = "session finding: adoa";
 const ACTOR = "worker";
 const WAITING = ["open", "blocked"] as const;
 
-// The dedicated drafts job (user decision 2026-10-02): the only part of adoa that looks at the draft folder, and only
-// through VaultCapture's draft commands. Every draft gets a tech-writer task; a task whose draft is gone is done.
+// The dedicated drafts job (user decision 2026-10-02): the only part of adoa that looks at the draft folders, and only
+// through VaultCapture's draft commands. Every draft of every vault gets a tech-writer task; a task whose draft is gone is done.
 export async function syncDraftTasks(db: AdoaDb): Promise<string> {
-  const cli = await VaultCaptureCli.fromEnv("the drafts job lists the vault drafts");
+  const vaults = await readVaults(db);
+  const messages = await Promise.all(vaults.map((vault) => syncVaultDrafts(db, vault.name)));
+  const merged = await markMergedDrafts(db);
+
+  return `${messages.join("; ")}; ${merged} capture(s) merged`;
+}
+
+async function syncVaultDrafts(db: AdoaDb, vault: string): Promise<string> {
+  const cli = await VaultCaptureCli.forVault(vault, "the drafts job lists the vault drafts");
   const drafts = await cli.listDrafts(ADOA_SOURCE);
   const created = await createMissingTasks(db, cli, drafts);
   const closed = await closeTasksOfGoneDrafts(db, cli);
-  const merged = await markMergedDrafts(db);
 
-  return `${drafts.length} draft(s): ${created} task(s) created, ${closed} closed (draft gone), ${merged} capture(s) merged`;
+  return `${vault}: ${drafts.length} draft(s), ${created} task(s) created, ${closed} closed (draft gone)`;
 }
 
 // In the listing's order (adoa's drafts first, then oldest first), so the tasks queue up the same way.
@@ -48,6 +55,7 @@ async function createTaskIfMissing(db: AdoaDb, cli: VaultCaptureCli, draft: Vaul
     title: `Merge draft: ${draftTitle(draft)}`.slice(0, 120),
     status: "open",
     assignee: "agent:tech-writer",
+    vault: cli.vaultName,
     body: draft.name,
     data: { key, draft: draft.name, path: cli.relativePath(draft.path), project: draft.project, target: draft.target, source: draft.source, captured: draft.captured },
   });
@@ -75,7 +83,7 @@ async function closeTasksOfGoneDrafts(db: AdoaDb, cli: VaultCaptureCli): Promise
   const waiting = await db
     .select()
     .from(localItem)
-    .where(and(eq(localItem.kind, "docs"), inArray(localItem.status, [...WAITING]), isNotNull(sql`${localItem.data}->>'draft'`)));
+    .where(and(eq(localItem.kind, "docs"), eq(localItem.vault, cli.vaultName), inArray(localItem.status, [...WAITING]), isNotNull(sql`${localItem.data}->>'draft'`)));
 
   if (waiting.length === 0) {
     return 0;

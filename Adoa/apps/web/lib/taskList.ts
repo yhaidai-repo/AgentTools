@@ -8,14 +8,14 @@ const OPEN_STATUSES: ("open" | "in-progress" | "blocked")[] = ["open", "in-progr
 const LIST_LIMIT = 300;
 
 // The kinds the page lists; research results show inside their task.
-export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review"] as const;
+export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review", "goal"] as const;
 
-// Every task, question and finding across PBIs, plus those without one (e.g. a chat draft's tech-writer task).
-export async function loadTaskList(filter: TaskFilter) {
+// Every task, question and finding of the vault across its PBIs, plus those without one (e.g. a chat draft's tech-writer task).
+export async function loadTaskList(filter: TaskFilter, vault: string) {
   return getDb()
     .select({ ...getTableColumns(localItem), runs: taskRuns() })
     .from(localItem)
-    .where(and(...filterConditions(filter)))
+    .where(and(eq(localItem.vault, vault), ...filterConditions(filter)))
     .orderBy(sortOrder(filter), desc(localItem.id))
     .limit(LIST_LIMIT);
 }

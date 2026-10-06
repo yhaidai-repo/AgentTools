@@ -1,4 +1,5 @@
 import type { WwwEntry } from "../models/WwwEntry";
+import type { WwwRecord } from "../models/WwwRecord";
 
 const RECORD_HEADING = /^## WWW-(\d+)\b/gm;
 const STATS_BLOCK = /<!-- stats:start -->[\s\S]*?<!-- stats:end -->/;
@@ -11,6 +12,28 @@ export function appendWwwRecord(logText: string, entry: WwwEntry, today: string)
   const text = `${logText.trimEnd()}\n\n${renderRecord(recordId, entry, today)}\n`;
 
   return { text: withWwwStats(text), recordId };
+}
+
+// Every record of a www-log.md, in the log's order. The "Record format" sample (`## WWW-nnn`) isn't a record.
+export function parseWwwRecords(logText: string): WwwRecord[] {
+  const headings = [...logText.matchAll(/^## (WWW-\d+)\b[ \t]*(.*)$/gm)];
+
+  return headings.map((heading, index) => toWwwRecord(heading, logText.slice(heading.index, headings[index + 1]?.index)));
+}
+
+function toWwwRecord(heading: RegExpMatchArray, record: string): WwwRecord {
+  const dates = field(record, "Created").split("·").map((part) => part.replace("Updated:", "").trim());
+
+  return {
+    id: heading[1],
+    title: heading[2].trim(),
+    created: dates[0] ?? "",
+    updated: dates[1] ?? dates[0] ?? "",
+    kind: field(record, "Kind"),
+    project: field(record, "Project"),
+    fault: field(record, "Fault"),
+    status: field(record, "Status"),
+  };
 }
 
 function lastRecordNumber(logText: string): number {

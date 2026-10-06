@@ -15,8 +15,9 @@ export async function findImport(db: AdoaDb, source: string, sourceRef: string):
 }
 
 // A re-sent item with a failed PBI is imported again; its row is updated with the new results.
-export async function saveImport(db: AdoaDb, request: PbiImportRequest, results: PbiImportResult[]): Promise<number> {
+export async function saveImport(db: AdoaDb, vault: string, request: PbiImportRequest, results: PbiImportResult[]): Promise<number> {
   const values = {
+    vault,
     source: request.source,
     sourceRef: request.sourceRef,
     title: request.title ?? null,
@@ -52,16 +53,17 @@ export function summarizeImportResults(results: PbiImportResult[]): string {
   return `${results.length} PBI(s): ${parts.join(", ")}`;
 }
 
-export async function readRecentImports(db: AdoaDb, source: string | null, limit: number): Promise<PbiImportRow[]> {
+export async function readRecentImports(db: AdoaDb, vault: string, source: string | null, limit: number): Promise<PbiImportRow[]> {
   const bySource = source ? eq(pbiImport.source, source) : undefined;
 
-  return db.select().from(pbiImport).where(bySource).orderBy(desc(pbiImport.updatedAt)).limit(limit);
+  return db.select().from(pbiImport).where(and(eq(pbiImport.vault, vault), bySource)).orderBy(desc(pbiImport.updatedAt)).limit(limit);
 }
 
-export async function readImportSourceActivity(db: AdoaDb): Promise<ImportSourceActivity[]> {
+export async function readImportSourceActivity(db: AdoaDb, vault: string): Promise<ImportSourceActivity[]> {
   const rows = await db
     .select({ source: pbiImport.source, lastImportAt: max(pbiImport.updatedAt) })
     .from(pbiImport)
+    .where(eq(pbiImport.vault, vault))
     .groupBy(pbiImport.source)
     .orderBy(asc(pbiImport.source));
 

@@ -9,7 +9,7 @@ import type { FindingData } from "../models/FindingData";
 import type { ItemChat } from "../models/ItemChat";
 import type { Outcome } from "../models/Outcome";
 import { pbiRepoNames } from "../pbiRepos";
-import { backlogHostPath, docsProjectHostPath, folderOf, repoHostPaths } from "./hostPaths";
+import { backlogHostFolder, backlogHostPath, chatHostFolder, docsProjectHostPath, folderOf, repoHostPaths } from "./hostPaths";
 import { ITEM_CHATS } from "./itemChats";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -32,7 +32,7 @@ export async function itemChatPlan(env: ContinueEnv, context: CommandContext, it
     return { ok: false, error: `${item.id} is ${item.status}.` };
   }
 
-  const request = item.pbiId === null ? findingRequest(env, context, item, chat) : await pbiItemRequest(env, context, item, chat, item.pbiId);
+  const request = item.pbiId === null ? findingRequest(env, item, chat) : await pbiItemRequest(env, context, item, chat, item.pbiId);
 
   return request.ok ? { ok: true, value: { request: request.value, prepare: async () => null } } : request;
 }
@@ -45,20 +45,20 @@ async function pbiItemRequest(env: ContinueEnv, context: CommandContext, item: I
     return { ok: false, error: "Needs the item's note under a prepared PBI." };
   }
 
-  const pbiFolder = backlogHostPath(env, folderOf(pbi.vaultPath));
-  const read = `Read ${backlogHostPath(env, item.vaultPath)}, then the PBI's notes in ${pbiFolder} (${pbiNoteName(adoId)}.md, the refinement, the design when present, research/), and the code they cite where the briefing needs it.`;
-  const repos = repoHostPaths(env, await pbiRepoNames(context.db, adoId));
+  const pbiFolder = backlogHostPath(env, item.vault, folderOf(pbi.vaultPath));
+  const read = `Read ${backlogHostPath(env, item.vault, item.vaultPath)}, then the PBI's notes in ${pbiFolder} (${pbiNoteName(adoId)}.md, the refinement, the design when present, research/), and the code they cite where the briefing needs it.`;
+  const folders = [backlogHostFolder(env, item.vault), ...repoHostPaths(env, await pbiRepoNames(context.db, adoId))];
 
-  return { ok: true, value: itemRequest(env, item, chat, [], repos, [read, ...registersStep(env, context, item)]) };
+  return { ok: true, value: itemRequest(env, item, chat, [], folders, [read, ...registersStep(env, item)]) };
 }
 
 // A finding without a PBI (e.g. from a tech-writer task) has no note: its text goes in the request, and its project's
 // index names the repo.
-function findingRequest(env: ContinueEnv, context: CommandContext, item: ItemRow, chat: ItemChat): Outcome<ChatRequest> {
-  const registers = registersStep(env, context, item);
+function findingRequest(env: ContinueEnv, item: ItemRow, chat: ItemChat): Outcome<ChatRequest> {
+  const registers = registersStep(env, item);
 
-  if (item.kind !== "finding" || registers.length === 0 || !context.docsVaultName) {
-    return { ok: false, error: "Needs a PBI, or a finding with its project (and DOCS_VAULT_NAME)." };
+  if (item.kind !== "finding" || registers.length === 0) {
+    return { ok: false, error: "Needs a PBI, or a finding with its project." };
   }
 
   const data = item.data as FindingData;
@@ -68,26 +68,26 @@ function findingRequest(env: ContinueEnv, context: CommandContext, item: ItemRow
     ...(data.default?.length ? [`Default: ${data.default.join("; ")}`] : []),
     ...(data.options?.length ? [`Options: ${data.options.join("; ")}`] : []),
   ];
-  const index = `${docsProjectHostPath(env, context.docsVaultName, data.project)}/${data.project}-index.md`;
+  const index = `${docsProjectHostPath(env, item.vault, data.project)}/${data.project}-index.md`;
 
   return { ok: true, value: itemRequest(env, item, chat, intro, [], [`Add the repo named by the \`repo:\` line of ${index} to this session.`, ...registers]) };
 }
 
-function itemRequest(env: ContinueEnv, item: ItemRow, chat: ItemChat, intro: string[], repoFolders: string[], reading: string[]): ChatRequest {
+function itemRequest(env: ContinueEnv, item: ItemRow, chat: ItemChat, intro: string[], extraFolders: string[], reading: string[]): ChatRequest {
   const briefing = `Answer with a briefing in plain language, short, in this order:\n${chat.briefing.map((part) => `   - ${part}`).join("\n")}`;
 
-  return { title: `${chat.opening} ${item.id}: ${item.title}`, intro, folder: env.folder, repoFolders, steps: [...reading, briefing, chat.ending] };
+  return { title: `${chat.opening} ${item.id}: ${item.title}`, intro, folder: chatHostFolder(env, item.vault), extraFolders, steps: [...reading, briefing, chat.ending] };
 }
 
-// A finding goes into its project's register in the docs vault, which says what is recorded already.
-function registersStep(env: ContinueEnv, context: CommandContext, item: ItemRow): string[] {
+// A finding goes into its project's register in its vault, which says what is recorded already.
+function registersStep(env: ContinueEnv, item: ItemRow): string[] {
   const project = item.kind === "finding" ? (item.data as FindingData | null)?.project : undefined;
 
-  if (!project || !context.docsVaultName) {
+  if (!project) {
     return [];
   }
 
-  const folder = docsProjectHostPath(env, context.docsVaultName, project);
+  const folder = docsProjectHostPath(env, item.vault, project);
 
   return [`Read the registers ${folder}/${project}-open-questions.md and ${folder}/${project}-known-issues.md, and the code the finding cites.`];
 }

@@ -3,6 +3,7 @@ export interface TaskScheduleInput {
   id: number | null;
   name: string;
   agentId: string;
+  vault: string;
   cron: string;
   enabled: boolean;
   params: Record<string, unknown>;

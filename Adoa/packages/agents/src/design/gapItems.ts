@@ -1,4 +1,4 @@
-import { nextItemId } from "@adoa/core";
+import { nextItemId, vaultOfPbiSql } from "@adoa/core";
 import { localItem, type AdoaDb } from "@adoa/db";
 import type { GapItem } from "./models/GapItem";
 
@@ -27,6 +27,7 @@ async function insertGapItem(db: AdoaDb, adoId: number, parentId: string, runId:
     id,
     kind,
     pbiId: adoId,
+    vault: vaultOfPbiSql(adoId),
     parentId,
     title: item.title.slice(0, 120),
     status: "open",

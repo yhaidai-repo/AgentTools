@@ -8,6 +8,7 @@ import { chatLauncher } from "./chatLaunchers";
 import { itemChatPlan } from "./itemChat";
 import { pbiChatPlan } from "./pbiChat";
 import { reviewChatPlan } from "./reviewChat";
+import { vaultSetupChatPlan } from "./vaultSetupChat";
 
 const MISSING_ENV = "Set VAULTS_ROOT and REPOS_ROOT in .env (the web gets them as CONTINUE_FOLDER and REPOS_ROOT).";
 
@@ -20,12 +21,12 @@ export async function chatPlan(context: CommandContext, target: ChatTarget): Pro
     return { ok: false, error: env ? `Unknown chat launcher "${env.launcher}".` : MISSING_ENV };
   }
 
-  const plan = await targetPlan(env, context, target);
+  const plan = await targetPlan(env, launcher, context, target);
 
   return plan.ok ? { ok: true, value: { plan: plan.value, launcher } } : plan;
 }
 
-function targetPlan(env: ContinueEnv, context: CommandContext, target: ChatTarget): Promise<Outcome<ChatPlan>> {
+function targetPlan(env: ContinueEnv, launcher: ChatLauncher, context: CommandContext, target: ChatTarget): Promise<Outcome<ChatPlan>> {
   switch (target.kind) {
     case "pbi":
       return pbiChatPlan(env, context, target.adoId);
@@ -33,6 +34,8 @@ function targetPlan(env: ContinueEnv, context: CommandContext, target: ChatTarge
       return itemChatPlan(env, context, target.itemId);
     case "review":
       return reviewChatPlan(env, context, target.prId);
+    case "vault":
+      return vaultSetupChatPlan(env, launcher, context, target.vault);
   }
 }
 

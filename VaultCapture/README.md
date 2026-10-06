@@ -19,7 +19,7 @@ PowerShell 7+, cross-platform, no dependencies.
 - `guidance`: what agents must know before writing (shown by `rules` and in the hook message).
 - `draft`: folder, name pattern, allowed sources, max lines, section names, default "To fill" bullet.
 
-Vault roots: `vault-capture.config.json`, or the file named by `VAULT_CAPTURE_CONFIG`.
+Vaults: any folder with `.obsidian` is one. The working directory's vault is found by itself; `-VaultRoot <path>` on any CLI command (or `VAULT_CAPTURE_VAULTS`, paths separated by `;`) names others, and `-Vault` takes a name or a path. The optional `vault-capture.config.json` (or `VAULT_CAPTURE_CONFIG`) lists vaults whose projects a chat in a repository should find.
 
 ## Session project
 

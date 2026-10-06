@@ -5,15 +5,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { getBoss } from "@/lib/boss";
+import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
-import { readParams } from "@/lib/scheduleParams";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Saved first (a new schedule needs its id for the pg-boss key), then scheduled; a cron pg-boss refuses undoes the save.
 export async function saveScheduleAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const input = readScheduleForm(form);
-  const previous = input.id === null ? null : await readTaskSchedule(getDb(), input.id);
+  const previous = formText(form, "id") === null ? null : await readTaskSchedule(getDb(), Number(formText(form, "id")));
+  // A schedule keeps its vault; a new one maintains the vault selected in the top bar (user decision 2026-10-05).
+  const input = readScheduleForm(form, previous?.vault ?? (await requireVault()));
   const saved = await saveTaskSchedule(getDb(), input);
 
   if (!saved.ok) {
@@ -54,16 +55,17 @@ export async function deleteScheduleAction(form: FormData): Promise<void> {
   revalidatePath("/tasks");
 }
 
-function readScheduleForm(form: FormData): TaskScheduleInput {
+function readScheduleForm(form: FormData, vault: string): TaskScheduleInput {
   const id = formText(form, "id");
 
   return {
     id: id === null ? null : Number(id),
     name: formText(form, "name") ?? "",
     agentId: formText(form, "agentId") ?? "",
+    vault,
     cron: formText(form, "cron") ?? "",
     enabled: form.get("enabled") === "on",
-    params: readParams(form),
+    params: { goal: formText(form, "goal") ?? "", repos: form.getAll("repos").map(String).filter(Boolean) },
   };
 }
 
@@ -74,5 +76,5 @@ async function undoSave(previous: TaskSchedule | null, saved: TaskSchedule): Pro
     return;
   }
 
-  await saveTaskSchedule(getDb(), { id: previous.id, name: previous.name, agentId: previous.agentId, cron: previous.cron, enabled: previous.enabled, params: previous.params });
+  await saveTaskSchedule(getDb(), { id: previous.id, name: previous.name, agentId: previous.agentId, vault: previous.vault, cron: previous.cron, enabled: previous.enabled, params: previous.params });
 }

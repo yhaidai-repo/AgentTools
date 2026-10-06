@@ -5,7 +5,7 @@ export type ItemPrefix = "RT" | "AT" | "DT" | "HT" | "Q" | "RR";
 
 // Items that may have no PBI (tech-writer tasks, their findings, vault-review tasks) are numbered across the app: `WT-001`,
 // `F-001`, `VR-001`.
-export type GlobalItemPrefix = "WT" | "F" | "VR";
+export type GlobalItemPrefix = "WT" | "F" | "VR" | "GT";
 
 // Ids are `<prefix>-<adoId>-<nnn>`, numbered per PBI and prefix; never reused.
 export async function nextItemId(db: AdoaDb, prefix: ItemPrefix, adoId: number): Promise<string> {

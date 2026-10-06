@@ -7,6 +7,8 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { formatDuration, formatSharePercent, formatTokens, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
 import { DEFAULT_RANGE, rangeOptions, rangeStart } from "@/lib/ranges";
+import { NoVault } from "@/components/NoVault";
+import { currentVault } from "@/lib/currentVault";
 import { loadRunList, type RunListRow } from "@/lib/runList";
 import { loadRunShares } from "@/lib/subscription";
 import type { RunListFilter } from "@/models/RunListFilter";
@@ -22,7 +24,13 @@ type Search = Promise<{ agent?: string; range?: string; outcome?: string }>;
 export default async function RunsPage({ searchParams }: { searchParams: Search }) {
   const params = await rememberedParams("/runs", await searchParams);
   const filter: RunListFilter = { agent: params.agent ?? "", range: params.range ?? DEFAULT_RANGE, outcome: params.outcome ?? "" };
-  const rows = await loadRunList(filter, rangeStart(filter.range));
+  const vault = await currentVault();
+
+  if (!vault) {
+    return <NoVault title="Runs" />;
+  }
+
+  const rows = await loadRunList(filter, rangeStart(filter.range), vault);
   const shares = await loadRunShares();
   const agents = (await getAgentConfig().list()).map((agent) => agent.id);
 

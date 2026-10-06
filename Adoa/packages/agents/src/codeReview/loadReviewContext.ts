@@ -14,10 +14,10 @@ export async function loadReviewContext(db: AdoaDb, data: ReviewTaskData): Promi
     throw new Error(`pull request ${data.prId} isn't in adoa; the pull-requests job adds it`);
   }
 
-  const { repos } = await reposByName(db, [pr.repoName]);
+  const { repos } = await reposByName(db, pr.vault, [pr.repoName]);
 
   if (repos.length === 0) {
-    throw new Error(`repo "${pr.repoName}" isn't in the repo catalog (or is excluded); the sync refreshes the catalog`);
+    throw new Error(`repo "${pr.repoName}" isn't among the vault's enabled repositories; the sync refreshes the catalog`);
   }
 
   return {

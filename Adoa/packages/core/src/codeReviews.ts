@@ -1,4 +1,4 @@
-import { codeReview, localItem, type AdoaDb } from "@adoa/db";
+import { codeReview, localItem, pullRequest, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Outcome } from "./models/Outcome";
 import type { ReviewTaskData } from "./models/ReviewTaskData";
@@ -20,14 +20,15 @@ export async function queueReviewTask(db: AdoaDb, prId: number, commit: string, 
 
   const id = await nextScopedItemId(db, `CR-${prId}-`);
   const data: ReviewTaskData = { prId, commit };
+  const [pr] = await db.select({ vault: pullRequest.vault }).from(pullRequest).where(eq(pullRequest.id, prId));
 
-  await db.insert(localItem).values({ id, kind: "review", title: `Review PR ${prId}: ${title}`.slice(0, 120), status: "open", assignee: `agent:${REVIEW_AGENT}`, data });
+  await db.insert(localItem).values({ id, kind: "review", title: `Review PR ${prId}: ${title}`.slice(0, 120), status: "open", assignee: `agent:${REVIEW_AGENT}`, data, vault: pr.vault });
   await db.update(codeReview).set({ status: "active", closedReason: null, updatedAt: new Date() }).where(eq(codeReview.prId, prId));
 
   return { ok: true, value: id };
 }
 
-export async function openReviewTaskId(db: AdoaDb, prId: number): Promise<string | null> {
+async function openReviewTaskId(db: AdoaDb, prId: number): Promise<string | null> {
   const [row] = await db.select({ id: localItem.id }).from(localItem).where(and(reviewTaskOf(prId), inArray(localItem.status, [...OPEN]))).limit(1);
 
   return row?.id ?? null;

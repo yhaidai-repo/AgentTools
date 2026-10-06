@@ -1,4 +1,4 @@
-import { readImportSettings, saveImportStatus, summarizeImportResults } from "@adoa/core";
+import { readImportSettings, readVault, saveImportStatus, summarizeImportResults } from "@adoa/core";
 import { importInboxRoot } from "../env";
 import type { PbiImportSource } from "../models/PbiImportSource";
 import type { PendingImport } from "../models/PendingImport";
@@ -6,56 +6,57 @@ import type { WorkerContext } from "../models/WorkerContext";
 import { importPbis } from "./importPbis";
 import { importSources } from "./importSources";
 
-// The pbi-import job (user decision 2026-10-02): reads every import source, imports each waiting item and tells the
-// source how it went. At most maxItemsPerRun items over all sources; the rest wait for the next run.
-export async function runPbiImport(context: WorkerContext): Promise<string> {
+// A vault's pbi-import job (user decision 2026-10-02): reads every import source, imports each waiting item and tells
+// the source how it went. At most maxItemsPerRun items over all sources; the rest wait for the next run.
+export async function runPbiImport(context: WorkerContext, vault: string): Promise<string> {
   const root = importInboxRoot();
+  const settings = await readVault(context.db, vault);
 
-  if (!root) {
-    await saveImportStatus(context.db, { configured: false, checkedAt: new Date().toISOString(), sources: [] });
+  if (!root || !settings) {
+    await saveImportStatus(context.db, vault, { configured: false, checkedAt: new Date().toISOString(), sources: [] });
 
-    return "IMPORT_INBOX_ROOT is not set";
+    return root ? `${vault} isn't a vault any more` : "IMPORT_INBOX_ROOT is not set";
   }
 
-  const sources = importSources(root);
-  const messages = await importFromSources(context, sources);
+  const sources = importSources(root, settings.importFolder);
+  const messages = await importFromSources(context, vault, sources);
 
-  await saveImportStatus(context.db, { configured: true, checkedAt: new Date().toISOString(), sources: await Promise.all(sources.map((source) => source.status())) });
+  await saveImportStatus(context.db, vault, { configured: true, checkedAt: new Date().toISOString(), sources: await Promise.all(sources.map((source) => source.status())) });
 
   return messages.length > 0 ? messages.join("; ") : "nothing waiting";
 }
 
-async function importFromSources(context: WorkerContext, sources: PbiImportSource[]): Promise<string[]> {
-  const { maxItemsPerRun } = await readImportSettings(context.db);
+async function importFromSources(context: WorkerContext, vault: string, sources: PbiImportSource[]): Promise<string[]> {
+  const { maxItemsPerRun } = await readImportSettings(context.db, vault);
   const messages: string[] = [];
 
   for (const source of sources) {
     const pending = await source.readPending(maxItemsPerRun - messages.length);
 
-    messages.push(...await importPending(context, pending));
+    messages.push(...await importPending(context, vault, pending));
   }
 
   return messages;
 }
 
-async function importPending(context: WorkerContext, pending: PendingImport[]): Promise<string[]> {
+async function importPending(context: WorkerContext, vault: string, pending: PendingImport[]): Promise<string[]> {
   const messages: string[] = [];
 
   for (const item of pending) {
-    messages.push(`${item.label}: ${await importOne(context, item)}`);
+    messages.push(`${item.label}: ${await importOne(context, vault, item)}`);
   }
 
   return messages;
 }
 
-async function importOne(context: WorkerContext, item: PendingImport): Promise<string> {
+async function importOne(context: WorkerContext, vault: string, item: PendingImport): Promise<string> {
   if (!item.request.ok) {
     await item.reject(item.request.error);
 
     return `set aside: ${item.request.error}`;
   }
 
-  const outcome = await importPbis(context, item.request.value);
+  const outcome = await importPbis(context, vault, item.request.value);
 
   // Not the item's fault (e.g. ADO not configured): it stays and is read again next run.
   if (!outcome.ok) {

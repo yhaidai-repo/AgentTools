@@ -5,8 +5,8 @@ import type { CommandContext } from "../models/CommandContext";
 const NOTE_WAIT_MS = 15_000;
 
 // Has the worker render a note, then checks it is in the vault; returns why not, or null.
-export async function renderedNoteProblem(context: CommandContext, queue: string, job: object, backlogRelativePath: string): Promise<string | null> {
+export async function renderedNoteProblem(context: CommandContext, queue: string, job: object, vault: string, backlogRelativePath: string): Promise<string | null> {
   const completed = await context.jobs.sendAndWait(queue, job, NOTE_WAIT_MS);
 
-  return completed && (await context.notes.exists(backlogRelativePath)) ? null : "The note isn't in the vault yet (is the worker running?). Try again.";
+  return completed && (await context.notes.exists(vault, backlogRelativePath)) ? null : "The note isn't in the vault yet (is the worker running?). Try again.";
 }

@@ -8,7 +8,7 @@ const SKIPPED = ["draft"];
 
 // Notes that would still link the draft once it's deleted (Obsidian turns a click on such a link into an empty root
 // note). The run's own edits count in their new version.
-export async function notesLinkingDraft(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<string[]> {
+async function notesLinkingDraft(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<string[]> {
   const edited = new Map(edits.map((edit) => [edit.path, edit.content]));
   const onDisk = (await markdownFiles(docsRoot, "")).filter((path) => !edited.has(path));
   const linkingOnDisk = await filterAsync(onDisk, async (path) => linksTo(path, await readFile(join(docsRoot, path), "utf8"), draftName));

@@ -11,6 +11,5 @@ export interface CommandContext {
   jobs: JobPort;
   notes: BacklogNotes;
   skills: SkillCatalog;
-  docsVaultName: string | null; // the docs vault's folder under the vaults root (its registers, its www-log.md)
   continueEnv: ContinueEnv | null;
 }

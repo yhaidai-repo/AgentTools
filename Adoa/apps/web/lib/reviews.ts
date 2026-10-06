@@ -1,5 +1,5 @@
 import { agentRun, codeReview, localItem, pullRequest, reviewComment, type AdoaDb } from "@adoa/db";
-import { desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { ReviewDetail } from "@/models/ReviewDetail";
 import type { ReviewRow } from "@/models/ReviewRow";
 import type { ReviewState } from "@/models/ReviewState";
@@ -11,13 +11,13 @@ export type ReviewListStatus = (typeof REVIEW_LIST_STATUSES)[number];
 const STATE_BY_TASK_STATUS: Record<string, ReviewState> = { open: "queued", "in-progress": "reviewing", done: "reviewed", blocked: "failed" };
 
 // Newest PRs first; active reviews by default (user decision 2026-10-02).
-export async function loadReviewRows(db: AdoaDb, status: ReviewListStatus): Promise<ReviewRow[]> {
+export async function loadReviewRows(db: AdoaDb, status: ReviewListStatus, vault: string): Promise<ReviewRow[]> {
   const byStatus = status === "all" ? undefined : eq(codeReview.status, status);
   const rows = await db
     .select({ pr: pullRequest, review: codeReview, ...countColumns(), taskStatus: latestTaskStatus() })
     .from(codeReview)
     .innerJoin(pullRequest, eq(pullRequest.id, codeReview.prId))
-    .where(byStatus)
+    .where(and(byStatus, eq(pullRequest.vault, vault)))
     .orderBy(desc(pullRequest.adoCreatedAt), desc(pullRequest.id));
 
   return rows.map(toReviewRow);

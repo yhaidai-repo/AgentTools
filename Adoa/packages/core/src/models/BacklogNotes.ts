@@ -1,4 +1,4 @@
-// A read-only view of the rendered backlog vault; paths are relative to its BACKLOG_FOLDER. Only the worker writes it.
+// A read-only view of the rendered backlog; paths are relative to the vault's backlog folder. Only the worker writes it.
 export interface BacklogNotes {
-  exists(backlogRelativePath: string): Promise<boolean>;
+  exists(vault: string, backlogRelativePath: string): Promise<boolean>;
 }

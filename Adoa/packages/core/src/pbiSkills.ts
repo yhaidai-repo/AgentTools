@@ -37,7 +37,7 @@ export async function recommendPbiSkills(db: AdoaDb, adoId: number, skills: { na
 }
 
 // The user's list wins from now on: later refinements leave it.
-export async function savePbiSkills(db: AdoaDb, adoId: number, skills: PbiSkill[]): Promise<void> {
+async function savePbiSkills(db: AdoaDb, adoId: number, skills: PbiSkill[]): Promise<void> {
   await db.update(workItem).set({ skills, skillsEditedAt: new Date() }).where(eq(workItem.adoId, adoId));
 }
 

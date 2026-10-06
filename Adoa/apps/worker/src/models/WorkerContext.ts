@@ -6,6 +6,6 @@ export interface WorkerContext {
   db: AdoaDb;
   config: AgentConfigStore;
   boss: PgBoss;
-  /** The rendered Vault (backlog) root. */
-  vaultRoot: string;
+  /** adoa's backlog vault; each vault's backlog is a folder in it (vaultBacklogRoot). */
+  backlogMount: string;
 }

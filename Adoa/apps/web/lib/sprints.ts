@@ -3,15 +3,13 @@ import { isAdoConfigured, type AdoSettings } from "@adoa/core";
 import type { SprintOption } from "@/models/SprintOption";
 
 // Dated team sprints, newest first; null when ADO can't be reached, so the form falls back to a text field.
-export async function loadSprintOptions(ado: AdoSettings | null): Promise<AdoIteration[] | null> {
-  const pat = process.env.ADO_PAT;
-
-  if (!isAdoConfigured(ado) || !pat) {
+async function loadSprintOptions(ado: AdoSettings | null): Promise<AdoIteration[] | null> {
+  if (!isAdoConfigured(ado)) {
     return null;
   }
 
   try {
-    const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat });
+    const client = new AdoClient({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat: ado.pat });
     const iterations = await client.getIterations(false);
 
     return iterations

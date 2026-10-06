@@ -15,7 +15,7 @@ New agent = new folder under `Adapters/` that maps its tool calls to `record`. T
 
 ## Config
 
-`vault-usage.config.json`, or the file named by `VAULT_USAGE_CONFIG`.
+`vault-usage.config.json`, or the file named by `VAULT_USAGE_CONFIG`. Its `vaults` list is optional: a note in any folder with `.obsidian` up its tree is tracked; listed vaults are tracked without that folder.
 
 | Key | Meaning |
 |---|---|

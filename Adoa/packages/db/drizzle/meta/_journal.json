@@ -220,10 +220,66 @@
       "breakpoints": true
     },
     {
+      "idx": 31,
+      "version": "7",
+      "when": 1791215872184,
+      "tag": "0031_vaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791273295547,
+      "tag": "0032_vault_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791274323288,
+      "tag": "0033_vaults_everywhere",
+      "breakpoints": true
+    },
+    {
       "idx": 34,
       "version": "7",
       "when": 1791274786829,
       "tag": "0034_vault_review_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791277441393,
+      "tag": "0035_repos_per_vault",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791277442393,
+      "tag": "0036_vault_review_per_vault",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791278551793,
+      "tag": "0037_goal_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791279315816,
+      "tag": "0038_local_pbis",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791280648155,
+      "tag": "0039_deleted_reviews",
       "breakpoints": true
     }
   ]

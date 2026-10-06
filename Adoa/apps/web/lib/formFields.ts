@@ -1,13 +1,16 @@
 import type { UploadedFile } from "@adoa/attachments";
 
 export async function readUpload(form: FormData): Promise<UploadedFile | null> {
-  const file = form.get("file");
+  const [file] = await readUploads(form, "file");
 
-  if (!(file instanceof File) || file.size === 0) {
-    return null;
-  }
+  return file ?? null;
+}
 
-  return { fileName: file.name, contentType: file.type, bytes: Buffer.from(await file.arrayBuffer()) };
+// Every chosen file of a multi-file input; empty entries (no file chosen) are left out.
+export async function readUploads(form: FormData, name: string): Promise<UploadedFile[]> {
+  const files = form.getAll(name).filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
+  return Promise.all(files.map(async (file) => ({ fileName: file.name, contentType: file.type, bytes: Buffer.from(await file.arrayBuffer()) })));
 }
 
 export function formText(form: FormData, name: string): string | null {

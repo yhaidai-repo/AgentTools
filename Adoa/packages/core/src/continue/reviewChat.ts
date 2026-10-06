@@ -7,7 +7,7 @@ import type { ContinueEnv } from "../models/ContinueEnv";
 import type { Outcome } from "../models/Outcome";
 import type { ReviewNoteJob } from "../models/ReviewNoteJob";
 import { REVIEW_NOTE_QUEUE } from "../queues";
-import { backlogHostPath, repoHostPaths } from "./hostPaths";
+import { backlogHostFolder, backlogHostPath, chatHostFolder, repoHostPaths } from "./hostPaths";
 import { renderedNoteProblem } from "./renderedNote";
 
 // A review's chat (user decision 2026-10-05): review only, no fixes. It adds the PR's repo, then follows the review note's
@@ -24,10 +24,10 @@ export async function reviewChatPlan(env: ContinueEnv, context: CommandContext, 
   const request = {
     title: `Review PR ${prId}: ${row.pr.title}`,
     intro: [],
-    folder: env.folder,
-    repoFolders: repoHostPaths(env, [row.pr.repoName]),
-    steps: [`Read ${backlogHostPath(env, notePath)} and follow its Start section: brief me first, and ask before you write anything. Review only: change no file.`],
+    folder: chatHostFolder(env, row.pr.vault),
+    extraFolders: [backlogHostFolder(env, row.pr.vault), ...repoHostPaths(env, [row.pr.repoName])],
+    steps: [`Read ${backlogHostPath(env, row.pr.vault, notePath)} and follow its Start section: brief me first, and ask before you write anything. Review only: change no file.`],
   };
 
-  return { ok: true, value: { request, prepare: (preparing) => renderedNoteProblem(preparing, REVIEW_NOTE_QUEUE, job, notePath) } };
+  return { ok: true, value: { request, prepare: (preparing) => renderedNoteProblem(preparing, REVIEW_NOTE_QUEUE, job, row.pr.vault, notePath) } };
 }

@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { paramFieldName } from "@/lib/scheduleParams";
 import type { ActionResult } from "@/models/ActionResult";
-import type { ProducerOption } from "@/models/ProducerOption";
+import type { AgentChoice } from "@/models/AgentChoice";
 import type { ScheduleFormValues } from "@/models/ScheduleFormValues";
 import { saveScheduleAction } from "./actions";
 
-// A scheduled task (user decision 2026-10-03): which agent gets a task, how often a tick checks whether one is needed,
-// and the agent's own parameters. The agent's cron (its Config) decides when the task is picked up.
-export function ScheduleForm({ values, producers }: { values: ScheduleFormValues; producers: ProducerOption[] }) {
+// A scheduled task (user decision 2026-10-03; any agent since 2026-10-06): which agent, the goal it works on, the vault's
+// repositories it may read, and how often a task is created. The agent's cron (its Config) decides when it is picked up.
+export function ScheduleForm({ values, agents, repos }: { values: ScheduleFormValues; agents: AgentChoice[]; repos: string[] }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveScheduleAction, null);
   const [agentId, setAgentId] = useState(values.agentId);
-  const producer = producers.find((entry) => entry.agentId === agentId);
+  // An agent with its own task producer (the vault review) needs no goal or repos.
+  const takesGoal = agents.find((agent) => agent.id === agentId)?.takesGoal ?? true;
 
   return (
     <form action={action} className="card">
@@ -25,31 +25,33 @@ export function ScheduleForm({ values, producers }: { values: ScheduleFormValues
       <label>
         Agent
         <select name="agentId" value={agentId} onChange={(event) => setAgentId(event.target.value)}>
-          {producers.map((entry) => <option key={entry.agentId} value={entry.agentId}>{entry.label}</option>)}
+          {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.label}</option>)}
         </select>
       </label>
-      {producer && <p className="muted">{producer.description}</p>}
+      {takesGoal && <label>
+        Goal: what the agent does on each task
+        <textarea name="goal" defaultValue={values.goal} rows={5} required placeholder="e.g. Review the error handling of the payment flow and list the gaps." />
+      </label>}
+      {takesGoal && <fieldset className="repo-choices">
+        <legend>Repositories the agent may read (the vault&apos;s enabled ones)</legend>
+        {repos.length === 0 && <span className="muted">None enabled: configure them in Settings → Repositories.</span>}
+        {repos.map((name) => (
+          <label key={name} className="inline">
+            <input type="checkbox" name="repos" value={name} defaultChecked={values.repos.includes(name)} />
+            {name}
+          </label>
+        ))}
+      </fieldset>}
       <label>
-        Schedule (cron): how often a task is created when needed
+        Schedule (cron): how often a task is created (none while the last one still waits)
         <input name="cron" defaultValue={values.cron} required />
       </label>
       <label className="inline">
         <input type="checkbox" name="enabled" defaultChecked={values.enabled} />
         Enabled (off = only &quot;Create now&quot;)
       </label>
-      {producer?.params.map((param) => (
-        <fieldset key={`${agentId}:${param.key}`} className="repo-choices">
-          <legend>{param.label}: {param.description}</legend>
-          {param.choices.map((choice) => (
-            <label key={choice} className="inline">
-              <input type="checkbox" name={paramFieldName(param.key)} value={choice} defaultChecked={(values.agentId === agentId ? values.params[param.key] : param.defaultValue)?.includes(choice)} />
-              {choice}
-            </label>
-          ))}
-        </fieldset>
-      ))}
       <div className="actions">
-        <button type="submit" disabled={isSaving || !producer}>{isSaving ? "Saving…" : "Save"}</button>
+        <button type="submit" disabled={isSaving || agents.length === 0}>{isSaving ? "Saving…" : "Save"}</button>
         <Link className="button secondary" href="/tasks">Cancel</Link>
       </div>
       {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}

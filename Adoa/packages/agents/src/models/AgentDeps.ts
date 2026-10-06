@@ -15,11 +15,11 @@ export interface AgentDeps {
   runtimes: RuntimeRegistry;
   usageStore: UsageStore;
   prices: PriceBook;
-  /** Read-only docs vault root. */
+  /** The run's vault (the task's PBI's, or the task's own): its docs root. */
   docsRoot: string;
   /** Folders inside the docs root hidden from agents. */
   docsExclude: string[];
-  /** Rendered Vault (backlog) root: agents read the PBI note from it. */
+  /** The run's vault's rendered backlog: agents read the PBI note from it. */
   vaultRoot: string;
   /** Folders searched for skills, first match wins. */
   skillFolders: string[];
@@ -27,10 +27,10 @@ export interface AgentDeps {
   /** VaultCapture rules; null when the module is not available (then agents get no vault_capture tool). */
   captureRules: CaptureRules | null;
   repoCacheRoot: string;
-  /** Writable docs vault for the tech-writer; null where adoa may not write it. */
+  /** The run's vault, writable, for the tech-writer; null where adoa may not write it. */
   docsVault: DocsVault | null;
-  /** The docs vault's folder name (DOCS_VAULT_NAME): findings and the Vault page's note writes are about it. */
-  docsVaultName: string | null;
+  /** The run's vault's folder name: findings and the Vault page's note writes are about it. */
+  docsVaultName: string;
   /** Every vault under the vaults root, writable; null where it isn't mounted. */
   vaults: VaultsAccess | null;
   /** A project's register records (VaultCapture `register`); null where the module isn't available. */

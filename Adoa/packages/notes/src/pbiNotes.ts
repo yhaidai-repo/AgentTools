@@ -21,11 +21,11 @@ export class PbiNoteWriter {
   private constructor(
     readonly writer: VaultWriter,
     private readonly db: AdoaDb,
-    private readonly ado: AdoSettings,
+    private readonly ado: AdoSettings | null,
     private readonly template: string,
   ) {}
 
-  static async create(db: AdoaDb, ado: AdoSettings, vaultRoot: string): Promise<PbiNoteWriter> {
+  static async create(db: AdoaDb, ado: AdoSettings | null, vaultRoot: string): Promise<PbiNoteWriter> {
     const writer = new VaultWriter(vaultRoot);
     const template = await writer.readOrCreate(PBI_TEMPLATE_PATH, DEFAULT_PBI_TEMPLATE);
 
@@ -52,13 +52,13 @@ export class PbiNoteWriter {
   }
 }
 
-function toPbiNote(row: WorkItemRow, status: PipelineStatus, ado: AdoSettings): PbiNote {
+function toPbiNote(row: WorkItemRow, status: PipelineStatus, ado: AdoSettings | null): PbiNote {
   return {
     adoId: row.adoId,
     title: row.title,
     type: row.type,
     adoState: row.adoState,
-    adoUrl: workItemUrl(ado, row.adoId),
+    adoUrl: workItemUrl(ado, row) ?? "",
     pipelineStatus: status,
     iterationPath: row.iterationPath,
     areaPath: row.areaPath,

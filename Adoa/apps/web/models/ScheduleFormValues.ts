@@ -5,5 +5,6 @@ export interface ScheduleFormValues {
   agentId: string;
   cron: string;
   enabled: boolean;
-  params: Record<string, string[]>;
+  goal: string;
+  repos: string[];
 }

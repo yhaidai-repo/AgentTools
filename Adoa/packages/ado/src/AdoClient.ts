@@ -161,7 +161,7 @@ async function ensureJsonSuccess(response: Response): Promise<void> {
   }
 
   if (!isJson) {
-    throw new AdoRequestError(response.status, "Azure DevOps did not return JSON: check ADO_PAT and the organization URL");
+    throw new AdoRequestError(response.status, "Azure DevOps did not return JSON: check the token and the organization URL");
   }
 
   const detail = (await response.json().catch(() => null)) as { message?: string } | null;

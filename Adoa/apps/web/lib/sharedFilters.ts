@@ -4,6 +4,9 @@ export const SHARED_FILTERS = ["range"];
 // Remembered filters live in cookies, so the server renders a page with them at once (no unfiltered first paint).
 export const COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
 
+// The selected vault (user decision 2026-10-05): one choice for every page, like an account.
+export const VAULT_COOKIE = "adoa_vault";
+
 export function pageFilterCookie(pathname: string): string {
   return `adoa_filters${pathname.replace(/[^a-z0-9]+/gi, "_")}`;
 }

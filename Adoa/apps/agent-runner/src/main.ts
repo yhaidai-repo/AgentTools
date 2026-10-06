@@ -1,12 +1,13 @@
 import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
-import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, syncPipelineStatus, type AgentRunJob } from "@adoa/core";
+import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, readAdoSettings, syncPipelineStatus, vaultBacklogRoot, vaultOfPbi, type AgentRunJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
-import { createDb } from "@adoa/db";
+import { createDb, localItem } from "@adoa/db";
 import { VaultCaptureCli, publishPbi } from "@adoa/notes";
-import { VaultWriter, vaultsDir } from "@adoa/vault";
+import { VaultWriter } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
+import { eq } from "drizzle-orm";
 import { adoAuthHeader, docsExclude, requireEnv, skillFolders } from "./env";
 
 const TRACE_RETENTION_DAYS = 30;
@@ -18,7 +19,10 @@ const { db, pool } = createDb(databaseUrl);
 const boss = createWorkerBoss(databaseUrl);
 const usageStore = new PostgresUsageStore(pool);
 const config = new PostgresAgentConfigStore(pool);
-const vaultRoot = requireEnv("VAULT_ROOT");
+// Every vault, writable (user decision 2026-10-03): a run reads and writes the vault of its task.
+const vaultsRoot = requireEnv("VAULTS_DIR");
+// adoa's backlog vault: each vault's rendered backlog is a folder in it (user decision 2026-10-05).
+const backlogMount = requireEnv("BACKLOG_MOUNT");
 
 boss.on("error", (error) => console.error("pg-boss:", error));
 
@@ -38,26 +42,20 @@ if (!captureRules) {
   console.error("VAULT_CAPTURE_HOME is not set: agents get no vault_capture tool");
 }
 
-const deps: AgentDeps = {
+// What every run shares; the vault-bound parts come from depsFor.
+const shared = {
   db,
   config,
   runtimes: new RuntimeRegistry().register(new ClaudeAgentSdkRuntime()),
   usageStore,
   prices: new PriceBook(),
-  docsRoot: requireEnv("DOCS_ROOT"),
   docsExclude: docsExclude(),
-  vaultRoot,
   skillFolders: skillFolders(),
-  repoCache: new RepoCache({ root: repoCacheRoot, authHeader: adoAuthHeader(), refreshMinutes: REPO_REFRESH_MINUTES }),
   repoCacheRoot,
   captureRules,
-  docsVault: docsVaultWriter(),
-  docsVaultName: process.env.DOCS_VAULT_NAME?.trim() || null,
-  vaults: vaultsAccess(),
-  listRegister: async (project, kind) => (await VaultCaptureCli.fromEnv("the tech-writer lists a register")).listRegister(project, kind),
+  vaults: { root: vaultsRoot, writer: (vault: string) => docsVaultOf(new VaultWriter(`${vaultsRoot}/${vault}`)) },
   confluence: ConfluenceClient.fromEnv(),
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
-  docUsageLog: docUsageLog(),
 };
 
 // One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).
@@ -67,7 +65,7 @@ await boss.work<AgentRunJob>(AGENT_RUN_QUEUE, (jobs) => logged(AGENT_RUN_QUEUE, 
   }
 }));
 
-console.log(`agent-runner started; providers: ${deps.runtimes.providers().join(", ")}`);
+console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
@@ -77,23 +75,60 @@ process.once("SIGINT", stop);
 async function runAndPublish(job: AgentRunJob): Promise<void> {
   await purgeOldTraces();
 
+  const vault = await vaultOfJob(job);
+
   try {
-    await runAgentTask(deps, job);
+    await runAgentTask(await depsFor(vault), job);
   } finally {
-    await publishTaskPbi(job.pbiId);
+    await publishTaskPbi(vault, job.pbiId);
   }
 }
 
-// The docs vault the tech-writer merges drafts into (mounted writable; VaultWriter keeps every path inside it and the
-// tech-writer's tools refuse draft/ and root files).
-function docsVaultWriter(): AgentDeps["docsVault"] {
-  const vaultName = process.env.DOCS_VAULT_NAME;
+// The run's vault: the task's PBI's, or the task's own (a tech-writer or vault-review task without a PBI).
+async function vaultOfJob(job: AgentRunJob): Promise<string> {
+  const [task] = await db.select({ vault: localItem.vault }).from(localItem).where(eq(localItem.id, job.taskId));
 
-  if (!vaultName) {
-    return null;
+  if (!task) {
+    throw new Error(`task ${job.taskId} isn't in adoa`);
   }
 
-  return docsVaultOf(new VaultWriter(`/vaults/${vaultName}`));
+  return task.vault;
+}
+
+// The run reads docs from its vault, writes drafts, merges and the usage log into it, and reads the PBI note from the
+// vault's backlog. VaultWriter keeps every path inside the vault; the tech-writer's tools refuse draft/ and root files.
+async function depsFor(vault: string): Promise<AgentDeps> {
+  const root = `${vaultsRoot}/${vault}`;
+
+  return {
+    ...shared,
+    repoCache: await repoCacheOf(vault),
+    docsRoot: root,
+    vaultRoot: vaultBacklogRoot(backlogMount, vault),
+    docsVault: docsVaultOf(new VaultWriter(root)),
+    docsVaultName: vault,
+    listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
+    docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
+  };
+}
+
+// One cache per vault (it remembers when each repo was fetched), cloning with the vault's ADO token; the vault's local
+// repos are plain paths under the repos mount and need no token.
+const repoCaches = new Map<string, RepoCache>();
+
+async function repoCacheOf(vault: string): Promise<RepoCache> {
+  const cached = repoCaches.get(vault);
+
+  if (cached) {
+    return cached;
+  }
+
+  const pat = (await readAdoSettings(db, vault))?.pat ?? "";
+  const cache = new RepoCache({ root: `${repoCacheRoot}/${vault}`, authHeader: adoAuthHeader(pat), refreshMinutes: REPO_REFRESH_MINUTES });
+
+  repoCaches.set(vault, cache);
+
+  return cache;
 }
 
 function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
@@ -106,29 +141,14 @@ function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
   };
 }
 
-// Every vault under the vaults root, writable (user decision 2026-10-03): the vault review's link fixes and removals, the
-// tech-writer's actualize tasks. VaultWriter keeps every path inside its vault.
-function vaultsAccess(): AgentDeps["vaults"] {
-  const root = vaultsDir();
-
-  return root ? { root, writer: (vault) => docsVaultOf(new VaultWriter(`${root}/${vault}`)) } : null;
-}
-
-// VaultUsage's log in the writable docs vault mount (same place as the tech-writer's merges).
-function docUsageLog(): DocUsageLog | null {
-  const vaultName = process.env.DOCS_VAULT_NAME;
-
-  return vaultName ? new DocUsageLog(`/vaults/${vaultName}/.usage/usage.jsonl`) : null;
-}
-
 // A task without a PBI (a chat draft's tech-writer task) has no PBI status or notes to update.
-async function publishTaskPbi(pbiId: number | null): Promise<void> {
+async function publishTaskPbi(vault: string, pbiId: number | null): Promise<void> {
   if (pbiId === null) {
     return;
   }
 
   await syncPipelineStatus(db, pbiId, ACTOR);
-  await publishPbi(db, vaultRoot, pbiId);
+  await publishPbi(db, vaultBacklogRoot(backlogMount, (await vaultOfPbi(db, pbiId)) ?? vault), pbiId);
 }
 
 // No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).

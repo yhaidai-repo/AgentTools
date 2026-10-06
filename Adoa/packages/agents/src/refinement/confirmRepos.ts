@@ -1,4 +1,4 @@
-import { catalogRepos, hasItemWithKey, repoConfirmationKey, setItemStatus } from "@adoa/core";
+import { catalogRepos, hasItemWithKey, repoConfirmationKey, setItemStatus, vaultOfPbi } from "@adoa/core";
 import { localItem, pbiRepo, repo, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
 import { insertQuestions } from "./insertQuestions";
@@ -12,7 +12,7 @@ type RepoRow = typeof repo.$inferSelect;
 // project's index names (user decision 2026-10-02). Recorded per PBI in pbi_repo: research clones only documented and
 // confirmed repos, and a repo the user confirmed stays confirmed in later refinements.
 export async function confirmRepos(db: AdoaDb, adoId: number, runId: number, names: string[], documented: Map<string, string>): Promise<string[]> {
-  const picked = await catalogRepos(db, names);
+  const picked = await catalogRepos(db, (await vaultOfPbi(db, adoId))!, names);
 
   await recordPicks(db, adoId, picked, documented);
 
