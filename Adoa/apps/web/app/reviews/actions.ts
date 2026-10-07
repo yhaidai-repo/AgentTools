@@ -83,11 +83,22 @@ export async function closeReview(prId: number): Promise<ActionResult> {
 }
 
 export async function deleteReview(prId: number): Promise<ActionResult> {
-  const deleted = await runWebCommand(deleteReviewCommand, { prId });
+  try {
+    const deleted = await runWebCommand(deleteReviewCommand, { prId });
 
-  revalidatePath("/reviews");
+    revalidatePath("/reviews");
 
-  return deleted.ok ? { ok: true, message: `Review of PR ${prId} deleted.` } : { ok: false, message: deleted.error };
+    return deleted.ok ? { ok: true, message: `Review of PR ${prId} deleted.` } : { ok: false, message: deleted.error };
+  } catch (error) {
+    // A refused delete (e.g. a reference the transaction didn't expect) is a message on the page, not a server error.
+    return { ok: false, message: `PR ${prId}: ${firstLine(error)}` };
+  }
+}
+
+function firstLine(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.split(/\r?\n/)[0];
 }
 
 // The user starts every review (user decision 2026-10-02): a full review of the PR's current commit, earlier comments and

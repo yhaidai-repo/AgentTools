@@ -23,16 +23,22 @@ export async function deleteReviewData(db: AdoaDb, prId: number): Promise<Outcom
     return { ok: false, error: problem ?? `PR ${prId} isn't in adoa.` };
   }
 
+  // Order: comments reference the runs, findings reference their review task, runs reference the tasks.
   await db.transaction(async (tx) => {
     const taskIds = (await tx.select({ id: localItem.id }).from(localItem).where(reviewTaskOf(prId))).map((row) => row.id);
-
-    if (taskIds.length > 0) {
-      await tx.delete(statusHistory).where(inArray(statusHistory.entityId, taskIds));
-      await tx.delete(agentRun).where(inArray(agentRun.itemId, taskIds));
-      await tx.delete(localItem).where(inArray(localItem.id, taskIds));
-    }
+    const findingIds = taskIds.length > 0 ? (await tx.select({ id: localItem.id }).from(localItem).where(inArray(localItem.parentId, taskIds))).map((row) => row.id) : [];
+    const itemIds = [...taskIds, ...findingIds];
 
     await tx.delete(reviewComment).where(eq(reviewComment.prId, prId));
+
+    if (itemIds.length > 0) {
+      // Items and runs reference each other (item_id, created_by_run): the items let go of their runs first.
+      await tx.update(localItem).set({ createdByRun: null }).where(inArray(localItem.id, itemIds));
+      await tx.delete(statusHistory).where(inArray(statusHistory.entityId, itemIds));
+      await tx.delete(agentRun).where(inArray(agentRun.itemId, itemIds));
+      await tx.delete(localItem).where(inArray(localItem.id, itemIds));
+    }
+
     await tx.delete(codeReview).where(eq(codeReview.prId, prId));
     await tx.delete(pullRequest).where(eq(pullRequest.id, prId));
     await tx.insert(deletedPullRequest).values({ id: prId, title: pr.title }).onConflictDoUpdate({ target: deletedPullRequest.id, set: { title: pr.title, deletedAt: new Date() } });
