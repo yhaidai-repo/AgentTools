@@ -45,6 +45,14 @@ export async function deletePbiData(db: AdoaDb, adoId: number): Promise<Outcome<
     await tx.delete(refinement).where(eq(refinement.pbiId, adoId));
     await tx.delete(design).where(eq(design.pbiId, adoId));
     await tx.delete(pbiFeedback).where(eq(pbiFeedback.pbiId, adoId)); // its WWW records stay: they are in the vault log
+    // Items and status rows elsewhere may point at this PBI's runs (created_by_run, run_id): they let go first.
+    const runIds = (await tx.select({ id: agentRun.id }).from(agentRun).where(or(eq(agentRun.pbiId, adoId), ofItems))).map((row) => row.id);
+
+    if (runIds.length > 0) {
+      await tx.update(localItem).set({ createdByRun: null }).where(inArray(localItem.createdByRun, runIds));
+      await tx.update(statusHistory).set({ runId: null }).where(inArray(statusHistory.runId, runIds));
+    }
+
     await tx.delete(agentRun).where(or(eq(agentRun.pbiId, adoId), ofItems));
     await tx.delete(localItem).where(eq(localItem.pbiId, adoId));
     await tx.delete(workItem).where(eq(workItem.adoId, adoId));
