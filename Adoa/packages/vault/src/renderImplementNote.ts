@@ -19,6 +19,9 @@ const FEATURE_BRIEFING = [
   "**Decisions it rests on**: the answered questions and the design's assumptions and alternatives not taken.",
 ];
 
+// adoa's commands on the command line (user decision 2026-10-09); the input is JSON on stdin.
+const ADOA_CLI = "docker exec -i adoa-web-1 npm run -s cli -w @adoa/web --";
+
 // Both outlines end the same way.
 const BRIEFING_END = [
   "**What the plan does**: the plan steps grouped by purpose and why each is needed; name the user steps you don't do.",
@@ -63,6 +66,7 @@ export function renderImplementNote(note: ImplementNote, notesSection: string): 
       `Done when the acceptance criteria in [[${pbi}]] and the tests above pass.`,
       "Azure DevOps is never written; nothing is pushed.",
       "This vault is rendered by adoa: read it, don't edit it.",
+      `An issue found in this PBI's implementation that the plan doesn't cover is a bug: after the user's yes, report it with \`${ADOA_CLI} bug.report\` and \`{"parent": "${note.adoId}", "title": "…", "descriptionMd": "steps, expected, actual"}\` on stdin. adoa's agents refine and design the fix as a child item.`,
     ]),
     notesSection,
   ].join("\n\n");

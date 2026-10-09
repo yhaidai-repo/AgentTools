@@ -9,7 +9,7 @@ export function DeletePbiButton({ adoId }: { adoId: number }) {
   const [isPending, startTransition] = useTransition();
 
   function onDelete() {
-    const question = `Delete PBI-${adoId} from adoa? Its tasks, questions, runs, attachments, repos and notes are removed, and sync won't import it again (Sync PBI brings it back). Azure DevOps is not changed.`;
+    const question = `Delete PBI-${adoId} from adoa? Its child items, tasks, questions, runs, attachments, repos and notes are removed, and sync won't import it again (Sync PBI brings it back). Azure DevOps is not changed.`;
 
     if (!window.confirm(question)) {
       return;

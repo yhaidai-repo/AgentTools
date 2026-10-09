@@ -12,6 +12,10 @@ description: How the adoa design agent writes an implementation design: plan, al
 - Root cause confirmed (config, infra or a broken pipeline) → the first plan is "fix the root cause only". Trace what the existing flow does after that fix; each extra step names the symptom left, with evidence.
 - Runtime assumptions (startup code runs, lag, missing data) are checked in code, or become a gap.
 
+## Bugs of a PBI (child items)
+- Design only the fix, on top of the parent's design in `<parent-pbi>`; it is implemented on the parent's branch. No re-design, no new branch.
+- Name the parent's plan step each fix step amends; tests cover the bug's reproduction and the parent's criteria it touches.
+
 ## Approach and alternatives
 - Prefer extending what exists (helpers, base classes, patterns in the same repo) over new code.
 - Weigh alternatives only when the choice is real: placement, pattern, data model, library, sync vs async.

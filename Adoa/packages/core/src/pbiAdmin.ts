@@ -1,20 +1,31 @@
-import { agentRun, attachment, deletedPbi, design, localItem, pbiFeedback, pbiRepo, refinement, statusHistory, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
+import { agentRun, attachment, bug, deletedPbi, design, localItem, pbiFeedback, pbiRepo, refinement, statusHistory, vaultCapture, workItem, type AdoaDb } from "@adoa/db";
 import { and, eq, inArray, or } from "drizzle-orm";
+import { childIds } from "./bugs/childItems";
 import type { Outcome } from "./models/Outcome";
 
-// A PBI as the user types it: its id, or a link to it in Azure DevOps (…/_workitems/edit/123, …/workitems/123, ?id=123).
+// Its id (123, #123), a link to it in Azure DevOps (…/_workitems/edit/123, …/workitems/123, ?id=123) or in adoa (/pbis/123).
+const PBI_REFERENCES = [/^#?(\d+)$/, /workitems\/(?:edit\/)?(\d+)/i, /\/pbis\/(\d+)/, /[?&]id=(\d+)/];
+
+// A PBI as the user types it.
 export function parsePbiReference(text: string): number | null {
   const value = text.trim();
-  const id = /^\d+$/.test(value) ? value : (value.match(/workitems\/(?:edit\/)?(\d+)/i)?.[1] ?? value.match(/[?&]id=(\d+)/)?.[1]);
+  const id = PBI_REFERENCES.map((pattern) => value.match(pattern)?.[1]).find(Boolean);
 
   return id ? Number(id) : null;
 }
 
-// Why the PBI can't be deleted now: an agent run on it would write into rows that are gone.
+// Why the PBI can't be deleted now: an agent run on it, or on a child item deleted with it, would write into rows that
+// are gone.
 export async function pbiDeleteProblem(db: AdoaDb, adoId: number): Promise<string | null> {
-  const runId = await runningRunOn(db, adoId);
+  for (const id of [adoId, ...(await childIds(db, adoId))]) {
+    const runId = await runningRunOn(db, id);
 
-  return runId === null ? null : `RUN-${runId} is working on PBI-${adoId}; delete it when the run has ended.`;
+    if (runId !== null) {
+      return `RUN-${runId} is working on PBI-${id}; delete it when the run has ended.`;
+    }
+  }
+
+  return null;
 }
 
 // The agent run working on the PBI now, if any.
@@ -24,8 +35,8 @@ export async function runningRunOn(db: AdoaDb, adoId: number): Promise<number | 
   return running?.id ?? null;
 }
 
-// Deletes the PBI in adoa only (ADO untouched, user decision 2026-10-02): its tasks, questions, runs, attachments, repos,
-// refinements and drafts, then the PBI itself; it is remembered so sync doesn't bring it back. The usage records stay.
+// Deletes the PBI in adoa only (ADO untouched, user decision 2026-10-02): its child items first (they belong to it, user
+// decision 2026-10-09), then the PBI. Each is remembered so sync doesn't bring it back. The usage records stay.
 export async function deletePbiData(db: AdoaDb, adoId: number): Promise<Outcome<string>> {
   const problem = await pbiDeleteProblem(db, adoId);
   const [pbi] = await db.select({ title: workItem.title }).from(workItem).where(eq(workItem.adoId, adoId));
@@ -34,11 +45,24 @@ export async function deletePbiData(db: AdoaDb, adoId: number): Promise<Outcome<
     return { ok: false, error: problem ?? `PBI-${adoId} isn't in adoa.` };
   }
 
+  for (const childId of await childIds(db, adoId)) {
+    await deleteWorkItem(db, childId);
+  }
+
+  await deleteWorkItem(db, adoId);
+
+  return { ok: true, value: pbi.title };
+}
+
+// One work item with its bug record, tasks, questions, runs, attachments, repos, refinements and drafts.
+async function deleteWorkItem(db: AdoaDb, adoId: number): Promise<void> {
   await db.transaction(async (tx) => {
+    const [pbi] = await tx.select({ title: workItem.title }).from(workItem).where(eq(workItem.adoId, adoId));
     const itemIds = (await tx.select({ id: localItem.id }).from(localItem).where(eq(localItem.pbiId, adoId))).map((row) => row.id);
     const ofItems = itemIds.length > 0 ? inArray(agentRun.itemId, itemIds) : undefined;
 
     await tx.delete(statusHistory).where(or(and(eq(statusHistory.entityKind, "pbi"), eq(statusHistory.entityId, String(adoId))), itemIds.length > 0 ? inArray(statusHistory.entityId, itemIds) : undefined));
+    await tx.delete(bug).where(eq(bug.workItemId, adoId));
     await tx.delete(attachment).where(eq(attachment.pbiId, adoId));
     await tx.delete(pbiRepo).where(eq(pbiRepo.pbiId, adoId));
     await tx.delete(vaultCapture).where(eq(vaultCapture.pbiId, adoId));
@@ -58,8 +82,6 @@ export async function deletePbiData(db: AdoaDb, adoId: number): Promise<Outcome<
     await tx.delete(workItem).where(eq(workItem.adoId, adoId));
     await tx.insert(deletedPbi).values({ adoId, title: pbi.title }).onConflictDoUpdate({ target: deletedPbi.adoId, set: { title: pbi.title, deletedAt: new Date() } });
   });
-
-  return { ok: true, value: pbi.title };
 }
 
 export async function deletedPbiIds(db: AdoaDb): Promise<number[]> {

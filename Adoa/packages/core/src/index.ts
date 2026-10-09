@@ -59,6 +59,8 @@ export * from "./reviewComments";
 // Commands: contracts for every caller (web actions now, an MCP server later).
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
+export { describeCommands } from "./commands/describeCommands";
+export type { CommandInfo } from "./models/CommandInfo";
 export { finishPbiCommand } from "./commands/finishPbiCommand";
 export { deletePbiCommand } from "./commands/deletePbiCommand";
 export { createPbiCommand } from "./commands/createPbiCommand";
@@ -75,6 +77,17 @@ export { rerunTaskCommand } from "./commands/rerunTaskCommand";
 export { answerReviewCommentCommand } from "./commands/answerReviewCommentCommand";
 export { createWwwRecordCommand } from "./commands/createWwwRecordCommand";
 export { openChatCommand } from "./commands/openChatCommand";
+export { getPbiCommand } from "./commands/getPbiCommand";
+export { reportBugCommand } from "./commands/reportBugCommand";
+// Bugs and child items (user decision 2026-10-09).
+export { BUG_MARKER, isMarkedBug } from "./bugs/bugRule";
+export { childIds, inheritParentContext, readChildItems, topLevelPbi } from "./bugs/childItems";
+export { bugsToPrepare, readBug, recordBug } from "./bugs/bugRecords";
+export { readPbiOverview } from "./bugs/pbiOverview";
+export type { BugInfo } from "./models/BugInfo";
+export type { BugToPrepare } from "./models/BugToPrepare";
+export type { ChildItem } from "./models/ChildItem";
+export type { PbiOverview } from "./models/PbiOverview";
 // Continue with an agent (model agnostic).
 export { chatAvailability, chatLabel } from "./continue/chatPlan";
 export { DEFAULT_CHAT_LAUNCHER, chatLauncherIds } from "./continue/chatLaunchers";

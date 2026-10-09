@@ -1,5 +1,6 @@
 // A PBI created in adoa itself (user decision 2026-10-06), for vaults without an ADO integration or for work ADO
-// doesn't track; it has no ADO counterpart and the sync leaves it alone.
+// doesn't track; it has no ADO counterpart and the sync leaves it alone. With a parent it is that PBI's child item
+// (user decision 2026-10-09).
 export interface NewPbi {
   vault: string;
   title: string;
@@ -7,4 +8,5 @@ export interface NewPbi {
   priority: number;
   descriptionMd: string | null;
   acceptanceCriteriaMd: string | null;
+  parentId: number | null;
 }

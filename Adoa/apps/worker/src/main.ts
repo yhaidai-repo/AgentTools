@@ -16,6 +16,7 @@ import { runPbiImport } from "./import/runPbiImport";
 import { syncPullRequests } from "./pullRequests/syncPullRequests";
 import type { WorkerContext } from "./models/WorkerContext";
 import { deletePbi } from "./pbi/deletePbi";
+import { prepareBugs } from "./prepare/prepareBugs";
 import { preparePbis } from "./prepare/preparePbis";
 import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
@@ -192,10 +193,25 @@ async function syncOrThrow(adoId: number, selectedVault: string | undefined): Pr
 }
 
 async function dispatch(job: DispatchJob): Promise<void> {
+  await prepareNewBugs();
   await refreshQueuedPbis(context, job.agentId);
 
   if (job.agentId) {
     console.log(`dispatch ${await dispatchAgent(context, job.agentId)}`);
+  }
+}
+
+// A bug that can't be prepared must not stop the tick: the other PBIs' statuses, notes and hand-ons still go on. The
+// error is logged and the bug is tried again on the next tick.
+async function prepareNewBugs(): Promise<void> {
+  try {
+    const prepared = await prepareBugs(context);
+
+    if (prepared) {
+      console.log(`dispatch ${prepared}`);
+    }
+  } catch (error) {
+    console.error("dispatch: preparing bugs failed:", error);
   }
 }
 

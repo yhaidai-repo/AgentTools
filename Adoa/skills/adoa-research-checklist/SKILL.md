@@ -22,6 +22,10 @@ description: How the adoa research agent answers one research question with evid
 - Before reporting a defect, check guards on the path (global query filters, idempotency checks).
 - End with: does fixing the root cause alone remove every symptom? Yes/no and the evidence.
 
+## Bugs of a PBI (child items)
+- Start from the parent's design plan in `<parent-pbi>`: the bug is usually in code the plan changed.
+- The repos are cloned on their default branch; the parent's changes may exist only on its branch. When the evidence depends on them, say so instead of concluding the code is missing.
+
 ## Evidence
 - Each finding cites `<repo>/<path>:<line>` and the symbol, or a doc path.
 - Distinguish: found in code, stated in docs, inferred. Mark inferences.

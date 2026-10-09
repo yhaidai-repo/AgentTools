@@ -1,4 +1,4 @@
-import type { ReviewTaskData } from "@adoa/core";
+import { topLevelPbi, type ReviewTaskData } from "@adoa/core";
 import { design, pullRequest, refinement, reviewComment, workItem, type AdoaDb } from "@adoa/db";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { reposByName } from "../research/resolveRepos";
@@ -37,7 +37,15 @@ async function loadLinkedPbis(db: AdoaDb, adoIds: number[]): Promise<LinkedPbi[]
     title: titles.get(adoId) ?? null,
     refinementSummary: titles.has(adoId) ? await latestRefinementSummary(db, adoId) : null,
     designApproach: titles.has(adoId) ? await latestDesignApproach(db, adoId) : null,
+    parent: titles.has(adoId) ? await topLevelParent(db, adoId) : null,
   })));
+}
+
+// The PBI a child item is filed under; null for a top-level PBI.
+async function topLevelParent(db: AdoaDb, adoId: number): Promise<LinkedPbi["parent"]> {
+  const parent = await topLevelPbi(db, adoId);
+
+  return parent && parent.adoId !== adoId ? { adoId: parent.adoId, title: parent.title } : null;
 }
 
 async function latestRefinementSummary(db: AdoaDb, adoId: number): Promise<string | null> {

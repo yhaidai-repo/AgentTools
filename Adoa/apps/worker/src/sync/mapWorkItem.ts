@@ -22,6 +22,7 @@ export function mapWorkItem(item: AdoWorkItem): MappedWorkItem {
     backlogPriority: num(fields, FIELD.backlogPriority),
     effort: num(fields, FIELD.effort),
     remainingWork: num(fields, FIELD.remainingWork),
+    adoParentId: num(fields, FIELD.parent),
     tags: splitTags(text(fields, FIELD.tags)),
     adoCreatedAt: toDate(text(fields, FIELD.createdDate)),
     adoChangedAt: toDate(text(fields, FIELD.changedDate)),

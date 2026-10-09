@@ -1,4 +1,5 @@
 import { agentRun, attachment, design, localItem, pbiRepo, refinement, repo, vaultCapture, workItem } from "@adoa/db";
+import { readBug, readChildItems } from "@adoa/core";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "./db";
 
@@ -33,8 +34,17 @@ export async function loadPbiDetail(adoId: number) {
   const [latestDesign] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
   const drafts = await db.select().from(vaultCapture).where(eq(vaultCapture.pbiId, adoId)).orderBy(vaultCapture.id);
   const repos = await db.select({ name: repo.name, source: pbiRepo.source, questionId: pbiRepo.questionId }).from(pbiRepo).innerJoin(repo, eq(repo.id, pbiRepo.repoId)).where(eq(pbiRepo.pbiId, adoId)).orderBy(repo.name);
+  const relations = await loadRelations(adoId, pbi.parentId);
 
-  return { pbi, items, attachments, runs, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null };
+  return { pbi, items, attachments, runs, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null, ...relations };
+}
+
+// Where the PBI sits (user decision 2026-10-09): its parent and bug record when it is a child, its child items.
+async function loadRelations(adoId: number, parentId: number | null) {
+  const db = getDb();
+  const [parent] = parentId === null ? [] : await db.select({ adoId: workItem.adoId, title: workItem.title }).from(workItem).where(eq(workItem.adoId, parentId));
+
+  return { parent: parent ?? null, bug: await readBug(db, adoId), children: await readChildItems(db, adoId) };
 }
 
 // One item with its uploads, for a task its results (shown inside the task), and the findings it raised. The route

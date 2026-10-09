@@ -67,6 +67,7 @@ function toPbiNote(row: WorkItemRow, status: PipelineStatus, ado: AdoSettings | 
     tags: row.tags ? row.tags.split(";").map((tag) => tag.trim()) : [],
     descriptionMd: row.descriptionMd,
     acceptanceCriteriaMd: row.acceptanceCriteriaMd,
+    parentId: row.parentId,
     created: row.createdAt,
     updated: row.adoChangedAt ?? row.syncedAt,
   };

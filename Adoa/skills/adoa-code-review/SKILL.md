@@ -18,6 +18,7 @@ description: How the adoa code-review agent reviews one pull request and writes 
 - Performance: unbounded loops over growing data, O(n²) work in hot paths, needless allocations or copies in loops, resources not released (connections, streams, files, subscriptions), caches that never drop entries.
 - Security: injection (SQL, command, XSS), missing authentication or authorization checks, CSRF on state-changing endpoints, secrets in code, unsafe deserialization, path traversal from user input, server-side requests to user-supplied URLs (SSRF), data leaking into logs.
 - Fit: does the change do what the linked PBI asks? Missing acceptance criteria are worth a comment.
+- A linked child item (a `[BUG]` Task, shown as "Child item of PBI-…"): the change fixes the reported behaviour and keeps the parent PBI's acceptance criteria. A fix that breaks one of them is a blocker.
 - Tests: new logic without tests, tests that don't test what their name says.
 - Design: duplication of an existing helper, a method doing several jobs, a change in the wrong layer, unclear names, non-obvious logic without a comment explaining why. Only when it matters for the PR.
 

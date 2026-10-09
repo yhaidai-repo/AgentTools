@@ -15,6 +15,7 @@ export const FIELD = {
   backlogPriority: "Microsoft.VSTS.Common.BacklogPriority",
   effort: "Microsoft.VSTS.Scheduling.Effort",
   remainingWork: "Microsoft.VSTS.Scheduling.RemainingWork",
+  parent: "System.Parent",
 } as const;
 
 export const SYNC_FIELDS: string[] = Object.values(FIELD);

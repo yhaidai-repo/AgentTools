@@ -281,6 +281,13 @@
       "when": 1791280648155,
       "tag": "0039_deleted_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791536478710,
+      "tag": "0040_bugs",
+      "breakpoints": true
     }
   ]
 }

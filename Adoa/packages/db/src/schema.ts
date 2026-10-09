@@ -122,6 +122,9 @@ export const workItem = pgTable("work_item", {
   vaultPath: text("vault_path"),
   vault: vaultName(),
   source: workItemSource("source").notNull().default("ado"),
+  // The PBI this item is a child of (user decision 2026-10-09): ADO's System.Parent when that PBI is in adoa, or the
+  // parent a local child was created under. One level: a parent is never a child itself.
+  parentId: integer("parent_id").references((): AnyPgColumn => workItem.adoId),
   // App data, never written by sync. Refinement replaces the list until the user saves it (skills_edited_at set).
   skills: jsonb("skills").$type<PbiSkill[]>().notNull().default([]),
   skillsEditedAt: ts("skills_edited_at"),
@@ -132,7 +135,22 @@ export const workItem = pgTable("work_item", {
 }, (t) => [
   index("work_item_pipeline_status_idx").on(t.pipelineStatus),
   index("work_item_iteration_idx").on(t.iterationPath),
+  index("work_item_parent_idx").on(t.parentId),
 ]);
+
+// Where a bug comes from (user decision 2026-10-09): QA's `[BUG]` Task under the PBI in ADO, or reported in adoa when
+// the user finds an issue after design.
+export const bugSource = pgEnum("bug_source", ["ado", "internal"]);
+
+// A bug of a PBI. Its child work item carries the content and goes through the pipeline like a PBI.
+export const bug = pgTable("bug", {
+  workItemId: integer("work_item_id").primaryKey().references(() => workItem.adoId),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId), // the parent PBI
+  source: bugSource("source").notNull(),
+  foundIn: pipelineStatus("found_in").notNull(), // the parent's pipeline status when the bug came in
+  reportedBy: text("reported_by").notNull(), // sync | human | cli | agent:<stage>
+  createdAt: createdAt(),
+}, (t) => [index("bug_pbi_idx").on(t.pbiId)]);
 
 // One agent execution (or a sync run, with 0 tokens).
 

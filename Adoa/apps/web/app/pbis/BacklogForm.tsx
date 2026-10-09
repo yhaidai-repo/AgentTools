@@ -51,7 +51,7 @@ export function BacklogForm({ children }: { children: ReactNode }) {
 function confirmDelete(event: React.MouseEvent<HTMLButtonElement>): void {
   const count = selectedPbis(event.currentTarget.form).length;
 
-  if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from adoa? Their tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
+  if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from adoa? Their child items, tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
     event.preventDefault();
   }
 }

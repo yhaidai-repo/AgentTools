@@ -12,6 +12,7 @@ export interface PbiNote {
   tags: string[];
   descriptionMd: string | null;
   acceptanceCriteriaMd: string | null;
+  parentId: number | null; // the PBI this item is a child of
   created: Date;
   updated: Date;
 }

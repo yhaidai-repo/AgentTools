@@ -10,8 +10,9 @@ import { refreshPbi } from "../refreshPbi";
 const NOT_IN_PIPELINE: PipelineStatus[] = ["new", "stale"];
 
 // Manual step (user selects PBIs): writes the note from the Vault template and queues a refinement task, also for a PBI
-// already in the pipeline (a re-refinement). Returns how many refinement tasks were queued.
-export async function preparePbis(context: WorkerContext, adoIds: number[]): Promise<number> {
+// already in the pipeline (a re-refinement). Bugs come here without the user (prepareBugs). Returns how many refinement
+// tasks were queued.
+export async function preparePbis(context: WorkerContext, adoIds: number[], actor = "human"): Promise<number> {
   // One page's selection: the PBIs are from one vault (the Backlog shows one). Local PBIs need no ADO settings.
   const vault = await vaultOfPbis(context.db, adoIds);
 
@@ -23,7 +24,7 @@ export async function preparePbis(context: WorkerContext, adoIds: number[]): Pro
   let queued = 0;
 
   for (const adoId of adoIds) {
-    const isQueued = await prepareOne(context, notes, adoId);
+    const isQueued = await prepareOne(context, notes, adoId, actor);
 
     queued += isQueued ? 1 : 0;
   }
@@ -34,7 +35,7 @@ export async function preparePbis(context: WorkerContext, adoIds: number[]): Pro
 }
 
 // False when the PBI is unknown or already has an open refinement task.
-async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: number): Promise<boolean> {
+async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: number, actor: string): Promise<boolean> {
   const [row] = await context.db.select().from(workItem).where(eq(workItem.adoId, adoId));
 
   if (!row) {
@@ -46,7 +47,7 @@ async function prepareOne(context: WorkerContext, notes: PbiNoteWriter, adoId: n
   await notes.writePbi(row, status);
 
   if (status !== row.pipelineStatus) {
-    await setPbiStatus(context.db, adoId, row.pipelineStatus, status, "human");
+    await setPbiStatus(context.db, adoId, row.pipelineStatus, status, actor);
   }
 
   const taskId = await ensureAgentTask(context.db, "refinement", adoId, null);

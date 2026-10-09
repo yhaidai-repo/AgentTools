@@ -1,6 +1,6 @@
 import { isAdoActive, readAdoSettings, readCurrentSprint, readRecentImports, readSyncSettings } from "@adoa/core";
-import { agentRun, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
-import { and, asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
+import { agentRun, bug, pipelineStatus, workItem, type AdoaDb } from "@adoa/db";
+import { asc, desc, eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 import Link from "next/link";
 import { NoVault } from "@/components/NoVault";
 import { currentVault } from "@/lib/currentVault";
@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { RememberFilters } from "@/components/RememberFilters";
 import { rememberedParams } from "@/lib/rememberedFilters";
+import { groupBacklogRows } from "@/lib/backlogGroups";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { BacklogFilter } from "@/models/BacklogFilter";
 import type { BacklogRow } from "@/models/BacklogRow";
@@ -44,7 +45,9 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
 
   const sync = await readSyncSettings(db, vault);
   const ado = await readAdoSettings(db, vault);
-  const rows = await loadRows(db, filter, vault);
+  const all = await loadRows(db, vault);
+  const matches = (row: BacklogRow) => !filter.status || row.pipelineStatus === filter.status;
+  const rows = all.filter(matches);
   const [lastSync] = await db.select().from(agentRun).where(eq(agentRun.stage, "sync")).orderBy(desc(agentRun.id)).limit(1);
 
   return (
@@ -58,7 +61,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
       <StatusFilter key={filter.status} status={filter.status} statuses={STATUSES} />
       <StatusChips rows={rows} />
       <BacklogForm>
-        <PbiTable rows={rows} ado={ado} />
+        <PbiTable groups={groupBacklogRows(all, matches)} ado={ado} />
       </BacklogForm>
       {rows.length === 0 && <p className="muted">No PBIs match. Check the status, or sync a sprint.</p>}
       {/* Everything Azure DevOps brings in sits together, only with the vault's integration on (user decision 2026-10-06). */}
@@ -79,13 +82,13 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
   );
 }
 
-async function loadRows(db: AdoaDb, filter: BacklogFilter, vault: string): Promise<BacklogRow[]> {
-  const byStatus = filter.status ? sql`${workItem.pipelineStatus} = ${filter.status}` : undefined;
-
+// Every PBI of the vault: the status filter is applied while grouping, so a matching child keeps its parent as context.
+async function loadRows(db: AdoaDb, vault: string): Promise<BacklogRow[]> {
   return db
-    .select({ ...getTableColumns(workItem), openForYou: openForYou(), findingsToReview: findingsToReview() })
+    .select({ ...getTableColumns(workItem), openForYou: openForYou(), findingsToReview: findingsToReview(), bugSource: bug.source })
     .from(workItem)
-    .where(and(byStatus, eq(workItem.vault, vault)))
+    .leftJoin(bug, eq(bug.workItemId, workItem.adoId))
+    .where(eq(workItem.vault, vault))
     .orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 }
 

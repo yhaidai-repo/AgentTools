@@ -44,6 +44,7 @@ function placeholderValues(note: PbiNote): Record<string, string> {
 
 function renderFrontmatter(note: PbiNote): string {
   const name = pbiNoteName(note.adoId);
+  const parent = note.parentId === null ? null : `[[${pbiNoteName(note.parentId)}]]`;
 
   return frontmatter({
     id: name,
@@ -60,8 +61,9 @@ function renderFrontmatter(note: PbiNote): string {
     created_by: "prepare",
     created: isoDate(note.created),
     updated: isoDate(note.updated),
+    parent,
     tags: ["adoa", `pbi-${note.adoId}`, "pbi"],
-    related: [],
+    related: parent ? [parent] : [],
   });
 }
 

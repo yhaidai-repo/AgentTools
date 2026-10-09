@@ -52,7 +52,7 @@ async function syncOnce(db: AdoaDb, vault: string, runId: number): Promise<SyncR
 
   return {
     outcome: "success",
-    message: `${scope.sprints[0].name}: ${scope.allIds.length} PBIs in the sprint, ${changed} changed, ${repositories} repos`,
+    message: `${scope.sprints[0].name}: ${scope.allIds.length} PBIs and ${scope.bugIds.length} bugs from your sprint tasks, ${changed} changed, ${repositories} repos`,
   };
 }
 

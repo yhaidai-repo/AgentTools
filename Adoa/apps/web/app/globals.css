@@ -607,3 +607,26 @@ button.rating-choice {
   min-width: 36px;
   padding: 6px 0;
 }
+
+/* Backlog: a PBI and its child items (user decision 2026-10-09). */
+tbody.pbi-group td.title .chip,
+tbody.pbi-group td.title .link-button {
+  margin-left: 8px;
+}
+
+tr.child-row td.title {
+  padding-left: 32px;
+}
+
+tr.child-row td.title::before {
+  content: "↳ ";
+  color: var(--muted);
+}
+
+tr.context-row {
+  opacity: 0.6;
+}
+
+tbody[data-folded] tr.child-row {
+  display: none;
+}

@@ -19,7 +19,6 @@ const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
   maxItemsPerRun: 400,
   sprint: "current",
-  states: ["New", "Ready for Dev"],
 };
 
 const DEFAULT_IMPORT_SETTINGS: ImportSettings = {

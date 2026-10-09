@@ -1,13 +1,14 @@
 import { localPbiId, workItem, type AdoaDb } from "@adoa/db";
 import { sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
+import { inheritParentContext } from "./bugs/childItems";
 import type { NewPbi } from "./models/NewPbi";
 import { setPbiStatus } from "./pbiStatus";
 
 const LOCAL_STATE = "New";
 
 // A local PBI: numbered from its own sequence (above every ADO id), state New, pipeline new like a synced one; the user
-// prepares it for refinement as usual.
+// prepares it for refinement as usual. A child starts from its parent's skills and repos.
 export async function createLocalPbi(db: AdoaDb, actor: string, input: NewPbi): Promise<number> {
   const [row] = await db
     .insert(workItem)
@@ -24,10 +25,15 @@ export async function createLocalPbi(db: AdoaDb, actor: string, input: NewPbi): 
       descriptionMd: input.descriptionMd,
       acceptanceCriteriaMd: input.acceptanceCriteriaMd,
       pipelineStatus: "new",
+      parentId: input.parentId,
     })
     .returning({ adoId: workItem.adoId });
 
   await setPbiStatus(db, row.adoId, null, "new", actor);
+
+  if (input.parentId !== null) {
+    await inheritParentContext(db, row.adoId, input.parentId);
+  }
 
   return row.adoId;
 }

@@ -166,7 +166,6 @@ function readSyncForm(form: FormData): SyncSettings {
     cron: field(form, "cron"),
     maxItemsPerRun: Number(field(form, "maxItemsPerRun")),
     sprint: field(form, "sprint") || "current",
-    states: field(form, "states").split(",").map((state) => state.trim()).filter(Boolean),
   };
 }
 

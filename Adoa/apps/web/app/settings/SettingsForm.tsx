@@ -14,7 +14,7 @@ interface SettingsFormProps {
   currentSprint: string | null;
 }
 
-// PBI sync: which sprint and states the vault pulls, how often (its ADO integration says from where).
+// PBI sync: which sprint the vault pulls, how often (its ADO integration says from where).
 export function SettingsForm({ enabled, sync, sprintOptions, currentSprint }: SettingsFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveSettings, null);
 
@@ -27,10 +27,6 @@ export function SettingsForm({ enabled, sync, sprintOptions, currentSprint }: Se
       <label>
         Sprint to sync
         <SprintField value={sync.sprint} options={sprintOptions} current={currentSprint} />
-      </label>
-      <label>
-        ADO states to pull (comma-separated, empty = all)
-        <input name="states" defaultValue={sync.states.join(", ")} placeholder="New, Ready for Dev" />
       </label>
       <label>
         Sync schedule (cron)

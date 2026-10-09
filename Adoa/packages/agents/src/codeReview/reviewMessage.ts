@@ -39,9 +39,10 @@ function pbiBlock(pbi: LinkedPbi): string {
 
   return [
     `PBI-${pbi.adoId}: ${pbi.title}`,
+    pbi.parent ? `Child item of PBI-${pbi.parent.adoId}: ${pbi.parent.title}` : "",
     `Refinement: ${clip(pbi.refinementSummary) ?? "not refined yet"}`,
     `Design approach: ${clip(pbi.designApproach) ?? "no design yet"}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function commentBlock(comment: CommentRow, outdatedIds: string[]): string {

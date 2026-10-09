@@ -13,6 +13,7 @@ import { formatBytes } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { AttachmentForm } from "./AttachmentForm";
+import { ChildItems } from "./ChildItems";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
@@ -30,6 +31,8 @@ export const dynamic = "force-dynamic";
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 
 type DraftRow = PbiDetail["drafts"][number];
+
+const BUG_ORIGINS: Record<string, string> = { ado: "from QA", internal: "reported in adoa" };
 
 // Every state but merged (and rejected, which is a human task instead) blocks the other agents.
 const DRAFT_STATES: Record<string, string> = {
@@ -55,6 +58,8 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> <PreparePbiButton adoId={pbi.adoId} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
       <Summary detail={detail} adoUrl={await adoUrl(pbi)} />
       <Blockers detail={detail} />
+      <h2>Child items</h2>
+      <ChildItems items={detail.children} ado={await readAdoSettings(getDb(), pbi.vault)} />
       <h2>Description</h2>
       <TextBlock text={pbi.descriptionMd} />
       <h2>Acceptance criteria</h2>
@@ -105,6 +110,8 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
       <span className="chip">ADO: {pbi.adoState}</span>
       <span className="chip">sprint: {pbi.iterationPath ?? "–"}</span>
       <span className="chip">assigned: {pbi.assignedTo ?? "–"}</span>
+      {detail.parent && <Link className="chip" href={`/pbis/${detail.parent.adoId}`}>child of PBI-{detail.parent.adoId} · {detail.parent.title}</Link>}
+      {detail.bug && <span className="chip">bug: {BUG_ORIGINS[detail.bug.source]}, found in {detail.bug.foundIn}</span>}
       {adoUrl && <a className="chip" href={adoUrl} target="_blank" rel="noreferrer">open in ADO</a>}
       {pbi.vaultPath ? <span className="chip"><NoteLink vault={pbi.vault} path={pbi.vaultPath} label="open note" /></span> : <span className="chip">no note yet (prepare it in the Backlog)</span>}
     </div>

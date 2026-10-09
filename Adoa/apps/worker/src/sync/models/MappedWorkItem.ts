@@ -11,6 +11,7 @@ export interface MappedWorkItem {
   backlogPriority: number | null;
   effort: number | null;
   remainingWork: number | null;
+  adoParentId: number | null; // ADO's System.Parent; a child in adoa only when that parent is a PBI adoa has
   tags: string[];
   adoCreatedAt: Date | null;
   adoChangedAt: Date | null;
