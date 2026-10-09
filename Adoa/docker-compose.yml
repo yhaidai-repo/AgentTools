@@ -88,7 +88,7 @@ services:
       REPO_CACHE_ROOT: /repo-cache
       DOCS_EXCLUDE: ${DOCS_EXCLUDE:-}  # folders of a vault hidden from agents
       BACKLOG_MOUNT: /vault
-      SKILL_FOLDERS: /app/Adoa/skills:/skills
+      SKILL_FOLDERS: /app/Adoa/skills:/skills:/app/DevSecrets/skills
       VAULT_CAPTURE_HOME: /app/VaultCapture
       VAULTS_DIR: /vaults
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-adoa-backlog}
@@ -99,6 +99,7 @@ services:
       - ${VAULTS_ROOT:?set in .env}:/vaults
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ./skills:/app/Adoa/skills:ro  # from the repo, so skill edits apply without a rebuild
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
       - repo-cache:/repo-cache
       # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
       - ${REPOS_ROOT:?set in .env}:/repos:ro
@@ -115,7 +116,7 @@ services:
       VAULT_PATH: ${VAULT_PATH}
       BACKLOG_MOUNT: /vault  # read-only here: "Continue with Claude" waits for the handoff note
       IMPORT_INBOX_PATH: ${IMPORT_INBOX_PATH:-./import-inbox}  # shown in Settings; only the worker reads the folder
-      SKILL_FOLDERS: /app/Adoa/skills:/skills  # same as agent-runner, to list the skills an agent may use
+      SKILL_FOLDERS: /app/Adoa/skills:/skills:/app/DevSecrets/skills  # same as agent-runner, to list the skills an agent may use
       SKILLS_PATH: ${SKILLS_PATH}
       VAULTS_DIR: /vaults  # the Vault page reads the selected vault's notes and its VaultUsage log; Settings adds vaults from here
       # "Continue with Claude": PC paths in the claude:// link; the chat opens in the vaults root and adds the repos.
@@ -134,6 +135,7 @@ services:
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       # Writable: the Config page edits adoa's own skills only (user decision 2026-10-01); each save keeps the old version in the DB.
       - ./skills:/app/Adoa/skills
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
     depends_on:
       worker:
         condition: service_started

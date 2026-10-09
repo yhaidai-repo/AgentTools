@@ -1,0 +1,196 @@
+{
+  "projects": {
+    "pvs-internal/BFF.Aggregators/src/PVS.BFF.Aggregators.Api/PVS.BFF.Aggregators.Api.csproj": {
+      "ConnectionStrings:patients-db": "patients-cosmos",
+      "ConnectionStrings:projections-db": "bff-projections-db",
+      "ConnectionStrings:service-bus": "bff-service-bus",
+      "ConnectionStrings:signals-db": "bff-signals-db",
+      "VerificationApiKey": "@verifications.key|signals-api-key",
+      "services:aa-internal-verifications-api:https:0": "@verifications.url|verifications-remote-url",
+      "services:aa-patients:https:0": "@patients.url|patients-remote-url"
+    },
+    "pvs-internal/Configuration/src/PVS.Internal.Configuration/PVS.Internal.Configuration.csproj": {
+      "ConnectionStrings:DefaultConnection": "configuration-sql-default"
+    },
+    "pvs-internal/Mappings/src/PVS.Internal.Mappings.AppHost/PVS.Internal.Mappings.AppHost.csproj": {
+      "ConnectionStrings:cosmos": "mappings-cosmos",
+      "parameters:api-key": "@mappings.key",
+      "parameters:redis-password": "patients-redis-password"
+    },
+    "pvs-internal/Patients/src/PVS.Internal.Patients.App/PVS.Internal.Patients.App.csproj": {
+      "ConnectionStrings:cosmos": "patients-cosmos",
+      "ConnectionStrings:global-patients": "patients-global-patients",
+      "ConnectionStrings:rabbitmq": "signals-rabbitmq"
+    },
+    "pvs-internal/Patients/src/PVS.Internal.Patients.AppHost/PVS.Internal.Patients.AppHost.csproj": {
+      "ConnectionStrings:blobs": "patients-blobs",
+      "ConnectionStrings:cosmos": "patients-cosmos",
+      "ConnectionStrings:global-patients": "patients-global-patients",
+      "ConnectionStrings:global-patients-cosmos": "patients-global-patients-cosmos",
+      "ConnectionStrings:patients-cosmos": "patients-cosmos-user-secret",
+      "ConnectionStrings:rabbitmq": "signals-rabbitmq",
+      "ConnectionStrings:redis": "patients-redis",
+      "ConnectionStrings:servicebus": "signals-servicebus",
+      "Parameters:redis-password": "patients-redis-password-user-secret",
+      "parameters:api-key": "@patients.key"
+    },
+    "pvs-internal/Signals/src/PVS.Signals.ApiService/PVS.Signals.ApiService.csproj": {
+      "ConnectionStrings:cache": "signals-cache",
+      "ConnectionStrings:cosmos-db": "signals-cosmos-db",
+      "ConnectionStrings:storage": "signals-storage",
+      "PatientApiKey": "@patients.key|signals-patient-api-key",
+      "VerificationApiKey": "@verifications.key|signals-verification-api-key",
+      "services:aa-internal-verifications-api:https:0": "@verifications.url|verifications-remote-url",
+      "services:aa-patients:https:0": "@patients.url|patients-remote-url"
+    },
+    "pvs-internal/Signals/src/PVS.Signals.AppHost/PVS.Signals.AppHost.csproj": {
+      "ConnectionStrings:cosmos-db": "signals-cosmos-db",
+      "ConnectionStrings:servicebus": "signals-servicebus",
+      "ConnectionStrings:storage": "signals-storage"
+    },
+    "pvs-internal/Signals/src/PVS.Signals.Runner.Deno/PVS.Signals.Runner.Deno.csproj": {
+      "ConnectionStrings:rabbitmq": "signals-rabbitmq",
+      "RunnerConfig:AllowedImport:0": "signals-blob-host",
+      "RunnerConfig:AllowedNetwork:0": "signals-blob-host",
+      "SignalsApiKey": "signals-api-key"
+    },
+    "pvs-internal/Verifications/src/PVS.Verifications.ApiService/PVS.Verifications.ApiService.csproj": {
+      "AppSettings:IpInfoToken": "verifications-ip-info-token",
+      "AzureStorage:StorageConnectionString": "verifications-storage",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "ConnectionStrings:SupportConnection": "verifications-sql-support",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis"
+    },
+    "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj": {
+      "AuthorizationModuleJwtConfig:Secret": "pvs-web-secret",
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "ConnectionStrings:SupportConnection": "verifications-sql-support",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj": {
+      "AppSettings:IpInfoToken": "verifications-ip-info-token",
+      "AppSettings:SelectPdfLicenseKey": "pvs-web-select-pdf-license-key",
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "ConnectionStrings:service-bus": "signals-servicebus",
+      "ImapSettings:ImapPassword": "pvs-background-imap-password",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "PatientConfig:ApiKey": "@patients.key|signals-patient-api-key",
+      "PatientConfig:Url": "@patients.url|patients-remote-url-2",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.Clients.WebClient.Core/PVS.Clients.WebClient.Core.csproj": {
+      "AppSettings:IpInfoToken": "verifications-ip-info-token",
+      "AppSettings:SelectPdfLicenseKey": "pvs-web-select-pdf-license-key",
+      "AuthorizationModuleJwtConfig:Secret": "pvs-web-secret",
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "ConnectionStrings:SupportConnection": "verifications-sql-support",
+      "JwtConfig:Secret": "pvs-web-secret-2",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "NcsIntegrationConfig:ApiKey": "pvs-web-api-key",
+      "OtpService:ApiKey": "pvs-web-api-key-2",
+      "PatientConfig:ApiKey": "@patients.key|signals-patient-api-key",
+      "PatientConfig:Url": "@patients.url|patients-remote-url-2",
+      "PccIntegrationConfig:ApiKey": "pvs-web-api-key-3",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "Services:bff-aggregators-api:ApiKey": "@bff.key|bff-remote-key",
+      "Services:bff-aggregators-api:https:0": "@bff.url|bff-remote-url",
+      "Services:signals-api:ApiKey": "@signals.key|signals-remote-key",
+      "Services:signals-api:https:0": "@signals.url|signals-remote-url",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj": {
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj": {
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.Internal.API.Core/PVS.Internal.API.Core.csproj": {
+      "AppSettings:IpInfoToken": "verifications-ip-info-token",
+      "AzureStorage:StorageConnectionString": "pvs-internal-api-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "pvs-internal-api-default-connection",
+      "ConnectionStrings:SupportConnection": "pvs-internal-api-support-connection",
+      "JwtConfig:VerificationSecret": "pvs-internal-api-verification-secret",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "PatientConfig:ApiKey": "@patients.key|signals-patient-api-key",
+      "PatientConfig:Url": "@patients.url|patients-remote-url",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.MessageBus.Scheduler/PVS.MessageBus.Scheduler.csproj": {
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "RabbitMq:Password": "verifications-rabbitmq-password"
+    },
+    "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj": {
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "PatientConfig:ApiKey": "@patients.key|signals-patient-api-key",
+      "PatientConfig:Url": "@patients.url|patients-remote-url-2",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj": {
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "SocrApiClientConfig:ApiKey": "pvs-background-api-key",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj": {
+      "AzureStorage:StorageConnectionString": "pvs-web-storage-connection-string",
+      "ConnectionStrings:DefaultConnection": "verifications-sql-default",
+      "MongoDb:ConnectionString": "verifications-mongo",
+      "RabbitMq:Password": "verifications-rabbitmq-password",
+      "Redis:ConnectionString": "verifications-redis",
+      "VapiSettings:Urls:0": "@vapi.url|vapi-remote-url",
+      "VapiSettings:Urls:1": "@vapi.url|vapi-remote-url-2"
+    },
+    "vapi/src/VAPI.Api/VAPI.Api.csproj": {
+      "Captcha:AntiCaptchaClientKey": "vapi-anti-captcha-client-key",
+      "Imap:Password": "vapi-password",
+      "Stedi:ApiKey": "vapi-api-key"
+    },
+    "vapi/src/VAPI.X12Transfer/VAPI.X12Transfer.csproj": {
+      "Sql:ConnectionString": "vapi-connection-string",
+      "Transfer:BlobConnectionString": "vapi-blob-connection-string"
+    }
+  },
+  "repos": {
+    "pvs": "D:/Projects/PVS",
+    "pvs-internal": "D:/Projects/PVS.Internal",
+    "vapi": "D:/Projects/VAPI"
+  }
+}

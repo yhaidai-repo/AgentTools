@@ -1,0 +1,15 @@
+diff --git a/Signals/src/PVS.Signals.Runner.Deno/Features/RunnerApi/Commands/ExecuteRuleCommand.cs b/Signals/src/PVS.Signals.Runner.Deno/Features/RunnerApi/Commands/ExecuteRuleCommand.cs
+index ddb1ac5c..c56a0c3f 100644
+--- a/Signals/src/PVS.Signals.Runner.Deno/Features/RunnerApi/Commands/ExecuteRuleCommand.cs
++++ b/Signals/src/PVS.Signals.Runner.Deno/Features/RunnerApi/Commands/ExecuteRuleCommand.cs
+@@ -307,8 +307,9 @@ public class ExecuteRuleCommandHandler(
+ 
+         var networkResources = denoConfig.AllowedNetwork.ToList();
+         
++        // Deno's --allow-net accepts host[:port] only, not a URL with a scheme.
+         if (!configDto.UseUnixSockets)
+-            networkResources.Add(configDto.HttpAddress!);
++            networkResources.Add(new Uri(configDto.HttpAddress!).Authority);
+ 
+         if (networkResources.Count != 0)
+             args.Add(

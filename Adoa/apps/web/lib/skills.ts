@@ -25,6 +25,10 @@ function hostPathOf(path: string): string {
     return `${process.env.SKILLS_PATH ?? "SKILLS_PATH in .env"} (your personal skills, also used by Claude Code)`;
   }
 
+  if (path === "/app/DevSecrets/skills") {
+    return "D:/Projects/AgentTools/DevSecrets/skills (DevSecrets tool skills, in the AgentTools repo)";
+  }
+
   if (path === ADOA_SKILLS_FOLDER) {
     return "D:/Projects/AgentTools/Adoa/skills (adoa's own skills, in the repo)";
   }
