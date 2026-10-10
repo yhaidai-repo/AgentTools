@@ -1,15 +1,77 @@
 using Microsoft.EntityFrameworkCore;
-using PowerLoom.Persistence.Vaults;
+using PowerLoom.Persistence.Entities;
 
 namespace PowerLoom.Persistence;
 
-// Maps adoa's existing tables (drizzle owns the schema until phase 1 of the delivery plan hands it to PowerLoom).
-public sealed class PowerLoomDbContext(DbContextOptions<PowerLoomDbContext> options) : DbContext(options)
+public partial class PowerLoomDbContext : DbContext
 {
-    public DbSet<VaultRow> Vaults => Set<VaultRow>();
+    public PowerLoomDbContext(DbContextOptions<PowerLoomDbContext> options)
+        : base(options)
+    {
+    }
+
+    public virtual DbSet<AdoStateChange> AdoStateChanges { get; set; }
+
+    public virtual DbSet<AgentRun> AgentRuns { get; set; }
+
+    public virtual DbSet<Attachment> Attachments { get; set; }
+
+    public virtual DbSet<Bug> Bugs { get; set; }
+
+    public virtual DbSet<CodeReview> CodeReviews { get; set; }
+
+    public virtual DbSet<Config> Configs { get; set; }
+
+    public virtual DbSet<DeletedPbi> DeletedPbis { get; set; }
+
+    public virtual DbSet<DeletedPullRequest> DeletedPullRequests { get; set; }
+
+    public virtual DbSet<Design> Designs { get; set; }
+
+    public virtual DbSet<LocalItem> LocalItems { get; set; }
+
+    public virtual DbSet<PbiFeedback> PbiFeedbacks { get; set; }
+
+    public virtual DbSet<PbiImport> PbiImports { get; set; }
+
+    public virtual DbSet<PbiRepo> PbiRepos { get; set; }
+
+    public virtual DbSet<PullRequest> PullRequests { get; set; }
+
+    public virtual DbSet<Refinement> Refinements { get; set; }
+
+    public virtual DbSet<Repo> Repos { get; set; }
+
+    public virtual DbSet<ReviewComment> ReviewComments { get; set; }
+
+    public virtual DbSet<SkillRevision> SkillRevisions { get; set; }
+
+    public virtual DbSet<SprintSnapshot> SprintSnapshots { get; set; }
+
+    public virtual DbSet<StatusHistory> StatusHistories { get; set; }
+
+    public virtual DbSet<TaskSchedule> TaskSchedules { get; set; }
+
+    public virtual DbSet<Vault> Vaults { get; set; }
+
+    public virtual DbSet<VaultCapture> VaultCaptures { get; set; }
+
+    public virtual DbSet<VaultNoteWrite> VaultNoteWrites { get; set; }
+
+    public virtual DbSet<VaultReviewDecision> VaultReviewDecisions { get; set; }
+
+    public virtual DbSet<WorkItem> WorkItems { get; set; }
+
+    public virtual DbSet<WwwRecord> WwwRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // The PostgreSQL enums come from MapPowerLoomEnums (Npgsql registers them with the model).
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PowerLoomDbContext).Assembly);
+        modelBuilder.HasSequence("local_pbi_id").StartsAt(9000001L);
+
+        OnModelCreatingPartial(modelBuilder);
     }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

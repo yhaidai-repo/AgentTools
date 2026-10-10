@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace PowerLoom.Infrastructure.Vault;
+namespace PowerLoom.Infrastructure.Vaults;
 
 public sealed class VaultRoots(IOptions<VaultOptions> options)
 {

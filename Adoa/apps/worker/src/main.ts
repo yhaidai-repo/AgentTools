@@ -1,9 +1,8 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, VAULT_INIT_QUEUE, VAULT_TRASH_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type VaultJob, type VaultTrashJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, VAULT_INIT_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type VaultJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { initVault, writeReviewNote, writeWwwRecord } from "@adoa/notes";
-import { deleteFromTrash, restoreFromTrash } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
@@ -142,16 +141,6 @@ await boss.work<VaultJob>(VAULT_INIT_QUEUE, (jobs) => logged(VAULT_INIT_QUEUE, a
     const created = await initVault(`${vaultsRoot()}/${job.data.vault}`, vaultTemplateHome(), `${vaultsHostRoot()}/${job.data.vault}`);
 
     console.log(`vault-init ${job.data.vault}: ${created.length > 0 ? `created ${created.join(", ")}` : "nothing missing"}`);
-  }
-}));
-
-// The Maintenance tab's Restore / Delete on a vault's .trash/ (user decision 2026-10-06).
-await boss.work<VaultTrashJob>(VAULT_TRASH_QUEUE, (jobs) => logged(VAULT_TRASH_QUEUE, async () => {
-  for (const job of jobs) {
-    const root = `${vaultsRoot()}/${job.data.vault}`;
-    const path = job.data.action === "restore" ? await restoreFromTrash(root, job.data.path) : await deleteFromTrash(root, job.data.path);
-
-    console.log(`vault-trash ${job.data.vault}: ${job.data.action === "restore" ? "restored" : "deleted"} ${path}`);
   }
 }));
 

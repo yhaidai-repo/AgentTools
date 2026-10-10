@@ -10,10 +10,13 @@
     <PackageVersion Include="WolverineFx.Postgresql" Version="6.48.3" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.48.3" />
     <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.48.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup Label="Persistence">
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
   </ItemGroup>
 

@@ -42,5 +42,4 @@ export type { VaultUsageEvent } from "./models/VaultUsageEvent";
 export type { WikiLink } from "./models/WikiLink";
 export { vaultsDir, vaultsExclude } from "./review/vaultsEnv";
 export { TRASH_FOLDER, listTrash } from "./trash/listTrash";
-export { deleteFromTrash, restoreFromTrash } from "./trash/trashActions";
 export type { TrashEntry } from "./models/TrashEntry";

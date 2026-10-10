@@ -29,8 +29,6 @@ export const REVIEW_NOTE_QUEUE = "review-note";
 export const WWW_QUEUE = "www";
 // Settings → Add vault (no schedule): the worker creates the vault's folder and files from adoa's templates.
 export const VAULT_INIT_QUEUE = "vault-init";
-// The Maintenance tab's Restore / Delete on a vault's .trash/ (no schedule): the worker moves or removes the file.
-export const VAULT_TRASH_QUEUE = "vault-trash";
 
 const DRAFTS_CRON = "*/10 * * * *";
 
@@ -66,7 +64,6 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, REVIEW_NOTE_QUEUE, "standard");
   await ensureQueue(boss, WWW_QUEUE, "standard");
   await ensureQueue(boss, VAULT_INIT_QUEUE, "standard");
-  await ensureQueue(boss, VAULT_TRASH_QUEUE, "standard");
 }
 
 // A per-vault job's schedules (user decision 2026-10-05): one per vault that wants one, keyed by the vault's name; the

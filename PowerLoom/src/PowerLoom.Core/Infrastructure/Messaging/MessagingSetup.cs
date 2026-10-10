@@ -1,4 +1,6 @@
+using System.Reflection;
 using JasperFx;
+using JasperFx.CodeGeneration;
 using JasperFx.Resources;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
@@ -19,26 +21,30 @@ public static class MessagingSetup
     private const string VaultQueueName = "vault";
     private const int VaultQueueSlots = 4;
 
-    public static WebApplicationBuilder AddPowerLoomMessaging(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddPowerLoomMessaging(this WebApplicationBuilder builder, Assembly applicationAssembly)
     {
         var connectionString = builder.Configuration.GetConnectionString("PowerLoom")
             ?? throw new InvalidOperationException("ConnectionStrings:PowerLoom is not configured.");
 
-        builder.Host.UseWolverine(options => ConfigureWolverine(options, connectionString));
+        builder.Host.UseWolverine(options => ConfigureWolverine(options, connectionString, applicationAssembly));
         builder.Host.UseResourceSetupOnStartup();
         builder.Services.AddWolverineHttp();
 
         return builder;
     }
 
-    private static void ConfigureWolverine(WolverineOptions options, string connectionString)
+    private static void ConfigureWolverine(WolverineOptions options, string connectionString, Assembly applicationAssembly)
     {
         options.ServiceName = "PowerLoom";
+        // Where `codegen write` writes and Auto mode loads the generated handlers: the executable, not this library.
+        options.ApplicationAssembly = applicationAssembly;
+        // The image carries the code `codegen write` produced (no Roslyn); a Debug build compiles handlers at start.
+        options.CodeGeneration.TypeLoadMode = TypeLoadMode.Auto;
         // One node: no leader election, every background agent runs here.
         options.Durability.Mode = DurabilityMode.Solo;
 
         options.PersistMessagesWithPostgresql(connectionString, WolverineSchema);
-        options.Services.AddDbContextWithWolverineIntegration<PowerLoomDbContext>(db => db.UseNpgsql(connectionString), WolverineSchema);
+        options.Services.AddDbContextWithWolverineIntegration<PowerLoomDbContext>(db => db.UseNpgsql(connectionString, npgsql => npgsql.MapPowerLoomEnums()), WolverineSchema);
         // Every local queue is backed by the inbox table: a queued message survives a restart.
         options.Policies.UseDurableLocalQueues();
 

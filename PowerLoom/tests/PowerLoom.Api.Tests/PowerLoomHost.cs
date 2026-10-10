@@ -1,11 +1,12 @@
 using Alba;
+using JasperFx.CodeGeneration;
 using JasperFx.CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
-using PowerLoom.Persistence.Vaults;
+using PowerLoom.Persistence.Entities;
 using Testcontainers.PostgreSql;
 using Wolverine;
 
@@ -36,9 +37,10 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("ConnectionStrings__PowerLoom", _postgres.GetConnectionString());
         Environment.SetEnvironmentVariable("Vaults__Root", VaultsRoot);
 
-        Host = await AlbaHost.For<Program>(web => web.ConfigureServices(AddProbes));
-
+        // Schema first, as in production: Npgsql loads the type catalog (the enums) when the host first connects.
         await CreateAdoaTablesAsync();
+
+        Host = await AlbaHost.For<Program>(web => web.ConfigureServices(AddProbes));
     }
 
     // The tests' own message, handler and cron lines; production ships no cron source until the features arrive.
@@ -46,7 +48,12 @@ public sealed class PowerLoomHost : IAsyncLifetime
     {
         services.AddSingleton<ProbeLog>();
         services.AddSingleton<ICronSource, ProbeCronSource>();
-        services.ConfigureWolverine(options => options.Discovery.IncludeType(typeof(VaultProbeHandler)));
+        services.ConfigureWolverine(options =>
+        {
+            options.Discovery.IncludeType(typeof(VaultProbeHandler));
+            // Auto mode writes generated code into the API project; the tests' probe handler must not land there.
+            options.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
+        });
     }
 
     public async Task DisposeAsync()
@@ -56,14 +63,14 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Directory.Delete(VaultsRoot, recursive: true);
     }
 
-    // adoa's tables that PowerLoom maps (drizzle creates them in production), plus the one vault the tests use.
+    // The schema from PowerLoom's migrations (as in production), plus the one vault the tests use.
     private async Task CreateAdoaTablesAsync()
     {
-        using var scope = Host.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var options = new DbContextOptionsBuilder<PowerLoomDbContext>().UseNpgsql(_postgres.GetConnectionString(), npgsql => npgsql.MapPowerLoomEnums()).Options;
+        await using var db = new PowerLoomDbContext(options);
 
-        await db.Database.ExecuteSqlRawAsync(db.Database.GenerateCreateScript());
-        db.Vaults.Add(new VaultRow { Name = Vault, Features = "{}", CreatedAt = DateTimeOffset.UtcNow });
+        await db.Database.MigrateAsync();
+        db.Vaults.Add(new Vault { Name = Vault, Features = "{}", CreatedAt = DateTime.UtcNow });
 
         await db.SaveChangesAsync();
     }

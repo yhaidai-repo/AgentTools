@@ -1,4 +1,4 @@
-namespace PowerLoom.Infrastructure.Vault;
+namespace PowerLoom.Infrastructure.Vaults;
 
 public sealed class VaultOptions
 {

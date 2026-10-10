@@ -1,5 +1,5 @@
 using PowerLoom.Features.Vaults.Trash.Models;
-using PowerLoom.Infrastructure.Vault;
+using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Contracts;
 
 namespace PowerLoom.Features.Vaults.Trash;

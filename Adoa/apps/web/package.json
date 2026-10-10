@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc -p . --noEmit",
-    "cli": "tsx cli/adoaCli.ts"
+    "cli": "tsx cli/adoaCli.ts",
+    "openapi": "openapi-typescript ../../../PowerLoom/openapi/PowerLoom.Api.json -o lib/powerloom/schema.d.ts"
   },
   "dependencies": {
     "@adoa/ado": "*",
@@ -20,6 +21,7 @@
     "@agenttools/usage": "*",
     "drizzle-orm": "^0.45.3",
     "next": "^16.3.7",
+    "openapi-fetch": "^0.17.0",
     "pg-boss": "^12.35.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -31,6 +33,7 @@
     "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "openapi-typescript": "^7.13.0",
     "typescript": "^5.9.3"
   }
 }

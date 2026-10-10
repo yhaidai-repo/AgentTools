@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PowerLoom.Features.Vaults.Trash.Models;
 using PowerLoom.Infrastructure.Http;
@@ -23,8 +24,8 @@ public static class TrashEndpoints
     public static IReadOnlyList<TrashEntry> List(string vault, TrashFolder trash) => trash.List(vault);
 
     [WolverinePost("/api/vaults/{vault}/trash/restore")]
-    public static IResult Restore(string vault, TrashPathRequest request, TrashFolder trash) => trash.Restore(vault, request.Path).ToResult();
+    public static Results<Ok<string>, ProblemHttpResult> Restore(string vault, TrashPathRequest request, TrashFolder trash) => trash.Restore(vault, request.Path).ToResult();
 
     [WolverineDelete("/api/vaults/{vault}/trash")]
-    public static IResult Delete(string vault, TrashPathRequest request, TrashFolder trash) => trash.Delete(vault, request.Path).ToResult();
+    public static Results<Ok<string>, ProblemHttpResult> Delete(string vault, TrashPathRequest request, TrashFolder trash) => trash.Delete(vault, request.Path).ToResult();
 }

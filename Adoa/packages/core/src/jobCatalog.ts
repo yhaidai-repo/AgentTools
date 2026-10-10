@@ -1,5 +1,5 @@
 import type { JobInfo } from "./models/JobInfo";
-import { AGENT_RUN_QUEUE, CONFLUENCE_QUEUE, DISPATCH_QUEUE, DRAFTS_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, PULL_REQUESTS_QUEUE, REGISTER_QUEUE, REVIEW_NOTE_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, VAULT_INIT_QUEUE, VAULT_TRASH_QUEUE, WWW_QUEUE } from "./queues";
+import { AGENT_RUN_QUEUE, CONFLUENCE_QUEUE, DISPATCH_QUEUE, DRAFTS_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, PULL_REQUESTS_QUEUE, REGISTER_QUEUE, REVIEW_NOTE_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, VAULT_INIT_QUEUE, WWW_QUEUE } from "./queues";
 
 // Every pg-boss queue, who works it and what for (the Settings page's "Jobs and workers"; user decision 2026-10-06).
 // Keep in step with queues.ts and the workers' main.ts.
@@ -18,5 +18,4 @@ export const JOB_CATALOG: JobInfo[] = [
   { queue: REVIEW_NOTE_QUEUE, worker: "worker", trigger: "a review's Continue with <agent>", purpose: "Writes the PR's review note into the vault's backlog before the chat opens." },
   { queue: WWW_QUEUE, worker: "worker", trigger: "Finish with \"what went wrong\"", purpose: "Appends the What-went-wrong record to the vault's www-log.md." },
   { queue: VAULT_INIT_QUEUE, worker: "worker", trigger: "Vault menu → Add vault", purpose: "Creates the vault's folder and the files adoa's maintenance needs (AGENTS.md, index, WWW log, draft/, .usage/, .obsidian/)." },
-  { queue: VAULT_TRASH_QUEUE, worker: "worker", trigger: "Vault → Maintenance → Restore / Delete", purpose: "Puts a trashed note back, or deletes it for good." },
 ];

@@ -1,0 +1,157 @@
+<#@ template hostSpecific="true" #>
+<#@ assembly name="Microsoft.EntityFrameworkCore" #>
+<#@ assembly name="Microsoft.EntityFrameworkCore.Design" #>
+<#@ assembly name="Microsoft.EntityFrameworkCore.Relational" #>
+<#@ assembly name="Microsoft.Extensions.DependencyInjection.Abstractions" #>
+<#@ parameter name="Model" type="Microsoft.EntityFrameworkCore.Metadata.IModel" #>
+<#@ parameter name="Options" type="Microsoft.EntityFrameworkCore.Scaffolding.ModelCodeGenerationOptions" #>
+<#@ parameter name="NamespaceHint" type="System.String" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="Microsoft.EntityFrameworkCore" #>
+<#@ import namespace="Microsoft.EntityFrameworkCore.Design" #>
+<#@ import namespace="Microsoft.EntityFrameworkCore.Infrastructure" #>
+<#@ import namespace="Microsoft.EntityFrameworkCore.Scaffolding" #>
+<#@ import namespace="Microsoft.Extensions.DependencyInjection" #>
+<#
+    if (!ProductInfo.GetVersion().StartsWith("10.0"))
+    {
+        Warning("Your templates were created using an older version of Entity Framework. Additional features and bug fixes may be available. See https://aka.ms/efcore-docs-updating-templates for more information.");
+    }
+
+    var services = (IServiceProvider)Host;
+    var providerCode = services.GetRequiredService<IProviderConfigurationCodeGenerator>();
+    var annotationCodeGenerator = services.GetRequiredService<IAnnotationCodeGenerator>();
+    var code = services.GetRequiredService<ICSharpHelper>();
+
+    var usings = new List<string>
+    {
+        "System",
+        "System.Collections.Generic",
+        "Microsoft.EntityFrameworkCore"
+    };
+
+    if (NamespaceHint != Options.ModelNamespace
+        && !string.IsNullOrEmpty(Options.ModelNamespace))
+    {
+        usings.Add(Options.ModelNamespace);
+    }
+
+    if (!string.IsNullOrEmpty(NamespaceHint))
+    {
+#>
+namespace <#= NamespaceHint #>;
+
+<#
+    }
+#>
+public partial class <#= Options.ContextName #> : DbContext
+{
+<#
+    if (!Options.SuppressOnConfiguring)
+    {
+#>
+    public <#= Options.ContextName #>()
+    {
+    }
+
+<#
+    }
+#>
+    public <#= Options.ContextName #>(DbContextOptions<<#= Options.ContextName #>> options)
+        : base(options)
+    {
+    }
+
+<#
+    foreach (var entityType in Model.GetEntityTypes().Where(e => !e.IsSimpleManyToManyJoinEntityType()))
+    {
+#>
+    public virtual DbSet<<#= entityType.Name #>> <#= entityType.GetDbSetName() #> { get; set; }
+
+<#
+    }
+
+    if (!Options.SuppressOnConfiguring)
+    {
+#>
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+<#
+    if (!Options.SuppressConnectionStringWarning)
+    {
+#>
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+<#
+    }
+
+    var useProviderCall = providerCode.GenerateUseProvider(Options.ConnectionString);
+    usings.AddRange(useProviderCall.GetRequiredUsings());
+#>
+        => optionsBuilder<#= code.Fragment(useProviderCall, indent: 3) #>;
+
+<#
+    }
+
+#>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+<#
+    var anyConfiguration = false;
+
+    var modelFluentApiCalls = Model.GetFluentApiCalls(annotationCodeGenerator);
+    if (modelFluentApiCalls != null)
+    {
+        usings.AddRange(modelFluentApiCalls.GetRequiredUsings());
+#>
+        modelBuilder<#= code.Fragment(modelFluentApiCalls, indent: 3) #>;
+<#
+        anyConfiguration = true;
+    }
+
+    // Per-table configuration lives in one IEntityTypeConfiguration per entity (EntityTypeConfiguration.t4).
+    if (anyConfiguration)
+    {
+        WriteLine("");
+    }
+#>
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(<#= Options.ContextName #>).Assembly);
+<#
+    anyConfiguration = true;
+
+    StringBuilder mainEnvironment;
+    foreach (var sequence in Model.GetSequences())
+    {
+        var needsType = sequence.Type != typeof(long);
+        var needsSchema = !string.IsNullOrEmpty(sequence.Schema) && sequence.Schema != sequence.Model.GetDefaultSchema();
+        var sequenceFluentApiCalls = sequence.GetFluentApiCalls(annotationCodeGenerator);
+#>
+        modelBuilder.HasSequence<#= needsType ? $"<{code.Reference(sequence.Type)}>" : "" #>(<#= code.Literal(sequence.Name) #><#= needsSchema ? $", {code.Literal(sequence.Schema)}" : "" #>)<#= code.Fragment(sequenceFluentApiCalls, indent: 3) #>;
+<#
+    }
+
+    if (anyConfiguration)
+    {
+        WriteLine("");
+    }
+#>
+        OnModelCreatingPartial(modelBuilder);
+    }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}
+<#
+    mainEnvironment = GenerationEnvironment;
+    GenerationEnvironment = new StringBuilder();
+
+    foreach (var ns in usings.Distinct().OrderBy(x => x, new NamespaceComparer()))
+    {
+#>
+using <#= ns #>;
+<#
+    }
+
+    WriteLine("");
+
+    GenerationEnvironment.Append(mainEnvironment);
+#>

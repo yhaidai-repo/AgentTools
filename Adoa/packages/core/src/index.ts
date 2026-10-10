@@ -68,7 +68,6 @@ export { deleteReviewCommand } from "./commands/deleteReviewCommand";
 export * from "./reviewAdmin";
 export { JOB_CATALOG } from "./jobCatalog";
 export type { JobInfo } from "./models/JobInfo";
-export type { VaultTrashJob } from "./models/VaultTrashJob";
 export type { NewPbi } from "./models/NewPbi";
 export { savePbiReposCommand } from "./commands/savePbiReposCommand";
 export { savePbiSkillsCommand } from "./commands/savePbiSkillsCommand";

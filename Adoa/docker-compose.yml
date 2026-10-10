@@ -26,21 +26,11 @@ services:
       timeout: 3s
       retries: 20
 
-  migrate:
+  worker:
     <<: *app
     build:  # builds adoa-app once; the other app services reuse it
       context: ..
       dockerfile: Adoa/Dockerfile
-    command: ["npm", "run", "migrate", "-w", "@adoa/db"]
-    environment:
-      DATABASE_URL: *db-url
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
-
-  worker:
-    <<: *app
     command: ["npm", "run", "start", "-w", "@adoa/worker"]
     environment:
       DATABASE_URL: *db-url
@@ -68,8 +58,8 @@ services:
       # register records into the vault; scheduled vault reviews read the rest.
       - ${VAULTS_ROOT:?set in .env}:/vaults
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      powerloom:
+        condition: service_healthy  # PowerLoom migrates the schema at start
     restart: unless-stopped
 
   # Agent runs: one dispatched task per job. Writes the DB, then the task's PBI notes (backlog) and its drafts (via
@@ -104,8 +94,8 @@ services:
       # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
       - ${REPOS_ROOT:?set in .env}:/repos:ro
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      powerloom:
+        condition: service_healthy  # PowerLoom migrates the schema at start
     restart: unless-stopped
 
   web:

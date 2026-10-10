@@ -1,12 +1,14 @@
+using System.Reflection;
 using JasperFx;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Health;
 using PowerLoom.Infrastructure.Messaging;
+using PowerLoom.Infrastructure.Persistence;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.Telemetry;
-using PowerLoom.Infrastructure.Vault;
+using PowerLoom.Infrastructure.Vaults;
 using Wolverine.Http;
 
 namespace PowerLoom;
@@ -14,14 +16,16 @@ namespace PowerLoom;
 // The composition root: the infrastructure, then every feature.
 public static class PowerLoomSetup
 {
-    public static WebApplicationBuilder AddPowerLoom(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddPowerLoom(this WebApplicationBuilder builder, Assembly applicationAssembly)
     {
         builder.AddPowerLoomTelemetry();
-        builder.AddPowerLoomMessaging();
+        builder.AddPowerLoomPersistence();
+        builder.AddPowerLoomMessaging(applicationAssembly);
         builder.AddPowerLoomScheduling();
         builder.AddPowerLoomHealth();
         builder.AddPowerLoomVaults();
         builder.Services.AddVaultsFeature();
+        builder.Services.AddOpenApi();
 
         return builder;
     }
@@ -30,6 +34,8 @@ public static class PowerLoomSetup
     {
         app.MapWolverineEndpoints();
         app.MapPowerLoomHealth();
+        // /openapi/v1.json: the API is internal, so the document is always on.
+        app.MapOpenApi();
 
         return app;
     }
