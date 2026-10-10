@@ -11,6 +11,8 @@ public sealed class FakeVaultCapture : IVaultCapture
 
     public List<(string Vault, NewRegisterRecord Record)> Added { get; } = [];
 
+    public List<(string Vault, DraftCapture Draft)> Captured { get; } = [];
+
     public Task<Outcome<string>> AddRegisterRecordAsync(string vault, NewRegisterRecord record, CancellationToken cancellation)
     {
         Added.Add((vault, record));
@@ -20,5 +22,17 @@ public sealed class FakeVaultCapture : IVaultCapture
             : Outcome<string>.Success(RecordId);
 
         return Task.FromResult(outcome);
+    }
+
+    // A draft named "reject-…" is refused; any other lands in draft/<name>.md.
+    public Task<DraftCaptureResult> CaptureDraftAsync(string vault, DraftCapture draft, CancellationToken cancellation)
+    {
+        Captured.Add((vault, draft));
+
+        var result = draft.Name.StartsWith("reject-")
+            ? new DraftCaptureResult(false, "rejected", null, ["unknown target"])
+            : new DraftCaptureResult(true, "created", $"draft/{draft.Name}.md", []);
+
+        return Task.FromResult(result);
     }
 }

@@ -4,13 +4,12 @@ import type { VaultJob } from "./models/VaultJob";
 import type { TaskSchedule } from "./models/TaskSchedule";
 import type { TaskScheduleJob } from "./models/TaskScheduleJob";
 
-export const PREPARE_QUEUE = "prepare";
 export const DISPATCH_QUEUE = "dispatch";
 export const AGENT_RUN_QUEUE = "agent-run";
 export const DRAFTS_QUEUE = "drafts";
 // Sent only by the PBI page's "Load from Confluence" (no schedule).
 export const CONFLUENCE_QUEUE = "confluence";
-// Sent only by "Delete from adoa" on a PBI page and the refresh after an item changes (no schedule).
+// Sent only by the refresh after an item changes (no schedule).
 export const PBI_QUEUE = "pbi";
 // Imports from every import source (user decision 2026-10-02: one job, sources behind one abstraction); scheduled, and
 // the Backlog's "Import now".
@@ -38,7 +37,6 @@ export function createSenderBoss(url: string): PgBoss {
 const AGENT_RUN_OPTIONS = { expireInSeconds: 4 * 60 * 60, retryLimit: 0 };
 
 export async function ensureQueues(boss: PgBoss): Promise<void> {
-  await ensureQueue(boss, PREPARE_QUEUE, "standard");
   await ensureQueue(boss, DISPATCH_QUEUE, "standard");
   await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");

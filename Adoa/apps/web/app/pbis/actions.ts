@@ -1,6 +1,6 @@
 "use server";
 
-import { PBI_IMPORT_QUEUE, PREPARE_QUEUE, createPbiCommand, deletePbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback, type PrepareJob } from "@adoa/core";
+import { PBI_IMPORT_QUEUE, createPbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
@@ -42,7 +42,7 @@ async function saveSyncSprint(vault: string, sprint: string): Promise<void> {
   }
 }
 
-// The web never writes the Vault; the worker renders the notes.
+// The web never writes the Vault; PowerLoom renders the notes.
 export async function prepareSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoIds = selectedIds(form);
 
@@ -59,14 +59,16 @@ export async function preparePbiAction(adoId: number): Promise<ActionResult> {
 }
 
 async function preparePbis(adoIds: number[]): Promise<ActionResult> {
-  const job: PrepareJob = { adoIds };
+  const prepared = await powerloom.POST("/api/pbis/prepare", { body: { adoIds } });
 
-  await (await getBoss()).send(PREPARE_QUEUE, job);
+  if (!prepared.response.ok || !prepared.data) {
+    return powerloomResult(prepared, "");
+  }
 
-  return { ok: true, message: `${adoIds.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
+  return { ok: true, message: `${prepared.data.queued.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
 }
 
-// The Backlog's Delete (user decision 2026-10-06): each selected PBI through the delete command; a refused one is reported.
+// The Backlog's Delete (user decision 2026-10-06): the selected PBIs in one request; a refused one is reported.
 export async function deleteSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoIds = selectedIds(form);
 
@@ -74,19 +76,17 @@ export async function deleteSelected(_previous: ActionResult | null, form: FormD
     return { ok: false, message: "Select at least one PBI." };
   }
 
-  const refused: string[] = [];
+  const deleted = await powerloom.DELETE("/api/pbis", { body: { adoIds } });
 
-  for (const adoId of adoIds) {
-    const deleted = await runWebCommand(deletePbiCommand, { adoId });
-
-    if (!deleted.ok) {
-      refused.push(`PBI-${adoId}: ${deleted.error}`);
-    }
+  if (!deleted.response.ok || !deleted.data) {
+    return powerloomResult(deleted, "");
   }
 
   revalidatePath("/pbis");
 
-  return { ok: refused.length === 0, message: `${adoIds.length - refused.length} PBI(s) queued for deletion.${refused.length > 0 ? ` ${refused.join(" ")}` : ""}` };
+  const refused = deleted.data.refused;
+
+  return { ok: refused.length === 0, message: `${deleted.data.deleted.length} PBI(s) deleted.${refused.length > 0 ? ` ${refused.join(" ")}` : ""}` };
 }
 
 // A PBI created in adoa (user decision 2026-10-06); the page opens on it.
@@ -177,12 +177,16 @@ export async function importNow(): Promise<ActionResult> {
   return { ok: true, message: jobId ? "Import queued; the list updates in a few seconds." : "An import is already queued or running." };
 }
 
-// Deletes in adoa only, through the worker (it removes the PBI's notes too). Refused while an agent runs on it.
+// Deletes in adoa only, through PowerLoom (it removes the PBI's notes too). Refused while an agent runs on it.
 export async function deletePbiAction(adoId: number): Promise<ActionResult> {
-  const deleted = await runWebCommand(deletePbiCommand, { adoId });
+  const deleted = await powerloom.DELETE("/api/pbis", { body: { adoIds: [adoId] } });
 
-  if (!deleted.ok) {
-    return { ok: false, message: deleted.error };
+  if (!deleted.response.ok || !deleted.data) {
+    return powerloomResult(deleted, "");
+  }
+
+  if (deleted.data.refused.length > 0) {
+    return { ok: false, message: deleted.data.refused[0] };
   }
 
   revalidatePath("/pbis");

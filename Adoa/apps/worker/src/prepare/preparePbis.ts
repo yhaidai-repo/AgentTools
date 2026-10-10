@@ -9,9 +9,9 @@ import { refreshPbi } from "../refreshPbi";
 // Statuses sync sets that the pipeline can't derive from tasks; prepare takes the PBI out of them.
 const NOT_IN_PIPELINE: PipelineStatus[] = ["new", "stale"];
 
-// Manual step (user selects PBIs): writes the note from the Vault template and queues a refinement task, also for a PBI
-// already in the pipeline (a re-refinement). Bugs come here without the user (prepareBugs). Returns how many refinement
-// tasks were queued.
+// The user's Prepare runs in PowerLoom (2026-10-11); this copy serves the import and the bugs until they move too.
+// Writes the note from the Vault template and queues a refinement task, also for a PBI already in the pipeline (a
+// re-refinement). Returns how many refinement tasks were queued.
 export async function preparePbis(context: WorkerContext, adoIds: number[], actor = "human"): Promise<number> {
   // One page's selection: the PBIs are from one vault (the Backlog shows one). Local PBIs need no ADO settings.
   const vault = await vaultOfPbis(context.db, adoIds);

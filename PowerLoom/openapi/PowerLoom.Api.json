@@ -219,6 +219,70 @@
         }
       }
     },
+    "/api/pbis/prepare": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
+        ],
+        "summary": "POST_api_pbis_prepare",
+        "description": "POST_api_pbis_prepare",
+        "operationId": "POST_api_pbis_prepare",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
+        ],
+        "summary": "DELETE_api_pbis",
+        "description": "DELETE_api_pbis",
+        "operationId": "DELETE_api_pbis",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/records": {
       "post": {
         "tags": [
@@ -665,6 +729,66 @@
           }
         }
       },
+      "DeleteRequest": {
+        "required": [
+          "adoIds"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "DeletedPbi": {
+        "required": [
+          "adoId",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "DeletedPbis": {
+        "required": [
+          "deleted",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedPbi"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "LauncherAvailability": {
         "required": [
           "label",
@@ -726,6 +850,56 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PrepareRequest": {
+        "required": [
+          "adoIds"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "PreparedPbis": {
+        "required": [
+          "queued",
+          "unknown"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "unknown": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
           }
         }
       },
@@ -991,6 +1165,12 @@
     },
     {
       "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
     },
     {
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"

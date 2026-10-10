@@ -9,4 +9,6 @@ export interface PowerLoomPort {
   addRecord(kind: "www" | "open-question" | "known-issue", sourceId: string): Promise<void>;
   // "Continue with <agent>": writes the chat note and returns the link that opens the chat.
   openChat(target: ChatTarget): Promise<Outcome<ChatLaunch>>;
+  // Deletes the PBI in adoa (data now, its notes right after); refused while an agent runs on it.
+  deletePbi(adoId: number): Promise<Outcome<string>>;
 }

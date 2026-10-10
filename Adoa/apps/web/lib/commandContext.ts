@@ -34,6 +34,15 @@ const powerloomPort: PowerLoomPort = {
 
     return data ? { ok: true, value: { url: data.url } } : { ok: false, error: (error as { detail?: string } | undefined)?.detail ?? `PowerLoom answered ${response.status}.` };
   },
+  async deletePbi(adoId) {
+    const { data, error, response } = await powerloom.DELETE("/api/pbis", { body: { adoIds: [adoId] } });
+
+    if (!data) {
+      return { ok: false, error: (error as { detail?: string } | undefined)?.detail ?? `PowerLoom answered ${response.status}.` };
+    }
+
+    return data.refused.length === 0 ? { ok: true, value: data.deleted[0]?.title ?? "" } : { ok: false, error: data.refused[0] };
+  },
 };
 
 function chatRequest(target: ChatTarget): { kind: "pbi" | "item" | "review" | "vault"; id: string } {

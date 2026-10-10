@@ -4,6 +4,7 @@ using PowerLoom.AdoIntegration.Features.SyncPbis;
 using PowerLoom.AdoIntegration.Features.SyncPullRequests;
 using PowerLoom.AdoIntegration.Scheduling;
 using PowerLoom.AdoIntegration.Settings;
+using PowerLoom.Infrastructure.Backlog;
 using PowerLoom.Infrastructure.Scheduling;
 
 namespace PowerLoom.AdoIntegration;
@@ -24,6 +25,8 @@ public static class AdoIntegrationSetup
         builder.Services.AddScoped<SinglePbiSync>();
         builder.Services.AddScoped<PullRequestSync>();
         builder.Services.AddSingleton<ICronSource, AdoCronSource>();
+        // PBI notes link to the work item's page in Azure DevOps.
+        builder.Services.AddScoped<IWorkItemLinks, WorkItemLinks>();
 
         return builder;
     }

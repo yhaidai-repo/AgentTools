@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type PrepareJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -11,7 +11,6 @@ import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vault
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
 import { runPbiImport } from "./import/runPbiImport";
 import type { WorkerContext } from "./models/WorkerContext";
-import { deletePbi } from "./pbi/deletePbi";
 import { prepareBugs } from "./prepare/prepareBugs";
 import { preparePbis } from "./prepare/preparePbis";
 import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
@@ -49,13 +48,6 @@ await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
 });
 
-await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async () => {
-  for (const job of jobs) {
-    const queued = await preparePbis(context, job.data.adoIds);
-
-    console.log(`prepare: ${job.data.adoIds.length} PBI note(s) written, ${queued} refinement task(s) queued (a PBI with an open one gets none)`);
-  }
-}));
 // Every message: the PBIs referenced by queued agent tasks are brought up to date (documents, merged drafts, next tasks,
 // statuses, Vault). With an agent id (its schedule or "Run now"): that agent's open tasks are validated and started.
 await boss.work<DispatchJob>(DISPATCH_QUEUE, (jobs) => logged(DISPATCH_QUEUE, async () => {
@@ -77,7 +69,7 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
   }
 }));
 
-// "Delete from adoa" on a PBI page, and the refresh after an item changes.
+// The refresh after an item changes.
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`pbi: ${await runPbiJob(job.data)}`);
@@ -105,10 +97,6 @@ process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
 async function runPbiJob(job: PbiJob): Promise<string> {
-  if (job.action === "delete") {
-    return deletePbi(context, job.adoId);
-  }
-
   await refreshPbi(context, job.adoId);
 
   return `PBI-${job.adoId} refreshed`;

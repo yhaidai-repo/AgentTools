@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
+using PowerLoom.Domain.Pbis.Models;
 using PowerLoom.Features.Continue.Models;
 using PowerLoom.Infrastructure.Backlog;
 using PowerLoom.Infrastructure.ChatLaunch;

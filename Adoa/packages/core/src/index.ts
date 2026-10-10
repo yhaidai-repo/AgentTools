@@ -25,7 +25,6 @@ export type { PipelineStatus } from "./models/PipelineStatus";
 export type { ItemStatus } from "./models/ItemStatus";
 export type { RunOutcome } from "./models/RunOutcome";
 export type { Stage } from "./models/Stage";
-export type { PrepareJob } from "./models/PrepareJob";
 export type { DispatchJob } from "./models/DispatchJob";
 export type { AgentRunJob } from "./models/AgentRunJob";
 export type { Outcome } from "./models/Outcome";

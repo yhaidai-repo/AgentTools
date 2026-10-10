@@ -88,6 +88,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_prepare
+         * @description POST_api_pbis_prepare
+         */
+        post: operations["POST_api_pbis_prepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pbis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_pbis
+         * @description DELETE_api_pbis
+         */
+        delete: operations["DELETE_api_pbis"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records": {
         parameters: {
             query?: never;
@@ -312,6 +352,18 @@ export interface components {
             ok: boolean;
             message: string;
         };
+        DeleteRequest: {
+            adoIds: (number | string)[];
+        };
+        DeletedPbi: {
+            /** Format: int32 */
+            adoId: number | string;
+            title: string;
+        };
+        DeletedPbis: {
+            deleted: components["schemas"]["DeletedPbi"][];
+            refused: string[];
+        };
         LauncherAvailability: {
             label: string;
             problem: null | string;
@@ -326,6 +378,13 @@ export interface components {
             /** Format: int32 */
             maxItemsPerRun: number | string;
             sprint: null | string;
+        };
+        PrepareRequest: {
+            adoIds: (number | string)[];
+        };
+        PreparedPbis: {
+            queued: (number | string)[];
+            unknown: (number | string)[];
         };
         ProblemDetails: {
             type?: null | string;
@@ -547,6 +606,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddedVault"];
+                };
+            };
+        };
+    };
+    POST_api_pbis_prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreparedPbis"];
+                };
+            };
+        };
+    };
+    DELETE_api_pbis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedPbis"];
                 };
             };
         };

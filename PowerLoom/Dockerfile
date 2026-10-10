@@ -7,6 +7,7 @@ COPY src/PowerLoom.Api/PowerLoom.Api.csproj src/PowerLoom.Api/
 COPY src/PowerLoom.Core/PowerLoom.Core.csproj src/PowerLoom.Core/
 COPY src/PowerLoom.AdoIntegration/PowerLoom.AdoIntegration.csproj src/PowerLoom.AdoIntegration/
 COPY src/PowerLoom.Contracts/PowerLoom.Contracts.csproj src/PowerLoom.Contracts/
+COPY src/PowerLoom.Domain/PowerLoom.Domain.csproj src/PowerLoom.Domain/
 COPY src/PowerLoom.Persistence/PowerLoom.Persistence.csproj src/PowerLoom.Persistence/
 RUN dotnet restore src/PowerLoom.Api/PowerLoom.Api.csproj && dotnet restore src/PowerLoom.Api/PowerLoom.Api.csproj -p:Configuration=Release
 COPY src src

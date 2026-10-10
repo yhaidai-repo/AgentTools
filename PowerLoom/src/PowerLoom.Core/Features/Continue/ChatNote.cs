@@ -1,13 +1,12 @@
 using System.Text.Json;
 using PowerLoom.Features.Continue.Models;
+using PowerLoom.Infrastructure.Backlog;
 
 namespace PowerLoom.Features.Continue;
 
 // The one chat note every kind gets (user decision 2026-10-10): the chat reads it and follows its Start section.
 public static class ChatNote
 {
-    private const string NotesHeading = "## Notes";
-
     private static readonly string[] SharedRules =
     [
         "Azure DevOps is never written; nothing is pushed.",
@@ -38,13 +37,7 @@ public static class ChatNote
         return string.Join("\n\n", parts);
     }
 
-    // `## Notes` is the only human-owned part of a note; it survives every re-render.
-    public static string NotesSectionOf(string? existing)
-    {
-        var start = existing?.IndexOf(NotesHeading, StringComparison.Ordinal) ?? -1;
-
-        return start < 0 ? $"{NotesHeading}\n" : existing![start..].TrimEnd() + "\n";
-    }
+    public static string NotesSectionOf(string? existing) => NotesSection.Of(existing);
 
     public static string KindLabel(ChatKind kind) => kind.ToString().ToLowerInvariant();
 

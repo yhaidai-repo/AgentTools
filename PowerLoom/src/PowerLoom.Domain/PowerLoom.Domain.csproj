@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PowerLoom.Contracts\PowerLoom.Contracts.csproj" />
+    <ProjectReference Include="..\PowerLoom.Persistence\PowerLoom.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

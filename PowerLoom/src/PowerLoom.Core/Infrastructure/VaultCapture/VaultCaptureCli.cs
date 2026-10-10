@@ -25,7 +25,20 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
         return Outcome<string>.Success(result.Id?.ToString() ?? "");
     }
 
-    private async Task<VaultCaptureResult> RunAsync(IEnumerable<string> arguments, string vault, string input, CancellationToken cancellation)
+    public async Task<DraftCaptureResult> CaptureDraftAsync(string vault, DraftCapture draft, CancellationToken cancellation)
+    {
+        var input = JsonSerializer.Serialize(new { vault, draft.Project, draft.Name, draft.Title, draft.Source, draft.Target, draft.Captured, draft.Assumptions, draft.ToFill }, Json);
+        var output = await RunAsync<CaptureOutput>(["capture"], vault, input, cancellation);
+
+        return new DraftCaptureResult(output.Ok, output.Mode ?? "rejected", output.Path is null ? null : RelativePath(vault, output.Path), output.Errors ?? []);
+    }
+
+    // Draft paths as stored: relative to the docs vault (e.g. draft/pvs-topic.md).
+    private string RelativePath(string vault, string path) => Path.GetRelativePath(roots.RootOf(vault), path).Replace('\\', '/');
+
+    private Task<VaultCaptureResult> RunAsync(IEnumerable<string> arguments, string vault, string input, CancellationToken cancellation) => RunAsync<VaultCaptureResult>(arguments, vault, input, cancellation);
+
+    private async Task<T> RunAsync<T>(IEnumerable<string> arguments, string vault, string input, CancellationToken cancellation)
     {
         using var process = Process.Start(StartInfo(arguments, vault)) ?? throw new InvalidOperationException("could not start pwsh for VaultCapture");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -39,7 +52,7 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
 
         await process.WaitForExitAsync(timeout.Token);
 
-        return ParseOutput(await stdout, await stderr, process.ExitCode);
+        return ParseOutput<T>(await stdout, await stderr, process.ExitCode);
     }
 
     private ProcessStartInfo StartInfo(IEnumerable<string> arguments, string vault)
@@ -61,13 +74,13 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
         return start;
     }
 
-    private static VaultCaptureResult ParseOutput(string stdout, string stderr, int exitCode)
+    private static T ParseOutput<T>(string stdout, string stderr, int exitCode)
     {
         var lastLine = stdout.Trim().Split('\n').LastOrDefault()?.Trim() ?? "";
 
         try
         {
-            return JsonSerializer.Deserialize<VaultCaptureResult>(lastLine, Json) ?? throw new JsonException("empty result");
+            return JsonSerializer.Deserialize<T>(lastLine, Json) ?? throw new JsonException("empty result");
         }
         catch (JsonException)
         {
