@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { FileInput } from "@/components/FileInput";
 import type { ActionResult } from "@/models/ActionResult";
 import { addAttachment } from "./actions";
 
@@ -12,7 +13,7 @@ export function AttachmentForm({ adoId, accept }: { adoId: number; accept: strin
   return (
     <form action={action} className="toolbar">
       <input type="hidden" name="adoId" value={adoId} />
-      <input type="file" name="file" accept={accept} required />
+      <FileInput name="file" accept={accept} required />
       <button type="submit" disabled={isPending}>{isPending ? "Uploading…" : "Add attachment"}</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
     </form>

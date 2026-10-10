@@ -2,6 +2,7 @@
 
 import type { HumanTaskStep } from "@adoa/core";
 import { useActionState } from "react";
+import { FileInput } from "@/components/FileInput";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeItem } from "./actions";
 
@@ -11,7 +12,7 @@ const BUTTONS: Record<string, { decision: string; label: string; secondary?: boo
   finding: [{ decision: "answer", label: "Close with answer" }, { decision: "dismiss", label: "Dismiss", secondary: true }],
 };
 
-// One open question, human task or finding: a text answer and/or a file (items of a PBI only), then the decision button.
+// One open question, human task or finding: a text answer and/or files (items of a PBI only), then the decision button.
 // A structured human task gets one answer box per step (user decision 2026-10-05), the free box becomes a note.
 export function CloseItemForm({ adoId, itemId, kind, accept, steps = [] }: { adoId: number | null; itemId: string; kind: string; accept: string; steps?: HumanTaskStep[] }) {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(closeItem, null);
@@ -27,7 +28,7 @@ export function CloseItemForm({ adoId, itemId, kind, accept, steps = [] }: { ado
         </label>
       ))}
       <textarea name="resolution" rows={3} placeholder={resolutionPlaceholder(kind, steps.length > 0)} />
-      {adoId !== null && <input type="file" name="file" accept={accept} />}
+      {adoId !== null && <FileInput name="file" accept={accept} />}
       <div className="actions">
         {BUTTONS[kind]?.map((button) => (
           <button key={button.decision} type="submit" name="decision" value={button.decision} disabled={isPending} className={button.secondary ? "secondary" : undefined}>

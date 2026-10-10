@@ -630,3 +630,20 @@ tr.context-row {
 tbody[data-folded] tr.child-row {
   display: none;
 }
+
+/* File picker that also takes pasted and dropped files (user decision 2026-10-09). */
+.file-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+
+.file-input:focus-within,
+.file-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}

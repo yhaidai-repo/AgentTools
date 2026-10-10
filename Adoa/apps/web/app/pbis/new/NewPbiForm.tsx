@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { FileInput } from "@/components/FileInput";
 import type { ActionResult } from "@/models/ActionResult";
 import { createPbiAction } from "../actions";
 
@@ -50,7 +51,7 @@ export function NewPbiForm({ repos, accept }: { repos: string[]; accept: string 
       </fieldset>
       <label>
         Attachments (documents useful for the PBI)
-        <input type="file" name="files" accept={accept} multiple />
+        <FileInput name="files" accept={accept} />
       </label>
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Creating…" : "Create PBI"}</button>

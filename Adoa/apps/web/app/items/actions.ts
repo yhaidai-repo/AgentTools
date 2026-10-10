@@ -1,28 +1,29 @@
 "use server";
 
 import { REGISTER_QUEUE, closeItemCommand, deleteItem, findClosableItem, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
-import { storeAttachment, type UploadedFile } from "@adoa/attachments";
+import { storeAttachments, type UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
-import { formAdoId, formLines, formText, readUpload } from "@/lib/formFields";
+import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
 import { resolutionFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
 
-// Answer / dismiss a question or finding, finish / cancel a human task. An attached file is stored first, and only if the item can be closed.
+// Answer / dismiss a question or finding, finish / cancel a human task. Attached files (several, chosen, pasted or dropped)
+// are stored first, and only if the item can be closed.
 export async function closeItem(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const file = await readUpload(form);
-  const request = readCloseRequest(form, file !== null);
+  const files = await readUploads(form, "file");
+  const request = readCloseRequest(form, files.length > 0);
   const found = await findClosableItem(getDb(), request);
 
   if (!found.ok) {
     return { ok: false, message: found.error };
   }
 
-  const uploadProblem = file ? await storeItemFile(file, request, linkedUrlOf(found.value)) : null;
+  const uploadProblem = files.length > 0 ? await storeItemFiles(files, request, linkedUrlOf(found.value)) : null;
 
   if (uploadProblem) {
     return { ok: false, message: uploadProblem };
@@ -77,12 +78,12 @@ export async function rerunTaskAction(adoId: number | null, itemId: string): Pro
 }
 
 // Uploads belong to a PBI, so an item without one takes a text answer only.
-async function storeItemFile(file: UploadedFile, request: CloseItemRequest, sourceUrl: string | null): Promise<string | null> {
+async function storeItemFiles(files: UploadedFile[], request: CloseItemRequest, sourceUrl: string | null): Promise<string | null> {
   if (request.adoId === null) {
     return "Files are attached to a PBI; this item has none.";
   }
 
-  const stored = await storeAttachment(getDb(), file, { adoId: request.adoId, itemId: request.itemId, sourceUrl });
+  const stored = await storeAttachments(getDb(), files, { adoId: request.adoId, itemId: request.itemId, sourceUrl });
 
   return stored.ok ? null : stored.error;
 }

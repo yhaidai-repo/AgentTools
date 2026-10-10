@@ -12,6 +12,7 @@
     "@adoa/vault": "*",
     "drizzle-orm": "^0.45.3",
     "mammoth": "^1.13.0",
+    "read-excel-file": "^9.3.12",
     "unpdf": "^1.8.1"
   },
   "devDependencies": {

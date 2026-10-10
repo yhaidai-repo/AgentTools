@@ -1,24 +1,25 @@
 "use server";
 
-import { CONFLUENCE_QUEUE, addPbiConfluencePages, confluencePageProblem, pageTitleFromUrl, removePbiConfluencePage, savePbiReposCommand, savePbiSkillsCommand, type ConfluenceFetchJob } from "@adoa/core";
-import { storeAttachment } from "@adoa/attachments";
+import { CONFLUENCE_QUEUE, addPbiConfluencePages, attachmentRef, confluencePageProblem, pageTitleFromUrl, removePbiConfluencePage, savePbiReposCommand, savePbiSkillsCommand, type ConfluenceFetchJob } from "@adoa/core";
+import { storeAttachments } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
-import { formText, readUpload } from "@/lib/formFields";
+import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
 
+// One or more files, chosen, pasted or dropped (user decision 2026-10-09).
 export async function addAttachment(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoId = Number(form.get("adoId"));
-  const file = await readUpload(form);
+  const files = await readUploads(form, "file");
 
-  if (!file) {
-    return { ok: false, message: "Choose a file." };
+  if (files.length === 0) {
+    return { ok: false, message: "Choose, paste or drop a file." };
   }
 
-  const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl: null });
+  const stored = await storeAttachments(getDb(), files, { adoId, itemId: null, sourceUrl: null });
 
   if (!stored.ok) {
     return { ok: false, message: stored.error };
@@ -26,7 +27,7 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
 
   await afterItemChange(adoId);
 
-  return { ok: true, message: `Uploaded as ATT-${stored.value}.` };
+  return { ok: true, message: `Uploaded as ${stored.value.map(attachmentRef).join(", ")}.` };
 }
 
 // The user's repo list (user decision 2026-10-02); answers refinement's open repo question too.

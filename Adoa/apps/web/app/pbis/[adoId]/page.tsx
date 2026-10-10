@@ -248,7 +248,7 @@ function Attachments({ detail }: { detail: PbiDetail }) {
       {detail.attachments.length + detail.pbi.confluencePages.length === 0 ? <p className="muted">None.</p> : <AttachmentTable detail={detail} />}
       <AttachmentForm adoId={detail.pbi.adoId} accept={ACCEPT} />
       <ConfluenceLinkForm adoId={detail.pbi.adoId} />
-      <p className="muted">PDF, Word (.docx), HTML (e.g. a saved Confluence page), Markdown or text are converted to text for the agents; images are stored only. Max 20 MB.</p>
+      <p className="muted">PDF, Word (.docx), Excel (.xlsx), CSV, HTML (e.g. a saved Confluence page), Markdown or text are converted to text for the agents; images are stored only. Max 20 MB per file; several files at once, also pasted (Ctrl+V) or dropped.</p>
     </>
   );
 }

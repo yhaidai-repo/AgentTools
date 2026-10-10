@@ -5,6 +5,7 @@ import { extractText, getDocumentProxy } from "unpdf";
 import { ACCEPTED_EXTENSIONS, IMAGE_EXTENSIONS, MAX_ATTACHMENT_BYTES } from "./limits";
 import type { ExtractedText } from "./models/ExtractedText";
 import type { UploadedFile } from "./models/UploadedFile";
+import { readXlsx } from "./spreadsheetText";
 
 type Reader = (bytes: Buffer) => Promise<string | null>;
 
@@ -12,6 +13,8 @@ type Reader = (bytes: Buffer) => Promise<string | null>;
 const READERS: Record<string, Reader> = {
   ".pdf": readPdf,
   ".docx": readDocx,
+  ".xlsx": readXlsx,
+  ".csv": readPlainText,
   ".html": readHtml,
   ".htm": readHtml,
   ".md": readPlainText,
