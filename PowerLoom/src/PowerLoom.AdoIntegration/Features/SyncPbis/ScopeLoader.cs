@@ -3,6 +3,7 @@ using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 using PowerLoom.AdoIntegration.Settings;
+using PowerLoom.Domain.Pbis;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 

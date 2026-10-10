@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { closeHumanItem, findClosableItem } from "../humanItems";
 import type { CloseItemRequest } from "../models/CloseItemRequest";
 import type { Command } from "../models/Command";
 import type { ItemStatus } from "../models/ItemStatus";
@@ -16,16 +15,14 @@ export const closeItemCommand: Command<CloseItemRequest, { status: ItemStatus }>
     hasAttachment: z.boolean().default(false),
   }),
   async run(context, input) {
-    const found = await findClosableItem(context.db, input);
+    const closed = await context.powerloom.closeItem(input);
 
-    if (!found.ok) {
-      return found;
+    if (!closed.ok) {
+      return closed;
     }
-
-    const status = await closeHumanItem(context.db, found.value, input);
 
     await notifyChange(context, input.adoId);
 
-    return { ok: true, value: { status } };
+    return closed;
   },
 };

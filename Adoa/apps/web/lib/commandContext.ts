@@ -1,4 +1,4 @@
-import { runCommand, type ChatTarget, type Command, type CommandContext, type Outcome, type PowerLoomPort } from "@adoa/core";
+import { runCommand, type ChatTarget, type CloseItemRequest, type Command, type CommandContext, type ItemStatus, type Outcome, type PowerLoomPort, type ReportBugInput } from "@adoa/core";
 import { getDb } from "./db";
 import { bossJobPort } from "./jobPort";
 import { powerloom } from "./powerloom";
@@ -43,7 +43,39 @@ const powerloomPort: PowerLoomPort = {
 
     return data.refused.length === 0 ? { ok: true, value: data.deleted[0]?.title ?? "" } : { ok: false, error: data.refused[0] };
   },
+  async closeItem(request: CloseItemRequest, dryRun = false) {
+    const { data, error, response } = await powerloom.POST("/api/items/{id}/close", {
+      params: { path: { id: request.itemId } },
+      body: { adoId: request.adoId, decision: request.decision, resolution: request.resolution, hasAttachment: request.hasAttachment, dryRun },
+    });
+
+    return data ? { ok: true, value: { status: data.status as ItemStatus } } : failure(error, response);
+  },
+  async rerunTask(adoId, itemId) {
+    const { data, error, response } = await powerloom.POST("/api/tasks/rerun", { body: { tasks: [{ adoId, itemId }] } });
+
+    if (!data) {
+      return failure(error, response);
+    }
+
+    return data.reopened.length === 1 ? { ok: true, value: data.reopened[0] } : { ok: false, error: data.refused[0] ?? "Not reopened." };
+  },
+  async deleteItem(adoId, itemId) {
+    const { data, error, response } = await powerloom.DELETE("/api/items/{id}", { params: { path: { id: itemId } }, body: { adoId } });
+
+    return data ? { ok: true, value: data.itemId } : failure(error, response);
+  },
+  async reportBug(input: ReportBugInput, actor: string) {
+    const { data, error, response } = await powerloom.POST("/api/bugs", { body: { parent: input.parent, title: input.title, descriptionMd: input.descriptionMd, priority: input.priority, actor } });
+
+    return data ? { ok: true, value: data } : failure(error, response);
+  },
 };
+
+// An expected refusal comes back as ProblemDetails; its detail is the message.
+function failure(error: unknown, response: Response): { ok: false; error: string } {
+  return { ok: false, error: (error as { detail?: string } | undefined)?.detail ?? `PowerLoom answered ${response.status}.` };
+}
 
 function chatRequest(target: ChatTarget): { kind: "pbi" | "item" | "review" | "vault"; id: string } {
   switch (target.kind) {

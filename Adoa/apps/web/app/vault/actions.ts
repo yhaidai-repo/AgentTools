@@ -1,10 +1,8 @@
 "use server";
 
-import { VAULT_REVIEW_AGENT, applyTaskSchedule, deleteTaskSchedule, saveTaskSchedule } from "@adoa/core";
+import { VAULT_REVIEW_AGENT } from "@adoa/core";
 import { revalidatePath } from "next/cache";
-import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
-import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 import type { TrashAction } from "@/models/TrashAction";
@@ -29,21 +27,10 @@ const DEFAULT_REVIEW_CRON = "0 6 * * 1";
 // selected vault with defaults, edited like any scheduled task afterwards.
 export async function addVaultReviewScheduleAction(): Promise<ActionResult> {
   const vault = await requireVault();
-  const saved = await saveTaskSchedule(getDb(), { id: null, name: `Vault review of ${vault}`, agentId: VAULT_REVIEW_AGENT, vault, cron: DEFAULT_REVIEW_CRON, enabled: true, params: {} });
-
-  if (!saved.ok) {
-    return { ok: false, message: saved.error };
-  }
-
-  try {
-    await applyTaskSchedule(await getBoss(), saved.value);
-  } catch (error) {
-    await deleteTaskSchedule(getDb(), saved.value.id);
-
-    return { ok: false, message: `Not scheduled: ${error instanceof Error ? error.message : String(error)}` };
-  }
+  const name = `Vault review of ${vault}`;
+  const saved = await powerloom.PUT("/api/task-schedules", { body: { id: null, name, agentId: VAULT_REVIEW_AGENT, vault, cron: DEFAULT_REVIEW_CRON, enabled: true, goal: null, repos: null } });
 
   revalidatePath("/vault");
 
-  return { ok: true, message: `Scheduled: ${saved.value.name}, ${DEFAULT_REVIEW_CRON}.` };
+  return powerloomResult(saved, `Scheduled: ${name}, ${DEFAULT_REVIEW_CRON}.`);
 }

@@ -88,6 +88,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/task-schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_task_schedules
+         * @description PUT_api_task_schedules
+         */
+        put: operations["PUT_api_task_schedules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/task-schedules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_task_schedules_id
+         * @description DELETE_api_task_schedules_id
+         */
+        delete: operations["DELETE_api_task_schedules_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/task-schedules/{id}/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_task_schedules_id_tick
+         * @description POST_api_task_schedules_id_tick
+         */
+        post: operations["POST_api_task_schedules_id_tick"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_tasks_rerun
+         * @description POST_api_tasks_rerun
+         */
+        post: operations["POST_api_tasks_rerun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bugs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_bugs
+         * @description POST_api_bugs
+         */
+        post: operations["POST_api_bugs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_items_id
+         * @description DELETE_api_items_id
+         */
+        delete: operations["DELETE_api_items_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_items_id_close
+         * @description POST_api_items_id_close
+         */
+        post: operations["POST_api_items_id_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/prepare": {
         parameters: {
             query?: never;
@@ -368,16 +508,38 @@ export interface components {
         ChatLink: {
             url: string;
         };
+        /** @enum {unknown} */
+        CloseDecision: "answer" | "dismiss" | "done" | "cancel";
+        CloseRequest: {
+            /** Format: int32 */
+            adoId: null | number;
+            decision: components["schemas"]["CloseDecision"];
+            resolution: null | string;
+            hasAttachment: boolean;
+            /** @default false */
+            dryRun: boolean;
+        };
+        ClosedItem: {
+            itemId: string;
+            status: string;
+        };
         ConnectionCheck: {
             ok: boolean;
             message: string;
         };
+        DeleteItemRequest: {
+            /** Format: int32 */
+            adoId: null | number;
+        };
         DeleteRequest: {
-            adoIds: (number | string)[];
+            adoIds: number[];
+        };
+        DeletedItem: {
+            itemId: string;
         };
         DeletedPbi: {
             /** Format: int32 */
-            adoId: number | string;
+            adoId: number;
             title: string;
         };
         DeletedPbis: {
@@ -396,21 +558,21 @@ export interface components {
             enabled: boolean;
             cron: string;
             /** Format: int32 */
-            maxItemsPerRun: number | string;
+            maxItemsPerRun: number;
             sprint: null | string;
         };
         PrepareRequest: {
-            adoIds: (number | string)[];
+            adoIds: number[];
         };
         PreparedPbis: {
-            queued: (number | string)[];
-            unknown: (number | string)[];
+            queued: number[];
+            unknown: number[];
         };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
             /** Format: int32 */
-            status?: null | number | string;
+            status?: null | number;
             detail?: null | string;
             instance?: null | string;
         };
@@ -418,13 +580,34 @@ export interface components {
             enabled: boolean;
             cron: string;
             /** Format: int32 */
-            maxPullRequestsPerRun: number | string;
+            maxPullRequestsPerRun: number;
             repos: null | string[];
         };
         /** @enum {unknown} */
         RecordKind: "www" | "open-question" | "known-issue";
         RemovedVault: {
             vault: string;
+        };
+        ReportBugRequest: {
+            parent: string;
+            title: string;
+            descriptionMd: null | string;
+            /** Format: int32 */
+            priority: null | number;
+            actor: null | string;
+        };
+        ReportedBug: {
+            /** Format: int32 */
+            adoId: number;
+            /** Format: int32 */
+            parentId: number;
+        };
+        RerunRequest: {
+            tasks: components["schemas"]["TaskRef"][];
+        };
+        RerunResult: {
+            reopened: string[];
+            refused: string[];
         };
         SaveConnectionRequest: {
             enabled: boolean;
@@ -437,6 +620,15 @@ export interface components {
         SavedConnection: {
             enabled: boolean;
         };
+        SavedSchedule: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            agentId: string;
+            vault: string;
+            cron: string;
+            enabled: boolean;
+        };
         SavedSettings: {
             enabled: boolean;
         };
@@ -444,17 +636,28 @@ export interface components {
             enabled: boolean;
             importFolder: null | string;
         };
+        ScheduleInput: {
+            /** Format: int32 */
+            id: null | number;
+            name: string;
+            agentId: string;
+            vault: string;
+            cron: string;
+            enabled: boolean;
+            goal: null | string;
+            repos: null | string[];
+        };
         SourceSettingsRequest: {
             enabled: boolean;
             cron: string;
             /** Format: int32 */
-            maxItemsPerRun: number | string;
+            maxItemsPerRun: number;
             importFolder: null | string;
         };
         SyncPbisRequest: {
             vault: string;
             /** Format: int32 */
-            adoId: null | number | string;
+            adoId: null | number;
             sources: null | components["schemas"]["SyncSources"];
         };
         SyncPullRequestsRequest: {
@@ -465,16 +668,24 @@ export interface components {
         };
         /** @enum {unknown} */
         SyncSources: "sprint" | "imports" | null;
+        TaskRef: {
+            /** Format: int32 */
+            adoId: null | number;
+            itemId: string;
+        };
         TestConnectionRequest: {
             orgUrl: string;
             project: string;
             team: string;
             pat: null | string;
         };
+        TickResult: {
+            result: string;
+        };
         TrashEntry: {
             path: string;
             /** Format: int64 */
-            sizeBytes: number | string;
+            sizeBytes: number;
             /** Format: date-time */
             modifiedAt: string;
         };
@@ -640,6 +851,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddedVault"];
+                };
+            };
+        };
+    };
+    PUT_api_task_schedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSchedule"];
+                };
+            };
+        };
+    };
+    DELETE_api_task_schedules_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_task_schedules_id_tick: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TickResult"];
+                };
+            };
+        };
+    };
+    POST_api_tasks_rerun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RerunRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RerunResult"];
+                };
+            };
+        };
+    };
+    POST_api_bugs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportBugRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportedBug"];
+                };
+            };
+        };
+    };
+    DELETE_api_items_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedItem"];
+                };
+            };
+        };
+    };
+    POST_api_items_id_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedItem"];
                 };
             };
         };

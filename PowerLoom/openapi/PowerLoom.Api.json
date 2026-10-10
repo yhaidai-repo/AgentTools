@@ -219,6 +219,245 @@
         }
       }
     },
+    "/api/task-schedules": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "PUT_api_task_schedules",
+        "description": "PUT_api_task_schedules",
+        "operationId": "PUT_api_task_schedules",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-schedules/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "DELETE_api_task_schedules_id",
+        "description": "DELETE_api_task_schedules_id",
+        "operationId": "DELETE_api_task_schedules_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/task-schedules/{id}/tick": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "POST_api_task_schedules_id_tick",
+        "description": "POST_api_task_schedules_id_tick",
+        "operationId": "POST_api_task_schedules_id_tick",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TickResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/rerun": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.RerunTasks.RerunTasksEndpoint"
+        ],
+        "summary": "POST_api_tasks_rerun",
+        "description": "POST_api_tasks_rerun",
+        "operationId": "POST_api_tasks_rerun",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerunResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bugs": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.ReportBug.ReportBugEndpoint"
+        ],
+        "summary": "POST_api_bugs",
+        "description": "POST_api_bugs",
+        "operationId": "POST_api_bugs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportBugRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportedBug"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
+        ],
+        "summary": "DELETE_api_items_id",
+        "description": "DELETE_api_items_id",
+        "operationId": "DELETE_api_items_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
+        ],
+        "summary": "POST_api_items_id_close",
+        "description": "POST_api_items_id_close",
+        "operationId": "POST_api_items_id_close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis/prepare": {
       "post": {
         "tags": [
@@ -766,6 +1005,63 @@
           }
         }
       },
+      "CloseDecision": {
+        "enum": [
+          "answer",
+          "dismiss",
+          "done",
+          "cancel"
+        ]
+      },
+      "CloseRequest": {
+        "required": [
+          "adoId",
+          "decision",
+          "resolution",
+          "hasAttachment"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CloseDecision"
+          },
+          "resolution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasAttachment": {
+            "type": "boolean"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "ClosedItem": {
+        "required": [
+          "itemId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "ConnectionCheck": {
         "required": [
           "ok",
@@ -781,6 +1077,21 @@
           }
         }
       },
+      "DeleteItemRequest": {
+        "required": [
+          "adoId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "DeleteRequest": {
         "required": [
           "adoIds"
@@ -790,13 +1101,20 @@
           "adoIds": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
+          }
+        }
+      },
+      "DeletedItem": {
+        "required": [
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
           }
         }
       },
@@ -808,11 +1126,7 @@
         "type": "object",
         "properties": {
           "adoId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "title": {
@@ -890,11 +1204,7 @@
             "type": "string"
           },
           "maxItemsPerRun": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sprint": {
@@ -914,11 +1224,7 @@
           "adoIds": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -934,22 +1240,14 @@
           "queued": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
           "unknown": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -971,11 +1269,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -1009,11 +1305,7 @@
             "type": "string"
           },
           "maxPullRequestsPerRun": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "repos": {
@@ -1042,6 +1334,95 @@
         "properties": {
           "vault": {
             "type": "string"
+          }
+        }
+      },
+      "ReportBugRequest": {
+        "required": [
+          "parent",
+          "title",
+          "descriptionMd",
+          "priority",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "descriptionMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReportedBug": {
+        "required": [
+          "adoId",
+          "parentId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RerunRequest": {
+        "required": [
+          "tasks"
+        ],
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskRef"
+            }
+          }
+        }
+      },
+      "RerunResult": {
+        "required": [
+          "reopened",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "reopened": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -1090,6 +1471,38 @@
           }
         }
       },
+      "SavedSchedule": {
+        "required": [
+          "id",
+          "name",
+          "agentId",
+          "vault",
+          "cron",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "SavedSettings": {
         "required": [
           "enabled"
@@ -1119,6 +1532,58 @@
           }
         }
       },
+      "ScheduleInput": {
+        "required": [
+          "id",
+          "name",
+          "agentId",
+          "vault",
+          "cron",
+          "enabled",
+          "goal",
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "goal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "SourceSettingsRequest": {
         "required": [
           "enabled",
@@ -1135,11 +1600,7 @@
             "type": "string"
           },
           "maxItemsPerRun": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "importFolder": {
@@ -1162,11 +1623,9 @@
             "type": "string"
           },
           "adoId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -1211,6 +1670,25 @@
           null
         ]
       },
+      "TaskRef": {
+        "required": [
+          "adoId",
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "itemId": {
+            "type": "string"
+          }
+        }
+      },
       "TestConnectionRequest": {
         "required": [
           "orgUrl",
@@ -1237,6 +1715,17 @@
           }
         }
       },
+      "TickResult": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string"
+          }
+        }
+      },
       "TrashEntry": {
         "required": [
           "path",
@@ -1249,11 +1738,7 @@
             "type": "string"
           },
           "sizeBytes": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "modifiedAt": {
@@ -1284,6 +1769,21 @@
     },
     {
       "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.RerunTasks.RerunTasksEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.ReportBug.ReportBugEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
     },
     {
       "name": "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"

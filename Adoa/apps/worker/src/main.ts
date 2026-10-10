@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, applyDispatchTick, applyDraftsSchedule, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -13,7 +13,6 @@ import type { WorkerContext } from "./models/WorkerContext";
 import { prepareBugs } from "./prepare/prepareBugs";
 import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
-import { runScheduledTask } from "./schedules/runScheduledTask";
 
 const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
@@ -38,7 +37,6 @@ if (moved) {
 await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
-await applyTaskSchedules(boss, await listTaskSchedules(db));
 await applyAgentSchedules(boss, config);
 await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
@@ -69,14 +67,6 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`pbi: ${await runPbiJob(job.data)}`);
-  }
-}));
-
-// Scheduled tasks (user decision 2026-10-03): a schedule's tick (or "Create now") creates its agent's task when one is
-// needed; the agent's own cron decides when the task is picked up.
-await boss.work<TaskScheduleJob>(TASK_SCHEDULE_QUEUE, (jobs) => logged(TASK_SCHEDULE_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`task-schedule ${job.data.scheduleId}: ${await runScheduledTask(context, job.data.scheduleId)}`);
   }
 }));
 

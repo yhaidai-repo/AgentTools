@@ -6,6 +6,7 @@ using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
 using PowerLoom.Features.ImportSources;
 using PowerLoom.Features.Pbis;
+using PowerLoom.Features.Tasks;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
 using PowerLoom.Infrastructure.ChatLaunch;
@@ -16,6 +17,7 @@ using PowerLoom.Infrastructure.Persistence;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.Telemetry;
 using PowerLoom.Infrastructure.VaultCapture;
+using PowerLoom.Infrastructure.VaultScan;
 using PowerLoom.Infrastructure.Vaults;
 using Wolverine.Http;
 
@@ -34,6 +36,7 @@ public static class PowerLoomSetup
         builder.AddPowerLoomHealth();
         builder.AddPowerLoomVaults();
         builder.AddPowerLoomVaultCapture();
+        builder.AddPowerLoomVaultScan();
         builder.AddPowerLoomBacklog();
         builder.AddPowerLoomChatLaunch();
         builder.Services.AddVaultsFeature();
@@ -41,6 +44,7 @@ public static class PowerLoomSetup
         builder.Services.AddContinueFeature();
         builder.Services.AddPbisFeature();
         builder.Services.AddImportSourcesFeature();
+        builder.Services.AddTasksFeature();
         builder.Services.AddOpenApi();
 
         return builder;

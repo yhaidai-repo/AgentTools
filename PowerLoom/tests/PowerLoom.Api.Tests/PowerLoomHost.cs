@@ -111,6 +111,9 @@ public sealed class PowerLoomHost : IAsyncLifetime
         await using var db = new PowerLoomDbContext(options);
 
         await db.Database.MigrateAsync();
+        // The AgentConfig module's own schema (its PostgresAgentConfigStore creates it in production).
+        await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS agent_config; CREATE TABLE IF NOT EXISTS agent_config.agent (id text PRIMARY KEY, definition jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()); CREATE TABLE IF NOT EXISTS agent_config.global (id smallint PRIMARY KEY CHECK (id = 1), value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());");
+        await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('vault-review', '{{"id":"vault-review","label":"Vault review","enabled":true,"next":null,"options":{{"staleDays":30}}}}') ON CONFLICT (id) DO NOTHING""");
         db.Vaults.Add(new Vault { Name = Vault, Features = "{}", CreatedAt = DateTime.UtcNow });
 
         await db.SaveChangesAsync();

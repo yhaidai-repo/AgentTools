@@ -1,29 +1,11 @@
-import { localItem, type AdoaDb } from "@adoa/db";
-import { and, eq } from "drizzle-orm";
+import type { localItem } from "@adoa/db";
 import { agentIdOf } from "./agentStages";
-import type { Outcome } from "./models/Outcome";
-import { itemOfPbi, pbiLabel } from "./itemScope";
-import { setItemStatus } from "./pbiStatus";
 
 const RERUNNABLE: string[] = ["done", "blocked"];
 
 type ItemRow = typeof localItem.$inferSelect;
 
+// "Re-run" on a finished agent task (user decision 2026-10-02) is PowerLoom's; the pages show the button for these.
 export function isRerunnableTask(item: ItemRow): boolean {
   return agentIdOf(item.assignee) !== null && item.kind !== "research-result" && RERUNNABLE.includes(item.status);
-}
-
-// "Re-run" on a finished agent task (user decision 2026-10-02): back to open with a fresh start (attempts, held reasons,
-// hand-on reset); the dispatcher runs it on the agent's next dispatch or "Run now", after the usual checks.
-export async function rerunTask(db: AdoaDb, adoId: number | null, itemId: string): Promise<Outcome<string>> {
-  const [task] = await db.select().from(localItem).where(and(eq(localItem.id, itemId), itemOfPbi(adoId)));
-
-  if (!task || !isRerunnableTask(task)) {
-    return { ok: false, error: `${itemId} isn't a finished agent task of ${pbiLabel(adoId)}.` };
-  }
-
-  await db.update(localItem).set({ attempts: 0, heldBy: [], handedOnAt: null }).where(eq(localItem.id, task.id));
-  await setItemStatus(db, task.id, task.status, "open", "human");
-
-  return { ok: true, value: task.id };
 }

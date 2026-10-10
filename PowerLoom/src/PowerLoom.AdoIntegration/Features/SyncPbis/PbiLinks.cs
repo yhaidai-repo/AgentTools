@@ -9,10 +9,6 @@ namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 // because mails mention other ids too (e.g. "[587484]" is a Freshdesk ticket).
 public static partial class PbiLinks
 {
-    // Its id (123, #123), a link to it in Azure DevOps (…/_workitems/edit/123, …/workitems/123, ?id=123) or in adoa
-    // (/pbis/123).
-    private static readonly Regex[] References = [new(@"^#?(\d+)$"), new(@"workitems/(?:edit/)?(\d+)", RegexOptions.IgnoreCase), new(@"/pbis/(\d+)"), new(@"[?&]id=(\d+)")];
-
     public static IReadOnlyList<int> Extract(AdoSettings ado, string? html, string? text)
     {
         var urls = UrlText.ExtractUrls($"{DecodeAmpersands(html ?? "")}\n{text}").Select(UnwrapSafeLink);
@@ -21,14 +17,7 @@ public static partial class PbiLinks
         return urls.Where(url => IsProjectWorkItemUrl(bases, url)).Select(ParseReference).Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
     }
 
-    // A PBI as the user types it.
-    public static int? ParseReference(string text)
-    {
-        var value = text.Trim();
-        var match = References.Select(pattern => pattern.Match(value)).FirstOrDefault(match => match.Success);
-
-        return match is null ? null : int.Parse(match.Groups[1].Value);
-    }
+    public static int? ParseReference(string text) => PbiReference.Parse(text);
 
     private static string DecodeAmpersands(string html) => html.Replace("&amp;", "&", StringComparison.OrdinalIgnoreCase);
 

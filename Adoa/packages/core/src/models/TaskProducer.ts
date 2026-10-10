@@ -1,12 +1,9 @@
 import type { itemKind } from "@adoa/db";
 import type { GlobalItemPrefix } from "../localItemIds";
-import type { Outcome } from "./Outcome";
-import type { ProducedTask } from "./ProducedTask";
-import type { ProducerContext } from "./ProducerContext";
 import type { ProducerParamSpec } from "./ProducerParamSpec";
 
-// How scheduled tasks for one agent are made (user decision 2026-10-03): its params, and the check whether a task is
-// needed now. Only agents with a producer can be scheduled, since each executor expects its own task data.
+// How scheduled tasks for one agent look (user decision 2026-10-03): the form's choices. PowerLoom holds the producer
+// itself (the "needed?" check and the task's data). Only agents with a producer can be scheduled without a goal.
 export interface TaskProducer {
   agentId: string;
   kind: (typeof itemKind.enumValues)[number];
@@ -15,6 +12,4 @@ export interface TaskProducer {
   /** Scheduled from the vault's Maintenance tab only (user decision 2026-10-06), not from the generic scheduled-task form. */
   maintenance: boolean;
   params: ProducerParamSpec[];
-  /** The task for this tick, saying whether it is needed; an error when none can be made (e.g. no vault left). */
-  produce(context: ProducerContext, params: Record<string, unknown>): Promise<Outcome<ProducedTask>>;
 }

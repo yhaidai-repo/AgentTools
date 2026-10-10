@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -114,45 +114,10 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
             return;
 
         if (parentId != previousParentId)
-            await InheritParentContextAsync(item.AdoId, parentId.Value, cancellation);
+            await PbiChildren.InheritParentContextAsync(db, item.AdoId, parentId.Value, cancellation);
 
         if (BugRule.IsMarkedBug(item.Type, item.Title))
-            await RecordBugAsync(item.AdoId, parentId.Value, cancellation);
-    }
-
-    private async Task InheritParentContextAsync(int childId, int parentId, CancellationToken cancellation)
-    {
-        var parent = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == parentId).Select(row => row.Skills).SingleAsync(cancellation);
-        var child = await db.WorkItems.SingleAsync(row => row.AdoId == childId, cancellation);
-        var repos = await db.PbiRepos.AsNoTracking().Where(row => row.PbiId == parentId).ToListAsync(cancellation);
-        var known = (await db.PbiRepos.AsNoTracking().Where(row => row.PbiId == childId).Select(row => row.RepoId).ToListAsync(cancellation)).ToHashSet();
-
-        if (HasNoSkills(child.Skills))
-            child.Skills = parent;
-
-        db.PbiRepos.AddRange(repos.Where(repo => !known.Contains(repo.RepoId)).Select(repo => new PbiRepo { PbiId = childId, RepoId = repo.RepoId, Source = repo.Source }));
-
-        await db.SaveChangesAsync(cancellation);
-    }
-
-    // Bugs are prepared without the user (user decision 2026-10-09). A bug already recorded keeps its first record.
-    private async Task RecordBugAsync(int workItemId, int pbiId, CancellationToken cancellation)
-    {
-        if (await db.Bugs.AnyAsync(bug => bug.WorkItemId == workItemId, cancellation))
-            return;
-
-        var parentStatus = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == pbiId).Select(row => row.PipelineStatus).SingleAsync(cancellation);
-
-        db.Bugs.Add(new Bug { WorkItemId = workItemId, PbiId = pbiId, Source = BugSource.Ado, ReportedBy = Actor, FoundIn = parentStatus });
-
-        await db.SaveChangesAsync(cancellation);
-    }
-
-    private static bool HasNoSkills(string skills)
-    {
-        using var document = JsonDocument.Parse(skills);
-
-        return document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() == 0;
+            await Bugs.RecordAsync(db, item.AdoId, parentId.Value, BugSource.Ado, Actor, cancellation);
     }
 
     private static void Mirror(WorkItem row, MappedWorkItem item)

@@ -1,6 +1,8 @@
 "use server";
 
-import { closeItemCommand, deleteItem, findClosableItem, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
+import { closeItemCommand, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
+import { localItem } from "@adoa/db";
+import { and, eq, isNull } from "drizzle-orm";
 import { storeAttachments, type UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -13,23 +15,24 @@ import { resolutionFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Answer / dismiss a question or finding, finish / cancel a human task. Attached files (several, chosen, pasted or dropped)
-// are stored first, and only if the item can be closed.
+// are stored first, and only if the item can be closed (PowerLoom's dry run).
 export async function closeItem(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const files = await readUploads(form, "file");
   const request = readCloseRequest(form, files.length > 0);
-  const found = await findClosableItem(getDb(), request);
+  const [item] = await getDb().select().from(localItem).where(and(eq(localItem.id, request.itemId), request.adoId === null ? isNull(localItem.pbiId) : eq(localItem.pbiId, request.adoId)));
+  const checked = item ? await webCommandContext().powerloom.closeItem(request, true) : { ok: false as const, error: `${request.itemId} is not an item of this PBI.` };
 
-  if (!found.ok) {
-    return { ok: false, message: found.error };
+  if (!item || !checked.ok) {
+    return { ok: false, message: checked.ok ? "Unknown item." : checked.error };
   }
 
-  const uploadProblem = files.length > 0 ? await storeItemFiles(files, request, linkedUrlOf(found.value)) : null;
+  const uploadProblem = files.length > 0 ? await storeItemFiles(files, request, linkedUrlOf(item)) : null;
 
   if (uploadProblem) {
     return { ok: false, message: uploadProblem };
   }
 
-  const closed = await runWebCommand(closeItemCommand, { ...request, resolution: resolutionFromForm(found.value, form, request.resolution) });
+  const closed = await runWebCommand(closeItemCommand, { ...request, resolution: resolutionFromForm(item, form, request.resolution) });
 
   revalidateItemPages(request.adoId);
 
@@ -53,7 +56,7 @@ export async function submitFindingAction(_previous: ActionResult | null, form: 
 
 // Soft delete: gone from the pages and the Vault, kept so agents don't create it again. Back to the PBI (or Tasks) page after.
 export async function deleteItemAction(adoId: number | null, itemId: string): Promise<ActionResult> {
-  const deleted = await deleteItem(getDb(), adoId, itemId);
+  const deleted = await webCommandContext().powerloom.deleteItem(adoId, itemId);
 
   if (!deleted.ok) {
     return { ok: false, message: deleted.error };
