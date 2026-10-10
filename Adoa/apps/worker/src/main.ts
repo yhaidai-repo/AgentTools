@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -9,10 +9,8 @@ import { loadLinkedPage } from "./documents/confluencePages";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
-import { runPbiImport } from "./import/runPbiImport";
 import type { WorkerContext } from "./models/WorkerContext";
 import { prepareBugs } from "./prepare/prepareBugs";
-import { preparePbis } from "./prepare/preparePbis";
 import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
 import { runScheduledTask } from "./schedules/runScheduledTask";
@@ -38,8 +36,6 @@ if (moved) {
 
 // Settings shows whether Confluence pages can be fetched; the web never sees the token.
 await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
-// The per-vault jobs still here (pbi-import) as the vaults' features say (user decision 2026-10-05).
-await applyVaultJobSchedules(boss, db);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
 await applyTaskSchedules(boss, await listTaskSchedules(db));
@@ -73,13 +69,6 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`pbi: ${await runPbiJob(job.data)}`);
-  }
-}));
-
-// PBI import (user decision 2026-10-02): one job reads every import source (Outlook mails, inbox requests, …).
-await boss.work<VaultJob>(PBI_IMPORT_QUEUE, (jobs) => logged(PBI_IMPORT_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`pbi-import ${job.data.vault}: ${await runPbiImport(context, job.data.vault)}`);
   }
 }));
 

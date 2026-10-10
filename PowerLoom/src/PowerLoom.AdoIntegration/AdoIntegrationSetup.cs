@@ -23,6 +23,7 @@ public static class AdoIntegrationSetup
         builder.Services.AddScoped<SyncBookkeeping>();
         builder.Services.AddScoped<SprintSync>();
         builder.Services.AddScoped<SinglePbiSync>();
+        builder.Services.AddScoped<ImportSync>();
         builder.Services.AddScoped<PullRequestSync>();
         builder.Services.AddSingleton<ICronSource, AdoCronSource>();
         // PBI notes link to the work item's page in Azure DevOps.

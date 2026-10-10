@@ -283,6 +283,58 @@
         }
       }
     },
+    "/api/vaults/{vault}/import-sources": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+        ],
+        "summary": "PUT_api_vaults_vault_import_sources",
+        "description": "PUT_api_vaults_vault_import_sources",
+        "operationId": "PUT_api_vaults_vault_import_sources",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSourceSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/records": {
       "post": {
         "tags": [
@@ -1049,10 +1101,60 @@
           }
         }
       },
+      "SavedSourceSettings": {
+        "required": [
+          "enabled",
+          "importFolder"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "importFolder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SourceSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxItemsPerRun",
+          "importFolder"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxItemsPerRun": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "importFolder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SyncPbisRequest": {
         "required": [
           "vault",
-          "adoId"
+          "adoId",
+          "sources"
         ],
         "type": "object",
         "properties": {
@@ -1067,6 +1169,16 @@
               "string"
             ],
             "format": "int32"
+          },
+          "sources": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SyncSources"
+              }
+            ]
           }
         }
       },
@@ -1091,6 +1203,13 @@
             "type": "string"
           }
         }
+      },
+      "SyncSources": {
+        "enum": [
+          "sprint",
+          "imports",
+          null
+        ]
       },
       "TestConnectionRequest": {
         "required": [
@@ -1171,6 +1290,9 @@
     },
     {
       "name": "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
     },
     {
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"

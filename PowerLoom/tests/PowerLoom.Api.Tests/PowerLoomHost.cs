@@ -31,6 +31,9 @@ public sealed class PowerLoomHost : IAsyncLifetime
 
     public string VaultRoot => Path.Combine(VaultsRoot, Vault);
 
+    // The import inbox (a folder per source inside it).
+    public string ImportRoot => Path.Combine(VaultsRoot, "..", "inbox-" + Path.GetFileName(VaultsRoot));
+
     // adoa's backlog vault (a folder per vault), where chat notes are written.
     public string BacklogRoot => Path.Combine(VaultsRoot, "..", "backlog-" + Path.GetFileName(VaultsRoot));
 
@@ -50,6 +53,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Vaults__TemplateHome", WriteTemplates());
         Environment.SetEnvironmentVariable("Vaults__Exclude", "adoa-backlog");
         Environment.SetEnvironmentVariable("Backlog__Root", BacklogRoot);
+        Environment.SetEnvironmentVariable("Import__InboxRoot", ImportRoot);
         Environment.SetEnvironmentVariable("Chat__ReposRoot", "D:/pc/repos");
         Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/adoa-backlog");
         Environment.SetEnvironmentVariable("Chat__AgentTools", AgentTools);

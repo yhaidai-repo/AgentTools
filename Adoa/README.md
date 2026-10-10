@@ -43,7 +43,7 @@ npm run dev:web                                                  # needs DATABAS
 ```
 
 ## PBI import
-The `pbi-import` job (Settings schedule, default every 5 min, or **Import now** on the Backlog) reads every import source (`apps/worker/src/import/importSources.ts`), syncs the PBIs each item links and prepares the new ones. Both sources read folders under `IMPORT_INBOX_PATH` (default `./import-inbox`); read files are deleted, unusable ones move to `failed/` with a `.reason.txt`. Write `<name>.json.tmp`, then rename to `.json`.
+PowerLoom's PBI sync (Settings import schedule, default every 5 min, or **Import now** on the Backlog) reads every import source (`PowerLoom/src/PowerLoom.Core/Features/ImportSources`), syncs the PBIs each item links and prepares the new ones. Both sources read folders under `IMPORT_INBOX_PATH` (default `./import-inbox`); read files are deleted, unusable ones move to `failed/` with a `.reason.txt`. Write `<name>.json.tmp`, then rename to `.json`.
 - `outlook`: `import-inbox/outlook/*.json`, mails written by `tools/outlook-export` (classic Outlook, Inbox by subject).
 - `inbox`: `import-inbox/*.json`, a ready request from any tool: `source`, `sourceRef`, optional `title`, `from`, `occurredAt`, and `adoIds` and/or `html` / `text` with ADO work item links; `prepare` defaults to true.
 

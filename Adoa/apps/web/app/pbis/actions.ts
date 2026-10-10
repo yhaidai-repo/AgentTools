@@ -1,9 +1,8 @@
 "use server";
 
-import { PBI_IMPORT_QUEUE, createPbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback } from "@adoa/core";
+import { createPbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type PbiFeedback } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -26,7 +25,7 @@ export async function syncNow(_previous: ActionResult | null, form: FormData): P
   revalidatePath("/pbis");
 
   // PowerLoom runs one vault's syncs one after the other.
-  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null } }), "Sync queued. Refresh in a moment.");
+  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null, sources: "sprint" } }), "Sync queued. Refresh in a moment.");
 }
 
 // Syncing and importing need the vault's Azure DevOps integration (user decision 2026-10-06).
@@ -160,10 +159,10 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
     return { ok: false, message: problem };
   }
 
-  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId } }), `PBI-${adoId} queued; reload in a few seconds (a failure shows on the Runs page).`);
+  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId, sources: null } }), `PBI-${adoId} queued; reload in a few seconds (a failure shows on the Runs page).`);
 }
 
-// The worker reads the import sources; the queue is exclusive, so a second click while one is queued does nothing.
+// PowerLoom reads the import sources; one vault's syncs run one after the other.
 export async function importNow(): Promise<ActionResult> {
   const vault = await requireVault();
   const problem = await integrationProblem(vault);
@@ -172,9 +171,7 @@ export async function importNow(): Promise<ActionResult> {
     return { ok: false, message: problem };
   }
 
-  const jobId = await sendVaultJob(await getBoss(), PBI_IMPORT_QUEUE, vault);
-
-  return { ok: true, message: jobId ? "Import queued; the list updates in a few seconds." : "An import is already queued or running." };
+  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null, sources: "imports" } }), "Import queued; the list updates in a few seconds.");
 }
 
 // Deletes in adoa only, through PowerLoom (it removes the PBI's notes too). Refused while an agent runs on it.

@@ -32,9 +32,3 @@ export function backlogMount(): string {
 export function legacyBacklogFolder(): string {
   return process.env.LEGACY_BACKLOG_FOLDER?.trim() || "backlog";
 }
-
-// The import inbox folder (bind-mounted), where the import sources' files arrive; null when not set, so the pbi-import
-// job only reports it.
-export function importInboxRoot(): string | null {
-  return process.env.IMPORT_INBOX_ROOT?.trim() || null;
-}

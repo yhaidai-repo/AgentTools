@@ -9,7 +9,8 @@ using Wolverine.Http;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
-// Backlog → Sync now (the sprint) and Sync PBI (one id): queued, the list updates in a few seconds.
+// Backlog → Sync now (the sprint), Import now (the import sources) and Sync PBI (one id): queued, the list updates
+// in a few seconds.
 public static class SyncPbisEndpoint
 {
     [WolverinePost("/api/ado/pbis/sync")]
@@ -18,7 +19,7 @@ public static class SyncPbisEndpoint
         if (!await db.VaultExistsAsync(request.Vault, cancellation))
             return Problem.NotFound($"{request.Vault} isn't a vault.").ToProblemResult();
 
-        await bus.PublishAsync(new SyncPbis(request.Vault, request.AdoId));
+        await bus.PublishAsync(new SyncPbis(request.Vault, request.AdoId, request.Sources ?? SyncSources.Sprint));
 
         return TypedResults.Accepted((string?)null);
     }

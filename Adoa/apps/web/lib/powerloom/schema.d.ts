@@ -128,6 +128,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/import-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_import_sources
+         * @description PUT_api_vaults_vault_import_sources
+         */
+        put: operations["PUT_api_vaults_vault_import_sources"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records": {
         parameters: {
             query?: never;
@@ -420,10 +440,22 @@ export interface components {
         SavedSettings: {
             enabled: boolean;
         };
+        SavedSourceSettings: {
+            enabled: boolean;
+            importFolder: null | string;
+        };
+        SourceSettingsRequest: {
+            enabled: boolean;
+            cron: string;
+            /** Format: int32 */
+            maxItemsPerRun: number | string;
+            importFolder: null | string;
+        };
         SyncPbisRequest: {
             vault: string;
             /** Format: int32 */
             adoId: null | number | string;
+            sources: null | components["schemas"]["SyncSources"];
         };
         SyncPullRequestsRequest: {
             vault: string;
@@ -431,6 +463,8 @@ export interface components {
         SyncRepositoriesRequest: {
             vault: string;
         };
+        /** @enum {unknown} */
+        SyncSources: "sprint" | "imports" | null;
         TestConnectionRequest: {
             orgUrl: string;
             project: string;
@@ -654,6 +688,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedPbis"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_import_sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSourceSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

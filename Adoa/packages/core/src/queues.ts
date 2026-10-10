@@ -1,6 +1,5 @@
 import { PgBoss } from "pg-boss";
 import type { DispatchJob } from "./models/DispatchJob";
-import type { VaultJob } from "./models/VaultJob";
 import type { TaskSchedule } from "./models/TaskSchedule";
 import type { TaskScheduleJob } from "./models/TaskScheduleJob";
 
@@ -11,9 +10,6 @@ export const DRAFTS_QUEUE = "drafts";
 export const CONFLUENCE_QUEUE = "confluence";
 // Sent only by the refresh after an item changes (no schedule).
 export const PBI_QUEUE = "pbi";
-// Imports from every import source (user decision 2026-10-02: one job, sources behind one abstraction); scheduled, and
-// the Backlog's "Import now".
-export const PBI_IMPORT_QUEUE = "pbi-import";
 // Scheduled tasks (user decision 2026-10-03): one queue for every task schedule; each schedule is a pg-boss schedule
 // keyed by its id, so a new schedule needs no new queue.
 export const TASK_SCHEDULE_QUEUE = "task-schedule";
@@ -42,32 +38,7 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
   await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
   await ensureQueue(boss, PBI_QUEUE, "standard");
-  // exclusive: at most one queued or running, so "import now" can't pile up.
-  await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
   await ensureQueue(boss, TASK_SCHEDULE_QUEUE, "standard");
-}
-
-// A per-vault job's schedules (user decision 2026-10-05): one per vault that wants one, keyed by the vault's name; the
-// schedules of vaults that no longer want one are removed. The job's singleton key keeps the exclusive policy per vault.
-export async function applyVaultSchedules(boss: PgBoss, queue: string, cronByVault: Map<string, string>): Promise<void> {
-  const orphans = (await boss.getSchedules(queue)).filter((entry) => !cronByVault.has(entry.key));
-
-  for (const orphan of orphans) {
-    await boss.unschedule(queue, orphan.key);
-  }
-
-  for (const [vault, cron] of cronByVault) {
-    await boss.schedule(queue, cron, vaultJob(vault), { key: vault, singletonKey: vault });
-  }
-}
-
-// Sends a per-vault job now (Import now); null when the vault's job is queued or running already.
-export async function sendVaultJob(boss: PgBoss, queue: string, vault: string): Promise<string | null> {
-  return boss.send(queue, vaultJob(vault), { singletonKey: vault });
-}
-
-function vaultJob(vault: string): VaultJob {
-  return { vault };
 }
 
 // The dispatcher's every-minute tick keeps statuses, notes and hand-ons current between agent schedules.

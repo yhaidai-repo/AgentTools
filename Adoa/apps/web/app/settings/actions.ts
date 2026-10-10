@@ -1,8 +1,7 @@
 "use server";
 
-import { addLocalRepo, applyVaultJobSchedules, removeLocalRepo, saveImportSettings, saveVaultImportFolder, setRepoEnabled, setVaultFeature, type ImportSettings } from "@adoa/core";
+import { addLocalRepo, removeLocalRepo, setRepoEnabled } from "@adoa/core";
 import { revalidatePath } from "next/cache";
-import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
@@ -39,33 +38,17 @@ export async function saveSettings(_previous: ActionResult | null, form: FormDat
 }
 
 export async function saveImportSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const settings: ImportSettings = { cron: field(form, "cron"), maxItemsPerRun: Number(field(form, "maxItemsPerRun")) };
-
-  if (!Number.isInteger(settings.maxItemsPerRun) || settings.maxItemsPerRun < 1) {
-    return { ok: false, message: "Max items per run must be a whole number above 0." };
-  }
-
-  const importFolder = field(form, "importFolder").replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
-
-  if (importFolder.includes("/") || importFolder.startsWith(".")) {
-    return { ok: false, message: "The import folder is one folder name inside the import inbox." };
-  }
-
   const vault = await requireVault();
-
-  await saveImportSettings(getDb(), vault, settings);
-  await saveVaultImportFolder(getDb(), vault, importFolder || null);
-  await setVaultFeature(getDb(), vault, "mailSync", isEnabled(form));
-
-  const problem = await applySchedules();
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/import-sources", {
+    params: { path: { vault } },
+    body: { enabled, cron: field(form, "cron"), maxItemsPerRun: Number(field(form, "maxItemsPerRun")), importFolder: field(form, "importFolder") },
+  });
+  const result = powerloomResult(saved, enabled ? "Saved. The next import uses these settings." : "Saved. Mail sync is off for this vault.");
 
   revalidatePath("/settings");
 
-  return { ok: true, message: isEnabled(form) ? "Saved. The next import uses these settings." : "Saved. Mail sync is off for this vault." };
+  return result;
 }
 
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -116,17 +99,6 @@ export async function removeLocalRepoAction(id: string): Promise<void> {
   revalidatePath("/settings");
 }
 
-// The saved settings are kept even when pg-boss refuses a cron: the message says so, and the next save can fix it.
-async function applySchedules(): Promise<string | null> {
-  try {
-    await applyVaultJobSchedules(await getBoss(), getDb());
-
-    return null;
-  } catch (error) {
-    return `Saved, but not scheduled: ${errorMessage(error)}`;
-  }
-}
-
 // Every feature section's switch (user decision 2026-10-06).
 function isEnabled(form: FormData): boolean {
   return form.get("enabled") === "on";
@@ -134,8 +106,4 @@ function isEnabled(form: FormData): boolean {
 
 function field(form: FormData, name: string): string {
   return String(form.get(name) ?? "").trim();
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

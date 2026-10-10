@@ -13,18 +13,18 @@ namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 // Recorded as a sync run (the Runs page); a failure keeps the run with its error and lets Wolverine retry or dead-letter.
 public static class SyncPbisHandler
 {
-    public static async Task Handle(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, PowerLoomDbContext db, SprintSync sprintSync, SinglePbiSync singleSync, IMessageBus bus, ILogger<SyncPbis> logger, CancellationToken cancellation)
+    public static async Task Handle(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, PowerLoomDbContext db, SprintSync sprintSync, ImportSync importSync, SinglePbiSync singleSync, IMessageBus bus, ILogger<SyncPbis> logger, CancellationToken cancellation)
     {
         var runId = await JobRuns.StartAsync(db, Stage.Sync, cancellation);
 
         try
         {
-            var outcome = await RunAsync(message, settings, clients, sprintSync, singleSync, runId, cancellation);
+            var outcome = await RunAsync(message, settings, clients, sprintSync, importSync, singleSync, runId, cancellation);
 
             await JobRuns.FinishAsync(db, runId, outcome.Outcome, outcome.Outcome == RunOutcome.Success ? null : outcome.Message, cancellation);
             logger.LogInformation("sync {Vault} {Outcome}: {Message}", message.Vault, outcome.Outcome, outcome.Message);
 
-            if (outcome.Outcome == RunOutcome.Success && message.AdoId is null)
+            if (outcome.Outcome == RunOutcome.Success && message.AdoId is null && message.Sources == SyncSources.Sprint)
                 await bus.PublishAsync(new SyncRepositories.SyncRepositories(message.Vault));
         }
         catch (Exception error)
@@ -34,7 +34,7 @@ public static class SyncPbisHandler
         }
     }
 
-    private static async Task<SyncOutcome> RunAsync(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, SprintSync sprintSync, SinglePbiSync singleSync, long runId, CancellationToken cancellation)
+    private static async Task<SyncOutcome> RunAsync(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, SprintSync sprintSync, ImportSync importSync, SinglePbiSync singleSync, long runId, CancellationToken cancellation)
     {
         // A PBI adoa has stays in its vault; a new one joins the vault the user had selected.
         var vault = message.AdoId is { } adoId ? await singleSync.VaultOfAsync(adoId, cancellation) ?? message.Vault : message.Vault;
@@ -47,6 +47,9 @@ public static class SyncPbisHandler
 
         if (message.AdoId is { } single)
             return await singleSync.RunAsync(vault, single, client, runId, cancellation);
+
+        if (message.Sources == SyncSources.Imports)
+            return await importSync.RunAsync(vault, ado, client, runId, cancellation);
 
         return await sprintSync.RunAsync(vault, ado, await settings.ReadSyncAsync(vault, cancellation), client, runId, cancellation);
     }

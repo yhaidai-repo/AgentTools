@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
+using PowerLoom.Features.ImportSources;
 using PowerLoom.Features.Pbis;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
@@ -39,6 +40,7 @@ public static class PowerLoomSetup
         builder.Services.AddDocsFeature();
         builder.Services.AddContinueFeature();
         builder.Services.AddPbisFeature();
+        builder.Services.AddImportSourcesFeature();
         builder.Services.AddOpenApi();
 
         return builder;

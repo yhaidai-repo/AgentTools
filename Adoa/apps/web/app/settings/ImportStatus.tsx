@@ -4,11 +4,11 @@ import { LocalTime } from "@/components/LocalTime";
 // Each source as the import job last saw it, and when it last imported something (a quiet source may be broken).
 export function ImportStatus({ status, activity }: { status: ImportRunStatus | null; activity: ImportSourceActivity[] }) {
   if (!status) {
-    return <p className="muted">Import: not run yet (restart the worker).</p>;
+    return <p className="muted">Import: not run yet (Backlog → Import now, or wait for the import schedule).</p>;
   }
 
   if (!status.configured) {
-    return <p className="result-error">Import: IMPORT_INBOX_ROOT isn&apos;t set for the worker.</p>;
+    return <p className="result-error">Import: the import inbox (Import:InboxRoot) isn&apos;t set for PowerLoom.</p>;
   }
 
   return (
