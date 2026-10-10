@@ -10,7 +10,6 @@ export type { VaultJob } from "./models/VaultJob";
 export type { Vault } from "./models/Vault";
 export * from "./queues";
 export * from "./pbiStatus";
-export * from "./syncCursor";
 export * from "./runs";
 export * from "./adoLinks";
 export * from "./currentSprint";

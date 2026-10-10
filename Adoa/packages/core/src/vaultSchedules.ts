@@ -1,8 +1,8 @@
 import type { AdoaDb } from "@adoa/db";
 import type { PgBoss } from "pg-boss";
 import type { Vault } from "./models/Vault";
-import { PBI_IMPORT_QUEUE, PULL_REQUESTS_QUEUE, SYNC_QUEUE, applyVaultSchedules } from "./queues";
-import { isAdoActive, readAdoSettings, readImportSettings, readPullRequestSettings, readSyncSettings } from "./settings";
+import { PBI_IMPORT_QUEUE, applyVaultSchedules } from "./queues";
+import { isAdoActive, readAdoSettings, readImportSettings } from "./settings";
 import { readVaults } from "./vaults";
 
 // The per-vault jobs as the vaults' features and settings say (user decision 2026-10-05): a vault with a feature off, or
@@ -11,9 +11,7 @@ import { readVaults } from "./vaults";
 export async function applyVaultJobSchedules(boss: PgBoss, db: AdoaDb): Promise<void> {
   const vaults = await activeAdoVaults(db, await readVaults(db));
 
-  await applyVaultSchedules(boss, SYNC_QUEUE, await cronsOf(db, vaults, "adoSync", (vault) => readSyncSettings(db, vault)));
   await applyVaultSchedules(boss, PBI_IMPORT_QUEUE, await cronsOf(db, vaults, "mailSync", (vault) => readImportSettings(db, vault)));
-  await applyVaultSchedules(boss, PULL_REQUESTS_QUEUE, await cronsOf(db, vaults, "pullRequests", (vault) => readPullRequestSettings(db, vault)));
 }
 
 async function activeAdoVaults(db: AdoaDb, vaults: Vault[]): Promise<Vault[]> {

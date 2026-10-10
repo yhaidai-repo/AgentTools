@@ -1,12 +1,13 @@
 "use server";
 
-import { PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, createPbiCommand, deletePbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback, type PbiJob, type PrepareJob } from "@adoa/core";
+import { PBI_IMPORT_QUEUE, PREPARE_QUEUE, createPbiCommand, deletePbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, sendVaultJob, type PbiFeedback, type PrepareJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import { storeAttachment } from "@adoa/attachments";
 import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
@@ -24,14 +25,8 @@ export async function syncNow(_previous: ActionResult | null, form: FormData): P
   await saveSyncSprint(vault, formText(form, "sprint") ?? "current");
   revalidatePath("/pbis");
 
-  const jobId = await sendVaultJob(await getBoss(), SYNC_QUEUE, vault);
-
-  // The sync queue is exclusive per vault: null means this vault's sync is already queued or running.
-  if (!jobId) {
-    return { ok: true, message: "A sync is already queued or running." };
-  }
-
-  return { ok: true, message: "Sync queued. Refresh in a moment." };
+  // PowerLoom runs one vault's syncs one after the other.
+  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null } }), "Sync queued. Refresh in a moment.");
 }
 
 // Syncing and importing need the vault's Azure DevOps integration (user decision 2026-10-06).
@@ -150,7 +145,7 @@ function selectedIds(form: FormData): number[] {
   return form.getAll("adoId").map(Number).filter(Number.isInteger);
 }
 
-// One PBI by id or ADO link (user decision 2026-10-02); the worker holds the ADO token, so it fetches it.
+// One PBI by id or ADO link (user decision 2026-10-02); PowerLoom holds the ADO token, so it fetches it.
 export async function syncOnePbi(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoId = parsePbiReference(String(form.get("pbi") ?? ""));
 
@@ -165,11 +160,7 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
     return { ok: false, message: problem };
   }
 
-  const job: PbiJob = { action: "sync", adoId, vault };
-
-  await (await getBoss()).send(PBI_QUEUE, job);
-
-  return { ok: true, message: `PBI-${adoId} queued; reload in a few seconds (a failure shows under Job errors on the Agents page).` };
+  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId } }), `PBI-${adoId} queued; reload in a few seconds (a failure shows on the Runs page).`);
 }
 
 // The worker reads the import sources; the queue is exclusive, so a second click while one is queued does nothing.

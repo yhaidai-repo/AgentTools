@@ -40,7 +40,6 @@ Workspace root is `D:/Projects/AgentTools` (npm workspaces incl. `AgentRuntime`,
 ```bash
 npm install                                                      # in D:/Projects/AgentTools
 npm run dev:web                                                  # needs DATABASE_URL, ADO_PAT in env
-node --env-file=.env --import tsx apps/worker/src/syncOnce.ts   # one sync; needs DATABASE_URL
 ```
 
 ## PBI import

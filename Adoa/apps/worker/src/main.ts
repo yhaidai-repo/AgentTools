@@ -1,4 +1,4 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type PrepareJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type PrepareJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
@@ -10,15 +10,12 @@ import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
 import { runPbiImport } from "./import/runPbiImport";
-import { syncPullRequests } from "./pullRequests/syncPullRequests";
 import type { WorkerContext } from "./models/WorkerContext";
 import { deletePbi } from "./pbi/deletePbi";
 import { prepareBugs } from "./prepare/prepareBugs";
 import { preparePbis } from "./prepare/preparePbis";
 import { refreshPbi, refreshQueuedPbis } from "./refreshPbi";
 import { seedAdoSettingsFromEnv } from "./seedSettings";
-import { runSync } from "./sync/runSync";
-import { syncOnePbi } from "./sync/syncOnePbi";
 import { runScheduledTask } from "./schedules/runScheduledTask";
 
 const databaseUrl = requireEnv("DATABASE_URL");
@@ -42,7 +39,7 @@ if (moved) {
 
 // Settings shows whether Confluence pages can be fetched; the web never sees the token.
 await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
-// The per-vault jobs (sync, pbi-import, pull-requests) as the vaults' features say (user decision 2026-10-05).
+// The per-vault jobs still here (pbi-import) as the vaults' features say (user decision 2026-10-05).
 await applyVaultJobSchedules(boss, db);
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
@@ -52,11 +49,6 @@ await config.onChange(() => {
   applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
 });
 
-await boss.work<VaultJob>(SYNC_QUEUE, (jobs) => logged(SYNC_QUEUE, async () => {
-  for (const job of jobs) {
-    await runSync(db, job.data.vault);
-  }
-}));
 await boss.work<PrepareJob>(PREPARE_QUEUE, (jobs) => logged(PREPARE_QUEUE, async () => {
   for (const job of jobs) {
     const queued = await preparePbis(context, job.data.adoIds);
@@ -85,7 +77,7 @@ await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENC
   }
 }));
 
-// "Sync PBI" on the Backlog, "Delete from adoa" and "Continue with Claude" on a PBI page.
+// "Delete from adoa" on a PBI page, and the refresh after an item changes.
 await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`pbi: ${await runPbiJob(job.data)}`);
@@ -96,13 +88,6 @@ await boss.work<PbiJob>(PBI_QUEUE, (jobs) => logged(PBI_QUEUE, async () => {
 await boss.work<VaultJob>(PBI_IMPORT_QUEUE, (jobs) => logged(PBI_IMPORT_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`pbi-import ${job.data.vault}: ${await runPbiImport(context, job.data.vault)}`);
-  }
-}));
-
-// Code review (user decision 2026-10-02): the ADO pull requests the user reviews; new ones get a code-review task.
-await boss.work<VaultJob>(PULL_REQUESTS_QUEUE, (jobs) => logged(PULL_REQUESTS_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`pull-requests ${job.data.vault}: ${await syncPullRequests(context, job.data.vault)}`);
   }
 }));
 
@@ -119,12 +104,7 @@ console.log("worker started");
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
-// "Sync PBI" brings any PBI, whatever its ADO state (user decision 2026-10-02).
 async function runPbiJob(job: PbiJob): Promise<string> {
-  if (job.action === "sync") {
-    return syncOrThrow(job.adoId, job.vault);
-  }
-
   if (job.action === "delete") {
     return deletePbi(context, job.adoId);
   }
@@ -132,23 +112,6 @@ async function runPbiJob(job: PbiJob): Promise<string> {
   await refreshPbi(context, job.adoId);
 
   return `PBI-${job.adoId} refreshed`;
-}
-
-// A PBI adoa has stays in its vault; a new one joins the vault the user had selected.
-async function syncOrThrow(adoId: number, selectedVault: string | undefined): Promise<string> {
-  const vault = (await vaultOfPbi(db, adoId)) ?? selectedVault;
-
-  if (!vault) {
-    throw new Error(`PBI-${adoId}: no vault to sync it into`);
-  }
-
-  const synced = await syncOnePbi(context, adoId, false, vault);
-
-  if (!synced.ok) {
-    throw new Error(synced.error);
-  }
-
-  return synced.value;
 }
 
 async function dispatch(job: DispatchJob): Promise<void> {

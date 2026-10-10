@@ -148,6 +148,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ado/repositories/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_ado_repositories_sync
+         * @description POST_api_ado_repositories_sync
+         */
+        post: operations["POST_api_ado_repositories_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ado/pull-requests/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_ado_pull_requests_sync
+         * @description POST_api_ado_pull_requests_sync
+         */
+        post: operations["POST_api_ado_pull_requests_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ado/pbis/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_ado_pbis_sync
+         * @description POST_api_ado_pbis_sync
+         */
+        post: operations["POST_api_ado_pbis_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/ado/pbi-sync-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_ado_pbi_sync_settings
+         * @description PUT_api_vaults_vault_ado_pbi_sync_settings
+         */
+        put: operations["PUT_api_vaults_vault_ado_pbi_sync_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/ado/pull-request-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_ado_pull_request_settings
+         * @description PUT_api_vaults_vault_ado_pull_request_settings
+         */
+        put: operations["PUT_api_vaults_vault_ado_pull_request_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/ado/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_ado_connection
+         * @description PUT_api_vaults_vault_ado_connection
+         */
+        put: operations["PUT_api_vaults_vault_ado_connection"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/ado/connection/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_ado_connection_test
+         * @description POST_api_vaults_vault_ado_connection_test
+         */
+        post: operations["POST_api_vaults_vault_ado_connection_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -168,6 +308,10 @@ export interface components {
         ChatLink: {
             url: string;
         };
+        ConnectionCheck: {
+            ok: boolean;
+            message: string;
+        };
         LauncherAvailability: {
             label: string;
             problem: null | string;
@@ -175,6 +319,13 @@ export interface components {
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
             id: string;
+        };
+        PbiSyncSettingsRequest: {
+            enabled: boolean;
+            cron: string;
+            /** Format: int32 */
+            maxItemsPerRun: number | string;
+            sprint: null | string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -184,10 +335,48 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        PullRequestSettingsRequest: {
+            enabled: boolean;
+            cron: string;
+            /** Format: int32 */
+            maxPullRequestsPerRun: number | string;
+            repos: null | string[];
+        };
         /** @enum {unknown} */
         RecordKind: "www" | "open-question" | "known-issue";
         RemovedVault: {
             vault: string;
+        };
+        SaveConnectionRequest: {
+            enabled: boolean;
+            orgUrl: string;
+            project: string;
+            team: string;
+            user: string;
+            pat: null | string;
+        };
+        SavedConnection: {
+            enabled: boolean;
+        };
+        SavedSettings: {
+            enabled: boolean;
+        };
+        SyncPbisRequest: {
+            vault: string;
+            /** Format: int32 */
+            adoId: null | number | string;
+        };
+        SyncPullRequestsRequest: {
+            vault: string;
+        };
+        SyncRepositoriesRequest: {
+            vault: string;
+        };
+        TestConnectionRequest: {
+            orgUrl: string;
+            project: string;
+            team: string;
+            pat: null | string;
         };
         TrashEntry: {
             path: string;
@@ -432,6 +621,212 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    POST_api_ado_repositories_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncRepositoriesRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_ado_pull_requests_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncPullRequestsRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_ado_pbis_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncPbisRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PUT_api_vaults_vault_ado_pbi_sync_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PbiSyncSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_ado_pull_request_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PullRequestSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_ado_connection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveConnectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedConnection"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_ado_connection_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestConnectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

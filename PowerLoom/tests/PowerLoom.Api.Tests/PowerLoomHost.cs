@@ -3,6 +3,7 @@ using JasperFx.CodeGeneration;
 using JasperFx.CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.AdoIntegration.Client;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
@@ -64,6 +65,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
     {
         services.AddSingleton<ProbeLog>();
         services.AddSingleton<FakeVaultCapture>();
+        services.AddSingleton<FakeAdoClientFactory>();
+        services.AddSingleton<IAdoClientFactory>(provider => provider.GetRequiredService<FakeAdoClientFactory>());
         services.AddSingleton<IVaultCapture>(provider => provider.GetRequiredService<FakeVaultCapture>());
         services.AddSingleton<ICronSource, ProbeCronSource>();
         services.ConfigureWolverine(options =>

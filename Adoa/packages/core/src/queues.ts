@@ -4,21 +4,17 @@ import type { VaultJob } from "./models/VaultJob";
 import type { TaskSchedule } from "./models/TaskSchedule";
 import type { TaskScheduleJob } from "./models/TaskScheduleJob";
 
-export const SYNC_QUEUE = "sync";
 export const PREPARE_QUEUE = "prepare";
 export const DISPATCH_QUEUE = "dispatch";
 export const AGENT_RUN_QUEUE = "agent-run";
 export const DRAFTS_QUEUE = "drafts";
 // Sent only by the PBI page's "Load from Confluence" (no schedule).
 export const CONFLUENCE_QUEUE = "confluence";
-// Sent only by "Sync PBI" on the Backlog and "Delete from adoa" on a PBI page (no schedule).
+// Sent only by "Delete from adoa" on a PBI page and the refresh after an item changes (no schedule).
 export const PBI_QUEUE = "pbi";
 // Imports from every import source (user decision 2026-10-02: one job, sources behind one abstraction); scheduled, and
 // the Backlog's "Import now".
 export const PBI_IMPORT_QUEUE = "pbi-import";
-// Lists the ADO pull requests the user reviews and queues a code-review task for each new one; scheduled, and the
-// Reviews page's "Check now".
-export const PULL_REQUESTS_QUEUE = "pull-requests";
 // Scheduled tasks (user decision 2026-10-03): one queue for every task schedule; each schedule is a pg-boss schedule
 // keyed by its id, so a new schedule needs no new queue.
 export const TASK_SCHEDULE_QUEUE = "task-schedule";
@@ -42,16 +38,14 @@ export function createSenderBoss(url: string): PgBoss {
 const AGENT_RUN_OPTIONS = { expireInSeconds: 4 * 60 * 60, retryLimit: 0 };
 
 export async function ensureQueues(boss: PgBoss): Promise<void> {
-  // exclusive: at most one queued or running, so "sync now" can't pile up.
-  await ensureQueue(boss, SYNC_QUEUE, "exclusive");
   await ensureQueue(boss, PREPARE_QUEUE, "standard");
   await ensureQueue(boss, DISPATCH_QUEUE, "standard");
   await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
   await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
   await ensureQueue(boss, PBI_QUEUE, "standard");
+  // exclusive: at most one queued or running, so "import now" can't pile up.
   await ensureQueue(boss, PBI_IMPORT_QUEUE, "exclusive");
-  await ensureQueue(boss, PULL_REQUESTS_QUEUE, "exclusive");
   await ensureQueue(boss, TASK_SCHEDULE_QUEUE, "standard");
 }
 
@@ -69,7 +63,7 @@ export async function applyVaultSchedules(boss: PgBoss, queue: string, cronByVau
   }
 }
 
-// Sends a per-vault job now (Sync now, Import now, Check now); null when the vault's job is queued or running already.
+// Sends a per-vault job now (Import now); null when the vault's job is queued or running already.
 export async function sendVaultJob(boss: PgBoss, queue: string, vault: string): Promise<string | null> {
   return boss.send(queue, vaultJob(vault), { singletonKey: vault });
 }

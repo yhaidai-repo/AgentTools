@@ -5,8 +5,7 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
-    "typecheck": "tsc -p .",
-    "sync:once": "tsx src/syncOnce.ts"
+    "typecheck": "tsc -p ."
   },
   "dependencies": {
     "@adoa/ado": "*",

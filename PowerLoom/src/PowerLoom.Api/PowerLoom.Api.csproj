@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PowerLoom.Core\PowerLoom.Core.csproj" />
+    <ProjectReference Include="..\PowerLoom.AdoIntegration\PowerLoom.AdoIntegration.csproj" />
   </ItemGroup>
 
 </Project>

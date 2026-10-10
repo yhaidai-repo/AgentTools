@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PowerLoom.Features.Vaults.Trash.Models;
 using PowerLoom.Infrastructure.Http;
+using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Contracts;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Vaults;
@@ -13,12 +14,7 @@ namespace PowerLoom.Features.Vaults.Trash;
 public static class TrashEndpoints
 {
     // Runs before every endpoint here: the vault must be one adoa still works with.
-    public static async Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation)
-    {
-        var exists = await db.VaultExistsAsync(vault, cancellation);
-
-        return exists ? WolverineContinue.NoProblems : Problem.NotFound($"{vault} isn't a vault.").ToProblemDetails();
-    }
+    public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
 
     [WolverineGet("/api/vaults/{vault}/trash")]
     public static IReadOnlyList<TrashEntry> List(string vault, TrashFolder trash) => trash.List(vault);

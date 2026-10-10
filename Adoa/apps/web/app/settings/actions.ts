@@ -1,56 +1,41 @@
 "use server";
 
-import { checkConnection } from "@adoa/ado";
-import { addLocalRepo, applyVaultJobSchedules, readAdoSettings, removeLocalRepo, saveAdoSettings, saveImportSettings, savePullRequestSettings, saveSyncSettings, saveVaultImportFolder, setRepoEnabled, setVaultFeature, type AdoSettings, type ImportSettings, type PullRequestSettings, type SyncSettings } from "@adoa/core";
+import { addLocalRepo, applyVaultJobSchedules, removeLocalRepo, saveImportSettings, saveVaultImportFolder, setRepoEnabled, setVaultFeature, type ImportSettings } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
-// The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06).
+// The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06). PowerLoom saves
+// them and schedules the vault's jobs from the saved settings: nothing to apply here.
 export async function saveAdoIntegration(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const vault = await requireVault();
-  const ado = await readAdoForm(form, vault);
-
-  if (!ado.pat) {
-    return { ok: false, message: "A personal access token is required." };
-  }
-
-  await saveAdoSettings(getDb(), vault, ado);
-
-  const problem = await applySchedules();
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/ado/connection", {
+    params: { path: { vault } },
+    body: { enabled, orgUrl: field(form, "orgUrl"), project: field(form, "project"), team: field(form, "team"), user: field(form, "user"), pat: field(form, "pat") },
+  });
+  const result = powerloomResult(saved, enabled ? "Saved. The integration is on: PBI sync, mail sync and pull request sync run as configured below." : "Saved. The integration is off: nothing is read from Azure DevOps for this vault.");
 
   revalidatePath("/settings");
 
-  return { ok: true, message: ado.enabled ? "Saved. The integration is on: PBI sync, mail sync and pull request sync run as configured below." : "Saved. The integration is off: nothing is read from Azure DevOps for this vault." };
+  return result;
 }
 
 export async function saveSettings(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const sync = readSyncForm(form);
-
-  if (!Number.isInteger(sync.maxItemsPerRun) || sync.maxItemsPerRun < 1) {
-    return { ok: false, message: "Max PBIs per sync must be a whole number above 0." };
-  }
-
   const vault = await requireVault();
-
-  await saveSyncSettings(getDb(), vault, sync);
-  await setVaultFeature(getDb(), vault, "adoSync", isEnabled(form));
-
-  const problem = await applySchedules();
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/ado/pbi-sync-settings", {
+    params: { path: { vault } },
+    body: { enabled, cron: field(form, "cron"), maxItemsPerRun: Number(field(form, "maxItemsPerRun")), sprint: field(form, "sprint") || "current" },
+  });
+  const result = powerloomResult(saved, enabled ? "Saved. The next sync uses these settings." : "Saved. ADO PBI sync is off for this vault.");
 
   revalidatePath("/settings");
 
-  return { ok: true, message: isEnabled(form) ? "Saved. The next sync uses these settings." : "Saved. ADO PBI sync is off for this vault." };
+  return result;
 }
 
 export async function saveImportSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -84,38 +69,32 @@ export async function saveImportSettingsAction(_previous: ActionResult | null, f
 }
 
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const repos = form.getAll("repos").map(String).filter(Boolean);
-  const settings: PullRequestSettings = { cron: field(form, "cron"), maxPullRequestsPerRun: Number(field(form, "maxPullRequestsPerRun")), repos };
-
-  if (!Number.isInteger(settings.maxPullRequestsPerRun) || settings.maxPullRequestsPerRun < 1) {
-    return { ok: false, message: "Max PRs per check must be a whole number above 0." };
-  }
-
   const vault = await requireVault();
-
-  await savePullRequestSettings(getDb(), vault, settings);
-  await setVaultFeature(getDb(), vault, "pullRequests", isEnabled(form));
-
-  const problem = await applySchedules();
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
+  const enabled = isEnabled(form);
+  const repos = form.getAll("repos").map(String).filter(Boolean);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/ado/pull-request-settings", {
+    params: { path: { vault } },
+    body: { enabled, cron: field(form, "cron"), maxPullRequestsPerRun: Number(field(form, "maxPullRequestsPerRun")), repos },
+  });
+  const result = powerloomResult(saved, enabled ? `Saved: ${repos.length === 0 ? "every repo" : `${repos.length} repo(s)`}. The next pull request check uses these settings.` : "Saved. Pull request sync is off for this vault.");
 
   revalidatePath("/settings");
 
-  return { ok: true, message: isEnabled(form) ? `Saved: ${repos.length === 0 ? "every repo" : `${repos.length} repo(s)`}. The next pull request check uses these settings.` : "Saved. Pull request sync is off for this vault." };
+  return result;
 }
 
 // Tests what the form holds (the saved token when the field is empty), without saving.
 export async function testConnection(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const ado = await readAdoForm(form, await requireVault());
+  const checked = await powerloom.POST("/api/vaults/{vault}/ado/connection/test", {
+    params: { path: { vault: await requireVault() } },
+    body: { orgUrl: field(form, "orgUrl"), project: field(form, "project"), team: field(form, "team"), pat: field(form, "pat") },
+  });
 
-  if (!ado.pat) {
-    return { ok: false, message: "Enter the personal access token first." };
+  if (!checked.response.ok || !checked.data) {
+    return powerloomResult(checked, "");
   }
 
-  return checkConnection({ orgUrl: ado.orgUrl, project: ado.project, team: ado.team, pat: ado.pat });
+  return { ok: checked.data.ok, message: checked.data.message };
 }
 
 // Repository configuration (user decision 2026-10-06).
@@ -146,27 +125,6 @@ async function applySchedules(): Promise<string | null> {
   } catch (error) {
     return `Saved, but not scheduled: ${errorMessage(error)}`;
   }
-}
-
-async function readAdoForm(form: FormData, vault: string): Promise<AdoSettings> {
-  const saved = await readAdoSettings(getDb(), vault);
-
-  return {
-    enabled: isEnabled(form),
-    orgUrl: field(form, "orgUrl"),
-    project: field(form, "project"),
-    team: field(form, "team"),
-    user: field(form, "user"),
-    pat: field(form, "pat") || saved?.pat || "",
-  };
-}
-
-function readSyncForm(form: FormData): SyncSettings {
-  return {
-    cron: field(form, "cron"),
-    maxItemsPerRun: Number(field(form, "maxItemsPerRun")),
-    sprint: field(form, "sprint") || "current",
-  };
 }
 
 // Every feature section's switch (user decision 2026-10-06).

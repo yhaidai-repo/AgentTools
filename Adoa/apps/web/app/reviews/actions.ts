@@ -1,6 +1,6 @@
 "use server";
 
-import { DISPATCH_QUEUE, PULL_REQUESTS_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview as closeReviewOf, deleteReviewCommand, isAdoActive, queueReviewTask, readAdoSettings, sendVaultJob, type DispatchJob } from "@adoa/core";
+import { DISPATCH_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview as closeReviewOf, deleteReviewCommand, isAdoActive, queueReviewTask, readAdoSettings, type DispatchJob } from "@adoa/core";
 import { pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -9,9 +9,10 @@ import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
-// The pull-requests job is exclusive per vault: a second click while one is queued or running does nothing.
+// PowerLoom checks the vault's pull requests; one vault's checks run one after the other.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
   const vault = await requireVault();
 
@@ -19,9 +20,7 @@ export async function checkPullRequestsNow(): Promise<ActionResult> {
     return { ok: false, message: `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.` };
   }
 
-  const jobId = await sendVaultJob(await getBoss(), PULL_REQUESTS_QUEUE, vault);
-
-  return { ok: true, message: jobId ? "Checking Azure DevOps; new PRs appear in a few seconds." : "A check is already queued or running." };
+  return powerloomResult(await powerloom.POST("/api/ado/pull-requests/sync", { body: { vault } }), "Checking Azure DevOps; new PRs appear in a few seconds.");
 }
 
 // The answer feeds the agent's next run on this PR (user decision 2026-10-02). An empty answer takes it back.

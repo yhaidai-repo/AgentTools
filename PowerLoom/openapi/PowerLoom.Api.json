@@ -300,6 +300,289 @@
           }
         }
       }
+    },
+    "/api/ado/repositories/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncRepositories.SyncRepositoriesEndpoint"
+        ],
+        "summary": "POST_api_ado_repositories_sync",
+        "description": "POST_api_ado_repositories_sync",
+        "operationId": "POST_api_ado_repositories_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRepositoriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/ado/pull-requests/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncPullRequests.SyncPullRequestsEndpoint"
+        ],
+        "summary": "POST_api_ado_pull_requests_sync",
+        "description": "POST_api_ado_pull_requests_sync",
+        "operationId": "POST_api_ado_pull_requests_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPullRequestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/ado/pbis/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncPbis.SyncPbisEndpoint"
+        ],
+        "summary": "POST_api_ado_pbis_sync",
+        "description": "POST_api_ado_pbis_sync",
+        "operationId": "POST_api_ado_pbis_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPbisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/pbi-sync-settings": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "description": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "operationId": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiSyncSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/pull-request-settings": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "description": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "operationId": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PullRequestSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/connection": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_connection",
+        "description": "PUT_api_vaults_vault_ado_connection",
+        "operationId": "PUT_api_vaults_vault_ado_connection",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedConnection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/connection/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_ado_connection_test",
+        "description": "POST_api_vaults_vault_ado_connection_test",
+        "operationId": "POST_api_vaults_vault_ado_connection_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -367,6 +650,21 @@
           }
         }
       },
+      "ConnectionCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "LauncherAvailability": {
         "required": [
           "label",
@@ -397,6 +695,37 @@
           },
           "id": {
             "type": "string"
+          }
+        }
+      },
+      "PbiSyncSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxItemsPerRun",
+          "sprint"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxItemsPerRun": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sprint": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -438,6 +767,40 @@
           }
         }
       },
+      "PullRequestSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxPullRequestsPerRun",
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxPullRequestsPerRun": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "RecordKind": {
         "enum": [
           "www",
@@ -453,6 +816,131 @@
         "properties": {
           "vault": {
             "type": "string"
+          }
+        }
+      },
+      "SaveConnectionRequest": {
+        "required": [
+          "enabled",
+          "orgUrl",
+          "project",
+          "team",
+          "user",
+          "pat"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "orgUrl": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "pat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SavedConnection": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SavedSettings": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SyncPbisRequest": {
+        "required": [
+          "vault",
+          "adoId"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "adoId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SyncPullRequestsRequest": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "SyncRepositoriesRequest": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "TestConnectionRequest": {
+        "required": [
+          "orgUrl",
+          "project",
+          "team",
+          "pat"
+        ],
+        "type": "object",
+        "properties": {
+          "orgUrl": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "pat": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -509,6 +997,21 @@
     },
     {
       "name": "PowerLoom.Features.Continue.ChatsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncRepositories.SyncRepositoriesEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncPullRequests.SyncPullRequestsEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncPbis.SyncPbisEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
     }
   ]
 }

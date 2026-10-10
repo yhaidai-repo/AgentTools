@@ -20,6 +20,10 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
   </ItemGroup>
 
+  <ItemGroup Label="Text">
+    <PackageVersion Include="ReverseMarkdown" Version="6.2.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Scheduling">
     <PackageVersion Include="Cronos" Version="0.13.0" />
   </ItemGroup>
