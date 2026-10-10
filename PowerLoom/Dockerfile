@@ -14,8 +14,9 @@ COPY src src
 RUN dotnet build src/PowerLoom.Api/PowerLoom.Api.csproj -c Debug -p:OpenApiGenerateDocuments=false  && dotnet run --no-build -c Debug --project src/PowerLoom.Api -- codegen write  && dotnet publish src/PowerLoom.Api/PowerLoom.Api.csproj -c Release -p:OpenApiGenerateDocuments=false -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
-# curl for the compose healthcheck.
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# curl for the compose healthcheck; PowerShell 7 for the VaultCapture module (records into a vault's registers).
+ARG PWSH_VERSION=7.6.6
+RUN apt-get update && apt-get install -y --no-install-recommends curl less libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*  && curl -sSL -o /tmp/pwsh.tar.gz https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-x64.tar.gz  && mkdir -p /opt/microsoft/powershell/7 && tar zxf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7  && chmod +x /opt/microsoft/powershell/7/pwsh && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh && rm /tmp/pwsh.tar.gz
 WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_URLS=http://+:8080

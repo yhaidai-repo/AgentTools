@@ -14,6 +14,8 @@ public static class OutcomeResults
         return outcome.Ok ? TypedResults.Ok(outcome.Value) : TypedResults.Problem(outcome.Problem.Detail, statusCode: outcome.Problem.Status);
     }
 
+    public static ProblemHttpResult ToProblemResult(this Problem problem) => TypedResults.Problem(problem.Detail, statusCode: problem.Status);
+
     public static ProblemDetails ToProblemDetails(this Problem problem)
     {
         return new ProblemDetails { Status = problem.Status, Detail = problem.Detail };

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { chatPlan } from "../continue/chatPlan";
 import type { ChatLaunch } from "../models/ChatLaunch";
 import type { ChatTarget } from "../models/ChatTarget";
 import type { Command } from "../models/Command";
@@ -15,22 +14,7 @@ export const openChatCommand: Command<{ target: ChatTarget }, ChatLaunch> = {
       z.object({ kind: z.literal("vault"), vault: z.string().min(1) }),
     ]),
   }),
-  async run(context, input) {
-    const planned = await chatPlan(context, input.target);
-
-    if (!planned.ok) {
-      return planned;
-    }
-
-    // The link is built before anything changes, so a request the app can't take leaves no status change behind.
-    const launch = planned.value.launcher.open(planned.value.plan.request);
-
-    if (!launch.ok) {
-      return launch;
-    }
-
-    const problem = await planned.value.plan.prepare(context);
-
-    return problem ? { ok: false, error: problem } : launch;
+  run(context, input) {
+    return context.powerloom.openChat(input.target);
   },
 };

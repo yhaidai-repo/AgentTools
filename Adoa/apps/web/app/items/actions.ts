@@ -1,12 +1,12 @@
 "use server";
 
-import { REGISTER_QUEUE, closeItemCommand, deleteItem, findClosableItem, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
+import { closeItemCommand, deleteItem, findClosableItem, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
 import { storeAttachments, type UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
-import { runWebCommand } from "@/lib/commandContext";
+import { runWebCommand, webCommandContext } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
 import { resolutionFromForm } from "@/lib/humanTaskAnswers";
@@ -45,7 +45,7 @@ export async function submitFindingAction(_previous: ActionResult | null, form: 
     return { ok: false, message: started.error };
   }
 
-  await (await getBoss()).send(REGISTER_QUEUE, started.value);
+  await webCommandContext().powerloom.addRecord(request.type === "issue" ? "known-issue" : "open-question", request.itemId);
   await afterItemChange(request.adoId);
 
   return { ok: true, message: `${request.itemId} is on its way to the ${request.project} register; reload in a moment for its id.` };

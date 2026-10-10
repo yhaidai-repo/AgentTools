@@ -1,5 +1,5 @@
 import type { JobInfo } from "./models/JobInfo";
-import { AGENT_RUN_QUEUE, CONFLUENCE_QUEUE, DISPATCH_QUEUE, DRAFTS_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, PULL_REQUESTS_QUEUE, REGISTER_QUEUE, REVIEW_NOTE_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, VAULT_INIT_QUEUE, WWW_QUEUE } from "./queues";
+import { AGENT_RUN_QUEUE, CONFLUENCE_QUEUE, DISPATCH_QUEUE, DRAFTS_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PREPARE_QUEUE, PULL_REQUESTS_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE } from "./queues";
 
 // Every pg-boss queue, who works it and what for (the Settings page's "Jobs and workers"; user decision 2026-10-06).
 // Keep in step with queues.ts and the workers' main.ts.
@@ -14,8 +14,4 @@ export const JOB_CATALOG: JobInfo[] = [
   { queue: DRAFTS_QUEUE, worker: "worker", trigger: "every 10 minutes", purpose: "Gives every vault draft a tech-writer task and closes tasks whose draft is gone." },
   { queue: TASK_SCHEDULE_QUEUE, worker: "worker", trigger: "each scheduled task's cron; Tasks → Create now", purpose: "Creates the schedule's task when one is needed and none waits (vault review, or any agent's goal task)." },
   { queue: CONFLUENCE_QUEUE, worker: "worker", trigger: "PBI page → Load from Confluence", purpose: "Fetches one linked Confluence page as an attachment." },
-  { queue: REGISTER_QUEUE, worker: "worker", trigger: "a finding's Submit to vault", purpose: "Adds the open question or known issue to the project's register through VaultCapture." },
-  { queue: REVIEW_NOTE_QUEUE, worker: "worker", trigger: "a review's Continue with <agent>", purpose: "Writes the PR's review note into the vault's backlog before the chat opens." },
-  { queue: WWW_QUEUE, worker: "worker", trigger: "Finish with \"what went wrong\"", purpose: "Appends the What-went-wrong record to the vault's www-log.md." },
-  { queue: VAULT_INIT_QUEUE, worker: "worker", trigger: "Vault menu → Add vault", purpose: "Creates the vault's folder and the files adoa's maintenance needs (AGENTS.md, index, WWW log, draft/, .usage/, .obsidian/)." },
 ];

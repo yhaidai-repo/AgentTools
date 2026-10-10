@@ -154,10 +154,252 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Remove.RemoveVaultEndpoint"
+        ],
+        "summary": "DELETE_api_vaults_vault",
+        "description": "DELETE_api_vaults_vault",
+        "operationId": "DELETE_api_vaults_vault",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovedVault"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+        ],
+        "summary": "POST_api_vaults",
+        "description": "POST_api_vaults",
+        "operationId": "POST_api_vaults",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVaultRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedVault"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/records": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.RecordsEndpoints"
+        ],
+        "summary": "POST_api_records",
+        "description": "POST_api_records",
+        "operationId": "POST_api_records",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/chats": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "POST_api_chats",
+        "description": "POST_api_chats",
+        "operationId": "POST_api_chats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatLink"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chats/launcher": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "GET_api_chats_launcher",
+        "description": "GET_api_chats_launcher",
+        "operationId": "GET_api_chats_launcher",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LauncherAvailability"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddRecordRequest": {
+        "required": [
+          "kind",
+          "sourceId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RecordKind"
+          },
+          "sourceId": {
+            "type": "string"
+          }
+        }
+      },
+      "AddVaultRequest": {
+        "required": [
+          "folder"
+        ],
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedVault": {
+        "required": [
+          "vault",
+          "created"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "created": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ChatKind": {
+        "enum": [
+          "pbi",
+          "item",
+          "review",
+          "vault"
+        ]
+      },
+      "ChatLink": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "LauncherAvailability": {
+        "required": [
+          "label",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OpenChatRequest": {
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ChatKind"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -193,6 +435,24 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RecordKind": {
+        "enum": [
+          "www",
+          "open-question",
+          "known-issue"
+        ]
+      },
+      "RemovedVault": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
           }
         }
       },
@@ -237,6 +497,18 @@
   "tags": [
     {
       "name": "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Vaults.Remove.RemoveVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Continue.ChatsEndpoints"
     }
   ]
 }

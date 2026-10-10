@@ -4,6 +4,7 @@ using JasperFx.CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Infrastructure.Scheduling;
+using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -17,6 +18,10 @@ public sealed class PowerLoomHost : IAsyncLifetime
 {
     public const string Vault = "test-vault";
 
+    // The vaults root as the PC would see it (written into new vaults' files and chat links).
+    public const string HostRoot = "D:/pc/vaults";
+    public const string AgentTools = "D:/pc/AgentTools";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
 
     public IAlbaHost Host { get; private set; } = null!;
@@ -25,10 +30,14 @@ public sealed class PowerLoomHost : IAsyncLifetime
 
     public string VaultRoot => Path.Combine(VaultsRoot, Vault);
 
+    // adoa's backlog vault (a folder per vault), where chat notes are written.
+    public string BacklogRoot => Path.Combine(VaultsRoot, "..", "backlog-" + Path.GetFileName(VaultsRoot));
+
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
         Directory.CreateDirectory(VaultRoot);
+        Directory.CreateDirectory(Path.Combine(BacklogRoot, Vault));
         // Program ends in RunJasperFxCommands: the test host must start the app instead of parsing commands.
         JasperFxEnvironment.AutoStartHost = true;
 
@@ -36,6 +45,13 @@ public sealed class PowerLoomHost : IAsyncLifetime
         // config added through the test host lands before the files and loses.
         Environment.SetEnvironmentVariable("ConnectionStrings__PowerLoom", _postgres.GetConnectionString());
         Environment.SetEnvironmentVariable("Vaults__Root", VaultsRoot);
+        Environment.SetEnvironmentVariable("Vaults__HostRoot", HostRoot);
+        Environment.SetEnvironmentVariable("Vaults__TemplateHome", WriteTemplates());
+        Environment.SetEnvironmentVariable("Vaults__Exclude", "adoa-backlog");
+        Environment.SetEnvironmentVariable("Backlog__Root", BacklogRoot);
+        Environment.SetEnvironmentVariable("Chat__ReposRoot", "D:/pc/repos");
+        Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/adoa-backlog");
+        Environment.SetEnvironmentVariable("Chat__AgentTools", AgentTools);
 
         // Schema first, as in production: Npgsql loads the type catalog (the enums) when the host first connects.
         await CreateAdoaTablesAsync();
@@ -47,6 +63,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
     private static void AddProbes(IServiceCollection services)
     {
         services.AddSingleton<ProbeLog>();
+        services.AddSingleton<FakeVaultCapture>();
+        services.AddSingleton<IVaultCapture>(provider => provider.GetRequiredService<FakeVaultCapture>());
         services.AddSingleton<ICronSource, ProbeCronSource>();
         services.ConfigureWolverine(options =>
         {
@@ -54,6 +72,22 @@ public sealed class PowerLoomHost : IAsyncLifetime
             // Auto mode writes generated code into the API project; the tests' probe handler must not land there.
             options.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
         });
+    }
+
+    // One template with both placeholders, next to the vaults.
+    private string WriteTemplates()
+    {
+        var home = Path.Combine(VaultsRoot, "..", "templates-" + Path.GetFileName(VaultsRoot));
+
+        Directory.CreateDirectory(home);
+        File.WriteAllText(Path.Combine(home, "AGENTS.md"), """
+            # Rules
+
+            This is the vault at {{vaultPath}}, created {{date}}.
+
+            """);
+
+        return home;
     }
 
     public async Task DisposeAsync()

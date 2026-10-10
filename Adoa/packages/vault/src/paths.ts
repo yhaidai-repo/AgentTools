@@ -46,15 +46,6 @@ export function pathInPbiFolder(pbiNotePath: string, path: string): string {
   return path.startsWith(folder) ? path.slice(folder.length) : path;
 }
 
-// A PR's review note (Continue with Claude); reviews have no PBI folder.
-export function reviewNoteName(prId: number): string {
-  return `PR-${prId}`;
-}
-
-export function reviewNotePath(prId: number): string {
-  return `reviews/${reviewNoteName(prId)}.md`;
-}
-
 const ITEM_FOLDERS: Record<string, string> = { question: "questions", "research-result": "research" };
 
 export function itemNotePath(pbiNotePath: string, itemId: string, kind: string): string {

@@ -1,51 +1,38 @@
 "use server";
 
-import { VAULT_INIT_QUEUE, addVault, applyVaultJobSchedules, removeVault, vaultFolderName, type VaultJob } from "@adoa/core";
+import { applyVaultJobSchedules } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { getDb } from "@/lib/db";
-import { bossJobPort } from "@/lib/jobPort";
-import { vaultsHostRoot } from "@/lib/obsidian";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AddVaultResult } from "@/models/AddVaultResult";
 
-const INIT_WAIT_MS = 15_000;
-
+// PowerLoom adds the vault and prepares its folder and files (adoa's templates); the page waits for it.
 export async function addVaultAction(_previous: AddVaultResult | null, form: FormData): Promise<AddVaultResult> {
-  const name = vaultFolderName(String(form.get("folder") ?? ""), vaultsHostRoot());
+  const added = await powerloom.POST("/api/vaults", { body: { folder: String(form.get("folder") ?? "") } });
+  const result = powerloomResult(added, "");
 
-  if (!name.ok) {
-    return { ok: false, message: name.error, vault: null };
+  if (!result.ok || !added.data) {
+    return { ...result, vault: null };
   }
-
-  const added = await addVault(getDb(), name.value);
-
-  if (!added.ok) {
-    return { ok: false, message: added.error, vault: null };
-  }
-
-  const prepared = await prepareVaultFolder(added.value.name);
 
   revalidatePath("/", "layout");
 
-  return { ok: true, vault: added.value.name, message: `${added.value.name} added${prepared ? ", its folder and files prepared" : " (the worker didn't prepare its folder: see Job errors on the Agents page)"}. Configure it for your agent app from the Vault menu; its features are off.` };
+  return { ok: true, vault: added.data.vault, message: `${added.data.vault} added, its folder and files prepared (${added.data.created.length} created). Configure it for your agent app from the Vault menu; its features are off.` };
 }
 
-// The worker creates the folder and the files adoa's maintenance needs (user decision 2026-10-05); the page waits for it.
-async function prepareVaultFolder(vault: string): Promise<boolean> {
-  const job: VaultJob = { vault };
-
-  return bossJobPort.sendAndWait(VAULT_INIT_QUEUE, job, INIT_WAIT_MS);
-}
-
+// PowerLoom forgets the vault (its folder and history stay); pg-boss drops the vault's schedules until the worker's
+// jobs move to PowerLoom too.
 export async function removeVaultAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const removed = await removeVault(getDb(), String(form.get("vault") ?? ""));
+  const vault = String(form.get("vault") ?? "");
+  const result = powerloomResult(await powerloom.DELETE("/api/vaults/{vault}", { params: { path: { vault } } }), `${vault} removed. Its folder is untouched.`);
 
-  if (removed.ok) {
+  if (result.ok) {
     await applyVaultJobSchedules(await getBoss(), getDb());
   }
 
   revalidatePath("/", "layout");
 
-  return removed.ok ? { ok: true, message: `${removed.value} removed. Its folder is untouched.` } : { ok: false, message: removed.error };
+  return result;
 }

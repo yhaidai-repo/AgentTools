@@ -1,13 +1,11 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, REGISTER_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, REVIEW_NOTE_QUEUE, VAULT_INIT_QUEUE, WWW_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type ReviewNoteJob, type VaultJob, type WwwJob, type PrepareJob, type RegisterJob, type TaskScheduleJob } from "@adoa/core";
+import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_IMPORT_QUEUE, PBI_QUEUE, PULL_REQUESTS_QUEUE, DRAFTS_QUEUE, PREPARE_QUEUE, SYNC_QUEUE, TASK_SCHEDULE_QUEUE, applyDispatchTick, applyDraftsSchedule, applyTaskSchedules, applyVaultJobSchedules, listTaskSchedules, saveConfluenceStatus, vaultBacklogRoot, vaultOfPbi, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob, type VaultJob, type PrepareJob, type TaskScheduleJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
-import { initVault, writeReviewNote, writeWwwRecord } from "@adoa/notes";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
 import { loadLinkedPage } from "./documents/confluencePages";
-import { submitFinding } from "./drafts/submitFinding";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
@@ -78,11 +76,6 @@ await boss.work<DispatchJob>(DISPATCH_QUEUE, (jobs) => logged(DISPATCH_QUEUE, as
 await boss.work(DRAFTS_QUEUE, () => logged(DRAFTS_QUEUE, async () => {
   console.log(`drafts: ${await syncDraftTasks(db)}`);
 }));
-await boss.work<RegisterJob>(REGISTER_QUEUE, (jobs) => logged(REGISTER_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`register: ${await submitFinding(db, job.data)}`);
-  }
-}));
 
 // "Load from Confluence" on the PBI page; the PBI is refreshed after, so its statuses and Vault show the page.
 await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENCE_QUEUE, async () => {
@@ -118,29 +111,6 @@ await boss.work<VaultJob>(PULL_REQUESTS_QUEUE, (jobs) => logged(PULL_REQUESTS_QU
 await boss.work<TaskScheduleJob>(TASK_SCHEDULE_QUEUE, (jobs) => logged(TASK_SCHEDULE_QUEUE, async () => {
   for (const job of jobs) {
     console.log(`task-schedule ${job.data.scheduleId}: ${await runScheduledTask(context, job.data.scheduleId)}`);
-  }
-}));
-
-// "Continue with Claude" on a review page: the PR's review note, which the chat reads first.
-await boss.work<ReviewNoteJob>(REVIEW_NOTE_QUEUE, (jobs) => logged(REVIEW_NOTE_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`review-note: ${await writeReviewNote(db, await reviewBacklogRoot(job.data.prId), job.data.prId)}`);
-  }
-}));
-
-// WWW records from the www.create command (e.g. the Finish dialog's "what went wrong"): one at a time into the vault's log.
-await boss.work<WwwJob>(WWW_QUEUE, (jobs) => logged(WWW_QUEUE, async () => {
-  for (const job of jobs) {
-    console.log(`www: ${await writeWwwRecord(db, vaultsRoot(), job.data.recordId)}`);
-  }
-}));
-
-// Settings → Add vault (user decision 2026-10-05): the folder and its root files, drafts and usage folders; nothing existing is touched.
-await boss.work<VaultJob>(VAULT_INIT_QUEUE, (jobs) => logged(VAULT_INIT_QUEUE, async () => {
-  for (const job of jobs) {
-    const created = await initVault(`${vaultsRoot()}/${job.data.vault}`, vaultTemplateHome(), `${vaultsHostRoot()}/${job.data.vault}`);
-
-    console.log(`vault-init ${job.data.vault}: ${created.length > 0 ? `created ${created.join(", ")}` : "nothing missing"}`);
   }
 }));
 
@@ -205,15 +175,6 @@ async function prepareNewBugs(): Promise<void> {
 }
 
 // The review note goes into the backlog of the PR's vault.
-async function reviewBacklogRoot(prId: number): Promise<string> {
-  const [pr] = await db.select({ vault: pullRequest.vault }).from(pullRequest).where(eq(pullRequest.id, prId));
-
-  if (!pr) {
-    throw new Error(`PR ${prId} isn't in adoa`);
-  }
-
-  return vaultBacklogRoot(context.backlogMount, pr.vault);
-}
 
 // No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).
 async function logged(job: string, work: () => Promise<void>): Promise<void> {

@@ -141,10 +141,22 @@ services:
       ConnectionStrings__PowerLoom: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Vaults__Root: /vaults
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
+      VaultCapture__Home: /app/VaultCapture  # findings into a project's registers go through the module
+      Vaults__HostRoot: ${VAULTS_ROOT:?set in .env}  # the vaults root as the PC sees it: new vaults' files, chat links
+      Vaults__TemplateHome: /app/templates/vault  # root files of a new vault (Settings → Add vault)
+      Vaults__Exclude: ${VAULTS_EXCLUDE:-adoa-backlog}
+      Backlog__Root: /vault  # adoa's backlog vault: the chat notes are written here
+      Chat__Launcher: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
+      Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
+      Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … adoa's backlog vault
+      Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"
     ports:
       - "127.0.0.1:${POWERLOOM_PORT:-5180}:8080"
     volumes:
-      - ${VAULTS_ROOT:?set in .env}:/vaults  # read-write: Vault → Maintenance → Trash restores and deletes here
+      - ${VAULTS_ROOT:?set in .env}:/vaults  # read-write: trash, records and notes are written here
+      - ${VAULT_PATH:?set in .env}:/vault  # adoa's backlog vault: chat notes
+      - ../VaultCapture:/app/VaultCapture:ro
+      - ./templates/vault:/app/templates/vault:ro
     depends_on:
       db:
         condition: service_healthy

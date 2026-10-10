@@ -10,6 +10,7 @@ public static class VaultSetup
             .Validate(options => !string.IsNullOrWhiteSpace(options.Root), "Vaults:Root is required: the folder holding every vault.")
             .ValidateOnStart();
         builder.Services.AddSingleton<VaultRoots>();
+        builder.Services.AddSingleton<VaultFiles>();
 
         return builder;
     }

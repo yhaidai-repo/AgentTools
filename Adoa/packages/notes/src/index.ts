@@ -1,7 +1,4 @@
 export { publishPbi } from "./publishPbi";
-export { writeReviewNote } from "./writeReviewNote";
-export { writeWwwRecord } from "./writeWwwRecord";
-export { initVault } from "./initVault";
 export { markMergedDrafts } from "./markMergedDrafts";
 export { PbiNoteWriter } from "./pbiNotes";
 export { VaultCaptureCli } from "./VaultCaptureCli";

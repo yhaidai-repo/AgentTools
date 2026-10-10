@@ -1,9 +1,7 @@
-import { DEFAULT_CHAT_LAUNCHER, runCommand, type BacklogNotes, type Command, type CommandContext, type ContinueEnv, type Outcome } from "@adoa/core";
-import { access } from "node:fs/promises";
-import { join } from "node:path";
+import { runCommand, type ChatTarget, type Command, type CommandContext, type Outcome, type PowerLoomPort } from "@adoa/core";
 import { getDb } from "./db";
 import { bossJobPort } from "./jobPort";
-import { vaultHostPath } from "./obsidian";
+import { powerloom } from "./powerloom";
 import { loadSkillCatalog } from "./skills";
 
 // Every web action runs its change as a command (user decision 2026-10-05), so the web, and later an MCP server, share
@@ -17,44 +15,36 @@ export function webCommandContext(): CommandContext {
     db: getDb(),
     actor: "human",
     jobs: bossJobPort,
-    notes: backlogNotes,
+    powerloom: powerloomPort,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
-    continueEnv: continueEnv(),
   };
 }
 
-// BACKLOG_MOUNT is adoa's backlog vault, mounted read-only; each vault's backlog is a folder in it.
-const backlogNotes: BacklogNotes = {
-  async exists(vault, backlogRelativePath) {
-    const root = process.env.BACKLOG_MOUNT;
+// PowerLoom answers 202 when the record is queued; anything else is an unexpected failure of the change.
+const powerloomPort: PowerLoomPort = {
+  async addRecord(kind, sourceId) {
+    const { response, error } = await powerloom.POST("/api/records", { body: { kind, sourceId } });
 
-    if (!root) {
-      return false;
+    if (!response.ok) {
+      throw new Error(`PowerLoom didn't take the ${kind} record ${sourceId}: ${(error as { detail?: string } | undefined)?.detail ?? response.status}`);
     }
+  },
+  async openChat(target) {
+    const { data, error, response } = await powerloom.POST("/api/chats", { body: chatRequest(target) });
 
-    try {
-      await access(join(root, vault, backlogRelativePath));
-
-      return true;
-    } catch {
-      return false;
-    }
+    return data ? { ok: true, value: { url: data.url } } : { ok: false, error: (error as { detail?: string } | undefined)?.detail ?? `PowerLoom answered ${response.status}.` };
   },
 };
 
-// PC paths for "continue with agent" chats; null until the vaults root and repos root are set.
-function continueEnv(): ContinueEnv | null {
-  const folder = hostPath(process.env.CONTINUE_FOLDER);
-  const reposRoot = hostPath(process.env.REPOS_ROOT);
-  const vault = vaultHostPath();
-
-  if (!folder || !reposRoot || !vault) {
-    return null;
+function chatRequest(target: ChatTarget): { kind: "pbi" | "item" | "review" | "vault"; id: string } {
+  switch (target.kind) {
+    case "pbi":
+      return { kind: "pbi", id: String(target.adoId) };
+    case "item":
+      return { kind: "item", id: target.itemId };
+    case "review":
+      return { kind: "review", id: String(target.prId) };
+    case "vault":
+      return { kind: "vault", id: target.vault };
   }
-
-  return { launcher: process.env.CONTINUE_LAUNCHER?.trim() || DEFAULT_CHAT_LAUNCHER, folder, reposRoot, vault, agentTools: hostPath(process.env.AGENTTOOLS_PATH) };
-}
-
-function hostPath(value: string | undefined): string | null {
-  return value?.trim().replaceAll("\\", "/").replace(/\/+$/, "") || null;
 }
