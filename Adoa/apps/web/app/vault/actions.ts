@@ -1,23 +1,23 @@
 "use server";
 
-import { VAULT_REVIEW_AGENT, VAULT_TRASH_QUEUE, applyTaskSchedule, deleteTaskSchedule, saveTaskSchedule, type VaultTrashJob } from "@adoa/core";
+import { VAULT_REVIEW_AGENT, applyTaskSchedule, deleteTaskSchedule, saveTaskSchedule, type VaultTrashJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
-import { bossJobPort } from "@/lib/jobPort";
+import { callPowerLoom } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
-const TRASH_WAIT_MS = 15_000;
-
-// Restore or delete a trashed note through the worker (the web's vault mount is read-only); the page waits for it.
+// Restore or delete a trashed note through PowerLoom (the web's vault mount is read-only); the page waits for it.
 export async function trashAction(path: string, action: VaultTrashJob["action"]): Promise<ActionResult> {
-  const job: VaultTrashJob = { vault: await requireVault(), path, action };
-  const done = await bossJobPort.sendAndWait(VAULT_TRASH_QUEUE, job, TRASH_WAIT_MS);
+  const vault = await requireVault();
+  const result = action === "restore"
+    ? await callPowerLoom("POST", `/api/vaults/${vault}/trash/restore`, { path }, `${path} restored.`)
+    : await callPowerLoom("DELETE", `/api/vaults/${vault}/trash`, { path }, `${path} deleted.`);
 
   revalidatePath("/vault");
 
-  return done ? { ok: true, message: `${path} ${action === "restore" ? "restored" : "deleted"}.` } : { ok: false, message: `${path}: the worker didn't ${action} it (see Job errors on the Agents page).` };
+  return result;
 }
 
 // Picks up open review tasks weekly; the agent's own schedule says when it runs them.

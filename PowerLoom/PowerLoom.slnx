@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PowerLoom.Api/PowerLoom.Api.csproj" />
+    <Project Path="src/PowerLoom.Contracts/PowerLoom.Contracts.csproj" />
+    <Project Path="src/PowerLoom.Core/PowerLoom.Core.csproj" />
+    <Project Path="src/PowerLoom.Persistence/PowerLoom.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PowerLoom.Api.Tests/PowerLoom.Api.Tests.csproj" />
+  </Folder>
+</Solution>

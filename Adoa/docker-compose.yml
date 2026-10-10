@@ -126,6 +126,7 @@ services:
       AGENTTOOLS_PATH: ${AGENTTOOLS_PATH:-}  # "Configure with <agent>" for a new vault: VaultUsage and VaultCapture on the PC
       CONTINUE_LAUNCHER: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-adoa-backlog}
+      POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:
@@ -142,6 +143,37 @@ services:
     restart: unless-stopped
 
   # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.
+  # PowerLoom: the .NET backend taking over the worker's jobs feature by feature (the vault's adoa-backend-delivery note).
+  powerloom:
+    build:
+      context: ../PowerLoom
+    environment:
+      ConnectionStrings__PowerLoom: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Vaults__Root: /vaults
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
+    ports:
+      - "127.0.0.1:${POWERLOOM_PORT:-5180}:8080"
+    volumes:
+      - ${VAULTS_ROOT:?set in .env}:/vaults  # read-write: Vault → Maintenance → Trash restores and deletes here
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Traces, metrics and logs of PowerLoom: Grafana with Tempo, Prometheus and Loki in one container.
+  otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3200}:3000"  # Grafana: admin / admin
+    volumes:
+      - otel-data:/data
+    restart: unless-stopped
+
   backup:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -162,6 +194,7 @@ services:
 volumes:
   # One read-only checkout per repo, shared by research and design; refreshed at most every 30 min.
   repo-cache:
+  otel-data:
   # external: `docker compose down -v` cannot delete it. First run: docker volume create adoa_pgdata
   pgdata:
     external: true
