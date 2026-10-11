@@ -1,7 +1,7 @@
 namespace PowerLoom.Features.Continue.Targets;
 
 // The chat's first answer on a PBI (user decision 2026-10-05): a plain-language briefing, then a request to implement.
-// adoa can't tell bugs from features (ADO types and tags are used loosely), so the chat picks the outline after reading.
+// PowerLoom can't tell bugs from features (ADO types and tags are used loosely), so the chat picks the outline after reading.
 public static class ImplementBriefing
 {
     public static readonly IReadOnlyList<string> Bug =

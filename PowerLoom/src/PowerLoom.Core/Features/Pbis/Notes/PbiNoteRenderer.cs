@@ -61,7 +61,7 @@ public static class PbiNoteRenderer
             ("created", NoteText.IsoDate(note.Created)),
             ("updated", NoteText.IsoDate(note.Updated)),
             ("parent", parent),
-            ("tags", new[] { "adoa", $"pbi-{note.AdoId}", "pbi" }),
+            ("tags", new[] { "powerloom", $"pbi-{note.AdoId}", "pbi" }),
             ("related", parent is null ? Array.Empty<string>() : [parent]),
         ]);
     }

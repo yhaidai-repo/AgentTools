@@ -46,7 +46,7 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
     private async Task InsertAsync(string vault, long runId, MappedWorkItem item, CancellationToken cancellation)
     {
         var status = PipelineStatusRule.Initial(item.AdoState);
-        var parentId = await ParentInAdoaAsync(vault, item, cancellation);
+        var parentId = await ParentInPowerLoomAsync(vault, item, cancellation);
         var row = new WorkItem { AdoId = item.AdoId, Vault = vault, ParentId = parentId, Skills = "[]", ConfluencePages = "[]", PipelineStatus = status };
 
         Mirror(row, item);
@@ -59,7 +59,7 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
 
     private async Task UpdateAsync(string vault, long runId, WorkItem existing, MappedWorkItem item, CancellationToken cancellation)
     {
-        var parentId = await ParentInAdoaAsync(vault, item, cancellation);
+        var parentId = await ParentInPowerLoomAsync(vault, item, cancellation);
         var previousParentId = existing.ParentId;
         var contentChanged = existing.ContentHash != item.ContentHash;
         var status = PipelineStatusRule.Next(existing.PipelineStatus, item.AdoState, contentChanged);
@@ -74,14 +74,14 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         await LinkChildAsync(item, previousParentId, parentId, cancellation);
     }
 
-    // A child whose parent came into adoa after it (e.g. a deleted parent synced by hand again) is linked on the next
+    // A child whose parent came into PowerLoom after it (e.g. a deleted parent synced by hand again) is linked on the next
     // sync, not only on its next ADO change. True when it was linked.
     private async Task<bool> LinkArrivedParentAsync(string vault, WorkItem existing, MappedWorkItem item, CancellationToken cancellation)
     {
         if (existing.ParentId is not null || item.AdoParentId is null)
             return false;
 
-        var parentId = await ParentInAdoaAsync(vault, item, cancellation);
+        var parentId = await ParentInPowerLoomAsync(vault, item, cancellation);
 
         if (parentId is null)
             return false;
@@ -94,9 +94,9 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         return true;
     }
 
-    // ADO's parent when it is a top-level PBI of this vault in adoa (children stay one level deep); else the item is
+    // ADO's parent when it is a top-level PBI of this vault in PowerLoom (children stay one level deep); else the item is
     // top-level itself, e.g. a PBI under a Feature.
-    private async Task<int?> ParentInAdoaAsync(string vault, MappedWorkItem item, CancellationToken cancellation)
+    private async Task<int?> ParentInPowerLoomAsync(string vault, MappedWorkItem item, CancellationToken cancellation)
     {
         if (item.AdoParentId is null)
             return null;

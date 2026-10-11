@@ -98,7 +98,7 @@ public sealed class ImportSync(PowerLoomDbContext db, IEnumerable<IPbiImportSour
         return Summary(results);
     }
 
-    // PBIs deleted in adoa stay deleted (assumption, 2026-10-02): only Sync PBI on the Backlog brings one back. One PBI
+    // PBIs deleted in PowerLoom stay deleted (assumption, 2026-10-02): only Sync PBI on the Backlog brings one back. One PBI
     // failing (not in ADO, no access) doesn't stop the others; one already started in ADO is refused.
     private async Task<List<PbiImportResult>> SyncAllAsync(string vault, IAdoClient client, long runId, List<int> ids, CancellationToken cancellation)
     {

@@ -25,7 +25,7 @@ public static class PreparePbiHandler
 
         if (row is null)
         {
-            logger.LogWarning("prepare PBI-{AdoId}: not in adoa", message.AdoId);
+            logger.LogWarning("prepare PBI-{AdoId}: not in PowerLoom", message.AdoId);
 
             return;
         }

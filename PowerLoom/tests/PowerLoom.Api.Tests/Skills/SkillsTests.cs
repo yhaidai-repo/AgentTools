@@ -38,7 +38,7 @@ public sealed class SkillsTests(PowerLoomHost host)
         var restored = await host.Host.PostJson(new RestoreRequest(SkillEditing.ContentHash(Edited)), $"/api/skills/my-skill/revisions/{revisionId}/restore").Receive<SavedSkill>();
 
         Assert.Contains("changed since you opened it", await stale.ReadAsTextAsync());
-        Assert.Contains("isn't one of adoa's own skills", await foreign.ReadAsTextAsync());
+        Assert.Contains("isn't one of PowerLoom's own skills", await foreign.ReadAsTextAsync());
         Assert.True(saved!.Changed);
         Assert.True(restored!.Changed && restored.RestoredFrom is not null);
         Assert.Equal(Original, await File.ReadAllTextAsync(file));

@@ -31,7 +31,7 @@ public static class ConfluenceLinksEndpoints
         var pbi = await db.WorkItems.SingleOrDefaultAsync(row => row.AdoId == adoId, cancellation);
 
         if (pbi is null)
-            return Problem.NotFound($"PBI-{adoId} isn't in adoa.").ToProblemResult();
+            return Problem.NotFound($"PBI-{adoId} isn't in PowerLoom.").ToProblemResult();
 
         var pages = Pages(pbi.ConfluencePages);
 
@@ -50,7 +50,7 @@ public static class ConfluenceLinksEndpoints
         var pbi = await db.WorkItems.SingleOrDefaultAsync(row => row.AdoId == adoId, cancellation);
 
         if (pbi is null)
-            return Problem.NotFound($"PBI-{adoId} isn't in adoa.").ToProblemResult();
+            return Problem.NotFound($"PBI-{adoId} isn't in PowerLoom.").ToProblemResult();
 
         var pages = Pages(pbi.ConfluencePages).Where(page => page.Url != request.Url).ToList();
 

@@ -3,7 +3,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Infrastructure.Backlog;
 
-// Where adoa renders a vault's backlog notes (the TypeScript side's paths.ts): relative to the vault's backlog folder.
+// Where PowerLoom renders a vault's backlog notes (the TypeScript side's paths.ts): relative to the vault's backlog folder.
 public static partial class BacklogPaths
 {
     public const string IndexPath = "backlog-index.md";

@@ -33,7 +33,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
 
     public string VaultRoot => Path.Combine(VaultsRoot, Vault);
 
-    // The repos root (git checkouts) and the skill folders (own/ is adoa's, editable; other/ is read-only).
+    // The repos root (git checkouts) and the skill folders (own/ is PowerLoom's, editable; other/ is read-only).
     public string ReposRoot => Path.Combine(VaultsRoot, "..", "repos-" + Path.GetFileName(VaultsRoot));
 
     public string SkillsRoot => Path.Combine(VaultsRoot, "..", "skills-" + Path.GetFileName(VaultsRoot));
@@ -41,7 +41,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
     // The import inbox (a folder per source inside it).
     public string ImportRoot => Path.Combine(VaultsRoot, "..", "inbox-" + Path.GetFileName(VaultsRoot));
 
-    // adoa's backlog vault (a folder per vault), where chat notes are written.
+    // PowerLoom's backlog vault (a folder per vault), where chat notes are written.
     public string BacklogRoot => Path.Combine(VaultsRoot, "..", "backlog-" + Path.GetFileName(VaultsRoot));
 
     public async Task InitializeAsync()
@@ -58,7 +58,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Vaults__Root", VaultsRoot);
         Environment.SetEnvironmentVariable("Vaults__HostRoot", HostRoot);
         Environment.SetEnvironmentVariable("Vaults__TemplateHome", WriteTemplates());
-        Environment.SetEnvironmentVariable("Vaults__Exclude", "adoa-backlog");
+        Environment.SetEnvironmentVariable("Vaults__Exclude", "powerloom-backlog");
         Environment.SetEnvironmentVariable("Backlog__Root", BacklogRoot);
         Environment.SetEnvironmentVariable("Import__InboxRoot", ImportRoot);
         Environment.SetEnvironmentVariable("Repos__Mount", ReposRoot);
@@ -66,7 +66,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Skills__Folders__1", Path.Combine(SkillsRoot, "other"));
         Environment.SetEnvironmentVariable("Skills__Editable", Path.Combine(SkillsRoot, "own"));
         Environment.SetEnvironmentVariable("Chat__ReposRoot", "D:/pc/repos");
-        Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/adoa-backlog");
+        Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/powerloom-backlog");
         Environment.SetEnvironmentVariable("Chat__AgentTools", AgentTools);
         // The run saga's waits, short enough for a test.
         Environment.SetEnvironmentVariable("Runner__BusyRetry", "00:00:01");

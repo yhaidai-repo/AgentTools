@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace PowerLoom.Persistence.Enums;
 
-// adoa's enum labels are kebab-case (`ready-for-dev`); Npgsql's default translator makes snake_case.
+// PowerLoom's enum labels are kebab-case (`ready-for-dev`); Npgsql's default translator makes snake_case.
 public sealed class KebabCaseNameTranslator : INpgsqlNameTranslator
 {
     public string TranslateTypeName(string clrName) => TranslateMemberName(clrName);

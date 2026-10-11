@@ -21,7 +21,7 @@ public static class PbiRepos
         var vault = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => row.Vault).SingleOrDefaultAsync(cancellation);
 
         if (vault is null)
-            return Outcome<int>.Failure(Problem.NotFound($"PBI-{adoId} isn't in adoa."));
+            return Outcome<int>.Failure(Problem.NotFound($"PBI-{adoId} isn't in PowerLoom."));
 
         var chosen = await RepoCatalog.FindAsync(db, vault, names, cancellation);
         var unknown = names.Where(name => !chosen.Any(repo => repo.Name.Equals(name, StringComparison.OrdinalIgnoreCase))).ToList();

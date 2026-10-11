@@ -35,7 +35,7 @@ public static class ReportBugEndpoint
         var parent = await PbiChildren.TopLevelAsync(db, parentId.Value, cancellation);
 
         if (parent is null)
-            return Problem.NotFound($"PBI-{parentId} isn't in adoa.").ToProblemResult();
+            return Problem.NotFound($"PBI-{parentId} isn't in PowerLoom.").ToProblemResult();
 
         var actor = string.IsNullOrWhiteSpace(request.Actor) ? "human" : request.Actor.Trim();
         var bug = new NewPbi(parent.Vault, BugRule.BugTitle(request.Title.Trim()), BugRule.WorkItemType, request.Priority ?? DefaultPriority, Text(request.DescriptionMd), null, parent.AdoId);

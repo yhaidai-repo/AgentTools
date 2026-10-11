@@ -38,7 +38,7 @@ public static class ItemNoteRenderer
                 ("created_by", item.ParentId is null ? "agent:refinement" : "agent:research"),
                 ("created", NoteText.IsoDate(item.Created)),
                 ("updated", NoteText.IsoDate(item.Updated)),
-                ("tags", new[] { "adoa", $"pbi-{item.AdoId}", noteType }),
+                ("tags", new[] { "powerloom", $"pbi-{item.AdoId}", noteType }),
                 ("related", new[] { pbi }),
             ]),
             $"# {item.Id} {item.Title}",
@@ -71,7 +71,7 @@ public static class ItemNoteRenderer
 
     private static IEnumerable<string> HumanTaskSections(ItemNote item)
     {
-        return new[] { "## Task", item.Body ?? NoteText.Empty }.Concat(ClosedSection(item, "## Outcome", "_Close it on the PBI's page in adoa._"));
+        return new[] { "## Task", item.Body ?? NoteText.Empty }.Concat(ClosedSection(item, "## Outcome", "_Close it on the PBI's page in PowerLoom._"));
     }
 
     private static IEnumerable<string> QuestionSections(ItemNote item)
@@ -83,7 +83,7 @@ public static class ItemNoteRenderer
             "## Question", item.Body ?? NoteText.Empty,
             "## Why it matters", Text(item, "why"),
             "## Options", JoinOrNone(options, "None given."),
-        }.Concat(ClosedSection(item, "## Answer", "_Answer on the PBI's page in adoa._"));
+        }.Concat(ClosedSection(item, "## Answer", "_Answer on the PBI's page in PowerLoom._"));
     }
 
     // Open items say where to close them; closed ones show what the person answered and uploaded.

@@ -3,7 +3,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Persistence.Items;
 
-// Every pipeline status change goes through here so status_history stays complete (adoa's setPbiStatus).
+// Every pipeline status change goes through here so status_history stays complete (PowerLoom's setPbiStatus).
 public static class PbiStatusChange
 {
     private static readonly KebabCaseNameTranslator Labels = new();

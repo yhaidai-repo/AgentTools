@@ -14,7 +14,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.ConfluenceIntegration.Features.Pages;
 
-// One linked page brought up to date (adoa's confluencePages): stored as the PBI's attachments for that link, with its
+// One linked page brought up to date (PowerLoom's confluencePages): stored as the PBI's attachments for that link, with its
 // readable files. Without a usable copy, a failure becomes the user's task with the reason; with one, the copy stays
 // and the failure is logged (the agents keep reading the last fetched version). True when something changed.
 public sealed partial class PageSync(PowerLoomDbContext db, IConfluenceClientFactory clients, BacklogFiles files, ILogger<PageSync> logger)

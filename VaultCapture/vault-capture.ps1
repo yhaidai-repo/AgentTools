@@ -9,7 +9,7 @@
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 capture -InputFile capture.json
 .EXAMPLE
-    pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: adoa"
+    pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: powerloom"
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
 #>

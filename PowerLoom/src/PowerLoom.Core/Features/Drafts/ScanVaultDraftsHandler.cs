@@ -7,15 +7,15 @@ using PowerLoom.Persistence;
 
 namespace PowerLoom.Features.Drafts;
 
-// Every draft of the vault gets a tech-writer task (adoa's drafts first, then oldest first, so the tasks queue up the
+// Every draft of the vault gets a tech-writer task (PowerLoom's drafts first, then oldest first, so the tasks queue up the
 // same way); a task whose draft is gone is done, and a capture whose draft is gone is merged.
 public static class ScanVaultDraftsHandler
 {
-    private const string AdoaSource = "session finding: adoa";
+    private const string PowerLoomSource = "session finding: powerloom";
 
     public static async Task Handle(ScanVaultDrafts message, PowerLoomDbContext db, IVaultCapture capture, ILogger<ScanVaultDrafts> logger, CancellationToken cancellation)
     {
-        var drafts = await capture.ListDraftsAsync(message.Vault, AdoaSource, cancellation);
+        var drafts = await capture.ListDraftsAsync(message.Vault, PowerLoomSource, cancellation);
         var created = 0;
 
         foreach (var draft in drafts)

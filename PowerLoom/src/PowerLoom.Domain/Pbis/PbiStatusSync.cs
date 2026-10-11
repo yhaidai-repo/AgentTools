@@ -5,7 +5,7 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Pbis;
 
-// Recalculates a PBI's status from its tasks after a change (adoa's syncPipelineStatus). Returns the new status, or
+// Recalculates a PBI's status from its tasks after a change (PowerLoom's syncPipelineStatus). Returns the new status, or
 // null when it stayed.
 public static class PbiStatusSync
 {

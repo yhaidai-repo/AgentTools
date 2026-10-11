@@ -35,7 +35,7 @@ public sealed class AddVaultTests(PowerLoomHost host)
 
         await host.Host.Scenario(scenario =>
         {
-            scenario.Post.Json(new AddVaultRequest("adoa-backlog")).ToUrl("/api/vaults");
+            scenario.Post.Json(new AddVaultRequest("powerloom-backlog")).ToUrl("/api/vaults");
             scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
         });
     }

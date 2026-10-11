@@ -19,7 +19,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
 
     public async Task<string> RunAsync(string vault, AdoSettings ado, PullRequestSettings settings, IAdoClient client, CancellationToken cancellation)
     {
-        // A review deleted in adoa stays deleted (user decision 2026-10-06).
+        // A review deleted in PowerLoom stays deleted (user decision 2026-10-06).
         var deleted = (await db.DeletedPullRequests.Select(row => row.Id).ToListAsync(cancellation)).ToHashSet();
         var mine = (await client.ListActivePullRequestsAsync(cancellation)).Where(pr => PullRequestFilter.IsMine(pr, ado.User) && !deleted.Contains(pr.Id)).ToList();
         var listed = mine.Where(pr => PullRequestFilter.IsSelectedRepo(pr, settings.Repos)).ToList();

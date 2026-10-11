@@ -25,7 +25,7 @@ public static class LoadPageEndpoint
         var vault = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => row.Vault).SingleOrDefaultAsync(cancellation);
 
         if (vault is null)
-            return Problem.NotFound($"PBI-{adoId} isn't in adoa.").ToProblemResult();
+            return Problem.NotFound($"PBI-{adoId} isn't in PowerLoom.").ToProblemResult();
 
         await bus.PublishAsync(new LoadConfluencePage(vault, adoId, request.Url));
 

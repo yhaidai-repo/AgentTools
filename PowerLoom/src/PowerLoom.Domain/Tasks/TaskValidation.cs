@@ -8,7 +8,7 @@ using PowerLoom.Persistence.Enums;
 namespace PowerLoom.Domain.Tasks;
 
 // Why an agent may not start a task yet (empty = it may): one check per AgentConfig `waitFor` key, reading the
-// database only, so the dispatcher can check every task on every run (adoa's validateTask).
+// database only, so the dispatcher can check every task on every run (PowerLoom's validateTask).
 public static class TaskValidation
 {
     public const string HumanItems = "humanItems";

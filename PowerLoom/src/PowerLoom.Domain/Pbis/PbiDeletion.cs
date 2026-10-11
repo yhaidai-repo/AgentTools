@@ -6,7 +6,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Domain.Pbis;
 
-// Deletes a PBI in adoa only (ADO untouched, user decision 2026-10-02): its child items first (they belong to it, user
+// Deletes a PBI in PowerLoom only (ADO untouched, user decision 2026-10-02): its child items first (they belong to it, user
 // decision 2026-10-09), then the PBI. Each is remembered so sync doesn't bring it back. The usage records stay.
 public static class PbiDeletion
 {
@@ -35,7 +35,7 @@ public static class PbiDeletion
             return Outcome<string>.Failure(Problem.Conflict(problem));
 
         if (title is null)
-            return Outcome<string>.Failure(Problem.NotFound($"PBI-{adoId} isn't in adoa."));
+            return Outcome<string>.Failure(Problem.NotFound($"PBI-{adoId} isn't in PowerLoom."));
 
         foreach (var childId in await PbiChildren.ChildIdsAsync(db, adoId, cancellation))
             await DeleteWorkItemAsync(db, childId, cancellation);

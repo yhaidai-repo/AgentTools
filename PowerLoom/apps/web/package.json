@@ -1,0 +1,38 @@
+{
+  "name": "@powerloom/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3100",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc -p . --noEmit",
+    "cli": "tsx cli/powerloomCli.ts",
+    "openapi": "openapi-typescript ../../openapi/PowerLoom.Api.json -o lib/powerloom/schema.d.ts"
+  },
+  "dependencies": {
+    "@powerloom/ado": "*",
+    "@powerloom/attachments": "*",
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "@powerloom/vault": "*",
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
+    "drizzle-orm": "^0.45.3",
+    "next": "^16.3.7",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

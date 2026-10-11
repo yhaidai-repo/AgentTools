@@ -20,10 +20,10 @@ public sealed class SkillEditing(PowerLoomDbContext db, SkillFiles files)
         var current = await files.ReadAsync(name, cancellation);
 
         if (current is null)
-            return Outcome<bool>.Failure(Problem.NotFound($"No skill named {name}; adoa only edits existing skills."));
+            return Outcome<bool>.Failure(Problem.NotFound($"No skill named {name}; PowerLoom only edits existing skills."));
 
         if (!files.IsEditable(current.Folder))
-            return Outcome<bool>.Failure(Problem.Invalid($"{name} isn't one of adoa's own skills; edit it where it lives (adoa only views it)."));
+            return Outcome<bool>.Failure(Problem.Invalid($"{name} isn't one of PowerLoom's own skills; edit it where it lives (PowerLoom only views it)."));
 
         if (ContentHash(current.Content) != expectedHash)
             return Outcome<bool>.Failure(Problem.Conflict("The skill changed since you opened it. Reload the page and apply your edit again."));

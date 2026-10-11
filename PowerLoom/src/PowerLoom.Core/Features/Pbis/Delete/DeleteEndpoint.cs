@@ -9,7 +9,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.Pbis.Delete;
 
-// "Delete from adoa" (user decision 2026-10-06): the data goes now, through the domain; the PBI's folder in the backlog
+// "Delete from PowerLoom" (user decision 2026-10-06): the data goes now, through the domain; the PBI's folder in the backlog
 // vault follows on the vault's queue. ADO is never changed. Refused while an agent runs on the PBI.
 public static class DeleteEndpoint
 {

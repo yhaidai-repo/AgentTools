@@ -2,7 +2,7 @@ using PowerLoom.AdoIntegration.Client.Models;
 
 namespace PowerLoom.AdoIntegration.Client;
 
-// Read-only Azure DevOps REST client. Never add write calls: adoa is local-only.
+// Read-only Azure DevOps REST client. Never add write calls: PowerLoom is local-only.
 public interface IAdoClient
 {
     Task<IReadOnlyList<int>> QueryIdsAsync(string wiql, CancellationToken cancellation);

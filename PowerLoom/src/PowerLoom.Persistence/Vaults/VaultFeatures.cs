@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace PowerLoom.Persistence.Vaults;
 
-// `vault.features`: what adoa does for a vault, each switch saved with its feature's settings (user decision 2026-10-06).
+// `vault.features`: what PowerLoom does for a vault, each switch saved with its feature's settings (user decision 2026-10-06).
 public static class VaultFeatures
 {
     public const string AdoSync = "adoSync";

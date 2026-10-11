@@ -26,7 +26,7 @@ public sealed class WwwLogTests
         ## Records
         """;
 
-    private static readonly WwwEntry Entry = new("Sync skipped a PBI", "complaint", "adoa", "Every sprint PBI synced", "One was\nskipped", "Agent", null, null, null, null);
+    private static readonly WwwEntry Entry = new("Sync skipped a PBI", "complaint", "PowerLoom", "Every sprint PBI synced", "One was\nskipped", "Agent", null, null, null, null);
 
     [Fact]
     public void The_first_record_gets_WWW_001_and_the_statistics()

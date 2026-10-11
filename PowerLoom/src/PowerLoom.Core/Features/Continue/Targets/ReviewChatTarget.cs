@@ -10,7 +10,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Features.Continue.Targets;
 
-// A review's chat (user decision 2026-10-05): review only, no fixes. The note holds the PR, adoa's summary and the
+// A review's chat (user decision 2026-10-05): review only, no fixes. The note holds the PR, PowerLoom's summary and the
 // comments with their answers; the chat answers the open comments after the user's yes.
 public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
 {
@@ -51,7 +51,7 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
                 "Read the Summary and Comments below, and the code around them.",
             ],
             Briefing = Briefing,
-            Ending = "End the briefing by asking: \"Write the answers?\" After a yes: one answer per open comment, by its id, as plain text to paste into adoa's review page.",
+            Ending = "End the briefing by asking: \"Write the answers?\" After a yes: one answer per open comment, by its id, as plain text to paste into PowerLoom's review page.",
             Repos = [pr.RepoName],
             Sections =
             [

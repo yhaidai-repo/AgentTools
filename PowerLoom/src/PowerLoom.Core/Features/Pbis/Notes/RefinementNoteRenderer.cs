@@ -24,7 +24,7 @@ public static class RefinementNoteRenderer
                 ("created_by", "agent:refinement"),
                 ("created", NoteText.IsoDate(note.Created)),
                 ("updated", NoteText.IsoDate(note.Created)),
-                ("tags", new[] { "adoa", $"pbi-{note.AdoId}", "refinement" }),
+                ("tags", new[] { "powerloom", $"pbi-{note.AdoId}", "refinement" }),
                 ("related", new[] { pbi }),
             ]),
             $"# {name} Refinement v{note.Version}",

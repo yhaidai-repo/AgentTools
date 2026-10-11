@@ -9,7 +9,7 @@ namespace PowerLoom.Api.Tests.Persistence;
 [Collection(PowerLoomCollection.Name)]
 public sealed class EnumMappingTests(PowerLoomHost host)
 {
-    // adoa's TypeScript side reads these columns as text: the labels must stay exactly its kebab-case strings.
+    // PowerLoom's TypeScript side reads these columns as text: the labels must stay exactly its kebab-case strings.
     [Fact]
     public async Task Enum_members_are_stored_as_kebab_case_labels()
     {

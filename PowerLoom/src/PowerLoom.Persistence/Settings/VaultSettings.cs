@@ -4,7 +4,7 @@ using PowerLoom.Persistence.Entities;
 
 namespace PowerLoom.Persistence.Settings;
 
-// adoa's `config` table: one JSON value per key. Settings are per vault (user decision 2026-10-05): the key is
+// PowerLoom's `config` table: one JSON value per key. Settings are per vault (user decision 2026-10-05): the key is
 // `vault:<name>:<setting>`; the JSON keeps the camelCase names the TypeScript side reads.
 public static class VaultSettings
 {

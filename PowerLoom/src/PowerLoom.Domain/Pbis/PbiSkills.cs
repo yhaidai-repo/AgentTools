@@ -10,14 +10,14 @@ public static class PbiSkills
 {
     public const int Max = 5;
 
-    private const string AdoaPrefix = "adoa-";
+    private const string PowerLoomPrefix = "powerloom-";
     private const string User = "user";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    // adoa's own skills are configured per agent, so they're never recommended per PBI (assumption: the prefix marks
+    // PowerLoom's own skills are configured per agent, so they're never recommended per PBI (assumption: the prefix marks
     // them).
-    public static bool IsRecommendable(string name) => !name.StartsWith(AdoaPrefix, StringComparison.Ordinal);
+    public static bool IsRecommendable(string name) => !name.StartsWith(PowerLoomPrefix, StringComparison.Ordinal);
 
     // What's wrong with a PBI skill list, checked against the skills the folders have (empty = fine).
     public static List<string> Problems(IReadOnlyList<string> names, IReadOnlySet<string> available)

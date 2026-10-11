@@ -3,7 +3,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Persistence;
 
-// Every PostgreSQL enum of adoa's schema as a CLR enum; Npgsql adds them to the model and to the data source.
+// Every PostgreSQL enum of PowerLoom's schema as a CLR enum; Npgsql adds them to the model and to the data source.
 public static class PowerLoomEnumMapping
 {
     public static NpgsqlDbContextOptionsBuilder MapPowerLoomEnums(this NpgsqlDbContextOptionsBuilder npgsql)

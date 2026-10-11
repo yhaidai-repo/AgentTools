@@ -3,7 +3,7 @@ using PowerLoom.Infrastructure.Vaults;
 
 namespace PowerLoom.Features.Vaults.Add;
 
-// What a vault needs for adoa's maintenance (user decision 2026-10-05): rules and registers from the templates, the
+// What a vault needs for PowerLoom's maintenance (user decision 2026-10-05): rules and registers from the templates, the
 // drafts folder (VaultCapture), the usage log folder (VaultUsage) and Obsidian's folder, so the vault is listed as one.
 // Creates whatever is missing; existing files are never touched. Agent-app files (Claude's CLAUDE.md) are the app's own.
 public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> options, TimeProvider clock)

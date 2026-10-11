@@ -20,7 +20,7 @@ public sealed class PbiChatTests(PowerLoomHost host)
 
         Assert.Contains(Uri.EscapeDataString("D:/pc/repos/PVS"), link!.Url);
         Assert.Contains("# Implement PBI-31001: Faster sync", note);
-        Assert.Contains("[[PBI-31001-design]] `D:/pc/adoa-backlog/test-vault/pbi/PBI-31001-faster-sync/PBI-31001-design.md`", note);
+        Assert.Contains("[[PBI-31001-design]] `D:/pc/powerloom-backlog/test-vault/pbi/PBI-31001-faster-sync/PBI-31001-design.md`", note);
         Assert.Contains("## Plan\n\n- [ ] 1. Add the index (PVS; Sync.cs): a covering index", note);
         Assert.Contains("- [ ] 2. Deploy (PVS; –): release **User step: not for the chat.**", note);
         Assert.Contains("## Tests\n\n- [ ] unit: the sync skips nothing", note);

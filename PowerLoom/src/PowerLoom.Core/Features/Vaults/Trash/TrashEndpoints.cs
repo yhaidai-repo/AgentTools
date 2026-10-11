@@ -13,7 +13,7 @@ namespace PowerLoom.Features.Vaults.Trash;
 // The Vault page's Maintenance → Trash: inline, the page waits for the result.
 public static class TrashEndpoints
 {
-    // Runs before every endpoint here: the vault must be one adoa still works with.
+    // Runs before every endpoint here: the vault must be one PowerLoom still works with.
     public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
 
     [WolverineGet("/api/vaults/{vault}/trash")]

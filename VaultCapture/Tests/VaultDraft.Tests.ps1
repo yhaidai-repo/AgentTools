@@ -33,9 +33,9 @@ Describe 'Get-VaultDraft' {
     It 'lists preferred-source drafts first, then the oldest first' {
         Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-chat-old' -Captured '2026-09-01' -Source 'session finding'
         Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-chat-new' -Captured '2026-09-20' -Source 'user message'
-        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-pipeline' -Captured '2026-09-30' -Source 'session finding: adoa AT-1 run RUN-2 (PBI-3)'
+        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-pipeline' -Captured '2026-09-30' -Source 'session finding: powerloom AT-1 run RUN-2 (PBI-3)'
 
-        $result = Get-VaultDraft -Vault $vaultName -PreferSource 'session finding: adoa' -Config $config
+        $result = Get-VaultDraft -Vault $vaultName -PreferSource 'session finding: powerloom' -Config $config
 
         $result.ok | Should -BeTrue
         $result.drafts.name | Should -Be @('pvs-pipeline', 'pvs-chat-old', 'pvs-chat-new')

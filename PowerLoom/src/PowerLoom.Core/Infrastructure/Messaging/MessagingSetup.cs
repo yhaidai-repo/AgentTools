@@ -14,7 +14,7 @@ namespace PowerLoom.Infrastructure.Messaging;
 
 public static class MessagingSetup
 {
-    // Wolverine's own tables live in their own schema, apart from adoa's.
+    // Wolverine's own tables live in their own schema, apart from PowerLoom's.
     private const string WolverineSchema = "powerloom";
 
     // Postgres only: no broker. One vault's messages run one at a time; messages of different vaults in parallel.

@@ -70,7 +70,7 @@ public sealed class AddRecordTests(PowerLoomHost host)
         var row = new WwwRecord
         {
             Vault = PowerLoomHost.Vault,
-            Project = "adoa",
+            Project = "PowerLoom",
             Title = title,
             Kind = "complaint",
             Planned = "Every sprint PBI synced",

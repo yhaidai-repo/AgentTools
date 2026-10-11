@@ -1,4 +1,4 @@
-# Build context: the PowerLoom folder (see Adoa/docker-compose.yml).
+# Build context: the PowerLoom folder (see docker-compose.yml).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 # Project files first, so a code change doesn't restore packages again.

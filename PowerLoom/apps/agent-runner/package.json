@@ -1,0 +1,26 @@
+{
+  "name": "@powerloom/agent-runner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "backfill:doc-usage": "tsx src/backfillDocUsage.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@powerloom/agents": "*",
+    "@powerloom/confluence": "*",
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "@powerloom/notes": "*",
+    "@powerloom/vault": "*",
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

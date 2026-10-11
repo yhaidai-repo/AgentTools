@@ -10,7 +10,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.Pbis.Create;
 
-// A PBI created in adoa (user decision 2026-10-06), for vaults without an ADO integration or for work ADO doesn't
+// A PBI created in PowerLoom (user decision 2026-10-06), for vaults without an ADO integration or for work ADO doesn't
 // track; the user prepares it for refinement as usual. A child goes to its parent's vault (one level: a child's child
 // goes to the top PBI, user decision 2026-10-09).
 public static class CreateEndpoint
@@ -61,7 +61,7 @@ public static class CreateEndpoint
         var parent = await PbiChildren.TopLevelAsync(db, request.ParentId.Value, cancellation);
 
         if (parent is null)
-            return Outcome<PbiTarget>.Failure(Problem.NotFound($"PBI-{request.ParentId} isn't in adoa."));
+            return Outcome<PbiTarget>.Failure(Problem.NotFound($"PBI-{request.ParentId} isn't in PowerLoom."));
 
         if (!string.IsNullOrWhiteSpace(request.Vault) && request.Vault != parent.Vault)
             return Outcome<PbiTarget>.Failure(Problem.Invalid($"PBI-{parent.AdoId} is in {parent.Vault}, not in {request.Vault}."));

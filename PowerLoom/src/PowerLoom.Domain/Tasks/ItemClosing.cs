@@ -7,7 +7,7 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Tasks;
 
-// A person closing a question, finding or human task (adoa's humanItems): checked before anything is stored, so a
+// A person closing a question, finding or human task (PowerLoom's humanItems): checked before anything is stored, so a
 // rejected request leaves no upload behind; status_history records the person as the actor.
 public static class ItemClosing
 {

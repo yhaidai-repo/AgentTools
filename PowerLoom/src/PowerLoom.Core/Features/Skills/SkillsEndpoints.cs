@@ -8,7 +8,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.Skills;
 
-// The Skills page edits adoa's own skills (user decision 2026-10-01); agents use a saved skill from their next run.
+// The Skills page edits PowerLoom's own skills (user decision 2026-10-01); agents use a saved skill from their next run.
 public static class SkillsEndpoints
 {
     [WolverinePut("/api/skills/{name}")]

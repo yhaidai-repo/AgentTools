@@ -6,7 +6,7 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Pbis;
 
-// Finishes the PBI in adoa only (ADO untouched). Its open agent tasks are cancelled so no agent works on it again; the
+// Finishes the PBI in PowerLoom only (ADO untouched). Its open agent tasks are cancelled so no agent works on it again; the
 // user's questions, human tasks and findings stay as they are (user decision 2026-10-05).
 public static class PbiFinishing
 {
@@ -20,7 +20,7 @@ public static class PbiFinishing
         var pbi = await db.WorkItems.SingleOrDefaultAsync(row => row.AdoId == adoId, cancellation);
 
         if (pbi is null)
-            return Outcome<string>.Failure(Problem.NotFound($"PBI-{adoId} isn't in adoa."));
+            return Outcome<string>.Failure(Problem.NotFound($"PBI-{adoId} isn't in PowerLoom."));
 
         var problem = await ProblemAsync(db, pbi.AdoId, pbi.PipelineStatus, cancellation);
 

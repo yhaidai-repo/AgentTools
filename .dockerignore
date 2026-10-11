@@ -2,6 +2,11 @@
 **/node_modules
 **/.next
 VaultUsage
-Adoa/.env
-Adoa/backups
-Adoa/vault
+PowerLoom/.env
+PowerLoom/backups
+PowerLoom/import-inbox
+PowerLoom/vault
+PowerLoom/.vs
+**/bin
+**/obj
+**/TestResults

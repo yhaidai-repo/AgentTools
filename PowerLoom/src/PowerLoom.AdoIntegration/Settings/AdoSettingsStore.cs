@@ -3,7 +3,7 @@ using PowerLoom.Persistence.Settings;
 
 namespace PowerLoom.AdoIntegration.Settings;
 
-// The vault's ADO settings in adoa's `config` table, under the keys the TypeScript side uses.
+// The vault's ADO settings in PowerLoom's `config` table, under the keys the TypeScript side uses.
 public sealed class AdoSettingsStore(PowerLoomDbContext db)
 {
     private const string AdoKey = "ado";

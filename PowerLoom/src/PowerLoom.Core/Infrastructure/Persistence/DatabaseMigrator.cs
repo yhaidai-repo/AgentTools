@@ -5,7 +5,7 @@ using PowerLoom.Persistence;
 
 namespace PowerLoom.Infrastructure.Persistence;
 
-// PowerLoom owns the schema (user decision 2026-10-11): the migrations run before Wolverine starts. adoa's existing
+// PowerLoom owns the schema (user decision 2026-10-11): the migrations run before Wolverine starts. PowerLoom's existing
 // database, built by drizzle, is adopted once: the baseline is recorded as applied, nothing is created again.
 public sealed class DatabaseMigrator(IServiceScopeFactory scopes, ILogger<DatabaseMigrator> logger) : IHostedService
 {
@@ -67,7 +67,7 @@ public sealed class DatabaseMigrator(IServiceScopeFactory scopes, ILogger<Databa
             throw new InvalidOperationException($"The database has {drizzleMigrations} drizzle migrations; the baseline describes {DrizzleMigrationsAtBaseline}. Bring the schema to that state first.");
 
         await MarkBaselineAppliedAsync(db, history, cancellation);
-        logger.LogInformation("database: adopted adoa's drizzle schema, the baseline is recorded as applied");
+        logger.LogInformation("database: adopted PowerLoom's drizzle schema, the baseline is recorded as applied");
     }
 
     private static async Task<int?> DrizzleMigrationCountAsync(PowerLoomDbContext db, CancellationToken cancellation)

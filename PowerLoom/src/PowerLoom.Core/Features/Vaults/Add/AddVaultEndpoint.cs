@@ -12,7 +12,7 @@ using Wolverine.Http;
 namespace PowerLoom.Features.Vaults.Add;
 
 // Settings → Add vault: a folder of the vaults root becomes a vault with every feature off; one removed earlier comes
-// back as it was. The folder needn't exist: it is prepared from adoa's templates.
+// back as it was. The folder needn't exist: it is prepared from PowerLoom's templates.
 public static class AddVaultEndpoint
 {
     private const string NoFeatures = """{"adoSync":false,"mailSync":false,"pullRequests":false}""";
@@ -40,7 +40,7 @@ public static class AddVaultEndpoint
     private static async Task<Problem?> AddProblemAsync(PowerLoomDbContext db, string name, VaultOptions options, CancellationToken cancellation)
     {
         if (options.ExcludedNames.Contains(name))
-            return Problem.Invalid($"{name} is adoa's own vault and can't be added.");
+            return Problem.Invalid($"{name} is PowerLoom's own vault and can't be added.");
 
         var active = await db.Vaults.AnyAsync(vault => vault.Name == name && vault.RemovedAt == null, cancellation);
 

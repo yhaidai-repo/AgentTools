@@ -30,7 +30,7 @@ public static class DocumentTasks
             return null;
 
         var label = LinkedDocuments.Label(LinkedDocuments.KindOf(url));
-        var why = problem is null ? "Agents can't open it (no access to Confluence or the web)." : $"adoa couldn't fetch it: {problem}";
+        var why = problem is null ? "Agents can't open it (no access to Confluence or the web)." : $"PowerLoom couldn't fetch it: {problem}";
         var body = $"The PBI links {url}\n\n{why}\n\nUpload it here (PDF, Word, saved HTML or text). Cancel the task if the agents don't need it.";
         var data = JsonSerializer.Serialize(new { url, key = ItemKeys.DocumentKey(url) });
 

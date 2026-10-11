@@ -41,7 +41,7 @@ public sealed class ImportSyncTests(PowerLoomHost host)
 
         Assert.Equal(52001, session.Executed.SingleMessage<PreparePbi>().AdoId);
         Assert.Equal([new PbiImportResult(52001, "prepared")], Results(imports["req-52001.json"]));
-        Assert.Equal([new PbiImportResult(52002, "refused", "PBI-52002 is Active in Azure DevOps; only New or Ready for Dev PBIs enter adoa")], Results(imports["<m1@x>"]));
+        Assert.Equal([new PbiImportResult(52002, "refused", "PBI-52002 is Active in Azure DevOps; only New or Ready for Dev PBIs enter PowerLoom")], Results(imports["<m1@x>"]));
         Assert.Equal(("Please look", "pat@x.io"), (imports["<m1@x>"].Title, imports["<m1@x>"].Sender));
         Assert.False(File.Exists(Path.Combine(host.ImportRoot, "req-52001.json")));
         Assert.False(File.Exists(Path.Combine(host.ImportRoot, "outlook", "mail-1.json")));

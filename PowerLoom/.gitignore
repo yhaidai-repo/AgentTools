@@ -4,3 +4,14 @@ obj/
 .vs/
 TestResults/
 **/Internal/Generated/
+node_modules/
+dist/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.env
+/vault/
+*.log
+/backups/
+/import-inbox/
+/tools/outlook-export/state.json

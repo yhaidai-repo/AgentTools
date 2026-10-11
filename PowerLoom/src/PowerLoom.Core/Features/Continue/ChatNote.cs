@@ -10,7 +10,7 @@ public static class ChatNote
     private static readonly string[] SharedRules =
     [
         "Azure DevOps is never written; nothing is pushed.",
-        "The backlog vault is rendered by adoa: read it, don't edit it. This note's Notes section is the user's.",
+        "The backlog vault is rendered by PowerLoom: read it, don't edit it. This note's Notes section is the user's.",
     ];
 
     public static string Render(ChatBrief brief, ChatKind kind, string id, string launcherLabel, string notesSection, DateOnly today)
@@ -20,7 +20,7 @@ public static class ChatNote
         {
             Frontmatter(name, brief.Title, kind, id, today),
             $"# {brief.Title}",
-            $"Handoff for the {launcherLabel} chat adoa opened (\"Continue with {launcherLabel}\"). Paths are on the PC.",
+            $"Handoff for the {launcherLabel} chat PowerLoom opened (\"Continue with {launcherLabel}\"). Paths are on the PC.",
             "## Start",
             StartSteps(brief),
             "## Read first",
@@ -75,9 +75,9 @@ public static class ChatNote
             "type: \"chat\"",
             $"title: {JsonSerializer.Serialize(title)}",
             $"kind: \"{KindLabel(kind)}\"",
-            "created_by: \"adoa\"",
+            "created_by: \"PowerLoom\"",
             $"updated: \"{today:yyyy-MM-dd}\"",
-            $"tags: [\"adoa\", \"chat\", \"{KindLabel(kind)}-{id}\"]",
+            $"tags: [\"PowerLoom\", \"chat\", \"{KindLabel(kind)}-{id}\"]",
         };
 
         return $"---\n{string.Join("\n", lines)}\n---";

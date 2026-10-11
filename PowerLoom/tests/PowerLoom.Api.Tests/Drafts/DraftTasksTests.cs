@@ -27,7 +27,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         capture.Drafts[PowerLoomHost.Vault] =
         [
             new VaultDraft("chat-note", "Draft: Chat note", "pvs", "2026-10-11", "chat", "[[pvs-index]]", "draft/chat-note.md", false),
-            new VaultDraft("pvs-topic", "Topic (draft)", "pvs", "2026-10-10", "session finding: adoa", "[[pvs-index]]", "draft/pvs-topic.md", true),
+            new VaultDraft("pvs-topic", "Topic (draft)", "pvs", "2026-10-10", "session finding: powerloom", "[[pvs-index]]", "draft/pvs-topic.md", true),
         ];
 
         await ScanAsync();
@@ -41,7 +41,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         Assert.Equal(("Merge draft: Chat note", (int?)null), (chat.Title, chat.PbiId));
         Assert.Contains("\"key\": \"merge:pvs-topic:2026-10-10\"", topic.Data);
         Assert.Contains("\"path\": \"draft/pvs-topic.md\"", topic.Data);
-        Assert.True(string.CompareOrdinal(topic.Id, chat.Id) < 0, "adoa's draft is taken first");
+        Assert.True(string.CompareOrdinal(topic.Id, chat.Id) < 0, "PowerLoom's draft is taken first");
 
         // A second scan creates nothing; then the topic draft is merged by hand.
         await ScanAsync();

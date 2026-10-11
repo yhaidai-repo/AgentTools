@@ -7,7 +7,7 @@ using PowerLoom.Persistence.Items;
 namespace PowerLoom.Persistence.Reviews;
 
 // Closing a code review is local only: ADO isn't told. A queued review task is cancelled; a running one finishes, its
-// comments still count (adoa's closeReview).
+// comments still count (PowerLoom's closeReview).
 public static class ReviewClosing
 {
     public static async Task CloseAsync(PowerLoomDbContext db, int prId, string? reason, string actor, CancellationToken cancellation)

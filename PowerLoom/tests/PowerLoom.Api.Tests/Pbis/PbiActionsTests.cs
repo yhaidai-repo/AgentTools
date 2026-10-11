@@ -36,7 +36,7 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         var repos = await Tracked(() => host.Host.PutJson(new SaveReposRequest(["ActRepo"]), $"/api/pbis/{adoId}/repos").Receive<SavedRepos>());
         var badSkills = await host.Host.Scenario(scenario =>
         {
-            scenario.Put.Json(new SaveSkillsRequest([new SkillChoice("adoa-x", ""), new SkillChoice("nope", "")])).ToUrl($"/api/pbis/{adoId}/skills");
+            scenario.Put.Json(new SaveSkillsRequest([new SkillChoice("powerloom-x", ""), new SkillChoice("nope", "")])).ToUrl($"/api/pbis/{adoId}/skills");
             scenario.StatusCodeShouldBe(400);
         });
         var skills = await Tracked(() => host.Host.PutJson(new SaveSkillsRequest([new SkillChoice("my-skill", "handy")]), $"/api/pbis/{adoId}/skills").Receive<SavedSkills>());
@@ -49,7 +49,7 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         Assert.Equal((PowerLoomHost.Vault, adoId), (child.Vault, (await LoadAsync(child.AdoId)).ParentId));
         Assert.Equal(1, repos.Value!.Saved);
         Assert.Equal(ItemStatus.Answered, items[$"Q-{adoId}-001"].Status);
-        Assert.Contains("adoa-x is configured per agent", await badSkills.ReadAsTextAsync());
+        Assert.Contains("powerloom-x is configured per agent", await badSkills.ReadAsTextAsync());
         Assert.Contains("no skill named nope", await badSkills.ReadAsTextAsync());
         Assert.Equal(1, skills.Value!.Saved);
         Assert.Contains("\"by\": \"user\"", pbi.Skills);

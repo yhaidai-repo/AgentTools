@@ -1,0 +1,24 @@
+{
+  "name": "@powerloom/agents",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@powerloom/confluence": "*",
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "@powerloom/vault": "*",
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
+    "drizzle-orm": "^0.45.3",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

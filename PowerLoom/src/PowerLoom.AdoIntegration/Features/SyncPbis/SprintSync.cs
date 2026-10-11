@@ -7,7 +7,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
-// One run over the vault's sprint. The sprint's PBIs plus every PBI already in the vault, minus those deleted in adoa: a
+// One run over the vault's sprint. The sprint's PBIs plus every PBI already in the vault, minus those deleted in PowerLoom: a
 // PBI stays until the user deletes it (user decision 2026-10-02) and keeps being refreshed so ADO changes (content,
 // Done/Removed) still reach it. The scope has no status filter (user decision 2026-10-09).
 public sealed class SprintSync(PowerLoomDbContext db, WorkItemStore store, SyncBookkeeping bookkeeping)

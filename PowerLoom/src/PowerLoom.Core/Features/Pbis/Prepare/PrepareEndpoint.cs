@@ -21,7 +21,7 @@ public static class PrepareEndpoint
         var known = await db.WorkItems.AsNoTracking().Where(row => ids.Contains(row.AdoId)).Select(row => new { row.AdoId, row.Vault }).ToListAsync(cancellation);
 
         if (known.Count == 0)
-            return Problem.NotFound("None of the PBIs is in adoa.").ToProblemResult();
+            return Problem.NotFound("None of the PBIs is in PowerLoom.").ToProblemResult();
 
         foreach (var pbi in known)
             await bus.PublishAsync(new PreparePbi(pbi.Vault, pbi.AdoId, Actor));

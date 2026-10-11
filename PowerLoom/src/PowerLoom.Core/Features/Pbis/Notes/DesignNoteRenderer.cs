@@ -25,7 +25,7 @@ public static class DesignNoteRenderer
                 ("created_by", "agent:design"),
                 ("created", NoteText.IsoDate(note.Created)),
                 ("updated", NoteText.IsoDate(note.Created)),
-                ("tags", new[] { "adoa", $"pbi-{note.AdoId}", "design" }),
+                ("tags", new[] { "powerloom", $"pbi-{note.AdoId}", "design" }),
                 ("related", new[] { pbi }),
             ]),
             $"# {name} Design v{note.Version}",

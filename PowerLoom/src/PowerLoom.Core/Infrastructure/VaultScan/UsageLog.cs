@@ -4,7 +4,7 @@ using PowerLoom.Infrastructure.VaultScan.Models;
 namespace PowerLoom.Infrastructure.VaultScan;
 
 // VaultUsage's log contract (its README): one JSON object per line in <vault>/.usage/usage.jsonl. Its PowerShell
-// report isn't in the containers, so adoa reads the log itself.
+// report isn't in the containers, so PowerLoom reads the log itself.
 public static class UsageLog
 {
     private const string LogFile = ".usage/usage.jsonl";

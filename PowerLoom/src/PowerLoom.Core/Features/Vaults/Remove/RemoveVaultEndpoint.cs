@@ -9,7 +9,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.Vaults.Remove;
 
-// adoa forgets the vault; its folder and its history stay (user decision 2026-10-05). Refused while the vault has PBIs
+// PowerLoom forgets the vault; its folder and its history stay (user decision 2026-10-05). Refused while the vault has PBIs
 // or waiting tasks, and for the last vault, because every page shows one.
 public static class RemoveVaultEndpoint
 {
@@ -36,7 +36,7 @@ public static class RemoveVaultEndpoint
             return Problem.NotFound($"{vault} isn't a vault.");
 
         if (active.Count == 1)
-            return Problem.Conflict("adoa needs one vault; add another before removing this one.");
+            return Problem.Conflict("PowerLoom needs one vault; add another before removing this one.");
 
         var pbis = await db.WorkItems.CountAsync(item => item.Vault == vault, cancellation);
         var tasks = await db.LocalItems.CountAsync(item => item.Vault == vault && Waiting.Contains(item.Status), cancellation);

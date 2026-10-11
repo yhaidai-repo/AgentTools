@@ -8,6 +8,6 @@ public sealed class SkillsOptions
     // `<name>/SKILL.md` wins.
     public List<string> Folders { get; set; } = [];
 
-    // The only folder adoa may write: its own skills, mounted from the repo (user decision 2026-10-01).
+    // The only folder PowerLoom may write: its own skills, mounted from the repo (user decision 2026-10-01).
     public string Editable { get; set; } = "";
 }

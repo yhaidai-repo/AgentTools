@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace PowerLoom.Domain.Pbis;
 
 // A PBI as the user types it: its id (123, #123), a link to it in Azure DevOps (…/_workitems/edit/123,
-// …/workitems/123, ?id=123) or in adoa (/pbis/123).
+// …/workitems/123, ?id=123) or in PowerLoom (/pbis/123).
 public static class PbiReference
 {
     private static readonly Regex[] Patterns = [new(@"^#?(\d+)$"), new(@"workitems/(?:edit/)?(\d+)", RegexOptions.IgnoreCase), new(@"/pbis/(\d+)"), new(@"[?&]id=(\d+)")];

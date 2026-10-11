@@ -1,0 +1,19 @@
+{
+  "name": "@powerloom/notes",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "@powerloom/vault": "*",
+    "drizzle-orm": "^0.45.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

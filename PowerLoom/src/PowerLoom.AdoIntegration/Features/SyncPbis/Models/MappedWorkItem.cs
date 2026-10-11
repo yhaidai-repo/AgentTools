@@ -1,7 +1,7 @@
 namespace PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 
-// A work item as adoa mirrors it. `AdoParentId` is ADO's System.Parent; a child in adoa only when that parent is a
-// PBI adoa has. `ContentHash` covers what agents read: title, description and acceptance criteria.
+// A work item as PowerLoom mirrors it. `AdoParentId` is ADO's System.Parent; a child in PowerLoom only when that parent is a
+// PBI PowerLoom has. `ContentHash` covers what agents read: title, description and acceptance criteria.
 public sealed record MappedWorkItem(
     int AdoId,
     int Rev,

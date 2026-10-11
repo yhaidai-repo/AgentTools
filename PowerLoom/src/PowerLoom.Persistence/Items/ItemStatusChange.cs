@@ -3,7 +3,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Persistence.Items;
 
-// An item's status change with its history row, in one save (adoa's setItemStatus).
+// An item's status change with its history row, in one save (PowerLoom's setItemStatus).
 public static class ItemStatusChange
 {
     private static readonly ItemStatus[] Closed = [ItemStatus.Done, ItemStatus.Cancelled, ItemStatus.Answered, ItemStatus.Dismissed, ItemStatus.Deleted];

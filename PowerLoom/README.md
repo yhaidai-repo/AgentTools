@@ -1,34 +1,58 @@
 # PowerLoom
 
-The .NET backend taking over adoa's worker jobs feature by feature. Design and status: the `adoa` vault
-(`adoa-wolverine-target`, `adoa-backend-slices`, `adoa-backend-endpoints`, `adoa-backend-delivery`).
+Azure DevOps agent pipeline: a .NET backend (Wolverine, Postgres) that syncs PBIs, runs the pipeline and dispatches the
+agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `adoa` folder of the personal docs vault
+(`D:/Claude/personal-projects/adoa`, entry `adoa-index`; the backend's notes are `adoa-wolverine-target`,
+`adoa-backend-endpoints`, `adoa-backend-delivery`). The project was called adoa until 2026-10-11.
 
-| Project | Role |
+## Layout
+| Path | Role |
 |---|---|
 | `src/PowerLoom.Api` | the executable: `Program.cs` only |
 | `src/PowerLoom.Core` | features (vertical slices) and infrastructure; `[assembly: WolverineModule]`, `[assembly: JasperFxAssembly]` |
-| `src/PowerLoom.Persistence` | EF Core model of adoa's schema (entities, one configuration per table, enums), migrations |
+| `src/PowerLoom.Domain` | the pipeline's rules over the persistence model |
+| `src/PowerLoom.Persistence` | EF Core model of the `public` schema (entities, one configuration per table, enums), migrations |
 | `src/PowerLoom.Contracts` | messages and types shared across projects |
+| `src/PowerLoom.AdoIntegration`, `src/PowerLoom.ConfluenceIntegration` | the Azure DevOps and Confluence libraries |
 | `tests/PowerLoom.Api.Tests` | Alba + Testcontainers (one host and Postgres per run) |
+| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; Claude token; skills read-only, docs vault writable for the tech-writer's merges |
+| `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) and the CLI (`cli/powerloomCli.ts`) |
+| `packages/*` | the TypeScript libraries the two apps share (`db`, `core`, `agents`, `notes`, `ado`, `confluence`, `attachments`, `vault`) |
+| `skills/` | PowerLoom's own skills for agents (`powerloom-*`) |
+| `templates/vault` | root files of a new vault (Settings → Add vault) |
+| `tools/outlook-export` | the Outlook mail export for the `outlook` import source |
+| `scripts/` | backup and restore, schema tooling |
 
-## Run locally
-Settings come from the environment (they override `appsettings.Development.json`):
-`ConnectionStrings__PowerLoom`, `Vaults__Root`, optionally `OTEL_EXPORTER_OTLP_ENDPOINT`.
+The npm workspace root is `D:/Projects/AgentTools` (with `AgentConfig`, `AgentRuntime`, `AgentUsage`); `Dockerfile.apps`
+builds the TypeScript image from there, `Dockerfile` the backend from this folder.
 
+## Run
 ```bash
-dotnet run --project src/PowerLoom.Api
+cp .env.example .env               # passwords, paths, CLAUDE_CODE_OAUTH_TOKEN
+docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it (the name predates the rename)
+docker compose up -d --build
 ```
+- Web UI: http://localhost:3100 (`WEB_PORT`); backend: http://127.0.0.1:5180 (`POWERLOOM_PORT`, `/health`, `/openapi/v1.json`); Grafana: `GRAFANA_PORT`.
+- DB on `127.0.0.1:${DB_PORT}` (default 5442). ADO org/project/team/user and tokens live in the DB, per vault (Settings).
+- Rebuild only after checking `agent_run` for a run without `ended_at`.
 
-## Commands (`dotnet run --project src/PowerLoom.Api -- <command>`)
+## Backups
+- `backup` service: one `pg_dump` at start, then daily at `BACKUP_CRON` (UTC) into `BACKUP_PATH` (default `./backups`); keeps `BACKUP_KEEP_DAYS` (14).
+- Restore: `docker compose stop powerloom agent-runner web`, then `docker compose run --rm backup sh /scripts/restore.sh /backups/<file>.dump`, then `docker compose start powerloom agent-runner web`.
+
+## Backend commands (`dotnet run --project src/PowerLoom.Api -- <command>`)
 | Command | Does |
 |---|---|
 | `describe` | Wolverine's endpoints, queues and handlers |
 | `codegen write` | writes Wolverine's handler code to `src/PowerLoom.Api/Internal/Generated` (the Docker build does this; no database needed) |
-| `openapi-write ../../openapi/PowerLoom.Api.json` | writes the OpenAPI document; then `npm run openapi -w @adoa/web` regenerates the web's typed client |
+| `openapi-write ../../openapi/PowerLoom.Api.json` | writes the OpenAPI document; then `npm run openapi -w @powerloom/web` regenerates the web's typed client |
+
+Settings come from the environment (they override `appsettings.Development.json`): `ConnectionStrings__PowerLoom`,
+`Vaults__Root`, optionally `OTEL_EXPORTER_OTLP_ENDPOINT`. Run locally with `dotnet run --project src/PowerLoom.Api`.
 
 ## Schema
-PowerLoom owns adoa's `public` schema through EF Core migrations, applied at start (`DatabaseMigrator`). A database
-drizzle built is adopted once: the baseline is recorded as applied.
+The backend owns the `public` schema through EF Core migrations, applied at start (`DatabaseMigrator`); drizzle's
+`packages/db/drizzle` is frozen history.
 
 ```bash
 dotnet tool run dotnet-ef migrations add <Name> --project src/PowerLoom.Persistence --startup-project src/PowerLoom.Persistence --output-dir Migrations
@@ -36,3 +60,22 @@ dotnet tool run dotnet-ef migrations add <Name> --project src/PowerLoom.Persiste
 
 To check a migration against a live database, apply the migrations to a scratch database and diff
 `pg_dump --schema-only -n public` of both through `scripts/normalize-schema-dump.py`.
+
+## PBI import
+The PBI sync (Settings import schedule, default every 5 min, or **Import now** on the Backlog) reads every import source
+(`src/PowerLoom.Core/Features/ImportSources`), syncs the PBIs each item links and prepares the new ones. Both sources read
+folders under `IMPORT_INBOX_PATH` (default `./import-inbox`); read files are deleted, unusable ones move to `failed/` with a
+`.reason.txt`. Write `<name>.json.tmp`, then rename to `.json`.
+- `outlook`: `import-inbox/outlook/*.json`, mails written by `tools/outlook-export` (classic Outlook, Inbox by subject).
+- `inbox`: `import-inbox/*.json`, a ready request from any tool: `source`, `sourceRef`, optional `title`, `from`, `occurredAt`, and `adoIds` and/or `html` / `text` with ADO work item links; `prepare` defaults to true.
+
+## Local development
+```bash
+npm install                        # in D:/Projects/AgentTools
+npm run powerloom:dev:web          # needs DATABASE_URL, POWERLOOM_URL in env
+```
+
+## Notes
+- The TypeScript image sets `NODE_OPTIONS=--no-network-family-autoselection`: Node's connection racing times out on this Docker network (npm ETIMEDOUT).
+- Only `agent-runner` builds the `powerloom-app` image; `web` reuses it.
+- The PBI notes' region markers (`<!-- adoa:begin … -->`) keep their name: they are the file format of every rendered note.

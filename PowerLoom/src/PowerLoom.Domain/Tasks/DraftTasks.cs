@@ -86,7 +86,7 @@ public static partial class DraftTasks
         return title.Length > 0 ? title : draft.Name;
     }
 
-    // adoa's drafts come from an agent run on a PBI (vault_capture); chat drafts have none.
+    // PowerLoom's drafts come from an agent run on a PBI (vault_capture); chat drafts have none.
     private static Task<int?> PbiOfDraftAsync(PowerLoomDbContext db, string name, CancellationToken cancellation)
     {
         return db.VaultCaptures.AsNoTracking().Where(capture => capture.Name == name).OrderByDescending(capture => capture.Id).Select(capture => (int?)capture.PbiId).FirstOrDefaultAsync(cancellation);

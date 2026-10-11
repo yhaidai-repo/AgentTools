@@ -54,7 +54,7 @@ public static class SyncPbisHandler
 
     private static async Task<SyncOutcome> RunAsync(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, SprintSync sprintSync, ImportSync importSync, SinglePbiSync singleSync, long runId, CancellationToken cancellation)
     {
-        // A PBI adoa has stays in its vault; a new one joins the vault the user had selected.
+        // A PBI PowerLoom has stays in its vault; a new one joins the vault the user had selected.
         var vault = message.AdoId is { } adoId ? await singleSync.VaultOfAsync(adoId, cancellation) ?? message.Vault : message.Vault;
         var ado = await settings.ReadAdoAsync(vault, cancellation);
 

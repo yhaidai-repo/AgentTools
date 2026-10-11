@@ -11,7 +11,7 @@ public sealed class ChatOptions
     // The repos folder on the PC: D:/Projects/<repo>.
     public string ReposRoot { get; set; } = "";
 
-    // adoa's backlog vault on the PC, with a folder per vault; chats read its notes by absolute path.
+    // PowerLoom's backlog vault on the PC, with a folder per vault; chats read its notes by absolute path.
     public string BacklogHostRoot { get; set; } = "";
 
     // The folder with VaultUsage and VaultCapture on the PC; empty = vaults can't be configured for the app.

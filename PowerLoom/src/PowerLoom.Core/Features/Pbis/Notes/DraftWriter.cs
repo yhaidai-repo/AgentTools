@@ -22,7 +22,7 @@ public sealed class DraftWriter(PowerLoomDbContext db, IVaultCapture vaultCaptur
             return;
 
         var vault = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => row.Vault).SingleOrDefaultAsync(cancellation)
-            ?? throw new InvalidOperationException($"PBI-{adoId} has {pending.Count} vault draft(s) to write, but isn't in adoa");
+            ?? throw new InvalidOperationException($"PBI-{adoId} has {pending.Count} vault draft(s) to write, but isn't in PowerLoom");
 
         foreach (var capture in pending)
             await SaveDraftAsync(vault, capture, cancellation);
@@ -31,7 +31,7 @@ public sealed class DraftWriter(PowerLoomDbContext db, IVaultCapture vaultCaptur
     private async Task SaveDraftAsync(string vault, VaultCapture capture, CancellationToken cancellation)
     {
         var request = new DraftCapture(capture.Project, capture.Name, capture.Title,
-            $"session finding: adoa {capture.ItemId ?? "agent"} run RUN-{capture.RunId} (PBI-{capture.PbiId})",
+            $"session finding: powerloom {capture.ItemId ?? "agent"} run RUN-{capture.RunId} (PBI-{capture.PbiId})",
             capture.Target, NoteJson.List<string>(capture.Captured), NoteJson.List<string>(capture.Assumptions), NoteJson.List<string>(capture.ToFill));
         var result = await vaultCapture.CaptureDraftAsync(vault, request, cancellation);
 

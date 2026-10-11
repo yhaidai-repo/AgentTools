@@ -3,3 +3,14 @@
 **/TestResults
 .vs
 **/Internal/Generated/
+# The TypeScript side builds from Dockerfile.apps with the AgentTools root as context, not here.
+apps/
+packages/
+skills/
+templates/
+tools/
+backups/
+import-inbox/
+.env
+**/node_modules
+**/.next

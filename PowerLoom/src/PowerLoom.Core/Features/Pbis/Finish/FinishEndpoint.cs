@@ -12,7 +12,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.Pbis.Finish;
 
-// The Finish dialog, once per PBI (user decision 2026-10-05): done in adoa only (ADO is never written), with the
+// The Finish dialog, once per PBI (user decision 2026-10-05): done in PowerLoom only (ADO is never written), with the
 // user's rating of the agents, the hours spent and, optionally, what went wrong: a WWW record in the docs vault's
 // log through Docs / Records, linked to the feedback row.
 public static class FinishEndpoint
@@ -81,7 +81,7 @@ public static class FinishEndpoint
             Planned = $"The agents (refinement, research, design) prepare PBI-{adoId} \"{pbi.Title}\" so it can be implemented",
             Happened = $"{text} (agent rating {request.Rating}/10, user effort {request.EffortHours} h)",
             Fault = request.Fault ?? DefaultFault,
-            Assumptions = "Logged from adoa's Finish dialog; root cause and prevention not analysed yet",
+            Assumptions = "Logged from PowerLoom's Finish dialog; root cause and prevention not analysed yet",
         };
 
         db.WwwRecords.Add(record);

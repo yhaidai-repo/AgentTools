@@ -3,7 +3,7 @@ using PowerLoom.Infrastructure.Vaults;
 
 namespace PowerLoom.Infrastructure.Backlog;
 
-// Files of a vault's rendered backlog (adoa-backlog/<vault>/…); writes are atomic, like VaultFiles, and a note is
+// Files of a vault's rendered backlog (powerloom-backlog/<vault>/…); writes are atomic, like VaultFiles, and a note is
 // rewritten only when its content changes.
 public sealed class BacklogFiles(IOptions<BacklogOptions> options)
 {

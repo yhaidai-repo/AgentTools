@@ -7,7 +7,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Features.Pbis.Notes;
 
-// The one safe way to update the vault for a PBI: nothing but its database state is written (adoa's publishPbi). Its
+// The one safe way to update the vault for a PBI: nothing but its database state is written (PowerLoom's publishPbi). Its
 // agents' drafts first (a rejected one becomes a human task, which the notes then show), then its notes: refinement
 // note, design note, item notes, the PBI note's regions and the index (unchanged files are skipped).
 public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, PbiNoteWriter notes, DraftWriter drafts)

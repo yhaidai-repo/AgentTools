@@ -28,7 +28,7 @@ public static class ReviewDeletion
             return Outcome<string>.Failure(Problem.Conflict(problem));
 
         if (title is null)
-            return Outcome<string>.Failure(Problem.NotFound($"PR {prId} isn't in adoa."));
+            return Outcome<string>.Failure(Problem.NotFound($"PR {prId} isn't in PowerLoom."));
 
         await DeleteRowsAsync(db, prId, title, cancellation);
 

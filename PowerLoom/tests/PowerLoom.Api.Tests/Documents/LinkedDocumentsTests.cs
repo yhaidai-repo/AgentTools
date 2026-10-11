@@ -42,7 +42,7 @@ public sealed class LinkedDocumentsTests(PowerLoomHost host)
         Assert.Equal([(Spec, "spec.txt", "The spec says hello.", AttachmentOrigin.Ado)], attachments.Select(row => (row.SourceUrl, row.FileName, row.Text, row.Origin)).ToList());
         Assert.Equal(2, tasks.Count);
         Assert.Contains(tasks, task => task.Title == "Attach the content of the linked document" && task.Body!.Contains(WebPage) && task.Body.Contains("Agents can't open it"));
-        Assert.Contains(tasks, task => task.Title == "Attach the content of the linked ADO attachment" && task.Body!.Contains(Expired) && task.Body.Contains("adoa couldn't fetch it: download failed (203 text/html)"));
+        Assert.Contains(tasks, task => task.Title == "Attach the content of the linked ADO attachment" && task.Body!.Contains(Expired) && task.Body.Contains("PowerLoom couldn't fetch it: download failed (203 text/html)"));
 
         // Everything handled: a second collection changes nothing and renders nothing.
         var again = await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(context => context.InvokeAsync(new CollectLinkedDocuments(PowerLoomHost.Vault, adoId)));

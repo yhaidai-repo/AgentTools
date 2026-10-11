@@ -5,13 +5,13 @@
     "AgentConfig",
     "AgentRuntime",
     "AgentUsage",
-    "Adoa/packages/*",
-    "Adoa/apps/*"
+    "PowerLoom/packages/*",
+    "PowerLoom/apps/*"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "adoa:db:generate": "npm run generate -w @adoa/db",
-    "adoa:dev:web": "npm run dev -w @adoa/web"
+    "powerloom:db:generate": "npm run generate -w @powerloom/db",
+    "powerloom:dev:web": "npm run dev -w @powerloom/web"
   },
   "engines": {
     "node": ">=22"

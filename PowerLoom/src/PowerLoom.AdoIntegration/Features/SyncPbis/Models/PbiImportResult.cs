@@ -1,7 +1,7 @@
 namespace PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 
 // What an import did with one PBI (the `pbi_import.results` JSON): prepared, synced, in-pipeline (left alone),
-// deleted (in adoa), refused (already started in ADO) or failed, with the reason.
+// deleted (in PowerLoom), refused (already started in ADO) or failed, with the reason.
 public sealed record PbiImportResult(int AdoId, string Outcome, string? Detail = null)
 {
     public const string Prepared = "prepared";

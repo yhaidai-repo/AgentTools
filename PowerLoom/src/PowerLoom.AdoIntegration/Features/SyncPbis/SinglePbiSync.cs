@@ -7,8 +7,8 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
-// One PBI by id, from any sprint, in any state (user decision 2026-10-02). Like every PBI in adoa, full syncs refresh
-// it from now on; a PBI deleted in adoa comes back. A known PBI stays in its vault; a new one joins the given vault.
+// One PBI by id, from any sprint, in any state (user decision 2026-10-02). Like every PBI in PowerLoom, full syncs refresh
+// it from now on; a PBI deleted in PowerLoom comes back. A known PBI stays in its vault; a new one joins the given vault.
 // With `onlyNotStarted` (imports), a new PBI already started in ADO is refused.
 public sealed class SinglePbiSync(PowerLoomDbContext db, WorkItemStore store, SyncBookkeeping bookkeeping)
 {

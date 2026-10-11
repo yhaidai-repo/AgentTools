@@ -54,7 +54,7 @@ An existing draft with the same name gets only the new bullets, in place. Reject
 ### Drafts waiting to be merged
 
 ```bash
-pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: adoa"
+pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: powerloom"
 pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
 ```
 

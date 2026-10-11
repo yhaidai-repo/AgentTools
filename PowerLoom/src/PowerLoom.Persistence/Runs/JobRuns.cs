@@ -19,7 +19,7 @@ public static class JobRuns
 
     public static async Task FinishAsync(PowerLoomDbContext db, long runId, RunOutcome outcome, string? error, CancellationToken cancellation)
     {
-        var run = await db.AgentRuns.FindAsync([runId], cancellation) ?? throw new InvalidOperationException($"run {runId} isn't in adoa");
+        var run = await db.AgentRuns.FindAsync([runId], cancellation) ?? throw new InvalidOperationException($"run {runId} isn't in PowerLoom");
 
         run.Outcome = outcome;
         run.Error = error;

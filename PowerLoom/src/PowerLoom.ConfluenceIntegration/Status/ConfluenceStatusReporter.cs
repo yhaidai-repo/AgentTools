@@ -5,7 +5,7 @@ using PowerLoom.Persistence.Entities;
 
 namespace PowerLoom.ConfluenceIntegration.Status;
 
-// Settings shows whether Confluence pages can be fetched; the token stays here. Saved at start (adoa's config key
+// Settings shows whether Confluence pages can be fetched; the token stays here. Saved at start (PowerLoom's config key
 // `confluence`: the account, or null), the way the worker reported it.
 public sealed class ConfluenceStatusReporter(IServiceScopeFactory scopes, IOptions<ConfluenceOptions> options) : IHostedService
 {

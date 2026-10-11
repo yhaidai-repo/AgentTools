@@ -27,7 +27,7 @@ public static class AttachmentsEndpoint
             return Problem.Invalid("Choose, paste or drop a file.").ToProblemResult();
 
         if (!await db.WorkItems.AnyAsync(row => row.AdoId == adoId, cancellation))
-            return Problem.NotFound($"PBI-{adoId} isn't in adoa.").ToProblemResult();
+            return Problem.NotFound($"PBI-{adoId} isn't in PowerLoom.").ToProblemResult();
 
         var uploads = new List<UploadedFile>();
 

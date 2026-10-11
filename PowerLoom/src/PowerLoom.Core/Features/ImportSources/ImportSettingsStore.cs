@@ -4,7 +4,7 @@ using PowerLoom.Persistence.Settings;
 
 namespace PowerLoom.Features.ImportSources;
 
-// The vault's import settings and the last run's status, in adoa's config table (keys `import`, `importStatus`).
+// The vault's import settings and the last run's status, in PowerLoom's config table (keys `import`, `importStatus`).
 public sealed class ImportSettingsStore(PowerLoomDbContext db)
 {
     private const string SettingsKey = "import";

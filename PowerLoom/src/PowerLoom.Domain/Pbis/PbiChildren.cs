@@ -16,7 +16,7 @@ public static class PbiChildren
     }
 
     // The PBI an item is filed under: the item itself, or its parent when it is a child (a child of a child goes to the
-    // top PBI). Null when adoa doesn't have the item.
+    // top PBI). Null when PowerLoom doesn't have the item.
     public static async Task<ParentPbi?> TopLevelAsync(PowerLoomDbContext db, int adoId, CancellationToken cancellation)
     {
         var row = await ReadAsync(db, adoId, cancellation);
