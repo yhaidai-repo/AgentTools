@@ -1,9 +1,7 @@
 "use server";
 
-import { addLocalRepo, removeLocalRepo, setRepoEnabled } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
-import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
@@ -80,22 +78,22 @@ export async function testConnection(_previous: ActionResult | null, form: FormD
   return { ok: checked.data.ok, message: checked.data.message };
 }
 
-// Repository configuration (user decision 2026-10-06).
+// Repository configuration (user decision 2026-10-06), kept by PowerLoom.
 export async function setRepoEnabledAction(id: string, enabled: boolean): Promise<void> {
-  await setRepoEnabled(getDb(), await requireVault(), id, enabled);
+  await powerloom.PUT("/api/vaults/{vault}/repos/{id}/enabled", { params: { path: { vault: await requireVault(), id } }, body: { enabled } });
   revalidatePath("/settings");
 }
 
 export async function addLocalRepoAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const added = await addLocalRepo(getDb(), await requireVault(), field(form, "name"), process.env.REPOS_MOUNT?.trim() || null);
+  const added = await powerloom.POST("/api/vaults/{vault}/repos/local", { params: { path: { vault: await requireVault() } }, body: { name: field(form, "name") } });
 
   revalidatePath("/settings");
 
-  return added.ok ? { ok: true, message: `${added.value.name} added and enabled.` } : { ok: false, message: added.error };
+  return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
 }
 
 export async function removeLocalRepoAction(id: string): Promise<void> {
-  await removeLocalRepo(getDb(), await requireVault(), id);
+  await powerloom.DELETE("/api/vaults/{vault}/repos/{id}", { params: { path: { vault: await requireVault(), id } } });
   revalidatePath("/settings");
 }
 

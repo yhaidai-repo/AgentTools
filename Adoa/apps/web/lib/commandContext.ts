@@ -70,6 +70,20 @@ const powerloomPort: PowerLoomPort = {
 
     return data ? { ok: true, value: data } : failure(error, response);
   },
+  async answerReviewComment(commentId, answer) {
+    const { data, error, response } = await powerloom.POST("/api/review-comments/{id}/answer", { params: { path: { id: commentId } }, body: { answer } });
+
+    return data ? { ok: true, value: data } : failure(error, response);
+  },
+  async deleteReview(prId) {
+    const { data, error, response } = await powerloom.DELETE("/api/reviews", { body: { prIds: [prId] } });
+
+    if (!data) {
+      return failure(error, response);
+    }
+
+    return data.refused.length === 0 ? { ok: true, value: data.done[0]?.value ?? "" } : { ok: false, error: data.refused[0] };
+  },
 };
 
 // An expected refusal comes back as ProblemDetails; its detail is the message.

@@ -458,6 +458,385 @@
         }
       }
     },
+    "/api/skills/{name}": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "PUT_api_skills_name",
+        "description": "PUT_api_skills_name",
+        "operationId": "PUT_api_skills_name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSkillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/{name}/revisions/{id}/restore": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "POST_api_skills_name_revisions_id_restore",
+        "description": "POST_api_skills_name_revisions_id_restore",
+        "operationId": "POST_api_skills_name_revisions_id_restore",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/queue": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_reviews_queue",
+        "description": "POST_api_reviews_queue",
+        "operationId": "POST_api_reviews_queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_reviews_close",
+        "description": "POST_api_reviews_close",
+        "operationId": "POST_api_reviews_close",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseReviewsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "DELETE_api_reviews",
+        "description": "DELETE_api_reviews",
+        "operationId": "DELETE_api_reviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review-comments/{id}/answer": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_review_comments_id_answer",
+        "description": "POST_api_review_comments_id_answer",
+        "operationId": "POST_api_review_comments_id_answer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnsweredComment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/{id}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_repos_id_enabled",
+        "description": "PUT_api_vaults_vault_repos_id_enabled",
+        "operationId": "PUT_api_vaults_vault_repos_id_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/local": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_repos_local",
+        "description": "POST_api_vaults_vault_repos_local",
+        "operationId": "POST_api_vaults_vault_repos_local",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLocalRepoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_repos_id",
+        "description": "DELETE_api_vaults_vault_repos_id",
+        "operationId": "DELETE_api_vaults_vault_repos_id",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis/prepare": {
       "post": {
         "tags": [
@@ -942,6 +1321,17 @@
   },
   "components": {
     "schemas": {
+      "AddLocalRepoRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "AddRecordRequest": {
         "required": [
           "kind",
@@ -983,6 +1373,36 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AnswerRequest": {
+        "required": [
+          "answer"
+        ],
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AnsweredComment": {
+        "required": [
+          "prId",
+          "answered"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "answered": {
+            "type": "boolean"
           }
         }
       },
@@ -1044,6 +1464,28 @@
           "dryRun": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "CloseReviewsRequest": {
+        "required": [
+          "prIds",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "prIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1152,6 +1594,17 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "EnabledRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
           }
         }
       },
@@ -1337,6 +1790,25 @@
           }
         }
       },
+      "RepoSummary": {
+        "required": [
+          "id",
+          "name",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "ReportBugRequest": {
         "required": [
           "parent",
@@ -1426,6 +1898,69 @@
           }
         }
       },
+      "RestoreRequest": {
+        "required": [
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewIds": {
+        "required": [
+          "prIds"
+        ],
+        "type": "object",
+        "properties": {
+          "prIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "ReviewOutcome": {
+        "required": [
+          "prId",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewsResult": {
+        "required": [
+          "done",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewOutcome"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "SaveConnectionRequest": {
         "required": [
           "enabled",
@@ -1457,6 +1992,21 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SaveSkillRequest": {
+        "required": [
+          "content",
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
           }
         }
       },
@@ -1511,6 +2061,29 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "SavedSkill": {
+        "required": [
+          "name",
+          "changed",
+          "restoredFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "restoredFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -1784,6 +2357,15 @@
     },
     {
       "name": "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Skills.SkillsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Reviews.ReviewsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Repos.CatalogEndpoints"
     },
     {
       "name": "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"

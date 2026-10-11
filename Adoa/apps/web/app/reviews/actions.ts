@@ -1,8 +1,6 @@
 "use server";
 
-import { DISPATCH_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, closeReview as closeReviewOf, deleteReviewCommand, isAdoActive, queueReviewTask, readAdoSettings, type DispatchJob } from "@adoa/core";
-import { pullRequest } from "@adoa/db";
-import { eq } from "drizzle-orm";
+import { DISPATCH_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings, type DispatchJob } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
@@ -39,12 +37,12 @@ export async function answerComment(_previous: ActionResult | null, form: FormDa
 // Local only: ADO isn't told (user decision 2026-10-02). Rerun reopens it.
 export async function closeReviewAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const prId = Number(form.get("prId"));
+  const result = powerloomResult(await powerloom.POST("/api/reviews/close", { body: { prIds: [prId], reason: formText(form, "reason") } }), "Review closed.");
 
-  await closeReviewOf(getDb(), prId, formText(form, "reason"), "human");
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return { ok: true, message: "Review closed." };
+  return result;
 }
 
 // The grid's bulk actions (user decision 2026-10-06): each selected review in turn; refusals are reported together.
@@ -75,44 +73,32 @@ async function forSelected(form: FormData, done: string, act: (prId: number) => 
 
 // The review page's Close (no reason) and Delete (user decision 2026-10-06: the same actions on the grid and the review page).
 export async function closeReview(prId: number): Promise<ActionResult> {
-  await closeReviewOf(getDb(), prId, null, "human");
+  const result = powerloomResult(await powerloom.POST("/api/reviews/close", { body: { prIds: [prId], reason: null } }), "Review closed.");
+
   revalidatePath("/reviews");
 
-  return { ok: true, message: "Review closed." };
+  return result;
 }
 
 export async function deleteReview(prId: number): Promise<ActionResult> {
-  try {
-    const deleted = await runWebCommand(deleteReviewCommand, { prId });
+  const deleted = await runWebCommand(deleteReviewCommand, { prId });
 
-    revalidatePath("/reviews");
+  revalidatePath("/reviews");
 
-    return deleted.ok ? { ok: true, message: `Review of PR ${prId} deleted.` } : { ok: false, message: deleted.error };
-  } catch (error) {
-    // A refused delete (e.g. a reference the transaction didn't expect) is a message on the page, not a server error.
-    return { ok: false, message: `PR ${prId}: ${firstLine(error)}` };
-  }
-}
-
-function firstLine(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-
-  return message.split(/\r?\n/)[0];
+  return deleted.ok ? { ok: true, message: `Review of PR ${prId} deleted.` } : { ok: false, message: deleted.error };
 }
 
 // The user starts every review (user decision 2026-10-02): a full review of the PR's current commit, earlier comments and
 // answers included. The agent's open tasks start now if it's enabled (same as its schedule or "Run now").
 export async function queueReview(prId: number): Promise<ActionResult> {
-  const [pr] = await getDb().select({ sourceCommit: pullRequest.sourceCommit, title: pullRequest.title }).from(pullRequest).where(eq(pullRequest.id, prId));
+  const queued = await powerloom.POST("/api/reviews/queue", { body: { prIds: [prId] } });
 
-  if (!pr) {
-    return { ok: false, message: "Unknown pull request." };
+  if (!queued.response.ok || !queued.data) {
+    return powerloomResult(queued, "");
   }
 
-  const queued = await queueReviewTask(getDb(), prId, pr.sourceCommit, pr.title);
-
-  if (!queued.ok) {
-    return { ok: false, message: queued.error };
+  if (queued.data.refused.length > 0) {
+    return { ok: false, message: queued.data.refused[0] };
   }
 
   const job: DispatchJob = { agentId: REVIEW_AGENT };
@@ -121,5 +107,5 @@ export async function queueReview(prId: number): Promise<ActionResult> {
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return { ok: true, message: `${queued.value} queued; it starts now if the code-review agent is enabled (Agents page).` };
+  return { ok: true, message: `${queued.data.done[0].value} queued; it starts now if the code-review agent is enabled (Agents page).` };
 }

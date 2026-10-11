@@ -23,4 +23,8 @@ export interface PowerLoomPort {
   deleteItem(adoId: number | null, itemId: string): Promise<Outcome<string>>;
   // Files a bug under a PBI as a [BUG] child item, prepared right away.
   reportBug(input: ReportBugInput, actor: string): Promise<Outcome<ReportedBug>>;
+  // Answers a code-review comment (an empty answer takes it back); the comment's pull request.
+  answerReviewComment(commentId: string, answer: string | null): Promise<Outcome<{ prId: number; answered: boolean }>>;
+  // Deletes a pull request's review from adoa; the deleted PR's title.
+  deleteReview(prId: number): Promise<Outcome<string>>;
 }

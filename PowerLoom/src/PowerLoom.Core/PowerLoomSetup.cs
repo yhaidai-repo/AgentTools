@@ -6,6 +6,8 @@ using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
 using PowerLoom.Features.ImportSources;
 using PowerLoom.Features.Pbis;
+using PowerLoom.Features.Repos;
+using PowerLoom.Features.Skills;
 using PowerLoom.Features.Tasks;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
@@ -45,6 +47,8 @@ public static class PowerLoomSetup
         builder.Services.AddPbisFeature();
         builder.Services.AddImportSourcesFeature();
         builder.Services.AddTasksFeature();
+        builder.Services.AddReposFeature();
+        builder.Services.AddSkillsFeature();
         builder.Services.AddOpenApi();
 
         return builder;

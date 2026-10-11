@@ -51,7 +51,6 @@ export * from "./pbiRepos";
 export * from "./pbiConfluencePages";
 export * from "./pbiAdmin";
 export * from "./finishPbi";
-export * from "./reviewComments";
 // Commands: contracts for every caller (web actions now, an MCP server later).
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
@@ -61,7 +60,6 @@ export { finishPbiCommand } from "./commands/finishPbiCommand";
 export { deletePbiCommand } from "./commands/deletePbiCommand";
 export { createPbiCommand } from "./commands/createPbiCommand";
 export { deleteReviewCommand } from "./commands/deleteReviewCommand";
-export * from "./reviewAdmin";
 export { JOB_CATALOG } from "./jobCatalog";
 export type { JobInfo } from "./models/JobInfo";
 export type { NewPbi } from "./models/NewPbi";

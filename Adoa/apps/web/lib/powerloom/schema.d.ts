@@ -228,6 +228,186 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/skills/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_skills_name
+         * @description PUT_api_skills_name
+         */
+        put: operations["PUT_api_skills_name"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{name}/revisions/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_skills_name_revisions_id_restore
+         * @description POST_api_skills_name_revisions_id_restore
+         */
+        post: operations["POST_api_skills_name_revisions_id_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_reviews_queue
+         * @description POST_api_reviews_queue
+         */
+        post: operations["POST_api_reviews_queue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_reviews_close
+         * @description POST_api_reviews_close
+         */
+        post: operations["POST_api_reviews_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_reviews
+         * @description DELETE_api_reviews
+         */
+        delete: operations["DELETE_api_reviews"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review-comments/{id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_review_comments_id_answer
+         * @description POST_api_review_comments_id_answer
+         */
+        post: operations["POST_api_review_comments_id_answer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/repos/{id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_repos_id_enabled
+         * @description PUT_api_vaults_vault_repos_id_enabled
+         */
+        put: operations["PUT_api_vaults_vault_repos_id_enabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/repos/local": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_repos_local
+         * @description POST_api_vaults_vault_repos_local
+         */
+        post: operations["POST_api_vaults_vault_repos_local"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/repos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_repos_id
+         * @description DELETE_api_vaults_vault_repos_id
+         */
+        delete: operations["DELETE_api_vaults_vault_repos_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/prepare": {
         parameters: {
             query?: never;
@@ -492,6 +672,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddLocalRepoRequest: {
+            name: string;
+        };
         AddRecordRequest: {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
@@ -502,6 +685,14 @@ export interface components {
         AddedVault: {
             vault: string;
             created: string[];
+        };
+        AnswerRequest: {
+            answer: null | string;
+        };
+        AnsweredComment: {
+            /** Format: int32 */
+            prId: number;
+            answered: boolean;
         };
         /** @enum {unknown} */
         ChatKind: "pbi" | "item" | "review" | "vault";
@@ -518,6 +709,10 @@ export interface components {
             hasAttachment: boolean;
             /** @default false */
             dryRun: boolean;
+        };
+        CloseReviewsRequest: {
+            prIds: number[];
+            reason: null | string;
         };
         ClosedItem: {
             itemId: string;
@@ -545,6 +740,9 @@ export interface components {
         DeletedPbis: {
             deleted: components["schemas"]["DeletedPbi"][];
             refused: string[];
+        };
+        EnabledRequest: {
+            enabled: boolean;
         };
         LauncherAvailability: {
             label: string;
@@ -588,6 +786,11 @@ export interface components {
         RemovedVault: {
             vault: string;
         };
+        RepoSummary: {
+            id: string;
+            name: string;
+            enabled: boolean;
+        };
         ReportBugRequest: {
             parent: string;
             title: string;
@@ -609,6 +812,21 @@ export interface components {
             reopened: string[];
             refused: string[];
         };
+        RestoreRequest: {
+            hash: string;
+        };
+        ReviewIds: {
+            prIds: number[];
+        };
+        ReviewOutcome: {
+            /** Format: int32 */
+            prId: number;
+            value: string;
+        };
+        ReviewsResult: {
+            done: components["schemas"]["ReviewOutcome"][];
+            refused: string[];
+        };
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -616,6 +834,10 @@ export interface components {
             team: string;
             user: string;
             pat: null | string;
+        };
+        SaveSkillRequest: {
+            content: string;
+            hash: string;
         };
         SavedConnection: {
             enabled: boolean;
@@ -631,6 +853,12 @@ export interface components {
         };
         SavedSettings: {
             enabled: boolean;
+        };
+        SavedSkill: {
+            name: string;
+            changed: boolean;
+            /** Format: date-time */
+            restoredFrom: null | string;
         };
         SavedSourceSettings: {
             enabled: boolean;
@@ -1017,6 +1245,256 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClosedItem"];
+                };
+            };
+        };
+    };
+    PUT_api_skills_name: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSkillRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSkill"];
+                };
+            };
+        };
+    };
+    POST_api_skills_name_revisions_id_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSkill"];
+                };
+            };
+        };
+    };
+    POST_api_reviews_queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIds"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
+    POST_api_reviews_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseReviewsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
+    DELETE_api_reviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIds"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
+    POST_api_review_comments_id_answer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnsweredComment"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_repos_id_enabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_repos_local: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLocalRepoRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepoSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_repos_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

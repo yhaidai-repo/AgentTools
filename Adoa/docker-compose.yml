@@ -122,8 +122,7 @@ services:
       - ${VAULTS_ROOT:?set in .env}:/vaults:ro
       - ${REPOS_ROOT:?set in .env}:/repos:ro
       - ${SKILLS_PATH:?set in .env}:/skills:ro
-      # Writable: the Config page edits adoa's own skills only (user decision 2026-10-01); each save keeps the old version in the DB.
-      - ./skills:/app/Adoa/skills
+      - ./skills:/app/Adoa/skills:ro  # PowerLoom writes the skills now
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
     depends_on:
       worker:
@@ -145,6 +144,11 @@ services:
       Vaults__Exclude: ${VAULTS_EXCLUDE:-adoa-backlog}
       Backlog__Root: /vault  # adoa's backlog vault: the chat notes are written here
       Import__InboxRoot: /import-inbox  # the import sources' files (Outlook mails, inbox requests)
+      Repos__Mount: /repos  # Settings → Repositories checks a local repo's folder here
+      Skills__Folders__0: /app/Adoa/skills  # the skill folders in the agent-runner's order (SKILL_FOLDERS)
+      Skills__Folders__1: /skills
+      Skills__Folders__2: /app/DevSecrets/skills
+      Skills__Editable: /app/Adoa/skills  # the Skills page edits adoa's own skills only (user decision 2026-10-01); each save keeps the old version in the DB
       Chat__Launcher: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
       Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
       Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … adoa's backlog vault
@@ -158,6 +162,10 @@ services:
       - ${IMPORT_INBOX_PATH:-./import-inbox}:/import-inbox
       - ../VaultCapture:/app/VaultCapture:ro
       - ./templates/vault:/app/templates/vault:ro
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+      - ./skills:/app/Adoa/skills  # writable: the Skills page's saves
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro
     depends_on:
       db:
         condition: service_healthy
