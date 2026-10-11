@@ -4,7 +4,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { getAgentConfig } from "@/lib/agentConfig";
-import { loadJobErrors, type JobError } from "@/lib/jobErrors";
+import { loadDeadLetters, type DeadLetter } from "@/lib/deadLetters";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { DEFAULT_RANGE, rangeOptions, rangeStart } from "@/lib/ranges";
 import { loadAgentTotals } from "@/lib/agentTotals";
@@ -15,6 +15,7 @@ import { loadSubscriptionStatus } from "@/lib/subscription";
 import type { AgentTotals } from "@/models/AgentTotals";
 import type { RunCounts } from "@/models/RunCounts";
 import { PauseControl, RunNowButton } from "./AgentControls";
+import { DeadLetterControls } from "./DeadLetterControls";
 import { RangeFilter } from "./RangeFilter";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 
@@ -34,7 +35,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   // The agents are one set for every vault; their runs, tokens and costs are the selected vault's (user decision 2026-10-06).
   const byAgent = await loadAgentTotals(rangeStart(range), vault);
   const runCounts = await loadRunCounts(rangeStart(range), vault);
-  const jobErrors = await loadJobErrors(rangeStart(range));
+  const deadLetters = await loadDeadLetters(rangeStart(range));
 
   return (
     <>
@@ -68,15 +69,16 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
         </table>
       </div>
       {agents.length === 0 && <p className="muted">No agents yet: they appear once the agent-runner has started.</p>}
-      <h2>Job errors</h2>
-      <JobErrors errors={jobErrors} />
+      <h2>Dead letters</h2>
+      <p className="muted">Messages PowerLoom gave up on after its retries: errors outside a single run. Replay runs one again; Discard drops it.</p>
+      <DeadLetters letters={deadLetters} />
       <p className="muted">Tokens = input + output + cache read + cache write. Cost is an API-price estimate; on the Max token nothing is billed. Runs opens an agent's runs, Config its settings.</p>
     </>
   );
 }
 
-function JobErrors({ errors }: { errors: JobError[] }) {
-  if (errors.length === 0) {
+function DeadLetters({ letters }: { letters: DeadLetter[] }) {
+  if (letters.length === 0) {
     return <p className="muted">None in this period.</p>;
   }
 
@@ -85,17 +87,19 @@ function JobErrors({ errors }: { errors: JobError[] }) {
       <table>
         <thead>
           <tr>
-            <th>Job</th>
-            <th>Failed</th>
+            <th>Message</th>
+            <th>Sent</th>
             <th>Error</th>
+            <th />
           </tr>
         </thead>
         <tbody>
-          {errors.map((error, index) => (
-            <tr key={index}>
-              <td>{error.queue}</td>
-              <td><LocalTime date={error.failedAt} /></td>
-              <td className="title result-error">{error.message}</td>
+          {letters.map((letter) => (
+            <tr key={letter.id}>
+              <td><code>{letter.messageType}</code>{letter.replayable && <span className="muted"> (replaying)</span>}</td>
+              <td><LocalTime date={letter.sentAt} /></td>
+              <td className="title result-error">{letter.exceptionType ? `${letter.exceptionType}: ` : ""}{letter.exceptionMessage}</td>
+              <td><DeadLetterControls id={letter.id} replayable={letter.replayable} /></td>
             </tr>
           ))}
         </tbody>

@@ -1,6 +1,6 @@
 name: adoa
 
-# Each service gets only the variables it needs: the Claude token never reaches the worker or web.
+# Each service gets only the variables it needs: the Claude token never reaches the web.
 # The agent-runner has the ADO token only to clone repos (user decision 2026-10-01).
 x-db-url: &db-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
@@ -26,24 +26,13 @@ services:
       timeout: 3s
       retries: 20
 
-  worker:
-    <<: *app
-    build:  # builds adoa-app once; the other app services reuse it
-      context: ..
-      dockerfile: Adoa/Dockerfile
-    command: ["npm", "run", "start", "-w", "@adoa/worker"]
-    # Every job runs in PowerLoom (phase 5); the worker only keeps pg-boss's maintenance until phase 6 removes both.
-    environment:
-      DATABASE_URL: *db-url
-    depends_on:
-      powerloom:
-        condition: service_healthy  # PowerLoom migrates the schema at start
-    restart: unless-stopped
-
   # Agent runs: one dispatched task per job. Writes the DB, then the task's PBI notes (backlog) and its drafts (via
   # VaultCapture, draft/ only). Docs, skills and the rest of the docs vault are read-only.
   agent-runner:
     <<: *app
+    build:  # builds adoa-app once; the web reuses it
+      context: ..
+      dockerfile: Adoa/Dockerfile
     command: ["npm", "run", "start", "-w", "@adoa/agent-runner"]
     environment:
       DATABASE_URL: *db-url
@@ -73,6 +62,11 @@ services:
       - repo-cache:/repo-cache
       # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
       - ${REPOS_ROOT:?set in .env}:/repos:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3200/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       powerloom:
         condition: service_healthy  # PowerLoom migrates the schema at start
@@ -107,8 +101,8 @@ services:
       - ./skills:/app/Adoa/skills:ro  # PowerLoom writes the skills now
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
     depends_on:
-      worker:
-        condition: service_started
+      powerloom:
+        condition: service_healthy
     restart: unless-stopped
 
   # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.

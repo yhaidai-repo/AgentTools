@@ -3,7 +3,7 @@ import type { AgentRunJob } from "@adoa/core";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
-// time; PowerLoom asks again later.
+// time; PowerLoom asks again later. `GET /health` for PowerLoom's health check and Docker's.
 export class RunnerServer {
   private running: string | null = null;
   private readonly server: Server;
@@ -21,6 +21,12 @@ export class RunnerServer {
   }
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (request.method === "GET" && request.url === "/health") {
+      answer(response, 200, { ok: true, running: this.running });
+
+      return;
+    }
+
     if (request.method !== "POST" || request.url !== "/runs") {
       answer(response, 404, { error: "not found" });
 

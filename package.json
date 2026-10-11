@@ -11,8 +11,7 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "adoa:db:generate": "npm run generate -w @adoa/db",
-    "adoa:dev:web": "npm run dev -w @adoa/web",
-    "adoa:dev:worker": "npm run dev -w @adoa/worker"
+    "adoa:dev:web": "npm run dev -w @adoa/web"
   },
   "engines": {
     "node": ">=22"

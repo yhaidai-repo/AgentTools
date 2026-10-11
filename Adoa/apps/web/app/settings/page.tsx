@@ -2,7 +2,6 @@ import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, rea
 import type { AdoaDb } from "@adoa/db";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
-import { JobsPanel } from "./JobsPanel";
 import { RepositoriesPanel } from "./RepositoriesPanel";
 import Link from "next/link";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -45,8 +44,6 @@ export default async function SettingsPage() {
       <h2>Agents</h2>
       <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
-      <h2>Jobs and workers</h2>
-      <JobsPanel />
       <h2>From .env (restart to change)</h2>
       <p className="muted">
         Backlog vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence: <ConfluenceAccess status={await readConfluenceStatus(db)} />

@@ -1333,6 +1333,118 @@
         }
       }
     },
+    "/api/dead-letters": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "GET_api_dead_letters",
+        "description": "GET_api_dead_letters",
+        "operationId": "GET_api_dead_letters",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeadLetterInfo"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dead-letters/{id}/replay": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "POST_api_dead_letters_id_replay",
+        "description": "POST_api_dead_letters_id_replay",
+        "operationId": "POST_api_dead_letters_id_replay",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterAction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dead-letters/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "DELETE_api_dead_letters_id",
+        "description": "DELETE_api_dead_letters_id",
+        "operationId": "DELETE_api_dead_letters_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterAction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/chats": {
       "post": {
         "tags": [
@@ -2096,6 +2208,64 @@
           },
           "vault": {
             "type": "string"
+          }
+        }
+      },
+      "DeadLetterAction": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "DeadLetterInfo": {
+        "required": [
+          "id",
+          "messageType",
+          "exceptionType",
+          "exceptionMessage",
+          "sentAt",
+          "source",
+          "replayable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "exceptionType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exceptionMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replayable": {
+            "type": "boolean"
           }
         }
       },
@@ -3202,6 +3372,9 @@
     },
     {
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
     },
     {
       "name": "PowerLoom.Features.Continue.ChatsEndpoints"

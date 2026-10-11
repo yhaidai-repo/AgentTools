@@ -16,4 +16,16 @@ public sealed class HealthEndpointTests(PowerLoomHost host)
             scenario.ContentShouldBe("Healthy");
         });
     }
+
+    // No runner in the tests: degraded, never unhealthy (PowerLoom runs without it).
+    [Fact]
+    public async Task The_runner_check_is_degraded_while_the_runner_does_not_answer()
+    {
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Get.Url(HealthSetup.RunnerPath);
+            scenario.StatusCodeShouldBeOk();
+            scenario.ContentShouldBe("Degraded");
+        });
+    }
 }

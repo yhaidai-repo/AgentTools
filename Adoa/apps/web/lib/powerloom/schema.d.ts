@@ -596,6 +596,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dead-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_dead_letters
+         * @description GET_api_dead_letters
+         */
+        get: operations["GET_api_dead_letters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dead-letters/{id}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_dead_letters_id_replay
+         * @description POST_api_dead_letters_id_replay
+         */
+        post: operations["POST_api_dead_letters_id_replay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dead-letters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_dead_letters_id
+         * @description DELETE_api_dead_letters_id
+         */
+        delete: operations["DELETE_api_dead_letters_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/chats": {
         parameters: {
             query?: never;
@@ -916,6 +976,21 @@ export interface components {
             /** Format: int32 */
             adoId: number;
             vault: string;
+        };
+        DeadLetterAction: {
+            /** Format: uuid */
+            id: string;
+        };
+        DeadLetterInfo: {
+            /** Format: uuid */
+            id: string;
+            messageType: string;
+            exceptionType: null | string;
+            exceptionMessage: null | string;
+            /** Format: date-time */
+            sentAt: string;
+            source: null | string;
+            replayable: boolean;
         };
         DeleteItemRequest: {
             /** Format: int32 */
@@ -2045,6 +2120,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GET_api_dead_letters: {
+        parameters: {
+            query?: {
+                since?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeadLetterInfo"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_dead_letters_id_replay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeadLetterAction"];
+                };
+            };
+        };
+    };
+    DELETE_api_dead_letters_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeadLetterAction"];
+                };
             };
         };
     };
