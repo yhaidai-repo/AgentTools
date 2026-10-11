@@ -13,6 +13,9 @@ public sealed class FakeVaultCapture : IVaultCapture
 
     public List<(string Vault, DraftCapture Draft)> Captured { get; } = [];
 
+    // The draft folder of each vault as the tests set it; a name not listed is no draft any more.
+    public Dictionary<string, List<VaultDraft>> Drafts { get; } = [];
+
     public Task<Outcome<string>> AddRegisterRecordAsync(string vault, NewRegisterRecord record, CancellationToken cancellation)
     {
         Added.Add((vault, record));
@@ -34,5 +37,19 @@ public sealed class FakeVaultCapture : IVaultCapture
             : new DraftCaptureResult(true, "created", $"draft/{draft.Name}.md", []);
 
         return Task.FromResult(result);
+    }
+
+    public Task<IReadOnlyList<VaultDraft>> ListDraftsAsync(string vault, string preferSource, CancellationToken cancellation)
+    {
+        var drafts = (Drafts.GetValueOrDefault(vault) ?? []).OrderByDescending(draft => draft.Source.StartsWith(preferSource)).ThenBy(draft => draft.Captured).ToList();
+
+        return Task.FromResult<IReadOnlyList<VaultDraft>>(drafts);
+    }
+
+    public Task<IReadOnlyDictionary<string, bool>> IsDraftAsync(string vault, IReadOnlyCollection<string> names, CancellationToken cancellation)
+    {
+        var listed = (Drafts.GetValueOrDefault(vault) ?? []).Select(draft => draft.Name).ToHashSet();
+
+        return Task.FromResult<IReadOnlyDictionary<string, bool>>(names.Distinct().ToDictionary(name => name, listed.Contains));
     }
 }

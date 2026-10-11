@@ -3,6 +3,8 @@ using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 using PowerLoom.AdoIntegration.Features.SyncRepositories;
 using PowerLoom.AdoIntegration.Settings;
+using PowerLoom.Contracts;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Runs;
@@ -26,12 +28,28 @@ public static class SyncPbisHandler
 
             if (outcome.Outcome == RunOutcome.Success && message.AdoId is null && message.Sources == SyncSources.Sprint)
                 await bus.PublishAsync(new SyncRepositories.SyncRepositories(message.Vault));
+
+            if (outcome.Outcome == RunOutcome.Success)
+                await PrepareNewBugsAsync(db, bus, logger, cancellation);
         }
         catch (Exception error)
         {
             await JobRuns.FinishAsync(db, runId, RunOutcome.Failed, error.Message, cancellation);
             throw;
         }
+    }
+
+    // Bugs are prepared without the user (user decision 2026-10-09): a new or changed bug gets its note and refinement
+    // task right after the sync that brought it (bug.report prepares its own).
+    private static async Task PrepareNewBugsAsync(PowerLoomDbContext db, IMessageBus bus, ILogger<SyncPbis> logger, CancellationToken cancellation)
+    {
+        var bugs = await Bugs.ToPrepareAsync(db, cancellation);
+
+        foreach (var bug in bugs)
+            await bus.PublishAsync(new PreparePbi(bug.Vault, bug.AdoId, "sync"));
+
+        if (bugs.Count > 0)
+            logger.LogInformation("sync: {Count} bug(s) to prepare: {Ids}", bugs.Count, string.Join(", ", bugs.Select(bug => bug.AdoId)));
     }
 
     private static async Task<SyncOutcome> RunAsync(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, SprintSync sprintSync, ImportSync importSync, SinglePbiSync singleSync, long runId, CancellationToken cancellation)

@@ -18,4 +18,7 @@ public interface IAdoClient
     Task<IReadOnlyList<AdoPullRequest>> ListActivePullRequestsAsync(CancellationToken cancellation);
 
     Task<AdoPullRequestDetails> GetPullRequestDetailsAsync(string repoId, int pullRequestId, CancellationToken cancellation);
+
+    // A work item attachment (an `_apis/wit/attachments` link in a PBI), fetched with the vault's token.
+    Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation);
 }

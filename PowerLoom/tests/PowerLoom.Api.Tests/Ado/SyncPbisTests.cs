@@ -4,6 +4,7 @@ using PowerLoom.AdoIntegration.Features.SyncPbis;
 using PowerLoom.AdoIntegration.Features.SyncRepositories;
 using PowerLoom.AdoIntegration.Settings;
 using PowerLoom.Api.Tests.Probes;
+using PowerLoom.Contracts;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -39,6 +40,8 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         Assert.Equal((51001, PipelineStatus.New, BugSource.Ado), (bug.PbiId, bug.FoundIn, bug.Source));
         Assert.Equal(51001, (await LoadAsync(51011)).ParentId);
         Assert.Equal(PowerLoomHost.Vault, session.Sent.SingleMessage<SyncRepositories>().Vault);
+        // The bug is prepared without the user, right after the sync that brought it.
+        Assert.Equal([(51011, "sync")], session.Sent.MessagesOf<PreparePbi>().Select(prepare => (prepare.AdoId, prepare.Actor)).ToList());
         Assert.Equal(RunOutcome.Success, await LastSyncRunOutcomeAsync());
         Assert.Equal(1, await CountSnapshotsAsync("proj\\Sprint 7"));
 

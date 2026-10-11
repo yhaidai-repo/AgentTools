@@ -33,6 +33,30 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
         return new DraftCaptureResult(output.Ok, output.Mode ?? "rejected", output.Path is null ? null : RelativePath(vault, output.Path), output.Errors ?? []);
     }
 
+    public async Task<IReadOnlyList<VaultDraft>> ListDraftsAsync(string vault, string preferSource, CancellationToken cancellation)
+    {
+        var output = await RunAsync<DraftListOutput>(["drafts", "-Vault", vault, "-PreferSource", preferSource], vault, "", cancellation);
+
+        if (!output.Ok)
+            throw new InvalidOperationException($"VaultCapture drafts failed: {string.Join("; ", output.Errors ?? [])}");
+
+        return (output.Drafts ?? []).Select(draft => draft with { Path = RelativePath(vault, draft.Path) }).ToList();
+    }
+
+    public async Task<IReadOnlyDictionary<string, bool>> IsDraftAsync(string vault, IReadOnlyCollection<string> names, CancellationToken cancellation)
+    {
+        if (names.Count == 0)
+            return new Dictionary<string, bool>();
+
+        var arguments = new[] { "is-draft", "-Vault", vault }.Concat(names.SelectMany(name => new[] { "-Name", name }));
+        var output = await RunAsync<IsDraftOutput>(arguments, vault, "", cancellation);
+
+        if (!output.Ok)
+            throw new InvalidOperationException($"VaultCapture is-draft failed: {string.Join("; ", output.Errors ?? [])}");
+
+        return output.Drafts ?? [];
+    }
+
     // Draft paths as stored: relative to the docs vault (e.g. draft/pvs-topic.md).
     private string RelativePath(string vault, string path) => Path.GetRelativePath(roots.RootOf(vault), path).Replace('\\', '/');
 

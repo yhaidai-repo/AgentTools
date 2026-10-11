@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Agents;
 using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
+using PowerLoom.Features.Drafts;
 using PowerLoom.Features.ImportSources;
 using PowerLoom.Features.Pbis;
 using PowerLoom.Features.Repos;
@@ -46,6 +47,7 @@ public static class PowerLoomSetup
         builder.AddPowerLoomRunner();
         builder.Services.AddVaultsFeature();
         builder.Services.AddDocsFeature();
+        builder.Services.AddDraftsFeature();
         builder.Services.AddContinueFeature();
         builder.Services.AddPbisFeature();
         builder.Services.AddImportSourcesFeature();

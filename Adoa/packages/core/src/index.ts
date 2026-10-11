@@ -15,7 +15,6 @@ export * from "./localItemIds";
 export * from "./urls";
 export * from "./attachmentIds";
 export * from "./humanItems";
-export * from "./documentTasks";
 export type { AdoSettings } from "./models/AdoSettings";
 export type { SyncSettings } from "./models/SyncSettings";
 export type { ConfluenceStatus } from "./models/ConfluenceStatus";
@@ -75,10 +74,9 @@ export { reportBugCommand } from "./commands/reportBugCommand";
 // Bugs and child items (user decision 2026-10-09).
 export { BUG_MARKER, isMarkedBug } from "./bugs/bugRule";
 export { childIds, inheritParentContext, readChildItems, topLevelPbi } from "./bugs/childItems";
-export { bugsToPrepare, readBug, recordBug } from "./bugs/bugRecords";
+export { readBug, recordBug } from "./bugs/bugRecords";
 export { readPbiOverview } from "./bugs/pbiOverview";
 export type { BugInfo } from "./models/BugInfo";
-export type { BugToPrepare } from "./models/BugToPrepare";
 export type { ChildItem } from "./models/ChildItem";
 export type { PbiOverview } from "./models/PbiOverview";
 // Continue with an agent (model agnostic).

@@ -1,4 +1,5 @@
 using PowerLoom.Contracts.Confluence;
+using PowerLoom.Contracts.Documents;
 using PowerLoom.Domain.Tasks;
 using PowerLoom.Features.Agents.AgentRun;
 using PowerLoom.Features.Tasks;
@@ -50,10 +51,12 @@ public static class DispatchAgentHandler
         return global.IsPaused(DateTimeOffset.UtcNow) ? "agents paused" : null;
     }
 
-    // The PBI's Confluence pages are checked when a task on it is about to start (user decision 2026-10-02): a page
-    // still missing is fetched before the checks, and a valid task's pages are brought to their current version.
+    // The PBI's linked documents are collected and its Confluence pages checked when a task on it is about to start
+    // (user decision 2026-10-02): a page still missing is fetched before the checks, and a valid task's pages are
+    // brought to their current version.
     private static async Task<bool> TryStartAsync(PowerLoomDbContext db, IMessageBus bus, AgentSummary agent, LocalItem task, CancellationToken cancellation)
     {
+        await CollectDocumentsAsync(bus, task);
         await SyncPagesAsync(bus, task, PageSyncScope.Missing);
 
         var reasons = await TaskValidation.ValidateAsync(db, task, agent.Id, agent.WaitFor, agent.WebAccess, cancellation);
@@ -74,6 +77,12 @@ public static class DispatchAgentHandler
         await PbiChanges.PublishAsync(db, bus, task.PbiId, Actor, cancellation);
 
         return true;
+    }
+
+    private static async Task CollectDocumentsAsync(IMessageBus bus, LocalItem task)
+    {
+        if (task.PbiId is not null)
+            await bus.InvokeAsync(new CollectLinkedDocuments(task.Vault, task.PbiId.Value));
     }
 
     private static async Task SyncPagesAsync(IMessageBus bus, LocalItem task, PageSyncScope scope)

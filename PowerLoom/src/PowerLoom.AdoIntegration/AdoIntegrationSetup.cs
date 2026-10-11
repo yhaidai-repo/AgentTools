@@ -1,4 +1,5 @@
 using PowerLoom.AdoIntegration.Client;
+using PowerLoom.AdoIntegration.Features.CollectDocuments;
 using PowerLoom.AdoIntegration.Features.Connection;
 using PowerLoom.AdoIntegration.Features.SyncPbis;
 using PowerLoom.AdoIntegration.Features.SyncPullRequests;
@@ -25,6 +26,7 @@ public static class AdoIntegrationSetup
         builder.Services.AddScoped<SinglePbiSync>();
         builder.Services.AddScoped<ImportSync>();
         builder.Services.AddScoped<PullRequestSync>();
+        builder.Services.AddScoped<LinkedDocumentCollector>();
         builder.Services.AddSingleton<ICronSource, AdoCronSource>();
         // PBI notes link to the work item's page in Azure DevOps.
         builder.Services.AddScoped<IWorkItemLinks, WorkItemLinks>();

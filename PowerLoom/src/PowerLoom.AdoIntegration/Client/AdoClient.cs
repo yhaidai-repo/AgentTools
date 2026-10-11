@@ -94,6 +94,28 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
             dto.LastMergeTargetCommit?.CommitId, reviewers, dto.CreationDate, $"{ProjectUrl()}/_git/{Uri.EscapeDataString(dto.Repository.Name)}/pullrequest/{dto.PullRequestId}");
     }
 
+    public async Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation)
+    {
+        if (!url.StartsWith($"{_orgUrl}/", StringComparison.OrdinalIgnoreCase))
+            throw new AdoRequestException(400, $"not an attachment of {_orgUrl}: {url}");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($":{connection.Pat}")));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+        using var response = await http.SendAsync(request, cancellation);
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+
+        // An expired token answers with the HTML sign-in page instead of the file.
+        if (!response.IsSuccessStatusCode || contentType.Contains("text/html", StringComparison.OrdinalIgnoreCase))
+            throw new AdoRequestException((int)response.StatusCode, $"download failed ({(int)response.StatusCode} {contentType}): {url}");
+
+        var fileName = System.Web.HttpUtility.ParseQueryString(new Uri(url).Query).Get("fileName") ?? "attachment";
+
+        return new AdoDownload(fileName, contentType, await response.Content.ReadAsByteArrayAsync(cancellation));
+    }
+
     private string ProjectUrl() => $"{_orgUrl}/{Uri.EscapeDataString(connection.Project)}";
 
     private async Task<T> RequestAsync<T>(string url, object? body, CancellationToken cancellation)

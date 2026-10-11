@@ -6,11 +6,11 @@ import type { CliOutput } from "./models/CliOutput";
 import type { CliResult } from "./models/CliResult";
 import type { NewRegisterRecord } from "./models/NewRegisterRecord";
 import type { RegisterRecord } from "./models/RegisterRecord";
-import type { VaultDraft } from "./models/VaultDraft";
 
 const TIMEOUT_MS = 60_000;
 
-// The user's VaultCapture module (PowerShell CLI), which owns the docs vault's draft rules. Only the worker runs it.
+// The user's VaultCapture module (PowerShell CLI), which owns the docs vault's draft rules. The drafts scan is
+// PowerLoom's; the runner captures drafts and reads registers through it.
 export class VaultCaptureCli {
   private constructor(
     private readonly moduleHome: string,
@@ -34,25 +34,6 @@ export class VaultCaptureCli {
     const output = await this.run(["capture"], JSON.stringify(request));
 
     return output.ok ? (output.json as CaptureResult) : { ok: false, mode: "rejected", path: null, errors: [output.error] };
-  }
-
-  // Which names are still in draft/ (not yet merged). A failure here is unexpected and fails the job.
-  async isDraft(names: string[]): Promise<Record<string, boolean>> {
-    const output = await this.run(["is-draft", "-Vault", this.vaultName, ...names.flatMap((name) => ["-Name", name])]);
-    const result = output.ok ? (output.json as { ok: boolean; drafts: Record<string, boolean>; errors: string[] }) : null;
-
-    if (!result?.ok) {
-      throw new Error(`VaultCapture is-draft failed: ${output.ok ? result?.errors.join("; ") : output.error}`);
-    }
-
-    return result.drafts;
-  }
-
-  // The drafts in the order a writer takes them: those whose source starts with `preferSource` first, then oldest first.
-  async listDrafts(preferSource: string): Promise<VaultDraft[]> {
-    const result = await this.query(["drafts", "-Vault", this.vaultName, "-PreferSource", preferSource]);
-
-    return result.ok ? (result.drafts as VaultDraft[] | null) ?? [] : failQuery("drafts", result);
   }
 
   async listRegister(project: string, kind: NewRegisterRecord["kind"]): Promise<RegisterRecord[]> {

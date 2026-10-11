@@ -20,6 +20,9 @@ public sealed class FakeAdoClient : IAdoClient
 
     public Dictionary<int, AdoPullRequestDetails> Details { get; } = [];
 
+    // Attachment URL → file; a URL not listed fails like an expired token would.
+    public Dictionary<string, AdoDownload> Downloads { get; } = [];
+
     public Task<IReadOnlyList<int>> QueryIdsAsync(string wiql, CancellationToken cancellation)
     {
         Queries.Add(wiql);
@@ -44,5 +47,10 @@ public sealed class FakeAdoClient : IAdoClient
     public Task<AdoPullRequestDetails> GetPullRequestDetailsAsync(string repoId, int pullRequestId, CancellationToken cancellation)
     {
         return Task.FromResult(Details.GetValueOrDefault(pullRequestId, new AdoPullRequestDetails(1, [])));
+    }
+
+    public Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation)
+    {
+        return Downloads.TryGetValue(url, out var file) ? Task.FromResult(file) : throw new AdoRequestException(203, $"download failed (203 text/html): {url}");
     }
 }
