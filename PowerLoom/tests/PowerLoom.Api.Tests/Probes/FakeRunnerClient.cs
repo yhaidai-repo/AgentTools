@@ -12,6 +12,11 @@ public sealed class FakeRunnerClient : IRunnerClient
 
     public List<RunnerRequest> Requests { get; } = [];
 
+    // Unreachable unless a test says otherwise.
+    public RunnerHealth Health { get; set; } = new(false, null, "no runner in the tests");
+
+    public Task<RunnerHealth> HealthAsync(CancellationToken cancellation) => Task.FromResult(Health);
+
     public Task<RunnerAnswer> StartAsync(RunnerRequest request, CancellationToken cancellation)
     {
         lock (_lock)

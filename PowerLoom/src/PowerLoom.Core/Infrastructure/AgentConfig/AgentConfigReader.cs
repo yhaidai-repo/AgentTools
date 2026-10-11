@@ -11,8 +11,8 @@ namespace PowerLoom.Infrastructure.AgentConfig;
 public sealed class AgentConfigReader(PowerLoomDbContext db)
 {
     private const string UndefinedTable = "42P01";
-    private const int DefaultTimeoutMinutes = 60;
-    private const int DefaultBatchSize = 1;
+    private const int DefaultTimeoutMinutes = AgentSummaryDefaults.TimeoutMinutes;
+    private const int DefaultBatchSize = AgentSummaryDefaults.BatchSize;
 
     private static readonly AgentsGlobal DefaultGlobal = new(false, null, 10);
 
@@ -66,7 +66,8 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
             root.TryGetProperty("capabilities", out var capabilities) && Flag(capabilities, "webAccess"),
             root.TryGetProperty("limits", out var limits) ? Number(limits, "timeoutMinutes", DefaultTimeoutMinutes) : DefaultTimeoutMinutes,
             Number(options, "batchSize", DefaultBatchSize),
-            options);
+            options,
+            root.TryGetProperty("budgets", out var budgets) ? Money(budgets, "dailyUsd") : AgentSummaryDefaults.DailyBudgetUsd);
     }
 
     private static AgentsGlobal ParseGlobal(string value)
@@ -84,6 +85,8 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
     private static string? Text(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
     private static bool Flag(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
+
+    private static decimal Money(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDecimal() : AgentSummaryDefaults.DailyBudgetUsd;
 
     private static int Number(JsonElement element, string name, int fallback) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : fallback;
 

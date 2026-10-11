@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_status
+         * @description GET_api_status
+         */
+        get: operations["GET_api_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/skills/{name}": {
         parameters: {
             query?: never;
@@ -918,6 +938,13 @@ export interface components {
             vault: string;
             created: string[];
         };
+        AgentBudget: {
+            agentId: string;
+            /** Format: double */
+            dailyLimitUsd: number;
+            /** Format: double */
+            spentTodayUsd: number;
+        };
         AnswerRequest: {
             answer: null | string;
         };
@@ -925,6 +952,18 @@ export interface components {
             /** Format: int32 */
             prId: number;
             answered: boolean;
+        };
+        Attention: {
+            component: string;
+            severity: components["schemas"]["StateLevel"];
+            message: string;
+        };
+        BudgetStatus: {
+            /** Format: double */
+            dailyLimitUsd: number;
+            /** Format: double */
+            spentTodayUsd: number;
+            agents: components["schemas"]["AgentBudget"][];
         };
         /** @enum {unknown} */
         ChatKind: "pbi" | "item" | "review" | "vault";
@@ -955,6 +994,10 @@ export interface components {
             runId: null | number;
             outcome: components["schemas"]["RunOutcome"];
             error: null | string;
+        };
+        ComponentState: {
+            state: components["schemas"]["StateLevel"];
+            detail: string;
         };
         ConnectionCheck: {
             ok: boolean;
@@ -1040,6 +1083,19 @@ export interface components {
         };
         LoadPageRequest: {
             url: string;
+        };
+        MessagingStatus: {
+            /** Format: int32 */
+            incoming: number;
+            /** Format: int32 */
+            scheduled: number;
+            /** Format: int32 */
+            deadLetters: number;
+            /** Format: int32 */
+            deadLettersLast24h: number;
+            incomingByType: {
+                [key: string]: number;
+            };
         };
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
@@ -1129,8 +1185,24 @@ export interface components {
             done: components["schemas"]["ReviewOutcome"][];
             refused: string[];
         };
+        RunInProgress: {
+            taskId: string;
+            agentId: string;
+            /** Format: int32 */
+            pbiId: null | number;
+            /** Format: date-time */
+            since: string;
+            stuck: boolean;
+        };
         /** @enum {unknown} */
         RunOutcome: "running" | "success" | "no-op" | "failed" | "budget-exceeded" | "gate-rejected" | "rate-limited" | "timeout" | "aborted" | "max-turns";
+        RunnerStatus: {
+            state: components["schemas"]["StateLevel"];
+            reachable: boolean;
+            runningTask: null | string;
+            url: string;
+            detail: null | string;
+        };
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -1193,6 +1265,13 @@ export interface components {
             goal: null | string;
             repos: null | string[];
         };
+        ScheduleStatus: {
+            key: string;
+            cron: string;
+            message: string;
+            /** Format: date-time */
+            nextDueAt: null | string;
+        };
         SkillChoice: {
             name: string;
             reason: string;
@@ -1204,6 +1283,10 @@ export interface components {
             maxItemsPerRun: number;
             importFolder: null | string;
         };
+        /** @enum {unknown} */
+        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review";
+        /** @enum {unknown} */
+        StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {
             ids: number[];
             refs: string[];
@@ -1220,8 +1303,34 @@ export interface components {
         SyncRepositoriesRequest: {
             vault: string;
         };
+        SyncRun: {
+            /** Format: int64 */
+            id: number;
+            stage: components["schemas"]["Stage"];
+            outcome: components["schemas"]["RunOutcome"];
+            error: null | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt: null | string;
+        };
         /** @enum {unknown} */
         SyncSources: "sprint" | "imports" | null;
+        SystemStatus: {
+            /** Format: date-time */
+            checkedAt: string;
+            database: components["schemas"]["ComponentState"];
+            ticker: components["schemas"]["TickerStatus"];
+            runner: components["schemas"]["RunnerStatus"];
+            confluenceConfigured: boolean;
+            vaults: components["schemas"]["VaultStatus"][];
+            messaging: components["schemas"]["MessagingStatus"];
+            runs: components["schemas"]["RunInProgress"][];
+            schedules: components["schemas"]["ScheduleStatus"][];
+            recentSyncs: components["schemas"]["SyncRun"][];
+            budget: components["schemas"]["BudgetStatus"];
+            attention: components["schemas"]["Attention"][];
+        };
         TaskRef: {
             /** Format: int32 */
             adoId: null | number;
@@ -1236,6 +1345,13 @@ export interface components {
         TickResult: {
             result: string;
         };
+        TickerStatus: {
+            state: components["schemas"]["StateLevel"];
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            lastTickAt: null | string;
+        };
         TrashEntry: {
             path: string;
             /** Format: int64 */
@@ -1245,6 +1361,17 @@ export interface components {
         };
         TrashPathRequest: {
             path: string;
+        };
+        VaultStatus: {
+            name: string;
+            adoEnabled: boolean;
+            adoConfigured: boolean;
+            /** Format: date-time */
+            lastPbiSyncAt: null | string;
+            /** Format: date-time */
+            lastPullRequestSyncAt: null | string;
+            importConfigured: boolean;
+            importCheckedAt: null | string;
         };
     };
     responses: never;
@@ -1572,6 +1699,33 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClosedItem"];
                 };
+            };
+        };
+    };
+    GET_api_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStatus"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

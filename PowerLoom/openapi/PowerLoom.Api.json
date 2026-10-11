@@ -458,6 +458,31 @@
         }
       }
     },
+    "/api/status": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.StatusEndpoint"
+        ],
+        "summary": "GET_api_status",
+        "description": "GET_api_status",
+        "operationId": "GET_api_status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/skills/{name}": {
       "put": {
         "tags": [
@@ -1964,6 +1989,27 @@
           }
         }
       },
+      "AgentBudget": {
+        "required": [
+          "agentId",
+          "dailyLimitUsd",
+          "spentTodayUsd"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "dailyLimitUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "spentTodayUsd": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "AnswerRequest": {
         "required": [
           "answer"
@@ -1991,6 +2037,49 @@
           },
           "answered": {
             "type": "boolean"
+          }
+        }
+      },
+      "Attention": {
+        "required": [
+          "component",
+          "severity",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "BudgetStatus": {
+        "required": [
+          "dailyLimitUsd",
+          "spentTodayUsd",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "dailyLimitUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "spentTodayUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentBudget"
+            }
           }
         }
       },
@@ -2115,6 +2204,21 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ComponentState": {
+        "required": [
+          "state",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "detail": {
+            "type": "string"
           }
         }
       },
@@ -2462,6 +2566,41 @@
         "properties": {
           "url": {
             "type": "string"
+          }
+        }
+      },
+      "MessagingStatus": {
+        "required": [
+          "incoming",
+          "scheduled",
+          "deadLetters",
+          "deadLettersLast24h",
+          "incomingByType"
+        ],
+        "type": "object",
+        "properties": {
+          "incoming": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scheduled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadLetters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadLettersLast24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "incomingByType": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },
@@ -2834,6 +2973,38 @@
           }
         }
       },
+      "RunInProgress": {
+        "required": [
+          "taskId",
+          "agentId",
+          "pbiId",
+          "since",
+          "stuck"
+        ],
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stuck": {
+            "type": "boolean"
+          }
+        }
+      },
       "RunOutcome": {
         "enum": [
           "running",
@@ -2847,6 +3018,39 @@
           "aborted",
           "max-turns"
         ]
+      },
+      "RunnerStatus": {
+        "required": [
+          "state",
+          "reachable",
+          "runningTask",
+          "url",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "reachable": {
+            "type": "boolean"
+          },
+          "runningTask": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "SaveConnectionRequest": {
         "required": [
@@ -3096,6 +3300,33 @@
           }
         }
       },
+      "ScheduleStatus": {
+        "required": [
+          "key",
+          "cron",
+          "message",
+          "nextDueAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "nextDueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "SkillChoice": {
         "required": [
           "name",
@@ -3137,6 +3368,25 @@
             ]
           }
         }
+      },
+      "Stage": {
+        "enum": [
+          "sync",
+          "refinement",
+          "research",
+          "design",
+          "tech-writer",
+          "pull-requests",
+          "code-review",
+          "vault-review"
+        ]
+      },
+      "StateLevel": {
+        "enum": [
+          "ok",
+          "degraded",
+          "failed"
+        ]
       },
       "StoredAttachments": {
         "required": [
@@ -3212,12 +3462,123 @@
           }
         }
       },
+      "SyncRun": {
+        "required": [
+          "id",
+          "stage",
+          "outcome",
+          "error",
+          "startedAt",
+          "endedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/Stage"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RunOutcome"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "SyncSources": {
         "enum": [
           "sprint",
           "imports",
           null
         ]
+      },
+      "SystemStatus": {
+        "required": [
+          "checkedAt",
+          "database",
+          "ticker",
+          "runner",
+          "confluenceConfigured",
+          "vaults",
+          "messaging",
+          "runs",
+          "schedules",
+          "recentSyncs",
+          "budget",
+          "attention"
+        ],
+        "type": "object",
+        "properties": {
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/ComponentState"
+          },
+          "ticker": {
+            "$ref": "#/components/schemas/TickerStatus"
+          },
+          "runner": {
+            "$ref": "#/components/schemas/RunnerStatus"
+          },
+          "confluenceConfigured": {
+            "type": "boolean"
+          },
+          "vaults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VaultStatus"
+            }
+          },
+          "messaging": {
+            "$ref": "#/components/schemas/MessagingStatus"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunInProgress"
+            }
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleStatus"
+            }
+          },
+          "recentSyncs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncRun"
+            }
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetStatus"
+          },
+          "attention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attention"
+            }
+          }
+        }
       },
       "TaskRef": {
         "required": [
@@ -3275,6 +3636,33 @@
           }
         }
       },
+      "TickerStatus": {
+        "required": [
+          "state",
+          "startedAt",
+          "lastTickAt"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastTickAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "TrashEntry": {
         "required": [
           "path",
@@ -3306,6 +3694,52 @@
             "type": "string"
           }
         }
+      },
+      "VaultStatus": {
+        "required": [
+          "name",
+          "adoEnabled",
+          "adoConfigured",
+          "lastPbiSyncAt",
+          "lastPullRequestSyncAt",
+          "importConfigured",
+          "importCheckedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "adoEnabled": {
+            "type": "boolean"
+          },
+          "adoConfigured": {
+            "type": "boolean"
+          },
+          "lastPbiSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastPullRequestSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "importConfigured": {
+            "type": "boolean"
+          },
+          "importCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     }
   },
@@ -3333,6 +3767,9 @@
     },
     {
       "name": "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Status.StatusEndpoint"
     },
     {
       "name": "PowerLoom.Features.Skills.SkillsEndpoints"

@@ -14,4 +14,5 @@ public sealed record AgentSummary(
     bool WebAccess,
     int TimeoutMinutes,
     int BatchSize,
-    JsonElement Options);
+    JsonElement Options,
+    decimal DailyBudgetUsd);

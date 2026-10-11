@@ -6,7 +6,7 @@ namespace PowerLoom.Infrastructure.Health;
 // The schedules run only while the ticker ticks: a ticker silent for longer than this is a failure to alert on.
 public sealed class ScheduleTickerHealthCheck(ScheduleTicker ticker, TimeProvider clock) : IHealthCheck
 {
-    private static readonly TimeSpan MaxSilence = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan MaxSilence = TimeSpan.FromMinutes(5);
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {

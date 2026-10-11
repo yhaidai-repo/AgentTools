@@ -18,6 +18,17 @@ public static class CronDue
         return expression.GetNextOccurrence(at, inclusive: true) == at;
     }
 
+    // The next minute the expression is due after `from`; null for an invalid expression.
+    public static DateTimeOffset? NextAfter(string cron, DateTimeOffset from)
+    {
+        if (!TryParse(cron, out var expression))
+            return null;
+
+        var next = expression.GetNextOccurrence(from.UtcDateTime, inclusive: false);
+
+        return next is null ? null : new DateTimeOffset(next.Value, TimeSpan.Zero);
+    }
+
     public static DateTimeOffset MinuteOf(DateTimeOffset time)
     {
         var utc = time.UtcDateTime;
