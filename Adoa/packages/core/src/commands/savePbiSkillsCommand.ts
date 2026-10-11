@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
 import type { PbiSkillChoices } from "../models/PbiSkillChoices";
-import { notifyChange } from "./notifyChange";
 
 export const savePbiSkillsCommand: Command<PbiSkillChoices, { saved: number }> = {
   name: "pbi.saveSkills",
@@ -13,8 +12,6 @@ export const savePbiSkillsCommand: Command<PbiSkillChoices, { saved: number }> =
     if (!saved.ok) {
       return saved;
     }
-
-    await notifyChange(context, input.adoId);
 
     return { ok: true, value: { saved: saved.value } };
   },

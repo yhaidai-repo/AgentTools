@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { Command } from "../models/Command";
 import type { ReportBugInput } from "../models/ReportBugInput";
 import type { ReportedBug } from "../models/ReportedBug";
-import { notifyChange } from "./notifyChange";
 
 // An issue the user finds after design (user decision 2026-10-09): a child item of the PBI plus an internal bug record,
 // prepared right away by PowerLoom, so its agents start like on a PBI.
@@ -21,8 +20,6 @@ export const reportBugCommand: Command<ReportBugInput, ReportedBug> = {
     if (!reported.ok) {
       return reported;
     }
-
-    await notifyChange(context, reported.value.parentId);
 
     return reported;
   },

@@ -10,8 +10,8 @@ export async function JobsPanel() {
   return (
     <>
       <p className="muted">
-        Two workers: <code>worker</code> (sync, imports, notes, dispatch, maintenance) and <code>agent-runner</code> (the agents&apos; runs, with the Claude token).
-        The web only sends jobs. Failed jobs are listed on the Agents page under Job errors.
+        Every job runs in PowerLoom now; <code>agent-runner</code> runs the agents&apos; tasks on PowerLoom&apos;s request (with the Claude token).
+        The pg-boss queues are empty and go away with the worker in phase 6; their last failed jobs are still listed on the Agents page under Job errors.
       </p>
       <div className="table-wrap">
         <table>

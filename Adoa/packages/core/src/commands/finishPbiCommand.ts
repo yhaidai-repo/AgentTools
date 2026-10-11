@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
 import type { PbiFeedback } from "../models/PbiFeedback";
-import { notifyChange } from "./notifyChange";
 
 export const finishPbiCommand: Command<PbiFeedback, { message: string; wwwRecordId: number | null }> = {
   name: "pbi.finish",
@@ -19,8 +18,6 @@ export const finishPbiCommand: Command<PbiFeedback, { message: string; wwwRecord
     if (!finished.ok) {
       return finished;
     }
-
-    await notifyChange(context, input.adoId);
 
     return finished;
   },

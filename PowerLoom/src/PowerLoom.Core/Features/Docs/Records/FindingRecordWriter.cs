@@ -1,17 +1,19 @@
 using PowerLoom.Contracts;
 using PowerLoom.Features.Docs.Records.Models;
+using PowerLoom.Features.Tasks;
 using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Infrastructure.VaultCapture.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Items;
+using Wolverine;
 
 namespace PowerLoom.Features.Docs.Records;
 
 // The user's "Submit to vault" (their yes, as the vault rules require): the record goes into the project's register
 // through VaultCapture and the finding closes with its id. A rejected record leaves the finding open with the reason.
-public sealed class FindingRecordWriter(PowerLoomDbContext db, IVaultCapture capture) : IRecordWriter
+public sealed class FindingRecordWriter(PowerLoomDbContext db, IVaultCapture capture, IMessageBus bus) : IRecordWriter
 {
     private const string Actor = "human";
 
@@ -30,6 +32,8 @@ public sealed class FindingRecordWriter(PowerLoomDbContext db, IVaultCapture cap
         finding.Resolution = added.Ok ? $"Recorded as {added.Value} in {data.Project}-{RegisterOf(kind)}." : $"Not recorded: {added.Problem.Detail}";
 
         await ItemStatusChange.SetAsync(db, finding, added.Ok ? ItemStatus.Done : ItemStatus.Open, Actor, null, cancellation);
+        // The PBI page and notes show the finding's outcome (the web's dispatch tick did this render until phase 5).
+        await PbiChanges.PublishAsync(db, bus, finding.PbiId, Actor, cancellation);
 
         return $"{finding.Id}: {finding.Resolution}";
     }

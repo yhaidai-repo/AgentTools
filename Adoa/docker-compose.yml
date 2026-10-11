@@ -32,29 +32,9 @@ services:
       context: ..
       dockerfile: Adoa/Dockerfile
     command: ["npm", "run", "start", "-w", "@adoa/worker"]
+    # Every job runs in PowerLoom (phase 5); the worker only keeps pg-boss's maintenance until phase 6 removes both.
     environment:
       DATABASE_URL: *db-url
-      ADO_PAT: ${ADO_PAT}  # only seeds a vault's integration that has no token yet; Settings own the tokens (2026-10-06)
-      # Read-only Confluence access for the pages PBIs link (empty = those links become tasks for you).
-      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
-      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
-      BACKLOG_MOUNT: /vault  # adoa renders each vault's backlog into its own folder here (user decision 2026-10-05)
-      LEGACY_BACKLOG_FOLDER: backlog  # the one folder from before vaults became accounts; moved to the first vault's at start
-      VAULT_TEMPLATE_HOME: /app/Adoa/templates/vault  # root files of a new vault (Settings → Add vault)
-      VAULTS_HOST_ROOT: ${VAULTS_ROOT:?set in .env}  # written into a new vault's files as its PC path
-      VAULT_CAPTURE_HOME: /app/VaultCapture
-      ADOA_SEED_ADO_ORG_URL: ${ADOA_SEED_ADO_ORG_URL:-}
-      ADOA_SEED_ADO_PROJECT: ${ADOA_SEED_ADO_PROJECT:-}
-      ADOA_SEED_ADO_TEAM: ${ADOA_SEED_ADO_TEAM:-}
-      ADOA_SEED_ADO_USER: ${ADOA_SEED_ADO_USER:-}
-      POWERLOOM_URL: http://powerloom:8080  # the bug tick asks PowerLoom to prepare new bugs
-      VAULTS_DIR: /vaults
-      VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-adoa-backlog}  # never offered to scheduled vault reviews (adoa's backlog vault)
-    volumes:
-      - ${VAULT_PATH:?set in .env}:/vault
-      # Every vault (user decision 2026-10-03), writable: VaultCapture writes drafts and, when the user submits a finding,
-      # register records into the vault; scheduled vault reviews read the rest.
-      - ${VAULTS_ROOT:?set in .env}:/vaults
     depends_on:
       powerloom:
         condition: service_healthy  # PowerLoom migrates the schema at start

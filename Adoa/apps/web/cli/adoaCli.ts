@@ -11,7 +11,7 @@ const ACTOR = "cli";
 const [name, inlineInput] = process.argv.slice(2);
 const outcome = name ? await runNamed(name, inlineInput) : { ok: true as const, value: describeCommands() };
 
-// The database pool and pg-boss keep the process alive; exit once the output is written.
+// The database pool keeps the process alive; exit once the output is written.
 process.stdout.write(`${JSON.stringify(outcome, null, 2)}\n`, () => process.exit(outcome.ok ? 0 : 1));
 
 async function runNamed(commandName: string, inline: string | undefined): Promise<Outcome<unknown>> {

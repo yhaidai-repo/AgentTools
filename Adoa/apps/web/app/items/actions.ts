@@ -7,7 +7,6 @@ import type { UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
-import { getBoss } from "@/lib/boss";
 import { runWebCommand, uploadAttachments, webCommandContext } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
@@ -114,7 +113,7 @@ function readSubmitRequest(form: FormData): SubmitFindingRequest {
   };
 }
 
-// The commands already told the worker; the pages only need to show the change.
+// The commands went through PowerLoom; the pages only need to show the change.
 function revalidateItemPages(adoId: number | null): void {
   revalidatePath(adoId === null ? "/tasks" : `/pbis/${adoId}`, "layout");
 }

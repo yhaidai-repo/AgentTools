@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
-import { notifyChange } from "./notifyChange";
 
 export const savePbiReposCommand: Command<{ adoId: number; repos: string[] }, { saved: number }> = {
   name: "pbi.saveRepos",
@@ -12,8 +11,6 @@ export const savePbiReposCommand: Command<{ adoId: number; repos: string[] }, { 
     if (!saved.ok) {
       return saved;
     }
-
-    await notifyChange(context, input.adoId);
 
     return { ok: true, value: { saved: saved.value } };
   },

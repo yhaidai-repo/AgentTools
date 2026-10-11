@@ -1,10 +1,12 @@
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Contracts;
 using PowerLoom.Features.Docs.Records.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
+using PowerLoom.Persistence.Enums;
 using Wolverine.Tracking;
 
 namespace PowerLoom.Api.Tests.Docs;
@@ -30,6 +32,25 @@ public sealed class AddRecordTests(PowerLoomHost host)
 
         Assert.Contains("## WWW-001 Sync skipped a PBI", log);
         Assert.Equal("WWW-001", await RecordIdOfAsync(id));
+    }
+
+    [Fact]
+    public async Task A_submitted_finding_goes_into_the_register_closes_and_renders_its_pbi()
+    {
+        const int adoId = 68001;
+        var findingId = await StoreFindingAsync(adoId);
+
+        var session = await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(_ => host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new AddRecordRequest(RecordKind.KnownIssue, findingId)).ToUrl("/api/records");
+            scenario.StatusCodeShouldBe(202);
+        }));
+        var finding = await LoadItemAsync(findingId);
+        var added = host.Host.Services.GetRequiredService<FakeVaultCapture>().Added.Single(entry => entry.Record.Title == "Found it");
+
+        Assert.Equal((ItemStatus.Done, $"Recorded as {FakeVaultCapture.RecordId} in pvs-known-issues."), (finding.Status, finding.Resolution));
+        Assert.Equal(("pvs", "issues"), (added.Record.Project, added.Record.Kind));
+        Assert.Equal(adoId, session.Executed.SingleMessage<PbiChanged>().AdoId);
     }
 
     [Fact]
@@ -62,6 +83,27 @@ public sealed class AddRecordTests(PowerLoomHost host)
         await db.SaveChangesAsync();
 
         return row.Id;
+    }
+
+    // A finding the user submitted (the web's startFindingSubmit): in progress, with the submit data.
+    private async Task<string> StoreFindingAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var id = $"F-{adoId}-001";
+
+        db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Refining, SyncedAt = DateTime.UtcNow });
+        db.LocalItems.Add(new LocalItem { Id = id, Kind = ItemKind.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Found it", Body = "The rule is unclear.", Status = ItemStatus.InProgress, Assignee = "human", Data = """{"type":"issue","project":"pvs","default":["Keep it"],"options":[]}""", HeldBy = "[]" });
+        await db.SaveChangesAsync();
+
+        return id;
+    }
+
+    private async Task<LocalItem> LoadItemAsync(string id)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().SingleAsync(item => item.Id == id);
     }
 
     private async Task<string?> RecordIdOfAsync(int id)

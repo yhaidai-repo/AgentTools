@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { CloseItemRequest } from "../models/CloseItemRequest";
 import type { Command } from "../models/Command";
 import type { ItemStatus } from "../models/ItemStatus";
-import { notifyChange } from "./notifyChange";
 
 export const closeItemCommand: Command<CloseItemRequest, { status: ItemStatus }> = {
   name: "item.close",
@@ -20,8 +19,6 @@ export const closeItemCommand: Command<CloseItemRequest, { status: ItemStatus }>
     if (!closed.ok) {
       return closed;
     }
-
-    await notifyChange(context, input.adoId);
 
     return closed;
   },

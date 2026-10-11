@@ -8,15 +8,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@adoa/ado": "*",
-    "@adoa/attachments": "*",
-    "@adoa/confluence": "*",
     "@adoa/core": "*",
-    "@adoa/db": "*",
-    "@adoa/notes": "*",
-    "@adoa/vault": "*",
-    "@agenttools/config": "*",
-    "drizzle-orm": "^0.45.3",
     "pg-boss": "^12.35.0",
     "tsx": "^4.23.15"
   },

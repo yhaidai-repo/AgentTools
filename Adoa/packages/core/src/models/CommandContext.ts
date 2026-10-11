@@ -1,5 +1,4 @@
 import type { AdoaDb } from "@adoa/db";
-import type { JobPort } from "./JobPort";
 import type { PowerLoomPort } from "./PowerLoomPort";
 import type { SkillCatalog } from "./SkillCatalog";
 
@@ -7,7 +6,6 @@ import type { SkillCatalog } from "./SkillCatalog";
 export interface CommandContext {
   db: AdoaDb;
   actor: string; // who acts, for status_history: "human" from the web
-  jobs: JobPort;
   powerloom: PowerLoomPort;
   skills: SkillCatalog;
 }

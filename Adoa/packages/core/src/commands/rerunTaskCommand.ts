@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
-import { notifyChange } from "./notifyChange";
 
 export const rerunTaskCommand: Command<{ adoId: number | null; itemId: string }, { itemId: string }> = {
   name: "task.rerun",
@@ -12,8 +11,6 @@ export const rerunTaskCommand: Command<{ adoId: number | null; itemId: string },
     if (!reopened.ok) {
       return reopened;
     }
-
-    await notifyChange(context, input.adoId);
 
     return { ok: true, value: { itemId: input.itemId } };
   },

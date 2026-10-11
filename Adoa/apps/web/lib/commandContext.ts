@@ -1,12 +1,11 @@
 import { runCommand, type ChatTarget, type CloseItemRequest, type Command, type CommandContext, type CreatePbiInput, type ItemStatus, type Outcome, type PbiFeedback, type PbiSkillChoices, type PowerLoomPort, type ReportBugInput } from "@adoa/core";
 import type { UploadedFile } from "@adoa/attachments";
 import { getDb } from "./db";
-import { bossJobPort } from "./jobPort";
 import { powerloom } from "./powerloom";
 import { loadSkillCatalog } from "./skills";
 
 // Every web action runs its change as a command (user decision 2026-10-05), so the web, and later an MCP server, share
-// one contract per change. This is the web's side: the person at the browser, pg-boss, its read-only vault mount.
+// one contract per change. This is the web's side: the person at the browser, PowerLoom, the skill folders.
 export function runWebCommand<I, O>(command: Command<I, O>, input: unknown): Promise<Outcome<O>> {
   return runCommand(command, webCommandContext(), input);
 }
@@ -15,7 +14,6 @@ export function webCommandContext(): CommandContext {
   return {
     db: getDb(),
     actor: "human",
-    jobs: bossJobPort,
     powerloom: powerloomPort,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
   };
