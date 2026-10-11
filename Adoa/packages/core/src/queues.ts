@@ -4,8 +4,6 @@ import type { DispatchJob } from "./models/DispatchJob";
 export const DISPATCH_QUEUE = "dispatch";
 export const AGENT_RUN_QUEUE = "agent-run";
 export const DRAFTS_QUEUE = "drafts";
-// Sent only by the PBI page's "Load from Confluence" (no schedule).
-export const CONFLUENCE_QUEUE = "confluence";
 // Sent only by the refresh after an item changes (no schedule).
 export const PBI_QUEUE = "pbi";
 
@@ -31,7 +29,6 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, DISPATCH_QUEUE, "standard");
   await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
-  await ensureQueue(boss, CONFLUENCE_QUEUE, "standard");
   await ensureQueue(boss, PBI_QUEUE, "standard");
 }
 

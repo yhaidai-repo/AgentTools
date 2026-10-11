@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
+using PowerLoom.Contracts.Confluence;
 using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Tasks;
 using PowerLoom.Features.Pbis.Notes;
@@ -41,6 +42,8 @@ public static class PreparePbiHandler
         var taskId = await AgentTasks.EnsureAsync(db, AgentStages.Refinement, message.AdoId, null, cancellation);
 
         await PbiStatusSync.RecalculateAsync(db, message.AdoId, message.Actor, cancellation);
+        // Linked Confluence pages are re-checked for a newer version (the Confluence library, when loaded).
+        await bus.PublishAsync(new SyncPbiPages(message.Vault, message.AdoId, PageSyncScope.All));
         await bus.PublishAsync(new PbiChanged(message.Vault, message.AdoId));
         logger.LogInformation("prepare PBI-{AdoId}: {Task}", message.AdoId, taskId ?? "refinement task already open");
     }

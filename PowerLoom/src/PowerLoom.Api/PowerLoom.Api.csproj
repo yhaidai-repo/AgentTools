@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PowerLoom.Core\PowerLoom.Core.csproj" />
     <ProjectReference Include="..\PowerLoom.AdoIntegration\PowerLoom.AdoIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.ConfluenceIntegration\PowerLoom.ConfluenceIntegration.csproj" />
   </ItemGroup>
 
 </Project>

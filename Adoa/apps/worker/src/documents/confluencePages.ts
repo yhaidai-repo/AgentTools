@@ -28,11 +28,6 @@ export async function syncConfluencePages(context: WorkerContext, adoId: number,
   }
 }
 
-// The user's "Load from Confluence" for one linked page: fetched (or brought to its current version) now.
-export async function loadLinkedPage(context: WorkerContext, adoId: number, url: string): Promise<void> {
-  await syncPage(context, adoId, url, await fetchedCopies(context.db, adoId, url));
-}
-
 // One linked page brought up to date. Without a usable copy, a failure becomes the user's task with the reason; with
 // one, the copy stays and the failure is logged (the agents keep reading the last fetched version).
 export async function syncPage(context: WorkerContext, adoId: number, url: string, copies: AttachmentRow[]): Promise<void> {

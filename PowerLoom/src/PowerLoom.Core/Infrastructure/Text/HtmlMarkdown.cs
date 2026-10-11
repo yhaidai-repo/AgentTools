@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using ReverseMarkdown;
 
-namespace PowerLoom.AdoIntegration.Features.SyncPbis;
+namespace PowerLoom.Infrastructure.Text;
 
 // ADO's rich-text fields come as HTML; notes and agents read Markdown. Plain text passes through.
 public static partial class HtmlMarkdown

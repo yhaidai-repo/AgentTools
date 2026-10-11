@@ -4,6 +4,7 @@ using System.Text.Json;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
+using PowerLoom.Infrastructure.Text;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 

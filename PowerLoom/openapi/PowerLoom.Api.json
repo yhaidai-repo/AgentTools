@@ -901,6 +901,96 @@
         }
       }
     },
+    "/api/pbis/{adoId}/confluence-links": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+        ],
+        "summary": "POST_api_pbis_adoId_confluence_links",
+        "description": "POST_api_pbis_adoId_confluence_links",
+        "operationId": "POST_api_pbis_adoId_confluence_links",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PbiConfluencePage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+        ],
+        "summary": "DELETE_api_pbis_adoId_confluence_links",
+        "description": "DELETE_api_pbis_adoId_confluence_links",
+        "operationId": "DELETE_api_pbis_adoId_confluence_links",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PbiConfluencePage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/import-sources": {
       "put": {
         "tags": [
@@ -1317,10 +1407,64 @@
           }
         }
       }
+    },
+    "/api/pbis/{adoId}/confluence-pages/load": {
+      "post": {
+        "tags": [
+          "PowerLoom.ConfluenceIntegration.Features.LoadPage.LoadPageEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_confluence_pages_load",
+        "description": "POST_api_pbis_adoId_confluence_pages_load",
+        "operationId": "POST_api_pbis_adoId_confluence_pages_load",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddLinkRequest": {
+        "required": [
+          "url",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "why": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AddLocalRepoRequest": {
         "required": [
           "name"
@@ -1626,6 +1770,17 @@
           }
         }
       },
+      "LoadPageRequest": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
+      },
       "OpenChatRequest": {
         "required": [
           "kind",
@@ -1637,6 +1792,29 @@
             "$ref": "#/components/schemas/ChatKind"
           },
           "id": {
+            "type": "string"
+          }
+        }
+      },
+      "PbiConfluencePage": {
+        "required": [
+          "url",
+          "title",
+          "why",
+          "by"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "by": {
             "type": "string"
           }
         }
@@ -1778,6 +1956,17 @@
           "open-question",
           "known-issue"
         ]
+      },
+      "RemoveLinkRequest": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
       },
       "RemovedVault": {
         "required": [
@@ -2374,6 +2563,9 @@
       "name": "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
     },
     {
+      "name": "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+    },
+    {
       "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
     },
     {
@@ -2396,6 +2588,9 @@
     },
     {
       "name": "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+    },
+    {
+      "name": "PowerLoom.ConfluenceIntegration.Features.LoadPage.LoadPageEndpoint"
     }
   ]
 }

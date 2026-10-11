@@ -144,6 +144,8 @@ services:
       Vaults__Exclude: ${VAULTS_EXCLUDE:-adoa-backlog}
       Backlog__Root: /vault  # adoa's backlog vault: the chat notes are written here
       Import__InboxRoot: /import-inbox  # the import sources' files (Outlook mails, inbox requests)
+      Confluence__Email: ${CONFLUENCE_EMAIL:-}  # the linked Confluence pages are fetched with this account
+      Confluence__ApiToken: ${CONFLUENCE_API_TOKEN:-}
       Repos__Mount: /repos  # Settings → Repositories checks a local repo's folder here
       Skills__Folders__0: /app/Adoa/skills  # the skill folders in the agent-runner's order (SKILL_FOLDERS)
       Skills__Folders__1: /skills

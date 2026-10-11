@@ -448,6 +448,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/{adoId}/confluence-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_adoId_confluence_links
+         * @description POST_api_pbis_adoId_confluence_links
+         */
+        post: operations["POST_api_pbis_adoId_confluence_links"];
+        /**
+         * DELETE_api_pbis_adoId_confluence_links
+         * @description DELETE_api_pbis_adoId_confluence_links
+         */
+        delete: operations["DELETE_api_pbis_adoId_confluence_links"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/import-sources": {
         parameters: {
             query?: never;
@@ -668,10 +692,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/{adoId}/confluence-pages/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_adoId_confluence_pages_load
+         * @description POST_api_pbis_adoId_confluence_pages_load
+         */
+        post: operations["POST_api_pbis_adoId_confluence_pages_load"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddLinkRequest: {
+            url: string;
+            why: null | string;
+        };
         AddLocalRepoRequest: {
             name: string;
         };
@@ -748,9 +796,18 @@ export interface components {
             label: string;
             problem: null | string;
         };
+        LoadPageRequest: {
+            url: string;
+        };
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
             id: string;
+        };
+        PbiConfluencePage: {
+            url: string;
+            title: string;
+            why: string;
+            by: string;
         };
         PbiSyncSettingsRequest: {
             enabled: boolean;
@@ -783,6 +840,9 @@ export interface components {
         };
         /** @enum {unknown} */
         RecordKind: "www" | "open-question" | "known-issue";
+        RemoveLinkRequest: {
+            url: string;
+        };
         RemovedVault: {
             vault: string;
         };
@@ -1547,6 +1607,58 @@ export interface operations {
             };
         };
     };
+    POST_api_pbis_adoId_confluence_links: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PbiConfluencePage"][];
+                };
+            };
+        };
+    };
+    DELETE_api_pbis_adoId_confluence_links: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PbiConfluencePage"][];
+                };
+            };
+        };
+    };
     PUT_api_vaults_vault_import_sources: {
         parameters: {
             query?: never;
@@ -1858,6 +1970,30 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    POST_api_pbis_adoId_confluence_pages_load: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoadPageRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

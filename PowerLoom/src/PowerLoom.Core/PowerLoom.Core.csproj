@@ -34,6 +34,9 @@
     <PackageReference Include="WolverineFx.RuntimeCompilation" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Cronos" />
+    <PackageReference Include="ReverseMarkdown" />
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

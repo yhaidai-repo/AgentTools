@@ -1,11 +1,10 @@
-import { CONFLUENCE_QUEUE, DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, applyDispatchTick, applyDraftsSchedule, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type ConfluenceFetchJob, type DispatchJob, type PbiJob } from "@adoa/core";
+import { DISPATCH_QUEUE, PBI_QUEUE, DRAFTS_QUEUE, applyDispatchTick, applyDraftsSchedule, saveConfluenceStatus, vaultBacklogRoot, createWorkerBoss, ensureQueues, type DispatchJob, type PbiJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
 import { dispatchAgent } from "./dispatch/dispatchAgent";
-import { loadLinkedPage } from "./documents/confluencePages";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
@@ -53,14 +52,6 @@ await boss.work<DispatchJob>(DISPATCH_QUEUE, (jobs) => logged(DISPATCH_QUEUE, as
 // The drafts job: every vault draft gets a tech-writer task; tasks whose draft is gone are done.
 await boss.work(DRAFTS_QUEUE, () => logged(DRAFTS_QUEUE, async () => {
   console.log(`drafts: ${await syncDraftTasks(db)}`);
-}));
-
-// "Load from Confluence" on the PBI page; the PBI is refreshed after, so its statuses and Vault show the page.
-await boss.work<ConfluenceFetchJob>(CONFLUENCE_QUEUE, (jobs) => logged(CONFLUENCE_QUEUE, async () => {
-  for (const job of jobs) {
-    await loadLinkedPage(context, job.data.adoId, job.data.url);
-    await refreshPbi(context, job.data.adoId);
-  }
 }));
 
 // The refresh after an item changes.

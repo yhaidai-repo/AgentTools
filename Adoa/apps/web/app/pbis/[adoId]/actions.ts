@@ -1,13 +1,13 @@
 "use server";
 
-import { CONFLUENCE_QUEUE, addPbiConfluencePages, attachmentRef, confluencePageProblem, pageTitleFromUrl, removePbiConfluencePage, savePbiReposCommand, savePbiSkillsCommand, type ConfluenceFetchJob } from "@adoa/core";
+import { attachmentRef, savePbiReposCommand, savePbiSkillsCommand } from "@adoa/core";
 import { storeAttachments } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { afterItemChange } from "@/lib/afterItemChange";
-import { getBoss } from "@/lib/boss";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText, readUploads } from "@/lib/formFields";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
 // One or more files, chosen, pasted or dropped (user decision 2026-10-09).
@@ -40,41 +40,25 @@ export async function saveRepos(_previous: ActionResult | null, form: FormData):
   return saved.ok ? { ok: true, message: `Saved ${saved.value.saved} repo(s). Research and design clone these.` } : { ok: false, message: saved.error };
 }
 
-// "Load from Confluence" for a linked page whose content is missing: the worker holds the token, so it fetches the page;
+// "Load from Confluence" for a linked page whose content is missing: PowerLoom holds the token, so it fetches the page;
 // it also closes the task asking for the content, and a failure becomes (or stays) that task with the reason.
 export async function loadFromConfluence(adoId: number, url: string): Promise<ActionResult> {
-  const problem = confluencePageProblem(url);
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
-
-  const job: ConfluenceFetchJob = { adoId, url };
-
-  await (await getBoss()).send(CONFLUENCE_QUEUE, job);
-
-  return { ok: true, message: "Loading from Confluence; reload in a few seconds." };
+  return powerloomResult(await powerloom.POST("/api/pbis/{adoId}/confluence-pages/load", { params: { path: { adoId } }, body: { url } }), "Loading from Confluence; reload in a few seconds.");
 }
 
 // A Confluence page added to the PBI's attachments as a link (user decision 2026-10-02): listed for the later agents with
 // why, opened by agents with the Confluence tools; not fetched. A page already listed keeps its entry.
 export async function addConfluenceLink(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoId = Number(form.get("adoId"));
-  const url = formText(form, "url") ?? "";
-  const problem = confluencePageProblem(url);
+  const added = await powerloom.POST("/api/pbis/{adoId}/confluence-links", { params: { path: { adoId } }, body: { url: formText(form, "url") ?? "", why: formText(form, "why") } });
 
-  if (problem) {
-    return { ok: false, message: problem };
-  }
-
-  await addPbiConfluencePages(getDb(), adoId, [{ url, title: pageTitleFromUrl(url), why: formText(form, "why") ?? "", by: "user" }]);
   revalidatePath(`/pbis/${adoId}`);
 
-  return { ok: true, message: "Link added. Later agents on this PBI get it with why." };
+  return powerloomResult(added, "Link added. Later agents on this PBI get it with why.");
 }
 
 export async function removeConfluenceLink(adoId: number, url: string): Promise<void> {
-  await removePbiConfluencePage(getDb(), adoId, url);
+  await powerloom.DELETE("/api/pbis/{adoId}/confluence-links", { params: { path: { adoId } }, body: { url } });
   revalidatePath(`/pbis/${adoId}`);
 }
 
