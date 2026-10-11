@@ -80,6 +80,8 @@ services:
       VAULT_CAPTURE_HOME: /app/VaultCapture
       VAULTS_DIR: /vaults
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-adoa-backlog}
+      RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs, one at a time)
+      POWERLOOM_URL: http://powerloom:8080  # … and takes the one callback per run
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
       # Every vault, writable: a run reads the docs of its task's vault and the tech-writer merges drafts into it (user decision 2026-10-02) and actualizes
@@ -155,6 +157,7 @@ services:
       Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
       Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … adoa's backlog vault
       Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"
+      Runner__Url: http://agent-runner:3200  # the agents' dispatch starts the runs there
     ports:
       - "127.0.0.1:${POWERLOOM_PORT:-5180}:8080"
     volumes:

@@ -2,7 +2,6 @@ import { PgBoss } from "pg-boss";
 import type { DispatchJob } from "./models/DispatchJob";
 
 export const DISPATCH_QUEUE = "dispatch";
-export const AGENT_RUN_QUEUE = "agent-run";
 export const DRAFTS_QUEUE = "drafts";
 // Sent only by the refresh after an item changes (no schedule).
 export const PBI_QUEUE = "pbi";
@@ -21,13 +20,8 @@ export function createSenderBoss(url: string): PgBoss {
   return new PgBoss({ connectionString: url, supervise: false, schedule: false, migrate: false });
 }
 
-// One agent run can take long (first clones, slow models): a long expiry, and no automatic retry, because a failed
-// run already counted the attempt on its task and the dispatcher hands the task out again.
-const AGENT_RUN_OPTIONS = { expireInSeconds: 4 * 60 * 60, retryLimit: 0 };
-
 export async function ensureQueues(boss: PgBoss): Promise<void> {
   await ensureQueue(boss, DISPATCH_QUEUE, "standard");
-  await ensureQueue(boss, AGENT_RUN_QUEUE, "standard", AGENT_RUN_OPTIONS);
   await ensureQueue(boss, DRAFTS_QUEUE, "exclusive");
   await ensureQueue(boss, PBI_QUEUE, "standard");
 }
@@ -42,19 +36,6 @@ export async function applyDispatchTick(boss: PgBoss): Promise<void> {
 // The drafts job (user decision 2026-10-02): its own queue and schedule, the only reader of the draft folder.
 export async function applyDraftsSchedule(boss: PgBoss): Promise<void> {
   await boss.schedule(DRAFTS_QUEUE, DRAFTS_CRON);
-}
-
-// An agent's schedule sends a dispatch for that agent; a disabled agent or one without a schedule runs only on "Run now".
-export async function applyAgentSchedule(boss: PgBoss, agentId: string, cron: string | null, enabled: boolean): Promise<void> {
-  if (!enabled || !cron) {
-    await boss.unschedule(DISPATCH_QUEUE, agentId);
-
-    return;
-  }
-
-  const job: DispatchJob = { agentId };
-
-  await boss.schedule(DISPATCH_QUEUE, cron, job, { key: agentId });
 }
 
 async function ensureQueue(boss: PgBoss, name: string, policy: "exclusive" | "standard", options: { expireInSeconds?: number; retryLimit?: number } = {}): Promise<void> {

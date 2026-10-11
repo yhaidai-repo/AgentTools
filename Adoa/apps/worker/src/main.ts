@@ -3,8 +3,6 @@ import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, pullRequest } from "@adoa/db";
 import { eq } from "drizzle-orm";
 import { PostgresAgentConfigStore } from "@agenttools/config";
-import { applyAgentSchedules } from "./dispatch/applyAgentSchedules";
-import { dispatchAgent } from "./dispatch/dispatchAgent";
 import { syncDraftTasks } from "./drafts/syncDraftTasks";
 import { backlogMount, legacyBacklogFolder, requireEnv, vaultTemplateHome, vaultsHostRoot, vaultsRoot } from "./env";
 import { migrateLegacyBacklog } from "./backlog/migrateLegacyBacklog";
@@ -36,13 +34,9 @@ if (moved) {
 await saveConfluenceStatus(db, { email: ConfluenceClient.fromEnv() ? process.env.CONFLUENCE_EMAIL!.trim() : null });
 await applyDispatchTick(boss);
 await applyDraftsSchedule(boss);
-await applyAgentSchedules(boss, config);
-await config.onChange(() => {
-  applyAgentSchedules(boss, config).catch((error) => console.error("applying agent schedules after a config change failed:", error));
-});
 
 // Every message: the PBIs referenced by queued agent tasks are brought up to date (documents, merged drafts, next tasks,
-// statuses, Vault). With an agent id (its schedule or "Run now"): that agent's open tasks are validated and started.
+// statuses, Vault). The agents themselves are dispatched by PowerLoom (their schedules, Run now).
 await boss.work<DispatchJob>(DISPATCH_QUEUE, (jobs) => logged(DISPATCH_QUEUE, async () => {
   for (const job of jobs) {
     await dispatch(job.data);
@@ -75,10 +69,6 @@ async function runPbiJob(job: PbiJob): Promise<string> {
 async function dispatch(job: DispatchJob): Promise<void> {
   await prepareNewBugs();
   await refreshQueuedPbis(context, job.agentId);
-
-  if (job.agentId) {
-    console.log(`dispatch ${await dispatchAgent(context, job.agentId)}`);
-  }
 }
 
 // A bug that can't be prepared must not stop the tick: the other PBIs' statuses, notes and hand-ons still go on. The

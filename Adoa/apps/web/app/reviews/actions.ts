@@ -1,8 +1,7 @@
 "use server";
 
-import { DISPATCH_QUEUE, REVIEW_AGENT, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings, type DispatchJob } from "@adoa/core";
+import { REVIEW_AGENT, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@adoa/core";
 import { revalidatePath } from "next/cache";
-import { getBoss } from "@/lib/boss";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
@@ -101,9 +100,7 @@ export async function queueReview(prId: number): Promise<ActionResult> {
     return { ok: false, message: queued.data.refused[0] };
   }
 
-  const job: DispatchJob = { agentId: REVIEW_AGENT };
-
-  await (await getBoss()).send(DISPATCH_QUEUE, job);
+  await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: REVIEW_AGENT } } });
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 

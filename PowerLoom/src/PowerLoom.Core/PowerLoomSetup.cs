@@ -2,6 +2,7 @@ using System.Reflection;
 using JasperFx;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Features.Agents;
 using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
 using PowerLoom.Features.ImportSources;
@@ -16,6 +17,7 @@ using PowerLoom.Infrastructure.Health;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Infrastructure.Messaging;
 using PowerLoom.Infrastructure.Persistence;
+using PowerLoom.Infrastructure.Runner;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.Telemetry;
 using PowerLoom.Infrastructure.VaultCapture;
@@ -41,6 +43,7 @@ public static class PowerLoomSetup
         builder.AddPowerLoomVaultScan();
         builder.AddPowerLoomBacklog();
         builder.AddPowerLoomChatLaunch();
+        builder.AddPowerLoomRunner();
         builder.Services.AddVaultsFeature();
         builder.Services.AddDocsFeature();
         builder.Services.AddContinueFeature();
@@ -49,6 +52,7 @@ public static class PowerLoomSetup
         builder.Services.AddTasksFeature();
         builder.Services.AddReposFeature();
         builder.Services.AddSkillsFeature();
+        builder.Services.AddAgentsFeature();
         builder.Services.AddOpenApi();
 
         return builder;

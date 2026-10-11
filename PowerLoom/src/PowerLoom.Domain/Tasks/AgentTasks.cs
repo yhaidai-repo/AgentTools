@@ -39,6 +39,18 @@ public static class AgentTasks
         return id;
     }
 
+    // After a successful task: the agent's configured next agent gets a task (user decision 2026-10-01). Marked as
+    // handed on either way, so this happens once per task. The created task's id, or null.
+    public static async Task<string?> HandOnAsync(PowerLoomDbContext db, LocalItem task, string? nextAgentId, CancellationToken cancellation)
+    {
+        var created = nextAgentId is not null && task.PbiId is not null ? await EnsureAsync(db, nextAgentId, task.PbiId.Value, null, cancellation) : null;
+
+        task.HandedOnAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellation);
+
+        return created;
+    }
+
     private static Task<bool> HasOpenTaskAsync(PowerLoomDbContext db, string agentId, int adoId, CancellationToken cancellation)
     {
         var assignee = AgentStages.AssigneeOf(agentId);

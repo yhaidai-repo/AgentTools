@@ -1390,6 +1390,73 @@
         }
       }
     },
+    "/api/agents/{agentId}/run": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"
+        ],
+        "summary": "POST_api_agents_agentId_run",
+        "description": "POST_api_agents_agentId_run",
+        "operationId": "POST_api_agents_agentId_run",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchedAgent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-runs/{taskId}/completed": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Agents.Completed.AgentRunsEndpoint"
+        ],
+        "summary": "POST_api_agent_runs_taskId_completed",
+        "description": "POST_api_agent_runs_taskId_completed",
+        "operationId": "POST_api_agent_runs_taskId_completed",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
     "/api/ado/repositories/sync": {
       "post": {
         "tags": [
@@ -1913,6 +1980,32 @@
           }
         }
       },
+      "CompletedRunRequest": {
+        "required": [
+          "runId",
+          "outcome",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RunOutcome"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ConnectionCheck": {
         "required": [
           "ok",
@@ -2081,6 +2174,17 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "DispatchedAgent": {
+        "required": [
+          "agentId"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
           }
         }
       },
@@ -2559,6 +2663,20 @@
             }
           }
         }
+      },
+      "RunOutcome": {
+        "enum": [
+          "running",
+          "success",
+          "no-op",
+          "failed",
+          "budget-exceeded",
+          "gate-rejected",
+          "rate-limited",
+          "timeout",
+          "aborted",
+          "max-turns"
+        ]
       },
       "SaveConnectionRequest": {
         "required": [
@@ -3087,6 +3205,12 @@
     },
     {
       "name": "PowerLoom.Features.Continue.ChatsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Agents.Completed.AgentRunsEndpoint"
     },
     {
       "name": "PowerLoom.AdoIntegration.Features.SyncRepositories.SyncRepositoriesEndpoint"

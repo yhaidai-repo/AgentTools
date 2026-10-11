@@ -6,24 +6,47 @@ using PowerLoom.Persistence;
 
 namespace PowerLoom.Infrastructure.AgentConfig;
 
-// Reads the AgentConfig module's own schema (`agent_config.agent`, one JSON definition per agent): the module owns the
-// rows, the host only reads what it needs.
+// Reads the AgentConfig module's own schema (`agent_config.agent`, one JSON definition per agent; `agent_config.global`):
+// the module owns the rows (the web saves them through it), the host only reads what it needs.
 public sealed class AgentConfigReader(PowerLoomDbContext db)
 {
     private const string UndefinedTable = "42P01";
+    private const int DefaultTimeoutMinutes = 60;
+    private const int DefaultBatchSize = 1;
+
+    private static readonly AgentsGlobal DefaultGlobal = new(false, null, 10);
 
     // Null for an unknown agent, and until the module has created its schema (the agent-runner does at its start).
     public async Task<AgentSummary?> ReadAsync(string agentId, CancellationToken cancellation)
     {
+        var definitions = await QueryAsync($"select definition::text as \"Value\" from agent_config.agent where id = {agentId}", cancellation);
+
+        return definitions.Count == 0 ? null : Parse(definitions[0]);
+    }
+
+    public async Task<IReadOnlyList<AgentSummary>> ListAsync(CancellationToken cancellation)
+    {
+        var definitions = await QueryAsync($"select definition::text as \"Value\" from agent_config.agent order by id", cancellation);
+
+        return definitions.Select(Parse).ToList();
+    }
+
+    public async Task<AgentsGlobal> GlobalAsync(CancellationToken cancellation)
+    {
+        var values = await QueryAsync($"select value::text as \"Value\" from agent_config.global where id = 1", cancellation);
+
+        return values.Count == 0 ? DefaultGlobal : ParseGlobal(values[0]);
+    }
+
+    private async Task<List<string>> QueryAsync(FormattableString sql, CancellationToken cancellation)
+    {
         try
         {
-            var definition = await db.Database.SqlQuery<string>($"select definition::text as \"Value\" from agent_config.agent where id = {agentId}").SingleOrDefaultAsync(cancellation);
-
-            return definition is null ? null : Parse(definition);
+            return await db.Database.SqlQuery<string>(sql).ToListAsync(cancellation);
         }
         catch (PostgresException error) when (error.SqlState == UndefinedTable)
         {
-            return null;
+            return [];
         }
     }
 
@@ -36,10 +59,39 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
         return new AgentSummary(
             Text(root, "id") ?? "",
             Text(root, "label") ?? "",
-            root.TryGetProperty("enabled", out var enabled) && enabled.ValueKind == JsonValueKind.True,
+            Flag(root, "enabled"),
+            Text(root, "schedule"),
             Text(root, "next"),
+            Strings(root, "waitFor"),
+            root.TryGetProperty("capabilities", out var capabilities) && Flag(capabilities, "webAccess"),
+            root.TryGetProperty("limits", out var limits) ? Number(limits, "timeoutMinutes", DefaultTimeoutMinutes) : DefaultTimeoutMinutes,
+            Number(options, "batchSize", DefaultBatchSize),
             options);
     }
 
+    private static AgentsGlobal ParseGlobal(string value)
+    {
+        using var document = JsonDocument.Parse(value);
+        var root = document.RootElement;
+        var pausedUntil = Text(root, "pausedUntil");
+
+        return new AgentsGlobal(
+            Flag(root, "paused"),
+            pausedUntil is not null && DateTimeOffset.TryParse(pausedUntil, null, System.Globalization.DateTimeStyles.AssumeUniversal, out var until) ? until : null,
+            root.TryGetProperty("dailyBudgetUsd", out var budget) && budget.ValueKind == JsonValueKind.Number ? budget.GetDecimal() : DefaultGlobal.DailyBudgetUsd);
+    }
+
     private static string? Text(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static bool Flag(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
+
+    private static int Number(JsonElement element, string name, int fallback) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : fallback;
+
+    private static IReadOnlyList<string> Strings(JsonElement element, string name)
+    {
+        if (!element.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return value.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.String).Select(item => item.GetString()!).ToList();
+    }
 }

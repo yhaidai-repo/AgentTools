@@ -1,22 +1,23 @@
 import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@adoa/agents";
-import { AGENT_RUN_QUEUE, createWorkerBoss, ensureQueues, readAdoSettings, syncPipelineStatus, vaultBacklogRoot, vaultOfPbi, type AgentRunJob } from "@adoa/core";
+import { readAdoSettings, vaultBacklogRoot, type AgentRunJob } from "@adoa/core";
 import { ConfluenceClient } from "@adoa/confluence";
 import { createDb, localItem } from "@adoa/db";
-import { VaultCaptureCli, publishPbi } from "@adoa/notes";
+import { VaultCaptureCli } from "@adoa/notes";
 import { VaultWriter } from "@adoa/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
 import { eq } from "drizzle-orm";
 import { adoAuthHeader, docsExclude, requireEnv, skillFolders } from "./env";
+import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
+import { RunnerServer } from "./runnerServer";
 
 const TRACE_RETENTION_DAYS = 30;
 const REPO_REFRESH_MINUTES = 30;
-const ACTOR = "agent-runner";
+const INTERRUPTED: CompletedRun = { runId: null, outcome: "aborted", error: "the agent-runner stopped during the run" };
 
 const databaseUrl = requireEnv("DATABASE_URL");
 const { db, pool } = createDb(databaseUrl);
-const boss = createWorkerBoss(databaseUrl);
 const usageStore = new PostgresUsageStore(pool);
 const config = new PostgresAgentConfigStore(pool);
 // Every vault, writable (user decision 2026-10-03): a run reads and writes the vault of its task.
@@ -24,14 +25,16 @@ const vaultsRoot = requireEnv("VAULTS_DIR");
 // adoa's backlog vault: each vault's rendered backlog is a folder in it (user decision 2026-10-05).
 const backlogMount = requireEnv("BACKLOG_MOUNT");
 
-boss.on("error", (error) => console.error("pg-boss:", error));
+// PowerLoom dispatches the tasks and takes the one callback per run (the vault's adoa-backend-delivery note, phase 5).
+const powerloom = new PowerLoomCallback(requireEnv("POWERLOOM_URL").replace(/\/+$/, ""));
 
-await boss.start();
-await ensureQueues(boss);
 await usageStore.ensureSchema();
 await config.ensureSchema();
 await config.ensureDefaults(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
-await recoverInterruptedRuns(db);
+
+for (const taskId of await recoverInterruptedRuns(db)) {
+  await report(taskId, INTERRUPTED);
+}
 
 const repoCacheRoot = requireEnv("REPO_CACHE_ROOT");
 
@@ -58,29 +61,39 @@ const shared = {
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
 };
 
-// One task per job, one job at a time: the worker's dispatcher decides what runs and when (it owns the schedules).
-await boss.work<AgentRunJob>(AGENT_RUN_QUEUE, (jobs) => logged(AGENT_RUN_QUEUE, async () => {
-  for (const job of jobs) {
-    await runAndPublish(job.data);
-  }
-}));
+// One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
+const server = new RunnerServer(runAndReport);
 
+server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
-// The Vault shows the task's outcome right away (user decision 2026-10-01: the runner writes the notes itself),
-// also when the run failed.
-async function runAndPublish(job: AgentRunJob): Promise<void> {
+// Every run ends with the callback, also a failed one and a task the runner refused: PowerLoom waits for it.
+async function runAndReport(job: AgentRunJob): Promise<void> {
   await purgeOldTraces();
 
-  const vault = await vaultOfJob(job);
+  let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
 
   try {
-    await runAgentTask(await depsFor(vault), job);
+    const result = await runAgentTask(await depsFor(await vaultOfJob(job)), job);
+
+    completed = result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : completed;
+  } catch (error) {
+    console.error(`${job.agentId} ${job.taskId} failed:`, error);
+    completed = { runId: null, outcome: "failed", error: String(error) };
   } finally {
-    await publishTaskPbi(vault, job.pbiId);
+    await report(job.taskId, completed);
+  }
+}
+
+// A callback PowerLoom can't take is logged, not thrown: the run itself is already recorded.
+async function report(taskId: string, completed: CompletedRun): Promise<void> {
+  try {
+    await powerloom.completed(taskId, completed);
+  } catch (error) {
+    console.error(`${taskId}: reporting the completed run to PowerLoom failed:`, error);
   }
 }
 
@@ -141,26 +154,6 @@ function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
   };
 }
 
-// A task without a PBI (a chat draft's tech-writer task) has no PBI status or notes to update.
-async function publishTaskPbi(vault: string, pbiId: number | null): Promise<void> {
-  if (pbiId === null) {
-    return;
-  }
-
-  await syncPipelineStatus(db, pbiId, ACTOR);
-  await publishPbi(db, vaultBacklogRoot(backlogMount, (await vaultOfPbi(db, pbiId)) ?? vault), pbiId);
-}
-
-// No silent failures: every job error is logged here and kept by pg-boss (shown on the Agents page).
-async function logged(job: string, work: () => Promise<void>): Promise<void> {
-  try {
-    await work();
-  } catch (error) {
-    console.error(`${job} job failed:`, error);
-    throw error;
-  }
-}
-
 async function purgeOldTraces(): Promise<void> {
   const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
@@ -168,7 +161,7 @@ async function purgeOldTraces(): Promise<void> {
 }
 
 async function stop(): Promise<void> {
-  await boss.stop();
+  await server.close();
   await pool.end();
   process.exit(0);
 }

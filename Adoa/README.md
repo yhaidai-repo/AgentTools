@@ -29,8 +29,8 @@ docker compose up -d --build
 | `packages/ado` | read-only Azure DevOps REST client |
 | `packages/vault` | note rendering; keeps each note's `## Notes` section |
 | `packages/agents` | prompts (`prompts/*.md`, versioned), `runAgent`, refinement agent |
-| `apps/worker` | pg-boss worker: `sync`, `prepare`, `dispatch` (validates and starts agent tasks), `drafts` (tech-writer tasks for docs-vault drafts), `register` (submitted findings), `pbi-import` (reads every import source) |
-| `apps/agent-runner` | pg-boss worker: `agent-run` (refinement, research, tech-writer); Claude token; skills read-only, docs vault writable for the tech-writer's merges |
+| `apps/worker` | pg-boss worker: `dispatch` (the minute tick: refreshes queued PBIs, prepares new bugs), `drafts` (tech-writer tasks for docs-vault drafts), `pbi` (refresh after an item change); the rest moved to PowerLoom |
+| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from PowerLoom (which dispatches on the agents' schedules and Run now) and reports each run back; Claude token; skills read-only, docs vault writable for the tech-writer's merges |
 | `skills/` | adoa's own skills for agents |
 | `apps/web` | Next.js UI |
 

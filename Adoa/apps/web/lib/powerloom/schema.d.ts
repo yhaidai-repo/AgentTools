@@ -636,6 +636,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agents/{agentId}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_agents_agentId_run
+         * @description POST_api_agents_agentId_run
+         */
+        post: operations["POST_api_agents_agentId_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-runs/{taskId}/completed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_agent_runs_taskId_completed
+         * @description POST_api_agent_runs_taskId_completed
+         */
+        post: operations["POST_api_agent_runs_taskId_completed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ado/repositories/sync": {
         parameters: {
             query?: never;
@@ -850,6 +890,12 @@ export interface components {
             itemId: string;
             status: string;
         };
+        CompletedRunRequest: {
+            /** Format: int64 */
+            runId: null | number;
+            outcome: components["schemas"]["RunOutcome"];
+            error: null | string;
+        };
         ConnectionCheck: {
             ok: boolean;
             message: string;
@@ -889,6 +935,9 @@ export interface components {
         DeletedPbis: {
             deleted: components["schemas"]["DeletedPbi"][];
             refused: string[];
+        };
+        DispatchedAgent: {
+            agentId: string;
         };
         EnabledRequest: {
             enabled: boolean;
@@ -1005,6 +1054,8 @@ export interface components {
             done: components["schemas"]["ReviewOutcome"][];
             refused: string[];
         };
+        /** @enum {unknown} */
+        RunOutcome: "running" | "success" | "no-op" | "failed" | "budget-exceeded" | "gate-rejected" | "rate-limited" | "timeout" | "aborted" | "max-turns";
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -2041,6 +2092,52 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_agents_agentId_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchedAgent"];
+                };
+            };
+        };
+    };
+    POST_api_agent_runs_taskId_completed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompletedRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

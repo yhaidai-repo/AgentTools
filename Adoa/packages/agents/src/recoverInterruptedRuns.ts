@@ -6,8 +6,8 @@ const INTERRUPTED = "Interrupted: the agent-runner stopped during the run";
 const ACTOR = "agent-runner";
 
 // At startup: runs still `running` belonged to a process that is gone. Fail them visibly and put their tasks back,
-// so the dispatcher hands them out again (the PBI statuses follow on its next tick).
-export async function recoverInterruptedRuns(db: AdoaDb): Promise<number> {
+// so the dispatcher hands them out again. Returns the released tasks (the caller tells PowerLoom their runs ended).
+export async function recoverInterruptedRuns(db: AdoaDb): Promise<string[]> {
   const stale = await db.update(agentRun).set({ outcome: "failed", error: INTERRUPTED, endedAt: new Date() }).where(eq(agentRun.outcome, "running")).returning({ id: agentRun.id });
   const running = await db.select().from(localItem).where(and(like(localItem.assignee, "agent:%"), eq(localItem.status, "in-progress")));
 
@@ -20,5 +20,5 @@ export async function recoverInterruptedRuns(db: AdoaDb): Promise<number> {
     console.error(`recovered ${stale.length} interrupted run(s): ${stale.map((run) => run.id).join(", ")}; ${running.length} task(s) back to open`);
   }
 
-  return stale.length;
+  return running.map((task) => task.id);
 }

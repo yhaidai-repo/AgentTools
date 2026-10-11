@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.ConfluenceIntegration.Client;
+using PowerLoom.Infrastructure.Runner;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
@@ -67,6 +68,9 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Chat__ReposRoot", "D:/pc/repos");
         Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/adoa-backlog");
         Environment.SetEnvironmentVariable("Chat__AgentTools", AgentTools);
+        // The run saga's waits, short enough for a test.
+        Environment.SetEnvironmentVariable("Runner__BusyRetry", "00:00:01");
+        Environment.SetEnvironmentVariable("Runner__TimeoutMargin", "00:00:02");
 
         // Schema first, as in production: Npgsql loads the type catalog (the enums) when the host first connects.
         await CreateAdoaTablesAsync();
@@ -85,11 +89,16 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<IConfluenceClientFactory>(provider => provider.GetRequiredService<FakeConfluenceClientFactory>());
         services.AddSingleton<IVaultCapture>(provider => provider.GetRequiredService<FakeVaultCapture>());
         services.AddSingleton<ICronSource, ProbeCronSource>();
+        services.AddSingleton<FakeRunnerClient>();
+        services.AddSingleton<IRunnerClient>(provider => provider.GetRequiredService<FakeRunnerClient>());
         services.ConfigureWolverine(options =>
         {
             options.Discovery.IncludeType(typeof(VaultProbeHandler));
             // Auto mode writes generated code into the API project; the tests' probe handler must not land there.
             options.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
+            // Delayed messages (the saga's retry and timeout) are polled from the database; a test can't wait the default.
+            options.Durability.ScheduledJobPollingTime = TimeSpan.FromSeconds(1);
+            options.Durability.ScheduledJobFirstExecution = TimeSpan.FromSeconds(1);
         });
     }
 
@@ -126,6 +135,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         // The AgentConfig module's own schema (its PostgresAgentConfigStore creates it in production).
         await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS agent_config; CREATE TABLE IF NOT EXISTS agent_config.agent (id text PRIMARY KEY, definition jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()); CREATE TABLE IF NOT EXISTS agent_config.global (id smallint PRIMARY KEY CHECK (id = 1), value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());");
         await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('vault-review', '{{"id":"vault-review","label":"Vault review","enabled":true,"next":null,"options":{{"staleDays":30}}}}') ON CONFLICT (id) DO NOTHING""");
+        await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('research', '{{"id":"research","label":"Research","enabled":true,"schedule":"*/15 * * * *","next":"design","waitFor":["humanItems"],"limits":{{"timeoutMinutes":1}},"capabilities":{{"webAccess":false}},"options":{{"batchSize":2}}}}') ON CONFLICT (id) DO NOTHING""");
+        await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('design', '{{"id":"design","label":"Design","enabled":true,"next":null,"waitFor":[],"limits":{{"timeoutMinutes":0}}}}') ON CONFLICT (id) DO NOTHING""");
         db.Vaults.Add(new Vault { Name = Vault, Features = "{}", CreatedAt = DateTime.UtcNow });
 
         await db.SaveChangesAsync();
