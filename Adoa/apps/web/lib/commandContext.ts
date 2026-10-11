@@ -1,4 +1,5 @@
-import { runCommand, type ChatTarget, type CloseItemRequest, type Command, type CommandContext, type ItemStatus, type Outcome, type PowerLoomPort, type ReportBugInput } from "@adoa/core";
+import { runCommand, type ChatTarget, type CloseItemRequest, type Command, type CommandContext, type CreatePbiInput, type ItemStatus, type Outcome, type PbiFeedback, type PbiSkillChoices, type PowerLoomPort, type ReportBugInput } from "@adoa/core";
+import type { UploadedFile } from "@adoa/attachments";
 import { getDb } from "./db";
 import { bossJobPort } from "./jobPort";
 import { powerloom } from "./powerloom";
@@ -84,7 +85,47 @@ const powerloomPort: PowerLoomPort = {
 
     return data.refused.length === 0 ? { ok: true, value: data.done[0]?.value ?? "" } : { ok: false, error: data.refused[0] };
   },
+  async createPbi(input: CreatePbiInput, actor: string) {
+    const { data, error, response } = await powerloom.POST("/api/pbis", { body: { vault: input.vault ?? null, title: input.title, type: input.type, priority: input.priority, descriptionMd: input.descriptionMd, acceptanceCriteriaMd: input.acceptanceCriteriaMd, parentId: input.parentId, actor } });
+
+    return data ? { ok: true, value: { adoId: data.adoId } } : failure(error, response);
+  },
+  async finishPbi(feedback: PbiFeedback, actor: string) {
+    const { data, error, response } = await powerloom.POST("/api/pbis/{adoId}/finish", { params: { path: { adoId: feedback.adoId } }, body: { rating: feedback.rating, effortHours: feedback.effortHours, whatWentWrong: feedback.whatWentWrong, fault: feedback.fault, actor } });
+
+    return data ? { ok: true, value: { message: data.message, wwwRecordId: data.wwwRecordId } } : failure(error, response);
+  },
+  async savePbiRepos(adoId, repos) {
+    const { data, error, response } = await powerloom.PUT("/api/pbis/{adoId}/repos", { params: { path: { adoId } }, body: { repos } });
+
+    return data ? { ok: true, value: data.saved } : failure(error, response);
+  },
+  async savePbiSkills(choices: PbiSkillChoices) {
+    const { data, error, response } = await powerloom.PUT("/api/pbis/{adoId}/skills", { params: { path: { adoId: choices.adoId } }, body: { skills: choices.skills } });
+
+    return data ? { ok: true, value: data.saved } : failure(error, response);
+  },
 };
+
+// Uploads for a PBI (several at once; none is stored when one can't be used), optionally for the item they answer and
+// the linked document they replace. The refs (ATT-nnn) of the stored files.
+export async function uploadAttachments(adoId: number, files: UploadedFile[], target: { itemId: string | null; sourceUrl: string | null }): Promise<Outcome<string[]>> {
+  const form = new FormData();
+
+  files.forEach((file) => form.append("files", new Blob([new Uint8Array(file.bytes)], { type: file.contentType || "application/octet-stream" }), file.fileName));
+
+  if (target.itemId) {
+    form.append("itemId", target.itemId);
+  }
+
+  if (target.sourceUrl) {
+    form.append("sourceUrl", target.sourceUrl);
+  }
+
+  const { data, error, response } = await powerloom.POST("/api/pbis/{adoId}/attachments", { params: { path: { adoId } }, body: form as never, bodySerializer: (body) => body as unknown as FormData });
+
+  return data ? { ok: true, value: data.refs } : failure(error, response);
+}
 
 // An expected refusal comes back as ProblemDetails; its detail is the message.
 function failure(error: unknown, response: Response): { ok: false; error: string } {

@@ -1,11 +1,9 @@
 "use server";
 
-import { attachmentRef, savePbiReposCommand, savePbiSkillsCommand } from "@adoa/core";
-import { storeAttachments } from "@adoa/attachments";
+import { savePbiReposCommand, savePbiSkillsCommand } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { afterItemChange } from "@/lib/afterItemChange";
-import { runWebCommand } from "@/lib/commandContext";
-import { getDb } from "@/lib/db";
+import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
 import { formText, readUploads } from "@/lib/formFields";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
@@ -19,7 +17,7 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
     return { ok: false, message: "Choose, paste or drop a file." };
   }
 
-  const stored = await storeAttachments(getDb(), files, { adoId, itemId: null, sourceUrl: null });
+  const stored = await uploadAttachments(adoId, files, { itemId: null, sourceUrl: null });
 
   if (!stored.ok) {
     return { ok: false, message: stored.error };
@@ -27,7 +25,7 @@ export async function addAttachment(_previous: ActionResult | null, form: FormDa
 
   await afterItemChange(adoId);
 
-  return { ok: true, message: `Uploaded as ${stored.value.map(attachmentRef).join(", ")}.` };
+  return { ok: true, message: `Uploaded as ${stored.value.join(", ")}.` };
 }
 
 // The user's repo list (user decision 2026-10-02); answers refinement's open repo question too.

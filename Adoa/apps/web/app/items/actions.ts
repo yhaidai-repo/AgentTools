@@ -3,12 +3,12 @@
 import { closeItemCommand, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@adoa/core";
 import { localItem } from "@adoa/db";
 import { and, eq, isNull } from "drizzle-orm";
-import { storeAttachments, type UploadedFile } from "@adoa/attachments";
+import type { UploadedFile } from "@adoa/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { getBoss } from "@/lib/boss";
-import { runWebCommand, webCommandContext } from "@/lib/commandContext";
+import { runWebCommand, uploadAttachments, webCommandContext } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
 import { resolutionFromForm } from "@/lib/humanTaskAnswers";
@@ -86,7 +86,7 @@ async function storeItemFiles(files: UploadedFile[], request: CloseItemRequest, 
     return "Files are attached to a PBI; this item has none.";
   }
 
-  const stored = await storeAttachments(getDb(), files, { adoId: request.adoId, itemId: request.itemId, sourceUrl });
+  const stored = await uploadAttachments(request.adoId, files, { itemId: request.itemId, sourceUrl });
 
   return stored.ok ? null : stored.error;
 }

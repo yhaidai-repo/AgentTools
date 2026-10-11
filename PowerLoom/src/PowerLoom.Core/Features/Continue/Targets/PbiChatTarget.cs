@@ -8,6 +8,7 @@ using PowerLoom.Infrastructure.ChatLaunch;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PbiSkill = PowerLoom.Features.Continue.Models.PbiSkill;
 
 namespace PowerLoom.Features.Continue.Targets;
 

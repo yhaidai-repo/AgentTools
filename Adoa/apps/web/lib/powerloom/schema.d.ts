@@ -408,6 +408,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/{adoId}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_pbis_adoId_skills
+         * @description PUT_api_pbis_adoId_skills
+         */
+        put: operations["PUT_api_pbis_adoId_skills"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pbis/{adoId}/repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_pbis_adoId_repos
+         * @description PUT_api_pbis_adoId_repos
+         */
+        put: operations["PUT_api_pbis_adoId_repos"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/prepare": {
         parameters: {
             query?: never;
@@ -428,6 +468,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/{adoId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_adoId_finish
+         * @description POST_api_pbis_adoId_finish
+         */
+        post: operations["POST_api_pbis_adoId_finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis": {
         parameters: {
             query?: never;
@@ -437,7 +497,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /**
+         * POST_api_pbis
+         * @description POST_api_pbis
+         */
+        post: operations["POST_api_pbis"];
         /**
          * DELETE_api_pbis
          * @description DELETE_api_pbis
@@ -467,6 +531,26 @@ export interface paths {
          * @description DELETE_api_pbis_adoId_confluence_links
          */
         delete: operations["DELETE_api_pbis_adoId_confluence_links"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pbis/{adoId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_adoId_attachments
+         * @description POST_api_pbis_adoId_attachments
+         */
+        post: operations["POST_api_pbis_adoId_attachments"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -770,6 +854,23 @@ export interface components {
             ok: boolean;
             message: string;
         };
+        CreatePbiRequest: {
+            vault: null | string;
+            title: string;
+            type: null | string;
+            /** Format: int32 */
+            priority: null | number;
+            descriptionMd: null | string;
+            acceptanceCriteriaMd: null | string;
+            /** Format: int32 */
+            parentId: null | number;
+            actor: null | string;
+        };
+        CreatedPbi: {
+            /** Format: int32 */
+            adoId: number;
+            vault: string;
+        };
         DeleteItemRequest: {
             /** Format: int32 */
             adoId: null | number;
@@ -792,6 +893,23 @@ export interface components {
         EnabledRequest: {
             enabled: boolean;
         };
+        FinishRequest: {
+            /** Format: int32 */
+            rating: number;
+            /** Format: double */
+            effortHours: number;
+            whatWentWrong: null | string;
+            fault: null | string;
+            actor: null | string;
+        };
+        FinishedPbi: {
+            message: string;
+            /** Format: int32 */
+            wwwRecordId: null | number;
+        };
+        /** Format: binary */
+        IFormFile: string;
+        IFormFileCollection: components["schemas"]["IFormFile"][];
         LauncherAvailability: {
             label: string;
             problem: null | string;
@@ -895,12 +1013,22 @@ export interface components {
             user: string;
             pat: null | string;
         };
+        SaveReposRequest: {
+            repos: string[];
+        };
         SaveSkillRequest: {
             content: string;
             hash: string;
         };
+        SaveSkillsRequest: {
+            skills: components["schemas"]["SkillChoice"][];
+        };
         SavedConnection: {
             enabled: boolean;
+        };
+        SavedRepos: {
+            /** Format: int32 */
+            saved: number;
         };
         SavedSchedule: {
             /** Format: int32 */
@@ -920,6 +1048,10 @@ export interface components {
             /** Format: date-time */
             restoredFrom: null | string;
         };
+        SavedSkills: {
+            /** Format: int32 */
+            saved: number;
+        };
         SavedSourceSettings: {
             enabled: boolean;
             importFolder: null | string;
@@ -935,12 +1067,20 @@ export interface components {
             goal: null | string;
             repos: null | string[];
         };
+        SkillChoice: {
+            name: string;
+            reason: string;
+        };
         SourceSettingsRequest: {
             enabled: boolean;
             cron: string;
             /** Format: int32 */
             maxItemsPerRun: number;
             importFolder: null | string;
+        };
+        StoredAttachments: {
+            ids: number[];
+            refs: string[];
         };
         SyncPbisRequest: {
             vault: string;
@@ -1559,6 +1699,58 @@ export interface operations {
             };
         };
     };
+    PUT_api_pbis_adoId_skills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSkillsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSkills"];
+                };
+            };
+        };
+    };
+    PUT_api_pbis_adoId_repos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveReposRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedRepos"];
+                };
+            };
+        };
+    };
     POST_api_pbis_prepare: {
         parameters: {
             query?: never;
@@ -1579,6 +1771,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreparedPbis"];
+                };
+            };
+        };
+    };
+    POST_api_pbis_adoId_finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinishedPbi"];
+                };
+            };
+        };
+    };
+    POST_api_pbis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePbiRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedPbi"];
                 };
             };
         };
@@ -1655,6 +1897,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PbiConfluencePage"][];
+                };
+            };
+        };
+    };
+    POST_api_pbis_adoId_attachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    itemId?: string;
+                } & {
+                    sourceUrl?: string;
+                } & {
+                    files: components["schemas"]["IFormFileCollection"];
+                };
+                "multipart/form-data": {
+                    itemId?: string;
+                } & {
+                    sourceUrl?: string;
+                } & {
+                    files: components["schemas"]["IFormFileCollection"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredAttachments"];
                 };
             };
         };

@@ -1,5 +1,8 @@
 import type { ChatLaunch } from "./ChatLaunch";
 import type { CloseItemRequest } from "./CloseItemRequest";
+import type { CreatePbiInput } from "./CreatePbiInput";
+import type { PbiFeedback } from "./PbiFeedback";
+import type { PbiSkillChoices } from "./PbiSkillChoices";
 import type { ItemStatus } from "./ItemStatus";
 import type { ReportBugInput } from "./ReportBugInput";
 import type { ReportedBug } from "./ReportedBug";
@@ -27,4 +30,12 @@ export interface PowerLoomPort {
   answerReviewComment(commentId: string, answer: string | null): Promise<Outcome<{ prId: number; answered: boolean }>>;
   // Deletes a pull request's review from adoa; the deleted PR's title.
   deleteReview(prId: number): Promise<Outcome<string>>;
+  // A PBI created in adoa (a child of parentId goes to the parent's vault).
+  createPbi(input: CreatePbiInput, actor: string): Promise<Outcome<{ adoId: number }>>;
+  // Finishes a PBI with the user's feedback; the WWW record id when something went wrong.
+  finishPbi(feedback: PbiFeedback, actor: string): Promise<Outcome<{ message: string; wwwRecordId: number | null }>>;
+  // The user's repo list for a PBI; the number saved.
+  savePbiRepos(adoId: number, repos: string[]): Promise<Outcome<number>>;
+  // The user's skill list for a PBI; the number saved.
+  savePbiSkills(choices: PbiSkillChoices): Promise<Outcome<number>>;
 }

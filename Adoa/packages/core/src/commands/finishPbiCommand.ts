@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { recordPbiFeedback } from "../feedback/recordPbiFeedback";
-import { finishPbi } from "../finishPbi";
 import type { Command } from "../models/Command";
 import type { PbiFeedback } from "../models/PbiFeedback";
 import { notifyChange } from "./notifyChange";
@@ -16,16 +14,14 @@ export const finishPbiCommand: Command<PbiFeedback, { message: string; wwwRecord
     fault: z.enum(["Human", "Agent"]).default("Agent"),
   }),
   async run(context, input) {
-    const finished = await finishPbi(context.db, input.adoId, context.actor);
+    const finished = await context.powerloom.finishPbi(input, context.actor);
 
     if (!finished.ok) {
       return finished;
     }
 
-    const wwwRecordId = await recordPbiFeedback(context, input);
-
     await notifyChange(context, input.adoId);
 
-    return { ok: true, value: { message: finished.value, wwwRecordId } };
+    return finished;
   },
 };

@@ -28,6 +28,8 @@ export type { AgentRunJob } from "./models/AgentRunJob";
 export type { Outcome } from "./models/Outcome";
 export type { CloseDecision, CloseItemRequest } from "./models/CloseItemRequest";
 export type { ReportBugInput } from "./models/ReportBugInput";
+export type { PbiSkillChoices } from "./models/PbiSkillChoices";
+export type { CreatePbiInput } from "./models/CreatePbiInput";
 export type { ReportedBug } from "./models/ReportedBug";
 export type { NewHumanTask } from "./models/NewHumanTask";
 export type { LinkedDocumentKind } from "./models/LinkedDocumentKind";

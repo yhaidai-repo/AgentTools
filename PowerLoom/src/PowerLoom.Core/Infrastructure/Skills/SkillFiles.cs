@@ -26,6 +26,16 @@ public sealed partial class SkillFiles(IOptions<SkillsOptions> options)
         return null;
     }
 
+    // Every skill the folders offer (a folder with a SKILL.md), as the agents may load them.
+    public IReadOnlySet<string> Names()
+    {
+        return options.Value.Folders.Where(Directory.Exists)
+            .SelectMany(folder => Directory.EnumerateDirectories(folder).Where(skill => File.Exists(Path.Combine(skill, FileName))).Select(Path.GetFileName))
+            .Where(name => name is not null)
+            .Select(name => name!)
+            .ToHashSet();
+    }
+
     public bool IsEditable(string folder) => options.Value.Editable.Length > 0 && folder == options.Value.Editable;
 
     // Rewrites an existing skill only (no new skills, user decision 2026-10-01). Returns why it was refused, or null.

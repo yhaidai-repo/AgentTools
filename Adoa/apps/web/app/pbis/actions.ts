@@ -3,11 +3,10 @@
 import { createPbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type PbiFeedback } from "@adoa/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { runWebCommand } from "@/lib/commandContext";
+import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
-import { storeAttachment } from "@adoa/attachments";
 import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
 
@@ -130,7 +129,7 @@ async function storeNewPbiFiles(adoId: number, form: FormData): Promise<string[]
   const problems: string[] = [];
 
   for (const file of await readUploads(form, "files")) {
-    const stored = await storeAttachment(getDb(), file, { adoId, itemId: null, sourceUrl: null });
+    const stored = await uploadAttachments(adoId, [file], { itemId: null, sourceUrl: null });
 
     if (!stored.ok) {
       problems.push(`${file.fileName}: ${stored.error}`);

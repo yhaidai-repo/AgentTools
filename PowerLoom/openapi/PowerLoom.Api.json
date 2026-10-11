@@ -837,6 +837,92 @@
         }
       }
     },
+    "/api/pbis/{adoId}/skills": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Skills.SaveSkillsEndpoint"
+        ],
+        "summary": "PUT_api_pbis_adoId_skills",
+        "description": "PUT_api_pbis_adoId_skills",
+        "operationId": "PUT_api_pbis_adoId_skills",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSkillsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkills"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/repos": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Repos.SaveReposEndpoint"
+        ],
+        "summary": "PUT_api_pbis_adoId_repos",
+        "description": "PUT_api_pbis_adoId_repos",
+        "operationId": "PUT_api_pbis_adoId_repos",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveReposRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRepos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis/prepare": {
       "post": {
         "tags": [
@@ -869,6 +955,49 @@
         }
       }
     },
+    "/api/pbis/{adoId}/finish": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Finish.FinishEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_finish",
+        "description": "POST_api_pbis_adoId_finish",
+        "operationId": "POST_api_pbis_adoId_finish",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinishedPbi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis": {
       "delete": {
         "tags": [
@@ -894,6 +1023,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeletedPbis"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Create.CreateEndpoint"
+        ],
+        "summary": "POST_api_pbis",
+        "description": "POST_api_pbis",
+        "operationId": "POST_api_pbis",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePbiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPbi"
                 }
               }
             }
@@ -984,6 +1143,112 @@
                   "items": {
                     "$ref": "#/components/schemas/PbiConfluencePage"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/attachments": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Attachments.AttachmentsEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_attachments",
+        "description": "POST_api_pbis_adoId_attachments",
+        "operationId": "POST_api_pbis_adoId_attachments",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "itemId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sourceUrl": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "files": {
+                        "$ref": "#/components/schemas/IFormFileCollection"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "itemId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sourceUrl": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "files": {
+                        "$ref": "#/components/schemas/IFormFileCollection"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredAttachments"
                 }
               }
             }
@@ -1663,6 +1928,84 @@
           }
         }
       },
+      "CreatePbiRequest": {
+        "required": [
+          "vault",
+          "title",
+          "type",
+          "priority",
+          "descriptionMd",
+          "acceptanceCriteriaMd",
+          "parentId",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "descriptionMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acceptanceCriteriaMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreatedPbi": {
+        "required": [
+          "adoId",
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
       "DeleteItemRequest": {
         "required": [
           "adoId"
@@ -1750,6 +2093,73 @@
           "enabled": {
             "type": "boolean"
           }
+        }
+      },
+      "FinishRequest": {
+        "required": [
+          "rating",
+          "effortHours",
+          "whatWentWrong",
+          "fault",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effortHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "whatWentWrong": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fault": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FinishedPbi": {
+        "required": [
+          "message",
+          "wwwRecordId"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "wwwRecordId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
+      "IFormFileCollection": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/IFormFile"
         }
       },
       "LauncherAvailability": {
@@ -2184,6 +2594,20 @@
           }
         }
       },
+      "SaveReposRequest": {
+        "required": [
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "SaveSkillRequest": {
         "required": [
           "content",
@@ -2199,6 +2623,20 @@
           }
         }
       },
+      "SaveSkillsRequest": {
+        "required": [
+          "skills"
+        ],
+        "type": "object",
+        "properties": {
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillChoice"
+            }
+          }
+        }
+      },
       "SavedConnection": {
         "required": [
           "enabled"
@@ -2207,6 +2645,18 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "SavedRepos": {
+        "required": [
+          "saved"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2273,6 +2723,18 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "SavedSkills": {
+        "required": [
+          "saved"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2346,6 +2808,21 @@
           }
         }
       },
+      "SkillChoice": {
+        "required": [
+          "name",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "SourceSettingsRequest": {
         "required": [
           "enabled",
@@ -2370,6 +2847,28 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "StoredAttachments": {
+        "required": [
+          "ids",
+          "refs"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2557,13 +3056,28 @@
       "name": "PowerLoom.Features.Repos.CatalogEndpoints"
     },
     {
+      "name": "PowerLoom.Features.Pbis.Skills.SaveSkillsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Repos.SaveReposEndpoint"
+    },
+    {
       "name": "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Finish.FinishEndpoint"
     },
     {
       "name": "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
     },
     {
+      "name": "PowerLoom.Features.Pbis.Create.CreateEndpoint"
+    },
+    {
       "name": "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Attachments.AttachmentsEndpoint"
     },
     {
       "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"

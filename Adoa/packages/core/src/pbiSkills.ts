@@ -35,16 +35,3 @@ export async function recommendPbiSkills(db: AdoaDb, adoId: number, skills: { na
 
   return updated.length > 0;
 }
-
-// The user's list wins from now on: later refinements leave it.
-async function savePbiSkills(db: AdoaDb, adoId: number, skills: PbiSkill[]): Promise<void> {
-  await db.update(workItem).set({ skills, skillsEditedAt: new Date() }).where(eq(workItem.adoId, adoId));
-}
-
-// The user's edited list: a skill kept from the earlier list keeps who added it (agent or user).
-export async function savePbiSkillChoices(db: AdoaDb, adoId: number, choices: { name: string; reason: string }[]): Promise<void> {
-  const [pbi] = await db.select({ skills: workItem.skills }).from(workItem).where(eq(workItem.adoId, adoId));
-  const skills: PbiSkill[] = choices.map((choice) => ({ ...choice, by: pbi?.skills.find((skill) => skill.name === choice.name)?.by ?? "user" }));
-
-  await savePbiSkills(db, adoId, skills);
-}
