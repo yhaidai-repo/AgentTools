@@ -647,3 +647,169 @@ tbody[data-folded] tr.child-row {
   border-color: var(--accent);
   outline: none;
 }
+
+/* Dashboard: the architecture scheme and the state cards */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scheme svg {
+  width: 100%;
+  height: 520px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  touch-action: none;
+  cursor: grab;
+}
+
+.scheme-breadcrumb {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.scheme-breadcrumb .link-button:disabled {
+  color: var(--text);
+  font-weight: 600;
+  cursor: default;
+  text-decoration: none;
+}
+
+.scheme-node rect {
+  fill: var(--bg);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.scheme-node.kind-external rect {
+  stroke-dasharray: 6 4;
+}
+
+.scheme-node.openable {
+  cursor: pointer;
+}
+
+.scheme-node.openable:hover rect {
+  stroke: var(--accent);
+}
+
+.scheme-node.marked rect {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.scheme-node .scheme-dot {
+  fill: var(--border);
+}
+
+.scheme-node.health-ok .scheme-dot {
+  fill: var(--ok);
+}
+
+.scheme-node.health-degraded .scheme-dot {
+  fill: #d4a017;
+}
+
+.scheme-node.health-degraded rect {
+  stroke: #d4a017;
+}
+
+.scheme-node.health-failed .scheme-dot {
+  fill: var(--error);
+}
+
+.scheme-node.health-failed rect {
+  stroke: var(--error);
+  stroke-width: 2.5;
+}
+
+.scheme-label {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.scheme-detail {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.scheme-more {
+  font-size: 16px;
+  fill: var(--muted);
+}
+
+.scheme-link line {
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.scheme-arrow {
+  fill: var(--muted);
+}
+
+.scheme-link-label {
+  font-size: 10px;
+  fill: var(--muted);
+  text-anchor: middle;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.dashboard-row {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.state-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.state-dot.state-ok {
+  background: var(--ok);
+}
+
+.state-dot.state-degraded {
+  background: #d4a017;
+}
+
+.state-dot.state-failed {
+  background: var(--error);
+}
+
+.attention-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.attention-list li.state-degraded {
+  color: #b8860b;
+}
+
+.attention-list li.state-failed {
+  color: var(--error);
+}

@@ -21,6 +21,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <header className="topbar">
           <span className="brand">PowerLoom</span>
           <nav>
+            <Link href="/dashboard">Dashboard</Link>
             <Link href="/pbis">Backlog</Link>
             <Link href="/tasks">Tasks</Link>
             <Link href="/reviews">Reviews</Link>
