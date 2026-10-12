@@ -1,6 +1,6 @@
 import type { AgentDefinition } from "@agenttools/config";
 import { StackedColumns } from "@/components/charts/StackedColumns";
-import { formatUsd } from "@/lib/format";
+import { formatDayOfMonth, formatUsd } from "@/lib/format";
 import type { ChartSeries } from "@/models/ChartSeries";
 import type { DayActivity } from "@/models/DayActivity";
 
@@ -17,8 +17,8 @@ export function ActivityCharts({ days, agents }: { days: DayActivity[]; agents: 
 
   return (
     <div className="dashboard-charts">
-      <StackedColumns title="Cost per day" labels={labels} series={costSeries(days, agents)} format={formatUsd} axisLabel={dayOfMonth} />
-      <StackedColumns title="Runs per day" labels={labels} series={runs} format={String} axisLabel={dayOfMonth} />
+      <StackedColumns title="Cost per day" labels={labels} series={costSeries(days, agents)} format={formatUsd} axisLabel={formatDayOfMonth} />
+      <StackedColumns title="Runs per day" labels={labels} series={runs} format={String} axisLabel={formatDayOfMonth} />
     </div>
   );
 }
@@ -39,8 +39,4 @@ function costSeries(days: DayActivity[], agents: AgentDefinition[]): ChartSeries
 
 function costOfOthers(day: DayActivity, namedIds: Set<string>): number {
   return Object.entries(day.costByAgent).filter(([id]) => !namedIds.has(id)).reduce((sum, [, value]) => sum + value, 0);
-}
-
-function dayOfMonth(day: string): string {
-  return String(Number(day.slice(8, 10)));
 }

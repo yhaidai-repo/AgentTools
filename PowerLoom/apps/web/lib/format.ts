@@ -30,6 +30,11 @@ export function formatAge(ms: number): string {
   return unit ? `${Math.floor(ms / unit.ms)}${unit.suffix}` : "<1m";
 }
 
+// The day of a YYYY-MM-DD date, for a chart's x axis: 2026-10-05 → 5.
+export function formatDayOfMonth(day: string): string {
+  return String(Number(day.slice(8, 10)));
+}
+
 export function average(total: number, count: number): number {
   return count > 0 ? total / count : 0;
 }

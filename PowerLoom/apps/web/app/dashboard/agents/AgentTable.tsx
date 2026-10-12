@@ -1,10 +1,9 @@
 import type { AgentDefinition } from "@agenttools/config";
 import Link from "next/link";
+import { budgetLevel } from "@/lib/budget";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import type { SystemStatus } from "@/lib/systemStatus";
 import type { AgentActivity } from "@/models/AgentActivity";
-
-const WARN_AT = 0.8;
 
 type AgentBudget = SystemStatus["budget"]["agents"][number];
 
@@ -68,12 +67,13 @@ function AgentRow({ agent, slot, activity, today, range }: AgentRowProps) {
 
 // The fill carries severity; the track is the same hue, lighter.
 function BudgetMeter({ spent, limit }: { spent: number; limit: number }) {
-  if (limit <= 0) {
+  const level = budgetLevel(spent, limit);
+
+  if (level === null) {
     return <>{formatUsd(spent)}</>;
   }
 
   const share = Math.min(spent / limit, 1);
-  const level = share >= 1 ? "critical" : share >= WARN_AT ? "warning" : "good";
 
   return (
     <span className="budget-meter">

@@ -1,5 +1,7 @@
 import { StackedColumns } from "@/components/charts/StackedColumns";
 import { Lines } from "@/components/charts/Lines";
+import { StatTile } from "@/components/StatTile";
+import { formatDayOfMonth } from "@/lib/format";
 import { doneOn, isDoneState, itemsOn, sprintStates } from "@/lib/sprintProgress";
 import type { ChartSeries } from "@/models/ChartSeries";
 import type { SprintDay } from "@/models/SprintDay";
@@ -19,15 +21,15 @@ export function SprintSection({ sprint, days }: { sprint: SprintSummary; days: S
   return (
     <>
       <div className="stat-tiles">
-        <Tile label="Items" value={String(sprint.items)} note={`${sprint.days} snapshot day(s), ${sprint.firstDay} to ${sprint.lastDay}`} />
-        <Tile label="Done" value={String(sprint.done)} note={sprint.items > 0 ? `${Math.round((sprint.done / sprint.items) * 100)}% of the items` : undefined} />
-        <Tile label="In progress" value={today ? String(itemsOn(today) - doneOn(today) - (today.itemsByState.New ?? 0)) : "0"} note="every state but New and Done" />
-        <Tile label="Effort" value={sprint.effort === null ? "–" : String(sprint.effort)} note={sprint.effort === null ? "not filled in ADO" : "sum of the items' Effort"} />
+        <StatTile label="Items" value={String(sprint.items)} note={`${sprint.days} snapshot day(s), ${sprint.firstDay} to ${sprint.lastDay}`} />
+        <StatTile label="Done" value={String(sprint.done)} note={sprint.items > 0 ? `${Math.round((sprint.done / sprint.items) * 100)}% of the items` : undefined} />
+        <StatTile label="In progress" value={today ? String(itemsOn(today) - doneOn(today) - (today.itemsByState.New ?? 0)) : "0"} note="every state but New and Done" />
+        <StatTile label="Effort" value={sprint.effort === null ? "–" : String(sprint.effort)} note={sprint.effort === null ? "not filled in ADO" : "sum of the items' Effort"} />
       </div>
       <div className="dashboard-charts">
-        <StackedColumns title="Items per state, per day" labels={labels} series={stateSeries(days, states)} format={String} axisLabel={dayOfMonth} />
+        <StackedColumns title="Items per state, per day" labels={labels} series={stateSeries(days, states)} format={String} axisLabel={formatDayOfMonth} />
         {hasRemaining ? (
-          <Lines title="Remaining work" labels={labels} values={remaining} format={String} axisLabel={dayOfMonth} />
+          <Lines title="Remaining work" labels={labels} values={remaining} format={String} axisLabel={formatDayOfMonth} />
         ) : (
           <figure className="chart chart-empty"><figcaption>Remaining work</figcaption><p className="muted">The sprint&apos;s items carry no Remaining Work in ADO: no burndown. The state chart shows the progress instead.</p></figure>
         )}
@@ -44,18 +46,4 @@ function stateSeries(days: SprintDay[], states: string[]): ChartSeries[] {
     color: isDoneState(state) ? "var(--series-6)" : `var(--series-${slot + 1})`,
     values: days.map((day) => day.itemsByState[state] ?? 0),
   }));
-}
-
-function dayOfMonth(day: string): string {
-  return String(Number(day.slice(8, 10)));
-}
-
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="card stat-tile">
-      <span className="stat-label">{label}</span>
-      <strong className="stat-value">{value}</strong>
-      {note && <span className="muted">{note}</span>}
-    </div>
-  );
 }

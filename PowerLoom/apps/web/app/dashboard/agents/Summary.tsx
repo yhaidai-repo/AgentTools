@@ -1,8 +1,8 @@
+import { StatTile } from "@/components/StatTile";
+import { isNearBudget } from "@/lib/budget";
 import { formatUsd } from "@/lib/format";
 import type { SystemStatus } from "@/lib/systemStatus";
 import type { DayActivity } from "@/models/DayActivity";
-
-const WARN_AT = 0.8;
 
 interface SummaryProps {
   days: DayActivity[];
@@ -21,28 +21,14 @@ export function Summary({ days, budget, stuck, held, periodLabel }: SummaryProps
 
   return (
     <div className="stat-tiles">
-      <Tile label={`Spent, ${period}`} value={formatUsd(cost)} />
-      <Tile label={`Runs, ${period}`} value={String(runs)} note={failures > 0 ? `${failures} failed` : "none failed"} alert={failures > 0} />
-      <Tile label="Budget today" value={budget ? formatUsd(budget.spentTodayUsd) : "?"} note={budget ? `of ${formatUsd(budget.dailyLimitUsd)}` : "PowerLoom doesn't answer"} alert={isNearLimit(budget)} />
-      <Tile label="Blocked" value={String(stuck + held)} note={`${stuck} stuck, ${held} held`} alert={stuck > 0} />
+      <StatTile label={`Spent, ${period}`} value={formatUsd(cost)} />
+      <StatTile label={`Runs, ${period}`} value={String(runs)} note={failures > 0 ? `${failures} failed` : "none failed"} alert={failures > 0} />
+      <StatTile label="Budget today" value={budget ? formatUsd(budget.spentTodayUsd) : "?"} note={budget ? `of ${formatUsd(budget.dailyLimitUsd)}` : "PowerLoom doesn't answer"} alert={budget !== null && isNearBudget(budget.spentTodayUsd, budget.dailyLimitUsd)} />
+      <StatTile label="Blocked" value={String(stuck + held)} note={`${stuck} stuck, ${held} held`} alert={stuck > 0} />
     </div>
   );
 }
 
 function dayCost(day: DayActivity): number {
   return Object.values(day.costByAgent).reduce((sum, value) => sum + value, 0);
-}
-
-function isNearLimit(budget: SystemStatus["budget"] | null): boolean {
-  return budget !== null && budget.dailyLimitUsd > 0 && budget.spentTodayUsd >= budget.dailyLimitUsd * WARN_AT;
-}
-
-function Tile({ label, value, note, alert = false }: { label: string; value: string; note?: string; alert?: boolean }) {
-  return (
-    <div className="card stat-tile">
-      <span className="stat-label">{label}</span>
-      <strong className={`stat-value${alert ? " result-error" : ""}`}>{value}</strong>
-      {note && <span className="muted">{note}</span>}
-    </div>
-  );
 }

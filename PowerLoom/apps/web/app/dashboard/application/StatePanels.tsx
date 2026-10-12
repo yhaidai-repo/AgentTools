@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { TimeAgo } from "@/components/TimeAgo";
+import { budgetLevel } from "@/lib/budget";
 import { formatUsd } from "@/lib/format";
 import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
 
@@ -75,10 +76,10 @@ function Row({ label, state, text }: { label: string; state?: StateLevel; text: 
   );
 }
 
-function budgetState(spent: number, limit: number): StateLevel | undefined {
-  if (limit <= 0) {
-    return undefined;
-  }
+const BUDGET_STATES: Record<string, StateLevel> = { good: "ok", warning: "degraded", critical: "failed" };
 
-  return spent >= limit ? "failed" : spent >= limit * 0.8 ? "degraded" : "ok";
+function budgetState(spent: number, limit: number): StateLevel | undefined {
+  const level = budgetLevel(spent, limit);
+
+  return level ? BUDGET_STATES[level] : undefined;
 }
