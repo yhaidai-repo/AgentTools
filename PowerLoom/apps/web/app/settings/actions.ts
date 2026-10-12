@@ -97,6 +97,53 @@ export async function removeLocalRepoAction(id: string): Promise<void> {
   revalidatePath("/settings");
 }
 
+// Read SQL (user decision 2026-10-12), kept by PowerLoom; which agents read is each agent's own switch.
+export async function saveReadSqlAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/read-sql", { params: { path: { vault: await requireVault() } }, body: { enabled } });
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with Read SQL switched on may query the enabled connections." : "Saved. Read SQL is off: no agent queries this vault's databases.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+export async function addSqlConnectionAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const added = await powerloom.POST("/api/vaults/{vault}/read-sql/connections", {
+    params: { path: { vault: await requireVault() } },
+    body: { name: field(form, "name"), connectionString: field(form, "connectionString") },
+  });
+
+  revalidatePath("/settings");
+
+  return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
+}
+
+// Tests the typed string without saving it; the agent-runner signs in with the agents' SQL driver.
+export async function testSqlConnectionAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return testSqlConnection({ name: field(form, "name") || null, connectionString: field(form, "connectionString") });
+}
+
+export async function testSavedSqlConnectionAction(name: string): Promise<ActionResult> {
+  return testSqlConnection({ name, connectionString: null });
+}
+
+export async function setSqlConnectionEnabledAction(name: string, enabled: boolean): Promise<void> {
+  await powerloom.PUT("/api/vaults/{vault}/read-sql/connections/{name}/enabled", { params: { path: { vault: await requireVault(), name } }, body: { enabled } });
+  revalidatePath("/settings");
+}
+
+export async function removeSqlConnectionAction(name: string): Promise<void> {
+  await powerloom.DELETE("/api/vaults/{vault}/read-sql/connections/{name}", { params: { path: { vault: await requireVault(), name } } });
+  revalidatePath("/settings");
+}
+
+async function testSqlConnection(body: { name: string | null; connectionString: string | null }): Promise<ActionResult> {
+  const checked = await powerloom.POST("/api/vaults/{vault}/read-sql/test", { params: { path: { vault: await requireVault() } }, body });
+
+  return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
+}
+
 // Every feature section's switch (user decision 2026-10-06).
 function isEnabled(form: FormData): boolean {
   return form.get("enabled") === "on";

@@ -1912,6 +1912,258 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/read-sql": {
+      "put": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_sql",
+        "description": "PUT_api_vaults_vault_read_sql",
+        "operationId": "PUT_api_vaults_vault_read_sql",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections": {
+      "post": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_sql_connections",
+        "description": "POST_api_vaults_vault_read_sql_connections",
+        "operationId": "POST_api_vaults_vault_read_sql_connections",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSqlConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections/{name}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "description": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "operationId": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections/{name}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "description": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "operationId": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_sql_test",
+        "description": "POST_api_vaults_vault_read_sql_test",
+        "operationId": "POST_api_vaults_vault_read_sql_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSqlConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1956,6 +2208,21 @@
             "$ref": "#/components/schemas/RecordKind"
           },
           "sourceId": {
+            "type": "string"
+          }
+        }
+      },
+      "AddSqlConnectionRequest": {
+        "required": [
+          "name",
+          "connectionString"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "connectionString": {
             "type": "string"
           }
         }
@@ -3369,6 +3636,44 @@
           }
         }
       },
+      "SqlConnectionCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "SqlConnectionSummary": {
+        "required": [
+          "name",
+          "server",
+          "database",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "server": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "Stage": {
         "enum": [
           "sync",
@@ -3625,6 +3930,27 @@
           }
         }
       },
+      "TestSqlConnectionRequest": {
+        "required": [
+          "name",
+          "connectionString"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectionString": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TickResult": {
         "required": [
           "result"
@@ -3839,6 +4165,9 @@
     },
     {
       "name": "PowerLoom.ConfluenceIntegration.Features.LoadPage.LoadPageEndpoint"
+    },
+    {
+      "name": "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
     }
   ]
 }

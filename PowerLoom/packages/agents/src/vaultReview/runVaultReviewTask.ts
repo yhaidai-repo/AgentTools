@@ -13,6 +13,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import type { VaultsAccess } from "../models/VaultsAccess";
 import { reposByName } from "../research/resolveRepos";
+import { createSqlTools } from "../sqlTools";
 import { numberOption } from "../stage";
 import { commitVaultReview } from "./commitVaultReview";
 import type { ReviewLimits } from "./models/ReviewLimits";
@@ -108,6 +109,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createFindingTools(deps, run.draft.findings),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
       ...skills.tools,
+      ...createSqlTools(deps, agent),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

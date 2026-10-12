@@ -13,6 +13,7 @@
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/notes": "*",
+    "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "@agenttools/config": "*",
     "@agenttools/runtime": "*",

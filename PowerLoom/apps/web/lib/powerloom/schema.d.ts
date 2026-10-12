@@ -916,6 +916,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/read-sql": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_sql
+         * @description PUT_api_vaults_vault_read_sql
+         */
+        put: operations["PUT_api_vaults_vault_read_sql"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-sql/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_read_sql_connections
+         * @description POST_api_vaults_vault_read_sql_connections
+         */
+        post: operations["POST_api_vaults_vault_read_sql_connections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-sql/connections/{name}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_sql_connections_name_enabled
+         * @description PUT_api_vaults_vault_read_sql_connections_name_enabled
+         */
+        put: operations["PUT_api_vaults_vault_read_sql_connections_name_enabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-sql/connections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_read_sql_connections_name
+         * @description DELETE_api_vaults_vault_read_sql_connections_name
+         */
+        delete: operations["DELETE_api_vaults_vault_read_sql_connections_name"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-sql/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_read_sql_test
+         * @description POST_api_vaults_vault_read_sql_test
+         */
+        post: operations["POST_api_vaults_vault_read_sql_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -930,6 +1030,10 @@ export interface components {
         AddRecordRequest: {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
+        };
+        AddSqlConnectionRequest: {
+            name: string;
+            connectionString: string;
         };
         AddVaultRequest: {
             folder: string;
@@ -1283,6 +1387,16 @@ export interface components {
             maxItemsPerRun: number;
             importFolder: null | string;
         };
+        SqlConnectionCheck: {
+            ok: boolean;
+            message: string;
+        };
+        SqlConnectionSummary: {
+            name: string;
+            server: string;
+            database: string;
+            enabled: boolean;
+        };
         /** @enum {unknown} */
         Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review";
         /** @enum {unknown} */
@@ -1341,6 +1455,10 @@ export interface components {
             project: string;
             team: string;
             pat: null | string;
+        };
+        TestSqlConnectionRequest: {
+            name: null | string;
+            connectionString: null | string;
         };
         TickResult: {
             result: string;
@@ -2675,6 +2793,175 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_sql: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_read_sql_connections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSqlConnectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SqlConnectionSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_sql_connections_name_enabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SqlConnectionSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_read_sql_connections_name: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_read_sql_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestSqlConnectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SqlConnectionCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

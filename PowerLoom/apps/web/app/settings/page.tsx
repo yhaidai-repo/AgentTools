@@ -1,6 +1,7 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type RepoRow } from "@powerloom/core";
+import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { RepositoriesPanel } from "./RepositoriesPanel";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
 import { PullRequestSettingsForm } from "./PullRequestSettingsForm";
+import { ReadSqlPanel } from "./ReadSqlPanel";
 import { SettingsForm } from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,7 @@ export default async function SettingsPage() {
   const ado = await readAdoSettings(db, current);
   const adoActive = isAdoActive(ado);
   const repos = await listVaultRepos(db, current);
+  const readSql = await readReadSqlSettings(db, current);
 
   return (
     <>
@@ -41,6 +44,8 @@ export default async function SettingsPage() {
       <h2>Repositories</h2>
       <p className="muted">What agents clone and the PBI page offers: the integration&apos;s repositories (listed by the PBI sync) and local checkouts, each on or off.</p>
       <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={adoActive} />
+      <h2>Read SQL</h2>
+      <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <h2>Agents</h2>
       <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
@@ -74,6 +79,11 @@ async function AdoSections({ db, current, vault, ado, repos }: { db: PowerLoomDb
 // The browser never gets the token, only whether one is saved.
 function integrationValues(ado: AdoSettings | null): AdoIntegrationValues {
   return { enabled: ado?.enabled ?? false, orgUrl: ado?.orgUrl ?? "", project: ado?.project ?? "", team: ado?.team ?? "", user: ado?.user ?? "", hasPat: !!ado?.pat };
+}
+
+// The browser never gets a connection string, only what it points at.
+function connectionRows(settings: ReadSqlSettings): SqlConnectionRow[] {
+  return settings.connections.map((connection) => ({ name: connection.name, server: connection.server, database: connection.database, enabled: connection.enabled }));
 }
 
 // As the worker reported it at startup (it holds the token): the account, or what to set.

@@ -11,6 +11,7 @@ using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
+using PowerLoom.SqlIntegration.Features.Connections;
 using Testcontainers.PostgreSql;
 using Wolverine;
 
@@ -91,6 +92,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<ICronSource, ProbeCronSource>();
         services.AddSingleton<FakeRunnerClient>();
         services.AddSingleton<IRunnerClient>(provider => provider.GetRequiredService<FakeRunnerClient>());
+        services.AddSingleton<FakeSqlConnectionTester>();
+        services.AddSingleton<ISqlConnectionTester>(provider => provider.GetRequiredService<FakeSqlConnectionTester>());
         services.ConfigureWolverine(options =>
         {
             options.Discovery.IncludeType(typeof(VaultProbeHandler));

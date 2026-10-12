@@ -4,6 +4,7 @@
     <ProjectReference Include="..\PowerLoom.Core\PowerLoom.Core.csproj" />
     <ProjectReference Include="..\PowerLoom.AdoIntegration\PowerLoom.AdoIntegration.csproj" />
     <ProjectReference Include="..\PowerLoom.ConfluenceIntegration\PowerLoom.ConfluenceIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.SqlIntegration\PowerLoom.SqlIntegration.csproj" />
   </ItemGroup>
 
 </Project>

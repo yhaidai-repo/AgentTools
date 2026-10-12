@@ -11,6 +11,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
 import { loadResearchContext } from "../research/loadResearchContext";
+import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, numberOption, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitDesign } from "./commitDesign";
@@ -78,6 +79,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createDesignTools(run.draft, guard),
       ...createConfluenceTools(deps, agent),
+      ...createSqlTools(deps, agent),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

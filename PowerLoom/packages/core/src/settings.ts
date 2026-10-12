@@ -5,6 +5,7 @@ import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
+import type { ReadSqlSettings } from "./models/ReadSqlSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 
 // Settings are per vault (user decision 2026-10-05): the key is `vault:<name>:<setting>`. Confluence access is global.
@@ -14,6 +15,7 @@ const CONFLUENCE_KEY = "confluence";
 const IMPORT_KEY = "import";
 const IMPORT_STATUS_KEY = "importStatus";
 const PULL_REQUESTS_KEY = "pullRequests";
+const READ_SQL_KEY = "readSql";
 
 const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
@@ -105,6 +107,12 @@ export async function readPullRequestSettings(db: PowerLoomDb, vault: string): P
 
 export async function savePullRequestSettings(db: PowerLoomDb, vault: string, settings: PullRequestSettings): Promise<void> {
   await saveValue(db, vaultSettingKey(vault, PULL_REQUESTS_KEY), settings);
+}
+
+export async function readReadSqlSettings(db: PowerLoomDb, vault: string): Promise<ReadSqlSettings> {
+  const stored = await readValue<Partial<ReadSqlSettings>>(db, vaultSettingKey(vault, READ_SQL_KEY));
+
+  return { enabled: stored?.enabled ?? false, connections: stored?.connections ?? [] };
 }
 
 export async function readValue<T>(db: PowerLoomDb, key: string): Promise<T | null> {

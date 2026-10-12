@@ -1,5 +1,6 @@
 import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
+import { READ_SQL_INTEGRATION } from "./sqlTools";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -165,6 +166,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Confluence (read)",
     description: "The agent may read and search Confluence pages during its runs.",
   },
+  {
+    key: READ_SQL_INTEGRATION,
+    label: "Read SQL (SQL Server)",
+    description: "The agent may run read-only queries on the vault's Read SQL connections (Settings) during its runs. Whatever a query returns goes to the model provider.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -177,7 +183,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 10 },
     budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
     optionSpecs: REFINEMENT_OPTIONS,
@@ -194,7 +200,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
     optionSpecs: RESEARCH_OPTIONS,
@@ -211,7 +217,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: true } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: DESIGN_OPTIONS,
@@ -228,7 +234,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-tech-writer", "powerloom-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: TECH_WRITER_OPTIONS,
@@ -246,7 +252,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 15 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: CODE_REVIEW_OPTIONS,
@@ -264,7 +270,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: VAULT_REVIEW_OPTIONS,

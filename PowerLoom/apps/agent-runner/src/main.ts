@@ -1,8 +1,9 @@
 import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
-import { readAdoSettings, vaultBacklogRoot, type AgentRunJob } from "@powerloom/core";
+import { readAdoSettings, readReadSqlSettings, vaultBacklogRoot, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { createDb, localItem } from "@powerloom/db";
 import { VaultCaptureCli } from "@powerloom/notes";
+import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
@@ -45,6 +46,8 @@ if (!captureRules) {
   console.error("VAULT_CAPTURE_HOME is not set: agents get no vault_capture tool");
 }
 
+const sqlReader = new SqlReader();
+
 // What every run shares; the vault-bound parts come from depsFor.
 const shared = {
   db,
@@ -62,7 +65,7 @@ const shared = {
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
-const server = new RunnerServer(runAndReport);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString));
 
 server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
@@ -122,7 +125,16 @@ async function depsFor(vault: string): Promise<AgentDeps> {
     docsVaultName: vault,
     listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
     docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
+    sql: await sqlAccessOf(vault),
   };
+}
+
+// Read per run, so a switch flipped in Settings counts from the next run.
+async function sqlAccessOf(vault: string): Promise<AgentDeps["sql"]> {
+  const settings = await readReadSqlSettings(db, vault);
+  const connections = settings.connections.filter((connection) => connection.enabled);
+
+  return settings.enabled && connections.length > 0 ? { reader: sqlReader, connections } : null;
 }
 
 // One cache per vault (it remembers when each repo was fetched), cloning with the vault's ADO token; the vault's local

@@ -10,6 +10,7 @@
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
+    "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "@agenttools/config": "*",
     "@agenttools/runtime": "*",

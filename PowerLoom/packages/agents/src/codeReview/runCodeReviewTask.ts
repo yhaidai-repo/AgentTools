@@ -9,6 +9,7 @@ import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
+import { createSqlTools } from "../sqlTools";
 import { numberOption, skillsTrace } from "../stage";
 import { createCodeReviewTools } from "./codeReviewTools";
 import { commitReview } from "./commitReview";
@@ -83,6 +84,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     tools: [
       ...createRepoTools({ root: reviewCheckoutsRoot(deps, session.runId), repos: [repo.name] }),
       ...skills.tools,
+      ...createSqlTools(deps, agent),
       ...createCodeReviewTools(run),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

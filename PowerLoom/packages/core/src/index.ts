@@ -15,6 +15,8 @@ export * from "./urls";
 export * from "./attachmentIds";
 export * from "./humanItems";
 export type { AdoSettings } from "./models/AdoSettings";
+export type { ReadSqlSettings } from "./models/ReadSqlSettings";
+export type { SqlConnectionSettings } from "./models/SqlConnectionSettings";
 export type { SyncSettings } from "./models/SyncSettings";
 export type { ConfluenceStatus } from "./models/ConfluenceStatus";
 export type { PipelineStatus } from "./models/PipelineStatus";

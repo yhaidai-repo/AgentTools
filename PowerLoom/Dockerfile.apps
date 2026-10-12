@@ -16,6 +16,7 @@ COPY PowerLoom/packages/db/package.json PowerLoom/packages/db/
 COPY PowerLoom/packages/core/package.json PowerLoom/packages/core/
 COPY PowerLoom/packages/ado/package.json PowerLoom/packages/ado/
 COPY PowerLoom/packages/confluence/package.json PowerLoom/packages/confluence/
+COPY PowerLoom/packages/sql/package.json PowerLoom/packages/sql/
 COPY PowerLoom/packages/vault/package.json PowerLoom/packages/vault/
 COPY PowerLoom/packages/attachments/package.json PowerLoom/packages/attachments/
 COPY PowerLoom/packages/notes/package.json PowerLoom/packages/notes/

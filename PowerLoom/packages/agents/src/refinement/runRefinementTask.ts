@@ -14,6 +14,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
+import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
@@ -73,6 +74,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
       ...createRefinementTools(deps.db, deps.docsVaultName, draft, pbiMessage, recommendable, guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
       ...createConfluenceTools(deps, agent),
+      ...createSqlTools(deps, agent),
       ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
