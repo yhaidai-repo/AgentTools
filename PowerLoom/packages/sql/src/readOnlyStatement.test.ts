@@ -49,6 +49,19 @@ describe("readOnlyProblem", () => {
     ]);
   });
 
+  it("refuses advancing a sequence, which a rollback doesn't undo", () => {
+    assert.equal(readOnlyProblem("SELECT NEXT VALUE FOR dbo.InvoiceNumber"), "Read only: NEXT VALUE FOR advances a sequence, and a rollback doesn't undo that; read sys.sequences instead.");
+    assert.notEqual(readOnlyProblem("SELECT next\n value  for Seq"), null);
+  });
+
+  it("refuses table hints that hold locks, but keeps paging and dirty reads", () => {
+    const refused = ["SELECT * FROM Patient WITH (TABLOCKX)", "SELECT * FROM Patient WITH (UPDLOCK, ROWLOCK)", "SELECT * FROM Patient (HOLDLOCK)", "SELECT * FROM Patient WITH (XLOCK)"];
+    const allowed = ["SELECT * FROM Patient WITH (NOLOCK) ORDER BY Id OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY", "SELECT [Next], [Value] FROM Setting"];
+
+    assert.ok(refused.map(readOnlyProblem).every((problem) => problem !== null));
+    assert.deepEqual(allowed.map(readOnlyProblem), [null, null]);
+  });
+
   it("refuses a second statement, an empty text and anything not starting with SELECT or WITH", () => {
     assert.equal(readOnlyProblem("SELECT 1; SELECT 2"), "One statement per query: remove the ';' between statements.");
     assert.equal(readOnlyProblem(" -- nothing\n "), "The query is empty.");

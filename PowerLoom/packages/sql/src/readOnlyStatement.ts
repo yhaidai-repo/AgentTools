@@ -1,12 +1,17 @@
-// Words a read-only query never needs. Writes, schema changes, procedures, outside data sources, and the session and
-// transaction statements that could lift the reader's caps (ROWCOUNT, isolation) or end its rolled-back transaction.
+// Words a read-only query never needs. Writes, schema changes, procedures, outside data sources, the session and
+// transaction statements that could lift the reader's caps (ROWCOUNT, isolation) or end its rolled-back transaction,
+// and the table hints that hold locks until the rollback, so a query could block the app's writers for its 30 s.
 const FORBIDDEN = new Set([
   "INSERT", "UPDATE", "DELETE", "MERGE", "INTO", "TRUNCATE", "BULK",
   "CREATE", "ALTER", "DROP", "GRANT", "DENY", "REVOKE",
   "EXEC", "EXECUTE", "DBCC", "RECONFIGURE", "SHUTDOWN", "KILL", "BACKUP", "RESTORE",
   "OPENROWSET", "OPENQUERY", "OPENDATASOURCE",
   "SET", "USE", "WAITFOR", "BEGIN", "COMMIT", "ROLLBACK", "SAVE", "TRAN", "TRANSACTION",
+  "TABLOCK", "TABLOCKX", "XLOCK", "UPDLOCK", "HOLDLOCK", "PAGLOCK", "SERIALIZABLE", "REPEATABLEREAD", "READCOMMITTEDLOCK",
 ]);
+
+// A sequence moves on even when the transaction is rolled back: the one lasting change a plain SELECT can make.
+const NEXT_SEQUENCE_VALUE = /\bNEXT\s+VALUE\s+FOR\b/i;
 
 // String literals, quoted names and comments, blanked before the check so a word inside them doesn't count. An
 // unclosed one stays and is checked, so a mistake makes the check stricter, never looser.
@@ -29,6 +34,10 @@ export function readOnlyProblem(sql: string): string | null {
 
   if (!/^(SELECT|WITH)\b/i.test(code)) {
     return "Only a SELECT (or WITH … SELECT) query may run.";
+  }
+
+  if (NEXT_SEQUENCE_VALUE.test(code)) {
+    return "Read only: NEXT VALUE FOR advances a sequence, and a rollback doesn't undo that; read sys.sequences instead.";
   }
 
   const word = code.split(NOT_A_WORD).find((token) => FORBIDDEN.has(token.toUpperCase()));
