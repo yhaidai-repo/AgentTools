@@ -144,6 +144,61 @@ async function testSqlConnection(body: { name: string | null; connectionString: 
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
+// Read Azure (user decision 2026-10-12), kept by PowerLoom; which agents read which kind is each agent's own switches.
+export async function saveReadAzureAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure", { params: { path: { vault: await requireVault() } }, body: { enabled } });
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with a kind's switch on may read the enabled resources of that kind." : "Saved. Read Azure is off: no agent reads this vault's Azure resources.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// An empty secret keeps the saved one.
+export async function saveAzureIdentityAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure/identity", {
+    params: { path: { vault: await requireVault() } },
+    body: { tenantId: field(form, "tenantId"), clientId: field(form, "clientId"), clientSecret: field(form, "clientSecret") },
+  });
+  const result = powerloomResult(saved, "Saved. Test the sign-in, then assign the read-only roles to this application in Azure.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// Signs in with the form's values (the saved secret when the field is empty) through the agent-runner, without saving.
+export async function testAzureIdentityAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const checked = await powerloom.POST("/api/vaults/{vault}/read-azure/identity/test", {
+    params: { path: { vault: await requireVault() } },
+    body: { tenantId: field(form, "tenantId"), clientId: field(form, "clientId"), clientSecret: field(form, "clientSecret") },
+  });
+
+  return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
+}
+
+export async function addAzureResourceAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const added = await powerloom.POST("/api/vaults/{vault}/read-azure/resources", {
+    params: { path: { vault: await requireVault() } },
+    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target") },
+  });
+
+  revalidatePath("/settings");
+
+  return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
+}
+
+export async function setAzureResourceEnabledAction(name: string, enabled: boolean): Promise<void> {
+  await powerloom.PUT("/api/vaults/{vault}/read-azure/resources/{name}/enabled", { params: { path: { vault: await requireVault(), name } }, body: { enabled } });
+  revalidatePath("/settings");
+}
+
+export async function removeAzureResourceAction(name: string): Promise<void> {
+  await powerloom.DELETE("/api/vaults/{vault}/read-azure/resources/{name}", { params: { path: { vault: await requireVault(), name } } });
+  revalidatePath("/settings");
+}
+
 // Every feature section's switch (user decision 2026-10-06).
 function isEnabled(form: FormData): boolean {
   return form.get("enabled") === "on";

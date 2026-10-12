@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/PowerLoom.AdoIntegration/PowerLoom.AdoIntegration.csproj" />
+    <Project Path="src/PowerLoom.AzureIntegration/PowerLoom.AzureIntegration.csproj" />
     <Project Path="src/PowerLoom.Api/PowerLoom.Api.csproj" />
     <Project Path="src/PowerLoom.ConfluenceIntegration/PowerLoom.ConfluenceIntegration.csproj" />
     <Project Path="src/PowerLoom.Contracts/PowerLoom.Contracts.csproj" />

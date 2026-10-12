@@ -1,6 +1,8 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import type { AzureIdentityValues } from "@/models/AzureIdentityValues";
+import type { AzureResourceRow } from "@/models/AzureResourceRow";
 import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { RepositoriesPanel } from "./RepositoriesPanel";
@@ -15,6 +17,7 @@ import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
 import { PullRequestSettingsForm } from "./PullRequestSettingsForm";
+import { ReadAzurePanel } from "./ReadAzurePanel";
 import { ReadSqlPanel } from "./ReadSqlPanel";
 import { SettingsForm } from "./SettingsForm";
 
@@ -33,6 +36,7 @@ export default async function SettingsPage() {
   const adoActive = isAdoActive(ado);
   const repos = await listVaultRepos(db, current);
   const readSql = await readReadSqlSettings(db, current);
+  const readAzure = await readReadAzureSettings(db, current);
 
   return (
     <>
@@ -46,6 +50,8 @@ export default async function SettingsPage() {
       <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={adoActive} />
       <h2>Read SQL</h2>
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
+      <h2>Read Azure</h2>
+      <ReadAzurePanel key={`azure-${current}`} enabled={readAzure.enabled} identity={identityValues(readAzure)} resources={resourceRows(readAzure)} />
       <h2>Agents</h2>
       <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
@@ -84,6 +90,15 @@ function integrationValues(ado: AdoSettings | null): AdoIntegrationValues {
 // The browser never gets a connection string, only what it points at.
 function connectionRows(settings: ReadSqlSettings): SqlConnectionRow[] {
   return settings.connections.map((connection) => ({ name: connection.name, server: connection.server, database: connection.database, enabled: connection.enabled }));
+}
+
+// The browser never gets the secret or a Mongo string, only whether a secret is saved and a resource's display.
+function identityValues(settings: ReadAzureSettings): AzureIdentityValues {
+  return { tenantId: settings.identity?.tenantId ?? "", clientId: settings.identity?.clientId ?? "", hasSecret: !!settings.identity?.clientSecret };
+}
+
+function resourceRows(settings: ReadAzureSettings): AzureResourceRow[] {
+  return settings.resources.map((resource) => ({ name: resource.name, kind: resource.kind, display: resource.display, enabled: resource.enabled }));
 }
 
 // As the worker reported it at startup (it holds the token): the account, or what to set.

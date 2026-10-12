@@ -5,6 +5,7 @@ import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
+import type { ReadAzureSettings } from "./models/ReadAzureSettings";
 import type { ReadSqlSettings } from "./models/ReadSqlSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 
@@ -16,6 +17,7 @@ const IMPORT_KEY = "import";
 const IMPORT_STATUS_KEY = "importStatus";
 const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
+const READ_AZURE_KEY = "readAzure";
 
 const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
@@ -113,6 +115,12 @@ export async function readReadSqlSettings(db: PowerLoomDb, vault: string): Promi
   const stored = await readValue<Partial<ReadSqlSettings>>(db, vaultSettingKey(vault, READ_SQL_KEY));
 
   return { enabled: stored?.enabled ?? false, connections: stored?.connections ?? [] };
+}
+
+export async function readReadAzureSettings(db: PowerLoomDb, vault: string): Promise<ReadAzureSettings> {
+  const stored = await readValue<Partial<ReadAzureSettings>>(db, vaultSettingKey(vault, READ_AZURE_KEY));
+
+  return { enabled: stored?.enabled ?? false, identity: stored?.identity ?? null, resources: stored?.resources ?? [] };
 }
 
 export async function readValue<T>(db: PowerLoomDb, key: string): Promise<T | null> {

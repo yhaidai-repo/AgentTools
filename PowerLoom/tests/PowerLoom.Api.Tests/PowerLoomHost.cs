@@ -4,6 +4,7 @@ using JasperFx.CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client;
+using PowerLoom.AzureIntegration.Features.Resources;
 using PowerLoom.ConfluenceIntegration.Client;
 using PowerLoom.Infrastructure.Runner;
 using PowerLoom.Infrastructure.Scheduling;
@@ -94,6 +95,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<IRunnerClient>(provider => provider.GetRequiredService<FakeRunnerClient>());
         services.AddSingleton<FakeSqlConnectionTester>();
         services.AddSingleton<ISqlConnectionTester>(provider => provider.GetRequiredService<FakeSqlConnectionTester>());
+        services.AddSingleton<FakeAzureIdentityTester>();
+        services.AddSingleton<IAzureIdentityTester>(provider => provider.GetRequiredService<FakeAzureIdentityTester>());
         services.ConfigureWolverine(options =>
         {
             options.Discovery.IncludeType(typeof(VaultProbeHandler));

@@ -1016,10 +1016,135 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/read-azure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_azure
+         * @description PUT_api_vaults_vault_read_azure
+         */
+        put: operations["PUT_api_vaults_vault_read_azure"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_azure_identity
+         * @description PUT_api_vaults_vault_read_azure_identity
+         */
+        put: operations["PUT_api_vaults_vault_read_azure_identity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_read_azure_resources
+         * @description POST_api_vaults_vault_read_azure_resources
+         */
+        post: operations["POST_api_vaults_vault_read_azure_resources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/resources/{name}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_azure_resources_name_enabled
+         * @description PUT_api_vaults_vault_read_azure_resources_name_enabled
+         */
+        put: operations["PUT_api_vaults_vault_read_azure_resources_name_enabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/resources/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_read_azure_resources_name
+         * @description DELETE_api_vaults_vault_read_azure_resources_name
+         */
+        delete: operations["DELETE_api_vaults_vault_read_azure_resources_name"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/identity/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_read_azure_identity_test
+         * @description POST_api_vaults_vault_read_azure_identity_test
+         */
+        post: operations["POST_api_vaults_vault_read_azure_identity_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddAzureResourceRequest: {
+            name: string;
+            kind: string;
+            target: string;
+        };
         AddLinkRequest: {
             url: string;
             why: null | string;
@@ -1061,6 +1186,20 @@ export interface components {
             component: string;
             severity: components["schemas"]["StateLevel"];
             message: string;
+        };
+        AzureIdentityCheck: {
+            ok: boolean;
+            message: string;
+        };
+        AzureIdentitySummary: {
+            tenantId: string;
+            clientId: string;
+        };
+        AzureResourceSummary: {
+            name: string;
+            kind: string;
+            display: string;
+            enabled: boolean;
         };
         BudgetStatus: {
             /** Format: double */
@@ -1307,6 +1446,11 @@ export interface components {
             url: string;
             detail: null | string;
         };
+        SaveAzureIdentityRequest: {
+            tenantId: string;
+            clientId: string;
+            clientSecret: null | string;
+        };
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -1449,6 +1593,11 @@ export interface components {
             /** Format: int32 */
             adoId: null | number;
             itemId: string;
+        };
+        TestAzureIdentityRequest: {
+            tenantId: string;
+            clientId: string;
+            clientSecret: null | string;
         };
         TestConnectionRequest: {
             orgUrl: string;
@@ -2952,6 +3101,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SqlConnectionCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_azure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_azure_identity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAzureIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AzureIdentitySummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_read_azure_resources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddAzureResourceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AzureResourceSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_azure_resources_name_enabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AzureResourceSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_read_azure_resources_name: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_read_azure_identity_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestAzureIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AzureIdentityCheck"];
                 };
             };
             /** @description Bad Request */

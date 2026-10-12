@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@powerloom/agents": "*",
+    "@powerloom/azure": "*",
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",

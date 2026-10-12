@@ -1,12 +1,14 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AgentRunJob } from "@powerloom/core";
+import type { AzureIdentity, AzureIdentityCheck } from "@powerloom/azure";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
 // time; PowerLoom asks again later. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
-// signed in through the agents' own SQL driver, also while a run is in progress. `GET /health` for PowerLoom's health
-// check and Docker's.
+// signed in through the agents' own SQL driver, also while a run is in progress. `POST /azure/test {tenantId, clientId,
+// clientSecret}` → 200 {ok, message}: Settings' Read Azure sign-in test. `GET /health` for PowerLoom's health check
+// and Docker's.
 export class RunnerServer {
   private running: string | null = null;
   private readonly server: Server;
@@ -14,6 +16,7 @@ export class RunnerServer {
   constructor(
     private readonly run: (job: AgentRunJob) => Promise<void>,
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
+    private readonly testAzure: (identity: AzureIdentity) => Promise<AzureIdentityCheck>,
   ) {
     this.server = createServer((request, response) => this.handle(request, response));
   }
@@ -41,6 +44,12 @@ export class RunnerServer {
 
     if (request.method === "POST" && request.url === "/sql/test") {
       await this.test(request, response);
+
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/azure/test") {
+      await this.testIdentity(request, response);
 
       return;
     }
@@ -80,6 +89,18 @@ export class RunnerServer {
     answer(response, 200, await this.testSql(body.connectionString));
   }
 
+  private async testIdentity(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const identity = identityOf(await readBody(request));
+
+    if (!identity) {
+      answer(response, 400, { error: "expected {tenantId, clientId, clientSecret}" });
+
+      return;
+    }
+
+    answer(response, 200, await this.testAzure(identity));
+  }
+
   private async runThenFree(job: AgentRunJob): Promise<void> {
     try {
       await this.run(job);
@@ -108,6 +129,13 @@ function jobOf(value: unknown): AgentRunJob | null {
   const body = (value ?? {}) as Partial<AgentRunJob>;
 
   return typeof body.taskId === "string" && typeof body.agentId === "string" ? { taskId: body.taskId, agentId: body.agentId, pbiId: typeof body.pbiId === "number" ? body.pbiId : null } : null;
+}
+
+function identityOf(value: unknown): AzureIdentity | null {
+  const body = (value ?? {}) as Partial<AzureIdentity>;
+  const complete = [body.tenantId, body.clientId, body.clientSecret].every((field) => typeof field === "string" && field.trim().length > 0);
+
+  return complete ? { tenantId: body.tenantId!.trim(), clientId: body.clientId!.trim(), clientSecret: body.clientSecret! } : null;
 }
 
 function answer(response: ServerResponse, status: number, body: object): void {

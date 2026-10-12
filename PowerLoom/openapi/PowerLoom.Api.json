@@ -2164,10 +2164,333 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/read-azure": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure",
+        "description": "PUT_api_vaults_vault_read_azure",
+        "operationId": "PUT_api_vaults_vault_read_azure",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/identity": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_identity",
+        "description": "PUT_api_vaults_vault_read_azure_identity",
+        "operationId": "PUT_api_vaults_vault_read_azure_identity",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAzureIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureIdentitySummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources": {
+      "post": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_azure_resources",
+        "description": "POST_api_vaults_vault_read_azure_resources",
+        "operationId": "POST_api_vaults_vault_read_azure_resources",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAzureResourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureResourceSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources/{name}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "description": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "operationId": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureResourceSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources/{name}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "description": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "operationId": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/identity/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_azure_identity_test",
+        "description": "POST_api_vaults_vault_read_azure_identity_test",
+        "operationId": "POST_api_vaults_vault_read_azure_identity_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestAzureIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureIdentityCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddAzureResourceRequest": {
+        "required": [
+          "name",
+          "kind",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      },
       "AddLinkRequest": {
         "required": [
           "url",
@@ -2323,6 +2646,59 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "AzureIdentityCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AzureIdentitySummary": {
+        "required": [
+          "tenantId",
+          "clientId"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          }
+        }
+      },
+      "AzureResourceSummary": {
+        "required": [
+          "name",
+          "kind",
+          "display",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "display": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
           }
         }
       },
@@ -3319,6 +3695,28 @@
           }
         }
       },
+      "SaveAzureIdentityRequest": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SaveConnectionRequest": {
         "required": [
           "enabled",
@@ -3904,6 +4302,28 @@
           }
         }
       },
+      "TestAzureIdentityRequest": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TestConnectionRequest": {
         "required": [
           "orgUrl",
@@ -4168,6 +4588,9 @@
     },
     {
       "name": "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+    },
+    {
+      "name": "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
     }
   ]
 }

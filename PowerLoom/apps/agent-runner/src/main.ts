@@ -1,7 +1,10 @@
+// First import: it patches dns.lookup, and imports run in order, so no client is created before it.
+import "./preferIpv4";
 import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
 import { readAdoSettings, readReadSqlSettings, vaultBacklogRoot, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { createDb, localItem } from "@powerloom/db";
+import { checkAzureIdentity } from "@powerloom/azure";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
@@ -65,7 +68,7 @@ const shared = {
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString));
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), checkAzureIdentity);
 
 server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
