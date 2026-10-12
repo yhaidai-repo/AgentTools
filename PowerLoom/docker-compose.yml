@@ -91,6 +91,8 @@ services:
       CONTINUE_LAUNCHER: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
       POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
+      PROMETHEUS_URL: http://otel-lgtm:9090  # the dashboard's Delivery tab asks Prometheus for PowerLoom's rates
+      GRAFANA_URL: http://127.0.0.1:${GRAFANA_PORT:-3200}  # the dashboard's link to the logs (Grafana Explore), as the PC reaches it
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:

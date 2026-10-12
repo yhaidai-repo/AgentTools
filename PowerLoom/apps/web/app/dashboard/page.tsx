@@ -4,13 +4,14 @@ import { rememberedParams } from "@/lib/rememberedFilters";
 import { loadSystemStatus } from "@/lib/systemStatus";
 import { AgentsTab } from "./agents/AgentsTab";
 import { ApplicationTab } from "./application/ApplicationTab";
+import { DeliveryTab } from "./delivery/DeliveryTab";
 import { DASHBOARD_TABS, DEFAULT_DASHBOARD_TAB, DashboardTabs } from "./DashboardTabs";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_REFRESH_MS = 30_000;
 
-type SearchParams = Promise<{ tab?: string; focus?: string; mark?: string; range?: string }>;
+type SearchParams = Promise<{ tab?: string; focus?: string; mark?: string; range?: string; sprint?: string }>;
 
 // The home page (user decision 2026-10-11): Application (the architecture scheme with PowerLoom's live status and what
 // needs attention), Agents (costs, runs, errors) and Delivery (sprints, throughput).
@@ -22,13 +23,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     <>
       <div className="section-head">
         <h1>Dashboard</h1>
-        {tab !== "delivery" && <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />}
+        <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />
       </div>
       <RememberFilters />
       <DashboardTabs active={tab} />
       {tab === "application" && <ApplicationTab status={await loadSystemStatus()} focus={params.focus ?? null} mark={params.mark ?? null} />}
       {tab === "agents" && <AgentsTab range={params.range} />}
-      {tab === "delivery" && <p className="muted">Sprint progress and comparison, pipeline throughput: a later stage of the dashboard.</p>}
+      {tab === "delivery" && <DeliveryTab sprint={params.sprint} />}
     </>
   );
 }

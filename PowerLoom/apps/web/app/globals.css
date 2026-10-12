@@ -993,3 +993,39 @@ tbody[data-folded] tr.child-row {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+
+/* Line charts (the Delivery tab) */
+.chart-line {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-marker {
+  fill: var(--series-1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.chart-hit {
+  fill: transparent;
+}
+
+.chart-hit:hover {
+  fill: color-mix(in srgb, var(--series-1) 10%, transparent);
+}
+
+.chart-value-end {
+  text-anchor: start;
+}
+
+.chart-empty p {
+  margin: 24px 0;
+  font-size: 13px;
+}
+
+.dashboard-charts .table-wrap {
+  align-self: start;
+}
