@@ -23,3 +23,12 @@ export function rangeStart(range: string): Date {
 export function rangeOptions(): { key: string; label: string }[] {
   return Object.entries(RANGES).map(([key, { label }]) => ({ key, label }));
 }
+
+// The periods a per-day chart can show.
+export const DAY_RANGES = ["7d", "30d", "90d"];
+
+export const DEFAULT_DAY_RANGE = DAY_RANGES[0];
+
+export function dayRangeOptions(): { key: string; label: string }[] {
+  return rangeOptions().filter((option) => DAY_RANGES.includes(option.key));
+}

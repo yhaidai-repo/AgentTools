@@ -2,6 +2,7 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { RememberFilters } from "@/components/RememberFilters";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { loadSystemStatus } from "@/lib/systemStatus";
+import { AgentsTab } from "./agents/AgentsTab";
 import { ApplicationTab } from "./application/ApplicationTab";
 import { DASHBOARD_TABS, DEFAULT_DASHBOARD_TAB, DashboardTabs } from "./DashboardTabs";
 
@@ -21,12 +22,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     <>
       <div className="section-head">
         <h1>Dashboard</h1>
-        {tab === "application" && <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />}
+        {tab !== "delivery" && <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />}
       </div>
       <RememberFilters />
       <DashboardTabs active={tab} />
       {tab === "application" && <ApplicationTab status={await loadSystemStatus()} focus={params.focus ?? null} mark={params.mark ?? null} />}
-      {tab === "agents" && <p className="muted">Costs, time, runs and errors per agent: the next stage of the dashboard.</p>}
+      {tab === "agents" && <AgentsTab range={params.range} />}
       {tab === "delivery" && <p className="muted">Sprint progress and comparison, pipeline throughput: a later stage of the dashboard.</p>}
     </>
   );

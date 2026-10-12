@@ -6,8 +6,9 @@ export function formatTokens(count: number): string {
   return count >= 1_000 ? `${(count / 1_000).toFixed(1)}k` : String(count);
 }
 
+// Four decimals for cents-level amounts (a cheap run), two otherwise; zero is plain.
 export function formatUsd(amount: number): string {
-  return `$${amount.toFixed(amount < 1 ? 4 : 2)}`;
+  return `$${amount.toFixed(amount > 0 && amount < 1 ? 4 : 2)}`;
 }
 
 export function formatDuration(ms: number): string {

@@ -7,6 +7,19 @@
   --accent: #2f6feb;
   --ok: #1a7f37;
   --error: #cf222e;
+  /* Chart series (identity, in fixed order; validated colorblind-safe on this surface) and status fills. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+  --grid: #e8e9eb;
   color-scheme: light;
 }
 
@@ -20,6 +33,15 @@
     --accent: #5b9bff;
     --ok: #3fb950;
     --error: #f85149;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --grid: #242a31;
     color-scheme: dark;
   }
 }
@@ -812,4 +834,162 @@ tbody[data-folded] tr.child-row {
 
 .attention-list li.state-failed {
   color: var(--error);
+}
+
+/* Dashboard: the Agents tab */
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.chart figcaption {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart rect {
+  rx: 2;
+}
+
+.chart rect:hover {
+  opacity: 0.8;
+}
+
+.chart-grid line {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart-grid text,
+.chart-axis {
+  font-size: 11px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-grid text {
+  text-anchor: end;
+}
+
+.chart-axis,
+.chart-value {
+  text-anchor: middle;
+}
+
+.chart-value {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.chart-baseline {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chart-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.budget-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* The fill carries severity; the track is a lighter step of the same color. */
+.meter {
+  display: inline-block;
+  width: 72px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--meter-color) 25%, var(--surface));
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--meter-color);
+}
+
+.meter-good { --meter-color: var(--status-good); }
+.meter-warning { --meter-color: var(--status-warning); }
+.meter-critical { --meter-color: var(--status-critical); }
+
+/* Held tasks carry their reasons: the wider card. */
+.dashboard-blockers {
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-blockers {
+    grid-template-columns: 1fr;
+  }
+}
+
+.held-reasons {
+  display: inline-block;
+  margin-left: 15px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
