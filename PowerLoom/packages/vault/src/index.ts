@@ -17,6 +17,8 @@ export { renderItemNote } from "./renderItemNote";
 export { replaceRegions } from "./regions";
 export { DEFAULT_PBI_TEMPLATE } from "./defaultPbiTemplate";
 export { escapeCell, htmlToMarkdown } from "./markdown";
+export { splitNotesSection } from "./notesSection";
+export type { SplitNote } from "./models/SplitNote";
 export { BACKLOG_INDEX_PATH, PBI_TEMPLATE_PATH, attachmentFileName, attachmentPath, designNoteName, designNotePath, implementNoteName, implementNotePath, itemNotePath, pathInPbiFolder, pbiNoteName, pbiNotePath, refinementNoteName, refinementNotePath } from "./paths";
 export type { PbiNote } from "./models/PbiNote";
 export type { IndexRow } from "./models/IndexRow";

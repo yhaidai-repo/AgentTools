@@ -5,7 +5,7 @@ import type { AttachmentSummary } from "./models/AttachmentSummary";
 import type { ExistingItem } from "./models/ExistingItem";
 import type { PbiInputs } from "./models/PbiInputs";
 
-const LISTED_KINDS = ["question", "human", "research"] as const;
+export const LISTED_KINDS = ["question", "human", "research"] as const;
 
 export async function loadPbiInputs(db: PowerLoomDb, adoId: number): Promise<PbiInputs> {
   const attachments = await loadAttachments(db, adoId);

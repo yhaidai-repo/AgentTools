@@ -6,6 +6,7 @@ import type { AgentDeps } from "./models/AgentDeps";
 import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
+import { withPbiContext } from "./pbiContext/withPbiContext";
 import { RunObserver } from "./RunObserver";
 import { ToolCallLogger } from "./ToolCallLogger";
 
@@ -53,7 +54,7 @@ export class AgentRunSession {
   /** Prepares and runs the agent; a failure anywhere returns a `failed` result instead of throwing. */
   async execute(info: AgentRunInfo, prepare: () => Promise<AgentRunInput>): Promise<AgentRunResult> {
     try {
-      const input = await prepare();
+      const input = await withPbiContext(this.deps, info.pbiId, await prepare());
 
       return await this.runAgent(info, input);
     } catch (error) {
