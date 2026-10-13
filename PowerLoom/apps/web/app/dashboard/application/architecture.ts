@@ -38,7 +38,7 @@ const topLevel: SchemeNode[] = [
   // What the agents read outside on their own (per-agent switches), in a row of their own.
   node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 2, 3),
   node("azure", "Azure", "external", undefined, "App Insights, Cosmos DB, Service Bus, Mongo (Read Azure)", 3, 3),
-  node("local-stack", "DevHub (local stack)", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
+  node("devhub", "DevHub", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
 ];
 
 const powerloomModules: SchemeNode[] = [
@@ -130,7 +130,7 @@ const runnerTools: SchemeNode[] = [
   node("tool-create-task", "create task", "component", "runner-tools", "tasks for other agents or the user"),
   node("tool-sql", "read SQL", "component", "runner-tools"),
   node("tool-azure", "read Azure", "component", "runner-tools"),
-  node("tool-local-stack", "local stack", "component", "runner-tools"),
+  node("tool-devhub", "DevHub", "component", "runner-tools"),
   node("tool-test-cases", "ADO test cases", "component", "runner-tools", "read_test_cases: Tested By, saved to the PBI"),
   node("tool-access", "access requests", "component", "runner-tools", "every outside call logged; a refused one becomes a human task"),
 ];
@@ -178,7 +178,7 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-confluence", "confluence"),
   link("tool-sql", "sql-server"),
   link("tool-azure", "azure"),
-  link("tool-local-stack", "local-stack"),
+  link("tool-devhub", "devhub"),
   link("tool-test-cases", "ado", "test cases"),
   link("tool-pbi-context", "schema-public"),
   link("tool-access", "schema-public"),

@@ -15,7 +15,7 @@ import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { acceptanceCriteriaBlock, goalTextOf } from "../tasks/userTasks";
 import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { createSqlTools } from "../sqlTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
 import type { GoalDraft } from "./models/GoalDraft";
@@ -75,7 +75,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
-      ...createLocalStackTools(deps, agent, access),
+      ...createDevHubTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

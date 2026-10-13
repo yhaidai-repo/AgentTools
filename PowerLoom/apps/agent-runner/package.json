@@ -14,7 +14,7 @@
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
-    "@powerloom/localstack": "*",
+    "@powerloom/devhub": "*",
     "@powerloom/notes": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",

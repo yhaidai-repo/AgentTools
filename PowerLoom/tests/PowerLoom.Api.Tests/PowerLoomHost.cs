@@ -12,7 +12,7 @@ using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
-using PowerLoom.LocalStackIntegration.Features.DevHub;
+using PowerLoom.DevHubIntegration.Features.DevHub;
 using PowerLoom.SqlIntegration.Features.Connections;
 using Testcontainers.PostgreSql;
 using Wolverine;
@@ -96,8 +96,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<IRunnerClient>(provider => provider.GetRequiredService<FakeRunnerClient>());
         services.AddSingleton<FakeSqlConnectionTester>();
         services.AddSingleton<ISqlConnectionTester>(provider => provider.GetRequiredService<FakeSqlConnectionTester>());
-        services.AddSingleton<FakeLocalStackTester>();
-        services.AddSingleton<ILocalStackTester>(provider => provider.GetRequiredService<FakeLocalStackTester>());
+        services.AddSingleton<FakeDevHubTester>();
+        services.AddSingleton<IDevHubTester>(provider => provider.GetRequiredService<FakeDevHubTester>());
         services.AddSingleton<FakeAzureUserLogin>();
         services.AddSingleton<IAzureUserLogin>(provider => provider.GetRequiredService<FakeAzureUserLogin>());
         services.ConfigureWolverine(options =>

@@ -18,7 +18,7 @@ COPY PowerLoom/packages/ado/package.json PowerLoom/packages/ado/
 COPY PowerLoom/packages/confluence/package.json PowerLoom/packages/confluence/
 COPY PowerLoom/packages/sql/package.json PowerLoom/packages/sql/
 COPY PowerLoom/packages/azure/package.json PowerLoom/packages/azure/
-COPY PowerLoom/packages/localstack/package.json PowerLoom/packages/localstack/
+COPY PowerLoom/packages/devhub/package.json PowerLoom/packages/devhub/
 COPY PowerLoom/packages/vault/package.json PowerLoom/packages/vault/
 COPY PowerLoom/packages/attachments/package.json PowerLoom/packages/attachments/
 COPY PowerLoom/packages/notes/package.json PowerLoom/packages/notes/

@@ -9,7 +9,7 @@ COPY src/PowerLoom.AdoIntegration/PowerLoom.AdoIntegration.csproj src/PowerLoom.
 COPY src/PowerLoom.ConfluenceIntegration/PowerLoom.ConfluenceIntegration.csproj src/PowerLoom.ConfluenceIntegration/
 COPY src/PowerLoom.SqlIntegration/PowerLoom.SqlIntegration.csproj src/PowerLoom.SqlIntegration/
 COPY src/PowerLoom.AzureIntegration/PowerLoom.AzureIntegration.csproj src/PowerLoom.AzureIntegration/
-COPY src/PowerLoom.LocalStackIntegration/PowerLoom.LocalStackIntegration.csproj src/PowerLoom.LocalStackIntegration/
+COPY src/PowerLoom.DevHubIntegration/PowerLoom.DevHubIntegration.csproj src/PowerLoom.DevHubIntegration/
 COPY src/PowerLoom.Contracts/PowerLoom.Contracts.csproj src/PowerLoom.Contracts/
 COPY src/PowerLoom.Domain/PowerLoom.Domain.csproj src/PowerLoom.Domain/
 COPY src/PowerLoom.Persistence/PowerLoom.Persistence.csproj src/PowerLoom.Persistence/

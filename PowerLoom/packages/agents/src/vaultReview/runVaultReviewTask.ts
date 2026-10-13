@@ -16,7 +16,7 @@ import type { VaultsAccess } from "../models/VaultsAccess";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { createSqlTools } from "../sqlTools";
 import { numberOption, outsideAccessContext } from "../stage";
 import { commitVaultReview } from "./commitVaultReview";
@@ -108,7 +108,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
-      ...createLocalStackTools(deps, agent, access),
+      ...createDevHubTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

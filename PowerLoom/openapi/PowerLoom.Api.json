@@ -2606,14 +2606,14 @@
         }
       }
     },
-    "/api/vaults/{vault}/local-stack": {
+    "/api/vaults/{vault}/devhub": {
       "put": {
         "tags": [
-          "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
+          "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
         ],
-        "summary": "PUT_api_vaults_vault_local_stack",
-        "description": "PUT_api_vaults_vault_local_stack",
-        "operationId": "PUT_api_vaults_vault_local_stack",
+        "summary": "PUT_api_vaults_vault_devhub",
+        "description": "PUT_api_vaults_vault_devhub",
+        "operationId": "PUT_api_vaults_vault_devhub",
         "parameters": [
           {
             "name": "vault",
@@ -2628,7 +2628,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveLocalStackRequest"
+                "$ref": "#/components/schemas/SaveDevHubRequest"
               }
             }
           },
@@ -2640,7 +2640,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LocalStackSummary"
+                  "$ref": "#/components/schemas/DevHubSummary"
                 }
               }
             }
@@ -2658,14 +2658,14 @@
         }
       }
     },
-    "/api/vaults/{vault}/local-stack/test": {
+    "/api/vaults/{vault}/devhub/test": {
       "post": {
         "tags": [
-          "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
+          "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
         ],
-        "summary": "POST_api_vaults_vault_local_stack_test",
-        "description": "POST_api_vaults_vault_local_stack_test",
-        "operationId": "POST_api_vaults_vault_local_stack_test",
+        "summary": "POST_api_vaults_vault_devhub_test",
+        "description": "POST_api_vaults_vault_devhub_test",
+        "operationId": "POST_api_vaults_vault_devhub_test",
         "parameters": [
           {
             "name": "vault",
@@ -2680,7 +2680,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestLocalStackRequest"
+                "$ref": "#/components/schemas/TestDevHubRequest"
               }
             }
           },
@@ -2692,7 +2692,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LocalStackCheck"
+                  "$ref": "#/components/schemas/DevHubCheck"
                 }
               }
             }
@@ -3445,6 +3445,40 @@
           }
         }
       },
+      "DevHubCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "DevHubSummary": {
+        "required": [
+          "enabled",
+          "url",
+          "hasToken"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "hasToken": {
+            "type": "boolean"
+          }
+        }
+      },
       "DispatchedAgent": {
         "required": [
           "agentId"
@@ -3560,40 +3594,6 @@
         "properties": {
           "url": {
             "type": "string"
-          }
-        }
-      },
-      "LocalStackCheck": {
-        "required": [
-          "ok",
-          "message"
-        ],
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          }
-        }
-      },
-      "LocalStackSummary": {
-        "required": [
-          "enabled",
-          "url",
-          "hasToken"
-        ],
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "url": {
-            "type": "string"
-          },
-          "hasToken": {
-            "type": "boolean"
           }
         }
       },
@@ -4125,7 +4125,7 @@
           }
         }
       },
-      "SaveLocalStackRequest": {
+      "SaveDevHubRequest": {
         "required": [
           "enabled",
           "url",
@@ -4781,7 +4781,7 @@
           }
         }
       },
-      "TestLocalStackRequest": {
+      "TestDevHubRequest": {
         "required": [
           "url",
           "token"
@@ -5051,7 +5051,7 @@
       "name": "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
     },
     {
-      "name": "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
+      "name": "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
     }
   ]
 }

@@ -13,7 +13,7 @@
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
-    "@powerloom/localstack": "*",
+    "@powerloom/devhub": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "@agenttools/config": "*",
