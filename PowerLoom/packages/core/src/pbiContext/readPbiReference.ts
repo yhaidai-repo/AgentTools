@@ -1,4 +1,4 @@
-import { attachment, design, localItem, refinement, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
+import { attachment, design, localItem, refinement, testCase, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 import { attachmentRef } from "../attachmentIds";
 import type { Outcome } from "../models/Outcome";
@@ -8,14 +8,16 @@ const PBI_REF = /^PBI-(\d+)$/i;
 const VERSIONED_REF = /^PBI-(\d+):(refinement|design)$/i;
 const DRAFT_REF = /^DRAFT-(\d+)$/i;
 const ATTACHMENT_REF = /^ATT-(\d+)$/i;
+const TEST_CASE_REF = /^TC-(\d+)$/i;
 
 // Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement or design, an item
-// (question, task, finding, result), a vault draft or an upload's text.
+// (question, task, finding, result), a vault draft, an upload's text or an Azure DevOps test case.
 export async function readPbiReference(db: PowerLoomDb, backlogMount: string, ref: string): Promise<Outcome<string>> {
   const versioned = VERSIONED_REF.exec(ref);
   const pbi = PBI_REF.exec(ref);
   const draft = DRAFT_REF.exec(ref);
   const upload = ATTACHMENT_REF.exec(ref);
+  const test = TEST_CASE_REF.exec(ref);
 
   if (versioned) {
     return readVersioned(db, Number(versioned[1]), versioned[2].toLowerCase());
@@ -31,6 +33,10 @@ export async function readPbiReference(db: PowerLoomDb, backlogMount: string, re
 
   if (upload) {
     return readAttachment(db, Number(upload[1]));
+  }
+
+  if (test) {
+    return readTestCase(db, Number(test[1]));
   }
 
   return readItem(db, ref);
@@ -78,6 +84,25 @@ async function readAttachment(db: PowerLoomDb, id: number): Promise<Outcome<stri
   }
 
   return { ok: true, value: file.text ?? `${attachmentRef(id)} (${file.fileName}) has no text: images can't be read yet.` };
+}
+
+// A case that tests several PBIs has a row per PBI; the latest read is shown, with every PBI it tests.
+async function readTestCase(db: PowerLoomDb, adoId: number): Promise<Outcome<string>> {
+  const rows = await db.select().from(testCase).where(eq(testCase.adoId, adoId)).orderBy(desc(testCase.fetchedAt));
+  const [latest] = rows;
+
+  if (!latest) {
+    return notFound(`TC-${adoId}`);
+  }
+
+  const header = [
+    `# TC-${adoId}: ${latest.title}`,
+    `State: ${latest.state} · Priority: ${latest.priority ?? "-"} · ADO rev ${latest.rev} · read ${latest.fetchedAt.toISOString().slice(0, 10)}`,
+    `Tests: ${rows.map((row) => `PBI-${row.pbiId}`).join(", ")}`,
+  ];
+  const parameters = latest.parameters ? ["## Parameters", latest.parameters] : [];
+
+  return { ok: true, value: [...header, "## Steps", latest.stepsMd, ...parameters].join("\n\n") };
 }
 
 function asJson(value: unknown): Outcome<string> {

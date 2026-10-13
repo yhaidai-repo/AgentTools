@@ -1,6 +1,6 @@
 import { readChildItems } from "../bugs/childItems";
 import { pbiRepoEntries } from "../pbiRepos";
-import { design, localItem, refinement, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
+import { design, localItem, refinement, testCase, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { and, desc, eq, ne, notInArray } from "drizzle-orm";
 import { LISTED_KINDS } from "./pbiInputs";
 import type { PbiReference } from "../models/PbiReference";
@@ -10,7 +10,7 @@ type WorkItemRow = typeof workItem.$inferSelect;
 const TITLE_CHARS = 160;
 
 // What the other blocks don't list: the parent and child items, the latest refinement and design, the findings, results
-// and other agent tasks, and the vault drafts; each by reference.
+// and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each by reference.
 export async function loadRelated(db: PowerLoomDb, row: WorkItemRow): Promise<PbiReference[]> {
   return [
     ...parentReference(row),
@@ -18,6 +18,7 @@ export async function loadRelated(db: PowerLoomDb, row: WorkItemRow): Promise<Pb
     ...(await versionedReferences(db, row.adoId)),
     ...(await itemReferences(db, row.adoId)),
     ...(await draftReferences(db, row.adoId)),
+    ...(await testCaseReferences(db, row.adoId)),
   ];
 }
 
@@ -76,6 +77,13 @@ async function draftReferences(db: PowerLoomDb, adoId: number): Promise<PbiRefer
   const rows = await db.select({ id: vaultCapture.id, status: vaultCapture.status, title: vaultCapture.title }).from(vaultCapture).where(eq(vaultCapture.pbiId, adoId)).orderBy(vaultCapture.id);
 
   return rows.map((draft) => ({ ref: `DRAFT-${draft.id}`, kind: "vault draft", status: draft.status, title: short(draft.title) }));
+}
+
+// Saved by read_test_cases; the list is as fresh as its last read.
+async function testCaseReferences(db: PowerLoomDb, adoId: number): Promise<PbiReference[]> {
+  const rows = await db.select({ adoId: testCase.adoId, state: testCase.state, title: testCase.title }).from(testCase).where(eq(testCase.pbiId, adoId)).orderBy(testCase.adoId);
+
+  return rows.map((row) => ({ ref: `TC-${row.adoId}`, kind: "test case", status: row.state, title: short(row.title) }));
 }
 
 function short(text: string): string {
