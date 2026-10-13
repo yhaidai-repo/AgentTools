@@ -5,4 +5,6 @@ import type { NoteEdit } from "./NoteEdit";
 export interface TechWriterDraft {
   edits: NoteEdit[];
   findings: FindingDraft[];
+  /** The note that takes the draft's place (write_note's takesDraftPlace): links to the draft are repointed to it. */
+  home: string | null;
 }

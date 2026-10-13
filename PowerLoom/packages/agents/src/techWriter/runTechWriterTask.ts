@@ -15,7 +15,7 @@ import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
-import { requireNoDraftLinks } from "./draftLinks";
+import { relinkDraft, requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { TaskVault } from "./models/TaskVault";
@@ -44,7 +44,7 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: TechWriterRun = { repos: noRepos(), draft: { edits: [], findings: [] } };
+  const run: TechWriterRun = { repos: noRepos(), draft: { edits: [], findings: [], home: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -91,8 +91,11 @@ async function commit(context: TaskContext, vault: TaskVault, task: ItemRow, run
     return;
   }
 
-  await requireNoDraftLinks(vault.root, (task.data as DraftTaskData).draft, draft.edits);
-  await commitTechWriter(context.deps.db, vault, task, runId, draft);
+  const draftName = (task.data as DraftTaskData).draft;
+  const edits = await relinkDraft(vault.root, draftName, draft);
+
+  await requireNoDraftLinks(vault.root, draftName, edits);
+  await commitTechWriter(context.deps.db, vault, task, runId, { ...draft, edits });
 }
 
 // The repository first (user decision 2026-10-02), then the task's note and the vault rules; each step is a traced phase.
