@@ -37,7 +37,6 @@ export type { NewHumanTask } from "./models/NewHumanTask";
 export type { LinkedDocumentKind } from "./models/LinkedDocumentKind";
 export * from "./agentStages";
 export * from "./agentTasks";
-export * from "./syncPipelineStatus";
 export * from "./pbiSkills";
 export * from "./itemKeys";
 export * from "./deleteItem";

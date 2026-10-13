@@ -1,31 +1,9 @@
-import { localItem, statusHistory, workItem, type PowerLoomDb } from "@powerloom/db";
+import { localItem, statusHistory, type PowerLoomDb } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import type { ItemStatus } from "./models/ItemStatus";
-import type { PipelineStatus } from "./models/PipelineStatus";
 
-// Every pipeline status change goes through here so status_history stays complete.
-export async function setPbiStatus(
-  db: PowerLoomDb,
-  adoId: number,
-  from: PipelineStatus | null,
-  to: PipelineStatus,
-  actor: string,
-  runId?: number,
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx.update(workItem).set({ pipelineStatus: to }).where(eq(workItem.adoId, adoId));
-    await tx.insert(statusHistory).values({
-      entityKind: "pbi",
-      entityId: String(adoId),
-      fromStatus: from,
-      toStatus: to,
-      actor,
-      runId,
-    });
-  });
-}
-
-// Same for local items (tasks, questions): every status change lands in status_history.
+// Every status change of a local item (tasks, questions) goes through here so status_history stays complete; the
+// backend owns the PBI's status (PbiStatusSync).
 export async function setItemStatus(db: PowerLoomDb, itemId: string, from: string | null, to: ItemStatus, actor: string, runId?: number): Promise<void> {
   const closedAt = CLOSED_ITEM_STATUSES.includes(to) ? new Date() : null;
 
