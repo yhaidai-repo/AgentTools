@@ -8,4 +8,6 @@ export interface CommandContext {
   actor: string; // who acts, for status_history: "human" from the web
   powerloom: PowerLoomPort;
   skills: SkillCatalog;
+  /** Where the rendered backlogs of all vaults are mounted (BACKLOG_MOUNT): commands read PBI notes from it. */
+  backlogMount: string;
 }

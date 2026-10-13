@@ -7,6 +7,7 @@ import { deletePbiCommand } from "./deletePbiCommand";
 import { deleteReviewCommand } from "./deleteReviewCommand";
 import { finishPbiCommand } from "./finishPbiCommand";
 import { getPbiCommand } from "./getPbiCommand";
+import { readPbiCommand } from "./readPbiCommand";
 import { openChatCommand } from "./openChatCommand";
 import { reportBugCommand } from "./reportBugCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
@@ -21,6 +22,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   deletePbiCommand,
   createPbiCommand,
   getPbiCommand,
+  readPbiCommand,
   reportBugCommand,
   deleteReviewCommand,
   savePbiReposCommand,

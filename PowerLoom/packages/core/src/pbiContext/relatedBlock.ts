@@ -1,7 +1,8 @@
-import { readChildItems, pbiRepoEntries } from "@powerloom/core";
+import { readChildItems } from "../bugs/childItems";
+import { pbiRepoEntries } from "../pbiRepos";
 import { design, localItem, refinement, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { and, desc, eq, ne, notInArray } from "drizzle-orm";
-import { LISTED_KINDS } from "../pbiInputs";
+import { LISTED_KINDS } from "./pbiInputs";
 import type { PbiReference } from "../models/PbiReference";
 
 type WorkItemRow = typeof workItem.$inferSelect;
@@ -24,7 +25,7 @@ export function relatedBlock(references: PbiReference[], repos: string[]): strin
   const lines = references.map((entry) => `- ${entry.ref} (${entry.kind}, ${entry.status}): ${entry.title}`);
   const body = lines.length > 0 ? lines : ["none"];
 
-  return ["<pbi-related>", "Everything else this PBI has. Read any of it in full with read_pbi(ref).", ...body, ...repos, "</pbi-related>"].join("\n");
+  return ["<pbi-related>", "Everything else this PBI has. Read any of it in full by its ref (agents: read_pbi; Claude chats: the pbi.read command).", ...body, ...repos, "</pbi-related>"].join("\n");
 }
 
 // The PBI's repos, as one line under the references (names only: the repo tools read the code).

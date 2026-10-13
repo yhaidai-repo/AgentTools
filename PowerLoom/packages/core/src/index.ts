@@ -69,6 +69,12 @@ export { answerReviewCommentCommand } from "./commands/answerReviewCommentComman
 export { createWwwRecordCommand } from "./commands/createWwwRecordCommand";
 export { openChatCommand } from "./commands/openChatCommand";
 export { getPbiCommand } from "./commands/getPbiCommand";
+export { readPbiCommand } from "./commands/readPbiCommand";
+export { buildPbiContext, hasPbiContext } from "./pbiContext/buildPbiContext";
+export { readPbiReference } from "./pbiContext/readPbiReference";
+export { relatedBlock } from "./pbiContext/relatedBlock";
+export type { PbiReadResult } from "./models/PbiReadResult";
+export type { PbiReference } from "./models/PbiReference";
 export { reportBugCommand } from "./commands/reportBugCommand";
 // Bugs and child items (user decision 2026-10-09).
 export { BUG_MARKER, isMarkedBug } from "./bugs/bugRule";

@@ -1,10 +1,10 @@
+import { backlogMountOf, buildPbiContext, hasPbiContext } from "@powerloom/core";
 import { workItem } from "@powerloom/db";
 import type { ToolDefinition } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { createAttachmentTool } from "../attachmentTools";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInput } from "../models/AgentRunInput";
-import { buildPbiContext, hasPbiContext } from "./buildPbiContext";
 import { createReadPbiTool } from "./readPbiTool";
 
 // Every run on a PBI gets the PBI's context and the tools that read its references, whatever the agent, also agents
@@ -26,7 +26,7 @@ async function withContextMessage(deps: AgentDeps, pbiId: number, firstMessage: 
 
   const [row] = await deps.db.select().from(workItem).where(eq(workItem.adoId, pbiId));
 
-  return row ? `${firstMessage}\n\n${await buildPbiContext(deps.db, deps.vaultRoot, row)}` : firstMessage;
+  return row ? `${firstMessage}\n\n${await buildPbiContext(deps.db, backlogMountOf(deps.vaultRoot), row)}` : firstMessage;
 }
 
 function missing(tools: ToolDefinition<any>[], present: ToolDefinition<any>[]): ToolDefinition<any>[] {

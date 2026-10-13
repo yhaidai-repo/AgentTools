@@ -16,6 +16,7 @@ export function webCommandContext(): CommandContext {
     actor: "human",
     powerloom: powerloomPort,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
+    backlogMount: process.env.BACKLOG_MOUNT ?? "/vault",
   };
 }
 

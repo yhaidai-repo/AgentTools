@@ -1,4 +1,4 @@
-import { readBug } from "@powerloom/core";
+import { readBug } from "../bugs/bugRecords";
 import { design, refinement, workItem, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 

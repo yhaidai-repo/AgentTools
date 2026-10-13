@@ -1,7 +1,7 @@
-import { linkedDocumentKind, pbiLinkedUrls } from "@powerloom/core";
+import { linkedDocumentKind, pbiLinkedUrls } from "../urls";
 import type { workItem } from "@powerloom/db";
-import type { AttachmentSummary } from "./models/AttachmentSummary";
-import type { LinkedDocument } from "./models/LinkedDocument";
+import type { AttachmentSummary } from "../models/AttachmentSummary";
+import type { LinkedDocument } from "../models/LinkedDocument";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 

@@ -1,4 +1,4 @@
-import type { LinkedDocumentKind } from "@powerloom/core";
+import type { LinkedDocumentKind } from "./LinkedDocumentKind";
 
 export interface LinkedDocument {
   url: string;

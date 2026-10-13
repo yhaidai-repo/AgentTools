@@ -1,7 +1,7 @@
 import { localItem, vault, workItem, type PowerLoomDb, type VaultFeatures } from "@powerloom/db";
 import { vaultsExclude } from "@powerloom/vault";
 import { and, asc, count, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Outcome } from "./models/Outcome";
 import type { Vault } from "./models/Vault";
 
@@ -10,6 +10,11 @@ import type { Vault } from "./models/Vault";
 // A vault's rendered backlog: its own folder of PowerLoom's backlog vault (user decision 2026-10-05: powerloom-backlog/<vault>/).
 export function vaultBacklogRoot(backlogMount: string, vault: string): string {
   return join(backlogMount, vault);
+}
+
+// The inverse: the mount that holds every vault's backlog, from one vault's backlog root.
+export function backlogMountOf(vaultBacklogRootPath: string): string {
+  return dirname(vaultBacklogRootPath);
 }
 
 // The vaults PowerLoom works for, as configured in Settings; removed ones are left out.

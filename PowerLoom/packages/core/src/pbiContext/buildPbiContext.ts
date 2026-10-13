@@ -1,22 +1,23 @@
 import type { PowerLoomDb, workItem } from "@powerloom/db";
-import { resolveInside } from "@agenttools/runtime";
 import { splitNotesSection } from "@powerloom/vault";
 import { readFile } from "node:fs/promises";
-import { linkedDocuments, linksBlock } from "../links";
-import { parentBlock } from "../parentContext";
-import { attachmentsBlock, itemsBlock, loadPbiInputs } from "../pbiInputs";
-import { confluencePagesBlock } from "../relevantPages";
+import { resolve, sep } from "node:path";
+import { vaultBacklogRoot } from "../vaults";
+import { confluencePagesBlock } from "./confluencePagesBlock";
+import { linkedDocuments, linksBlock } from "./linkedDocuments";
+import { parentBlock } from "./parentBlock";
+import { attachmentsBlock, itemsBlock, loadPbiInputs } from "./pbiInputs";
 import { loadRelated, relatedBlock, repoLine } from "./relatedBlock";
 
 type WorkItemRow = typeof workItem.$inferSelect;
 
 export const PBI_TAG = "<pbi>";
 
-// Everything a PBI holds, for every agent run on it (user decision 2026-10-13): its content inline (ADO fields, the note
-// with description and acceptance criteria, the user's own notes) and everything related by reference, with the tool
-// that reads each.
-export async function buildPbiContext(db: PowerLoomDb, vaultRoot: string, row: WorkItemRow): Promise<string> {
-  const note = splitNotesSection(await readNote(vaultRoot, row));
+// Everything a PBI holds, for every agent run and Claude chat on it (user decision 2026-10-13): its content inline (ADO
+// fields, the note with description and acceptance criteria, the user's own notes) and everything related by
+// reference, read in full with pbi.read (read_pbi for agents).
+export async function buildPbiContext(db: PowerLoomDb, backlogMount: string, row: WorkItemRow): Promise<string> {
+  const note = splitNotesSection(await readNote(backlogMount, row));
   const inputs = await loadPbiInputs(db, row.adoId);
 
   return [
@@ -35,12 +36,23 @@ export function hasPbiContext(message: string): boolean {
   return message.includes(PBI_TAG);
 }
 
-async function readNote(vaultRoot: string, row: WorkItemRow): Promise<string> {
+async function readNote(backlogMount: string, row: WorkItemRow): Promise<string> {
   if (!row.vaultPath) {
     return "(no note: the PBI isn't prepared yet)";
   }
 
-  return readFile(resolveInside(vaultRoot, row.vaultPath), "utf8");
+  return readFile(noteFile(vaultBacklogRoot(backlogMount, row.vault), row.vaultPath), "utf8");
+}
+
+// The note path comes from the database; it must still stay inside the vault's backlog.
+function noteFile(root: string, path: string): string {
+  const file = resolve(root, path);
+
+  if (!file.startsWith(resolve(root) + sep)) {
+    throw new Error(`The note path ${path} leaves the backlog folder.`);
+  }
+
+  return file;
 }
 
 function fieldLines(row: WorkItemRow): string[] {

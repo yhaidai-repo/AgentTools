@@ -1,9 +1,9 @@
-import { attachmentRef } from "@powerloom/core";
+import { attachmentRef } from "../attachmentIds";
 import { attachment, localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import type { AttachmentSummary } from "./models/AttachmentSummary";
-import type { ExistingItem } from "./models/ExistingItem";
-import type { PbiInputs } from "./models/PbiInputs";
+import type { AttachmentSummary } from "../models/AttachmentSummary";
+import type { ExistingItem } from "../models/ExistingItem";
+import type { PbiInputs } from "../models/PbiInputs";
 
 export const LISTED_KINDS = ["question", "human", "research"] as const;
 
