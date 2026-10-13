@@ -7,6 +7,7 @@ import type { SkillCatalog } from "@agenttools/runtime/skills";
 import { DailyBudgetStatus } from "@/components/DailyBudgetStatus";
 import type { ActionResult } from "@/models/ActionResult";
 import type { SkillFolder } from "@/models/SkillFolder";
+import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
 import { saveAgentAction } from "../../configActions";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
@@ -18,12 +19,13 @@ interface AgentFormProps {
   skills: SkillCatalog;
   skillFolders: SkillFolder[];
   blockerKinds: BlockerKind[];
+  taskTypes: TaskTypeChoices;
   /** This agent's finished runs today, what its daily budget counts. */
   spentTodayUsd: number;
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes.
-export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, spentTodayUsd }: AgentFormProps) {
+export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
@@ -76,7 +78,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
           {spec.label} <span className="muted">· {spec.description}</span>
         </label>
       ))}
-      <PipelineFields agent={agent} blockerKinds={blockerKinds} />
+      <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
       <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
       <OptionsFields agent={agent} />
       <div className="actions">
