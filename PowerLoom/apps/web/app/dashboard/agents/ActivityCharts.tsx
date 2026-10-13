@@ -6,12 +6,13 @@ import type { DayActivity } from "@/models/DayActivity";
 
 const SERIES_SLOTS = 8;
 
-// Cost per day stacked by agent, and runs per day with the failed part. An agent's color is its slot in the config's
+// Cost per day stacked by agent, and runs per day with the budget stops and the failed part apart. An agent's color is its slot in the config's
 // order, so it keeps its color whatever the period shows; agents past the palette fold into "Other".
 export function ActivityCharts({ days, agents }: { days: DayActivity[]; agents: AgentDefinition[] }) {
   const labels = days.map((day) => day.day);
   const runs: ChartSeries[] = [
-    { key: "ok", label: "Succeeded", color: "var(--series-1)", values: days.map((day) => day.runs - day.failures) },
+    { key: "ok", label: "Succeeded", color: "var(--series-1)", values: days.map((day) => day.runs - day.failures - day.budgetStops) },
+    { key: "budget", label: "Budget exceeded", color: "var(--status-warning)", values: days.map((day) => day.budgetStops) },
     { key: "failed", label: "Failed", color: "var(--status-critical)", values: days.map((day) => day.failures) },
   ];
 

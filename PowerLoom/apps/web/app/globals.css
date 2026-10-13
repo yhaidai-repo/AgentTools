@@ -551,6 +551,25 @@ details.menu li > a {
   padding: 6px 14px;
 }
 
+/* PBI page header: the agent context's size, a chip that opens its breakdown (a details element, no script). */
+details.context-size {
+  position: relative;
+  display: inline-block;
+}
+
+details.context-size > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.context-size > table,
+details.context-size > p {
+  position: relative;
+  z-index: 10;
+  margin: 4px 0 0;
+  background: var(--surface);
+}
+
 /* Structured human tasks: numbered steps, each query with its language and a Copy button. */
 ol.human-steps > li {
   margin-bottom: 16px;

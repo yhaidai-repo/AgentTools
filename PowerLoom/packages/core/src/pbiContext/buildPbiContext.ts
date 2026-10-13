@@ -2,6 +2,7 @@ import type { PowerLoomDb, workItem } from "@powerloom/db";
 import { splitNotesSection } from "@powerloom/vault";
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
+import type { PbiContextBlock } from "../models/PbiContextBlock";
 import { vaultBacklogRoot } from "../vaults";
 import { confluencePagesBlock } from "./confluencePagesBlock";
 import { linkedDocuments, linksBlock } from "./linkedDocuments";
@@ -17,19 +18,27 @@ export const PBI_TAG = "<pbi>";
 // fields, the note with description and acceptance criteria, the user's own notes) and everything related by
 // reference, read in full with pbi.read (read_pbi for agents).
 export async function buildPbiContext(db: PowerLoomDb, backlogMount: string, row: WorkItemRow): Promise<string> {
+  const blocks = await pbiContextBlocks(db, backlogMount, row);
+
+  return blocks.map((block) => block.text).join("\n\n");
+}
+
+// The context by part, so the PBI page can show what each part weighs; a part with nothing to say is left out.
+export async function pbiContextBlocks(db: PowerLoomDb, backlogMount: string, row: WorkItemRow): Promise<PbiContextBlock[]> {
   const note = splitNotesSection(await readNote(backlogMount, row));
   const inputs = await loadPbiInputs(db, row.adoId);
+  const blocks: PbiContextBlock[] = [
+    { name: "ADO fields and note", text: `${PBI_TAG}\n${fieldLines(row).join("\n")}\n\n${note.generated}\n</pbi>` },
+    { name: "your notes", text: userNotesBlock(note.userNotes) },
+    { name: "parent PBI", text: await parentBlock(db, row) },
+    { name: "linked documents", text: linksBlock(linkedDocuments(row), inputs.attachments) },
+    { name: "attachments list", text: attachmentsBlock(inputs.attachments) },
+    { name: "Confluence pages", text: confluencePagesBlock(row.confluencePages) },
+    { name: "questions and tasks", text: itemsBlock(inputs.items) },
+    { name: "related references", text: relatedBlock(await loadRelated(db, row), await repoLine(db, row.adoId)) },
+  ];
 
-  return [
-    `${PBI_TAG}\n${fieldLines(row).join("\n")}\n\n${note.generated}\n</pbi>`,
-    userNotesBlock(note.userNotes),
-    await parentBlock(db, row),
-    linksBlock(linkedDocuments(row), inputs.attachments),
-    attachmentsBlock(inputs.attachments),
-    confluencePagesBlock(row.confluencePages),
-    itemsBlock(inputs.items),
-    relatedBlock(await loadRelated(db, row), await repoLine(db, row.adoId)),
-  ].filter(Boolean).join("\n\n");
+  return blocks.filter((block) => block.text.length > 0);
 }
 
 export function hasPbiContext(message: string): boolean {
