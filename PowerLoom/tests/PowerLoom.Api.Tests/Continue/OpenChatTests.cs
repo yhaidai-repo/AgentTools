@@ -51,6 +51,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("the finding's full text", note);
         Assert.Contains($"{PowerLoomHost.HostRoot}/test-vault/adoa/adoa-open-questions.md", note);
         Assert.Contains("**Recommendation**", note);
+        Assert.DoesNotContain("pbi.read", note);
         Assert.EndsWith("## Notes\nMy own remark.\n", note);
         Assert.DoesNotContain("stale", note);
     }

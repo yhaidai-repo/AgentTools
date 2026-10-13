@@ -17,4 +17,7 @@ public sealed record ChatBrief(
     IReadOnlyList<string> ExtraFolders)
 {
     public static ChatBrief For(string vault, string title) => new(vault, title, [], [], [], "", [], [], [], [], [], []);
+
+    // The PBIs the chat works on: it loads each one's prepared context with pbi.read first (user decision 2026-10-13).
+    public IReadOnlyList<int> Pbis { get; init; } = [];
 }
