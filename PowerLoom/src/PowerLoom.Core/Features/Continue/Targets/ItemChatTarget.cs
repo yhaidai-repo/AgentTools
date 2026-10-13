@@ -46,7 +46,7 @@ public sealed class ItemChatTarget(PowerLoomDbContext db, HostPaths hostPaths, P
         if (pbiPath is not null)
             readFirst.Add(new ReadFirstLink(BacklogPaths.PbiNoteName(adoId), hostPaths.BacklogPath(item.Vault, BacklogPaths.FolderOf(pbiPath)), "the PBI's folder: its note, the refinement, the design when present, research/"));
 
-        return brief with { ReadFirst = readFirst, Repos = await pbiRepos.NamesAsync(adoId, cancellation) };
+        return brief with { Pbis = [adoId], ReadFirst = readFirst, Repos = await pbiRepos.NamesAsync(adoId, cancellation) };
     }
 
     // A finding without a PBI (e.g. from a tech-writer task): its project's index names the repo, its registers say

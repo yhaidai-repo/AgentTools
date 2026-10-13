@@ -27,6 +27,7 @@ public sealed class PbiChatTests(PowerLoomHost host)
         Assert.Contains("`create-branch` skill for \"#31001 Faster sync\"", note);
         Assert.Contains("- Skills: `sync-skill` (it knows the sync)", note);
         Assert.Contains("bug.report", note);
+        Assert.Contains("1. Load the PBI's prepared context, the same the agents get (with the user's own notes): `docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- pbi.read '{\"ref\":\"PBI-31001\"}'`", note);
     }
 
     [Fact]
