@@ -10,6 +10,8 @@ import type { BetterResearchResult } from "./models/BetterResearchResult";
 
 type Input = z.infer<z.ZodObject<typeof INPUT>>;
 
+export const RESULT_TOOL = "write_research_result";
+
 const INPUT = {
   question: z.string().min(1).describe("The task's question, restated in one line"),
   conclusion: z.string().min(1).describe("The answer first (yes/no/how/where/cause), then the key detail; 2-5 sentences"),
@@ -42,7 +44,7 @@ const INPUT = {
 // Better Research's result. Each call replaces the previous one, so the agent can write early and refine it.
 export function createResultTool(draft: BetterResearchDraft, readLog: ReadLog) {
   return defineTool({
-    name: "write_research_result",
+    name: RESULT_TOOL,
     description: "Save your answer. Write it as soon as you have one (status partial is fine) and call again to replace it as you learn more. Every finding and option cites the sources it rests on.",
     input: INPUT,
     handler: async (input: Input) => {
