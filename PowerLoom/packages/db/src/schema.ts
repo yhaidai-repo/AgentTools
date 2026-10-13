@@ -367,6 +367,22 @@ export const pbiRepo = pgTable("pbi_repo", {
   questionId: text("question_id").references(() => localItem.id),
 }, (t) => [primaryKey({ columns: [t.pbiId, t.repoId] })]);
 
+// Azure DevOps Test Cases linked to a PBI (Tested By), as the test case tool last read them; the backend owns the table
+// (migration TestCases). A case that tests several PBIs has a row per PBI.
+
+export const testCase = pgTable("test_case", {
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  adoId: integer("ado_id").notNull(),
+  title: text("title").notNull(),
+  state: text("state").notNull(),
+  priority: integer("priority"),
+  rev: integer("rev").notNull(),
+  /** The steps as markdown (action, expected result), Shared Steps expanded in place. */
+  stepsMd: text("steps_md").notNull(),
+  parameters: text("parameters"),
+  fetchedAt: ts("fetched_at").notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.pbiId, t.adoId] })]);
+
 // Files the user uploads for a PBI (e.g. a linked Confluence page), optionally answering a question or human task.
 // The file and its extracted text live here so the nightly backup has them; the worker copies the file into the Vault.
 

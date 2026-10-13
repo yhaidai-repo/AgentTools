@@ -1,4 +1,4 @@
-import { agentRun, attachment, bug, deletedPbi, design, localItem, pbiFeedback, pbiRepo, refinement, statusHistory, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
+import { agentRun, attachment, bug, deletedPbi, design, localItem, pbiFeedback, pbiRepo, refinement, statusHistory, testCase, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { childIds } from "./bugs/childItems";
 import type { Outcome } from "./models/Outcome";
@@ -54,7 +54,7 @@ export async function deletePbiData(db: PowerLoomDb, adoId: number): Promise<Out
   return { ok: true, value: pbi.title };
 }
 
-// One work item with its bug record, tasks, questions, runs, attachments, repos, refinements and drafts.
+// One work item with its bug record, tasks, questions, runs, attachments, repos, test cases, refinements and drafts.
 async function deleteWorkItem(db: PowerLoomDb, adoId: number): Promise<void> {
   await db.transaction(async (tx) => {
     const [pbi] = await tx.select({ title: workItem.title }).from(workItem).where(eq(workItem.adoId, adoId));
@@ -65,6 +65,7 @@ async function deleteWorkItem(db: PowerLoomDb, adoId: number): Promise<void> {
     await tx.delete(bug).where(eq(bug.workItemId, adoId));
     await tx.delete(attachment).where(eq(attachment.pbiId, adoId));
     await tx.delete(pbiRepo).where(eq(pbiRepo.pbiId, adoId));
+    await tx.delete(testCase).where(eq(testCase.pbiId, adoId));
     await tx.delete(vaultCapture).where(eq(vaultCapture.pbiId, adoId));
     await tx.delete(refinement).where(eq(refinement.pbiId, adoId));
     await tx.delete(design).where(eq(design.pbiId, adoId));

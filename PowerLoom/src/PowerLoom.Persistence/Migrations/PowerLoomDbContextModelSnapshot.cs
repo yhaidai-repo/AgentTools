@@ -1336,6 +1336,55 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("task_schedule", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.TestCase", b =>
+                {
+                    b.Property<int>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<int>("AdoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ado_id");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Parameters")
+                        .HasColumnType("text")
+                        .HasColumnName("parameters");
+
+                    b.Property<int?>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<int>("Rev")
+                        .HasColumnType("integer")
+                        .HasColumnName("rev");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<string>("StepsMd")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("steps_md");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.HasKey("PbiId", "AdoId")
+                        .HasName("test_case_pbi_id_ado_id_pk");
+
+                    b.ToTable("test_case", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.Vault", b =>
                 {
                     b.Property<string>("Name")
@@ -2044,6 +2093,17 @@ namespace PowerLoom.Persistence.Migrations
                         .HasConstraintName("task_schedule_vault_vault_name_fk");
 
                     b.Navigation("VaultNavigation");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.TestCase", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.WorkItem", "Pbi")
+                        .WithMany()
+                        .HasForeignKey("PbiId")
+                        .IsRequired()
+                        .HasConstraintName("test_case_pbi_id_work_item_ado_id_fk");
+
+                    b.Navigation("Pbi");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.VaultCapture", b =>

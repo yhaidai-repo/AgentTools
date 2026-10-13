@@ -57,6 +57,7 @@ public static class PbiDeletion
         await db.Bugs.Where(row => row.WorkItemId == adoId).ExecuteDeleteAsync(cancellation);
         await db.Attachments.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.PbiRepos.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
+        await db.TestCases.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.VaultCaptures.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.Refinements.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.Designs.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);

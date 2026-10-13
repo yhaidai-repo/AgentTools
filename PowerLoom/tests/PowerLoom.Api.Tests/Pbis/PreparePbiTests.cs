@@ -68,6 +68,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "The login page", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
         db.Refinements.Add(new Refinement { PbiId = adoId, Version = 1, Summary = "Scope is clear.", ScopeIn = """["Login"]""", ScopeOut = "[]", AcGaps = "[]", Dependencies = "[]", Repos = "[]", Assumptions = "[]", RelevantDocs = "[]", DocsRead = "[]", Skills = "[]" });
         db.Designs.Add(new Design { PbiId = adoId, Version = 1, Approach = "Simple.", Alternatives = "[]", Plan = """[{"step":"Add the form","repo":"PVS","locations":["src/Login.tsx"],"change":"new component","agentDoable":true}]""", Risks = "[]", Tests = "[]", Assumptions = "[]", EstimateBasis = "guess", Complexity = 2 });
+        db.TestCases.Add(new TestCase { PbiId = adoId, AdoId = 71001, Title = "Login works", State = "Ready", Rev = 1, StepsMd = "1. Open the page" });
         db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", Body = "Tenant?", Data = """{"why":"routing","options":["A","B"]}""", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
@@ -92,6 +93,6 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        return await db.DeletedPbis.AnyAsync(row => row.AdoId == adoId) && !await db.WorkItems.AnyAsync(row => row.AdoId == adoId) && !await db.LocalItems.AnyAsync(item => item.PbiId == adoId);
+        return await db.DeletedPbis.AnyAsync(row => row.AdoId == adoId) && !await db.WorkItems.AnyAsync(row => row.AdoId == adoId) && !await db.LocalItems.AnyAsync(item => item.PbiId == adoId) && !await db.TestCases.AnyAsync(row => row.PbiId == adoId);
     }
 }
