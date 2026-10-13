@@ -8,6 +8,7 @@
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@powerloom/ado": "*",
     "@powerloom/azure": "*",
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",

@@ -5,6 +5,7 @@ import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azureTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createLocalStackTools } from "../localStackTools";
+import { createTestCaseTools } from "../testCases/testCaseTools";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { createReadPbiTool } from "../pbiContext/readPbiTool";
@@ -30,6 +31,7 @@ export function readingTools(context: TaskContext, session: AgentRunSession, tas
     ...createSqlTools(deps, agent, access),
     ...createAzureTools(deps, agent, access),
     ...createLocalStackTools(deps, agent, access),
+    ...createTestCaseTools(deps, agent, access),
   ];
 }
 

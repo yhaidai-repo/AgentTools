@@ -1,3 +1,4 @@
+import type { AdoAccess } from "./AdoAccess";
 import type { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { AgentConfigStore } from "@agenttools/config";
@@ -54,6 +55,8 @@ export interface AgentDeps {
   azure: AzureAccess | null;
   /** The run's vault's Local stack (the stack bridge on the host) for agents with the integration on; null while the vault's Local stack is off. */
   localStack: LocalStackAccess | null;
+  /** The vault's Azure DevOps while its integration is on (read_test_cases). */
+  ado: AdoAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
   docUsageLog: DocUsageLog | null;
 }

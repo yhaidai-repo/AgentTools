@@ -1,7 +1,8 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
+import { AdoClient } from "@powerloom/ado";
 import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readLocalStackSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readLocalStackSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
@@ -187,6 +188,7 @@ async function depsFor(vault: string): Promise<AgentDeps> {
     sql: await sqlAccessOf(vault),
     azure: await azureAccessOf(vault),
     localStack: await localStackAccessOf(vault),
+    ado: await adoAccessOf(vault),
   };
 }
 
@@ -205,6 +207,13 @@ async function localStackAccessOf(vault: string): Promise<AgentDeps["localStack"
   const settings = await readLocalStackSettings(db, vault);
 
   return settings.enabled && settings.token ? { client: new StackBridgeClient(settings.url, settings.token), url: settings.url } : null;
+}
+
+// Read per run, so a switch flipped in Settings counts from the next run: the vault's Azure DevOps, read only.
+async function adoAccessOf(vault: string): Promise<AgentDeps["ado"]> {
+  const settings = await readAdoSettings(db, vault);
+
+  return isAdoActive(settings) ? { client: new AdoClient({ orgUrl: settings.orgUrl, project: settings.project, team: settings.team, pat: settings.pat }), orgUrl: settings.orgUrl } : null;
 }
 
 // Read per run, so a switch flipped in Settings counts from the next run.

@@ -18,7 +18,7 @@ public partial class DataAccess
 
     public string Tool { get; set; } = null!;
 
-    // sql, azureLogs, cosmos, serviceBus, mongo, confluence, localStack.
+    // sql, azureLogs, cosmos, serviceBus, mongo, confluence, localStack, ado.
     public string Kind { get; set; } = null!;
 
     // The resource's name as Settings shows it, and what it points at.

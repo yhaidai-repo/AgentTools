@@ -8,6 +8,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@powerloom/ado": "*",
     "@powerloom/agents": "*",
     "@powerloom/azure": "*",
     "@powerloom/confluence": "*",
