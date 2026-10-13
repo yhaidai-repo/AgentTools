@@ -73,7 +73,7 @@ async function insertQuestions(db: PowerLoomDb, context: ResearchContext, runId:
   return ids;
 }
 
-async function insertItem(
+export async function insertItem(
   db: PowerLoomDb,
   prefix: "AT" | "HT" | "Q" | "RR",
   kind: typeof localItem.$inferInsert.kind,
@@ -93,7 +93,7 @@ async function insertItem(
 }
 
 // A re-run task gets a new result; the earlier ones stay for history but no longer count.
-async function supersedeEarlierResults(db: PowerLoomDb, taskId: string, resultId: string, runId: number): Promise<void> {
+export async function supersedeEarlierResults(db: PowerLoomDb, taskId: string, resultId: string, runId: number): Promise<void> {
   const earlier = await db
     .select({ id: localItem.id })
     .from(localItem)

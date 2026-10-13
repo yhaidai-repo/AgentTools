@@ -7,6 +7,7 @@ public static class AgentStages
 {
     public const string Refinement = "refinement";
     public const string Research = "research";
+    public const string BetterResearch = "better-research";
     public const string Design = "design";
 
     private const string AgentPrefix = "agent:";
@@ -15,6 +16,7 @@ public static class AgentStages
     {
         [Refinement] = new(ItemKind.Refinement, "RT", PipelineStatus.Refining, PipelineStatus.ReadyForRefinement, "Refine the PBI"),
         [Research] = new(ItemKind.Research, "AT", PipelineStatus.Researching, PipelineStatus.NeedsResearch, "Research the PBI"),
+        [BetterResearch] = new(ItemKind.Research, "AT", PipelineStatus.Researching, PipelineStatus.NeedsResearch, "Research the PBI"),
         [Design] = new(ItemKind.Design, "DT", PipelineStatus.Designing, PipelineStatus.ReadyForDesign, "Design the implementation"),
     };
 

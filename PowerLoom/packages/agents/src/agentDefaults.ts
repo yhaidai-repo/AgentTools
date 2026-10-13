@@ -53,6 +53,50 @@ const RESEARCH_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+// The caps on create_task (chaining v2), shared by every agent that has it.
+const TASK_CREATION_OPTIONS: AgentOptionSpec[] = [
+  {
+    key: "maxDepth",
+    label: "Task chain depth",
+    description: "How deep a chain of agent-created tasks may go. A task the agent creates gets its own depth + 1; at the limit it hands the gap to the user instead.",
+    min: 1,
+    max: 6,
+  },
+  {
+    key: "maxTasksPerRun",
+    label: "Agent tasks per run",
+    description: "Most tasks one run may create for agents; tasks for the user are never capped.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "maxTasksPerPbi",
+    label: "Agent tasks per PBI",
+    description: "Most tasks agents may create for agents on one PBI over its life. At the cap the agent must ask the user what is still open: the work may be going in circles.",
+    min: 1,
+    max: 50,
+  },
+];
+
+const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Tasks"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a task",
+    description: "After this many failed runs, the research task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  ...TASK_CREATION_OPTIONS,
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 const DESIGN_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("PBIs"),
   {
@@ -211,6 +255,25 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     next: "design",
     canAssign: [],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
+  },
+  {
+    id: "better-research",
+    label: "Better Research",
+    description: "Answers one question with evidence: why a bug happens, how something works, whether something exists, or which options a spike has; decides who works next.",
+    enabled: false,
+    schedule: "45 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 80, timeoutMinutes: 30 },
+    budgets: { perRunUsd: 2, dailyUsd: 5 },
+    capabilities: { webAccess: true, integrations: { [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    skills: ["powerloom-research-checklist"],
+    options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: BETTER_RESEARCH_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    next: null,
+    canAssign: ["better-research", "design"],
+    // Its tasks name their dependencies (dependsOn), so it doesn't wait for every open question on the PBI.
+    waitFor: ["linkedDocuments", "drafts"],
   },
   {
     id: "design",

@@ -11,4 +11,5 @@ public enum Stage
     PullRequests,
     CodeReview,
     VaultReview,
+    BetterResearch,
 }

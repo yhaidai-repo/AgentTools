@@ -18,7 +18,7 @@ export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, c
 }
 
 function taskBlock(context: ResearchContext): string {
-  const data = (context.task.data ?? {}) as { goal?: string; depth?: number; needsWeb?: boolean; why?: string; sources?: string[] };
+  const data = (context.task.data ?? {}) as TaskData;
 
   return [
     "<task>",
@@ -28,8 +28,39 @@ function taskBlock(context: ResearchContext): string {
     `Goal: ${data.goal ?? data.why ?? "-"}`,
     `Depth: ${data.depth ?? 1}`,
     ...(data.needsWeb ? [`Needs web research: yes. Use your web tools first. Suggested sources: ${data.sources?.join(", ") || "none"}`] : []),
+    ...createdTaskLines(data),
     "</task>",
   ].join("\n");
+}
+
+type TaskData = {
+  goal?: string;
+  depth?: number;
+  needsWeb?: boolean;
+  why?: string;
+  sources?: string[];
+  outOfScope?: string | null;
+  effort?: string;
+  reason?: string;
+  evidence?: { ref: string; note: string }[];
+  dependsOn?: string[];
+};
+
+// What a task created with create_task (chaining v2) adds: its scope, effort, why it was created and on what evidence.
+function createdTaskLines(data: TaskData): string[] {
+  if (!data.reason) {
+    return [];
+  }
+
+  const evidence = (data.evidence ?? []).map((item) => `- ${item.ref}: ${item.note}`);
+
+  return [
+    `Out of scope: ${data.outOfScope || "-"}`,
+    `Effort: ${data.effort ?? "-"}`,
+    `Why it was created: ${data.reason}`,
+    `Evidence it rests on (read by the creating run; re-read what you rely on):\n${evidence.join("\n") || "- none"}`,
+    `Depends on: ${data.dependsOn?.join(", ") || "-"}`,
+  ];
 }
 
 export function refinementBlock(latest: typeof refinement.$inferSelect): string {

@@ -12,6 +12,7 @@ import { runGoalTask } from "../goal/runGoalTask";
 import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
+import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
@@ -22,6 +23,7 @@ type ItemRow = typeof localItem.$inferSelect;
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
+  "better-research": runBetterResearchTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,

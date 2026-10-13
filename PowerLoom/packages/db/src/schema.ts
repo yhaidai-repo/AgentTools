@@ -45,7 +45,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
