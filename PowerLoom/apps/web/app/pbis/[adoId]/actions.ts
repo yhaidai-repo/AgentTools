@@ -70,3 +70,14 @@ export async function saveSkills(_previous: ActionResult | null, form: FormData)
 
   return saved.ok ? { ok: true, message: `Saved ${saved.value.saved} skill(s). The next agent runs on this PBI load them.` } : { ok: false, message: saved.error };
 }
+
+// The user's own notes: the PBI note's `## Notes` section, read by the agents with the note (user decision 2026-10-13).
+export async function saveUserNotes(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoId = Number(form.get("adoId"));
+  const body = { text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") };
+  const saved = await powerloom.PUT("/api/pbis/{adoId}/user-notes", { params: { path: { adoId } }, body });
+
+  revalidatePath(`/pbis/${adoId}`);
+
+  return powerloomResult(saved, "Saved to the PBI note. The next agent runs on this PBI read it.");
+}

@@ -862,6 +862,80 @@
         }
       }
     },
+    "/api/pbis/{adoId}/user-notes": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
+        ],
+        "summary": "GET_api_pbis_adoId_user_notes",
+        "description": "GET_api_pbis_adoId_user_notes",
+        "operationId": "GET_api_pbis_adoId_user_notes",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PbiUserNotes"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
+        ],
+        "summary": "PUT_api_pbis_adoId_user_notes",
+        "description": "PUT_api_pbis_adoId_user_notes",
+        "operationId": "PUT_api_pbis_adoId_user_notes",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveUserNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PbiUserNotes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis/{adoId}/skills": {
       "put": {
         "tags": [
@@ -3376,6 +3450,17 @@
           }
         }
       },
+      "PbiUserNotes": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "PrepareRequest": {
         "required": [
           "adoIds"
@@ -3833,6 +3918,21 @@
             "items": {
               "$ref": "#/components/schemas/SkillChoice"
             }
+          }
+        }
+      },
+      "SaveUserNotesRequest": {
+        "required": [
+          "text",
+          "loadedText"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "loadedText": {
+            "type": "string"
           }
         }
       },
@@ -4545,6 +4645,9 @@
     },
     {
       "name": "PowerLoom.Features.Repos.CatalogEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
     },
     {
       "name": "PowerLoom.Features.Pbis.Skills.SaveSkillsEndpoint"

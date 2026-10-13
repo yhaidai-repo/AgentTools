@@ -1,6 +1,7 @@
 import { agentRun, attachment, design, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
 import { pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
 
 // Uploads without their bytes (downloads read those on their own).
@@ -35,8 +36,9 @@ export async function loadPbiDetail(adoId: number) {
   const drafts = await db.select().from(vaultCapture).where(eq(vaultCapture.pbiId, adoId)).orderBy(vaultCapture.id);
   const repos = await pbiRepoEntries(db, adoId);
   const relations = await loadRelations(adoId, pbi.parentId);
+  const usage = await loadRunTotals(runs);
 
-  return { pbi, items, attachments, runs, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null, ...relations };
+  return { pbi, items, attachments, runs, usage, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null, ...relations };
 }
 
 // Where the PBI sits (user decision 2026-10-09): its parent and bug record when it is a child, its child items.

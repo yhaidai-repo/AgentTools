@@ -9,9 +9,10 @@ import { ContinueChat } from "@/components/ContinueChat";
 import { LocalTime } from "@/components/LocalTime";
 import { NoteLink } from "@/components/NoteLink";
 import { getDb } from "@/lib/db";
-import { formatBytes } from "@/lib/format";
+import { formatBytes, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
+import { loadUserNotes } from "@/lib/userNotes";
 import { AttachmentForm } from "./AttachmentForm";
 import { ChildItems } from "./ChildItems";
 import { isOpen } from "@/lib/items";
@@ -25,6 +26,8 @@ import { LoadFromConfluenceButton } from "./LoadFromConfluenceButton";
 import { RemoveLinkButton } from "./RemoveLinkButton";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
+import { DEFAULT_PBI_TAB, PBI_TABS, PbiTabs } from "./PbiTabs";
+import { UserNotesForm } from "./UserNotesForm";
 
 export const dynamic = "force-dynamic";
 
@@ -42,28 +45,75 @@ const DRAFT_STATES: Record<string, string> = {
   merged: "merged into the docs vault",
 };
 
-export default async function PbiPage({ params }: { params: Promise<{ adoId: string }> }) {
+type SearchParams = Promise<{ tab?: string }>;
+
+// Three tabs (user decision 2026-10-13): the PBI as Azure DevOps has it, what the agents made of it, the user's own notes.
+export default async function PbiPage({ params, searchParams }: { params: Promise<{ adoId: string }>; searchParams: SearchParams }) {
   const adoId = Number((await params).adoId);
+  const { tab: requestedTab } = await searchParams;
+  const tab = PBI_TABS.find((choice) => choice.key === requestedTab)?.key ?? DEFAULT_PBI_TAB;
   const detail = Number.isInteger(adoId) ? await loadPbiDetail(adoId) : null;
 
   if (!detail) {
     notFound();
   }
 
-  const { pbi, items } = detail;
+  const { pbi } = detail;
 
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
       <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> <PreparePbiButton adoId={pbi.adoId} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
       <Summary detail={detail} adoUrl={await adoUrl(pbi)} />
-      <Blockers detail={detail} />
-      <h2>Child items</h2>
-      <ChildItems items={detail.children} ado={await readAdoSettings(getDb(), pbi.vault)} />
+      <PbiTabs adoId={pbi.adoId} active={tab} />
+      {tab === "ado" && <AdoTab detail={detail} />}
+      {tab === "agents" && <AgentsTab detail={detail} />}
+      {tab === "notes" && <UserNotesTab adoId={pbi.adoId} />}
+    </>
+  );
+}
+
+async function AdoTab({ detail }: { detail: PbiDetail }) {
+  const { pbi } = detail;
+
+  return (
+    <>
       <h2>Description</h2>
       <TextBlock text={pbi.descriptionMd} />
       <h2>Acceptance criteria</h2>
       <TextBlock text={pbi.acceptanceCriteriaMd} />
+      <h2>Child items</h2>
+      <ChildItems items={detail.children} ado={await readAdoSettings(getDb(), pbi.vault)} />
+      <h2>Linked documents</h2>
+      <LinkedDocuments detail={detail} />
+      <h2>Attachments</h2>
+      <Attachments detail={detail} />
+    </>
+  );
+}
+
+// The `## Notes` section of the PBI's vault note: also editable in Obsidian, and the agents read it with the note.
+async function UserNotesTab({ adoId }: { adoId: number }) {
+  const notes = await loadUserNotes(adoId);
+
+  if (notes.text === null) {
+    return <p className="muted">{notes.problem}</p>;
+  }
+
+  return (
+    <>
+      <p className="muted">Your notes on this PBI, kept in the PBI note&apos;s Notes section (also editable in Obsidian). Refinement, research and design read them with the note.</p>
+      <UserNotesForm adoId={adoId} text={notes.text} />
+    </>
+  );
+}
+
+function AgentsTab({ detail }: { detail: PbiDetail }) {
+  const { pbi, items } = detail;
+
+  return (
+    <>
+      <Blockers detail={detail} />
       <h2>Refinement</h2>
       <Refinement detail={detail} />
       <h2>Design</h2>
@@ -86,10 +136,6 @@ export default async function PbiPage({ params }: { params: Promise<{ adoId: str
       />
       <h2>Vault drafts</h2>
       <Drafts detail={detail} />
-      <h2>Linked documents</h2>
-      <LinkedDocuments detail={detail} />
-      <h2>Attachments</h2>
-      <Attachments detail={detail} />
       <h2>Runs</h2>
       <Runs detail={detail} />
     </>
@@ -311,11 +357,28 @@ function Runs({ detail }: { detail: PbiDetail }) {
   }
 
   return (
-    <ul>
-      {detail.runs.map((run) => (
-        <li key={run.id}><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link> · {run.stage} · {run.outcome} · <LocalTime date={run.startedAt} /></li>
-      ))}
-    </ul>
+    <>
+      <RunTotals detail={detail} />
+      <ul>
+        {detail.runs.map((run) => (
+          <li key={run.id}><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link> · {run.stage} · {run.outcome} · <LocalTime date={run.startedAt} /></li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+// Totals count finished runs only: a run gets its usage record when it ends.
+function RunTotals({ detail }: { detail: PbiDetail }) {
+  const { usage } = detail;
+
+  return (
+    <div className="chips">
+      <span className="chip">finished runs: {usage.runs} of {detail.runs.length}</span>
+      <span className="chip">agent time: {formatDuration(usage.durationMs)}</span>
+      <span className="chip">cost: {formatUsd(usage.costUsd)}</span>
+      <span className="chip">tokens: {formatTokens(usage.tokens)}</span>
+    </div>
   );
 }
 

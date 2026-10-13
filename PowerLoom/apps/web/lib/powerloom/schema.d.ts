@@ -428,6 +428,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/{adoId}/user-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_pbis_adoId_user_notes
+         * @description GET_api_pbis_adoId_user_notes
+         */
+        get: operations["GET_api_pbis_adoId_user_notes"];
+        /**
+         * PUT_api_pbis_adoId_user_notes
+         * @description PUT_api_pbis_adoId_user_notes
+         */
+        put: operations["PUT_api_pbis_adoId_user_notes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/{adoId}/skills": {
         parameters: {
             query?: never;
@@ -1383,6 +1407,9 @@ export interface components {
             maxItemsPerRun: number;
             sprint: null | string;
         };
+        PbiUserNotes: {
+            text: string;
+        };
         PrepareRequest: {
             adoIds: number[];
         };
@@ -1489,6 +1516,10 @@ export interface components {
         };
         SaveSkillsRequest: {
             skills: components["schemas"]["SkillChoice"][];
+        };
+        SaveUserNotesRequest: {
+            text: string;
+            loadedText: string;
         };
         SavedConnection: {
             enabled: boolean;
@@ -2258,6 +2289,54 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GET_api_pbis_adoId_user_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PbiUserNotes"];
+                };
+            };
+        };
+    };
+    PUT_api_pbis_adoId_user_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                adoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveUserNotesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PbiUserNotes"];
                 };
             };
         };
