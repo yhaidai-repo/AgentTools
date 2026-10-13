@@ -518,6 +518,33 @@ textarea.skill-editor {
   font-size: 12px;
 }
 
+/* Backlog: the status filter, several statuses at once (a details element that looks like a select). */
+details.multi-select {
+  position: relative;
+  display: inline-block;
+}
+
+details.multi-select > summary {
+  min-width: 160px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+details.multi-select > ul {
+  position: absolute;
+  z-index: 10;
+  min-width: 220px;
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 /* Tasks page: "New task" menu (a details element, no script). */
 details.menu {
   position: relative;
