@@ -1,6 +1,6 @@
 // What every tab shares: the bridge token, the API calls, HTML escaping and the token form.
 
-export const TABS = ["apps", "dependencies", "secrets", "problems"];
+export const TABS = ["apps", "dependencies", "secrets", "problems", "stack"];
 
 const TOKEN_KEY = "devsecrets-bridge-token";
 

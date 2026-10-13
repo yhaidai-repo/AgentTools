@@ -64,6 +64,7 @@ Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); 
 | Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value); add a project, add / edit / delete a setting |
 | Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value; add, replace, delete |
 | Problems | `Use-DevSecrets.ps1 -All -Check` per values file (what a start would refuse), plus unused values and projects without an app |
+| Stack | what runs (phase, owner, apps with URLs, start output); start a chain of apps (optional branch, time limit), stop it, read an app's log (refresh every 5 s) |
 
 Changes to apps and dependencies are made on a copy, checked by `Use-DevSecrets.ps1 -Check` on that copy (`DEV_SECRETS_STORE_DIR`) for every values file, and written only when they add no error; the files stay formatted as in git (apps and projects sorted, settings sorted case-insensitively). An app others call, or a project an app starts, can't be deleted. Secret changes:
 

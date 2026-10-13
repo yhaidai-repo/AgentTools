@@ -155,3 +155,16 @@ label.inline { display: flex; flex-direction: row; align-items: center; gap: 6px
 select, textarea { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
 button:disabled { opacity: .6; cursor: progress; }
 [hidden] { display: none !important; }
+
+pre.log {
+  max-height: 420px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font: 12px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

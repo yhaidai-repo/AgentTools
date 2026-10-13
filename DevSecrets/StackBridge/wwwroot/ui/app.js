@@ -3,11 +3,13 @@ import { TABS, byId, escapeHtml, forgetToken, saveToken, showTokenForm, token } 
 import { renderDependencies } from "./dependencies.js";
 import { renderProblems } from "./problems.js";
 import { renderSecrets } from "./secrets.js";
+import { renderStack } from "./stack.js";
 
 // The DevSecrets configuration UI: apps (services.json), who calls whom and every project's settings (map.json), the
-// named values (values.*.json) and what the scripts would refuse. This file only switches tabs and holds the token.
+// named values (values.*.json), what the scripts would refuse, and the local stack. This file only switches tabs and holds
+// the token.
 
-const loaders = { apps: renderApps, dependencies: renderDependencies, secrets: renderSecrets, problems: renderProblems };
+const loaders = { apps: renderApps, dependencies: renderDependencies, secrets: renderSecrets, problems: renderProblems, stack: renderStack };
 
 async function openTab(tab) {
   byId("token-form").hidden = true;
