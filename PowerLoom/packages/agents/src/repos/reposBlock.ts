@@ -1,8 +1,13 @@
 import type { RepoAccess } from "../models/RepoAccess";
+import { OPEN_REPO_TOOL } from "./openRepoTool";
 
 // The first message's <repos>: the repos the agent may read, at the commit it reads, or why it has none.
 export function reposBlock(access: RepoAccess): string {
-  return ["<repos>", ...repoLines(access), "</repos>"].join("\n");
+  return ["<repos>", ...repoLines(access), ...openRepoLine(access), "</repos>"].join("\n");
+}
+
+function openRepoLine(access: RepoAccess): string[] {
+  return access.tools.some((tool) => tool.name === OPEN_REPO_TOOL) ? ["Other repos of the catalog: add one with open_repo. Other branches and commits: the code tools' ref."] : [];
 }
 
 function repoLines(access: RepoAccess): string[] {

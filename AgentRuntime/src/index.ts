@@ -37,4 +37,6 @@ export type { PullRequestRef } from "./models/PullRequestRef";
 export type { PullRequestCheckout } from "./models/PullRequestCheckout";
 export type { RepoCacheOptions } from "./models/RepoCacheOptions";
 export type { RepoToolOptions } from "./models/RepoToolOptions";
+export type { RepoRefReader } from "./models/RepoRefReader";
+export type { ResolvedRef } from "./models/ResolvedRef";
 export type { RepoProgress } from "./models/RepoProgress";

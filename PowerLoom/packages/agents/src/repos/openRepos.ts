@@ -1,5 +1,5 @@
 import type { AgentDefinition } from "@agenttools/config";
-import { createRepoTools } from "@agenttools/runtime";
+import { createRepoTools, type ToolDefinition } from "@agenttools/runtime";
 import type { AgentRunSession } from "../AgentRunSession";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { RepoAccess } from "../models/RepoAccess";
@@ -7,13 +7,14 @@ import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
 import { numberOption } from "../stage";
 import { agentRepos } from "./agentRepos";
+import { createOpenRepoTool } from "./openRepoTool";
 
 export const READ_REPOS_INTEGRATION = "readRepos";
 
 // Read repositories (user decision 2026-10-13): one switch per agent in its Config. With it on, the run reads the repos
 // attached to its task (the PBI's, the schedule's, the PR's, the docs project's), each one cloned or refreshed in the
 // vault's cache and held until closeRepos. The tools read the cache's checkouts, or the run's own root (code review
-// reads its PR checkout).
+// reads its PR checkout); they read other branches and commits too, and open_repo adds any repo of the vault's catalog.
 export async function openRepos(context: TaskContext, session: AgentRunSession, sources: RepoSource[], toolsRoot?: string): Promise<RepoAccess> {
   const { deps, agent } = context;
 
@@ -28,9 +29,26 @@ export async function openRepos(context: TaskContext, session: AgentRunSession, 
   await session.phase("repos", { asked: sources.flatMap((source) => source.names), repos: repos.map((repo) => repo.name) });
 
   const commits = await deps.repoCache.acquire(repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  const tools = repos.length > 0 ? createRepoTools({ root: toolsRoot ?? deps.repoCache.root, repos: repos.map((repo) => repo.name) }) : [];
+  const access: RepoAccess = { isOn: true, repos, commits, tools: [] };
+  const names = repos.map((repo) => repo.name);
+  const openRepo = await openRepoTool(context, session, access, names, sources, toolsRoot);
 
-  return { isOn: true, repos, commits, tools };
+  if (names.length > 0 || openRepo) {
+    access.tools = [...createRepoTools({ root: toolsRoot ?? deps.repoCache.root, repos: names, refs: deps.repoCache.refs }), ...(openRepo ? [openRepo] : [])];
+  }
+
+  return access;
+}
+
+// Not for a run that reads its own root (code review's PR checkout): an opened repo lands in the cache, not there.
+async function openRepoTool(context: TaskContext, session: AgentRunSession, access: RepoAccess, names: string[], sources: RepoSource[], toolsRoot?: string): Promise<ToolDefinition<any> | null> {
+  const vault = sources[0]?.vault;
+
+  if (toolsRoot || !vault) {
+    return null;
+  }
+
+  return createOpenRepoTool(context, session, access, names, vault);
 }
 
 // Releases what openRepos took from the cache; a run that never opened its repos releases nothing.
