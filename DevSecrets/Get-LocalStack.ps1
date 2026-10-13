@@ -25,10 +25,11 @@ function Get-EntryStatus([hashtable] $Entry) {
         running = Test-EntryAlive $Entry
         url = $Entry.url
         log = $Entry.log
+        errorLog = $Entry.errorLog
     }
 }
 
-$state = Read-StackState ?? @{ services = @() }
+$state = (Read-StackState) ?? @{ services = @() }
 $status = [ordered]@{
     running = $state.services.Count -gt 0
     branch = $state.branch

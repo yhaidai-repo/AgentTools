@@ -17,11 +17,19 @@ $ErrorActionPreference = "Stop"
 
 $state = Read-StackState
 
+if ($state) {
+    Stop-Stack $state
+}
+
+# A start killed before it saved its state (e.g. the bridge's DELETE while starting) can leave the container behind.
+if (Test-LocalRabbitMqRunning) {
+    Stop-LocalRabbitMq
+}
+
 if (-not $state) {
-    Write-Host "No local stack is running."
+    Write-Host "No local stack state; nothing else to stop."
 
     return
 }
 
-Stop-Stack $state
 Write-Host "Logs kept in $StackDir"

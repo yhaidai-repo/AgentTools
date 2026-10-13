@@ -14,6 +14,7 @@ This folder (in the AgentTools repo) holds no secrets. The values live outside g
 | `Use-LocalPatches.ps1` + `patches/` | Local-only code fixes, applied and hidden from git. |
 | `Start-LocalStack.ps1`, `Get-LocalStack.ps1`, `Stop-LocalStack.ps1` | Start a chain of local services pointed at each other (config as environment variables), show it, stop it. |
 | `rabbitmq/` | Local RabbitMQ container (compose, definitions) for stacks with bus consumers. |
+| `Start-StackBridge.ps1` + `StackBridge/` | HTTP API over the stack scripts for PowerLoom's agents in Docker. |
 | `DevSecrets.*.ps1`, `LocalStack.*.ps1` | Helpers the scripts dot-source. |
 
 ## Configure a local run
@@ -52,6 +53,28 @@ Then restart the AppHosts / services.
 - Logs (`<service>.log`, `.err.log`) and `stack.json` (PIDs) go to `D:/Projects/dev-secrets/stack` (`LOCAL_STACK_DIR`). Logs can hold secrets: don't paste them.
 - Signals runs with `EventBus:EnvPrefix` = `local-instance` (`yhaidai`): its own topics `yhaidai-*` on the dev Service Bus, created by Wolverine at the first start (needs Manage rights). Dev Signals never sees them; data (Cosmos, storage) is the real dev data.
 - PVS services need the dev network (VPN): they exit at startup when dev Redis/SQL are unreachable.
+
+## Stack bridge (for PowerLoom)
+
+```powershell
+./Start-StackBridge.ps1            # foreground; Ctrl+C stops the bridge and its stack
+```
+
+PowerLoom's agents run in Docker and cannot run these scripts; the bridge runs them on this machine.
+
+| Call | Does |
+|---|---|
+| `GET /health` | no token |
+| `GET /services` | runnable services from `services.json` |
+| `POST /stack {services, branch?, ttlMinutes?}` | runs `Start-LocalStack.ps1` in the background (202); 409 while a stack runs |
+| `GET /stack` | `phase` (idle, starting, ready, failed, stopping), services, last 200 lines of script output |
+| `GET /stack/logs/{service}?lines=200&error=false` | tail of the service's log |
+| `DELETE /stack` | runs `Stop-LocalStack.ps1` (also kills a start in progress) |
+
+- Listens on `127.0.0.1:47811` only; containers call `http://host.docker.internal:47811`.
+- `Authorization: Bearer <token>`: the dev-secrets value `stack-bridge-token`, created on the first run.
+- A stack stops when `ttlMinutes` (default 60, max 240) runs out, and when the bridge stops.
+- Logs and start output can hold secrets; whoever holds the token can read them.
 
 ## Routing references (map.json)
 

@@ -77,6 +77,12 @@ function Start-LocalRabbitMq([hashtable] $Named, [hashtable] $Service) {
     }
 }
 
+function Test-LocalRabbitMqRunning() {
+    $containers = docker compose -p $RabbitComposeProject -f $RabbitComposeFile ps -q 2>$null
+
+    return -not [string]::IsNullOrWhiteSpace(($containers | Out-String))
+}
+
 function Stop-LocalRabbitMq() {
     Invoke-RabbitCompose @("down")
     Write-Host "Stopped rabbitmq"
