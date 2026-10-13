@@ -14,6 +14,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
+import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAccessContext, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
@@ -77,6 +78,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
+      ...createAzureTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

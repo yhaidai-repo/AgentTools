@@ -9,6 +9,7 @@ import type { DocUsageLog } from "../DocUsageLog";
 import type { CaptureRules } from "./CaptureRules";
 import type { DocsVault } from "./DocsVault";
 import type { RegisterEntry } from "./RegisterEntry";
+import type { AzureAccess } from "./AzureAccess";
 import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 
@@ -48,6 +49,8 @@ export interface AgentDeps {
   outside: OutsideAccessServices;
   /** The run's vault's Read SQL connections for agents with the integration on; null while the vault's Read SQL is off. */
   sql: SqlAccess | null;
+  /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */
+  azure: AzureAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
   docUsageLog: DocUsageLog | null;
 }

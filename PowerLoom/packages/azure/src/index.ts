@@ -1,4 +1,10 @@
 export { AzureUserLogin } from "./AzureUserLogin";
+export { CosmosReader } from "./CosmosReader";
+export { LogsReader } from "./LogsReader";
+export { kqlProblem, timespanDuration } from "./kqlGuard";
+export { NotSignedInError } from "./models/NotSignedInError";
+export type { AzureAnswer } from "./models/AzureAnswer";
+export type { AzureRows } from "./models/AzureRows";
 export type { AzureLoginStart } from "./models/AzureLoginStart";
 export type { AzureLoginStatus } from "./models/AzureLoginStatus";
 export type { AzureTokenCacheStore } from "./models/AzureTokenCacheStore";

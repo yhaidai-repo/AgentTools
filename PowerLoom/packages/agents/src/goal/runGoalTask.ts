@@ -11,6 +11,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { reposByName } from "../research/resolveRepos";
+import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { createAgentDocTools, numberOption, outsideAccessContext } from "../stage";
 import type { GoalDraft } from "./models/GoalDraft";
@@ -69,6 +70,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createFindingTools(deps, draft.findings),
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
+      ...createAzureTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

@@ -5,6 +5,7 @@ import type { AzureLoginStatus } from "./models/AzureLoginStatus";
 import type { AzureTokenCacheStore } from "./models/AzureTokenCacheStore";
 import type { AzureTokenCredential } from "./models/AzureTokenCredential";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
+import { NotSignedInError } from "./models/NotSignedInError";
 
 // The one scope this identity ever asks for (user decision 2026-10-13: the user's own account reads App Insights;
 // no app registration exists): a token for the logs API can't touch anything else.
@@ -91,7 +92,7 @@ export class AzureUserLogin {
         const account = await this.accountOf(vault);
 
         if (!account) {
-          throw new Error("Nobody is signed in for App Insights: Settings → Read Azure → Sign in.");
+          throw new NotSignedInError(vault);
         }
 
         const result = await this.appOf(vault).acquireTokenSilent({ account, scopes: [LOGS_SCOPE] });

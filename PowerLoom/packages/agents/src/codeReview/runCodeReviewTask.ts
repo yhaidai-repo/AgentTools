@@ -9,6 +9,7 @@ import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
+import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createCodeReviewTools } from "./codeReviewTools";
@@ -87,6 +88,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createRepoTools({ root: reviewCheckoutsRoot(deps, session.runId), repos: [repo.name] }),
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
+      ...createAzureTools(deps, agent, access),
       ...createCodeReviewTools(run),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

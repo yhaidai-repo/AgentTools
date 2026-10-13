@@ -1,10 +1,10 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
 import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
-import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readReadSqlSettings, readValue, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readReadAzureSettings, readReadSqlSettings, readValue, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
-import { AzureUserLogin } from "@powerloom/azure";
+import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
@@ -145,7 +145,17 @@ async function depsFor(vault: string): Promise<AgentDeps> {
     listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
     docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
     sql: await sqlAccessOf(vault),
+    azure: await azureAccessOf(vault),
   };
+}
+
+// Read per run, so a switch flipped in Settings counts from the next run. The logs reader is bound to the vault's
+// sign-in; a missing one answers `denied` at call time, which asks the user to sign in.
+async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
+  const settings = await readReadAzureSettings(db, vault);
+  const anyKindOn = Object.values(settings.enabledKinds).some(Boolean);
+
+  return anyKindOn ? { settings, logs: new LogsReader(azureLogin.logsCredential(vault)), cosmos: new CosmosReader() } : null;
 }
 
 // Read per run, so a switch flipped in Settings counts from the next run.

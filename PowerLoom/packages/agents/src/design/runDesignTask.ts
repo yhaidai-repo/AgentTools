@@ -11,6 +11,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
 import { loadResearchContext } from "../research/loadResearchContext";
+import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
@@ -82,6 +83,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createDesignTools(run.draft, guard),
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
+      ...createAzureTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
