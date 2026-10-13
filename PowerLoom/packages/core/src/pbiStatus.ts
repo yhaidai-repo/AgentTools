@@ -1,6 +1,15 @@
 import { localItem, statusHistory, type PowerLoomDb } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import type { ItemStatus } from "./models/ItemStatus";
+import type { PipelineStatus } from "./models/PipelineStatus";
+
+// A finished or closed PBI waits on nobody (user decision 2026-10-13): its open questions, tasks and findings stay,
+// but they need no attention.
+const SETTLED_STATUSES: PipelineStatus[] = ["done", "closed"];
+
+export function isSettledPbi(status: PipelineStatus): boolean {
+  return SETTLED_STATUSES.includes(status);
+}
 
 // Every status change of a local item (tasks, questions) goes through here so status_history stays complete; the
 // backend owns the PBI's status (PbiStatusSync).
