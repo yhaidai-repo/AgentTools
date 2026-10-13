@@ -55,6 +55,7 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     skills: form.getAll("skills").map(String),
     options: readOptions(form, current),
     next: text(form, "next") || null,
+    canAssign: form.getAll("canAssign").map(String),
     waitFor: form.getAll("waitFor").map(String),
   };
 }

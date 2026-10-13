@@ -24,6 +24,8 @@ export interface AgentDefinition {
   options: Record<string, AgentOptionValue>;
   /** Agent to call after a successful task (the app creates its task), or null. */
   next: string | null;
+  /** Agents this agent may create tasks for itself (the user always may get one); the app decides which agents take tasks. */
+  canAssign: string[];
   /** Blockers the app checks before starting this agent, e.g. ["questions", "drafts"]; the app defines the keys. */
   waitFor: string[];
   /** The options this agent's code reads. Always taken from the code's defaults, so stored copies can't drift. */

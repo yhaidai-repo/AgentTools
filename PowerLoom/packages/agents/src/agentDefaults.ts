@@ -191,6 +191,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: REFINEMENT_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: "design",
+    canAssign: [],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
@@ -208,6 +209,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: RESEARCH_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: "design",
+    canAssign: [],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
@@ -225,6 +227,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: DESIGN_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
+    canAssign: [],
     waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
   },
   {
@@ -242,6 +245,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: TECH_WRITER_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
+    canAssign: [],
     waitFor: [],
   },
   // Off until the user turns it on (assumption, 2026-10-02): the first pull-requests run queues a review for every open PR.
@@ -260,6 +264,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: CODE_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
+    canAssign: [],
     waitFor: [],
   },
   // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
@@ -278,6 +283,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: VAULT_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
+    canAssign: [],
     waitFor: [],
   },
 ];

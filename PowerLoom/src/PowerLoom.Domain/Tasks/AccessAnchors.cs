@@ -72,18 +72,7 @@ public static class AccessAnchors
         return [];
     }
 
-    private static List<string> AnchorsOf(string? data)
-    {
-        if (data is null)
-            return [];
-
-        using var document = JsonDocument.Parse(data);
-
-        if (!document.RootElement.TryGetProperty(RerunAfter, out var anchors) || anchors.ValueKind != JsonValueKind.Array)
-            return [];
-
-        return anchors.EnumerateArray().Where(anchor => anchor.ValueKind == JsonValueKind.String).Select(anchor => anchor.GetString()!).ToList();
-    }
+    private static List<string> AnchorsOf(string? data) => ItemData.StringsOf(data, RerunAfter);
 
     private static string WithoutAnchor(string? data, string humanTaskId)
     {

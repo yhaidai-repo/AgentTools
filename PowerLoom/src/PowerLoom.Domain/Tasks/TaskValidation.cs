@@ -25,6 +25,7 @@ public static class TaskValidation
         var reasons = WebAccessMissing(task, agentId, webAccess).Concat(waitFor.Where(key => !Known.Contains(key)).Select(key => $"Unknown blocker \"{key}\" in the agent's config")).ToList();
 
         reasons.AddRange(await AccessMissingAsync(db, task, cancellation));
+        reasons.AddRange(await DependenciesOpenAsync(db, task, cancellation));
 
         // The waitFor checks are about the task's PBI; a task without one (e.g. a chat draft's tech-writer task) has
         // none to wait for.
@@ -64,6 +65,14 @@ public static class TaskValidation
         var open = await AccessAnchors.OpenAnchorsAsync(db, task, cancellation);
 
         return open.Count > 0 ? [$"Waiting for access: {string.Join(", ", open)}"] : [];
+    }
+
+    // Always checked, not a waitFor box: the agent that created the task said what must close first.
+    private static async Task<IEnumerable<string>> DependenciesOpenAsync(PowerLoomDbContext db, LocalItem task, CancellationToken cancellation)
+    {
+        var open = await TaskDependencies.OpenDependenciesAsync(db, task, cancellation);
+
+        return open.Count > 0 ? [$"Waiting for {string.Join(", ", open)}"] : [];
     }
 
     // Findings are vault upkeep for the user, not PBI work, so they hold no agent (user decision 2026-10-02).

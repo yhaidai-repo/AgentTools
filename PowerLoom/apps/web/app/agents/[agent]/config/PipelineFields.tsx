@@ -19,6 +19,13 @@ export function PipelineFields({ agent, agentIds, blockerKinds }: { agent: Agent
         </select>
       </label>
       {unknownNext && <span className="result-error">&quot;{unknownNext}&quot; isn&apos;t configured: the tasks this creates wait until such an agent exists.</span>}
+      <span className="muted">Can create tasks for (agents with the create_task tool choose who works next; the user always can get one):</span>
+      {others.map((id) => (
+        <label key={id} className="inline choice">
+          <input type="checkbox" name="canAssign" value={id} defaultChecked={agent.canAssign.includes(id)} />
+          <span>{id}</span>
+        </label>
+      ))}
       <span className="muted">Wait for (the worker doesn&apos;t start this agent on a PBI until each ticked check passes):</span>
       {blockerKinds.map((kind) => (
         <label key={kind.key} className="inline choice">

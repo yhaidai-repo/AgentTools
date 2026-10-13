@@ -6,7 +6,7 @@ import type { KnownItem } from "./models/KnownItem";
 // Only near-identical text is rejected: reworded duplicates can't be told from new questions by words (see
 // textSimilarity); the agents get the PBI's existing items in the first message for those.
 const DUPLICATE_SIMILARITY = 0.8;
-const CHECKED_KINDS = ["question", "research", "human"];
+const CHECKED_KINDS = ["question", "research", "human", "design"];
 
 // The create tools ask this before noting a new question or task; a rejection names the existing item so the agent
 // can use it instead (user decision 2026-10-01: no duplicates, also on reruns).
