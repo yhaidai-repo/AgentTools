@@ -22,7 +22,7 @@ export interface AgentDefinition {
   skills: string[];
   /** Agent-specific settings, e.g. { batchSize: 2, maxFailures: 3 }; only keys declared in optionSpecs. */
   options: Record<string, AgentOptionValue>;
-  /** Agent to call after a successful task (the app creates its task), or null. */
+  /** Task type the app creates after a successful task (e.g. "design"), taken by any agent that handles it; or null. */
   next: string | null;
   /** Task types this agent may create tasks of (the user always may get one), e.g. ["research", "design"]. */
   canAssign: string[];

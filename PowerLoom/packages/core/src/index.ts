@@ -42,7 +42,6 @@ export * from "./itemKeys";
 export * from "./deleteItem";
 export * from "./rerunTask";
 export * from "./itemScope";
-export type { AgentStage } from "./models/AgentStage";
 export type { BlockerKind } from "./models/BlockerKind";
 export * from "./textSimilarity";
 export type { RegisterJob } from "./models/RegisterJob";

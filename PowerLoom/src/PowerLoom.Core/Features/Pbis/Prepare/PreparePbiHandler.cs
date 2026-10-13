@@ -40,7 +40,7 @@ public static class PreparePbiHandler
             await db.SaveChangesAsync(cancellation);
         }
 
-        var taskId = await AgentTasks.EnsureAsync(db, AgentStages.Refinement, message.AdoId, null, cancellation);
+        var taskId = await AgentTasks.EnsureAsync(db, ItemKind.Refinement, message.AdoId, null, cancellation);
 
         await PbiStatusSync.RecalculateAsync(db, message.AdoId, message.Actor, cancellation);
         // Linked documents are collected and Confluence pages re-checked for a newer version (the ADO and Confluence

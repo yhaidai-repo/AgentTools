@@ -1,14 +1,4 @@
-import type { AgentStage } from "./models/AgentStage";
 import type { BlockerKind } from "./models/BlockerKind";
-
-// The pipeline agents, in order. An agent without a stage here gets no PBI tasks (e.g. a later tech writer).
-export const AGENT_STAGES: Record<string, AgentStage> = {
-  refinement: { kind: "refinement", prefix: "RT", running: "refining", waiting: "ready-for-refinement", title: "Refine the PBI" },
-  "better-refinement": { kind: "refinement", prefix: "RT", running: "refining", waiting: "ready-for-refinement", title: "Refine the PBI" },
-  research: { kind: "research", prefix: "AT", running: "researching", waiting: "needs-research", title: "Research the PBI" },
-  "better-research": { kind: "research", prefix: "AT", running: "researching", waiting: "needs-research", title: "Research the PBI" },
-  design: { kind: "design", prefix: "DT", running: "designing", waiting: "ready-for-design", title: "Design the implementation" },
-};
 
 // What an agent can be told to wait for (AgentConfig `waitFor`); the validator checks each (user decision 2026-10-01).
 export const BLOCKER_KINDS: BlockerKind[] = [
@@ -18,16 +8,19 @@ export const BLOCKER_KINDS: BlockerKind[] = [
   { key: "otherAgentTasks", label: "Other agents' tasks", description: "No other agent has an open task on the PBI (e.g. design waits until all research is done)." },
 ];
 
-// A task any agent that handles its type may take (user decision 2026-10-13); `agent:<id>` pins one agent.
+// A task for any agent that takes its type (user decision 2026-10-13: task types, not agent types); `agent:<id>` pins
+// one agent.
 export const ANY_AGENT = "agent:*";
 
-// The task types agents take (an agent's `handles`), and the ones agents may create for each other (`canAssign`).
+// The task types agents take (an agent's `handles`), the ones agents may create for each other (`canAssign`), and the
+// PBI pipeline's, which an agent's `next` names.
 export const AGENT_TASK_TYPES = ["refinement", "research", "design", "docs", "review", "vault-review"];
 export const CREATABLE_TASK_TYPES = ["research", "design", "docs"];
+export const PIPELINE_TASK_TYPES = ["refinement", "research", "design"];
 
-// Who works on an agent task, for display: the pinned agent, or any agent of the task's type.
+// Who works on an agent task, for display: the pinned agent, or any agent taking its type.
 export function workerLabel(assignee: string, kind: string): string {
-  return assignee === ANY_AGENT ? `any ${kind} agent` : (agentIdOf(assignee) ?? assignee);
+  return assignee === ANY_AGENT ? `any agent taking ${kind} tasks` : (agentIdOf(assignee) ?? assignee);
 }
 
 export function agentIdOf(assignee: string): string | null {

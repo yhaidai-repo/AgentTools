@@ -66,7 +66,7 @@ function inputShape(targets: TaskTarget[]) {
   const assignees: [string, ...string[]] = [USER, ...targets.map((target) => target.type)];
 
   return {
-    assignee: z.enum(assignees).describe("The type of work (an agent of that type takes it), or user"),
+    assignee: z.enum(assignees).describe("The task type (any agent taking that type picks it up), or user"),
     kind: z.enum(["task", "question"]).describe("question: a decision only the user can make, with options; task: work for an agent, or an action for the user"),
     title: z.string().min(1).max(120),
     goal: z.string().min(1).describe("The problem or question and the facts known so far; mark guesses (inferred)"),
@@ -88,7 +88,7 @@ function describeTool(targets: TaskTarget[], limits: TaskCreationLimits): string
 
   return [
     "Create a task for another agent or for the user; you decide what work comes next. Create one only when its answer changes the outcome.",
-    "Assignees (a task type, taken by an agent of that type, or the user):",
+    "Assignees (a task type, picked up by any agent taking that type, or the user):",
     ...agents,
     "- user: decisions (kind question, with options), access or actions no tool can do (kind task, with steps).",
     "Hand on the problem and its evidence, not your guess. Name what it depends on, and mark it blocking when the PBI can't be developed without it.",
