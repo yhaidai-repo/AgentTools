@@ -10,17 +10,17 @@ namespace PowerLoom.Api.Tests.Pbis;
 [Collection(PowerLoomCollection.Name)]
 public sealed class UserNotesTests(PowerLoomHost host)
 {
-    private const string NotePath = "pbi/PBI-62001-notes/PBI-62001.md";
+    private const string NotePath = "pbi/PBI-65001-notes/PBI-65001.md";
 
     [Fact]
     public async Task The_notes_section_is_read_and_saved_and_an_unseen_vault_edit_is_never_overwritten()
     {
-        const int adoId = 62001;
+        const int adoId = 65001;
         var file = Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, NotePath);
 
         await SeedAsync(adoId, NotePath);
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-        await File.WriteAllTextAsync(file, "# PBI-62001\n\nGenerated.\n\n## Notes\n\nFirst thought.\n");
+        await File.WriteAllTextAsync(file, "# PBI-65001\n\nGenerated.\n\n## Notes\n\nFirst thought.\n");
 
         var loaded = await host.Host.GetAsJson<PbiUserNotes>($"/api/pbis/{adoId}/user-notes");
         var saved = await host.Host.PutJson(new SaveUserNotesRequest("Line one\r\nLine two\r\n", "First thought."), $"/api/pbis/{adoId}/user-notes").Receive<PbiUserNotes>();
@@ -36,7 +36,7 @@ public sealed class UserNotesTests(PowerLoomHost host)
 
         Assert.Equal("First thought.", loaded!.Text);
         Assert.Equal("Line one\nLine two", saved!.Text);
-        Assert.Equal("# PBI-62001\n\nGenerated.\n\n## Notes\n\nLine one\nLine two\n", afterSave);
+        Assert.Equal("# PBI-65001\n\nGenerated.\n\n## Notes\n\nLine one\nLine two\n", afterSave);
         Assert.Contains("changed in the vault", await stale.ReadAsTextAsync());
         Assert.Contains("Edited in Obsidian", await File.ReadAllTextAsync(file));
     }
@@ -44,7 +44,7 @@ public sealed class UserNotesTests(PowerLoomHost host)
     [Fact]
     public async Task A_pbi_without_a_note_or_unknown_to_powerloom_is_refused()
     {
-        const int adoId = 62002;
+        const int adoId = 65002;
 
         await SeedAsync(adoId, null);
 
@@ -56,7 +56,7 @@ public sealed class UserNotesTests(PowerLoomHost host)
 
         await host.Host.Scenario(scenario =>
         {
-            scenario.Get.Url("/api/pbis/62999/user-notes");
+            scenario.Get.Url("/api/pbis/65999/user-notes");
             scenario.StatusCodeShouldBe(404);
         });
 
