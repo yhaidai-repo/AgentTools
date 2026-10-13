@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace DevSecrets.StackBridge;
 
-// Every call except /health needs "Authorization: Bearer <token>".
+// Every call except /health and the UI's entry needs "Authorization: Bearer <token>".
 public static class BridgeToken
 {
     private const string Scheme = "Bearer ";
@@ -29,7 +29,7 @@ public static class BridgeToken
         return app;
     }
 
-    private static bool IsPublic(HttpRequest request) => request.Path == StackEndpoints.HealthPath;
+    private static bool IsPublic(HttpRequest request) => request.Path == StackEndpoints.HealthPath || request.Path == "/";
 
     private static bool HasToken(HttpRequest request, byte[] token)
     {

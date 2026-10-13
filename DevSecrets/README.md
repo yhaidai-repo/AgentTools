@@ -54,6 +54,19 @@ Then restart the AppHosts / services.
 - Signals runs with `EventBus:EnvPrefix` = `local-instance` (`yhaidai`): its own topics `yhaidai-*` on the dev Service Bus, created by Wolverine at the first start (needs Manage rights). Dev Signals never sees them; data (Cosmos, storage) is the real dev data.
 - PVS services need the dev network (VPN): they exit at startup when dev Redis/SQL are unreachable.
 
+## Configuration UI
+
+Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); sign in with the bridge token (kept in that browser tab only).
+
+| Tab | Shows |
+|---|---|
+| Apps | `services.json`: each app's URL, key, what it starts, when it is ready, bus, projects |
+| Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value) |
+| Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value |
+| Problems | `Use-DevSecrets.ps1 -All -Check` per values file (what a start would refuse), plus unused values and projects without an app |
+
+Read-only for now; edit the files directly. `GET /config/apps|dependencies|secrets|problems`, `GET /config/secrets/{file}/{name}` (token required).
+
 ## Stack bridge (for PowerLoom)
 
 ```powershell

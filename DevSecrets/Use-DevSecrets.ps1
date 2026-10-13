@@ -30,6 +30,10 @@
 
 .EXAMPLE
     ./Use-DevSecrets.ps1 -Local signals,patients -DryRun
+
+.EXAMPLE
+    ./Use-DevSecrets.ps1 -All -Check
+    Validates every project and prints the problems as JSON (the stack bridge's UI); writes nothing.
 #>
 [CmdletBinding()]
 param(
@@ -41,7 +45,9 @@ param(
 
     [switch] $All,
 
-    [switch] $DryRun
+    [switch] $DryRun,
+
+    [switch] $Check
 )
 
 $ErrorActionPreference = "Stop"
@@ -123,6 +129,12 @@ if ($selected.Count -eq 0) {
 }
 
 $errors = @($selected | ForEach-Object { Get-ProjectErrors $Store.repos $_ $named $true })
+
+if ($Check) {
+    ConvertTo-Json -InputObject @{ values = $Values; problems = $errors } -Depth 3
+
+    return
+}
 
 if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Error $_ -ErrorAction Continue }

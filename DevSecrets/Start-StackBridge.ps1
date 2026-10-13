@@ -56,6 +56,7 @@ function Get-BridgeToken() {
 
 $env:StackBridge__Token = Get-BridgeToken
 $env:StackBridge__ScriptsDir = $PSScriptRoot
+$env:StackBridge__ValuesDir = $ValuesDir
 $env:ASPNETCORE_URLS = "http://127.0.0.1:$Port"
 
 Write-Host "Stack bridge on http://127.0.0.1:$Port (containers: http://host.docker.internal:$Port). Ctrl+C stops it and its stack."

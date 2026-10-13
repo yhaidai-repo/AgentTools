@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevSecrets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>DevSecrets</h1>
+    <nav id="tabs" hidden>
+      <button data-tab="apps">Apps</button>
+      <button data-tab="dependencies">Dependencies</button>
+      <button data-tab="secrets">Secrets</button>
+      <button data-tab="problems">Problems <span id="problem-count" class="badge" hidden></span></button>
+    </nav>
+    <button id="sign-out" class="link" hidden>Forget token</button>
+  </header>
+
+  <main>
+    <form id="token-form" class="card narrow" hidden>
+      <h2>Bridge token</h2>
+      <p class="muted">The dev-secrets value <code>stack-bridge-token</code> in <code>D:/Projects/dev-secrets/values.remote.json</code>. Kept in this tab only.</p>
+      <input id="token" type="password" autocomplete="off" required>
+      <button type="submit">Open</button>
+      <p id="token-error" class="error" hidden></p>
+    </form>
+
+    <section id="apps" class="tab" hidden></section>
+    <section id="dependencies" class="tab" hidden></section>
+    <section id="secrets" class="tab" hidden></section>
+    <section id="problems" class="tab" hidden></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
