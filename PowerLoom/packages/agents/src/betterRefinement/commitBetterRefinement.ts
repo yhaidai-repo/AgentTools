@@ -18,12 +18,12 @@ type Refinement = NonNullable<BetterRefinementDraft["refinement"]>;
 // confirmation, drafts, skills and pages; closes the task, so a run kept after a budget stop ends done too.
 export async function commitBetterRefinement(
   db: PowerLoomDb,
-  task: { id: string; pbiId: number },
+  task: { id: string; pbiId: number; vault: string },
   runId: number,
   draft: BetterRefinementDraft & { refinement: Refinement },
   extra: { docsRead: string[]; documented: Map<string, string>; docsVault: string },
 ): Promise<string[]> {
-  const taskIds = await commitCreatedTasks(db, { pbiId: task.pbiId, parentTaskId: task.id, runId, depth: 0, docsVault: extra.docsVault }, draft.tasks);
+  const taskIds = await commitCreatedTasks(db, { pbiId: task.pbiId, vault: task.vault, parentTaskId: task.id, runId, depth: 0, docsVault: extra.docsVault }, draft.tasks);
   const refinement = withTaskIds(draft.refinement, taskIds);
   const version = await insertRefinement(db, task.pbiId, runId, refinement, extra.docsRead);
   const repoQuestionIds = await confirmRepos(db, task.pbiId, runId, refinement.repos.map((repo) => repo.name), extra.documented);

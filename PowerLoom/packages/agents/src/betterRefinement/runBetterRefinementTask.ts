@@ -59,7 +59,7 @@ export async function runBetterRefinementTask(context: TaskContext, task: ItemRo
       const pages = withPagesRead(run.draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by Better Refinement while refining.");
       const extra = { docsRead: await docsReadInRun(deps, session.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName };
 
-      await commitBetterRefinement(deps.db, { id: task.id, pbiId }, session.runId, { ...run.draft, refinement: run.draft.refinement!, pages }, extra);
+      await commitBetterRefinement(deps.db, { id: task.id, pbiId, vault: task.vault }, session.runId, { ...run.draft, refinement: run.draft.refinement!, pages }, extra);
     };
 
     return await session.finish(ran, commit, run.draft.refinement !== null);
