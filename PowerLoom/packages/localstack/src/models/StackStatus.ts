@@ -1,0 +1,16 @@
+import type { StackPhase } from "./StackPhase";
+import type { StackServiceState } from "./StackServiceState";
+
+// GET /stack: the bridge's operation (phase, owner, start output) and what runs.
+export interface StackStatus {
+  phase: StackPhase;
+  running: boolean;
+  requestedServices: string[];
+  branch: string | null;
+  startedAt: string | null;
+  expiresAt: string | null;
+  exitCode: number | null;
+  owner: string | null;
+  services: StackServiceState[];
+  output: string[];
+}

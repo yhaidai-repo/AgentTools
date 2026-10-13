@@ -17,6 +17,7 @@ export * from "./humanItems";
 export type { AdoSettings } from "./models/AdoSettings";
 export type { ReadSqlSettings } from "./models/ReadSqlSettings";
 export type { ReadAzureSettings } from "./models/ReadAzureSettings";
+export type { LocalStackSettings } from "./models/LocalStackSettings";
 export type { AzureUserAccount } from "./models/AzureUserAccount";
 export type { AzureResourceKind, AzureResourceSettings } from "./models/AzureResourceSettings";
 export type { SqlConnectionSettings } from "./models/SqlConnectionSettings";

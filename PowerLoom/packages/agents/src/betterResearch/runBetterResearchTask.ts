@@ -5,6 +5,7 @@ import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azureTools";
+import { createLocalStackTools } from "../localStackTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
@@ -108,6 +109,7 @@ function readingTools(context: TaskContext, session: AgentRunSession, task: Item
     ...createConfluenceTools(deps, agent, access),
     ...createSqlTools(deps, agent, access),
     ...createAzureTools(deps, agent, access),
+    ...createLocalStackTools(deps, agent, access),
   ];
 }
 

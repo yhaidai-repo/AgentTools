@@ -30,12 +30,16 @@ public static class StackEndpoints
         return TypedResults.Accepted(StackPath);
     }
 
-    private static async Task<IResult> StopAsync(StackService stacks)
+    // Without ?owner= it stops any stack (a person at the console); with it, only that owner's or an unclaimed one.
+    private static async Task<IResult> StopAsync(StackService stacks, StackOperationTracker tracker, string? owner = null)
     {
         // Not the request's token: a client that gives up must not leave a half-stopped stack.
-        var output = await stacks.StopAsync(CancellationToken.None);
+        var result = await stacks.StopAsync(owner, CancellationToken.None);
 
-        return TypedResults.Ok(new { output });
+        if (!result.IsSuccess)
+            return TypedResults.Problem(result.Error, statusCode: result.StatusCode);
+
+        return TypedResults.Ok(new { output = tracker.Output });
     }
 
     private static async Task<IResult> ReadLogAsync(

@@ -10,6 +10,7 @@ import type { CaptureRules } from "./CaptureRules";
 import type { DocsVault } from "./DocsVault";
 import type { RegisterEntry } from "./RegisterEntry";
 import type { AzureAccess } from "./AzureAccess";
+import type { LocalStackAccess } from "./LocalStackAccess";
 import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 
@@ -51,6 +52,8 @@ export interface AgentDeps {
   sql: SqlAccess | null;
   /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */
   azure: AzureAccess | null;
+  /** The run's vault's Local stack (the stack bridge on the host) for agents with the integration on; null while the vault's Local stack is off. */
+  localStack: LocalStackAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
   docUsageLog: DocUsageLog | null;
 }

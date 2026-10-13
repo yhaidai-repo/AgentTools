@@ -9,6 +9,7 @@ public sealed record StackStatus(
     DateTimeOffset? StartedAt,
     DateTimeOffset? ExpiresAt,
     int? ExitCode,
+    string? Owner,
     ScriptServiceStatus[] Services,
     IReadOnlyList<string> Output
 );

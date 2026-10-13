@@ -2,6 +2,7 @@ import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlob
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 import { AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS } from "./azureIntegrations";
 import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
+import { LOCAL_STACK_INTEGRATION } from "./localStackTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
@@ -223,6 +224,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent may run read-only queries on the vault's Read SQL connections (Settings) during its runs. Whatever a query returns goes to the model provider.",
   },
   ...AZURE_INTEGRATION_SPECS,
+  {
+    key: LOCAL_STACK_INTEGRATION,
+    label: "Local stack (run services)",
+    description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → Local stack) during its runs, e.g. the PVS portal with Signals for a test. One stack at a time; it stops when the run ends.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -235,7 +241,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 10 },
     budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
     optionSpecs: REFINEMENT_OPTIONS,
@@ -253,7 +259,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
     optionSpecs: RESEARCH_OPTIONS,
@@ -271,7 +277,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: BETTER_RESEARCH_OPTIONS,
@@ -291,7 +297,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: DESIGN_OPTIONS,
@@ -309,7 +315,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-tech-writer", "powerloom-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: TECH_WRITER_OPTIONS,
@@ -328,7 +334,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 15 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: CODE_REVIEW_OPTIONS,
@@ -347,7 +353,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: VAULT_REVIEW_OPTIONS,

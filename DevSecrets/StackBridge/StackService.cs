@@ -59,6 +59,7 @@ public sealed partial class StackService(
             operation.StartedAt,
             operation.ExpiresAt,
             operation.ExitCode,
+            operation.Owner,
             status.Services,
             tracker.Output
         );
@@ -74,6 +75,16 @@ public sealed partial class StackService(
             return null;
 
         return ReadTail(path, Math.Clamp(lines, 1, MaxLogLines));
+    }
+
+    public async Task<BridgeResult> StopAsync(string? owner, CancellationToken cancellationToken)
+    {
+        if (!tracker.IsStoppableBy(owner))
+            return BridgeResult.Conflict($"The stack belongs to {tracker.Current.Owner}; only its owner stops it.");
+
+        await StopAsync(cancellationToken);
+
+        return BridgeResult.Ok();
     }
 
     public async Task<IReadOnlyList<string>> StopAsync(CancellationToken cancellationToken)

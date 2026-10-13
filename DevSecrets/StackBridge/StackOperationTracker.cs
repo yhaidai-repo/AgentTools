@@ -43,7 +43,7 @@ public sealed class StackOperationTracker
                 return false;
 
             _output.Clear();
-            _operation = new StackOperation(StackPhase.Starting, request.Services, request.Branch, startedAt, expiresAt, null);
+            _operation = new StackOperation(StackPhase.Starting, request.Services, request.Branch, startedAt, expiresAt, null, request.Owner);
 
             return true;
         }
@@ -108,6 +108,15 @@ public sealed class StackOperationTracker
         {
             return _operation.Phase is StackPhase.Starting or StackPhase.Ready or StackPhase.Failed
                 && _operation.ExpiresAt <= now;
+        }
+    }
+
+    // A stack nobody claimed (started by hand, or before the bridge restarted) may be stopped by anyone.
+    public bool IsStoppableBy(string? owner)
+    {
+        lock (_gate)
+        {
+            return owner is null || _operation.Owner is null || _operation.Owner == owner;
         }
     }
 

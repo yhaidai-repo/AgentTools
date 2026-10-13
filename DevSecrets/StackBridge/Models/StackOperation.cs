@@ -6,8 +6,9 @@ public sealed record StackOperation(
     string? Branch,
     DateTimeOffset? StartedAt,
     DateTimeOffset? ExpiresAt,
-    int? ExitCode
+    int? ExitCode,
+    string? Owner
 )
 {
-    public static readonly StackOperation Idle = new(StackPhase.Idle, [], null, null, null, null);
+    public static readonly StackOperation Idle = new(StackPhase.Idle, [], null, null, null, null, null);
 }

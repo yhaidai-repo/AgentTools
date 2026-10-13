@@ -23,6 +23,7 @@ import type { TechWriterDraft } from "./models/TechWriterDraft";
 import type { TechWriterRun } from "./models/TechWriterRun";
 import { projectRepoName } from "../docsRepos";
 import { createAzureTools } from "../azureTools";
+import { createLocalStackTools } from "../localStackTools";
 import { createSqlTools } from "../sqlTools";
 import { createTechWriterTools } from "./techWriterTools";
 
@@ -122,6 +123,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
+      ...createLocalStackTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
