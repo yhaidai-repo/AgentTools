@@ -18,6 +18,7 @@ function writeNoteTool(draft: TechWriterDraft) {
     input: {
       path: z.string().min(1).describe("Relative to the vault root, e.g. pvsi/signals/medicaid-recipient-facility.md"),
       content: z.string().min(1).describe("The complete note"),
+      takesDraftPlace: z.boolean().default(false).describe("True for the note the draft's facts went to: before the draft is deleted, the app points every link to the draft at this note"),
     },
     handler: async (input) => {
       const problem = notePathProblem(input.path) ?? (hasFrontmatter(input.content) ? null : "a note opens with its frontmatter (see the vault rules)");
@@ -29,6 +30,7 @@ function writeNoteTool(draft: TechWriterDraft) {
       const path = normalizeNotePath(input.path);
 
       draft.edits = [...draft.edits.filter((edit) => edit.path !== path), { path, content: input.content }];
+      draft.home = input.takesDraftPlace ? path : draft.home;
 
       return { text: `${path} noted (${draft.edits.length} note(s) in this run).` };
     },

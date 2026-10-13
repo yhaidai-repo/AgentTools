@@ -54,8 +54,8 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     capabilities: { webAccess: form.get("webAccess") === "on", integrations: readIntegrations(form, current) },
     skills: form.getAll("skills").map(String),
     options: readOptions(form, current),
-    next: text(form, "next") || null,
     canAssign: form.getAll("canAssign").map(String),
+    handles: form.getAll("handles").map(String),
     waitFor: form.getAll("waitFor").map(String),
   };
 }

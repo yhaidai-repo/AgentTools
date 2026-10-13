@@ -1,7 +1,7 @@
-import { JOB_STAGES } from "@powerloom/core";
+import { JOB_STAGES, NOT_FAILED_OUTCOMES } from "@powerloom/core";
 import { agentRun } from "@powerloom/db";
 import type { UsageRecord } from "@agenttools/usage";
-import { and, gte, notInArray, sql } from "drizzle-orm";
+import { and, eq, gte, notInArray, sql } from "drizzle-orm";
 import type { AgentActivity } from "@/models/AgentActivity";
 import type { DayActivity } from "@/models/DayActivity";
 import { getDb } from "./db";
@@ -9,12 +9,14 @@ import { getUsageStore } from "./usage";
 
 const MAX_RECORDS = 5_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const FAILURE_FILTER = sql`${agentRun.outcome} NOT IN ('success', 'no-op', 'running')`;
+const FAILURE_FILTER = notInArray(agentRun.outcome, NOT_FAILED_OUTCOMES);
+const BUDGET_STOP_FILTER = eq(agentRun.outcome, "budget-exceeded");
 
 interface RunDay {
   day: string;
   runs: number;
   failures: number;
+  budgetStops: number;
 }
 
 interface RunTotals {
@@ -26,7 +28,7 @@ interface RunTotals {
 // Every day from `from` to today (budget days, 00:00 UTC), all vaults: the dashboard shows the whole system, and the
 // daily budgets count every vault.
 export async function loadDailyActivity(from: Date, now: Date): Promise<DayActivity[]> {
-  const days = new Map(dayKeys(from, now).map((day) => [day, { day, runs: 0, failures: 0, costByAgent: {} } as DayActivity]));
+  const days = new Map(dayKeys(from, now).map((day) => [day, { day, runs: 0, failures: 0, budgetStops: 0, costByAgent: {} } as DayActivity]));
 
   for (const row of await runsPerDay(from)) {
     const day = days.get(row.day);
@@ -34,6 +36,7 @@ export async function loadDailyActivity(from: Date, now: Date): Promise<DayActiv
     if (day) {
       day.runs = row.runs;
       day.failures = row.failures;
+      day.budgetStops = row.budgetStops;
     }
   }
 
@@ -67,6 +70,7 @@ async function runsPerDay(from: Date): Promise<RunDay[]> {
       day,
       runs: sql<number>`count(*)::int`,
       failures: sql<number>`(count(*) FILTER (WHERE ${FAILURE_FILTER}))::int`,
+      budgetStops: sql<number>`(count(*) FILTER (WHERE ${BUDGET_STOP_FILTER}))::int`,
     })
     .from(agentRun)
     .where(and(gte(agentRun.startedAt, from), notInArray(agentRun.stage, JOB_STAGES)))

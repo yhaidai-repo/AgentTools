@@ -1,4 +1,4 @@
-import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@powerloom/core";
+import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl, workerLabel } from "@powerloom/core";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@powerloom/db";
 import { eq } from "drizzle-orm";
@@ -15,8 +15,11 @@ import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { loadUserNotes } from "@/lib/userNotes";
 import { AttachmentForm } from "./AttachmentForm";
 import { ChildItems } from "./ChildItems";
+import { ContextSize } from "./ContextSize";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
+import { RefinementDetailsLine } from "./RefinementDetailsLine";
+import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
 import { DeletePbiButton } from "./DeletePbiButton";
 import { PreparePbiButton } from "./PreparePbiButton";
@@ -160,6 +163,7 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
       {detail.bug && <span className="chip">bug: {BUG_ORIGINS[detail.bug.source]}, found in {detail.bug.foundIn}</span>}
       {adoUrl && <a className="chip" href={adoUrl} target="_blank" rel="noreferrer">open in ADO</a>}
       {pbi.vaultPath ? <span className="chip"><NoteLink vault={pbi.vault} path={pbi.vaultPath} label="open note" /></span> : <span className="chip">no note yet (prepare it in the Backlog)</span>}
+      <ContextSize pbi={pbi} />
     </div>
   );
 }
@@ -195,7 +199,7 @@ function Blockers({ detail }: { detail: PbiDetail }) {
     <div className="card">
       <FindingsToReview findings={findings} />
       {forYou.length > 0 && <p className="result-error">Needs your action: {forYou.length} open {forYou.length === 1 ? "item" : "items"}. Agents don't work on this PBI until you close them.</p>}
-      {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${item.assignee.replace("agent:", "")}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
+      {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${workerLabel(item.assignee, item.kind)}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
       {pendingDrafts.length > 0 && <p className="muted">Vault drafts not merged yet: {pendingDrafts.map((draft) => draft.name).join(", ")}. Until they are verified and moved out of draft/, only the agent that captured them may work.</p>}
     </div>
   );
@@ -256,7 +260,12 @@ function Refinement({ detail }: { detail: PbiDetail }) {
     return <p className="muted">Not refined yet.</p>;
   }
 
-  return <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>;
+  return (
+    <>
+      <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>
+      <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
+    </>
+  );
 }
 
 function LinkedDocuments({ detail }: { detail: PbiDetail }) {

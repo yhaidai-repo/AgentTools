@@ -84,7 +84,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Assignee == "agent:refinement" && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKind.Refinement && item.Assignee.StartsWith("agent:") && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
     }
 
     private async Task<bool> RememberedAsDeletedAsync(int adoId)

@@ -34,7 +34,7 @@ namespace PowerLoom.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_severity", new[] { "blocker", "major", "minor", "nit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_status", new[] { "active", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "run_outcome", new[] { "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited", "timeout", "aborted", "max-turns" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "vault_review_action", new[] { "keep", "remove", "actualize", "close" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "work_item_source", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.UseSerialColumns(modelBuilder);
@@ -934,6 +934,10 @@ namespace PowerLoom.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("dependencies");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
 
                     b.Property<string>("DocsRead")
                         .IsRequired()

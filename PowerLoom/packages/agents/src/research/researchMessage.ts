@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import type { RepoAccess } from "../models/RepoAccess";
 import { buildPbiMessage } from "../refinement/pbiMessage";
 import { reposBlock } from "../repos/reposBlock";
+import type { RefinementDetails } from "../betterRefinement/models/RefinementDetails";
 import type { ResearchContext } from "./models/ResearchContext";
 
 // The first message: the task, the PBI, the refinement and what refinement found worth reading.
@@ -76,6 +77,25 @@ export function refinementBlock(latest: typeof refinement.$inferSelect): string 
     `Assumptions:\n${latest.assumptions.map((item) => `- ${item}`).join("\n") || "- none"}`,
     `Relevant docs (chosen by refinement):\n${docs.join("\n") || "- none"}`,
     `Docs refinement read:\n${read.join("\n") || "- none"}`,
+    ...refinementDetailLines(latest.details as RefinementDetails | null),
     "</refinement>",
   ].join("\n");
+}
+
+// What Better Refinement adds (refinement.details): where the change lands, what testing needs, what still blocks it.
+function refinementDetailLines(details: RefinementDetails | null): string[] {
+  if (!details) {
+    return [];
+  }
+
+  const areas = details.affectedAreas.map((area) => `- ${area.area}: ${area.change}`);
+  const blockers = details.blockers.map((blocker) => `- ${blocker.what} (resolved by ${blocker.resolvedBy})`);
+  const testData = details.testData.applicable ? [...details.testData.given.map((item) => `- given: ${item.what}`), ...details.testData.missing.map((item) => `- missing: ${item}`)] : [`- not applicable: ${details.testData.reason}`];
+
+  return [
+    `Status: ${details.status}`,
+    `Affected areas:\n${areas.join("\n") || "- none"}`,
+    `Test data:\n${testData.join("\n") || "- none"}`,
+    `Blockers:\n${blockers.join("\n") || "- none"}`,
+  ];
 }

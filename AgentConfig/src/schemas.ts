@@ -30,8 +30,8 @@ export const agentDefinitionSchema = z.object({
   capabilities: z.object({ webAccess: z.boolean(), integrations: z.record(z.string(), z.boolean()).default({}) }),
   skills: z.array(z.string().min(1)),
   options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
-  next: z.string().regex(/^[a-z][a-z0-9-]*$/, "an agent id").nullable(),
-  canAssign: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, "an agent id")).default([]),
+  canAssign: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, "a task type")).default([]),
+  handles: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, "a task type")).default([]),
   waitFor: z.array(z.string().min(1)),
   optionSpecs: z.array(z.object({
     key: z.string().min(1),

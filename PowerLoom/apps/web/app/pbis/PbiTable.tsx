@@ -1,4 +1,4 @@
-import { workItemUrl, type AdoSettings } from "@powerloom/core";
+import { isSettledPbi, workItemUrl, type AdoSettings } from "@powerloom/core";
 import Link from "next/link";
 import type { BacklogGroup } from "@/models/BacklogGroup";
 import type { BacklogRow } from "@/models/BacklogRow";
@@ -65,6 +65,10 @@ function PbiId({ row, ado }: { row: BacklogRow; ado: AdoSettings | null }) {
 }
 
 function NeedsAction({ row }: { row: BacklogRow }) {
+  if (isSettledPbi(row.pipelineStatus)) {
+    return null;
+  }
+
   return (
     <>
       {row.openForYou > 0 && <> · <Link href={`/pbis/${row.adoId}`} className="result-error">needs your action ({row.openForYou})</Link></>}

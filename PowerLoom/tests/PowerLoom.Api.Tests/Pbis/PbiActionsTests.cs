@@ -56,7 +56,8 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         Assert.NotNull(pbi.SkillsEditedAt);
         Assert.Equal(["ATT-" + uploaded.Value!.Ids[0]], uploaded.Value.Refs);
         Assert.Equal((PipelineStatus.Done, ItemStatus.Cancelled), (pbi.PipelineStatus, items[$"AT-{adoId}-001"].Status));
-        Assert.Contains("1 agent task(s) cancelled", finished.Value!.Message);
+        Assert.Contains("1 child item(s) done; 1 agent task(s) cancelled", finished.Value!.Message);
+        Assert.Equal(PipelineStatus.Done, (await LoadAsync(child.AdoId)).PipelineStatus);
         Assert.NotNull(finished.Value.WwwRecordId);
         Assert.Equal(finished.Value.WwwRecordId.ToString(), finished.Session.Executed.SingleMessage<AddRecord>().SourceId);
         Assert.Contains("PBI-" + adoId + ": Took long", await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md")));

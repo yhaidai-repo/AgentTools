@@ -15,6 +15,8 @@ public static class NoteJson
         return JsonSerializer.Deserialize<List<T>>(json, Options) ?? [];
     }
 
+    public static T? Object<T>(string? json) where T : class => string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<T>(json, Options);
+
     public static JsonElement? Element(string? json) => string.IsNullOrWhiteSpace(json) ? null : JsonDocument.Parse(json).RootElement.Clone();
 
     public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);

@@ -518,6 +518,33 @@ textarea.skill-editor {
   font-size: 12px;
 }
 
+/* Backlog: the status filter, several statuses at once (a details element that looks like a select). */
+details.multi-select {
+  position: relative;
+  display: inline-block;
+}
+
+details.multi-select > summary {
+  min-width: 160px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+details.multi-select > ul {
+  position: absolute;
+  z-index: 10;
+  min-width: 220px;
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 /* Tasks page: "New task" menu (a details element, no script). */
 details.menu {
   position: relative;
@@ -549,6 +576,25 @@ details.menu > ul {
 details.menu li > a {
   display: block;
   padding: 6px 14px;
+}
+
+/* PBI page header: the agent context's size, a chip that opens its breakdown (a details element, no script). */
+details.context-size {
+  position: relative;
+  display: inline-block;
+}
+
+details.context-size > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.context-size > table,
+details.context-size > p {
+  position: relative;
+  z-index: 10;
+  margin: 4px 0 0;
+  background: var(--surface);
 }
 
 /* Structured human tasks: numbered steps, each query with its language and a Copy button. */

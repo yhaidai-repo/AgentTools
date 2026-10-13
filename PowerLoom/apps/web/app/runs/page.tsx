@@ -1,3 +1,4 @@
+import { isFailedOutcome } from "@powerloom/core";
 import type { RunSubscriptionShare } from "@agenttools/usage";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
@@ -80,7 +81,7 @@ function RunRowView({ row, shares }: { row: RunListRow; shares: RunSubscriptionS
       <td>{usage ? formatUsd(usage.costUsd) : "–"}</td>
       <td>{formatShares(shares)}</td>
       <td>{usage ? formatDuration(usage.durationMs) : "–"}</td>
-      <td className={run.outcome === "success" || run.outcome === "running" ? undefined : "result-error"}>{run.outcome}</td>
+      <td className={isFailedOutcome(run.outcome) ? "result-error" : undefined}>{run.outcome}</td>
     </tr>
   );
 }

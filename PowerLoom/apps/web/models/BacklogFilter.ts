@@ -1,4 +1,4 @@
 export interface BacklogFilter {
-  /** Pipeline status; "" = all. */
-  status: string;
+  /** Pipeline statuses shown; empty = all. */
+  statuses: string[];
 }

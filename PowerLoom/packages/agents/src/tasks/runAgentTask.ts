@@ -13,6 +13,8 @@ import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
+import { runBetterResearchGoal } from "../betterResearch/runBetterResearchGoal";
+import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
@@ -24,10 +26,16 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
   "better-research": runBetterResearchTask,
+  "better-refinement": runBetterRefinementTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,
   "vault-review": runVaultReviewTask,
+};
+
+// Agents that run goal tasks (GT-…) their own way, with their own prompt; every other agent runs them as a generic goal.
+const GOAL_EXECUTORS: Record<string, TaskExecutor> = {
+  "better-research": runBetterResearchGoal,
 };
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.
@@ -59,7 +67,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const executor = task.kind === "goal" ? runGoalTask : EXECUTORS[agentId];
+  const executor = task.kind === "goal" ? (GOAL_EXECUTORS[agentId] ?? runGoalTask) : EXECUTORS[agentId];
   const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
@@ -86,9 +94,10 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
   };
 }
 
-// A goal task has its own prompt, whatever the agent (user decision 2026-10-06); every other task uses the agent's.
+// A goal task has its own prompt (user decision 2026-10-06), unless the agent runs goals its own way; every other task
+// uses the agent's.
 async function taskPrompt(agentId: string, task: ItemRow, values: Record<string, string>): Promise<TaskContext["prompt"]> {
-  if (task.kind === "goal") {
+  if (task.kind === "goal" && !GOAL_EXECUTORS[agentId]) {
     return loadPrompt("goal", values);
   }
 

@@ -17,6 +17,7 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
     private const string AgentPrefix = "agent:";
 
     private static readonly Stage[] SyncStages = [Stage.Sync, Stage.PullRequests];
+    private static readonly KebabCaseNameTranslator Labels = new();
 
     public async Task<List<RunInProgress>> InProgressAsync(DateTimeOffset now, CancellationToken cancellation)
     {
@@ -26,8 +27,9 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
             .Select(item => new { item.Id, item.Assignee, item.PbiId, item.UpdatedAt })
             .ToListAsync(cancellation);
         var timeouts = (await agents.ListAsync(cancellation)).ToDictionary(agent => agent.Id, agent => agent.TimeoutMinutes);
+        var runningAgents = await RunningAgentsAsync(cancellation);
 
-        return tasks.Select(task => ToRun(task.Id, AgentStages.AgentIdOf(task.Assignee) ?? task.Assignee, task.PbiId, task.UpdatedAt, timeouts, now)).ToList();
+        return tasks.Select(task => ToRun(task.Id, AgentOf(task.Id, task.Assignee, runningAgents), task.PbiId, task.UpdatedAt, timeouts, now)).ToList();
     }
 
     public async Task<List<SyncRun>> RecentSyncsAsync(CancellationToken cancellation)
@@ -48,6 +50,24 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
         var limit = TimeSpan.FromMinutes(timeouts.GetValueOrDefault(agentId, AgentSummaryDefaults.TimeoutMinutes)) + options.Value.TimeoutMargin;
 
         return new RunInProgress(taskId, agentId, pbiId, since, now - since > limit);
+    }
+
+    // A task for any agent taking its type says nothing about who took it; the open run on it does (its stage is the agent id).
+    private async Task<Dictionary<string, string>> RunningAgentsAsync(CancellationToken cancellation)
+    {
+        var runs = await db.AgentRuns.AsNoTracking()
+            .Where(run => run.EndedAt == null && run.ItemId != null)
+            .Select(run => new { run.ItemId, run.Stage })
+            .ToListAsync(cancellation);
+
+        return runs.GroupBy(run => run.ItemId!).ToDictionary(group => group.Key, group => Labels.TranslateMemberName(group.Last().Stage.ToString()));
+    }
+
+    private static string AgentOf(string taskId, string assignee, Dictionary<string, string> runningAgents)
+    {
+        var pinned = AgentStages.AgentIdOf(assignee);
+
+        return assignee == AgentStages.AnyAgent ? runningAgents.GetValueOrDefault(taskId, "any agent") : pinned ?? assignee;
     }
 
     private static DateTimeOffset Utc(DateTime time) => new(DateTime.SpecifyKind(time, DateTimeKind.Utc));

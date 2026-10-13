@@ -33,19 +33,21 @@ public static class TaskValidation
             return reasons;
 
         foreach (var key in waitFor.Where(Known.Contains))
-            reasons.AddRange(await CheckAsync(db, key, agentId, task.PbiId.Value, cancellation));
+            reasons.AddRange(await CheckAsync(db, key, agentId, task, cancellation));
 
         return reasons;
     }
 
-    private static Task<List<string>> CheckAsync(PowerLoomDbContext db, string key, string agentId, int pbiId, CancellationToken cancellation)
+    private static Task<List<string>> CheckAsync(PowerLoomDbContext db, string key, string agentId, LocalItem task, CancellationToken cancellation)
     {
+        var pbiId = task.PbiId!.Value;
+
         return key switch
         {
             HumanItems => OpenHumanItemsAsync(db, pbiId, cancellation),
             LinkedDocuments => DocumentsWithoutContentAsync(db, pbiId, cancellation),
             Drafts => UnmergedDraftsAsync(db, agentId, pbiId, cancellation),
-            _ => OtherAgentsOpenTasksAsync(db, agentId, pbiId, cancellation),
+            _ => OtherAgentsOpenTasksAsync(db, agentId, task, cancellation),
         };
     }
 
@@ -120,14 +122,15 @@ public static class TaskValidation
         return names.ToHashSet();
     }
 
-    private static async Task<List<string>> OtherAgentsOpenTasksAsync(PowerLoomDbContext db, string agentId, int pbiId, CancellationToken cancellation)
+    // Other agents' work is the PBI's open agent tasks of another kind (e.g. design waits for research), whoever takes them.
+    private static async Task<List<string>> OtherAgentsOpenTasksAsync(PowerLoomDbContext db, string agentId, LocalItem task, CancellationToken cancellation)
     {
         var mine = AgentStages.AssigneeOf(agentId);
-        var tasks = await db.LocalItems.AsNoTracking()
-            .Where(item => item.PbiId == pbiId && item.Assignee.StartsWith("agent:") && item.Assignee != mine && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress))
-            .OrderBy(item => item.Id).Select(item => new { item.Id, item.Assignee }).ToListAsync(cancellation);
+        var others = await db.LocalItems.AsNoTracking()
+            .Where(item => item.PbiId == task.PbiId && item.Assignee.StartsWith("agent:") && item.Assignee != mine && item.Kind != task.Kind && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress))
+            .OrderBy(item => item.Id).ToListAsync(cancellation);
 
-        return tasks.Select(task => $"Waiting for {AgentStages.AgentIdOf(task.Assignee)}: {task.Id}").ToList();
+        return others.Select(other => $"Waiting for {AgentStages.WorkerOf(other)}: {other.Id}").ToList();
     }
 
     private static string? UrlOf(string data)

@@ -12,7 +12,7 @@ const EVIDENCE = [{ source: "S0", ref: "PBI description", note: "the symptom as 
 
 const noDuplicates = { check: () => null, remember: () => undefined } as unknown as DuplicateGuard;
 
-function setup(limits: Partial<TaskCreationLimits> = {}, canAssign = ["research", "tech-writer"]) {
+function setup(limits: Partial<TaskCreationLimits> = {}, canAssign = ["research", "docs"]) {
   const tasks: CreatedTask[] = [];
   const tool = createTaskTool(canAssign, tasks, noDuplicates, new ReadLog("PBI 34881: expired signals stay in the grid"), { ...LIMITS, ...limits });
 
@@ -52,7 +52,7 @@ describe("create_task", () => {
     assert.deepEqual({ assignee: tasks[0].assignee, doneWhen: tasks[0].doneWhen, blocking: tasks[0].blocking, evidence: tasks[0].evidence }, { assignee: "research", doneWhen: "The writer that should archive them is named, with evidence.", blocking: true, evidence: EVIDENCE });
   });
 
-  it("offers only the agents the config allows, and the user", () => {
+  it("offers only the task types the config allows, and the user", () => {
     const { tool } = setup({}, ["research"]);
     const input = z.object(tool.input);
 
@@ -61,16 +61,16 @@ describe("create_task", () => {
     assert.equal(input.safeParse(researchTask({ assignee: "design" })).success, false);
   });
 
-  it("rejects a question for an agent, a user task without steps and a tech-writer task without a note", async () => {
+  it("rejects a question for an agent, a user task without steps and a docs task without a note", async () => {
     const { tasks, tool } = setup();
 
     const question = await tool.handler(researchTask({ kind: "question" }));
     const userTask = await tool.handler(researchTask({ assignee: "user" }));
-    const docs = await tool.handler(researchTask({ assignee: "tech-writer" }));
+    const docs = await tool.handler(researchTask({ assignee: "docs" }));
 
     assert.match(question.text, /a question goes to the user/);
     assert.match(userTask.text, /a task for the user needs steps/);
-    assert.match(docs.text, /tech-writer needs doc_path/);
+    assert.match(docs.text, /docs needs doc_path/);
     assert.equal(tasks.length, 0);
   });
 

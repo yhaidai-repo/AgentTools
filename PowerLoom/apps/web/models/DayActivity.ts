@@ -4,5 +4,7 @@ export interface DayActivity {
   day: string;
   runs: number;
   failures: number;
+  /** Runs stopped by their budget: not failures (user decision 2026-10-13). */
+  budgetStops: number;
   costByAgent: Record<string, number>;
 }

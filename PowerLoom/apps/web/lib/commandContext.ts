@@ -1,5 +1,6 @@
 import { runCommand, type ChatTarget, type CloseItemRequest, type Command, type CommandContext, type CreatePbiInput, type ItemStatus, type Outcome, type PbiFeedback, type PbiSkillChoices, type PowerLoomPort, type ReportBugInput } from "@powerloom/core";
 import type { UploadedFile } from "@powerloom/attachments";
+import { backlogMount } from "./backlogMount";
 import { getDb } from "./db";
 import { powerloom } from "./powerloom";
 import { loadSkillCatalog } from "./skills";
@@ -16,7 +17,7 @@ export function webCommandContext(): CommandContext {
     actor: "human",
     powerloom: powerloomPort,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
-    backlogMount: process.env.BACKLOG_MOUNT ?? "/vault",
+    backlogMount: backlogMount(),
   };
 }
 

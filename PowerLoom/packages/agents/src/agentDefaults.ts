@@ -99,6 +99,18 @@ const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const BETTER_REFINEMENT_OPTIONS: AgentOptionSpec[] = [
+  ...REFINEMENT_OPTIONS,
+  ...TASK_CREATION_OPTIONS,
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 const DESIGN_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("PBIs"),
   {
@@ -246,9 +258,28 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 2, maxFailures: 3 },
     optionSpecs: REFINEMENT_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: "design",
     canAssign: [],
+    handles: ["refinement"],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
+  },
+  {
+    id: "better-refinement",
+    label: "Better Refinement",
+    description: "Makes a PBI developable: collects all its information, checks repos and affected areas in the code, test data, dependencies and blockers, and creates the tasks that close the gaps.",
+    enabled: false,
+    schedule: "15 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 60, timeoutMinutes: 20 },
+    budgets: { perRunUsd: 2, dailyUsd: 5 },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [LOCAL_STACK_INTEGRATION]: false } },
+    skills: ["powerloom-refinement-checklist"],
+    options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: BETTER_REFINEMENT_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["research", "design", "docs"],
+    handles: ["refinement"],
+    // Its tasks name their dependencies, and the documents it needs are linked to the PBI (user decision 2026-10-13).
+    waitFor: ["linkedDocuments"],
   },
   {
     id: "research",
@@ -264,8 +295,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
     optionSpecs: RESEARCH_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: "design",
     canAssign: [],
+    handles: ["research"],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
@@ -282,8 +313,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: BETTER_RESEARCH_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: null,
-    canAssign: ["better-research", "design"],
+    canAssign: ["research", "design"],
+    handles: ["research"],
     // Its tasks name their dependencies (dependsOn), so it doesn't wait for every open question on the PBI; a draft only
     // adds docs, and a stuck merge would hold it forever (user decision 2026-10-13).
     waitFor: ["linkedDocuments"],
@@ -302,8 +333,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: DESIGN_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: null,
     canAssign: [],
+    handles: ["design"],
     waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
   },
   {
@@ -320,8 +351,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: TECH_WRITER_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: null,
     canAssign: [],
+    handles: ["docs"],
     waitFor: [],
   },
   // Off until the user turns it on (assumption, 2026-10-02): the first pull-requests run queues a review for every open PR.
@@ -339,8 +370,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: CODE_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: null,
     canAssign: [],
+    handles: ["review"],
     waitFor: [],
   },
   // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
@@ -358,8 +389,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: VAULT_REVIEW_OPTIONS,
     integrationSpecs: INTEGRATIONS,
-    next: null,
     canAssign: [],
+    handles: ["vault-review"],
     waitFor: [],
   },
 ];

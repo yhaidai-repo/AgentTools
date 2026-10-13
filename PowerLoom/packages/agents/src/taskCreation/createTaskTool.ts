@@ -30,8 +30,9 @@ const EXAMPLE = JSON.stringify({
 
 type Input = z.infer<z.ZodObject<ReturnType<typeof inputShape>>>;
 
-// The one task tool of the Better agents (chaining v2): the agent decides who works next, among the agents its config
-// lets it assign and the user. Tasks are only noted here; the run's commit writes them.
+// The one task tool of the Better agents (chaining v2): the agent decides what work comes next, among the task types its
+// config lets it create and the user; any agent that handles the type takes it. Tasks are only noted here; the run's
+// commit writes them.
 export function createTaskTool(canAssign: string[], tasks: CreatedTask[], guard: DuplicateGuard, readLog: ReadLog, limits: TaskCreationLimits): ToolDefinition<any> {
   const targets = allowedTargets(canAssign);
 
@@ -62,10 +63,10 @@ export function createTaskTool(canAssign: string[], tasks: CreatedTask[], guard:
 }
 
 function inputShape(targets: TaskTarget[]) {
-  const assignees: [string, ...string[]] = [USER, ...targets.map((target) => target.agentId)];
+  const assignees: [string, ...string[]] = [USER, ...targets.map((target) => target.type)];
 
   return {
-    assignee: z.enum(assignees).describe("Who works on it"),
+    assignee: z.enum(assignees).describe("The task type (any agent taking that type picks it up), or user"),
     kind: z.enum(["task", "question"]).describe("question: a decision only the user can make, with options; task: work for an agent, or an action for the user"),
     title: z.string().min(1).max(120),
     goal: z.string().min(1).describe("The problem or question and the facts known so far; mark guesses (inferred)"),
@@ -78,16 +79,16 @@ function inputShape(targets: TaskTarget[]) {
     depends_on: z.array(z.string()).default([]).describe("Item ids, or new:<n> for a task you created earlier in this run, that must close first"),
     options: z.array(z.string()).default([]).describe("Questions: the choices you see"),
     steps: z.array(stepInput).default([]).describe("Tasks for the user: what to do, step by step"),
-    doc_path: z.string().nullable().default(null).describe("Tech-writer tasks: the note's path in the docs vault, e.g. pvs/signals/note.md"),
+    doc_path: z.string().nullable().default(null).describe("Docs tasks: the note's path in the docs vault, e.g. pvs/signals/note.md"),
   };
 }
 
 function describeTool(targets: TaskTarget[], limits: TaskCreationLimits): string {
-  const agents = targets.map((target) => `- ${target.agentId}: ${target.purpose}`);
+  const agents = targets.map((target) => `- ${target.type}: ${target.purpose}`);
 
   return [
-    "Create a task for another agent or for the user; you decide who works next. Create one only when its answer changes the outcome.",
-    "Assignees:",
+    "Create a task for another agent or for the user; you decide what work comes next. Create one only when its answer changes the outcome.",
+    "Assignees (a task type, picked up by any agent taking that type, or the user):",
     ...agents,
     "- user: decisions (kind question, with options), access or actions no tool can do (kind task, with steps).",
     "Hand on the problem and its evidence, not your guess. Name what it depends on, and mark it blocking when the PBI can't be developed without it.",
@@ -142,7 +143,7 @@ function docPathProblem(task: CreatedTask): string | null {
     return null;
   }
 
-  return task.docPath ? notePathProblem(task.docPath) : `${target.agentId} needs doc_path: the note to fix`;
+  return task.docPath ? notePathProblem(task.docPath) : `${target.type} needs doc_path: the note to fix`;
 }
 
 function dependencyProblems(dependsOn: string[], createdInRun: number): string[] {

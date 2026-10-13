@@ -12,4 +12,5 @@ public enum Stage
     CodeReview,
     VaultReview,
     BetterResearch,
+    BetterRefinement,
 }

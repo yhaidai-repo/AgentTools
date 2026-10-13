@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Domain.Pbis;
+using PowerLoom.Domain.Tasks;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -8,18 +9,20 @@ using PowerLoom.Persistence.Enums;
 namespace PowerLoom.Features.Agents.Dispatch;
 
 // An agent's open tasks in the order they are started: a vault's current sprint first, then ADO backlog order, then
-// age. Tasks without a PBI too (a chat draft's tech-writer task).
+// age. Its tasks are the ones pinned to it and the ones for any agent of a kind it handles (user decision 2026-10-13);
+// tasks without a PBI too (a chat draft's tech-writer task).
 public static class OpenAgentTasks
 {
     private const string CurrentSprintKey = "currentSprint";
 
-    public static async Task<List<LocalItem>> ListAsync(PowerLoomDbContext db, string agentId, CancellationToken cancellation)
+    public static async Task<List<LocalItem>> ListAsync(PowerLoomDbContext db, string agentId, IReadOnlyList<string> handles, CancellationToken cancellation)
     {
-        var assignee = AgentStages.AssigneeOf(agentId);
+        var pinned = AgentStages.AssigneeOf(agentId);
+        var kinds = TaskKinds.Parse(handles);
         var sprints = await CurrentSprintsAsync(db, cancellation);
 
         return await db.LocalItems.AsNoTracking()
-            .Where(task => task.Assignee == assignee && task.Status == ItemStatus.Open)
+            .Where(task => task.Status == ItemStatus.Open && (task.Assignee == pinned || (task.Assignee == AgentStages.AnyAgent && kinds.Contains(task.Kind))))
             .OrderByDescending(task => task.Pbi != null && task.Pbi.IterationPath != null && sprints.Contains(task.Pbi.IterationPath))
             .ThenBy(task => task.Pbi == null || task.Pbi.BacklogPriority == null)
             .ThenBy(task => task.Pbi!.BacklogPriority)

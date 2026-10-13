@@ -1,34 +1,25 @@
 import { requirePbiId } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
-import type { ToolDefinition } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
+import { withBudgetNotes } from "../budget/budgetNotes";
 import { DuplicateGuard } from "../DuplicateGuard";
-import { createAttachmentTool } from "../attachmentTools";
-import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
-import { createConfluenceTools } from "../confluenceTools";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
-import type { RepoAccess } from "../models/RepoAccess";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
-import { createReadPbiTool } from "../pbiContext/readPbiTool";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { buildResearchMessage } from "../research/researchMessage";
-import { createSqlTools } from "../sqlTools";
-import { createAgentDocTools, docsReadInRun, numberOption, outsideAccessContext, skillsTrace } from "../stage";
-import { countAgentCreatedTasks } from "../taskCreation/commitCreatedTasks";
+import { docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
-import type { TaskCreationLimits } from "../taskCreation/models/TaskCreationLimits";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitBetterResearch } from "./commitBetterResearch";
 import type { BetterResearchRun } from "./models/BetterResearchRun";
+import { depthOf, readingTools, taskLimits } from "../betterAgents/toolset";
 import { RESULT_TOOL, createResultTool } from "./resultTool";
-import { withBudgetNotes } from "../budget/budgetNotes";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -75,7 +66,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos);
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
-  const limits = await taskLimits(context, task, depth);
+  const limits = await taskLimits(context, requirePbiId(task), depth);
 
   run.readLog = new ReadLog(firstMessage);
   await session.phase("first-message", { chars: firstMessage.length });
@@ -93,40 +84,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     ], () => session.spentUsd, agent.budgets.perRunUsd, RESULT_TOOL),
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => run.readLog?.observe(event),
     hasRequiredOutput: () => run.draft.result !== null,
   };
-}
-
-// Only these results get a source id the evidence can cite; writing tools stay out (see recordReads). read_pbi and
-// read_attachment are listed here, so the session's PBI context doesn't add them again untagged (withPbiContext).
-function readingTools(context: TaskContext, session: AgentRunSession, task: ItemRow, repos: RepoAccess): ToolDefinition<any>[] {
-  const { deps, agent } = context;
-  const access = outsideAccessContext(agent.id, session.runId, task);
-
-  return [
-    ...createAgentDocTools(deps, agent.id, session.runId),
-    ...repos.tools,
-    createAttachmentTool(deps.db, requirePbiId(task)),
-    createReadPbiTool(deps.db, deps.vaultRoot),
-    ...createConfluenceTools(deps, agent, access),
-    ...createSqlTools(deps, agent, access),
-    ...createAzureTools(deps, agent, access),
-    ...createLocalStackTools(deps, agent, access),
-  ];
-}
-
-async function taskLimits(context: TaskContext, task: ItemRow, depth: number): Promise<TaskCreationLimits> {
-  const { agent, deps } = context;
-
-  return {
-    depth,
-    maxDepth: numberOption(agent, "maxDepth", 3),
-    maxPerRun: numberOption(agent, "maxTasksPerRun", 5),
-    maxPerPbi: numberOption(agent, "maxTasksPerPbi", 15),
-    createdOnPbi: await countAgentCreatedTasks(deps.db, requirePbiId(task)),
-  };
-}
-
-function depthOf(task: ItemRow): number {
-  return Number((task.data as { depth?: number } | null)?.depth ?? 1);
 }

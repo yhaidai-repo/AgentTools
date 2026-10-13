@@ -1,10 +1,44 @@
-import { linkKey, parseWikiLinks } from "@powerloom/vault";
+import { isLinkEditable, linkKey, parseWikiLinks, replaceWikiLinks } from "@powerloom/vault";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { NoteEdit } from "./models/NoteEdit";
+import type { TechWriterDraft } from "./models/TechWriterDraft";
 
 // Links inside draft/ don't count: drafts are merged and deleted themselves.
 const SKIPPED = ["draft"];
+
+// Before the draft is deleted, every link to it points at the note that took its place (user decision 2026-10-13: the
+// tech-writer relinks, no run fails on a link it left). Returns the run's edits plus the notes relinked on disk.
+export async function relinkDraft(docsRoot: string, draftName: string, draft: TechWriterDraft): Promise<NoteEdit[]> {
+  const home = draftHome(draft);
+  const linking = (await notesLinkingDraft(docsRoot, draftName, draft.edits)).filter(isLinkEditable);
+
+  if (!home || linking.length === 0) {
+    return draft.edits;
+  }
+
+  const homeName = basename(home, ".md");
+  const edited = draft.edits.map((edit) => ({ ...edit, content: replaceWikiLinks(edit.content, draftName, homeName) }));
+  const onDisk = linking.filter((path) => !draft.edits.some((edit) => edit.path === path));
+  const relinked = await Promise.all(onDisk.map(async (path) => ({ path, content: replaceWikiLinks(await readFile(join(docsRoot, path), "utf8"), draftName, homeName) })));
+
+  return [...edited, ...relinked];
+}
+
+// Checked before anything is written: links the relink couldn't fix (root files, or no note took the draft's place)
+// stop the run, with the notes to fix.
+export async function requireNoDraftLinks(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<void> {
+  const linking = await notesLinkingDraft(docsRoot, draftName, edits);
+
+  if (linking.length > 0) {
+    throw new Error(`these notes still link [[${draftName}]], which is deleted on merge, and couldn't be relinked (a root file, or no note marked takesDraftPlace): ${linking.join(", ")}`);
+  }
+}
+
+// The marked note, or the only note the run wrote.
+function draftHome(draft: TechWriterDraft): string | null {
+  return draft.home ?? (draft.edits.length === 1 ? draft.edits[0].path : null);
+}
 
 // Notes that would still link the draft once it's deleted (Obsidian turns a click on such a link into an empty root
 // note). The run's own edits count in their new version.
@@ -35,13 +69,4 @@ async function filterAsync<T>(items: T[], predicate: (item: T) => Promise<boolea
   const kept = await Promise.all(items.map(predicate));
 
   return items.filter((_, index) => kept[index]);
-}
-
-// Checked before anything is written: a run that would leave links to the deleted draft fails, with the notes to fix.
-export async function requireNoDraftLinks(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<void> {
-  const linking = await notesLinkingDraft(docsRoot, draftName, edits);
-
-  if (linking.length > 0) {
-    throw new Error(`these notes still link [[${draftName}]], which is deleted on merge; point them at the merged note: ${linking.join(", ")}`);
-  }
 }

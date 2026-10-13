@@ -2,6 +2,7 @@ import type { UsageLabels } from "../models/UsageLabels";
 import type { UsageQuery } from "../models/UsageQuery";
 import type { UsageRecord } from "../models/UsageRecord";
 import type { UsageTotals } from "../models/UsageTotals";
+import { isFailedOutcome } from "../outcome";
 
 // In-memory equivalents of the Postgres queries, for stores without a database.
 export function inQuery(record: UsageRecord, query: UsageQuery): boolean {
@@ -33,7 +34,7 @@ function totalsOfGroup(group: string, records: UsageRecord[]): UsageTotals {
   return {
     group,
     runs: records.length,
-    failures: records.filter((record) => record.outcome !== "success").length,
+    failures: records.filter((record) => isFailedOutcome(record.outcome)).length,
     inputTokens: sum((record) => record.inputTokens),
     outputTokens: sum((record) => record.outputTokens),
     cacheReadTokens: sum((record) => record.cacheReadTokens),

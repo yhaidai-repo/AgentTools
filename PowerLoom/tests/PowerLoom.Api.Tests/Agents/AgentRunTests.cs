@@ -1,6 +1,7 @@
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Contracts;
 using PowerLoom.Features.Agents.AgentRun;
@@ -22,7 +23,7 @@ public sealed class AgentRunTests(PowerLoomHost host)
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task Run_now_holds_a_waiting_task_starts_a_valid_one_and_the_callback_hands_it_on()
+    public async Task Run_now_holds_a_waiting_task_starts_a_valid_one_and_the_callback_ends_it_without_a_hand_on()
     {
         const int waiting = 62001;
         const int ready = 62002;
@@ -59,9 +60,9 @@ public sealed class AgentRunTests(PowerLoomHost host)
 
         Assert.Single(completed.Executed.MessagesOf<AgentRunCompleted>());
         Assert.Single(completed.Executed.MessagesOf<PbiChanged>());
-        Assert.NotNull(ended.HandedOnAt);
-        Assert.Equal([$"DT-{ready}-001"], await OpenTaskIdsAsync(ready, "agent:design"));
-        Assert.Equal(PipelineStatus.ReadyForDesign, (await LoadPbiAsync(ready)).PipelineStatus);
+        // No hand-on: agents create the next tasks themselves with create_task (user decision 2026-10-13).
+        Assert.Equal(ItemStatus.Done, ended.Status);
+        Assert.Empty(await OpenTaskIdsAsync(ready, AgentStages.AnyAgent));
     }
 
     [Fact]

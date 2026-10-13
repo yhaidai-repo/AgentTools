@@ -1,4 +1,4 @@
-import { BLOCKER_KINDS } from "@powerloom/core";
+import { AGENT_TASK_TYPES, BLOCKER_KINDS, CREATABLE_TASK_TYPES } from "@powerloom/core";
 import { modelCatalog } from "@agenttools/config";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +6,9 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { spentToday } from "@/lib/budgetUsage";
 import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "./AgentForm";
+
+// From core on the server: the form is a client component, and core pulls in the database driver.
+const TASK_TYPES = { agent: AGENT_TASK_TYPES, creatable: CREATABLE_TASK_TYPES };
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +30,8 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         catalog={modelCatalog()}
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
-        agentIds={(await store.list()).map((entry) => entry.id)}
         blockerKinds={BLOCKER_KINDS}
+        taskTypes={TASK_TYPES}
         spentTodayUsd={await spentToday({ agent: agent.id })}
       />
     </>
