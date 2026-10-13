@@ -11,7 +11,9 @@ type ItemRow = typeof localItem.$inferSelect;
 const ACTOR = "agent-runner";
 
 // After the run: success → done (if the commit didn't close it already); rate limit → back to open and every agent
-// paused; any other failure → one more attempt counted, back to open or, after `maxFailures`, blocked.
+// paused; budget exceeded → blocked at once, since a retry would cost the same again (user decision 2026-10-13: Re-run
+// after raising the budget); any other failure → one more attempt counted, back to open or, after `maxFailures`,
+// blocked.
 export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: ItemRow, result: AgentRunResult): Promise<void> {
   const [current] = await deps.db.select({ status: localItem.status }).from(localItem).where(eq(localItem.id, task.id));
 
@@ -32,6 +34,12 @@ export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: Ite
     return;
   }
 
+  if (result.outcome === "budget-exceeded") {
+    await blockTask(deps.db, task, `Budget exceeded: the run cost more than ${agent.budgets.perRunUsd} USD. Raise ${agent.id}'s per-run budget or narrow the task, then Re-run.`, result.runId);
+
+    return;
+  }
+
   await countFailure(deps.db, task, numberOption(agent, "maxFailures", 3), result.runId);
 }
 
@@ -39,6 +47,12 @@ export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: Ite
 export async function releaseTask(db: PowerLoomDb, task: ItemRow, reason: string): Promise<void> {
   await db.update(localItem).set({ heldBy: [reason] }).where(eq(localItem.id, task.id));
   await setItemStatus(db, task.id, "in-progress", "open", ACTOR);
+}
+
+// Blocked with the reason on the PBI page; no attempt is counted, since nothing is retried.
+async function blockTask(db: PowerLoomDb, task: ItemRow, reason: string, runId: number | undefined): Promise<void> {
+  await db.update(localItem).set({ heldBy: [reason] }).where(eq(localItem.id, task.id));
+  await setItemStatus(db, task.id, "in-progress", "blocked", ACTOR, runId);
 }
 
 // An unexpected error: counted like a failed run, unless the task was already ended.
