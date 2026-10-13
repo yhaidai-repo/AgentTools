@@ -1,6 +1,5 @@
 import { localItem } from "@powerloom/db";
 import { createConfluenceTools } from "../confluenceTools";
-import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AgentRunSession } from "../AgentRunSession";
@@ -8,15 +7,20 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
+import type { RepoAccess } from "../models/RepoAccess";
+import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
-import { resolveRepos, reposByName } from "../research/resolveRepos";
-import { createAgentDocTools, numberOption, outsideAccessContext } from "../stage";
+import { pbiRepoSources } from "../repos/agentRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
+import { reposBlock } from "../repos/reposBlock";
+import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
 import { requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { TaskVault } from "./models/TaskVault";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
+import type { TechWriterRun } from "./models/TechWriterRun";
 import { projectRepoName } from "../docsRepos";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
@@ -25,12 +29,6 @@ import { createTechWriterTools } from "./techWriterTools";
 type ItemRow = typeof localItem.$inferSelect;
 
 const AGENT = "tech-writer";
-
-interface TechWriterRun {
-  repos: RepoRef[];
-  acquired: RepoRef[];
-  draft: TechWriterDraft;
-}
 
 // One tech-writer task (WT-…), one run: a draft moved into the docs vault (user decision 2026-10-02), or an existing note
 // brought up to date for the vault review (actualize, user decision 2026-10-03). The repos it took from the cache are
@@ -46,7 +44,7 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: TechWriterRun = { repos: [], acquired: [], draft: { edits: [], findings: [] } };
+  const run: TechWriterRun = { repos: noRepos(), draft: { edits: [], findings: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -54,7 +52,7 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
 
     return await session.finish(ran, () => commit(context, vault, task, session.runId, run.draft));
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
@@ -103,10 +101,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const data = task.data as DraftTaskData | ActualizeTaskData;
 
   await session.phase("context", { task: task.id, vault: vault.name, path: data.path, project: data.project, mode: isActualize(task) ? "actualize" : "draft" });
-  run.repos = await taskRepos(context, task, vault, data.project);
-  await session.phase("repos", { repos: run.repos.map((repo) => repo.name) });
-  await deps.repoCache.acquire(run.repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = run.repos;
+  run.repos = await openRepos(context, session, await taskRepoSources(context, task, vault, data.project));
 
   const firstMessage = isActualize(task) ? await actualizeMessage(vault, task, data as ActualizeTaskData, run.repos) : await draftMessage(vault, task, data as DraftTaskData, run.repos);
   const vaultRules = await readFile(join(vault.root, "AGENTS.md"), "utf8");
@@ -121,7 +116,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     firstMessage,
     tools: [
       ...createAgentDocTools(deps, context.agent.id, session.runId, vault.root),
-      ...createRepoTools({ root: deps.repoCacheRoot, repos: run.repos.map((repo) => repo.name) }),
+      ...run.repos.tools,
       ...skills.tools,
       ...createTechWriterTools(deps, run.draft),
       ...createConfluenceTools(deps, agent, access),
@@ -135,17 +130,17 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   };
 }
 
-// The project's repo from its index note, plus the PBI's repos for a draft PowerLoom captured.
-async function taskRepos(context: TaskContext, task: ItemRow, vault: TaskVault, project: string): Promise<RepoRef[]> {
+// The repos attached to the task: the project's repo from its index note, plus the PBI's repos for a draft PowerLoom
+// captured.
+async function taskRepoSources(context: TaskContext, task: ItemRow, vault: TaskVault, project: string): Promise<RepoSource[]> {
   const projectRepo = await projectRepoName(vault.root, project);
-  const fromProject = projectRepo ? (await reposByName(context.deps.db, vault.name, [projectRepo])).repos : [];
-  const fromPbi = task.pbiId === null ? [] : (await resolveRepos(context.deps.db, task.pbiId)).repos;
-  const byName = new Map([...fromProject, ...fromPbi].map((repo) => [repo.name, repo]));
+  const fromProject = projectRepo ? [{ vault: vault.name, names: [projectRepo] }] : [];
+  const fromPbi = task.pbiId === null ? [] : await pbiRepoSources(context.deps.db, task.pbiId);
 
-  return [...byName.values()];
+  return [...fromProject, ...fromPbi];
 }
 
-async function draftMessage(vault: TaskVault, task: ItemRow, data: DraftTaskData, repos: RepoRef[]): Promise<string> {
+async function draftMessage(vault: TaskVault, task: ItemRow, data: DraftTaskData, repos: RepoAccess): Promise<string> {
   const draftText = await readFile(join(vault.root, data.path), "utf8");
 
   return [
@@ -157,7 +152,7 @@ async function draftMessage(vault: TaskVault, task: ItemRow, data: DraftTaskData
   ].join("\n\n");
 }
 
-async function actualizeMessage(vault: TaskVault, task: ItemRow, data: ActualizeTaskData, repos: RepoRef[]): Promise<string> {
+async function actualizeMessage(vault: TaskVault, task: ItemRow, data: ActualizeTaskData, repos: RepoAccess): Promise<string> {
   const noteText = await readFile(join(vault.root, data.path), "utf8");
   const suspects = data.suspectFacts.map((fact) => `- ${fact}`).join("\n") || "- (none named)";
 
@@ -176,8 +171,4 @@ async function projectIndexBlock(vault: TaskVault, project: string): Promise<str
   const index = await readFile(join(vault.root, project, `${project}-index.md`), "utf8").catch(() => "(no project index)");
 
   return `<project-index>\n${index.trim()}\n</project-index>`;
-}
-
-function reposBlock(repos: RepoRef[]): string {
-  return `<repos>\n${repos.map((repo) => `- ${repo.name} (branch ${repo.defaultBranch})`).join("\n") || "none: the project index names no repo in the catalog"}\n</repos>`;
 }

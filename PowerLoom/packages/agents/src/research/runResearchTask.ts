@@ -1,6 +1,5 @@
 import { requirePbiId } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
-import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
@@ -12,6 +11,8 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
+import { pbiRepoSources } from "../repos/agentRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { createAgentDocTools, docsReadInRun, numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitResearch } from "./commitResearch";
@@ -36,20 +37,20 @@ export async function runResearchTask(context: TaskContext, task: ItemRow): Prom
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ResearchRun = { research: null, commits: {}, acquired: [], draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [], webResearch: [], pages: [] } };
+  const run: ResearchRun = { research: null, repos: noRepos(), draft: { result: null, followUps: [], humanTasks: [], questions: [], captures: [], webResearch: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
     const commit = async () => {
-      const extra = { commits: run.commits, docsRead: await docsReadInRun(deps, session.runId) };
+      const extra = { commits: run.repos.commits, docsRead: await docsReadInRun(deps, session.runId) };
 
       await commitResearch(deps.db, run.research!, session.runId, { ...run.draft, result: run.draft.result! }, extra);
     };
 
     return await session.finish(ran, run.research ? commit : null);
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
@@ -60,11 +61,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("context", { task: task.id, depth, skills: skillsTrace(skills) });
   run.research = await loadResearchContext(deps, task);
-  await session.phase("repos", { repos: run.research.repos.map((repo) => repo.name), unknown: run.research.unknownRepos });
-  run.commits = await deps.repoCache.acquire(run.research.repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = run.research.repos;
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)));
 
-  const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.commits);
+  const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos);
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
 
   await session.phase("first-message", { chars: firstMessage.length });
@@ -77,7 +76,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     firstMessage,
     tools: [
       ...createAgentDocTools(deps, context.agent.id, session.runId),
-      ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.research.repos) }),
+      ...run.repos.tools,
       ...skills.tools,
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
@@ -91,8 +90,4 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     perRunBudgetUsd: agent.budgets.perRunUsd,
     hasRequiredOutput: () => run.draft.result !== null,
   };
-}
-
-function repoNames(repos: RepoRef[]): string[] {
-  return repos.map((repo) => repo.name);
 }

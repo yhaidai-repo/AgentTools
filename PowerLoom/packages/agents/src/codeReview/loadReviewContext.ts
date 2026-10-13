@@ -1,28 +1,28 @@
-import { topLevelPbi, type ReviewTaskData } from "@powerloom/core";
+import { topLevelPbi } from "@powerloom/core";
 import { design, pullRequest, refinement, reviewComment, workItem, type PowerLoomDb } from "@powerloom/db";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
-import { reposByName } from "../research/resolveRepos";
+import type { RepoRef } from "@agenttools/runtime";
 import type { LinkedPbi } from "./models/LinkedPbi";
 import type { ReviewContext } from "./models/ReviewContext";
 
-// The task's pull request with its repo from the catalog (cloned like any agent's repo), the comments earlier runs left
-// (withdrawn ones are done with) and the work items the PR links.
-export async function loadReviewContext(db: PowerLoomDb, data: ReviewTaskData): Promise<ReviewContext> {
-  const [pr] = await db.select().from(pullRequest).where(eq(pullRequest.id, data.prId));
+type PullRequestRow = typeof pullRequest.$inferSelect;
+
+export async function loadPullRequest(db: PowerLoomDb, prId: number): Promise<PullRequestRow> {
+  const [pr] = await db.select().from(pullRequest).where(eq(pullRequest.id, prId));
 
   if (!pr) {
-    throw new Error(`pull request ${data.prId} isn't in PowerLoom; the pull-requests job adds it`);
+    throw new Error(`pull request ${prId} isn't in PowerLoom; the pull-requests job adds it`);
   }
 
-  const { repos } = await reposByName(db, pr.vault, [pr.repoName]);
+  return pr;
+}
 
-  if (repos.length === 0) {
-    throw new Error(`repo "${pr.repoName}" isn't among the vault's enabled repositories; the sync refreshes the catalog`);
-  }
-
+// The pull request with its repo (opened like any agent's repo), the comments earlier runs left (withdrawn ones are done
+// with) and the work items the PR links.
+export async function loadReviewContext(db: PowerLoomDb, pr: PullRequestRow, repo: RepoRef): Promise<ReviewContext> {
   return {
     pr,
-    repo: repos[0],
+    repo,
     earlierComments: await db.select().from(reviewComment).where(and(eq(reviewComment.prId, pr.id), ne(reviewComment.status, "withdrawn"))).orderBy(reviewComment.id),
     linkedPbis: await loadLinkedPbis(db, pr.workItemIds),
   };

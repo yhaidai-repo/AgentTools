@@ -1,6 +1,6 @@
 import type { GoalTaskData } from "@powerloom/core";
 import { agentRun, localItem } from "@powerloom/db";
-import { createRepoTools, defineTool, type RepoRef } from "@agenttools/runtime";
+import { defineTool } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { AgentRunSession } from "../AgentRunSession";
@@ -9,12 +9,15 @@ import { insertFindings } from "../findings";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
+import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
-import { reposByName } from "../research/resolveRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
+import { reposBlock } from "../repos/reposBlock";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
-import { createAgentDocTools, numberOption, outsideAccessContext } from "../stage";
+import { createAgentDocTools, outsideAccessContext } from "../stage";
 import type { GoalDraft } from "./models/GoalDraft";
+import type { GoalRun } from "./models/GoalRun";
 
 type ItemRow = typeof localItem.$inferSelect;
 type Stage = typeof agentRun.$inferSelect["stage"];
@@ -33,27 +36,26 @@ export async function runGoalTask(context: TaskContext, task: ItemRow): Promise<
     promptVersion: context.prompt.version,
   };
   const draft: GoalDraft = { result: null, findings: [] };
-  const acquired: RepoRef[] = [];
+  const run: GoalRun = { repos: noRepos() };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
-    const ran = await session.execute(info, () => prepare(context, session, task, data, draft, acquired));
+    const ran = await session.execute(info, () => prepare(context, session, task, data, draft, run));
 
     return await session.finish(ran, () => commit(context, task, session.runId, draft));
   } finally {
-    deps.repoCache.release(acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
-async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, data: GoalTaskData, draft: GoalDraft, acquired: RepoRef[]): Promise<AgentRunInput> {
+// The schedule's repos are the ones attached to the task.
+async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, data: GoalTaskData, draft: GoalDraft, run: GoalRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
-  const { repos, unknown } = await reposByName(deps.db, task.vault, data.repos);
 
-  await session.phase("context", { task: task.id, vault: task.vault, repos: repos.map((repo) => repo.name), unknown });
-  await deps.repoCache.acquire(repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  acquired.push(...repos);
+  await session.phase("context", { task: task.id, vault: task.vault });
+  run.repos = await openRepos(context, session, [{ vault: task.vault, names: data.repos }]);
 
-  const firstMessage = buildFirstMessage(task, data, repos, unknown);
+  const firstMessage = buildFirstMessage(task, data, run.repos);
 
   await session.phase("first-message", { chars: firstMessage.length });
 
@@ -65,7 +67,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     firstMessage,
     tools: [
       writeResultTool(draft),
-      ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
+      ...run.repos.tools,
       ...createAgentDocTools(deps, agent.id, session.runId),
       ...createFindingTools(deps, draft.findings),
       ...skills.tools,
@@ -78,10 +80,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   };
 }
 
-function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoRef[], unknown: string[]): string {
-  const repoLines = repos.map((repo) => `- ${repo.name} (branch ${repo.defaultBranch})`);
-  const missing = unknown.length > 0 ? [`Not available (not among the vault's enabled repositories): ${unknown.join(", ")}.`] : [];
-
+function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoAccess): string {
   return [
     `Scheduled task ${task.id}: ${task.title}`,
     "",
@@ -89,10 +88,7 @@ function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoRef[], 
     data.goal,
     "</goal>",
     "",
-    "<repos>",
-    ...(repoLines.length > 0 ? repoLines : ["(none)"]),
-    "</repos>",
-    ...missing,
+    reposBlock(repos),
     "",
     "Work on the goal, then call write_result once with the result.",
   ].join("\n");

@@ -15,6 +15,11 @@ export class RepoCache {
 
   constructor(private readonly options: RepoCacheOptions) {}
 
+  /** The folder the checkouts are in: `<root>/<repo name>`; repo tools read from here. */
+  get root(): string {
+    return this.options.root;
+  }
+
   /** Clones or refreshes the repos, marks them in use, and returns their current commits. Reports each repo.
    *  `refreshMinutes` lets one agent refresh more or less often than the cache default. */
   async acquire(repos: RepoRef[], onProgress?: (progress: RepoProgress) => Promise<void>, refreshMinutes = this.options.refreshMinutes): Promise<Record<string, string>> {

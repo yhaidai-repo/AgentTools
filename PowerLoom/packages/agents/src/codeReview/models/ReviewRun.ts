@@ -1,4 +1,5 @@
-import type { PullRequestCheckout, RepoRef } from "@agenttools/runtime";
+import type { PullRequestCheckout } from "@agenttools/runtime";
+import type { RepoAccess } from "../../models/RepoAccess";
 import type { DiffScope } from "./DiffScope";
 import type { ReviewContext } from "./ReviewContext";
 import type { ReviewDraft } from "./ReviewDraft";
@@ -10,6 +11,7 @@ export interface ReviewRun {
   scope: DiffScope;
   /** Earlier comments whose code changed since their commit; marked outdated when the run succeeds. */
   outdatedIds: string[];
-  acquired: RepoRef[];
+  /** The PR's repo, taken from the cache; released when the run ends. */
+  repos: RepoAccess;
   draft: ReviewDraft;
 }

@@ -13,12 +13,16 @@ import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
+import { pbiRepoSources } from "../repos/agentRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
+import { reposBlock } from "../repos/reposBlock";
 import { withPagesRead } from "../relevantPages";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAccessContext, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
+import type { RefinementRun } from "./models/RefinementRun";
 import { buildPbiMessage } from "./pbiMessage";
 import { createRefinementTools } from "./refinementTools";
 
@@ -41,36 +45,46 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
     promptVersion: context.prompt.version,
   };
   const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [], captures: [], pages: [] };
+  const run: RefinementRun = { repos: noRepos() };
   const session = await AgentRunSession.begin(deps, info);
-  const ran = await session.execute(info, () => prepare(context, session, task, row, draft));
-  const commit = async () => {
-    const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
 
-    await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
-  };
+  try {
+    const ran = await session.execute(info, () => prepare(context, session, task, row, draft, run));
+    const commit = async () => {
+      const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
 
-  return session.finish(ran, commit);
+      await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
+    };
+
+    return await session.finish(ran, commit);
+  } finally {
+    closeRepos(deps, run.repos);
+  }
 }
 
-async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, row: WorkItemRow, draft: RefinementDraft): Promise<AgentRunInput> {
+// With Read repositories on, refinement also reads the repos already attached to the PBI (documented or confirmed).
+async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, row: WorkItemRow, draft: RefinementDraft, run: RefinementRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
 
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
 
   const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
+  const firstMessage = [pbiMessage, reposBlock(run.repos)].join("\n\n");
   const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
 
-  await session.phase("first-message", { chars: pbiMessage.length });
+  await session.phase("first-message", { chars: firstMessage.length });
 
   const access = outsideAccessContext(context.agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
-    firstMessage: pbiMessage,
+    firstMessage,
     tools: [
       ...createAgentDocTools(deps, context.agent.id, session.runId),
+      ...run.repos.tools,
       ...skills.tools,
       createListSkillsTool(deps.skillFolders, isRecommendableSkill),
       createAttachmentTool(deps.db, row.adoId),

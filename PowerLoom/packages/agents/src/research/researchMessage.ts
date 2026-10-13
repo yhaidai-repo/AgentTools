@@ -1,10 +1,12 @@
 import { refinement, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
+import type { RepoAccess } from "../models/RepoAccess";
 import { buildPbiMessage } from "../refinement/pbiMessage";
+import { reposBlock } from "../repos/reposBlock";
 import type { ResearchContext } from "./models/ResearchContext";
 
 // The first message: the task, the PBI, the refinement and what refinement found worth reading.
-export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, context: ResearchContext, commits: Record<string, string>): Promise<string> {
+export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, context: ResearchContext, repos: RepoAccess): Promise<string> {
   const [latest] = await db.select().from(refinement).where(eq(refinement.pbiId, context.pbi.adoId)).orderBy(desc(refinement.version)).limit(1);
   const pbi = (await buildPbiMessage(db, vaultRoot, context.pbi)).replace(/^Refine this PBI\.\n\n/, "");
 
@@ -13,7 +15,7 @@ export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, c
     taskBlock(context),
     pbi,
     latest ? refinementBlock(latest) : "<refinement>none</refinement>",
-    reposBlock(context, commits),
+    reposBlock(repos),
   ].join("\n\n");
 }
 
@@ -76,11 +78,4 @@ export function refinementBlock(latest: typeof refinement.$inferSelect): string 
     `Docs refinement read:\n${read.join("\n") || "- none"}`,
     "</refinement>",
   ].join("\n");
-}
-
-export function reposBlock(context: ResearchContext, commits: Record<string, string>): string {
-  const available = context.repos.map((repo) => `- ${repo.name} @ ${commits[repo.name]?.slice(0, 10) ?? "?"} (branch ${repo.defaultBranch})`);
-  const unknown = context.unknownRepos.map((name) => `- ${name}: not in the repo catalog`);
-
-  return ["<repos>", ...available, ...unknown, "</repos>"].join("\n");
 }

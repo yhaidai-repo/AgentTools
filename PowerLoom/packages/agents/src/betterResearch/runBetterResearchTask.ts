@@ -1,6 +1,6 @@
 import { requirePbiId } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
-import { createRepoTools, type RepoRef, type ToolDefinition } from "@agenttools/runtime";
+import type { ToolDefinition } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
@@ -9,10 +9,13 @@ import { createConfluenceTools } from "../confluenceTools";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
+import type { RepoAccess } from "../models/RepoAccess";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { createReadPbiTool } from "../pbiContext/readPbiTool";
+import { pbiRepoSources } from "../repos/agentRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { buildResearchMessage } from "../research/researchMessage";
 import { createSqlTools } from "../sqlTools";
@@ -41,20 +44,20 @@ export async function runBetterResearchTask(context: TaskContext, task: ItemRow)
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: BetterResearchRun = { research: null, commits: {}, acquired: [], readLog: null, draft: { result: null, tasks: [], captures: [], pages: [] } };
+  const run: BetterResearchRun = { research: null, repos: noRepos(), readLog: null, draft: { result: null, tasks: [], captures: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
     const commit = async () => {
-      const extra = { commits: run.commits, docsRead: await docsReadInRun(deps, session.runId), docsVault: deps.docsVaultName };
+      const extra = { commits: run.repos.commits, docsRead: await docsReadInRun(deps, session.runId), docsVault: deps.docsVaultName };
 
       await commitBetterResearch(deps.db, run.research!, session.runId, { ...run.draft, result: run.draft.result! }, extra);
     };
 
     return await session.finish(ran, run.research ? commit : null);
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
@@ -65,11 +68,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("context", { task: task.id, depth, skills: skillsTrace(skills) });
   run.research = await loadResearchContext(deps, task);
-  await session.phase("repos", { repos: run.research.repos.map((repo) => repo.name), unknown: run.research.unknownRepos });
-  run.commits = await deps.repoCache.acquire(run.research.repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = run.research.repos;
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)));
 
-  const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.commits);
+  const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos);
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
   const limits = await taskLimits(context, task, depth);
 
@@ -81,7 +82,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: [
-      ...recordReads(readingTools(context, session, task, run.research.repos), run.readLog),
+      ...recordReads(readingTools(context, session, task, run.repos), run.readLog),
       ...skills.tools,
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
       createResultTool(run.draft, run.readLog),
@@ -95,13 +96,13 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
 // Only these results get a source id the evidence can cite; writing tools stay out (see recordReads). read_pbi and
 // read_attachment are listed here, so the session's PBI context doesn't add them again untagged (withPbiContext).
-function readingTools(context: TaskContext, session: AgentRunSession, task: ItemRow, repos: RepoRef[]): ToolDefinition<any>[] {
+function readingTools(context: TaskContext, session: AgentRunSession, task: ItemRow, repos: RepoAccess): ToolDefinition<any>[] {
   const { deps, agent } = context;
   const access = outsideAccessContext(agent.id, session.runId, task);
 
   return [
     ...createAgentDocTools(deps, agent.id, session.runId),
-    ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
+    ...repos.tools,
     createAttachmentTool(deps.db, requirePbiId(task)),
     createReadPbiTool(deps.db, deps.vaultRoot),
     ...createConfluenceTools(deps, agent, access),

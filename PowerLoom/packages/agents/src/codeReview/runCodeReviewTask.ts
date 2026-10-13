@@ -1,6 +1,6 @@
 import type { ReviewTaskData } from "@powerloom/core";
 import type { localItem } from "@powerloom/db";
-import { createRepoTools } from "@agenttools/runtime";
+import type { RepoRef } from "@agenttools/runtime";
 import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { AgentRunSession } from "../AgentRunSession";
@@ -8,13 +8,15 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
+import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { createAzureTools } from "../azureTools";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { createSqlTools } from "../sqlTools";
 import { numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createCodeReviewTools } from "./codeReviewTools";
 import { commitReview } from "./commitReview";
-import { loadReviewContext } from "./loadReviewContext";
+import { loadPullRequest, loadReviewContext } from "./loadReviewContext";
 import type { ReviewRun } from "./models/ReviewRun";
 import { findOutdatedComments } from "./outdatedComments";
 import { parseUnifiedDiff, selectScope } from "./prDiff";
@@ -39,7 +41,7 @@ export async function runCodeReviewTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], acquired: [], draft: { summary: null, comments: [], updates: [] } };
+  const run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepos(), draft: { summary: null, comments: [], updates: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -60,12 +62,14 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const data = task.data as ReviewTaskData;
 
   await session.phase("context", { task: task.id, pr: data.prId, skills: skillsTrace(skills) });
-  run.context = await loadReviewContext(deps.db, data);
+
+  const reviewed = await loadPullRequest(deps.db, data.prId);
+
+  run.repos = await openRepos(context, session, [{ vault: reviewed.vault, names: [reviewed.repoName] }], reviewCheckoutsRoot(deps, session.runId));
+  run.context = await loadReviewContext(deps.db, reviewed, reviewRepo(run.repos, reviewed.repoName));
 
   const { pr, repo } = run.context;
 
-  await deps.repoCache.acquire([repo], (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = [repo];
   run.checkout = await deps.repoCache.checkoutPullRequest(repo, { id: pr.id, sourceRef: pr.sourceRef, targetRef: pr.targetRef }, join(reviewCheckoutsRoot(deps, session.runId), repo.name));
   await session.phase("checkout", { commit: run.checkout.sourceCommit, mergeBase: run.checkout.mergeBase });
 
@@ -86,7 +90,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: [
-      ...createRepoTools({ root: reviewCheckoutsRoot(deps, session.runId), repos: [repo.name] }),
+      ...run.repos.tools,
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
@@ -106,7 +110,19 @@ async function cleanUp(deps: AgentDeps, run: ReviewRun): Promise<void> {
       await rm(dirname(run.checkout.path), { recursive: true, force: true });
     }
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
+// Code review reads the PR's repo, so it needs Read repositories on and the repo enabled (user decision 2026-10-13).
+function reviewRepo(repos: RepoAccess, repoName: string): RepoRef {
+  if (!repos.isOn) {
+    throw new Error("code review reads the PR's repo: switch on Read repositories in this agent's Config");
+  }
+
+  if (repos.repos.length === 0) {
+    throw new Error(`repo "${repoName}" is disabled in Settings or not in the vault's catalog; its PRs get no review`);
+  }
+
+  return repos.repos[0];
+}

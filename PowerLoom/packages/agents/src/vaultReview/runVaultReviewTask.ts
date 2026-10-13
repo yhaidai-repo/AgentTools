@@ -1,7 +1,6 @@
 import { candidateCount, vaultReviewOptions } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { listVaults, vaultsExclude } from "@powerloom/vault";
-import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AgentRunSession } from "../AgentRunSession";
@@ -10,15 +9,18 @@ import { createFindingTools } from "../findingTools";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
+import type { RepoAccess } from "../models/RepoAccess";
+import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
 import type { VaultsAccess } from "../models/VaultsAccess";
-import { reposByName } from "../research/resolveRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
+import { reposBlock } from "../repos/reposBlock";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
 import { numberOption, outsideAccessContext } from "../stage";
 import { commitVaultReview } from "./commitVaultReview";
 import type { ReviewLimits } from "./models/ReviewLimits";
-import type { VaultReviewDraft } from "./models/VaultReviewDraft";
+import type { VaultReviewRun } from "./models/VaultReviewRun";
 import { ReviewScope } from "./ReviewScope";
 import { createVaultReviewActionTools } from "./vaultReviewActionTools";
 import { createVaultReviewReadTools } from "./vaultReviewReadTools";
@@ -27,11 +29,6 @@ import { createVaultReviewRecordTools } from "./vaultReviewRecordTools";
 type ItemRow = typeof localItem.$inferSelect;
 
 const AGENT = "vault-review";
-
-interface ReviewRun {
-  acquired: RepoRef[];
-  draft: VaultReviewDraft;
-}
 
 // One vault-review task (VR-…), one run (user decision 2026-10-03): the agent pulls stale notes, unlinked notes and
 // invalid links through its tools and decides each; the actions are applied when the run succeeds.
@@ -52,7 +49,7 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ReviewRun = { acquired: [], draft: { decisions: [], linkFixes: [], records: [], findings: [], summary: null } };
+  const run: VaultReviewRun = { repos: noRepos(), draft: { decisions: [], linkFixes: [], records: [], findings: [], summary: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -62,7 +59,7 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
       await commitVaultReview(deps.db, vaults, scope, task, session.runId, run.draft);
     });
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
@@ -74,7 +71,7 @@ async function taskVaults(task: ItemRow, vaults: VaultsAccess): Promise<string[]
   return chosen.filter((vault) => available.includes(vault));
 }
 
-async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, scope: ReviewScope, run: ReviewRun): Promise<AgentRunInput> {
+async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, scope: ReviewScope, run: VaultReviewRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
   const limits: ReviewLimits = {
     maxNotesPerRun: numberOption(agent, "maxNotesPerRun", 10),
@@ -88,13 +85,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     throw new Error("none of the task's vaults is available under the vaults root");
   }
 
-  const repos = await vaultRepos(context, scope);
+  run.repos = await openRepos(context, session, await vaultRepoSources(scope));
 
-  await session.phase("repos", { repos: repos.map((repo) => repo.name) });
-  await deps.repoCache.acquire(repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = repos;
-
-  const firstMessage = await buildFirstMessage(context, task, scope, limits, repos);
+  const firstMessage = await buildFirstMessage(context, task, scope, limits, run.repos);
   const rules = await vaultRules(scope);
 
   await session.phase("first-message", { chars: firstMessage.length, vaultRulesChars: rules.length });
@@ -110,7 +103,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createVaultReviewActionTools(scope, run.draft, limits),
       ...createVaultReviewRecordTools(scope, run.draft, limits),
       ...createFindingTools(deps, run.draft.findings),
-      ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
+      ...run.repos.tools,
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
@@ -123,11 +116,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
 // The repos the vaults' projects name in their index notes (`repo:`), when the ADO catalog has them; the agent checks
 // whether a note's subject still exists in the code.
-async function vaultRepos(context: TaskContext, scope: ReviewScope): Promise<RepoRef[]> {
-  const perVault = await Promise.all(scope.vaults.map(async (vault) => (await reposByName(context.deps.db, vault, await projectRepoNames(scope.vaultRoot(vault)))).repos));
-  const byName = new Map(perVault.flat().map((repo) => [repo.name, repo]));
-
-  return [...byName.values()];
+async function vaultRepoSources(scope: ReviewScope): Promise<RepoSource[]> {
+  return Promise.all(scope.vaults.map(async (vault) => ({ vault, names: await projectRepoNames(scope.vaultRoot(vault)) })));
 }
 
 async function projectRepoNames(vaultRoot: string): Promise<string[]> {
@@ -149,7 +139,7 @@ async function vaultRules(scope: ReviewScope): Promise<string> {
   return sections.join("\n\n");
 }
 
-async function buildFirstMessage(context: TaskContext, task: ItemRow, scope: ReviewScope, limits: ReviewLimits, repos: RepoRef[]): Promise<string> {
+async function buildFirstMessage(context: TaskContext, task: ItemRow, scope: ReviewScope, limits: ReviewLimits, repos: RepoAccess): Promise<string> {
   const counts = await Promise.all(scope.vaults.map(async (vault) => {
     const candidates = await scope.candidates(vault);
 
@@ -167,6 +157,6 @@ async function buildFirstMessage(context: TaskContext, task: ItemRow, scope: Rev
     `<task>\nId: ${task.id}\nVaults: ${scope.vaults.join(", ")}\nReview period: ${scope.options.staleDays} days (unused this long = stale)\n${caps.join("\n")}\n</task>`,
     `<candidates>\n${counts.join("\n")}\n</candidates>`,
     `<findings>\n${docsVault ? `Findings go to the registers of the ${docsVault} vault only; for notes of other vaults, put open points in the summary.` : "No register is available: put open points in the summary."}\n</findings>`,
-    `<repos>\n${repos.map((repo) => `- ${repo.name} (branch ${repo.defaultBranch})`).join("\n") || "none: no project index names a repo in the catalog"}\n</repos>`,
+    reposBlock(repos),
   ].join("\n\n");
 }

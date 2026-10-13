@@ -1,6 +1,5 @@
 import { requirePbiId } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
-import { createRepoTools, type RepoRef } from "@agenttools/runtime";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { createAttachmentTool } from "../attachmentTools";
@@ -10,10 +9,12 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
+import { pbiRepoSources } from "../repos/agentRepos";
+import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { createAzureTools } from "../azureTools";
 import { createSqlTools } from "../sqlTools";
-import { confluencePagesReadInRun, createAgentDocTools, numberOption, outsideAccessContext, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, createAgentDocTools, outsideAccessContext, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitDesign } from "./commitDesign";
 import { buildDesignMessage } from "./designMessage";
@@ -37,7 +38,7 @@ export async function runDesignTask(context: TaskContext, task: ItemRow): Promis
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: DesignRun = { context: null, commits: {}, acquired: [], draft: { design: null, gaps: [], captures: [], pages: [] } };
+  const run: DesignRun = { context: null, repos: noRepos(), draft: { design: null, gaps: [], captures: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -50,7 +51,7 @@ export async function runDesignTask(context: TaskContext, task: ItemRow): Promis
 
     return await session.finish(ran, commit);
   } finally {
-    deps.repoCache.release(run.acquired);
+    closeRepos(deps, run.repos);
   }
 }
 
@@ -60,11 +61,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("context", { task: task.id, skills: skillsTrace(skills) });
   run.context = await loadResearchContext(deps, task);
-  await session.phase("repos", { repos: repoNames(run.context.repos), unknown: run.context.unknownRepos });
-  run.commits = await deps.repoCache.acquire(run.context.repos, (progress) => session.phase("repo", { ...progress }), numberOption(agent, "repoRefreshMinutes", 30));
-  run.acquired = run.context.repos;
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)));
 
-  const firstMessage = await buildDesignMessage(deps.db, deps.vaultRoot, run.context, run.commits);
+  const firstMessage = await buildDesignMessage(deps.db, deps.vaultRoot, run.context, run.repos);
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
 
   await session.phase("first-message", { chars: firstMessage.length });
@@ -77,7 +76,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     firstMessage,
     tools: [
       ...createAgentDocTools(deps, context.agent.id, session.runId),
-      ...createRepoTools({ root: deps.repoCacheRoot, repos: repoNames(run.context.repos) }),
+      ...run.repos.tools,
       ...skills.tools,
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createDesignTools(run.draft, guard),
@@ -95,8 +94,4 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 // A design, or the questions and tasks for the user that stop it: either counts as a finished run.
 function hasOutput(run: DesignRun): boolean {
   return run.draft.design !== null || run.draft.gaps.length > 0;
-}
-
-function repoNames(repos: RepoRef[]): string[] {
-  return repos.map((repo) => repo.name);
 }
