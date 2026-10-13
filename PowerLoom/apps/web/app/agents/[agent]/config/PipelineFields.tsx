@@ -1,23 +1,12 @@
-import { AGENT_TASK_TYPES, CREATABLE_TASK_TYPES, PIPELINE_TASK_TYPES, type BlockerKind } from "@powerloom/core";
+import { AGENT_TASK_TYPES, CREATABLE_TASK_TYPES, type BlockerKind } from "@powerloom/core";
 import type { AgentDefinition } from "@agenttools/config";
 
-// Where the agent sits in the pipeline: the task types it takes and creates, the task type that follows its successful
-// task, and what it waits for. There are task types, not agent types (user decision 2026-10-13).
+// Where the agent sits in the pipeline: the task types it takes and may create, and what it waits for. There are task
+// types, not agent types, and agents decide what comes next (user decisions 2026-10-13).
 export function PipelineFields({ agent, blockerKinds }: { agent: AgentDefinition; blockerKinds: BlockerKind[] }) {
-  // Kept so saving doesn't drop it silently: an older value that isn't a pipeline task type.
-  const unknownNext = agent.next && !PIPELINE_TASK_TYPES.includes(agent.next) ? agent.next : null;
-
   return (
     <fieldset className="field-group">
       <legend>Pipeline</legend>
-      <label>
-        Next task (created when one of this agent's tasks succeeds; any agent taking that type picks it up)
-        <select name="next" defaultValue={agent.next ?? ""}>
-          <option value="">None</option>
-          {PIPELINE_TASK_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-          {unknownNext && <option value={unknownNext}>{unknownNext} (not a pipeline task type)</option>}
-        </select>
-      </label>
       <span className="muted">Takes tasks of type (besides the tasks pinned to it; when several agents take a type, whichever runs first takes a task):</span>
       {AGENT_TASK_TYPES.map((type) => (
         <label key={`handles-${type}`} className="inline choice">
