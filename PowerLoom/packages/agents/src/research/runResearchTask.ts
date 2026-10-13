@@ -21,6 +21,7 @@ import { loadResearchContext } from "./loadResearchContext";
 import type { ResearchRun } from "./models/ResearchRun";
 import { buildResearchMessage } from "./researchMessage";
 import { createResearchTools } from "./researchTools";
+import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 
@@ -85,6 +86,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
+      ...createFetchDocumentTools(webDocuments),
       ...createWebDocumentTools(deps.db, webDocuments),
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),

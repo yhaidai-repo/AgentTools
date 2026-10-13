@@ -3,6 +3,7 @@ import { attachmentRef, createHumanTask, documentKey, documentUrl, itemStatusWit
 import type { PowerLoomDb } from "@powerloom/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
+import { documentSlug } from "./documentDownload";
 import type { WebDocumentRun } from "./models/WebDocumentRun";
 
 const MAX_NOTES_CHARS = 20_000;
@@ -52,7 +53,7 @@ function saveNotesTool(db: PowerLoomDb, run: WebDocumentRun): ToolDefinition<any
 function requestDocumentTool(db: PowerLoomDb, run: WebDocumentRun): ToolDefinition<any> {
   return defineTool({
     name: "request_document",
-    description: "Ask the user to attach a web page from <web-documents> you couldn't open. Only after trying it with your web tools.",
+    description: "Ask the user to attach a web page from <web-documents> you couldn't open. Only after fetch_document and your web tools both failed.",
     input: {
       url: z.string().describe("The page, as listed in <web-documents>"),
       why: z.string().min(1).max(MAX_REASON_CHARS).describe("What happened when you opened it, e.g. 403, a login page, not found"),
@@ -85,21 +86,10 @@ function unknownPage(run: WebDocumentRun, url: string): string | null {
 function notesFile(run: WebDocumentRun, url: string, notes: string) {
   const text = [`# Notes on ${url}`, "", `Saved by ${run.agentId} for ${run.taskId} (RUN-${run.runId}): what the page says for this PBI, not the page itself.`, "", notes.trim(), ""].join("\n");
 
-  return { fileName: `notes-${slugOf(url)}.md`, contentType: "text/markdown", bytes: Buffer.from(text, "utf8") };
+  return { fileName: `notes-${documentSlug(url)}.md`, contentType: "text/markdown", bytes: Buffer.from(text, "utf8") };
 }
 
 // Like PowerLoom's DocumentTasks body, with what the agent met instead of "agents can't open it".
 function requestBody(run: WebDocumentRun, url: string, why: string): string {
   return `The PBI links ${url}\n\n${run.agentId} couldn't open it: ${why.trim()}\n\nUpload it here (PDF, Word, saved HTML or text). Cancel the task if the agents don't need it.`;
-}
-
-function slugOf(url: string): string {
-  if (!URL.canParse(url)) {
-    return "page";
-  }
-
-  const { hostname, pathname } = new URL(url);
-  const name = pathname.split("/").filter(Boolean).pop() ?? hostname;
-
-  return name.replace(/\.[a-z0-9]+$/i, "").replace(/[^\w-]+/g, "-").slice(0, 60) || hostname;
 }

@@ -24,6 +24,7 @@ import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import { userRequestBlock } from "../tasks/userTasks";
 import { createVaultCaptureTool } from "../vaultCapture";
+import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import { commitBetterRefinement } from "./commitBetterRefinement";
@@ -90,7 +91,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: withBudgetNotes([
-      ...recordReads([...readingTools(context, session, task, run.repos), listReposTool(deps.db, deps.docsVaultName)], run.readLog),
+      ...recordReads([...readingTools(context, session, task, run.repos), listReposTool(deps.db, deps.docsVaultName), ...createFetchDocumentTools(webDocuments)], run.readLog),
       ...skills.tools,
       createListSkillsTool(deps.skillFolders, isRecommendableSkill),
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),

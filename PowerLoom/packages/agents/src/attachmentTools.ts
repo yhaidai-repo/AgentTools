@@ -3,8 +3,7 @@ import { attachment, type PowerLoomDb } from "@powerloom/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-
-const PAGE_CHARS = 30_000;
+import { PAGE_CHARS, textPage } from "./textPages";
 
 // read_attachment: the text of the PBI's uploads (converted on upload), in pages so a long document can't flood the context.
 export function createAttachmentTool(db: PowerLoomDb, adoId: number): ToolDefinition<any> {
@@ -27,14 +26,7 @@ export function createAttachmentTool(db: PowerLoomDb, adoId: number): ToolDefini
         return { text: `${input.id} (${row.fileName}) has no text: images can't be read yet.` };
       }
 
-      return { text: page(row.text, input.offset) };
+      return { text: textPage(row.text, input.offset) };
     },
   });
-}
-
-function page(text: string, offset: number): string {
-  const end = Math.min(offset + PAGE_CHARS, text.length);
-  const footer = end < text.length ? `[${end} of ${text.length} chars; continue with offset ${end}]` : `[end, ${text.length} chars]`;
-
-  return `${text.slice(offset, end)}\n\n${footer}`;
 }

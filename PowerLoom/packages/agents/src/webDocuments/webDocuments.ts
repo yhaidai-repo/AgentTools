@@ -39,7 +39,7 @@ export function webDocumentsBlock(run: WebDocumentRun | null): string {
 
   return [
     "<web-documents>",
-    "Web pages the PBI links that no agent has read yet. You have web access: open each one with your web tools.",
+    "Web pages the PBI links that no agent has read yet. Read each one with fetch_document (PDF, Word, Excel, HTML as text); use your web tools for what it can't read.",
     "Save what matters for this PBI with save_document_notes: the facts, rules and numbers, with the section each comes from. If nothing matters, save that, so no one asks for the page again.",
     "A page you can't open (login, 403, 404, timeout): request_document with what happened; the user then attaches it.",
     ...run.urls.map((url) => `- ${url}`),

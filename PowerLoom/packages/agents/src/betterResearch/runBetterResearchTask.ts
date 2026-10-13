@@ -16,6 +16,7 @@ import { buildResearchMessage, buildTaskResearchMessage } from "../research/rese
 import { docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import { createVaultCaptureTool } from "../vaultCapture";
+import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import { commitBetterResearch } from "./commitBetterResearch";
@@ -81,7 +82,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
     tools: withBudgetNotes([
-      ...recordReads(readingTools(context, session, task, run.repos), run.readLog),
+      ...recordReads([...readingTools(context, session, task, run.repos), ...createFetchDocumentTools(webDocuments)], run.readLog),
       ...skills.tools,
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
       createResultTool(run.draft, run.readLog),
