@@ -1,7 +1,7 @@
 namespace DevSecrets.DevHub.Models;
 
 // Get-LocalStack.ps1 -Json.
-public sealed record ScriptStackStatus(bool Running, string? Branch, ScriptServiceStatus[] Services)
+public sealed record ScriptStackStatus(bool Running, string? Branch, string? Environment, ScriptServiceStatus[] Services)
 {
-    public static readonly ScriptStackStatus None = new(false, null, []);
+    public static readonly ScriptStackStatus None = new(false, null, null, []);
 }

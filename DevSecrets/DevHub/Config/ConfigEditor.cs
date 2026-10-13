@@ -127,9 +127,6 @@ public sealed partial class ConfigEditor(DevSecretsFiles files, ScriptCheck chec
         if (!KebabName().IsMatch(name))
             return HubResult.Invalid("An app name is lower-case letters and digits, joined by single '-' (e.g. pvs-web), at most 64 characters.");
 
-        if (!string.IsNullOrWhiteSpace(request.LocalUrl) && !Uri.TryCreate(request.LocalUrl.Trim(), UriKind.Absolute, out _))
-            return HubResult.Invalid($"Not an absolute URL: {request.LocalUrl}");
-
         var unknown = (request.Projects ?? []).Where(project => !MapChanges.HasProject(map, project)).ToArray();
 
         if (unknown.Length > 0)
@@ -203,6 +200,9 @@ public sealed partial class ConfigEditor(DevSecretsFiles files, ScriptCheck chec
 
         if (!services.ContainsKey(request.Service!.Trim()))
             return HubResult.NotFound($"No app {request.Service}.");
+
+        if (request.Instance is < 1)
+            return HubResult.Invalid("An instance is 1 (the app's first address) or more.");
 
         return Parts.Contains(request.Part?.Trim()) ? null : HubResult.Invalid("A call reads the app's url, key or user.");
     }

@@ -33,6 +33,7 @@ $state = (Read-StackState) ?? @{ services = @() }
 $status = [ordered]@{
     running = $state.services.Count -gt 0
     branch = $state.branch
+    environment = $state.environment
     services = @($state.services | ForEach-Object { Get-EntryStatus $_ })
 }
 

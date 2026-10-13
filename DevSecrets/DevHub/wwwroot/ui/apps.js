@@ -16,7 +16,7 @@ export async function renderApps(section) {
         <button id="add-app" class="small">Add app</button>
       </div>
       <table>
-        <thead><tr><th>App</th><th>Local</th><th>Remote (Azure dev)</th><th>Starts</th><th>Projects</th></tr></thead>
+        <thead><tr><th>App</th><th>Local</th><th>Remote (dev)</th><th>Starts</th><th>Projects</th></tr></thead>
         <tbody>${apps.map(appRow).join("")}</tbody>
       </table>
       <p id="apps-message"></p>
@@ -44,7 +44,7 @@ function appRow(app) {
           <button class="small secondary" data-delete-app="${escapeHtml(app.name)}">Delete</button>
         </div>
       </td>
-      <td class="mono">${escapeHtml(app.localUrl ?? "—")}${app.localKey ? `<div class="muted">key ${escapeHtml(app.localKey)}</div>` : ""}</td>
+      <td class="mono">${app.localUrl ? `<a href="#secrets" class="chip" data-open-secret="${escapeHtml(app.name)}-url">${escapeHtml(app.name)}-url</a><div>${escapeHtml(app.localUrl)}</div>` : "—"}</td>
       <td>${remoteText(app)}</td>
       <td>${runText(app.run)}${app.run ? `<div class="muted">ready: ${readyText(app)}</div>` : ""}</td>
       <td>${app.projects.map((project) => `<div class="mono" title="${escapeHtml(project)}">${escapeHtml(shortProject(project))}</div>`).join("") || `<span class="muted">none</span>`}</td>
@@ -107,11 +107,9 @@ function openEditor(name) {
       <div class="form-grid">
         <label>Name<input name="name" value="${escapeHtml(app.name)}" ${isNew ? "" : "readonly"} pattern="[a-z0-9]+(-[a-z0-9]+)*" required></label>
         <label>Description<input name="note" value="${escapeHtml(app.note)}"></label>
-        <label>Local URL<input name="localUrl" value="${escapeHtml(app.localUrl)}" placeholder="https://localhost:7456"></label>
-        <label>Local key<input name="localKey" value="${escapeHtml(app.localKey)}" placeholder="dev"></label>
-        <label>Local user<input name="localUser" value="${escapeHtml(app.localUser)}"></label>
         <label class="inline"><input type="checkbox" name="consumesBus" ${app.consumesBus ? "checked" : ""}> Consumes the bus (adds the local RabbitMQ)</label>
       </div>
+      <p class="muted">Its links are secrets per environment: <code>${escapeHtml(app.name || "<app>")}-url</code>, <code>-key</code>, <code>-user</code> in <code>values.local.json</code> (where it answers on this PC) and <code>values.dev.json</code> (Azure dev). Edit them in the Secrets tab.</p>
       <h3>Projects</h3>
       <p class="muted">A project belongs to one app; picking one here moves it. Add new projects under Dependencies.</p>
       <div class="checks">${state.projects.map((project) => projectCheck(project, app)).join("")}</div>
@@ -156,9 +154,6 @@ function requestOf(form, app) {
 
   return {
     note: data.get("note"),
-    localUrl: data.get("localUrl"),
-    localKey: data.get("localKey"),
-    localUser: data.get("localUser"),
     consumesBus: data.get("consumesBus") === "on",
     projects: data.getAll("projects"),
     run: kindRun ?? (data.get("runnable") === "on" ? runOf(data) : null),

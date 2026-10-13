@@ -11,7 +11,7 @@ builder.Services.AddOptions<DevHubOptions>()
     .BindConfiguration(DevHubOptions.Section)
     .Validate(o => o.Token.Length >= 32, "DevHub:Token must have at least 32 characters (start DevHub with Start-DevHub.ps1).")
     .Validate(o => File.Exists(Path.Combine(o.ScriptsDir, "Start-LocalStack.ps1")), "DevHub:ScriptsDir must be the DevSecrets folder.")
-    .Validate(o => File.Exists(Path.Combine(o.ValuesDir, "values.remote.json")), "DevHub:ValuesDir must hold values.remote.json.")
+    .Validate(o => File.Exists(Path.Combine(o.ValuesDir, "values.dev.json")), "DevHub:ValuesDir must hold values.dev.json.")
     .ValidateOnStart();
 
 builder.Services.AddSingleton(TimeProvider.System);

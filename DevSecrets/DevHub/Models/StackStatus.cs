@@ -6,6 +6,7 @@ public sealed record StackStatus(
     bool Running,
     string[] RequestedServices,
     string? Branch,
+    string? Environment,
     DateTimeOffset? StartedAt,
     DateTimeOffset? ExpiresAt,
     int? ExitCode,

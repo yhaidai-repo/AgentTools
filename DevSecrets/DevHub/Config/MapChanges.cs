@@ -22,15 +22,15 @@ public static class MapChanges
 
     public static bool RemoveSetting(JsonObject map, string project, string key) => Projects(map)[project]!.AsObject().Remove(key);
 
-    // The map.json text of a setting: a value name, or "@service.part|remote".
+    // The map.json text of a setting: a value name, or a call "@service.part" (instance 2+ adds "-2": vapi-url-2).
     public static string SettingValue(SaveSettingRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Service))
             return request.ValueName!.Trim();
 
-        var remote = string.IsNullOrWhiteSpace(request.RemoteValue) ? "" : $"|{request.RemoteValue.Trim()}";
+        var instance = request.Instance is > 1 ? $"-{request.Instance}" : "";
 
-        return $"@{request.Service.Trim()}.{request.Part!.Trim()}{remote}";
+        return $"@{request.Service.Trim()}.{request.Part!.Trim()}{instance}";
     }
 
     // "project: key" of every setting that calls this app.

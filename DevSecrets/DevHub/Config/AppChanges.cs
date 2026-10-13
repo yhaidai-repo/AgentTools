@@ -12,9 +12,6 @@ public static class AppChanges
         var app = ChildObject(services, name);
 
         SetFlag(app, "consumesBus", request.ConsumesBus);
-        SetText(app, "localKey", request.LocalKey);
-        SetText(app, "localUrl", request.LocalUrl);
-        SetText(app, "localUser", request.LocalUser);
         SetText(app, "note", request.Note);
         app["projects"] = new JsonArray([.. (request.Projects ?? []).Select(project => JsonValue.Create(project))]);
         ApplyRun(app, request.Run);

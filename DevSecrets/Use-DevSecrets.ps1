@@ -5,16 +5,15 @@
 
 .DESCRIPTION
     Files next to this script (no secrets, may be in git):
-      services.json        runnable services: local URL, local API key, projects
-      map.json             per project: config key -> value name, or a routing reference
-    Secret values, outside git (D:/Projects/dev-secrets or $env:DEV_SECRETS_VALUES_DIR):
-      values.<name>.json   named values; "$extends" lets a file list only what differs
+      services.json        runnable services: projects, how to run them
+      map.json             per project: config key -> value name, or a call to an app
+    Secret values, outside git (D:/Projects/dev-secrets or $env:DEV_SECRETS_VALUES_DIR), one file per environment:
+      values.<env>.json    named values (dev, local, ...); "$extends" lets a file list only what differs
 
-    Routing references in map.json:
-      @patients.url|patients-remote-url   local URL of patients when it runs locally, else the named value
-      @patients.key|signals-patient-key   local API key of patients when it runs locally, else the named value
-      @rabbitmq.user|pvs-rabbitmq-user    local user name of rabbitmq when it runs locally, else the named value
-      @patients.key                       always the local key (the service's own inbound key)
+    Calls in map.json read the app's link, a named value:
+      @patients.url        "patients-url" from values.local.json while patients runs locally, else from -Values
+      @vapi.url-2          "vapi-url-2": an app's second address
+      @patients.key        in a project of patients itself: always values.local.json (its own inbound key)
 
     Mapped keys are overwritten in each project's user secrets; other keys (e.g. Aspire's) are kept.
     The first write saves the old file as secrets.json.bak. Values are never printed.
@@ -39,7 +38,7 @@
 param(
     [string[]] $Local = @(),
 
-    [string] $Values = "remote",
+    [string] $Values = "dev",
 
     [string] $Project,
 
@@ -97,7 +96,7 @@ function Write-ProjectSecrets([string] $ProjectKey, [hashtable] $Named) {
 
     (Resolve-ProjectConfig $ProjectKey $Named).GetEnumerator() | ForEach-Object { $secrets[$_.Key] = $_.Value }
 
-    $summary = "${ProjectKey}: $($mapping.Count) keys, $kept others kept$(Format-Routes $mapping)"
+    $summary = "${ProjectKey}: $($mapping.Count) keys, $kept others kept$(Format-Routes $mapping $ProjectKey)"
 
     if ($DryRun) {
         Write-Host "[dry-run] $summary"
@@ -117,6 +116,7 @@ function Write-ProjectSecrets([string] $ProjectKey, [hashtable] $Named) {
 
 $Store = Read-Store
 $Catalog = Read-Services
+Initialize-LocalValues
 $LocalServices = Get-ServiceNames $Local
 $named = Read-NamedValues $Values
 
@@ -143,6 +143,6 @@ if ($errors.Count -gt 0) {
 }
 
 Write-Host "Local: $(if ($LocalServices) { $LocalServices -join ', ' } else { '(none)' }); values: $Values"
-$LocalServices | Where-Object { $Catalog[$_].localUrl } | ForEach-Object { Write-Host "  $_ expected at $($Catalog[$_].localUrl)" }
+$LocalServices | Where-Object { Get-LocalUrl $_ } | ForEach-Object { Write-Host "  $_ expected at $(Get-LocalUrl $_)" }
 
 $selected | ForEach-Object { Write-ProjectSecrets $_ $named }

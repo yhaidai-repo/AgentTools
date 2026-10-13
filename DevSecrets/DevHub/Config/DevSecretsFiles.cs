@@ -15,7 +15,7 @@ public sealed partial class DevSecretsFiles(IOptions<DevHubOptions> options)
 
     public JsonObject ReadMap() => ReadObject(Path.Combine(options.Value.ScriptsDir, "map.json"));
 
-    // "remote", "local", … from values.<name>.json.
+    // The environments: "dev", "local", … from values.<name>.json.
     public string[] ValuesFileNames()
     {
         return Directory.GetFiles(options.Value.ValuesDir, "values.*.json")

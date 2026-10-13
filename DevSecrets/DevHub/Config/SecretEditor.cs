@@ -61,7 +61,7 @@ public sealed partial class SecretEditor(DevSecretsFiles files, ConfigCatalog ca
             return HubResult.NotFound($"No values file values.{file}.json.");
 
         if (!ValueName().IsMatch(name))
-            return HubResult.Invalid("A value name is lower-case letters and digits, joined by single '-' (e.g. signals-remote-url), at most 64 characters.");
+            return HubResult.Invalid("A value name is lower-case letters and digits, joined by single '-' (e.g. signals-url), at most 64 characters.");
 
         return name == HubTokenValue ? HubResult.Conflict($"{HubTokenValue} is DevHub's own token: change it in the file and restart DevHub, then update PowerLoom's Local stack settings.") : null;
     }

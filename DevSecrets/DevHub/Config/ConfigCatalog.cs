@@ -8,7 +8,8 @@ namespace DevSecrets.DevHub.Config;
 public sealed class ConfigCatalog(DevSecretsFiles files)
 {
     private const string Placeholder = "<fill-me>";
-    private const string RemoteValuesFile = "remote";
+    private const string RemoteValuesFile = "dev";
+    private const string LocalValuesFile = "local";
     private const string UrlPart = "url";
 
     // Values the scripts read themselves, not through map.json.
@@ -22,8 +23,9 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
     public IReadOnlyList<AppView> GetApps()
     {
         var remote = RemoteTargets();
+        var local = files.ReadValues(LocalValuesFile) ?? [];
 
-        return Apps().Select(app => app with { Remote = remote.GetValueOrDefault(app.Name) ?? [] }).ToList();
+        return Apps().Select(app => app with { LocalUrl = local[$"{app.Name}-{UrlPart}"]?.ToString(), Remote = remote.GetValueOrDefault(app.Name) ?? [] }).ToList();
     }
 
     public DependencyView GetDependencies()
@@ -49,16 +51,20 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
         return value is null || name == DevSecretsFiles.ExtendsKey ? null : new SecretValue(file, name, value.ToString());
     }
 
-    // Value name → who reads it: "project: key" settings (directly or as a reference's remote value) and the scripts.
+    // Value name → who reads it: "project: key" settings (a plain value, or a call's "<app>-<part>" link) and the scripts;
+    // every app's local URL is read by Start-LocalStack.ps1 to see when the app is ready.
     public Dictionary<string, List<string>> ValueUsage()
     {
         var usage = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         foreach (var setting in ReadProjects(AppOfProject()).SelectMany(project => project.Settings.Select(setting => (project.Project, setting))))
-            AddUsage(usage, setting.setting.ValueName ?? setting.setting.RemoteValue, $"{setting.Project}: {setting.setting.Key}");
+            AddUsage(usage, setting.setting.ValueName ?? setting.setting.Endpoint, $"{setting.Project}: {setting.setting.Key}");
 
         foreach (var read in ScriptReads)
             AddUsage(usage, read.Value, read.Reader);
+
+        foreach (var app in Apps())
+            AddUsage(usage, $"{app.Name}-{UrlPart}", $"Start-LocalStack.ps1: where {app.Name} answers locally");
 
         return usage;
     }
@@ -83,12 +89,12 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
     private IEnumerable<AppView> Apps() =>
         files.ReadServices().Select(service => ToAppView(service.Key, service.Value!.AsObject())).OrderBy(app => app.Name, StringComparer.Ordinal);
 
-    // App name → its remote targets: every "@app.part|value" reference's value, with the settings that use it.
+    // App name → where calls to it go in the environment: every call's "<app>-<part>" link, with the settings that use it.
     private Dictionary<string, RemoteTarget[]> RemoteTargets()
     {
         var values = files.ReadValues(RemoteValuesFile) ?? [];
         var references = ReadProjects(AppOfProject())
-            .SelectMany(project => project.Settings.Where(setting => setting.RemoteValue is not null).Select(setting => (Setting: setting, Use: $"{project.Project}: {setting.Key}")));
+            .SelectMany(project => project.Settings.Where(setting => setting.Endpoint is not null && setting.Service != project.App).Select(setting => (Setting: setting, Use: $"{project.Project}: {setting.Key}")));
 
         return references
             .GroupBy(reference => reference.Setting.Service!)
@@ -97,7 +103,7 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
 
     private static RemoteTarget[] ToRemoteTargets(IEnumerable<(ProjectSetting Setting, string Use)> references, JsonObject values) =>
         references
-            .GroupBy(reference => (reference.Setting.Part!, reference.Setting.RemoteValue!))
+            .GroupBy(reference => (reference.Setting.Part!, reference.Setting.Endpoint!))
             .Select(target => new RemoteTarget(target.Key.Item1, target.Key.Item2, UrlOf(target.Key.Item1, target.Key.Item2, values), target.Select(reference => reference.Use).Order(StringComparer.Ordinal).ToArray()))
             .OrderBy(target => target.Part, StringComparer.Ordinal)
             .ThenBy(target => target.ValueName, StringComparer.Ordinal)
@@ -110,9 +116,7 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
         new(
             name,
             Text(service, "note"),
-            Text(service, "localUrl"),
-            Text(service, "localKey"),
-            Text(service, "localUser"),
+            null,
             service["consumesBus"]?.GetValue<bool>() ?? false,
             service["projects"]?.AsArray().Select(project => project!.ToString()).ToArray() ?? [],
             service["run"] is JsonObject run ? ToRun(run) : null,
@@ -140,7 +144,7 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
         if (reference is null)
             return new ProjectSetting(key, value, null, null, null);
 
-        return new ProjectSetting(key, null, reference.Service, reference.Part, reference.Remote);
+        return new ProjectSetting(key, null, reference.Service, reference.Part, reference.Endpoint);
     }
 
     // An app's calls: the services its projects' references point at, other than itself (an own inbound key).

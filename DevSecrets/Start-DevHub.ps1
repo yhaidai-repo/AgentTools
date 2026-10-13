@@ -45,7 +45,7 @@ function Add-TokenValue([string] $ValuesPath) {
 }
 
 function Get-HubToken() {
-    $valuesPath = Join-Path $ValuesDir "values.remote.json"
+    $valuesPath = Join-Path $ValuesDir "values.dev.json"
 
     if (-not (Read-JsonFile $valuesPath).ContainsKey($TokenValue)) {
         Add-TokenValue $valuesPath
