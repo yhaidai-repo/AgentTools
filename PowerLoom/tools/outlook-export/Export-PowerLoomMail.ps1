@@ -4,7 +4,9 @@ Exports new Inbox mails whose subject matches into PowerLoom's import inbox (out
 
 .DESCRIPTION
 Read only: mails are never marked, moved or answered. Uses the running classic Outlook and does nothing when it is
-closed. Each mail becomes one JSON file (raw mail facts); PowerLoom's worker maps it to a PBI import request.
+closed, unless -StartOutlook is given: then it starts Outlook headless (no window), waits up to -StartWaitSeconds for
+its Exchange connection and again for a send/receive, and exports.
+Each mail becomes one JSON file (raw mail facts); PowerLoom's worker maps it to a PBI import request.
 Needs Windows PowerShell 5.1 (powershell.exe): PowerShell 7 can't attach to a running Outlook.
 #>
 [CmdletBinding(PositionalBinding = $false)]
@@ -12,7 +14,9 @@ param(
     [string]$OutputPath = (Join-Path $PSScriptRoot "..\..\import-inbox\outlook"),
     [string[]]$Subjects = @("Backlog Refinement", "Sprint Planning"),
     [int]$MaxPerRun = 50,
-    [int]$LookbackDays = 14
+    [int]$LookbackDays = 14,
+    [switch]$StartOutlook,
+    [int]$StartWaitSeconds = 60
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,6 +30,12 @@ $PrInternetMessageId = "http://schemas.microsoft.com/mapi/proptag/0x1035001F"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 $BusyAttempts = 3
 $BusyWaitSeconds = 10
+$StartPollSeconds = 1
+# Exchange connection modes in which new mail can be fetched: no Exchange (nothing to connect), cached and connected
+# (headers, drizzle, full), online.
+$ReadyConnectionModes = 0, 500, 600, 700, 800
+$SendReceiveSource = Join-Path $PSScriptRoot "SendReceive.cs"
+$OutlookInterop = "Microsoft.Office.Interop.Outlook, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c"
 
 function Write-Log([string]$Message) {
     Add-Content -Path $LogPath -Value ("{0:u} {1}" -f (Get-Date), $Message)
@@ -37,6 +47,58 @@ function Get-RunningOutlook {
     }
 
     return [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+}
+
+function Wait-ForExchangeConnection($Session) {
+    $deadline = (Get-Date).AddSeconds($StartWaitSeconds)
+
+    do {
+        Start-Sleep -Seconds $StartPollSeconds
+        $connected = $ReadyConnectionModes -contains $Session.ExchangeConnectionMode
+    } while (-not $connected -and (Get-Date) -lt $deadline)
+
+    return $connected
+}
+
+# Late-bound COM gives PowerShell no Outlook events, so the end of the send/receive is awaited in C# on the interop types.
+function Invoke-SendReceive($Session) {
+    if ($Session.SyncObjects.Count -eq 0) {
+        return $true
+    }
+
+    Add-Type -Path $SendReceiveSource -ReferencedAssemblies $OutlookInterop
+
+    return [SendReceive]::Run($Session.SyncObjects.Item(1), $StartWaitSeconds)
+}
+
+# Started through COM, classic Outlook runs without a window and closes by itself about 10 s after this script ends.
+# It is still offline right after the start: it connects to Exchange within seconds, then a send/receive fetches the
+# mail that came while it was closed.
+function Start-HeadlessOutlook {
+    $outlook = New-Object -ComObject Outlook.Application
+    $session = $outlook.GetNamespace("MAPI")
+
+    # Default profile, no dialog: nobody is there to answer one.
+    $session.Logon("", "", $false, $false)
+
+    if (-not (Wait-ForExchangeConnection $session)) {
+        Write-Log "Started Outlook headless; it didn't connect to Exchange within $StartWaitSeconds s, so only mail it already had is exported."
+    }
+    elseif (-not (Invoke-SendReceive $session)) {
+        Write-Log "Started Outlook headless; send/receive didn't finish within $StartWaitSeconds s, so only mail fetched so far is exported."
+    }
+
+    return $outlook
+}
+
+function Get-Outlook {
+    $outlook = Get-RunningOutlook
+
+    if ($outlook -or -not $StartOutlook) {
+        return $outlook
+    }
+
+    return Start-HeadlessOutlook
 }
 
 # Entry id -> received time of every mail already exported, so a mail is written once.
@@ -186,7 +248,7 @@ function Invoke-Export($Outlook) {
 }
 
 try {
-    $outlook = Get-RunningOutlook
+    $outlook = Get-Outlook
 
     if (-not $outlook) {
         Write-Log "Outlook isn't running; nothing exported."
