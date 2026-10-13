@@ -14,4 +14,5 @@ public sealed record RefinementNote(
     IReadOnlyList<RepoReason> Repos,
     IReadOnlyList<string> Assumptions,
     IReadOnlyList<RelevantDoc> RelevantDocs,
-    IReadOnlyList<string> DocsRead);
+    IReadOnlyList<string> DocsRead,
+    RefinementDetails? Details = null);
