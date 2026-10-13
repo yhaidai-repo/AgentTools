@@ -35,6 +35,10 @@ const topLevel: SchemeNode[] = [
   node("database", "Postgres", "service", undefined, "state, queues, usage, config", 1.5, 2),
   node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 3, 2),
   node("backup", "backup", "service", undefined, "daily pg_dump", 0, 2),
+  // What the agents read outside on their own (per-agent switches), in a row of their own.
+  node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 2, 3),
+  node("azure", "Azure", "external", undefined, "App Insights, Cosmos DB, Service Bus, Mongo (Read Azure)", 3, 3),
+  node("local-stack", "Local stack bridge", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
 ];
 
 const powerloomModules: SchemeNode[] = [
@@ -48,7 +52,7 @@ const powerloomModules: SchemeNode[] = [
 ];
 
 const powerloomFeatures: SchemeNode[] = [
-  node("pbis", "Pbis", "component", "pl-features", "prepare, notes, create, finish, delete, repos, skills, attachments"),
+  node("pbis", "Pbis", "component", "pl-features", "prepare, notes, user notes, create, finish, delete, repos, skills, attachments"),
   node("tasks", "Tasks", "component", "pl-features", "items, schedules, close, rerun, bugs"),
   node("agents-dispatch", "Agents: dispatch", "component", "pl-features", "schedules, Run now, the validator, claims"),
   node("agent-runs", "Agents: run saga", "component", "pl-features", "StartAgentRun → runner, the callback, timeout"),
@@ -57,7 +61,7 @@ const powerloomFeatures: SchemeNode[] = [
   node("continue", "Continue", "component", "pl-features", "chats with Claude"),
   node("drafts", "Drafts", "component", "pl-features", "the drafts scan every 10 minutes"),
   node("import-sources", "Import sources", "component", "pl-features", "Outlook, inbox"),
-  node("vault-features", "Vaults", "component", "pl-features", "add, trash, features"),
+  node("vault-features", "Vaults", "component", "pl-features", "add, trash, features, POWERLOOM.md"),
   node("skills", "Skills", "component", "pl-features", "edits, revisions"),
   node("status", "Status", "component", "pl-features", "GET /api/status, the dashboard"),
   node("dead-letters", "Dead letters", "component", "pl-features", "list, replay, discard"),
@@ -110,6 +114,8 @@ const runnerAgents: SchemeNode[] = [
   node("agent-code-review", "code-review", "component", "runner-agents"),
   node("agent-vault-review", "vault-review", "component", "runner-agents"),
   node("agent-goal", "goal tasks", "component", "runner-agents"),
+  node("agent-better-refinement", "better-refinement", "component", "runner-agents"),
+  node("agent-better-research", "better-research", "component", "runner-agents"),
 ];
 
 const runnerTools: SchemeNode[] = [
@@ -120,11 +126,18 @@ const runnerTools: SchemeNode[] = [
   node("tool-vault-capture", "vault capture", "component", "runner-tools"),
   node("tool-web", "web research", "component", "runner-tools"),
   node("tool-repos", "repo cache", "component", "runner-tools"),
+  node("tool-pbi-context", "PBI context", "component", "runner-tools", "read_pbi: the context of every run on a PBI"),
+  node("tool-create-task", "create task", "component", "runner-tools", "tasks for other agents or the user"),
+  node("tool-sql", "read SQL", "component", "runner-tools"),
+  node("tool-azure", "read Azure", "component", "runner-tools"),
+  node("tool-local-stack", "local stack", "component", "runner-tools"),
+  node("tool-test-cases", "ADO test cases", "component", "runner-tools", "read_test_cases: Tested By, saved to the PBI"),
+  node("tool-access", "access requests", "component", "runner-tools", "every outside call logged; a refused one becomes a human task"),
 ];
 
 const webParts: SchemeNode[] = [
   node("web-pages", "Pages", "module", "web", "Dashboard, Backlog, Tasks, Reviews, Vault, Agents, Runs, Settings", 0, 0),
-  node("web-cli", "CLI", "module", "web", "powerloomCli: the commands for chats", 1, 0),
+  node("web-cli", "CLI", "module", "web", "powerloomCli: the commands for chats (pbi.read, …)", 1, 0),
   node("web-client", "PowerLoom client", "module", "web", "openapi-fetch, typed from the OpenAPI document", 0, 1),
 ];
 
@@ -163,6 +176,13 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-repos", "repos"),
   link("tool-vault-capture", "vaults"),
   link("tool-confluence", "confluence"),
+  link("tool-sql", "sql-server"),
+  link("tool-azure", "azure"),
+  link("tool-local-stack", "local-stack"),
+  link("tool-test-cases", "ado", "test cases"),
+  link("tool-pbi-context", "schema-public"),
+  link("tool-access", "schema-public"),
+  link("web-cli", "schema-public", "pbi.read"),
   link("runner-agents", "schema-public"),
   link("agent-config", "schema-agent-config"),
   link("budget", "schema-agent-usage"),
