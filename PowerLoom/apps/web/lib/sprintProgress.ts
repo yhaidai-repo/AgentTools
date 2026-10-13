@@ -7,7 +7,9 @@ import { getDb } from "./db";
 // ADO states in the order a sprint item moves through them; states ADO adds later go after, as they come.
 export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Ready for Release", "Resolved", "Done", "Closed"];
 
-const DONE_STATES = ["Done", "Closed"];
+// Ready for Release counts as done: the sprint's work is over by then (user decision 2026-10-13).
+const DONE_STATES = ["Ready for Release", "Done", "Closed"];
+const CLOSED_STATES = ["Done", "Closed"];
 
 interface StateCount {
   day: string;
@@ -60,6 +62,11 @@ export function sprintStates(days: SprintDay[]): string[] {
 
 export function isDoneState(state: string): boolean {
   return DONE_STATES.includes(state);
+}
+
+// The chart keeps Ready for Release in its own color, apart from Done and Closed.
+export function isClosedState(state: string): boolean {
+  return CLOSED_STATES.includes(state);
 }
 
 export function itemsOn(day: SprintDay): number {
