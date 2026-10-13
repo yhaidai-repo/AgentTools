@@ -12,70 +12,46 @@ namespace PowerLoom.Api.Tests.ReadAzure;
 public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
 {
     private const string ReadAzure = $"/api/vaults/{PowerLoomHost.Vault}/read-azure";
-    private const string Tenant = "11111111-1111-1111-1111-111111111111";
-    private const string Client = "22222222-2222-2222-2222-222222222222";
     private const string Logs = "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/pvs-stage/providers/microsoft.insights/components/pvs-api";
     private const string Mongo = "mongodb://pvs-mongo:k3y==@pvs-mongo.mongo.cosmos.azure.com:10255/?ssl=true";
+    private const string Bus = "Endpoint=sb://pvs-bus.servicebus.windows.net/;SharedAccessKeyName=listen;SharedAccessKey=k3y=";
 
     [Fact]
-    public async Task The_identity_keeps_its_secret_when_the_field_is_empty_and_the_test_uses_it()
+    public async Task A_resource_is_shown_by_its_target_and_a_connection_string_only_by_its_host()
     {
-        var tester = host.Host.Services.GetRequiredService<FakeAzureIdentityTester>();
-
-        await host.Host.PutJson(new SaveAzureIdentityRequest(Tenant, Client, "s3cret-1"), $"{ReadAzure}/identity").Receive<AzureIdentitySummary>();
-        await host.Host.PutJson(new SaveAzureIdentityRequest(Tenant, Client, ""), $"{ReadAzure}/identity").Receive<AzureIdentitySummary>();
-
-        var saved = (await ReadSettingsAsync()).Identity;
-        var check = await host.Host.PostJson(new TestAzureIdentityRequest(Tenant, Client, null), $"{ReadAzure}/identity/test").Receive<AzureIdentityCheck>();
-
-        Assert.Equal("s3cret-1", saved!.ClientSecret);
-        Assert.Equal(tester.Answer, check);
-        Assert.Equal("s3cret-1", tester.LastIdentity!.ClientSecret);
-    }
-
-    [Fact]
-    public async Task A_first_identity_without_a_secret_or_with_a_bad_id_is_refused()
-    {
-        await IdentityShouldFailAsync(new SaveAzureIdentityRequest(Tenant, "not-a-guid", "s3cret"), HttpStatusCode.BadRequest);
-
-        await host.Host.Scenario(scenario =>
-        {
-            scenario.Post.Json(new TestAzureIdentityRequest(Tenant, Client, " ")).ToUrl("/api/vaults/no-such-vault/read-azure/identity/test");
-            scenario.StatusCodeShouldBe(HttpStatusCode.NotFound);
-        });
-    }
-
-    [Fact]
-    public async Task A_resource_is_shown_by_its_target_and_a_mongo_string_only_by_its_host()
-    {
-        var logs = await host.Host.PostJson(new AddAzureResourceRequest("pvs-logs", "appInsights", Logs), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        var mongo = await host.Host.PostJson(new AddAzureResourceRequest("pvs-mongo", "mongo", Mongo), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var logs = await host.Host.PostJson(new AddAzureResourceRequest("pvs-logs", "appInsights", Logs, null), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var cosmos = await host.Host.PostJson(new AddAzureResourceRequest("pvs-cosmos", "cosmos", "https://pvs.documents.azure.com", "r0-key=="), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var bus = await host.Host.PostJson(new AddAzureResourceRequest("pvs-bus", "serviceBus", null, Bus), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var mongo = await host.Host.PostJson(new AddAzureResourceRequest("pvs-mongo", "mongo", null, Mongo), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
 
         var saved = await ReadSettingsAsync();
 
         Assert.Equal(new AzureResourceSummary("pvs-logs", "appInsights", Logs, true), logs);
+        Assert.Equal(new AzureResourceSummary("pvs-cosmos", "cosmos", "https://pvs.documents.azure.com", true), cosmos);
+        Assert.Equal(new AzureResourceSummary("pvs-bus", "serviceBus", "pvs-bus.servicebus.windows.net", true), bus);
         Assert.Equal(new AzureResourceSummary("pvs-mongo", "mongo", "pvs-mongo.mongo.cosmos.azure.com:10255", true), mongo);
-        Assert.Equal(Mongo, saved.Find("pvs-mongo")!.Target);
+        Assert.Equal(("r0-key==", Bus, Mongo, ""), (saved.Find("pvs-cosmos")!.Secret, saved.Find("pvs-bus")!.Secret, saved.Find("pvs-mongo")!.Secret, saved.Find("pvs-logs")!.Secret));
     }
 
     [Fact]
     public async Task A_target_that_does_not_fit_its_kind_a_taken_name_and_an_unknown_kind_are_refused()
     {
-        await host.Host.PostJson(new AddAzureResourceRequest("taken", "cosmos", "https://pvs.documents.azure.com"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        await host.Host.PostJson(new AddAzureResourceRequest("taken", "cosmos", "https://pvs.documents.azure.com", "k"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
 
-        await AddShouldFailAsync(new AddAzureResourceRequest("TAKEN", "cosmos", "https://pvs.documents.azure.com"), HttpStatusCode.Conflict);
-        await AddShouldFailAsync(new AddAzureResourceRequest("wrong-kind", "blob", "https://x"), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("logs-as-url", "appInsights", "https://portal.azure.com/x"), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("cosmos-as-id", "cosmos", Logs), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("bus-as-fqdn", "serviceBus", "pvs.servicebus.windows.net"), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("mongo-as-sql", "mongo", "Server=x;Database=y"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("TAKEN", "cosmos", "https://pvs.documents.azure.com", "k"), HttpStatusCode.Conflict);
+        await AddShouldFailAsync(new AddAzureResourceRequest("wrong-kind", "blob", "https://x", null), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("logs-as-url", "appInsights", "https://portal.azure.com/x", null), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("cosmos-as-id", "cosmos", Logs, "k"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("cosmos-no-key", "cosmos", "https://pvs.documents.azure.com", ""), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("bus-as-fqdn", "serviceBus", null, "pvs.servicebus.windows.net"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("mongo-as-sql", "mongo", null, "Server=x;Database=y"), HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task The_vault_switch_and_a_resource_switch_are_saved_and_a_removed_resource_is_gone()
+    public async Task Each_kind_has_its_own_switch_a_resource_switch_is_saved_and_a_removed_resource_is_gone()
     {
-        await host.Host.PostJson(new AddAzureResourceRequest("switched", "serviceBus", "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg/providers/Microsoft.ServiceBus/namespaces/pvs-bus"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        await host.Host.Scenario(scenario => scenario.Put.Json(new EnabledRequest(true)).ToUrl(ReadAzure));
+        await host.Host.PostJson(new AddAzureResourceRequest("switched", "serviceBus", null, Bus), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        await host.Host.Scenario(scenario => scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/serviceBus/enabled"));
 
         var off = await host.Host.PutJson(new EnabledRequest(false), $"{ReadAzure}/resources/switched/enabled").Receive<AzureResourceSummary>();
         var switched = await ReadSettingsAsync();
@@ -85,24 +61,55 @@ public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
         var removed = await ReadSettingsAsync();
 
         Assert.False(off!.Enabled);
-        Assert.True(switched.Enabled);
+        Assert.True(switched.IsEnabled("serviceBus"));
+        Assert.False(switched.IsEnabled("cosmos"));
         Assert.False(switched.Find("switched")!.Enabled);
         Assert.Null(removed.Find("switched"));
+
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/blob/enabled");
+            scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
+        });
 
         await host.Host.Scenario(scenario =>
         {
             scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/resources/no-such-resource/enabled");
             scenario.StatusCodeShouldBe(HttpStatusCode.NotFound);
         });
-    }
 
-    private async Task IdentityShouldFailAsync(SaveAzureIdentityRequest request, HttpStatusCode status)
-    {
         await host.Host.Scenario(scenario =>
         {
-            scenario.Put.Json(request).ToUrl($"{ReadAzure}/identity");
-            scenario.StatusCodeShouldBe(status);
+            scenario.Put.Json(new EnabledRequest(true)).ToUrl("/api/vaults/no-such-vault/read-azure/cosmos/enabled");
+            scenario.StatusCodeShouldBe(HttpStatusCode.NotFound);
         });
+    }
+
+    [Fact]
+    public async Task The_user_sign_in_starts_at_the_runner_reports_its_status_and_signs_out()
+    {
+        var login = host.Host.Services.GetRequiredService<FakeAzureUserLogin>();
+
+        var started = await host.Host.PostJson(new { }, $"{ReadAzure}/user-login/start").Receive<AzureLoginStart>();
+        var pending = await host.Host.GetAsJson<AzureLoginStatus>($"{ReadAzure}/user-login/{started!.FlowId}");
+
+        login.Status = new AzureLoginStatus("done", "sam@x.io", null);
+
+        var done = await host.Host.GetAsJson<AzureLoginStatus>($"{ReadAzure}/user-login/flow-1");
+
+        await host.Host.Scenario(scenario => scenario.Delete.Url($"{ReadAzure}/user-login"));
+
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Get.Url($"{ReadAzure}/user-login/no-such-flow");
+            scenario.StatusCodeShouldBe(HttpStatusCode.BadGateway);
+        });
+
+        Assert.Equal(PowerLoomHost.Vault, login.StartedVault);
+        Assert.Equal("ABCD-1234", started.UserCode);
+        Assert.Equal("pending", pending!.Status);
+        Assert.Equal("sam@x.io", done!.Username);
+        Assert.Equal(PowerLoomHost.Vault, login.SignedOutVault);
     }
 
     private async Task AddShouldFailAsync(AddAzureResourceRequest request, HttpStatusCode status)

@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PowerLoom.AzureIntegration.Features.Resources.Models;
 using PowerLoom.AzureIntegration.Settings;
-using PowerLoom.Contracts;
 using PowerLoom.Features.Repos.Models;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Infrastructure.Vaults;
@@ -11,33 +10,25 @@ using Wolverine.Http;
 
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
-// Settings → Read Azure (user decision 2026-10-12): the vault's switch, its service principal, its resources and the
-// identity test. Which agents may read is each agent's own switch per kind (the `readAzureLogs`, `readCosmos`,
-// `readServiceBus`, `readMongo` integrations in its Config).
+// Settings → Read Azure (user decisions 2026-10-12/13): one feature per kind with its own switch, the user's own
+// sign-in for App Insights, and resources with a key each. Which agents may read is each agent's own switch per kind
+// (the `readAzureLogs`, `readCosmos`, `readServiceBus`, `readMongo` integrations in its Config).
 public static class ReadAzureEndpoints
 {
     public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
 
-    [WolverinePut("/api/vaults/{vault}/read-azure")]
-    public static async Task<Ok> SetEnabled(string vault, EnabledRequest request, ReadAzureResources resources, CancellationToken cancellation)
+    [WolverinePut("/api/vaults/{vault}/read-azure/{kind}/enabled")]
+    public static async Task<Results<Ok, ProblemHttpResult>> SetKindEnabled(string vault, string kind, EnabledRequest request, ReadAzureResources resources, CancellationToken cancellation)
     {
-        await resources.SetEnabledAsync(vault, request.Enabled, cancellation);
+        var changed = await resources.SetKindEnabledAsync(vault, kind, request.Enabled, cancellation);
 
-        return TypedResults.Ok();
-    }
-
-    [WolverinePut("/api/vaults/{vault}/read-azure/identity")]
-    public static async Task<Results<Ok<AzureIdentitySummary>, ProblemHttpResult>> SaveIdentity(string vault, SaveAzureIdentityRequest request, ReadAzureResources resources, CancellationToken cancellation)
-    {
-        var saved = await resources.SaveIdentityAsync(vault, request.TenantId, request.ClientId, request.ClientSecret, cancellation);
-
-        return saved.Ok ? TypedResults.Ok(new AzureIdentitySummary(saved.Value.TenantId, saved.Value.ClientId)) : saved.Problem.ToProblemResult();
+        return changed.Ok ? TypedResults.Ok() : changed.Problem.ToProblemResult();
     }
 
     [WolverinePost("/api/vaults/{vault}/read-azure/resources")]
     public static async Task<Results<Ok<AzureResourceSummary>, ProblemHttpResult>> Add(string vault, AddAzureResourceRequest request, ReadAzureResources resources, CancellationToken cancellation)
     {
-        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target, cancellation);
+        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target ?? "", request.Secret ?? "", cancellation);
 
         return added.Ok ? TypedResults.Ok(SummaryOf(added.Value)) : added.Problem.ToProblemResult();
     }
@@ -58,19 +49,29 @@ public static class ReadAzureEndpoints
         return TypedResults.Ok();
     }
 
-    // Signs in with the form's values (an empty secret means the saved one) and asks Entra for a token. Nothing is saved.
-    [WolverinePost("/api/vaults/{vault}/read-azure/identity/test")]
-    public static async Task<Results<Ok<AzureIdentityCheck>, ProblemHttpResult>> TestIdentity(string vault, TestAzureIdentityRequest request, ReadAzureSettingsStore store, IAzureIdentityTester tester, CancellationToken cancellation)
+    // The user's own sign-in for App Insights: Entra's code to type at the link; the runner finishes it in the background.
+    [WolverinePost("/api/vaults/{vault}/read-azure/user-login/start")]
+    public static async Task<Results<Ok<AzureLoginStart>, ProblemHttpResult>> StartUserLogin(string vault, [FromServices] IAzureUserLogin login, CancellationToken cancellation)
     {
-        var saved = (await store.ReadAsync(vault, cancellation)).Identity;
-        var secret = string.IsNullOrWhiteSpace(request.ClientSecret) ? saved?.ClientSecret ?? "" : request.ClientSecret.Trim();
+        var started = await login.StartAsync(vault, cancellation);
 
-        if (secret.Length == 0)
-            return Problem.Invalid("Enter the client secret first.").ToProblemResult();
+        return started.Ok ? TypedResults.Ok(started.Value) : started.Problem.ToProblemResult();
+    }
 
-        var identity = new AzureIdentitySettings { TenantId = request.TenantId.Trim(), ClientId = request.ClientId.Trim(), ClientSecret = secret };
+    [WolverineGet("/api/vaults/{vault}/read-azure/user-login/{flowId}")]
+    public static async Task<Results<Ok<AzureLoginStatus>, ProblemHttpResult>> UserLoginStatus(string vault, string flowId, [FromServices] IAzureUserLogin login, CancellationToken cancellation)
+    {
+        var status = await login.StatusAsync(flowId, cancellation);
 
-        return TypedResults.Ok(await tester.TestAsync(identity, cancellation));
+        return status.Ok ? TypedResults.Ok(status.Value) : status.Problem.ToProblemResult();
+    }
+
+    [WolverineDelete("/api/vaults/{vault}/read-azure/user-login")]
+    public static async Task<Results<Ok, ProblemHttpResult>> SignOut(string vault, [FromServices] IAzureUserLogin login, CancellationToken cancellation)
+    {
+        var signedOut = await login.SignOutAsync(vault, cancellation);
+
+        return signedOut.Ok ? TypedResults.Ok() : signedOut.Problem.ToProblemResult();
     }
 
     private static AzureResourceSummary SummaryOf(AzureResourceSettings resource) => new(resource.Name, resource.Kind, resource.Display, resource.Enabled);

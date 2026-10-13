@@ -5,6 +5,7 @@ import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
+import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
 import type { ReadSqlSettings } from "./models/ReadSqlSettings";
 import type { SyncSettings } from "./models/SyncSettings";
@@ -18,6 +19,9 @@ const IMPORT_STATUS_KEY = "importStatus";
 const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
 const READ_AZURE_KEY = "readAzure";
+// Written by the agent-runner (the user's sign-in for App Insights): the account the page shows, and the MSAL cache.
+export const AZURE_USER_KEY = "azureUser";
+export const AZURE_USER_TOKEN_CACHE_KEY = "azureUserTokenCache";
 
 const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   cron: "*/30 * * * *",
@@ -120,7 +124,12 @@ export async function readReadSqlSettings(db: PowerLoomDb, vault: string): Promi
 export async function readReadAzureSettings(db: PowerLoomDb, vault: string): Promise<ReadAzureSettings> {
   const stored = await readValue<Partial<ReadAzureSettings>>(db, vaultSettingKey(vault, READ_AZURE_KEY));
 
-  return { enabled: stored?.enabled ?? false, identity: stored?.identity ?? null, resources: stored?.resources ?? [] };
+  return { enabledKinds: stored?.enabledKinds ?? {}, resources: stored?.resources ?? [] };
+}
+
+// Null until the user signed in for this vault.
+export function readAzureUserAccount(db: PowerLoomDb, vault: string): Promise<AzureUserAccount | null> {
+  return readValue<AzureUserAccount>(db, vaultSettingKey(vault, AZURE_USER_KEY));
 }
 
 export async function readValue<T>(db: PowerLoomDb, key: string): Promise<T | null> {

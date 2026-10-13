@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
+import type { AzureLoginStart } from "@/models/AzureLoginStart";
+import type { AzureLoginStatus } from "@/models/AzureLoginStatus";
 
 // The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06). PowerLoom saves
 // them and schedules the vault's jobs from the saved settings: nothing to apply here.
@@ -144,49 +146,58 @@ async function testSqlConnection(body: { name: string | null; connectionString: 
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
-// Read Azure (user decision 2026-10-12), kept by PowerLoom; which agents read which kind is each agent's own switches.
-export async function saveReadAzureAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+// Read Azure (user decisions 2026-10-12/13), kept by PowerLoom: one switch per kind here, and each agent's own
+// switches per kind on its Config page.
+export async function saveReadAzureKindAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const enabled = isEnabled(form);
-  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure", { params: { path: { vault: await requireVault() } }, body: { enabled } });
-  const result = powerloomResult(saved, enabled ? "Saved. Agents with a kind's switch on may read the enabled resources of that kind." : "Saved. Read Azure is off: no agent reads this vault's Azure resources.");
+  const kind = field(form, "kind");
+  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure/{kind}/enabled", { params: { path: { vault: await requireVault(), kind } }, body: { enabled } });
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with this kind's switch on may read its enabled resources." : "Saved. Off: no agent reads this kind for this vault.");
 
   revalidatePath("/settings");
 
   return result;
-}
-
-// An empty secret keeps the saved one.
-export async function saveAzureIdentityAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure/identity", {
-    params: { path: { vault: await requireVault() } },
-    body: { tenantId: field(form, "tenantId"), clientId: field(form, "clientId"), clientSecret: field(form, "clientSecret") },
-  });
-  const result = powerloomResult(saved, "Saved. Test the sign-in, then assign the read-only roles to this application in Azure.");
-
-  revalidatePath("/settings");
-
-  return result;
-}
-
-// Signs in with the form's values (the saved secret when the field is empty) through the agent-runner, without saving.
-export async function testAzureIdentityAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const checked = await powerloom.POST("/api/vaults/{vault}/read-azure/identity/test", {
-    params: { path: { vault: await requireVault() } },
-    body: { tenantId: field(form, "tenantId"), clientId: field(form, "clientId"), clientSecret: field(form, "clientSecret") },
-  });
-
-  return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
 export async function addAzureResourceAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const added = await powerloom.POST("/api/vaults/{vault}/read-azure/resources", {
     params: { path: { vault: await requireVault() } },
-    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target") },
+    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target"), secret: field(form, "secret") },
   });
 
   revalidatePath("/settings");
 
   return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
+}
+
+// The user's own sign-in for App Insights (user decision 2026-10-13): the runner gets Entra's code; the page polls.
+export async function startAzureLoginAction(): Promise<{ ok: true; start: AzureLoginStart } | { ok: false; message: string }> {
+  const started = await powerloom.POST("/api/vaults/{vault}/read-azure/user-login/start", { params: { path: { vault: await requireVault() } } });
+
+  if (!started.data) {
+    return { ok: false, message: powerloomResult(started, "").message };
+  }
+
+  return { ok: true, start: { flowId: started.data.flowId, userCode: started.data.userCode, verificationUri: started.data.verificationUri, expiresInSeconds: started.data.expiresInSeconds } };
+}
+
+export async function azureLoginStatusAction(flowId: string): Promise<AzureLoginStatus> {
+  const status = await powerloom.GET("/api/vaults/{vault}/read-azure/user-login/{flowId}", { params: { path: { vault: await requireVault(), flowId } } });
+
+  if (!status.data) {
+    return { status: "failed", error: powerloomResult(status, "").message };
+  }
+
+  if (status.data.status === "done") {
+    revalidatePath("/settings");
+  }
+
+  return { status: status.data.status as AzureLoginStatus["status"], error: status.data.error ?? null };
+}
+
+export async function signOutAzureAction(): Promise<void> {
+  await powerloom.DELETE("/api/vaults/{vault}/read-azure/user-login", { params: { path: { vault: await requireVault() } } });
+  revalidatePath("/settings");
 }
 
 export async function setAzureResourceEnabledAction(name: string, enabled: boolean): Promise<void> {

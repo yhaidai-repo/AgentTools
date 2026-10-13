@@ -1,46 +1,50 @@
 using System.Text.RegularExpressions;
+using PowerLoom.AzureIntegration.Features.Resources.Models;
 using PowerLoom.AzureIntegration.Settings;
 using PowerLoom.Contracts;
 
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
-// What each kind's target must look like, checked at save so a typo is an answer here and not a failed agent run.
+// What each kind needs, checked at save so a typo is an answer here and not a failed agent run (user decision
+// 2026-10-13: keys per resource). Target is public; Secret is the key or connection string, never shown again.
 public static partial class AzureTargets
 {
-    // Why the target doesn't fit the kind, or null.
-    public static Problem? ProblemOf(string kind, string target)
+    public static Outcome<AzureResourceTarget> Resolve(string kind, string target, string secret) => kind switch
     {
-        var fits = kind switch
-        {
-            AzureResourceKinds.AppInsights => LogsResourceId().IsMatch(target),
-            AzureResourceKinds.Cosmos => CosmosEndpoint().IsMatch(target),
-            AzureResourceKinds.ServiceBus => ServiceBusNamespaceId().IsMatch(target),
-            AzureResourceKinds.Mongo => MongoConnectionString().IsMatch(target),
-            _ => false,
-        };
-
-        return fits ? null : Problem.Invalid(Expected(kind));
-    }
-
-    // What the Settings page shows: a connection string only by its host, since it carries the key.
-    public static string DisplayOf(string kind, string target)
-    {
-        if (kind != AzureResourceKinds.Mongo)
-            return target;
-
-        var host = MongoConnectionString().Match(target).Groups["host"].Value;
-
-        return host.Length > 0 ? host : "mongodb://…";
-    }
-
-    private static string Expected(string kind) => kind switch
-    {
-        AzureResourceKinds.AppInsights => "An App Insights target is the component's or workspace's resource id: /subscriptions/…/providers/microsoft.insights/components/<name> (or Microsoft.OperationalInsights/workspaces/<name>).",
-        AzureResourceKinds.Cosmos => "A Cosmos target is the account endpoint: https://<account>.documents.azure.com.",
-        AzureResourceKinds.ServiceBus => "A Service Bus target is the namespace's resource id: /subscriptions/…/providers/Microsoft.ServiceBus/namespaces/<name>.",
-        AzureResourceKinds.Mongo => "A Mongo target is a connection string: mongodb://… or mongodb+srv://… (use the account's read-only key).",
-        _ => $"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.",
+        AzureResourceKinds.AppInsights => Public(LogsResourceId(), target, "An App Insights target is the component's or workspace's resource id: /subscriptions/…/providers/microsoft.insights/components/<name> (or Microsoft.OperationalInsights/workspaces/<name>). Logs are read with your own account (Sign in above)."),
+        AzureResourceKinds.Cosmos => Keyed(CosmosEndpoint(), target, secret, "A Cosmos target is the account endpoint, https://<account>.documents.azure.com, and the secret its read-only key (Keys → Read-only Keys)."),
+        AzureResourceKinds.ServiceBus => ConnectionString(ServiceBusConnectionString(), secret, "A Service Bus secret is a connection string of a policy with Listen only: Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=…;SharedAccessKey=…"),
+        AzureResourceKinds.Mongo => ConnectionString(MongoConnectionString(), secret, "A Mongo secret is the read-only connection string: mongodb://… or mongodb+srv://…"),
+        _ => Outcome<AzureResourceTarget>.Failure(Problem.Invalid($"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.")),
     };
+
+    // A public id, no secret: the vault's sign-in or service principal reads it.
+    private static Outcome<AzureResourceTarget> Public(Regex shape, string target, string expected)
+    {
+        return shape.IsMatch(target) ? Outcome<AzureResourceTarget>.Success(new AzureResourceTarget(target, "", target)) : Outcome<AzureResourceTarget>.Failure(Problem.Invalid(expected));
+    }
+
+    // A public endpoint plus a key.
+    private static Outcome<AzureResourceTarget> Keyed(Regex shape, string target, string secret, string expected)
+    {
+        if (!shape.IsMatch(target) || secret.Length == 0)
+            return Outcome<AzureResourceTarget>.Failure(Problem.Invalid(expected));
+
+        return Outcome<AzureResourceTarget>.Success(new AzureResourceTarget(target, secret, target));
+    }
+
+    // A connection string carries both: the host becomes the target the page shows.
+    private static Outcome<AzureResourceTarget> ConnectionString(Regex shape, string secret, string expected)
+    {
+        var match = shape.Match(secret);
+
+        if (!match.Success)
+            return Outcome<AzureResourceTarget>.Failure(Problem.Invalid(expected));
+
+        var host = match.Groups["host"].Value;
+
+        return Outcome<AzureResourceTarget>.Success(new AzureResourceTarget(host, secret, host));
+    }
 
     [GeneratedRegex(@"^/subscriptions/[0-9a-f-]{36}/resourceGroups/[^/]+/providers/(microsoft\.insights/components|Microsoft\.OperationalInsights/workspaces)/[^/]+/?$", RegexOptions.IgnoreCase)]
     private static partial Regex LogsResourceId();
@@ -48,8 +52,8 @@ public static partial class AzureTargets
     [GeneratedRegex(@"^https://[a-z0-9-]+\.documents\.azure\.com(:443)?/?$", RegexOptions.IgnoreCase)]
     private static partial Regex CosmosEndpoint();
 
-    [GeneratedRegex(@"^/subscriptions/[0-9a-f-]{36}/resourceGroups/[^/]+/providers/Microsoft\.ServiceBus/namespaces/[^/]+/?$", RegexOptions.IgnoreCase)]
-    private static partial Regex ServiceBusNamespaceId();
+    [GeneratedRegex(@"^Endpoint=sb://(?<host>[^/;]+)/?;.*SharedAccessKeyName=[^;]+;.*SharedAccessKey=[^;]+", RegexOptions.IgnoreCase)]
+    private static partial Regex ServiceBusConnectionString();
 
     [GeneratedRegex(@"^mongodb(\+srv)?://(?:[^@/]*@)?(?<host>[^/?]+)", RegexOptions.IgnoreCase)]
     private static partial Regex MongoConnectionString();

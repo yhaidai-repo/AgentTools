@@ -1,15 +1,16 @@
 namespace PowerLoom.AzureIntegration.Settings;
 
-// A vault's Read Azure (user decision 2026-10-12): agents with a kind's integration switched on read these resources
-// while the vault's switch is on. Any resource the user adds; no environment allow-list.
+// A vault's Read Azure (user decisions 2026-10-12/13): one feature per kind (App Insights, Cosmos DB, Service Bus,
+// Mongo), each with its own switch; agents with a kind's integration switched on read its enabled resources. Any
+// resource the user adds; no environment allow-list.
 public sealed class ReadAzureSettings
 {
-    public bool Enabled { get; set; }
-
-    // Null until the service principal was saved once. Mongo resources don't use it (a connection string instead).
-    public AzureIdentitySettings? Identity { get; set; }
+    // Kind → switched on; a kind not in the map is off.
+    public Dictionary<string, bool> EnabledKinds { get; set; } = [];
 
     public List<AzureResourceSettings> Resources { get; set; } = [];
+
+    public bool IsEnabled(string kind) => EnabledKinds.TryGetValue(kind, out var enabled) && enabled;
 
     public AzureResourceSettings? Find(string name) => Resources.Find(resource => resource.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 }

@@ -1,17 +1,20 @@
 "use client";
 
 import { useActionState } from "react";
+import type { AzureResourceKind } from "@powerloom/core";
 import type { ActionResult } from "@/models/ActionResult";
-import { saveReadAzureAction } from "./actions";
+import { saveReadAzureKindAction } from "./actions";
 
-export function ReadAzureSwitchForm({ enabled }: { enabled: boolean }) {
-  const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveReadAzureAction, null);
+// One kind's switch (user decision 2026-10-13: a feature per kind).
+export function ReadAzureSwitchForm({ kind, label, enabled }: { kind: AzureResourceKind; label: string; enabled: boolean }) {
+  const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveReadAzureKindAction, null);
 
   return (
     <form action={action}>
+      <input type="hidden" name="kind" value={kind} />
       <label className="inline">
         <input type="checkbox" name="enabled" defaultChecked={enabled} />
-        Enabled: agents with a kind&apos;s switch on may read this vault&apos;s enabled resources of that kind
+        {label}
       </label>
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>

@@ -95,8 +95,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<IRunnerClient>(provider => provider.GetRequiredService<FakeRunnerClient>());
         services.AddSingleton<FakeSqlConnectionTester>();
         services.AddSingleton<ISqlConnectionTester>(provider => provider.GetRequiredService<FakeSqlConnectionTester>());
-        services.AddSingleton<FakeAzureIdentityTester>();
-        services.AddSingleton<IAzureIdentityTester>(provider => provider.GetRequiredService<FakeAzureIdentityTester>());
+        services.AddSingleton<FakeAzureUserLogin>();
+        services.AddSingleton<IAzureUserLogin>(provider => provider.GetRequiredService<FakeAzureUserLogin>());
         services.ConfigureWolverine(options =>
         {
             options.Discovery.IncludeType(typeof(VaultProbeHandler));

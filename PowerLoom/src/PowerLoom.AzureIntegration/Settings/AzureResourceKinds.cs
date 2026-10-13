@@ -12,7 +12,6 @@ public static class AzureResourceKinds
 
     public static bool IsKnown(string kind) => All.Contains(kind);
 
-    // Mongo connects with its own connection string (Cosmos DB for MongoDB RU, user decision 2026-10-12), not the
-    // vault's service principal.
-    public static bool UsesIdentity(string kind) => kind != Mongo;
+    // App Insights is read with the user's own sign-in (user decision 2026-10-13); the other kinds carry a key.
+    public static bool UsesUserLogin(string kind) => kind == AppInsights;
 }

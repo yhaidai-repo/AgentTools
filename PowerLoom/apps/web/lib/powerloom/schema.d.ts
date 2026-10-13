@@ -1016,7 +1016,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vaults/{vault}/read-azure": {
+    "/api/vaults/{vault}/read-azure/{kind}/enabled": {
         parameters: {
             query?: never;
             header?: never;
@@ -1025,30 +1025,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * PUT_api_vaults_vault_read_azure
-         * @description PUT_api_vaults_vault_read_azure
+         * PUT_api_vaults_vault_read_azure_kind_enabled
+         * @description PUT_api_vaults_vault_read_azure_kind_enabled
          */
-        put: operations["PUT_api_vaults_vault_read_azure"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/vaults/{vault}/read-azure/identity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * PUT_api_vaults_vault_read_azure_identity
-         * @description PUT_api_vaults_vault_read_azure_identity
-         */
-        put: operations["PUT_api_vaults_vault_read_azure_identity"];
+        put: operations["PUT_api_vaults_vault_read_azure_kind_enabled"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1116,7 +1096,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vaults/{vault}/read-azure/identity/test": {
+    "/api/vaults/{vault}/read-azure/user-login/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -1126,11 +1106,51 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_vaults_vault_read_azure_identity_test
-         * @description POST_api_vaults_vault_read_azure_identity_test
+         * POST_api_vaults_vault_read_azure_user_login_start
+         * @description POST_api_vaults_vault_read_azure_user_login_start
          */
-        post: operations["POST_api_vaults_vault_read_azure_identity_test"];
+        post: operations["POST_api_vaults_vault_read_azure_user_login_start"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/user-login/{flowId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_vaults_vault_read_azure_user_login_flowId
+         * @description GET_api_vaults_vault_read_azure_user_login_flowId
+         */
+        get: operations["GET_api_vaults_vault_read_azure_user_login_flowId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/read-azure/user-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_read_azure_user_login
+         * @description DELETE_api_vaults_vault_read_azure_user_login
+         */
+        delete: operations["DELETE_api_vaults_vault_read_azure_user_login"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1143,7 +1163,8 @@ export interface components {
         AddAzureResourceRequest: {
             name: string;
             kind: string;
-            target: string;
+            target: null | string;
+            secret: null | string;
         };
         AddLinkRequest: {
             url: string;
@@ -1187,13 +1208,18 @@ export interface components {
             severity: components["schemas"]["StateLevel"];
             message: string;
         };
-        AzureIdentityCheck: {
-            ok: boolean;
+        AzureLoginStart: {
+            flowId: string;
+            userCode: string;
+            verificationUri: string;
             message: string;
+            /** Format: int32 */
+            expiresInSeconds: number;
         };
-        AzureIdentitySummary: {
-            tenantId: string;
-            clientId: string;
+        AzureLoginStatus: {
+            status: string;
+            username: null | string;
+            error: null | string;
         };
         AzureResourceSummary: {
             name: string;
@@ -1446,11 +1472,6 @@ export interface components {
             url: string;
             detail: null | string;
         };
-        SaveAzureIdentityRequest: {
-            tenantId: string;
-            clientId: string;
-            clientSecret: null | string;
-        };
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -1593,11 +1614,6 @@ export interface components {
             /** Format: int32 */
             adoId: null | number;
             itemId: string;
-        };
-        TestAzureIdentityRequest: {
-            tenantId: string;
-            clientId: string;
-            clientSecret: null | string;
         };
         TestConnectionRequest: {
             orgUrl: string;
@@ -3114,12 +3130,13 @@ export interface operations {
             };
         };
     };
-    PUT_api_vaults_vault_read_azure: {
+    PUT_api_vaults_vault_read_azure_kind_enabled: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 vault: string;
+                kind: string;
             };
             cookie?: never;
         };
@@ -3135,41 +3152,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    PUT_api_vaults_vault_read_azure_identity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                vault: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SaveAzureIdentityRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AzureIdentitySummary"];
-                };
             };
             /** @description Bad Request */
             400: {
@@ -3283,7 +3265,7 @@ export interface operations {
             };
         };
     };
-    POST_api_vaults_vault_read_azure_identity_test: {
+    POST_api_vaults_vault_read_azure_user_login_start: {
         parameters: {
             query?: never;
             header?: never;
@@ -3292,11 +3274,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TestAzureIdentityRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -3304,8 +3282,69 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AzureIdentityCheck"];
+                    "application/json": components["schemas"]["AzureLoginStart"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GET_api_vaults_vault_read_azure_user_login_flowId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                flowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AzureLoginStatus"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_read_azure_user_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

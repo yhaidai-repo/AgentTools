@@ -9,7 +9,7 @@ public static class AzureIntegrationSetup
     {
         builder.Services.AddScoped<ReadAzureSettingsStore>();
         builder.Services.AddScoped<ReadAzureResources>();
-        builder.Services.AddSingleton<IAzureIdentityTester, RunnerAzureIdentityTester>();
+        builder.Services.AddSingleton<IAzureUserLogin, RunnerAzureUserLogin>();
 
         return builder;
     }

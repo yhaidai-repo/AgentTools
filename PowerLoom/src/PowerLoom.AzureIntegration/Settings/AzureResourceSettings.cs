@@ -8,11 +8,14 @@ public sealed class AzureResourceSettings
     // One of AzureResourceKinds.
     public string Kind { get; set; } = "";
 
-    // What the kind connects to: a resource id (App Insights, Service Bus), an account endpoint (Cosmos) or a connection
-    // string (Mongo; stored in the database, never shown again).
+    // The public part: a resource id (App Insights), an account endpoint (Cosmos) or a host (Service Bus, Mongo).
     public string Target { get; set; } = "";
 
-    // What the Settings page shows for the target: the target itself, or only the host of a connection string.
+    // The key or connection string (user decision 2026-10-13: keys per resource); empty for App Insights, which the
+    // user's own sign-in reads. Stored in the database, never shown again.
+    public string Secret { get; set; } = "";
+
+    // What the Settings page shows for the target.
     public string Display { get; set; } = "";
 
     public bool Enabled { get; set; } = true;

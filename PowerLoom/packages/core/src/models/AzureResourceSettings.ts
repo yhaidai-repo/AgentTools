@@ -4,9 +4,11 @@ export interface AzureResourceSettings {
   /** What agents pick the resource by: letters, digits, `_` and `-`. */
   name: string;
   kind: AzureResourceKind;
-  /** A resource id (App Insights, Service Bus), an account endpoint (Cosmos) or a connection string (Mongo, never shown). */
+  /** The public part: a resource id (App Insights), an account endpoint (Cosmos) or a host (Service Bus, Mongo). */
   target: string;
-  /** What pages show for the target: the target itself, or only a connection string's host. */
+  /** The key or connection string; empty for App Insights, which the user's own sign-in reads. Never shown. */
+  secret: string;
+  /** What pages show for the target. */
   display: string;
   enabled: boolean;
 }

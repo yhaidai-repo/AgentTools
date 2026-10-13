@@ -1,48 +1,41 @@
 using System.Text.RegularExpressions;
+using PowerLoom.AzureIntegration.Features.Resources.Models;
 using PowerLoom.AzureIntegration.Settings;
 using PowerLoom.Contracts;
 
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
-// Settings → Read Azure: the vault's switch, its service principal and its resources. A resource is added once and
-// then only switched or removed; a Mongo string is never read back by the page.
+// Settings → Read Azure: each kind's switch and the resources. A resource is added once and then only switched or
+// removed; its secret is never read back by the page.
 public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
 {
-    public async Task SetEnabledAsync(string vault, bool enabled, CancellationToken cancellation)
+    public async Task<Outcome<bool>> SetKindEnabledAsync(string vault, string kind, bool enabled, CancellationToken cancellation)
     {
+        if (!AzureResourceKinds.IsKnown(kind))
+            return Outcome<bool>.Failure(UnknownKind(kind));
+
         var settings = await store.ReadAsync(vault, cancellation);
 
-        settings.Enabled = enabled;
-        await store.SaveAsync(vault, settings, cancellation);
-    }
-
-    // An empty secret keeps the saved one; the first save needs one.
-    public async Task<Outcome<AzureIdentitySettings>> SaveIdentityAsync(string vault, string tenantId, string clientId, string? clientSecret, CancellationToken cancellation)
-    {
-        var settings = await store.ReadAsync(vault, cancellation);
-        var secret = string.IsNullOrWhiteSpace(clientSecret) ? settings.Identity?.ClientSecret ?? "" : clientSecret.Trim();
-
-        if (!Guid.TryParse(tenantId.Trim(), out _) || !Guid.TryParse(clientId.Trim(), out _))
-            return Outcome<AzureIdentitySettings>.Failure(Problem.Invalid("The tenant id and the client (application) id are GUIDs from the app registration's Overview."));
-
-        if (secret.Length == 0)
-            return Outcome<AzureIdentitySettings>.Failure(Problem.Invalid("A client secret is required."));
-
-        settings.Identity = new AzureIdentitySettings { TenantId = tenantId.Trim(), ClientId = clientId.Trim(), ClientSecret = secret };
+        settings.EnabledKinds[kind] = enabled;
         await store.SaveAsync(vault, settings, cancellation);
 
-        return Outcome<AzureIdentitySettings>.Success(settings.Identity);
+        return Outcome<bool>.Success(enabled);
     }
 
-    public async Task<Outcome<AzureResourceSettings>> AddAsync(string vault, string name, string kind, string target, CancellationToken cancellation)
+    public async Task<Outcome<AzureResourceSettings>> AddAsync(string vault, string name, string kind, string target, string secret, CancellationToken cancellation)
     {
         var settings = await store.ReadAsync(vault, cancellation);
-        var problem = ProblemOf(settings, name.Trim(), kind.Trim(), target.Trim());
+        var problem = ProblemOf(settings, name.Trim(), kind.Trim());
 
         if (problem is not null)
             return Outcome<AzureResourceSettings>.Failure(problem);
 
-        var resource = new AzureResourceSettings { Name = name.Trim(), Kind = kind.Trim(), Target = target.Trim(), Display = AzureTargets.DisplayOf(kind.Trim(), target.Trim()), Enabled = true };
+        var resolved = AzureTargets.Resolve(kind.Trim(), target.Trim(), secret.Trim());
+
+        if (!resolved.Ok)
+            return Outcome<AzureResourceSettings>.Failure(resolved.Problem);
+
+        var resource = NewResource(name.Trim(), kind.Trim(), resolved.Value);
 
         settings.Resources.Add(resource);
         await store.SaveAsync(vault, settings, cancellation);
@@ -73,7 +66,7 @@ public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
             await store.SaveAsync(vault, settings, cancellation);
     }
 
-    private static Problem? ProblemOf(ReadAzureSettings settings, string name, string kind, string target)
+    private static Problem? ProblemOf(ReadAzureSettings settings, string name, string kind)
     {
         if (!ResourceName().IsMatch(name))
             return Problem.Invalid("A resource name is 1–40 letters, digits, '_' or '-'; agents pick the resource by it.");
@@ -81,11 +74,15 @@ public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
         if (settings.Find(name) is not null)
             return Problem.Conflict($"{name} is a resource of this vault already: remove it first to replace it.");
 
-        if (!AzureResourceKinds.IsKnown(kind))
-            return Problem.Invalid($"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.");
-
-        return AzureTargets.ProblemOf(kind, target);
+        return AzureResourceKinds.IsKnown(kind) ? null : UnknownKind(kind);
     }
+
+    private static AzureResourceSettings NewResource(string name, string kind, AzureResourceTarget resolved)
+    {
+        return new AzureResourceSettings { Name = name, Kind = kind, Target = resolved.Target, Secret = resolved.Secret, Display = resolved.Display, Enabled = true };
+    }
+
+    private static Problem UnknownKind(string kind) => Problem.Invalid($"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.");
 
     private static Problem NotFound(string name) => Problem.NotFound($"{name} isn't a resource of this vault.");
 
