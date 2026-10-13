@@ -21,7 +21,7 @@ namespace PowerLoom.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attachment_origin", new[] { "upload", "ado", "confluence" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attachment_origin", new[] { "upload", "ado", "confluence", "agent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bug_source", new[] { "ado", "internal" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "entity_kind", new[] { "pbi", "item" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal" });

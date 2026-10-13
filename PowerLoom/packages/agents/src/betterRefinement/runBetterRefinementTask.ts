@@ -24,6 +24,8 @@ import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import { userRequestBlock } from "../tasks/userTasks";
 import { createVaultCaptureTool } from "../vaultCapture";
+import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
+import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import { commitBetterRefinement } from "./commitBetterRefinement";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
 import { REFINEMENT_TOOL, createRefinementTool } from "./refinementTool";
@@ -74,7 +76,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
   run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
 
-  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), userRequestBlock(task), reposBlock(run.repos)].filter(Boolean).join("\n\n");
+  const webDocuments = await webDocumentRun(context, task, session.runId);
+  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), userRequestBlock(task), webDocumentsBlock(webDocuments), reposBlock(run.repos)].filter(Boolean).join("\n\n");
   const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
   const limits = await taskLimits(context, row.adoId, DEPTH);
@@ -92,6 +95,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createListSkillsTool(deps.skillFolders, isRecommendableSkill),
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
       createRefinementTool(run.draft, run.readLog, recommendable),
+      ...createWebDocumentTools(deps.db, webDocuments),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ], () => session.spentUsd, agent.budgets.perRunUsd, REFINEMENT_TOOL),
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

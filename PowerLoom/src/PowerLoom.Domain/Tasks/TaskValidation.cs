@@ -4,6 +4,7 @@ using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using DocumentKinds = PowerLoom.Domain.Pbis.LinkedDocuments;
 
 namespace PowerLoom.Domain.Tasks;
 
@@ -33,19 +34,19 @@ public static class TaskValidation
             return reasons;
 
         foreach (var key in waitFor.Where(Known.Contains))
-            reasons.AddRange(await CheckAsync(db, key, agentId, task, cancellation));
+            reasons.AddRange(await CheckAsync(db, key, agentId, task, webAccess, cancellation));
 
         return reasons;
     }
 
-    private static Task<List<string>> CheckAsync(PowerLoomDbContext db, string key, string agentId, LocalItem task, CancellationToken cancellation)
+    private static Task<List<string>> CheckAsync(PowerLoomDbContext db, string key, string agentId, LocalItem task, bool webAccess, CancellationToken cancellation)
     {
         var pbiId = task.PbiId!.Value;
 
         return key switch
         {
             HumanItems => OpenHumanItemsAsync(db, pbiId, cancellation),
-            LinkedDocuments => DocumentsWithoutContentAsync(db, pbiId, cancellation),
+            LinkedDocuments => DocumentsWithoutContentAsync(db, pbiId, webAccess, cancellation),
             Drafts => UnmergedDraftsAsync(db, agentId, pbiId, cancellation),
             _ => OtherAgentsOpenTasksAsync(db, agentId, task, cancellation),
         };
@@ -87,14 +88,15 @@ public static class TaskValidation
         return ids.Count > 0 ? [$"Waiting for you: {string.Join(", ", ids)}"] : [];
     }
 
-    // A linked document is settled when its content is attached or the user closed the task asking for it.
-    private static async Task<List<string>> DocumentsWithoutContentAsync(PowerLoomDbContext db, int pbiId, CancellationToken cancellation)
+    // A linked document is settled when its content is attached or the user closed the task asking for it. An agent with
+    // web access reads a web page itself (user decision 2026-10-14), so only the others wait for one.
+    private static async Task<List<string>> DocumentsWithoutContentAsync(PowerLoomDbContext db, int pbiId, bool webAccess, CancellationToken cancellation)
     {
         var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == pbiId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd }).SingleOrDefaultAsync(cancellation);
         var attached = await db.Attachments.AsNoTracking().Where(row => row.PbiId == pbiId && row.SourceUrl != null).Select(row => row.SourceUrl!).ToListAsync(cancellation);
         var declined = await db.LocalItems.FromSql($"select * from local_item where pbi_id = {pbiId} and kind = 'human' and status in ('done', 'cancelled') and data->>'url' is not null").Select(item => item.Data!).ToListAsync(cancellation);
-        var settled = attached.Concat(declined.Select(UrlOf).Where(url => url is not null).Select(url => url!)).ToHashSet();
-        var missing = pbi is null ? [] : UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Where(url => !settled.Contains(url));
+        var settled = attached.Concat(declined.Select(UrlOf).Where(url => url is not null).Select(url => url!)).Select(DocumentKinds.DocumentUrl).ToHashSet();
+        var missing = pbi is null ? [] : UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Where(url => !settled.Contains(url) && !(webAccess && DocumentKinds.KindOf(url) == DocumentKinds.Web));
 
         return missing.Select(url => $"Linked document without content: {url}").ToList();
     }

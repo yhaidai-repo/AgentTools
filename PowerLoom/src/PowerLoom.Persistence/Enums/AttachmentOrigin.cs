@@ -6,4 +6,6 @@ public enum AttachmentOrigin
     Upload,
     Ado,
     Confluence,
+    // Notes an agent with web access saved on a linked web page (user decision 2026-10-14).
+    Agent,
 }

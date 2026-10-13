@@ -54,7 +54,7 @@ export const runOutcome = pgEnum("run_outcome", [
 
 // vault-documented: a vault project's index names the repo (`repo:` line), so refinement doesn't ask about it.
 // upload: the user's own file; ado / confluence: fetched by the worker from a linked document (replaced when it changes).
-export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "confluence"]);
+export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "confluence", "agent"]); // agent: notes on a linked web page (2026-10-14)
 
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 

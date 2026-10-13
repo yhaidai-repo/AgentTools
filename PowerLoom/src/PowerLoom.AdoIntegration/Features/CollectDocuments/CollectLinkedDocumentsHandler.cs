@@ -12,7 +12,7 @@ public static class CollectLinkedDocumentsHandler
 
     public static async Task Handle(CollectLinkedDocuments message, LinkedDocumentCollector collector, PowerLoomDbContext db, IMessageBus bus, ILogger<CollectLinkedDocuments> logger, CancellationToken cancellation)
     {
-        var changed = await collector.CollectAsync(message.Vault, message.AdoId, cancellation);
+        var changed = await collector.CollectAsync(message.Vault, message.AdoId, message.AskForWebPages, cancellation);
 
         if (changed == 0)
             return;

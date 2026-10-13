@@ -9,9 +9,17 @@ export function extractUrls(text: string): string[] {
   return [...new Set(urls)];
 }
 
-// The documents a PBI links from its description and acceptance criteria.
+// The documents a PBI links from its description and acceptance criteria, each once.
 export function pbiLinkedUrls(pbi: { descriptionMd: string | null; acceptanceCriteriaMd: string | null }): string[] {
-  return extractUrls(`${pbi.descriptionMd ?? ""}\n${pbi.acceptanceCriteriaMd ?? ""}`);
+  const urls = extractUrls(`${pbi.descriptionMd ?? ""}\n${pbi.acceptanceCriteriaMd ?? ""}`).map(documentUrl);
+
+  return [...new Set(urls)];
+}
+
+// A web page's `#…` anchor is a place in the same document (user decision 2026-10-14), so it is dropped; Confluence
+// pages keep theirs, as their stored pages are matched by the link as written. PowerLoom's LinkedDocuments.DocumentUrl.
+export function documentUrl(url: string): string {
+  return linkedDocumentKind(url) === "web" ? url.split("#")[0] : url;
 }
 
 export function linkedDocumentKind(url: string): LinkedDocumentKind {

@@ -1,4 +1,4 @@
-import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl, workerLabel } from "@powerloom/core";
+import { attachmentRef, documentUrl, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl, workerLabel } from "@powerloom/core";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@powerloom/db";
 import { eq } from "drizzle-orm";
@@ -282,10 +282,15 @@ function LinkedDocuments({ detail }: { detail: PbiDetail }) {
   );
 }
 
-// A missing Confluence page can be loaded right here (the worker fetches it); other documents are uploaded below.
+// A missing Confluence page can be loaded right here (the worker fetches it); other documents are uploaded below. A web
+// page without content is read by agents with web access, who save their notes on it (user decision 2026-10-14).
 function LinkedDocument({ adoId, url, provided }: { adoId: number; url: string; provided: string[] }) {
   if (provided.length > 0) {
     return <li><a href={url} target="_blank" rel="noreferrer">{url}</a> · <span className="result-ok">content provided ({provided.join(", ")})</span></li>;
+  }
+
+  if (linkedDocumentKind(url) === "web") {
+    return <li><a href={url} target="_blank" rel="noreferrer">{url}</a> · <span className="muted">read by agents with web access</span></li>;
   }
 
   return (
@@ -308,7 +313,7 @@ function Attachments({ detail }: { detail: PbiDetail }) {
 }
 
 // Who added the file: the user, or the worker fetching a linked document (refreshed when that document changes).
-const ORIGINS: Record<string, string> = { upload: "you", ado: "ADO (linked)", confluence: "Confluence (linked)" };
+const ORIGINS: Record<string, string> = { upload: "you", ado: "ADO (linked)", confluence: "Confluence (linked)", agent: "agent's notes (linked)" };
 
 function AttachmentTable({ detail }: { detail: PbiDetail }) {
   return (
@@ -392,7 +397,7 @@ function RunTotals({ detail }: { detail: PbiDetail }) {
 }
 
 function providedBy(detail: PbiDetail, url: string): string[] {
-  return detail.attachments.filter((entry) => entry.sourceUrl === url).map((entry) => attachmentRef(entry.id));
+  return detail.attachments.filter((entry) => entry.sourceUrl !== null && documentUrl(entry.sourceUrl) === url).map((entry) => attachmentRef(entry.id));
 }
 
 async function adoUrl(pbi: { adoId: number; vault: string; source: "ado" | "local" }): Promise<string | null> {

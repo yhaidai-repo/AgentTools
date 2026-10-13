@@ -12,10 +12,11 @@ using PowerLoom.Persistence.Enums;
 namespace PowerLoom.AdoIntegration.Features.CollectDocuments;
 
 // The PBI's linked documents not handled yet: an ADO attachment is downloaded with the vault's token and stored as the
-// PBI's attachment; a web page, and a failed download, become the user's task. Returns how many documents changed.
+// PBI's attachment; a failed download, and a web page when asked for, become the user's task. Returns how many
+// documents changed.
 public sealed class LinkedDocumentCollector(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILogger<LinkedDocumentCollector> logger)
 {
-    public async Task<int> CollectAsync(string vault, int adoId, CancellationToken cancellation)
+    public async Task<int> CollectAsync(string vault, int adoId, bool askForWebPages, CancellationToken cancellation)
     {
         var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd }).SingleOrDefaultAsync(cancellation);
 
@@ -23,13 +24,24 @@ public sealed class LinkedDocumentCollector(PowerLoomDbContext db, AdoSettingsSt
             return 0;
 
         var handled = await DocumentTasks.HandledUrlsAsync(db, adoId, cancellation);
-        var missing = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Where(url => !handled.Contains(url) && LinkedDocuments.KindOf(url) != LinkedDocuments.Confluence).ToList();
+        var missing = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Where(url => !handled.Contains(url) && IsCollected(url, askForWebPages)).ToList();
         var changed = 0;
 
         foreach (var url in missing)
             changed += await CollectOneAsync(vault, adoId, url, cancellation) ? 1 : 0;
 
         return changed;
+    }
+
+    // Confluence pages are SyncPbiPages'; a web page only for an agent without web access (user decision 2026-10-14).
+    private static bool IsCollected(string url, bool askForWebPages)
+    {
+        return LinkedDocuments.KindOf(url) switch
+        {
+            LinkedDocuments.Confluence => false,
+            LinkedDocuments.Web => askForWebPages,
+            _ => true,
+        };
     }
 
     private async Task<bool> CollectOneAsync(string vault, int adoId, string url, CancellationToken cancellation)

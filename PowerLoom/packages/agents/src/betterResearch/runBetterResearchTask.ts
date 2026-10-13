@@ -16,6 +16,8 @@ import { buildResearchMessage, buildTaskResearchMessage } from "../research/rese
 import { docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import { createVaultCaptureTool } from "../vaultCapture";
+import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
+import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import { commitBetterResearch } from "./commitBetterResearch";
 import type { BetterResearchRun } from "./models/BetterResearchRun";
 import { depthOf, readingTools, taskLimits } from "../betterAgents/toolset";
@@ -65,7 +67,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   run.research = task.pbiId === null ? null : await loadResearchContext(deps, task);
   run.repos = await openRepos(context, session, await repoSources(context, task));
 
-  const firstMessage = run.research ? await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos) : buildTaskResearchMessage(task, run.repos);
+  const webDocuments = await webDocumentRun(context, task, session.runId);
+  const taskMessage = run.research ? await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos) : buildTaskResearchMessage(task, run.repos);
+  const firstMessage = [taskMessage, webDocumentsBlock(webDocuments)].filter(Boolean).join("\n\n");
   const guard = task.pbiId === null ? DuplicateGuard.none() : await DuplicateGuard.load(deps.db, task.pbiId);
   const limits = await taskLimits(context, task.pbiId, depth);
 
@@ -81,6 +85,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...skills.tools,
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
       createResultTool(run.draft, run.readLog),
+      ...createWebDocumentTools(deps.db, webDocuments),
       // A vault draft belongs to a PBI.
       ...(deps.captureRules && task.pbiId !== null ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ], () => session.spentUsd, agent.budgets.perRunUsd, RESULT_TOOL),

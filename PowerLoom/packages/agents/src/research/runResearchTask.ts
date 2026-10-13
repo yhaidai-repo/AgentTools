@@ -21,6 +21,8 @@ import { loadResearchContext } from "./loadResearchContext";
 import type { ResearchRun } from "./models/ResearchRun";
 import { buildResearchMessage } from "./researchMessage";
 import { createResearchTools } from "./researchTools";
+import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
+import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -64,7 +66,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   run.research = await loadResearchContext(deps, task);
   run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)));
 
-  const firstMessage = await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos);
+  const webDocuments = await webDocumentRun(context, task, session.runId);
+  const firstMessage = [await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos), webDocumentsBlock(webDocuments)].filter(Boolean).join("\n\n");
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
 
   await session.phase("first-message", { chars: firstMessage.length });
@@ -82,6 +85,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
+      ...createWebDocumentTools(deps.db, webDocuments),
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),

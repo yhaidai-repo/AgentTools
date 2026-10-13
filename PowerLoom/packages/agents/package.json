@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@powerloom/ado": "*",
+    "@powerloom/attachments": "*",
     "@powerloom/azure": "*",
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",

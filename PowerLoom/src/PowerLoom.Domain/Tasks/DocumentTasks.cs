@@ -20,7 +20,7 @@ public static class DocumentTasks
         var uploaded = await db.Attachments.AsNoTracking().Where(row => row.PbiId == adoId && row.SourceUrl != null).Select(row => row.SourceUrl!).ToListAsync(cancellation);
         var asked = await db.LocalItems.FromSql($"select * from local_item where pbi_id = {adoId} and kind = 'human' and data->>'url' is not null").Select(item => item.Data!).ToListAsync(cancellation);
 
-        return uploaded.Concat(asked.Select(UrlOf).Where(url => url is not null).Select(url => url!)).ToHashSet();
+        return uploaded.Concat(asked.Select(UrlOf).Where(url => url is not null).Select(url => url!)).Select(LinkedDocuments.DocumentUrl).ToHashSet();
     }
 
     // Null when a task for this document already exists (any status).

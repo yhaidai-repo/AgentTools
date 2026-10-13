@@ -56,7 +56,7 @@ public static class DispatchAgentHandler
     // brought to their current version.
     private static async Task<bool> TryStartAsync(PowerLoomDbContext db, IMessageBus bus, AgentSummary agent, LocalItem task, CancellationToken cancellation)
     {
-        await CollectDocumentsAsync(bus, task);
+        await CollectDocumentsAsync(bus, agent, task);
         await SyncPagesAsync(bus, task, PageSyncScope.Missing);
 
         var reasons = await TaskValidation.ValidateAsync(db, task, agent.Id, agent.WaitFor, agent.WebAccess, cancellation);
@@ -79,10 +79,10 @@ public static class DispatchAgentHandler
         return true;
     }
 
-    private static async Task CollectDocumentsAsync(IMessageBus bus, LocalItem task)
+    private static async Task CollectDocumentsAsync(IMessageBus bus, AgentSummary agent, LocalItem task)
     {
         if (task.PbiId is not null)
-            await bus.InvokeAsync(new CollectLinkedDocuments(task.Vault, task.PbiId.Value));
+            await bus.InvokeAsync(new CollectLinkedDocuments(task.Vault, task.PbiId.Value, AskForWebPages: !agent.WebAccess));
     }
 
     private static async Task SyncPagesAsync(IMessageBus bus, LocalItem task, PageSyncScope scope)

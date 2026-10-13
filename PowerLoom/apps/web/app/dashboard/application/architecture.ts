@@ -71,7 +71,7 @@ const adoLibrary: SchemeNode[] = [
   node("ado-sync", "PBI sync", "component", "ado-integration", "sprint, single PBI, imports; bugs prepared"),
   node("ado-pull-requests", "Pull request check", "component", "ado-integration", "reviews to queue"),
   node("ado-repositories", "Repository catalog", "component", "ado-integration"),
-  node("collect-documents", "Linked documents", "component", "ado-integration", "attachments downloaded, tasks for the rest"),
+  node("collect-documents", "Linked documents", "component", "ado-integration", "attachments downloaded; web pages read by web agents, tasks for agents without web"),
   node("ado-connection", "Connection", "component", "ado-integration", "settings, test"),
 ];
 
