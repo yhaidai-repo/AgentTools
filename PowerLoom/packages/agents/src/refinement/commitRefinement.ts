@@ -47,7 +47,7 @@ async function insertResearchTasks(db: PowerLoomDb, adoId: number, runId: number
 
     await db.insert(localItem).values({
       id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), title: task.title, status: "open", assignee: "agent:research",
-      body: task.question, data: { goal: task.goal, repos: task.repos, depth: 1 }, createdByRun: runId,
+      body: task.question, data: { goal: task.goal, depth: 1 }, createdByRun: runId,
     });
     ids.push(id);
   }

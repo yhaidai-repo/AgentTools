@@ -54,7 +54,6 @@ function followUpTool(draft: ResearchDraft, depth: number, maxDepth: number, gua
       title: z.string().min(1),
       question: z.string().min(1),
       goal: z.string().min(1),
-      repos: z.array(z.string()),
     },
     handler: async (input) => {
       if (depth >= maxDepth) {

@@ -43,7 +43,7 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
         var design = await db.Designs.AsNoTracking().Where(row => row.PbiId == adoId).OrderByDescending(row => row.Version).FirstOrDefaultAsync(cancellation);
         var plan = design is null ? [] : JsonSerializer.Deserialize<List<DesignPlanStep>>(design.Plan, Json) ?? [];
         var tests = design is null ? [] : JsonSerializer.Deserialize<List<DesignTest>>(design.Tests, Json) ?? [];
-        var repos = plan.Count > 0 ? plan.Select(step => step.Repo.Trim()).Where(repo => repo.Length > 0).Distinct().ToList() : await pbiRepos.NamesAsync(adoId, cancellation);
+        var repos = plan.Count > 0 ? await pbiRepos.EnabledAsync(pbi.Vault, plan.Select(step => step.Repo), cancellation) : await pbiRepos.NamesAsync(adoId, cancellation);
         var brief = ChatBrief.For(pbi.Vault, $"Implement PBI-{adoId}: {pbi.Title}") with
         {
             ReadFirst = await ReadFirstAsync(pbi, design is not null, cancellation),

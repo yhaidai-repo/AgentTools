@@ -62,11 +62,10 @@ public static class ItemNoteRenderer
         };
     }
 
+    // A research task reads the PBI's repos, so it lists none of its own (user decision 2026-10-13).
     private static IEnumerable<string> TaskSections(ItemNote item)
     {
-        var repos = Strings(item, "repos").Select(name => $"- `{name}`");
-
-        return ["## Question", item.Body ?? NoteText.Empty, "## Goal", Text(item, "goal"), "## Repos", JoinOrNone(repos)];
+        return ["## Question", item.Body ?? NoteText.Empty, "## Goal", Text(item, "goal")];
     }
 
     private static IEnumerable<string> HumanTaskSections(ItemNote item)

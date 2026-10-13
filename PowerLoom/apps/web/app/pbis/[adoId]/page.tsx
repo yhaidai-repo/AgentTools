@@ -188,15 +188,14 @@ function draftState(draft: DraftRow): string {
 }
 
 // What research and design clone: repos the vault documents or you confirmed; refinement's guesses wait for you.
+// Repos disabled in Settings aren't listed, so saving never sends one the catalog refuses.
 async function Repos({ detail }: { detail: PbiDetail }) {
   const catalog = await enabledRepos(getDb(), detail.pbi.vault);
-  const fromRefinement = (detail.refinement?.repos ?? []).map((choice) => ({ name: choice.name, source: "refinement", questionId: null }));
-  const repos = detail.repos.length > 0 ? detail.repos : fromRefinement;
 
   return (
     <>
       {/* Keyed by the saved list, so the form starts over from what was saved. */}
-      <PbiReposForm key={JSON.stringify(repos)} adoId={detail.pbi.adoId} repos={repos} catalog={catalog.map((row) => row.name)} />
+      <PbiReposForm key={JSON.stringify(detail.repos)} adoId={detail.pbi.adoId} repos={detail.repos} catalog={catalog.map((row) => row.name)} />
     </>
   );
 }

@@ -46,7 +46,7 @@ async function insertFollowUps(db: PowerLoomDb, context: ResearchContext, runId:
   const ids: string[] = [];
 
   for (const task of tasks) {
-    ids.push(await insertItem(db, "AT", "research", context, runId, task.title, "open", task.question, { goal: task.goal, repos: task.repos, depth }, "agent:research"));
+    ids.push(await insertItem(db, "AT", "research", context, runId, task.title, "open", task.question, { goal: task.goal, depth }, "agent:research"));
   }
 
   return ids;

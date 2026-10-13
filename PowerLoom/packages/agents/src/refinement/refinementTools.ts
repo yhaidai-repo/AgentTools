@@ -84,7 +84,6 @@ function createResearchTaskTool(draft: RefinementDraft, guard: DuplicateGuard) {
       title: z.string().min(1),
       question: z.string().min(1).describe("The single question to answer"),
       goal: z.string().min(1).describe("Why the answer matters for the implementation plan"),
-      repos: z.array(z.string()).describe("Repos to inspect, from list_repos"),
     },
     handler: async (input) => {
       const duplicate = guard.check("research", input.question);

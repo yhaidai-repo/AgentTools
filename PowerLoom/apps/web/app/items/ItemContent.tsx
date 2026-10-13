@@ -8,7 +8,6 @@ type ItemData = {
   options?: string[];
   url?: string;
   goal?: string;
-  repos?: string[];
   depth?: number;
   needsWeb?: boolean;
   sources?: string[];
@@ -65,7 +64,7 @@ function ResearchTaskContent(item: ItemRow, data: ItemData) {
       {data.needsWeb && <p className="result-error">Needs web research: research runs it only with web access on (its Config page).</p>}
       <Section title="Question" text={item.body} />
       <Section title="Goal" text={data.goal ?? data.why} />
-      {data.needsWeb ? <Bullets title="Suggested sources" items={data.sources} /> : <Bullets title="Repos" items={data.repos} />}
+      {data.needsWeb && <Bullets title="Suggested sources" items={data.sources} />}
       <p className="muted">Depth {data.depth ?? 1} · attempts {item.attempts}</p>
     </>
   );

@@ -46,10 +46,9 @@ export function renderItemNote(item: ItemNote, notesSection: string): string {
   ].join("\n\n");
 }
 
+// A research task reads the PBI's repos, so it lists none of its own (user decision 2026-10-13).
 function taskSections(item: ItemNote): string[] {
-  const repos = list<string>(item, "repos").map((name) => `- \`${name}\``);
-
-  return ["## Question", item.body ?? "–", "## Goal", String(item.data?.goal ?? "–"), "## Repos", repos.join("\n") || "None."];
+  return ["## Question", item.body ?? "–", "## Goal", String(item.data?.goal ?? "–")];
 }
 
 function humanTaskSections(item: ItemNote): string[] {

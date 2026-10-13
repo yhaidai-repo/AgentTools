@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Settings;
+using PowerLoom.Domain.Repos;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -15,14 +16,15 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
 {
     private const string Actor = "pull-requests";
     private const string UnlistedReason = "The PR was completed or abandoned in Azure DevOps, or you're no longer a reviewer.";
-    private const string RepoNotSelectedReason = "Its repo isn't selected for code review in Settings.";
+    private const string RepoNotSelectedReason = "Its repo isn't selected for code review in Settings, or is disabled there.";
 
     public async Task<string> RunAsync(string vault, AdoSettings ado, PullRequestSettings settings, IAdoClient client, CancellationToken cancellation)
     {
         // A review deleted in PowerLoom stays deleted (user decision 2026-10-06).
         var deleted = (await db.DeletedPullRequests.Select(row => row.Id).ToListAsync(cancellation)).ToHashSet();
         var mine = (await client.ListActivePullRequestsAsync(cancellation)).Where(pr => PullRequestFilter.IsMine(pr, ado.User) && !deleted.Contains(pr.Id)).ToList();
-        var listed = mine.Where(pr => PullRequestFilter.IsSelectedRepo(pr, settings.Repos)).ToList();
+        var disabled = await RepoCatalog.DisabledIdsAsync(db, vault, cancellation);
+        var listed = mine.Where(pr => PullRequestFilter.IsSelectedRepo(pr, settings.Repos) && !disabled.Contains(pr.RepoId)).ToList();
         var changed = await ChangedAsync(listed, cancellation);
         var updated = changed.Take(settings.MaxPullRequestsPerRun).ToList();
 
@@ -39,7 +41,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
 
     private static string Summary(int listed, int notSelected, int updated, int waiting, int added, int closed)
     {
-        var notSelectedNote = notSelected > 0 ? $" ({notSelected} more in repos not selected)" : "";
+        var notSelectedNote = notSelected > 0 ? $" ({notSelected} more in repos not selected or disabled)" : "";
         var waitingNote = waiting > 0 ? $" ({waiting} next run)" : "";
 
         return $"{listed} PR(s) you review{notSelectedNote}, {updated} updated{waitingNote}, {added} new review(s), {closed} closed";
@@ -114,8 +116,8 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
         return unreviewed.Count;
     }
 
-    // A PR that left the list: completed or abandoned, no longer yours to review, or its repo was deselected (`mine`:
-    // your PRs before the repo filter, so the reason says which).
+    // A PR that left the list: completed or abandoned, no longer yours to review, or its repo was deselected or disabled
+    // (`mine`: your PRs before the repo filter, so the reason says which).
     private async Task<int> CloseUnlistedAsync(List<AdoPullRequest> listed, List<AdoPullRequest> mine, CancellationToken cancellation)
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();

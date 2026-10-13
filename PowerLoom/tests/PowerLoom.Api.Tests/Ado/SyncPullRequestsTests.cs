@@ -50,6 +50,29 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
         Assert.Equal(("c2", ReviewStatus.Active), (after[7104].SourceCommit, after[7104].CodeReview!.Status));
     }
 
+    [Fact]
+    public async Task A_pull_request_in_a_disabled_repo_gets_no_review_and_its_open_review_closes()
+    {
+        await ConfigureAsync();
+        await AddRepoAsync("r-Legacy", "Legacy");
+
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.PullRequests = [PullRequest(7201, "Legacy", "sam@x.io", "c1")];
+
+        await Sync();
+        var before = await LoadAsync();
+
+        Assert.Equal(ReviewStatus.Active, before[7201].CodeReview!.Status);
+
+        await SetExcludedAsync("r-Legacy", true);
+        await Sync();
+        var after = await LoadAsync();
+
+        Assert.Equal((false, ReviewStatus.Closed), (after[7201].IsListed, after[7201].CodeReview!.Status));
+        Assert.Contains("disabled", after[7201].CodeReview!.ClosedReason);
+    }
+
     private static AdoPullRequest PullRequest(int id, string repo, string reviewer, string commit, string author = "pat@x.io", bool draft = false)
     {
         return new AdoPullRequest(id, $"r-{repo}", repo, $"PR {id}", null, draft, author, "refs/heads/f", "refs/heads/main", commit, "t1", [reviewer], "2026-10-01T10:00:00Z", $"https://x/pr/{id}");
@@ -77,5 +100,22 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().AgentRuns.AsNoTracking().Where(run => run.Stage == Stage.PullRequests).OrderByDescending(run => run.Id).Select(run => run.Outcome).FirstAsync();
+    }
+
+    private async Task AddRepoAsync(string id, string name)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.Repos.Add(new Repo { Id = id, AdoProject = "Proj", Name = name, RemoteUrl = "https://x", Vault = PowerLoomHost.Vault });
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetExcludedAsync(string id, bool excluded)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Repos.Where(repo => repo.Id == id).ExecuteUpdateAsync(set => set.SetProperty(repo => repo.Excluded, excluded));
     }
 }
