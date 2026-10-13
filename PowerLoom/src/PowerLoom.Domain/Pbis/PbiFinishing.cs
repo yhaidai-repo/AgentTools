@@ -12,8 +12,9 @@ namespace PowerLoom.Domain.Pbis;
 // with it (user decision 2026-10-13): a finished PBI leaves no open child behind for the agents.
 public static class PbiFinishing
 {
-    // Not prepared yet, already finished, or closed in ADO (user decision 2026-10-05: any prepared PBI can be finished).
-    private static readonly PipelineStatus[] Unfinishable = [PipelineStatus.New, PipelineStatus.Done, PipelineStatus.Closed];
+    // Already finished, or closed in ADO. A PBI that was never prepared can be finished too (user decision 2026-10-13:
+    // e.g. a parent whose bug children were the work).
+    private static readonly PipelineStatus[] Unfinishable = [PipelineStatus.Done, PipelineStatus.Closed];
 
     // A child that is over already keeps its status; any other child, prepared or not, is finished with its parent.
     private static readonly PipelineStatus[] Settled = [PipelineStatus.Done, PipelineStatus.Closed];
