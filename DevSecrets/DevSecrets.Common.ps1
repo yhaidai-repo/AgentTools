@@ -1,6 +1,6 @@
 # Shared by the DevSecrets scripts (dot-sourced). No secrets, no state.
 
-# services.json and map.json; the stack bridge's UI points DEV_SECRETS_STORE_DIR at a candidate copy to check a change.
+# services.json and map.json; DevHub's UI points DEV_SECRETS_STORE_DIR at a candidate copy to check a change.
 $StoreDir = if ($env:DEV_SECRETS_STORE_DIR) { $env:DEV_SECRETS_STORE_DIR } else { $PSScriptRoot }
 # Secret values stay outside any git repo; override with DEV_SECRETS_VALUES_DIR.
 $ValuesDir = if ($env:DEV_SECRETS_VALUES_DIR) { $env:DEV_SECRETS_VALUES_DIR } else { "D:/Projects/dev-secrets" }

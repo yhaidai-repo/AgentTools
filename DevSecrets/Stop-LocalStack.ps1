@@ -21,7 +21,7 @@ if ($state) {
     Stop-Stack $state
 }
 
-# A start killed before it saved its state (e.g. the bridge's DELETE while starting) can leave the container behind.
+# A start killed before it saved its state (e.g. DevHub's DELETE while starting) can leave the container behind.
 if (Test-LocalRabbitMqRunning) {
     Stop-LocalRabbitMq
 }

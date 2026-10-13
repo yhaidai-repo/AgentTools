@@ -1,4 +1,4 @@
 values.*.json
 *.bak
-StackBridge/bin/
-StackBridge/obj/
+DevHub/bin/
+DevHub/obj/

@@ -53,7 +53,7 @@ export interface AgentDeps {
   sql: SqlAccess | null;
   /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */
   azure: AzureAccess | null;
-  /** The run's vault's Local stack (the stack bridge on the host) for agents with the integration on; null while the vault's Local stack is off. */
+  /** The run's vault's Local stack (DevHub on the host) for agents with the integration on; null while the vault's Local stack is off. */
   localStack: LocalStackAccess | null;
   /** The vault's Azure DevOps while its integration is on (read_test_cases). */
   ado: AdoAccess | null;

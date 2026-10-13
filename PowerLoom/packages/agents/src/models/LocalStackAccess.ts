@@ -1,7 +1,7 @@
-import type { StackBridgeClient } from "@powerloom/localstack";
+import type { DevHubClient } from "@powerloom/localstack";
 
-// The run's vault's Local stack while the vault's switch is on: the bridge client and where it points.
+// The run's vault's Local stack while the vault's switch is on: DevHub client and where it points.
 export interface LocalStackAccess {
-  client: StackBridgeClient;
+  client: DevHubClient;
   url: string;
 }

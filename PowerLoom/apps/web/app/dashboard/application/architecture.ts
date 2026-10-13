@@ -38,7 +38,7 @@ const topLevel: SchemeNode[] = [
   // What the agents read outside on their own (per-agent switches), in a row of their own.
   node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 2, 3),
   node("azure", "Azure", "external", undefined, "App Insights, Cosmos DB, Service Bus, Mongo (Read Azure)", 3, 3),
-  node("local-stack", "Local stack bridge", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
+  node("local-stack", "DevHub (local stack)", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
 ];
 
 const powerloomModules: SchemeNode[] = [

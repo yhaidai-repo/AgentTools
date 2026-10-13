@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentDefinition } from "@agenttools/config";
-import type { StackBridgeClient } from "@powerloom/localstack";
+import type { DevHubClient } from "@powerloom/localstack";
 import type { DataAccessLog } from "./DataAccessLog";
 import { LOCAL_STACK_INTEGRATION, createLocalStackTools, stackOwner } from "./localStackTools";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -13,11 +13,11 @@ function agentWith(localStack: boolean): AgentDefinition {
   return { capabilities: { webAccess: false, integrations: { [LOCAL_STACK_INTEGRATION]: localStack } }, limits: { maxTurns: 40, timeoutMinutes: 20 } } as unknown as AgentDefinition;
 }
 
-function depsWith(client: Partial<StackBridgeClient> | null): { deps: AgentDeps; entries: DataAccessEntry[] } {
+function depsWith(client: Partial<DevHubClient> | null): { deps: AgentDeps; entries: DataAccessEntry[] } {
   const entries: DataAccessEntry[] = [];
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
   const outside = { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } };
-  const localStack = client ? { client: client as StackBridgeClient, url: "http://host.docker.internal:47811" } : null;
+  const localStack = client ? { client: client as DevHubClient, url: "http://host.docker.internal:47811" } : null;
 
   return { deps: { outside, localStack } as unknown as AgentDeps, entries };
 }
@@ -64,7 +64,7 @@ describe("createLocalStackTools", () => {
   });
 
   it("hands a refused token to the access request flow", async () => {
-    const status = async () => ({ ok: false as const, message: "The stack bridge refused the token.", denied: true });
+    const status = async () => ({ ok: false as const, message: "DevHub refused the token.", denied: true });
     const { deps, entries } = depsWith({ status });
 
     const result = await toolNamed(deps, "stack_status").handler({});

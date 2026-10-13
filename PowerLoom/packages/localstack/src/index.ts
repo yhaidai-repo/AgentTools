@@ -1,9 +1,9 @@
-export { StackBridgeClient } from "./StackBridgeClient";
+export { DevHubClient } from "./DevHubClient";
 export { waitForStack } from "./waitForStack";
-export { checkStackBridge } from "./checkStackBridge";
-export type { StackBridgeCheck } from "./models/StackBridgeCheck";
+export { checkDevHub } from "./checkDevHub";
+export type { DevHubCheck } from "./models/DevHubCheck";
 export type { WaitForStackOptions } from "./waitForStack";
-export type { BridgeAnswer } from "./models/BridgeAnswer";
+export type { DevHubAnswer } from "./models/DevHubAnswer";
 export type { StackLog } from "./models/StackLog";
 export type { StackPhase } from "./models/StackPhase";
 export type { StackServiceInfo } from "./models/StackServiceInfo";

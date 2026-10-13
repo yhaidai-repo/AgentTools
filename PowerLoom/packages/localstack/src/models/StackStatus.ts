@@ -1,7 +1,7 @@
 import type { StackPhase } from "./StackPhase";
 import type { StackServiceState } from "./StackServiceState";
 
-// GET /stack: the bridge's operation (phase, owner, start output) and what runs.
+// GET /stack: DevHub's operation (phase, owner, start output) and what runs.
 export interface StackStatus {
   phase: StackPhase;
   running: boolean;

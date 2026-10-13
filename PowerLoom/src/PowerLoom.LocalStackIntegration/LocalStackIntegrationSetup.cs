@@ -1,4 +1,4 @@
-using PowerLoom.LocalStackIntegration.Features.Bridge;
+using PowerLoom.LocalStackIntegration.Features.DevHub;
 using PowerLoom.LocalStackIntegration.Settings;
 
 namespace PowerLoom.LocalStackIntegration;

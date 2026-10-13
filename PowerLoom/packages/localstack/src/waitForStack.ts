@@ -1,4 +1,4 @@
-import type { BridgeAnswer } from "./models/BridgeAnswer";
+import type { DevHubAnswer } from "./models/DevHubAnswer";
 import type { StackStatus } from "./models/StackStatus";
 import type { StackWait } from "./models/StackWait";
 
@@ -9,12 +9,12 @@ export interface WaitForStackOptions {
   now?: () => number;
 }
 
-// Polls the bridge until the stack left `starting` (ready, failed, or stopped by someone) or the time is up.
-export async function waitForStack(status: () => Promise<BridgeAnswer<StackStatus>>, options: WaitForStackOptions): Promise<BridgeAnswer<StackWait>> {
+// Polls DevHub until the stack left `starting` (ready, failed, or stopped by someone) or the time is up.
+export async function waitForStack(status: () => Promise<DevHubAnswer<StackStatus>>, options: WaitForStackOptions): Promise<DevHubAnswer<StackWait>> {
   const sleep = options.sleep ?? delay;
   const now = options.now ?? Date.now;
   const deadline = now() + options.timeoutMs;
-  let answer: BridgeAnswer<StackStatus>;
+  let answer: DevHubAnswer<StackStatus>;
 
   do {
     await sleep(options.pollMs);
@@ -28,7 +28,7 @@ export async function waitForStack(status: () => Promise<BridgeAnswer<StackStatu
   return { ok: true, value: { status: answer.value, timedOut: answer.value.phase === "starting" } };
 }
 
-function isStarting(answer: BridgeAnswer<StackStatus>): boolean {
+function isStarting(answer: DevHubAnswer<StackStatus>): boolean {
   return answer.ok && answer.value.phase === "starting";
 }
 

@@ -33,7 +33,7 @@
 
 .EXAMPLE
     ./Use-DevSecrets.ps1 -All -Check
-    Validates every project and prints the problems as JSON (the stack bridge's UI); writes nothing.
+    Validates every project and prints the problems as JSON (DevHub's UI); writes nothing.
 #>
 [CmdletBinding()]
 param(

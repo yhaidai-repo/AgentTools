@@ -12,7 +12,7 @@ using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
-using PowerLoom.LocalStackIntegration.Features.Bridge;
+using PowerLoom.LocalStackIntegration.Features.DevHub;
 using PowerLoom.SqlIntegration.Features.Connections;
 using Testcontainers.PostgreSql;
 using Wolverine;

@@ -146,7 +146,7 @@ async function testSqlConnection(body: { name: string | null; connectionString: 
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
-// Local stack (user decision 2026-10-13), kept by PowerLoom: the vault's switch, the bridge's URL and token; an empty
+// Local stack (user decision 2026-10-13), kept by PowerLoom: the vault's switch, DevHub's URL and token; an empty
 // token keeps the saved one. Each agent's own switch is on its Config page.
 export async function saveLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const enabled = isEnabled(form);
@@ -161,7 +161,7 @@ export async function saveLocalStackAction(_previous: ActionResult | null, form:
   return result;
 }
 
-// Calls the bridge from the agent-runner with the typed URL and token (the saved ones for empty fields); saves nothing.
+// Calls DevHub from the agent-runner with the typed URL and token (the saved ones for empty fields); saves nothing.
 export async function testLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const checked = await powerloom.POST("/api/vaults/{vault}/local-stack/test", {
     params: { path: { vault: await requireVault() } },

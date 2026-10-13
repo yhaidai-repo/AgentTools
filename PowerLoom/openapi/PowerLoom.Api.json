@@ -2577,7 +2577,7 @@
     "/api/vaults/{vault}/local-stack": {
       "put": {
         "tags": [
-          "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
+          "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
         ],
         "summary": "PUT_api_vaults_vault_local_stack",
         "description": "PUT_api_vaults_vault_local_stack",
@@ -2629,7 +2629,7 @@
     "/api/vaults/{vault}/local-stack/test": {
       "post": {
         "tags": [
-          "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
+          "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
         ],
         "summary": "POST_api_vaults_vault_local_stack_test",
         "description": "POST_api_vaults_vault_local_stack_test",
@@ -4902,7 +4902,7 @@
       "name": "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
     },
     {
-      "name": "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
+      "name": "PowerLoom.LocalStackIntegration.Features.DevHub.LocalStackEndpoints"
     }
   ]
 }

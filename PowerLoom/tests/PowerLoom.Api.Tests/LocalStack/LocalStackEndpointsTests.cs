@@ -2,7 +2,7 @@ using System.Net;
 using Alba;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Api.Tests.Probes;
-using PowerLoom.LocalStackIntegration.Features.Bridge.Models;
+using PowerLoom.LocalStackIntegration.Features.DevHub.Models;
 using PowerLoom.LocalStackIntegration.Settings;
 
 namespace PowerLoom.Api.Tests.LocalStack;
@@ -44,7 +44,7 @@ public sealed class LocalStackEndpointsTests(PowerLoomHost host)
             await scope.ServiceProvider.GetRequiredService<LocalStackSettingsStore>().SaveAsync(PowerLoomHost.Vault, new LocalStackSettings(), CancellationToken.None);
 
         await SaveShouldFailAsync(new SaveLocalStackRequest(true, null, null), HttpStatusCode.BadRequest);
-        await SaveShouldFailAsync(new SaveLocalStackRequest(false, "ftp://bridge", Token), HttpStatusCode.BadRequest);
+        await SaveShouldFailAsync(new SaveLocalStackRequest(false, "ftp://devhub", Token), HttpStatusCode.BadRequest);
     }
 
     [Fact]

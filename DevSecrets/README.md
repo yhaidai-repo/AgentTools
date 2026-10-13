@@ -14,7 +14,7 @@ This folder (in the AgentTools repo) holds no secrets. The values live outside g
 | `Use-LocalPatches.ps1` + `patches/` | Local-only code fixes, applied and hidden from git. |
 | `Start-LocalStack.ps1`, `Get-LocalStack.ps1`, `Stop-LocalStack.ps1` | Start a chain of local services pointed at each other (config as environment variables), show it, stop it. |
 | `rabbitmq/` | Local RabbitMQ container (compose, definitions) for stacks with bus consumers. |
-| `Start-StackBridge.ps1` + `StackBridge/` | HTTP API over the stack scripts for PowerLoom's agents in Docker. |
+| `Start-DevHub.ps1` + `DevHub/` | DevHub: the configuration UI, and the HTTP API over the stack scripts for PowerLoom's agents in Docker. |
 | `DevSecrets.*.ps1`, `LocalStack.*.ps1` | Helpers the scripts dot-source. |
 
 ## Configure a local run
@@ -56,7 +56,7 @@ Then restart the AppHosts / services.
 
 ## Configuration UI
 
-Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); sign in with the bridge token (kept in that browser tab only).
+Open `http://127.0.0.1:47811/` while DevHub runs (`Start-DevHub.ps1`); sign in with the DevHub token (`dev-hub-token`, kept in that browser tab only).
 
 | Tab | Shows |
 |---|---|
@@ -68,18 +68,18 @@ Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); 
 
 Changes to apps and dependencies are made on a copy, checked by `Use-DevSecrets.ps1 -Check` on that copy (`DEV_SECRETS_STORE_DIR`) for every values file, and written only when they add no error; the files stay formatted as in git (apps and projects sorted, settings sorted case-insensitively). An app others call, or a project an app starts, can't be deleted. Secret changes:
 
-- A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the remote value takes over). `stack-bridge-token` is read-only here.
+- A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the remote value takes over). `dev-hub-token` is read-only here.
 - Every write first keeps the old file in `D:/Projects/dev-secrets/backups/` (the newest 20 per file); keys are written sorted.
 
 `GET /config/apps|dependencies|secrets|problems`, `GET|PUT|DELETE /config/secrets/{file}/{name}`, `PUT|DELETE /config/apps/{name}`, `PUT /config/projects`, `DELETE /config/projects?project=`, `PUT /config/settings`, `DELETE /config/settings?project=&key=` (token required).
 
-## Stack bridge (for PowerLoom)
+## DevHub (for PowerLoom)
 
 ```powershell
-./Start-StackBridge.ps1            # foreground; Ctrl+C stops the bridge and its stack
+./Start-DevHub.ps1            # foreground; Ctrl+C stops DevHub and its stack
 ```
 
-PowerLoom's agents run in Docker and cannot run these scripts; the bridge runs them on this machine.
+PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them on this machine.
 
 | Call | Does |
 |---|---|
@@ -91,11 +91,11 @@ PowerLoom's agents run in Docker and cannot run these scripts; the bridge runs t
 | `DELETE /stack` | runs `Stop-LocalStack.ps1` (also kills a start in progress) |
 
 - Listens on `127.0.0.1:47811` only; containers call `http://host.docker.internal:47811`.
-- `Authorization: Bearer <token>`: the dev-secrets value `stack-bridge-token`, created on the first run.
-- A stack stops when `ttlMinutes` (default 60, max 240) runs out, and when the bridge stops.
+- `Authorization: Bearer <token>`: the dev-secrets value `dev-hub-token`, created on the first run.
+- A stack stops when `ttlMinutes` (default 60, max 240) runs out, and when DevHub stops.
 - Logs and start output can hold secrets; whoever holds the token can read them.
 - `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
-- PowerLoom: Settings → Local stack (URL, token, Test bridge) per vault, and the agent switch "Local stack (run services)"; the runner stops a run's stack when the run ends.
+- PowerLoom: Settings → Local stack (URL, token, Test DevHub) per vault, and the agent switch "Local stack (run services)"; the runner stops a run's stack when the run ends.
 
 ## Routing references (map.json)
 

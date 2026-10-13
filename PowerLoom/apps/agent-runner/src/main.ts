@@ -6,7 +6,7 @@ import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSetting
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
-import { StackBridgeClient, checkStackBridge } from "@powerloom/localstack";
+import { DevHubClient, checkDevHub } from "@powerloom/localstack";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
@@ -88,7 +88,7 @@ const shared = {
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkStackBridge(new StackBridgeClient(url, token)), azureLogin);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin);
 
 server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
@@ -120,7 +120,7 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
   }
 }
 
-// Before the callback, so the next task never finds this run's stack still running; the bridge's own clock stops it
+// Before the callback, so the next task never finds this run's stack still running; DevHub's own clock stops it
 // when this is skipped (a crash) and the next start sweeps it.
 async function stopStackOfRun(access: AgentDeps["localStack"], runId: number | null): Promise<void> {
   if (!access || runId === null) {
@@ -130,19 +130,19 @@ async function stopStackOfRun(access: AgentDeps["localStack"], runId: number | n
   logStackNote(await stopRunStack(access.client, runId));
 }
 
-// At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every bridge a
+// At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a
 // vault points at.
 async function stopOrphanedStacks(): Promise<void> {
-  for (const client of await stackBridgesOfVaults()) {
+  for (const client of await devHubsOfVaults()) {
     logStackNote(await stopOrphanedStack(client));
   }
 }
 
-async function stackBridgesOfVaults(): Promise<StackBridgeClient[]> {
+async function devHubsOfVaults(): Promise<DevHubClient[]> {
   const settings = await Promise.all((await readVaults(db)).map((vault) => readLocalStackSettings(db, vault.name)));
-  const bridges = new Map(settings.filter((stack) => stack.enabled && stack.token).map((stack) => [`${stack.url} ${stack.token}`, stack]));
+  const devHubs = new Map(settings.filter((stack) => stack.enabled && stack.token).map((stack) => [`${stack.url} ${stack.token}`, stack]));
 
-  return [...bridges.values()].map((stack) => new StackBridgeClient(stack.url, stack.token));
+  return [...devHubs.values()].map((stack) => new DevHubClient(stack.url, stack.token));
 }
 
 function logStackNote(note: string | null): void {
@@ -201,12 +201,12 @@ async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   return anyKindOn ? { settings, logs: new LogsReader(azureLogin.logsCredential(vault)), cosmos: new CosmosReader() } : null;
 }
 
-// Read per run, so a switch flipped in Settings counts from the next run. Without a token the bridge refuses every
+// Read per run, so a switch flipped in Settings counts from the next run. Without a token DevHub refuses every
 // call, so the tools stay away until the vault has one.
 async function localStackAccessOf(vault: string): Promise<AgentDeps["localStack"]> {
   const settings = await readLocalStackSettings(db, vault);
 
-  return settings.enabled && settings.token ? { client: new StackBridgeClient(settings.url, settings.token), url: settings.url } : null;
+  return settings.enabled && settings.token ? { client: new DevHubClient(settings.url, settings.token), url: settings.url } : null;
 }
 
 // Read per run, so a switch flipped in Settings counts from the next run: the vault's Azure DevOps, read only.

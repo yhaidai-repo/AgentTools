@@ -1,4 +1,4 @@
-// POST /stack. The owner (a run) is the only one whose stop the bridge accepts while the stack runs.
+// POST /stack. The owner (a run) is the only one whose stop DevHub accepts while the stack runs.
 export interface StartStackRequest {
   services: string[];
   branch?: string;

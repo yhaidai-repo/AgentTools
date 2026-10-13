@@ -21,7 +21,7 @@ const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
 const READ_AZURE_KEY = "readAzure";
 const LOCAL_STACK_KEY = "localStack";
-// The stack bridge on the Windows host, as Docker containers reach it (DevSecrets Start-StackBridge.ps1).
+// DevHub on the Windows host, as Docker containers reach it (DevSecrets Start-DevHub.ps1).
 export const DEFAULT_LOCAL_STACK_URL = "http://host.docker.internal:47811";
 // Written by the agent-runner (the user's sign-in for App Insights): the account the page shows, and the MSAL cache.
 export const AZURE_USER_KEY = "azureUser";

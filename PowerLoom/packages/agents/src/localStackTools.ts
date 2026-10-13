@@ -1,6 +1,6 @@
 import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
-import { waitForStack, type BridgeAnswer, type StackStatus, type StackWait } from "@powerloom/localstack";
+import { waitForStack, type DevHubAnswer, type StackStatus, type StackWait } from "@powerloom/localstack";
 import { toMarkdownTable } from "@powerloom/sql";
 import { z } from "zod";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -11,13 +11,13 @@ import type { OutsideToolResult } from "./models/OutsideToolResult";
 import { defineOutsideTool } from "./outsideAccess";
 
 export const LOCAL_STACK_INTEGRATION = "localStack";
-// The bridge knows a stack started by a run under this prefix plus the run id.
+// DevHub knows a stack started by a run under this prefix plus the run id.
 export const RUN_OWNER_PREFIX = "powerloom-run-";
 
 // A start builds and starts up to five apps; past this the tool hands back and the agent checks stack_status.
 const START_WAIT_MS = 6 * 60_000;
 const POLL_MS = 5_000;
-// The stack outlives the run by this much at most when nothing stops it (the bridge's own clock).
+// The stack outlives the run by this much at most when nothing stops it (DevHub's own clock).
 const TTL_MARGIN_MINUTES = 10;
 const DEFAULT_LOG_LINES = 200;
 const MAX_LOG_LINES = 2_000;
@@ -26,7 +26,7 @@ const FAILURE_OUTPUT_LINES = 40;
 const MAX_ANSWER_CHARS = 60_000;
 
 // The Local stack tools (user decision 2026-10-13), for an agent with the integration switched on in its Config while
-// its vault's Local stack is on: start a chain of the vault's services on the Windows host (DevSecrets stack bridge),
+// its vault's Local stack is on: start a chain of the vault's services on the Windows host (DevHub),
 // pointed at each other, read their logs, stop them. A stack belongs to the run that started it; the runner stops it
 // when the run ends. Every call goes to the data access log.
 export function createLocalStackTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
@@ -157,7 +157,7 @@ function stopStackTool(deps: AgentDeps, context: OutsideAccessContext, access: L
   });
 }
 
-function waitResult(answer: BridgeAnswer<StackWait>): OutsideToolResult {
+function waitResult(answer: DevHubAnswer<StackWait>): OutsideToolResult {
   if (!answer.ok) {
     return failure(answer);
   }
