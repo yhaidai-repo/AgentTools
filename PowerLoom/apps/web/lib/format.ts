@@ -17,6 +17,24 @@ export function formatDuration(ms: number): string {
   return seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : `${seconds}s`;
 }
 
+// A stay in hours as people say it, in its two largest units: "1 d 10 h", "1 h 24 min", "12 min".
+export function formatHours(hours: number): string {
+  const minutes = Math.round(hours * 60);
+  const days = Math.floor(minutes / 1440);
+  const restHours = Math.floor((minutes % 1440) / 60);
+  const restMinutes = minutes % 60;
+
+  if (days > 0) {
+    return restHours > 0 ? `${days} d ${restHours} h` : `${days} d`;
+  }
+
+  if (restHours > 0) {
+    return restMinutes > 0 ? `${restHours} h ${restMinutes} min` : `${restHours} h`;
+  }
+
+  return minutes > 0 ? `${minutes} min` : "<1 min";
+}
+
 const AGE_UNITS = [
   { suffix: "d", ms: 24 * 60 * 60 * 1000 },
   { suffix: "h", ms: 60 * 60 * 1000 },
