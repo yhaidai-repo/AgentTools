@@ -12,6 +12,7 @@ import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
+import { createReadPbiTool } from "../pbiContext/readPbiTool";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { buildResearchMessage } from "../research/researchMessage";
 import { createSqlTools } from "../sqlTools";
@@ -92,7 +93,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   };
 }
 
-// Only these results get a source id the evidence can cite; writing tools stay out (see recordReads).
+// Only these results get a source id the evidence can cite; writing tools stay out (see recordReads). read_pbi and
+// read_attachment are listed here, so the session's PBI context doesn't add them again untagged (withPbiContext).
 function readingTools(context: TaskContext, session: AgentRunSession, task: ItemRow, repos: RepoRef[]): ToolDefinition<any>[] {
   const { deps, agent } = context;
   const access = outsideAccessContext(agent.id, session.runId, task);
@@ -101,6 +103,7 @@ function readingTools(context: TaskContext, session: AgentRunSession, task: Item
     ...createAgentDocTools(deps, agent.id, session.runId),
     ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
     createAttachmentTool(deps.db, requirePbiId(task)),
+    createReadPbiTool(deps.db, deps.vaultRoot),
     ...createConfluenceTools(deps, agent, access),
     ...createSqlTools(deps, agent, access),
     ...createAzureTools(deps, agent, access),
