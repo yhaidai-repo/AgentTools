@@ -1,17 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
 using PowerLoom.Persistence;
+using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Pbis;
 
 // Finishes the PBI in PowerLoom only (ADO untouched). Its open agent tasks are cancelled so no agent works on it again; the
-// user's questions, human tasks and findings stay as they are (user decision 2026-10-05).
+// user's questions, human tasks and findings stay as they are (user decision 2026-10-05). Its child items are finished
+// with it (user decision 2026-10-13): a finished PBI leaves no open child behind for the agents.
 public static class PbiFinishing
 {
     // Not prepared yet, already finished, or closed in ADO (user decision 2026-10-05: any prepared PBI can be finished).
     private static readonly PipelineStatus[] Unfinishable = [PipelineStatus.New, PipelineStatus.Done, PipelineStatus.Closed];
+
+    // A child that is over already keeps its status; any other child, prepared or not, is finished with its parent.
+    private static readonly PipelineStatus[] Settled = [PipelineStatus.Done, PipelineStatus.Closed];
 
     public static bool IsFinishable(PipelineStatus status) => !Unfinishable.Contains(status);
 
@@ -22,27 +27,47 @@ public static class PbiFinishing
         if (pbi is null)
             return Outcome<string>.Failure(Problem.NotFound($"PBI-{adoId} isn't in PowerLoom."));
 
-        var problem = await ProblemAsync(db, pbi.AdoId, pbi.PipelineStatus, cancellation);
+        var children = await OpenChildrenAsync(db, adoId, cancellation);
+        var problem = await ProblemAsync(db, pbi, children, cancellation);
 
         if (problem is not null)
             return Outcome<string>.Failure(Problem.Conflict(problem));
 
-        var cancelled = await CancelAgentTasksAsync(db, adoId, actor, cancellation);
+        var cancelled = 0;
 
-        PbiStatusChange.Set(db, pbi, pbi.PipelineStatus, PipelineStatus.Done, actor, null);
+        foreach (var item in children.Prepend(pbi))
+            cancelled += await FinishOneAsync(db, item, actor, cancellation);
+
         await db.SaveChangesAsync(cancellation);
 
-        return Outcome<string>.Success($"PBI-{adoId} done{(cancelled > 0 ? $"; {cancelled} agent task(s) cancelled" : "")}.");
+        return Outcome<string>.Success(Summary(adoId, children.Count, cancelled));
     }
 
-    private static async Task<string?> ProblemAsync(PowerLoomDbContext db, int adoId, PipelineStatus status, CancellationToken cancellation)
+    private static Task<List<WorkItem>> OpenChildrenAsync(PowerLoomDbContext db, int adoId, CancellationToken cancellation)
     {
-        if (!IsFinishable(status))
-            return $"PBI-{adoId} is {new KebabCaseNameTranslator().TranslateMemberName(status.ToString())}.";
+        return db.WorkItems.Where(row => row.ParentId == adoId && !Settled.Contains(row.PipelineStatus)).ToListAsync(cancellation);
+    }
 
-        var runId = await PbiChildren.RunningRunOnAsync(db, adoId, cancellation);
+    // The PBI must be finishable, and no run may work on it or on a child about to be finished with it.
+    private static async Task<string?> ProblemAsync(PowerLoomDbContext db, WorkItem pbi, List<WorkItem> children, CancellationToken cancellation)
+    {
+        if (!IsFinishable(pbi.PipelineStatus))
+            return $"PBI-{pbi.AdoId} is {new KebabCaseNameTranslator().TranslateMemberName(pbi.PipelineStatus.ToString())}.";
 
-        return runId is null ? null : $"RUN-{runId} is working on PBI-{adoId}; finish it when the run has ended.";
+        var ids = children.Select(child => child.AdoId).Prepend(pbi.AdoId).ToList();
+        var running = await db.AgentRuns.AsNoTracking().Where(run => run.PbiId != null && ids.Contains(run.PbiId.Value) && run.Outcome == RunOutcome.Running).Select(run => new { run.Id, run.PbiId }).FirstOrDefaultAsync(cancellation);
+
+        return running is null ? null : $"RUN-{running.Id} is working on PBI-{running.PbiId}; finish it when the run has ended.";
+    }
+
+    // Done, and its open agent tasks cancelled; returns how many tasks were cancelled.
+    private static async Task<int> FinishOneAsync(PowerLoomDbContext db, WorkItem item, string actor, CancellationToken cancellation)
+    {
+        var cancelled = await CancelAgentTasksAsync(db, item.AdoId, actor, cancellation);
+
+        PbiStatusChange.Set(db, item, item.PipelineStatus, PipelineStatus.Done, actor, null);
+
+        return cancelled;
     }
 
     private static async Task<int> CancelAgentTasksAsync(PowerLoomDbContext db, int adoId, string actor, CancellationToken cancellation)
@@ -53,5 +78,13 @@ public static class PbiFinishing
             await ItemStatusChange.SetAsync(db, task, ItemStatus.Cancelled, actor, null, cancellation);
 
         return open.Count;
+    }
+
+    private static string Summary(int adoId, int children, int cancelled)
+    {
+        var childPart = children > 0 ? $"; {children} child item(s) done" : "";
+        var taskPart = cancelled > 0 ? $"; {cancelled} agent task(s) cancelled" : "";
+
+        return $"PBI-{adoId} done{childPart}{taskPart}.";
     }
 }
