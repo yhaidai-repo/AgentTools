@@ -67,7 +67,7 @@ nav button {
 
 nav button.active { background: var(--chip); color: var(--text); font-weight: 600; }
 
-main { padding: 20px 24px; max-width: 1280px; margin: 0 auto; }
+main { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
 
 .card {
   background: var(--card);
@@ -104,6 +104,11 @@ button.small { padding: 2px 8px; font-size: 12px; }
 button.link { background: none; border: none; color: var(--muted); padding: 0; }
 
 table { width: 100%; border-collapse: collapse; }
+
+/* A wide table scrolls inside its card instead of widening the page. */
+.card { overflow-x: auto; }
+td .mono, label.mono { overflow-wrap: anywhere; }
+td.row-actions { white-space: nowrap; width: 1%; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
 tr:last-child td { border-bottom: none; }

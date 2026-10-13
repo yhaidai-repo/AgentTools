@@ -36,8 +36,8 @@ function appRow(app) {
       <td>${runText(app.run)}</td>
       <td>${readyText(app)}</td>
       <td>${app.consumesBus ? `<span class="chip">local RabbitMQ</span>` : ""}</td>
-      <td>${app.projects.map((project) => `<div class="mono">${escapeHtml(project)}</div>`).join("") || `<span class="muted">none</span>`}</td>
-      <td>
+      <td>${app.projects.map((project) => `<div class="mono" title="${escapeHtml(project)}">${escapeHtml(shortProject(project))}</div>`).join("") || `<span class="muted">none</span>`}</td>
+      <td class="row-actions">
         <button class="small secondary" data-edit-app="${escapeHtml(app.name)}">Edit</button>
         <button class="small secondary" data-delete-app="${escapeHtml(app.name)}">Delete</button>
       </td>
@@ -55,7 +55,7 @@ function runText(run) {
 
   const env = Object.entries(run.requiresEnv ?? {}).map(([name, value]) => `<div class="muted">needs ${escapeHtml(name)}=${escapeHtml(value)}</div>`).join("");
 
-  return `<div class="mono">${escapeHtml(shortProject(run.project))}</div><div class="muted">profile ${escapeHtml(run.launchProfile)}</div>${env}`;
+  return `<div class="mono" title="${escapeHtml(run.project)}">${escapeHtml(shortProject(run.project))}</div><div class="muted">profile ${escapeHtml(run.launchProfile)}</div>${env}`;
 }
 
 function readyText(app) {
