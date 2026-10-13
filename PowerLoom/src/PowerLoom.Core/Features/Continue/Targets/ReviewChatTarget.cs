@@ -45,6 +45,7 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
         var target = BranchName(pr.TargetRef);
         var brief = ChatBrief.For(pr.Vault, $"Review PR {prId}: {pr.Title}") with
         {
+            Pbis = LinkedPbis(pr),
             Before =
             [
                 $"Read the PR in the {pr.RepoName} repo without changing it: `git fetch origin`, then `git diff origin/{target}...origin/{source}`. No checkout, no file changes: review only.",
@@ -65,9 +66,11 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
         return Outcome<ChatBrief>.Success(brief);
     }
 
+    private static List<int> LinkedPbis(PullRequest pr) => JsonSerializer.Deserialize<List<int>>(pr.WorkItemIds, Json) ?? [];
+
     private static string PullRequestMarkdown(PullRequest pr, CodeReview review, string source, string target)
     {
-        var pbis = (JsonSerializer.Deserialize<List<int>>(pr.WorkItemIds, Json) ?? []).Select(adoId => $"[[{BacklogPaths.PbiNoteName(adoId)}]]").ToList();
+        var pbis = LinkedPbis(pr).Select(adoId => $"[[{BacklogPaths.PbiNoteName(adoId)}]]").ToList();
 
         return $"[Open in Azure DevOps]({pr.Url}) · {pr.RepoName} · `{source}` → `{target}` · by {pr.Author ?? "–"}\n\n"
             + $"Latest commit `{pr.SourceCommit}`; reviewed commit `{review.ReviewedCommit ?? "none"}`. PBIs: {(pbis.Count > 0 ? string.Join(", ", pbis) : "none")}.";

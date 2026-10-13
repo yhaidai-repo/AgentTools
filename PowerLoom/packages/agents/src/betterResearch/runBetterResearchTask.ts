@@ -27,7 +27,8 @@ import type { TaskCreationLimits } from "../taskCreation/models/TaskCreationLimi
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitBetterResearch } from "./commitBetterResearch";
 import type { BetterResearchRun } from "./models/BetterResearchRun";
-import { createResultTool } from "./resultTool";
+import { RESULT_TOOL, createResultTool } from "./resultTool";
+import { withBudgetNotes } from "../budget/budgetNotes";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -56,7 +57,8 @@ export async function runBetterResearchTask(context: TaskContext, task: ItemRow)
       await commitBetterResearch(deps.db, run.research!, session.runId, { ...run.draft, result: run.draft.result! }, extra);
     };
 
-    return await session.finish(ran, run.research ? commit : null);
+    // A run stopped by its budget keeps the result it saved (status partial), so the work so far isn't lost.
+    return await session.finish(ran, run.research ? commit : null, run.draft.result !== null);
   } finally {
     closeRepos(deps, run.repos);
   }
@@ -82,13 +84,13 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
+    tools: withBudgetNotes([
       ...recordReads(readingTools(context, session, task, run.repos), run.readLog),
       ...skills.tools,
       createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
       createResultTool(run.draft, run.readLog),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
-    ],
+    ], () => session.spentUsd, agent.budgets.perRunUsd, RESULT_TOOL),
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     hasRequiredOutput: () => run.draft.result !== null,

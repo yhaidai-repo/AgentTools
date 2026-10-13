@@ -123,6 +123,10 @@ public sealed class PowerLoomHost : IAsyncLifetime
             This is the vault at {{vaultPath}}, created {{date}}.
 
             """);
+        File.WriteAllText(Path.Combine(home, "POWERLOOM.md"), """
+            # PowerLoom tools for {{vaultPath}}
+
+            """);
 
         return home;
     }

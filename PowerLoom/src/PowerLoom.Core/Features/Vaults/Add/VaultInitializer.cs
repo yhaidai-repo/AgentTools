@@ -5,10 +5,15 @@ namespace PowerLoom.Features.Vaults.Add;
 
 // What a vault needs for PowerLoom's maintenance (user decision 2026-10-05): rules and registers from the templates, the
 // drafts folder (VaultCapture), the usage log folder (VaultUsage) and Obsidian's folder, so the vault is listed as one.
-// Creates whatever is missing; existing files are never touched. Agent-app files (Claude's CLAUDE.md) are the app's own.
+// Creates whatever is missing; existing files are never touched, except the files PowerLoom owns. Agent-app files
+// (Claude's CLAUDE.md) are the app's own.
 public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> options, TimeProvider clock)
 {
     private static readonly string[] Folders = ["draft", ".usage", ".obsidian"];
+
+    // PowerLoom's own files in a vault (user decision 2026-10-13): the tools a Claude chat in the vault can call. They
+    // follow PowerLoom's version, so they are rewritten whenever they differ from the template.
+    private static readonly string[] OwnedFiles = ["POWERLOOM.md"];
 
     public async Task<IReadOnlyList<string>> PrepareAsync(string vault, CancellationToken cancellation)
     {
@@ -24,6 +29,21 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
         return created;
     }
 
+    // Brings PowerLoom's own files of a connected vault up to date; true when one changed.
+    public async Task<bool> RefreshOwnedFilesAsync(string vault, CancellationToken cancellation)
+    {
+        var root = roots.RootOf(vault);
+        var changed = false;
+
+        if (!Directory.Exists(root))
+            return false;
+
+        foreach (var file in OwnedFiles)
+            changed |= await RefreshAsync(root, file, vault, cancellation);
+
+        return changed;
+    }
+
     private static bool CreateFolder(string root, string folder)
     {
         var path = Path.Combine(root, folder);
@@ -36,7 +56,6 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
         return true;
     }
 
-    // `{{vaultPath}}` is the vault's path on the PC, `{{date}}` today.
     private async Task<IReadOnlyList<string>> CreateFromTemplateAsync(string root, string file, string vault, CancellationToken cancellation)
     {
         var target = Path.Combine(root, file);
@@ -44,13 +63,31 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
         if (File.Exists(target))
             return [];
 
-        var template = await File.ReadAllTextAsync(Path.Combine(options.Value.TemplateHome, file), cancellation);
-        var content = template
-            .Replace("{{vaultPath}}", $"{options.Value.HostRoot.Replace('\\', '/').TrimEnd('/')}/{vault}")
-            .Replace("{{date}}", clock.GetUtcNow().ToString("yyyy-MM-dd"));
+        await File.WriteAllTextAsync(target, await RenderAsync(file, vault, cancellation), cancellation);
+
+        return [file];
+    }
+
+    private async Task<bool> RefreshAsync(string root, string file, string vault, CancellationToken cancellation)
+    {
+        var target = Path.Combine(root, file);
+        var content = await RenderAsync(file, vault, cancellation);
+
+        if (File.Exists(target) && await File.ReadAllTextAsync(target, cancellation) == content)
+            return false;
 
         await File.WriteAllTextAsync(target, content, cancellation);
 
-        return [file];
+        return true;
+    }
+
+    // `{{vaultPath}}` is the vault's path on the PC, `{{date}}` today.
+    private async Task<string> RenderAsync(string file, string vault, CancellationToken cancellation)
+    {
+        var template = await File.ReadAllTextAsync(Path.Combine(options.Value.TemplateHome, file), cancellation);
+
+        return template
+            .Replace("{{vaultPath}}", $"{options.Value.HostRoot.Replace('\\', '/').TrimEnd('/')}/{vault}")
+            .Replace("{{date}}", clock.GetUtcNow().ToString("yyyy-MM-dd"));
     }
 }

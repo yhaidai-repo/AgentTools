@@ -7,6 +7,9 @@ namespace PowerLoom.Features.Continue;
 // The one chat note every kind gets (user decision 2026-10-10): the chat reads it and follows its Start section.
 public static class ChatNote
 {
+    // PowerLoom's commands on the command line (user decision 2026-10-09: no MCP yet); the vault's POWERLOOM.md lists them.
+    public const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
+
     private static readonly string[] SharedRules =
     [
         "Azure DevOps is never written; nothing is pushed.",
@@ -45,6 +48,9 @@ public static class ChatNote
     {
         var steps = new List<string>();
 
+        if (brief.Pbis.Count > 0)
+            steps.Add(PbiContextStep(brief.Pbis));
+
         if (brief.ReadFirst.Count > 0)
             steps.Add("Read every note under Read first, and the code they cite where the briefing needs it.");
 
@@ -57,6 +63,16 @@ public static class ChatNote
         steps.AddRange(brief.AfterYes);
 
         return string.Join("\n", steps.Select((step, index) => $"{index + 1}. {step}"));
+    }
+
+    // The same prepared context the agents get, the user's own notes included; the notes under Read first stay the
+    // fallback when PowerLoom's command line can't be reached.
+    private static string PbiContextStep(IReadOnlyList<int> pbis)
+    {
+        var commands = pbis.Select(adoId => $"`{PowerLoomCli} pbi.read '{{\"ref\":\"PBI-{adoId}\"}}'`");
+
+        return $"Load the PBI's prepared context, the same the agents get (with the user's own notes): {string.Join(", ", commands)}. "
+            + "Read any reference it lists the same way (`pbi.read` with that ref; see POWERLOOM.md). If the command fails, say so and go on with the notes.";
     }
 
     private static string Context(ChatBrief brief)

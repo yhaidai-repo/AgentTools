@@ -5,6 +5,8 @@ import type { PullRequestRef } from "../models/PullRequestRef";
 import type { RepoCacheOptions } from "../models/RepoCacheOptions";
 import type { RepoProgress } from "../models/RepoProgress";
 import type { RepoRef } from "../models/RepoRef";
+import type { RepoRefReader } from "../models/RepoRefReader";
+import { GitRefReader } from "./GitRefReader";
 import { git } from "./git";
 
 // One checkout per repo, cloned once and refreshed at most every `refreshMinutes`.
@@ -13,7 +15,12 @@ export class RepoCache {
   private readonly lastFetch = new Map<string, number>();
   private readonly inUse = new Map<string, number>();
 
-  constructor(private readonly options: RepoCacheOptions) {}
+  /** Other branches and commits of the cached repos, fetched on demand (the repo tools' `ref`). */
+  readonly refs: RepoRefReader;
+
+  constructor(private readonly options: RepoCacheOptions) {
+    this.refs = new GitRefReader(options.root, (args, cwd) => this.git(args, cwd, true));
+  }
 
   /** The folder the checkouts are in: `<root>/<repo name>`; repo tools read from here. */
   get root(): string {

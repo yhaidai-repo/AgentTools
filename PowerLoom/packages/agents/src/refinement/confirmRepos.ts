@@ -1,10 +1,11 @@
-import { catalogRepos, hasItemWithKey, repoConfirmationKey, setItemStatus, vaultOfPbi } from "@powerloom/core";
+import { catalogRepos, itemStatusWithKey, repoConfirmationKey, setItemStatus, vaultOfPbi } from "@powerloom/core";
 import { localItem, pbiRepo, repo, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
 import { insertQuestions } from "./insertQuestions";
 import type { QuestionDraft } from "./models/QuestionDraft";
 
 const ACTOR = "agent:refinement";
+const PENDING_STATUSES: string[] = ["open", "in-progress", "blocked"];
 
 type RepoRow = typeof repo.$inferSelect;
 
@@ -25,8 +26,15 @@ export async function confirmRepos(db: PowerLoomDb, adoId: number, runId: number
   }
 
   const key = repoConfirmationKey(toAsk.map((row) => row.name));
+  const earlier = await itemStatusWithKey(db, adoId, key);
 
-  if (await hasItemWithKey(db, adoId, key)) {
+  if (earlier !== null && !PENDING_STATUSES.includes(earlier)) {
+    await dropAssumedRepos(db, adoId);
+
+    return [];
+  }
+
+  if (earlier !== null) {
     return [];
   }
 
@@ -49,6 +57,12 @@ async function recordPicks(db: PowerLoomDb, adoId: number, picked: RepoRow[], do
   const rows = picked.map((row) => ({ pbiId: adoId, repoId: row.id, source: documented.has(row.name.toLowerCase()) ? "vault-documented" as const : "agent-assumed" as const }));
 
   await db.insert(pbiRepo).values(rows).onConflictDoNothing();
+}
+
+// The user already answered or dismissed a question on exactly these guesses (one item per key, user decision
+// 2026-10-13): they aren't asked again, and they aren't kept as unconfirmed guesses either.
+async function dropAssumedRepos(db: PowerLoomDb, adoId: number): Promise<void> {
+  await db.delete(pbiRepo).where(and(eq(pbiRepo.pbiId, adoId), eq(pbiRepo.source, "agent-assumed")));
 }
 
 async function assumedRepos(db: PowerLoomDb, adoId: number): Promise<RepoRow[]> {

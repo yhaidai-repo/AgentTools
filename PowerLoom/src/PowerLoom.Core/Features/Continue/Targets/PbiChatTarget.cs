@@ -16,9 +16,6 @@ namespace PowerLoom.Features.Continue.Targets;
 // refinement are the spec (user decision 2026-10-10: no readiness checks, no status change).
 public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, PbiRepos pbiRepos) : IChatTarget
 {
-    // PowerLoom's commands on the command line (user decision 2026-10-09); the input is JSON on stdin.
-    private const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
-
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     // What the chat reads besides the PBI, refinement and design: final research results, the user's answers, and the
@@ -46,6 +43,7 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
         var repos = plan.Count > 0 ? await pbiRepos.EnabledAsync(pbi.Vault, plan.Select(step => step.Repo), cancellation) : await pbiRepos.NamesAsync(adoId, cancellation);
         var brief = ChatBrief.For(pbi.Vault, $"Implement PBI-{adoId}: {pbi.Title}") with
         {
+            Pbis = [adoId],
             ReadFirst = await ReadFirstAsync(pbi, design is not null, cancellation),
             Briefing =
             [
@@ -60,7 +58,7 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
             Rules =
             [
                 $"Done when the acceptance criteria in [[{BacklogPaths.PbiNoteName(adoId)}]] and the tests pass.",
-                $"An issue found in this PBI's implementation that the plan doesn't cover is a bug: after the user's yes, report it with `{PowerLoomCli} bug.report` and `{{\"parent\": \"{adoId}\", \"title\": \"…\", \"descriptionMd\": \"steps, expected, actual\"}}` on stdin. PowerLoom's agents refine and design the fix as a child item.",
+                $"An issue found in this PBI's implementation that the plan doesn't cover is a bug: after the user's yes, report it with `{ChatNote.PowerLoomCli} bug.report` and `{{\"parent\": \"{adoId}\", \"title\": \"…\", \"descriptionMd\": \"steps, expected, actual\"}}` on stdin. PowerLoom's agents refine and design the fix as a child item.",
             ],
         };
 

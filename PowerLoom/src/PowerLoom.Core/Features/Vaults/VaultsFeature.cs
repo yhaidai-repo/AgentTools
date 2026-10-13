@@ -9,6 +9,8 @@ public static class VaultsFeature
     {
         services.AddSingleton<TrashFolder>();
         services.AddSingleton<VaultInitializer>();
+        // After the database migrator (registered first): it reads the connected vaults.
+        services.AddHostedService<OwnedFilesRefresher>();
 
         return services;
     }
