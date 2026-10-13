@@ -1,4 +1,4 @@
-import { api, byId, escapeHtml, shortProject, showMessage, submitChange } from "./core.js";
+import { api, byId, escapeHtml, openSecret, shortProject, showMessage, submitChange } from "./core.js";
 
 // The apps of services.json: what each is, what it starts and when it is ready; add, change, delete. A save is checked by
 // the scripts first and refused when it would break a start.
@@ -16,7 +16,7 @@ export async function renderApps(section) {
         <button id="add-app" class="small">Add app</button>
       </div>
       <table>
-        <thead><tr><th>App</th><th>Local URL</th><th>Starts</th><th>Ready when</th><th>Bus</th><th>Projects</th><th></th></tr></thead>
+        <thead><tr><th>App</th><th>Local</th><th>Remote (Azure dev)</th><th>Starts</th><th>Projects</th></tr></thead>
         <tbody>${apps.map(appRow).join("")}</tbody>
       </table>
       <p id="apps-message"></p>
@@ -26,22 +26,46 @@ export async function renderApps(section) {
   byId("add-app").addEventListener("click", () => openEditor(null));
   section.querySelectorAll("[data-edit-app]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.editApp)));
   section.querySelectorAll("[data-delete-app]").forEach((button) => button.addEventListener("click", () => deleteApp(button)));
+  section.querySelectorAll("[data-open-secret]").forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    openSecret(link.dataset.openSecret);
+  }));
 }
 
 function appRow(app) {
   return `
     <tr>
-      <td><strong>${escapeHtml(app.name)}</strong><div class="muted">${escapeHtml(app.note)}</div></td>
-      <td class="mono">${escapeHtml(app.localUrl ?? "—")}${app.localKey ? `<div class="muted">key ${escapeHtml(app.localKey)}</div>` : ""}</td>
-      <td>${runText(app.run)}</td>
-      <td>${readyText(app)}</td>
-      <td>${app.consumesBus ? `<span class="chip">local RabbitMQ</span>` : ""}</td>
-      <td>${app.projects.map((project) => `<div class="mono" title="${escapeHtml(project)}">${escapeHtml(shortProject(project))}</div>`).join("") || `<span class="muted">none</span>`}</td>
-      <td class="row-actions">
-        <button class="small secondary" data-edit-app="${escapeHtml(app.name)}">Edit</button>
-        <button class="small secondary" data-delete-app="${escapeHtml(app.name)}">Delete</button>
+      <td>
+        <strong>${escapeHtml(app.name)}</strong>
+        <div class="muted">${escapeHtml(app.note)}</div>
+        ${app.consumesBus ? `<span class="chip">local RabbitMQ</span>` : ""}
+        <div class="row-actions">
+          <button class="small secondary" data-edit-app="${escapeHtml(app.name)}">Edit</button>
+          <button class="small secondary" data-delete-app="${escapeHtml(app.name)}">Delete</button>
+        </div>
       </td>
+      <td class="mono">${escapeHtml(app.localUrl ?? "—")}${app.localKey ? `<div class="muted">key ${escapeHtml(app.localKey)}</div>` : ""}</td>
+      <td>${remoteText(app)}</td>
+      <td>${runText(app.run)}${app.run ? `<div class="muted">ready: ${readyText(app)}</div>` : ""}</td>
+      <td>${app.projects.map((project) => `<div class="mono" title="${escapeHtml(project)}">${escapeHtml(shortProject(project))}</div>`).join("") || `<span class="muted">none</span>`}</td>
     </tr>`;
+}
+
+// Where calls to the app go while it isn't local: the URL for a url, the value's name for a key or user. A name opens the
+// value in the Secrets tab, where it can be replaced.
+function remoteText(app) {
+  if (app.remote.length === 0) {
+    return `<span class="muted">${app.localUrl ? "no caller has a remote" : ""}</span>`;
+  }
+
+  return app.remote.map(remoteTarget).join("");
+}
+
+function remoteTarget(target) {
+  const name = `<a href="#secrets" class="chip" data-open-secret="${escapeHtml(target.valueName)}" title="Used by:\n${escapeHtml(target.usedBy.join("\n"))}">${escapeHtml(target.valueName)}</a>`;
+  const value = target.url ? `<div class="mono">${escapeHtml(target.url)}</div>` : "";
+
+  return `<div class="remote"><span class="muted">${escapeHtml(target.part)}</span> ${name}${value}</div>`;
 }
 
 function runText(run) {
@@ -67,7 +91,7 @@ function readyText(app) {
 
   const conditions = [run.readyLog ? `log shows “${run.readyLog}”` : null, !run.readyLog && app.localUrl ? "URL answers" : null, run.readyProcess ? `process ${run.readyProcess} runs` : null];
 
-  return conditions.filter(Boolean).map(escapeHtml).join("<br>");
+  return conditions.filter(Boolean).map(escapeHtml).join(" and ");
 }
 
 // --- Editor ---

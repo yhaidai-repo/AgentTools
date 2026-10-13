@@ -32,6 +32,15 @@ async function openTab(tab) {
   }
 }
 
+// A link to another tab (e.g. a value opened from the Apps tab) changes the hash only.
+window.addEventListener("hashchange", () => {
+  const tab = tabFromHash();
+
+  if (token() && byId(tab).hidden) {
+    openTab(tab);
+  }
+});
+
 function tabFromHash() {
   const tab = location.hash.slice(1);
 

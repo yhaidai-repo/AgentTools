@@ -108,7 +108,9 @@ table { width: 100%; border-collapse: collapse; }
 /* A wide table scrolls inside its card instead of widening the page. */
 .card { overflow-x: auto; }
 td .mono, label.mono { overflow-wrap: anywhere; }
-td.row-actions { white-space: nowrap; width: 1%; }
+.row-actions { display: flex; gap: 4px; margin-top: 6px; }
+.remote { margin-bottom: 6px; }
+a.chip { color: var(--accent); text-decoration: none; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
 tr:last-child td { border-bottom: none; }

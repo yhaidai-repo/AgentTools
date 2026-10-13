@@ -8,6 +8,8 @@ namespace DevSecrets.DevHub.Config;
 public sealed class ConfigCatalog(DevSecretsFiles files)
 {
     private const string Placeholder = "<fill-me>";
+    private const string RemoteValuesFile = "remote";
+    private const string UrlPart = "url";
 
     // Values the scripts read themselves, not through map.json.
     private static readonly (string Value, string Reader)[] ScriptReads =
@@ -17,8 +19,12 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
         ("local-instance", "LocalStack.RabbitMq.ps1: the shovel's topic prefix"),
     ];
 
-    public IReadOnlyList<AppView> GetApps() =>
-        files.ReadServices().Select(service => ToAppView(service.Key, service.Value!.AsObject())).OrderBy(app => app.Name, StringComparer.Ordinal).ToList();
+    public IReadOnlyList<AppView> GetApps()
+    {
+        var remote = RemoteTargets();
+
+        return Apps().Select(app => app with { Remote = remote.GetValueOrDefault(app.Name) ?? [] }).ToList();
+    }
 
     public DependencyView GetDependencies()
     {
@@ -69,10 +75,36 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
 
     // A project listed by two apps belongs to the first by name.
     public Dictionary<string, string> AppOfProject() =>
-        GetApps()
+        Apps()
             .SelectMany(app => app.Projects.Select(project => (Project: project, App: app.Name)))
             .DistinctBy(entry => entry.Project)
             .ToDictionary(entry => entry.Project, entry => entry.App, StringComparer.Ordinal);
+
+    private IEnumerable<AppView> Apps() =>
+        files.ReadServices().Select(service => ToAppView(service.Key, service.Value!.AsObject())).OrderBy(app => app.Name, StringComparer.Ordinal);
+
+    // App name → its remote targets: every "@app.part|value" reference's value, with the settings that use it.
+    private Dictionary<string, RemoteTarget[]> RemoteTargets()
+    {
+        var values = files.ReadValues(RemoteValuesFile) ?? [];
+        var references = ReadProjects(AppOfProject())
+            .SelectMany(project => project.Settings.Where(setting => setting.RemoteValue is not null).Select(setting => (Setting: setting, Use: $"{project.Project}: {setting.Key}")));
+
+        return references
+            .GroupBy(reference => reference.Setting.Service!)
+            .ToDictionary(app => app.Key, app => ToRemoteTargets(app, values));
+    }
+
+    private static RemoteTarget[] ToRemoteTargets(IEnumerable<(ProjectSetting Setting, string Use)> references, JsonObject values) =>
+        references
+            .GroupBy(reference => (reference.Setting.Part!, reference.Setting.RemoteValue!))
+            .Select(target => new RemoteTarget(target.Key.Item1, target.Key.Item2, UrlOf(target.Key.Item1, target.Key.Item2, values), target.Select(reference => reference.Use).Order(StringComparer.Ordinal).ToArray()))
+            .OrderBy(target => target.Part, StringComparer.Ordinal)
+            .ThenBy(target => target.ValueName, StringComparer.Ordinal)
+            .ToArray();
+
+    // Only a url is shown; a key or user stays a name, revealed in the Secrets tab on request.
+    private static string? UrlOf(string part, string valueName, JsonObject values) => part == UrlPart ? values[valueName]?.ToString() : null;
 
     private static AppView ToAppView(string name, JsonObject service) =>
         new(
@@ -83,7 +115,8 @@ public sealed class ConfigCatalog(DevSecretsFiles files)
             Text(service, "localUser"),
             service["consumesBus"]?.GetValue<bool>() ?? false,
             service["projects"]?.AsArray().Select(project => project!.ToString()).ToArray() ?? [],
-            service["run"] is JsonObject run ? ToRun(run) : null
+            service["run"] is JsonObject run ? ToRun(run) : null,
+            []
         );
 
     private static AppRun ToRun(JsonObject run) =>

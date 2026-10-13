@@ -3,6 +3,8 @@
 export const TABS = ["apps", "dependencies", "secrets", "problems", "stack"];
 
 const TOKEN_KEY = "devhub-token";
+// A value another tab asked the Secrets tab to show.
+const SECRET_FILTER_KEY = "devhub-secret-filter";
 
 export const byId = (id) => document.getElementById(id);
 
@@ -74,6 +76,20 @@ export async function submitChange(button, messageTarget, call, success) {
     button.disabled = false;
     button.textContent = label;
   }
+}
+
+// Opens the Secrets tab filtered to one value (e.g. an app's remote URL).
+export function openSecret(name) {
+  sessionStorage.setItem(SECRET_FILTER_KEY, name);
+  location.hash = "secrets";
+}
+
+export function takeSecretFilter() {
+  const filter = sessionStorage.getItem(SECRET_FILTER_KEY);
+
+  sessionStorage.removeItem(SECRET_FILTER_KEY);
+
+  return filter;
 }
 
 export function shortProject(project) {

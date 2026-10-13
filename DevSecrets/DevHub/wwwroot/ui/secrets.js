@@ -1,11 +1,11 @@
-import { api, byId, escapeHtml, showMessage } from "./core.js";
+import { api, byId, escapeHtml, showMessage, takeSecretFilter } from "./core.js";
 
 // The named values (values.*.json): masked, Show / Copy on request; add, replace, delete.
 
 // DevHub's own token: changed in the file and by restarting DevHub, never here.
 const READ_ONLY_VALUES = ["dev-hub-token"];
 
-export async function renderSecrets(section, filterText = "") {
+export async function renderSecrets(section, filterText = takeSecretFilter() ?? "") {
   const files = await api("/config/secrets");
 
   section.innerHTML = `
