@@ -35,7 +35,7 @@ const STATUSES: string[] = pipelineStatus.enumValues;
 // sprint picker only says what the sync pulls.
 export default async function PbisPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await rememberedParams("/pbis", await searchParams);
-  const filter: BacklogFilter = { status: STATUSES.find((status) => status === params.status) ?? "" };
+  const filter: BacklogFilter = { statuses: (params.status ?? "").split(",").filter((status) => STATUSES.includes(status)) };
   const db = getDb();
   const vault = await currentVault();
 
@@ -46,7 +46,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
   const sync = await readSyncSettings(db, vault);
   const ado = await readAdoSettings(db, vault);
   const all = await loadRows(db, vault);
-  const matches = (row: BacklogRow) => !filter.status || row.pipelineStatus === filter.status;
+  const matches = (row: BacklogRow) => filter.statuses.length === 0 || filter.statuses.includes(row.pipelineStatus);
   const rows = all.filter(matches);
   const [lastSync] = await db.select().from(agentRun).where(eq(agentRun.stage, "sync")).orderBy(desc(agentRun.id)).limit(1);
 
@@ -58,7 +58,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
         <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
         <Link className="button" href="/pbis/new">New PBI</Link>
       </div>
-      <StatusFilter key={filter.status} status={filter.status} statuses={STATUSES} />
+      <StatusFilter selected={filter.statuses} statuses={STATUSES} />
       <StatusChips rows={rows} />
       <BacklogForm>
         <PbiTable groups={groupBacklogRows(all, matches)} ado={ado} />
