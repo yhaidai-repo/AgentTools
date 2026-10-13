@@ -1,13 +1,21 @@
 import { isRerunnableTask } from "@powerloom/core";
+import { taskRunState } from "@/lib/taskRunState";
 import type { agentRun, localItem } from "@powerloom/db";
 
 type RunRow = typeof agentRun.$inferSelect;
 type TaskRow = typeof localItem.$inferSelect;
 
-// A run can be selected for "Re-run selected" when its task is finished or blocked; an open task runs again by itself.
+// A run can be selected for "Re-run selected" when its task is finished or blocked; a task that already runs again
+// (queued or in progress) says so instead of showing an empty cell.
 export function RunSelect({ run, task }: { run: RunRow; task: TaskRow | null }) {
-  if (!task || !isRerunnableTask(task)) {
-    return <span title={task?.status === "open" ? "Task open: runs again on schedule" : undefined} />;
+  if (!task) {
+    return null;
+  }
+
+  if (!isRerunnableTask(task)) {
+    const state = taskRunState(task);
+
+    return state ? <span className="muted">{state.split(":")[0]}</span> : null;
   }
 
   return <input type="checkbox" name="taskId" value={task.id} aria-label={`Select RUN-${run.id}`} />;
