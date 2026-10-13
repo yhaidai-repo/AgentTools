@@ -14,6 +14,7 @@ import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
 import { runBetterResearchGoal } from "../betterResearch/runBetterResearchGoal";
+import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
@@ -25,6 +26,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
   "better-research": runBetterResearchTask,
+  "better-refinement": runBetterRefinementTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,

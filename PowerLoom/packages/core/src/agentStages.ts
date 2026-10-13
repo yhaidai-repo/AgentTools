@@ -4,6 +4,7 @@ import type { BlockerKind } from "./models/BlockerKind";
 // The pipeline agents, in order. An agent without a stage here gets no PBI tasks (e.g. a later tech writer).
 export const AGENT_STAGES: Record<string, AgentStage> = {
   refinement: { kind: "refinement", prefix: "RT", running: "refining", waiting: "ready-for-refinement", title: "Refine the PBI" },
+  "better-refinement": { kind: "refinement", prefix: "RT", running: "refining", waiting: "ready-for-refinement", title: "Refine the PBI" },
   research: { kind: "research", prefix: "AT", running: "researching", waiting: "needs-research", title: "Research the PBI" },
   "better-research": { kind: "research", prefix: "AT", running: "researching", waiting: "needs-research", title: "Research the PBI" },
   design: { kind: "design", prefix: "DT", running: "designing", waiting: "ready-for-design", title: "Design the implementation" },

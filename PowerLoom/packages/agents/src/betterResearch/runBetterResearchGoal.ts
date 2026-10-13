@@ -24,7 +24,7 @@ import { createTaskTool } from "../taskCreation/createTaskTool";
 import type { FindingDraft } from "../techWriter/models/FindingDraft";
 import type { BetterResearchDraft } from "./models/BetterResearchDraft";
 import { renderResult } from "./renderResult";
-import { depthOf, readingTools, taskLimits } from "./researchToolset";
+import { depthOf, readingTools, taskLimits } from "../betterAgents/toolset";
 import { RESULT_TOOL, createResultTool } from "./resultTool";
 
 type ItemRow = typeof localItem.$inferSelect;

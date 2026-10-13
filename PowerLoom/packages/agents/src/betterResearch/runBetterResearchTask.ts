@@ -18,7 +18,7 @@ import { createTaskTool } from "../taskCreation/createTaskTool";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitBetterResearch } from "./commitBetterResearch";
 import type { BetterResearchRun } from "./models/BetterResearchRun";
-import { depthOf, readingTools, taskLimits } from "./researchToolset";
+import { depthOf, readingTools, taskLimits } from "../betterAgents/toolset";
 import { RESULT_TOOL, createResultTool } from "./resultTool";
 
 type ItemRow = typeof localItem.$inferSelect;

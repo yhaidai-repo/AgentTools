@@ -30,7 +30,8 @@ export async function commitRefinement(db: PowerLoomDb, adoId: number, runId: nu
   return outputs;
 }
 
-async function insertRefinement(db: PowerLoomDb, adoId: number, runId: number, output: RefinementOutput, docsRead: string[]): Promise<number> {
+// `details`: Better Refinement's full result; earlier refinements have none.
+export async function insertRefinement(db: PowerLoomDb, adoId: number, runId: number, output: RefinementOutput & { details?: object }, docsRead: string[]): Promise<number> {
   const [{ latest }] = await db.select({ latest: max(refinement.version) }).from(refinement).where(eq(refinement.pbiId, adoId));
   const version = (latest ?? 0) + 1;
 

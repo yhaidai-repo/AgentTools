@@ -1594,7 +1594,7 @@ export interface components {
             enabled: boolean;
         };
         /** @enum {unknown} */
-        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research";
+        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement";
         /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {

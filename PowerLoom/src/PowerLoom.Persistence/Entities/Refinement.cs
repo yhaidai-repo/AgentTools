@@ -35,6 +35,9 @@ public partial class Refinement
 
     public string Skills { get; set; } = null!;
 
+    /// <summary>Better Refinement's full result (jsonb): sources, affected areas, test data, blockers, status; null for earlier refinements.</summary>
+    public string? Details { get; set; }
+
     public virtual WorkItem Pbi { get; set; } = null!;
 
     public virtual AgentRun? Run { get; set; }
