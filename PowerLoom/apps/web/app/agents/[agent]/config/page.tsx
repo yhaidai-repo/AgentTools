@@ -1,4 +1,4 @@
-import { AGENT_TASK_TYPES, BLOCKER_KINDS, CREATABLE_TASK_TYPES, PIPELINE_TASK_TYPES } from "@powerloom/core";
+import { AGENT_TASK_TYPES, BLOCKER_KINDS, CREATABLE_TASK_TYPES } from "@powerloom/core";
 import { modelCatalog } from "@agenttools/config";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,7 +8,7 @@ import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "./AgentForm";
 
 // From core on the server: the form is a client component, and core pulls in the database driver.
-const TASK_TYPES = { agent: AGENT_TASK_TYPES, creatable: CREATABLE_TASK_TYPES, pipeline: PIPELINE_TASK_TYPES };
+const TASK_TYPES = { agent: AGENT_TASK_TYPES, creatable: CREATABLE_TASK_TYPES };
 
 export const dynamic = "force-dynamic";
 

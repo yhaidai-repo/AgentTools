@@ -54,12 +54,10 @@ public sealed class AgentRunSaga : Saga
         return [message.DelayedFor(options.Value.BusyRetry)];
     }
 
-    public async Task Handle(AgentRunCompleted message, PowerLoomDbContext db, AgentConfigReader agents, IMessageBus bus, ILogger<AgentRunSaga> logger, CancellationToken cancellation)
+    public async Task Handle(AgentRunCompleted message, PowerLoomDbContext db, IMessageBus bus, ILogger<AgentRunSaga> logger, CancellationToken cancellation)
     {
-        var task = await db.LocalItems.SingleOrDefaultAsync(item => item.Id == Id, cancellation);
-        var handedOn = task is not null && await HandOnAsync(db, agents, task, message, cancellation);
-
-        logger.LogInformation("run {Task}: {Agent} ended with {Outcome}{HandedOn}{Error}", Id, AgentId, message.Outcome, handedOn ? ", handed on" : "", message.Error is null ? "" : $" ({message.Error})");
+        // No hand-on: agents create the next tasks themselves (create_task; user decision 2026-10-13).
+        logger.LogInformation("run {Task}: {Agent} ended with {Outcome}{Error}", Id, AgentId, message.Outcome, message.Error is null ? "" : $" ({message.Error})");
         await PbiChanges.PublishAsync(db, bus, PbiId, Actor, cancellation);
         MarkCompleted();
     }
@@ -108,15 +106,4 @@ public sealed class AgentRunSaga : Saga
         }
     }
 
-    // After a successful run the agent's configured next agent gets a task, once per task.
-    private static async Task<bool> HandOnAsync(PowerLoomDbContext db, AgentConfigReader agents, Persistence.Entities.LocalItem task, AgentRunCompleted message, CancellationToken cancellation)
-    {
-        if (message.Outcome != RunOutcome.Success || task.Status != ItemStatus.Done || task.HandedOnAt is not null)
-            return false;
-
-        var agent = await agents.ReadAsync(task.Assignee[(task.Assignee.IndexOf(':') + 1)..], cancellation);
-        var created = await AgentTasks.HandOnAsync(db, task, agent?.Next, cancellation);
-
-        return created is not null;
-    }
 }

@@ -12,11 +12,9 @@ export const BLOCKER_KINDS: BlockerKind[] = [
 // one agent.
 export const ANY_AGENT = "agent:*";
 
-// The task types agents take (an agent's `handles`), the ones agents may create for each other (`canAssign`), and the
-// PBI pipeline's, which an agent's `next` names.
+// The task types agents take (an agent's `handles`) and the ones agents may create for each other (`canAssign`).
 export const AGENT_TASK_TYPES = ["refinement", "research", "design", "docs", "review", "vault-review"];
 export const CREATABLE_TASK_TYPES = ["research", "design", "docs"];
-export const PIPELINE_TASK_TYPES = ["refinement", "research", "design"];
 
 // Who works on an agent task, for display: the pinned agent, or any agent taking its type.
 export function workerLabel(assignee: string, kind: string): string {

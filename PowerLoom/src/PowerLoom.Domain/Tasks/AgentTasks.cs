@@ -6,7 +6,7 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Domain.Tasks;
 
-// Tasks for the pipeline agents (refinement, research, design) on a PBI.
+// Pipeline tasks on a PBI (prepare creates the refinement task; agents create the rest with create_task).
 public static class AgentTasks
 {
     private const int TitleMax = 120;
@@ -39,19 +39,6 @@ public static class AgentTasks
         await db.SaveChangesAsync(cancellation);
 
         return id;
-    }
-
-    // After a successful task: a task of the agent's configured next task type (user decisions 2026-10-01, 2026-10-13).
-    // Marked as handed on either way, so this happens once per task. The created task's id, or null.
-    public static async Task<string?> HandOnAsync(PowerLoomDbContext db, LocalItem task, string? nextTaskType, CancellationToken cancellation)
-    {
-        var kind = nextTaskType is null ? null : TaskKinds.Parse([nextTaskType]).Cast<ItemKind?>().FirstOrDefault();
-        var created = kind is not null && task.PbiId is not null ? await EnsureAsync(db, kind.Value, task.PbiId.Value, null, cancellation) : null;
-
-        task.HandedOnAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellation);
-
-        return created;
     }
 
     private static Task<bool> HasOpenTaskAsync(PowerLoomDbContext db, ItemKind kind, int adoId, CancellationToken cancellation)

@@ -61,7 +61,6 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
             Text(root, "label") ?? "",
             Flag(root, "enabled"),
             Text(root, "schedule"),
-            Text(root, "next"),
             Strings(root, "waitFor"),
             Strings(root, "handles"),
             root.TryGetProperty("capabilities", out var capabilities) && Flag(capabilities, "webAccess"),

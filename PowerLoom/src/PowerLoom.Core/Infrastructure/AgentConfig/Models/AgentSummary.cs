@@ -9,7 +9,6 @@ public sealed record AgentSummary(
     string Label,
     bool Enabled,
     string? Schedule,
-    string? Next,
     IReadOnlyList<string> WaitFor,
     IReadOnlyList<string> Handles,
     bool WebAccess,
