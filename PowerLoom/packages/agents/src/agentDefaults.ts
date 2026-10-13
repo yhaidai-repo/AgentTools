@@ -272,8 +272,9 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: null,
     canAssign: ["better-research", "design"],
-    // Its tasks name their dependencies (dependsOn), so it doesn't wait for every open question on the PBI.
-    waitFor: ["linkedDocuments", "drafts"],
+    // Its tasks name their dependencies (dependsOn), so it doesn't wait for every open question on the PBI; a draft only
+    // adds docs, and a stuck merge would hold it forever (user decision 2026-10-13).
+    waitFor: ["linkedDocuments"],
   },
   {
     id: "design",
