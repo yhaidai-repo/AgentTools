@@ -1,16 +1,11 @@
-using System.Text.Json;
 using DevSecrets.StackBridge.Models;
 
 namespace DevSecrets.StackBridge.Config;
 
 // What is wrong with the configuration. Errors come from the scripts themselves (Use-DevSecrets.ps1 -All -Check, once per
 // values file), so the UI shows exactly what a start would refuse; warnings are the UI's own: loose ends that work.
-public sealed class ConfigProblems(ScriptRunner runner, DevSecretsFiles files, ConfigCatalog catalog)
+public sealed class ConfigProblems(ScriptCheck check, DevSecretsFiles files, ConfigCatalog catalog)
 {
-    private const string CheckScript = "Use-DevSecrets.ps1";
-
-    private static readonly JsonSerializerOptions ScriptJson = new() { PropertyNameCaseInsensitive = true };
-
     public async Task<IReadOnlyList<ConfigProblem>> FindAsync(CancellationToken cancellationToken)
     {
         var errors = new List<ConfigProblem>();
@@ -23,15 +18,9 @@ public sealed class ConfigProblems(ScriptRunner runner, DevSecretsFiles files, C
 
     private async Task<IEnumerable<ConfigProblem>> CheckAsync(string valuesFile, CancellationToken cancellationToken)
     {
-        var output = await runner.RunScriptAsync(CheckScript, ["-All", "-Check", "-Values", valuesFile], cancellationToken);
-        var text = string.Join('\n', output.Lines);
+        var errors = await check.ErrorsAsync(valuesFile, null, cancellationToken);
 
-        if (output.ExitCode != 0)
-            return [new ConfigProblem("error", $"values.{valuesFile}.json", $"{CheckScript} -Check failed: {text}")];
-
-        var check = JsonSerializer.Deserialize<CheckOutput>(text, ScriptJson);
-
-        return (check?.Problems ?? []).Select(problem => new ConfigProblem("error", $"values.{valuesFile}.json", problem));
+        return errors.Select(error => new ConfigProblem("error", $"values.{valuesFile}.json", error));
     }
 
     private IEnumerable<ConfigProblem> Warnings()

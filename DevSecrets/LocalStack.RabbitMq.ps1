@@ -1,7 +1,7 @@
 # The local RabbitMQ container of a stack: compose project, static definitions, shovel to Service Bus (dot-sourced).
 
 $RabbitComposeProject = "devsecrets-rabbitmq"
-$RabbitComposeFile = Join-Path $StoreDir "rabbitmq/compose.yml"
+$RabbitComposeFile = Join-Path $PSScriptRoot "rabbitmq/compose.yml"
 $RabbitServiceBusValue = "signals-servicebus"
 $RabbitShovelTopicValue = "local-instance"
 $RabbitShovelName = "fw-cloudevents-to-sb"

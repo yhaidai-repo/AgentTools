@@ -60,17 +60,17 @@ Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); 
 
 | Tab | Shows |
 |---|---|
-| Apps | `services.json`: each app's URL, key, what it starts, when it is ready, bus, projects |
-| Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value) |
+| Apps | `services.json`: each app's URL, key, what it starts, when it is ready, bus, projects; add, edit, delete |
+| Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value); add a project, add / edit / delete a setting |
 | Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value; add, replace, delete |
 | Problems | `Use-DevSecrets.ps1 -All -Check` per values file (what a start would refuse), plus unused values and projects without an app |
 
-Apps and dependencies are read-only for now (edit the files directly). Secret changes:
+Changes to apps and dependencies are made on a copy, checked by `Use-DevSecrets.ps1 -Check` on that copy (`DEV_SECRETS_STORE_DIR`) for every values file, and written only when they add no error; the files stay formatted as in git (apps and projects sorted, settings sorted case-insensitively). An app others call, or a project an app starts, can't be deleted. Secret changes:
 
 - A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the remote value takes over). `stack-bridge-token` is read-only here.
 - Every write first keeps the old file in `D:/Projects/dev-secrets/backups/` (the newest 20 per file); keys are written sorted.
 
-`GET /config/apps|dependencies|secrets|problems`, `GET|PUT|DELETE /config/secrets/{file}/{name}` (token required).
+`GET /config/apps|dependencies|secrets|problems`, `GET|PUT|DELETE /config/secrets/{file}/{name}`, `PUT|DELETE /config/apps/{name}`, `PUT /config/projects`, `DELETE /config/projects?project=`, `PUT /config/settings`, `DELETE /config/settings?project=&key=` (token required).
 
 ## Stack bridge (for PowerLoom)
 

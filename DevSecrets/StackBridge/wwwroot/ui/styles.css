@@ -146,3 +146,12 @@ details > summary h3 { display: inline; }
 
 .calls { display: grid; grid-template-columns: 220px 1fr; gap: 6px 16px; align-items: start; }
 .secret-value { word-break: break-all; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 16px; margin: 8px 0 12px; }
+.form-grid label, label.block { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+.form-grid input, .form-grid select, .form-grid textarea { color: var(--text); font-size: 14px; }
+label.inline { display: flex; flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 14px; }
+.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 2px 16px; margin-bottom: 12px; }
+select, textarea { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+button:disabled { opacity: .6; cursor: progress; }
+[hidden] { display: none !important; }
