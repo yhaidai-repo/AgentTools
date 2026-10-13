@@ -11,7 +11,8 @@ using Wolverine.Http;
 namespace PowerLoom.Features.Tasks.CloseItem;
 
 // Answer / dismiss a question or finding, finish / cancel a human task. The PBI's status follows and its notes are
-// rendered (PbiChanged). The web stores the answer's uploads between a dry run and the close.
+// rendered (PbiChanged). The web stores the answer's uploads between a dry run and the close. A finished access
+// request reopens the agent tasks anchored to it (user decision 2026-10-13).
 public static class CloseItemEndpoint
 {
     public const string Closable = "closable";
@@ -32,6 +33,7 @@ public static class CloseItemEndpoint
 
         var status = await ItemClosing.CloseAsync(db, found.Value!, closeRequest, cancellation);
 
+        await AccessAnchors.AfterCloseAsync(db, found.Value!, status, cancellation);
         await PbiChanges.PublishAsync(db, bus, request.AdoId, Actor, cancellation);
 
         return TypedResults.Ok(new ClosedItem(id, new KebabCaseNameTranslator().TranslateMemberName(status.ToString())));
