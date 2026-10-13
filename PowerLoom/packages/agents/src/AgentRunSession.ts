@@ -101,6 +101,7 @@ export class AgentRunSession {
 
     for await (const event of runtime.run({ runId: String(this.runId), model: info.model, ...input, signal: observer.abort.signal })) {
       await observer.observe(event);
+      input.observe?.(event);
     }
 
     await tools.flush();

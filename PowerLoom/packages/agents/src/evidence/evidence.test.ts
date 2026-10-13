@@ -73,4 +73,18 @@ describe("evidenceProblems", () => {
 
     assert.deepEqual(problems, ['the quote for "PVS/src/Consumer.cs:2" is not in S1: copy it exactly or leave it out']);
   });
+
+  it("accepts a web page the run fetched, and refuses one it never saw", () => {
+    const log = new ReadLog("task message");
+    const at = new Date();
+
+    log.observe({ type: "tool_call", runId: "r", seq: 1, at, callId: "c1", name: "WebFetch", input: { url: "https://learn.microsoft.com/azure/cosmos-db/time-to-live" } } as never);
+    log.observe({ type: "tool_result", runId: "r", seq: 2, at, callId: "c1", output: "TTL: when DefaultTimeToLive is -1, items don't expire unless they set ttl.", isError: false } as never);
+
+    const fetched = evidenceProblems([{ source: "web", ref: "https://learn.microsoft.com/azure/cosmos-db/time-to-live/", note: "TTL semantics", quote: "items don't expire unless they set ttl" }], log);
+    const unseen = evidenceProblems([{ source: "web", ref: "https://example.com/blog", note: "made up" }], log);
+
+    assert.deepEqual(fetched, []);
+    assert.match(unseen[0], /no WebSearch or WebFetch of this run shows that URL/);
+  });
 });
