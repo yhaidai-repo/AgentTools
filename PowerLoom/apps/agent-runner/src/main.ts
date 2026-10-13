@@ -5,7 +5,7 @@ import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readLocalS
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
-import { StackBridgeClient } from "@powerloom/localstack";
+import { StackBridgeClient, checkStackBridge } from "@powerloom/localstack";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
@@ -85,7 +85,7 @@ const shared = {
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), azureLogin);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkStackBridge(new StackBridgeClient(url, token)), azureLogin);
 
 server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);

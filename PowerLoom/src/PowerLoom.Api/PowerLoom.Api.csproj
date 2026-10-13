@@ -6,6 +6,7 @@
     <ProjectReference Include="..\PowerLoom.ConfluenceIntegration\PowerLoom.ConfluenceIntegration.csproj" />
     <ProjectReference Include="..\PowerLoom.SqlIntegration\PowerLoom.SqlIntegration.csproj" />
     <ProjectReference Include="..\PowerLoom.AzureIntegration\PowerLoom.AzureIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.LocalStackIntegration\PowerLoom.LocalStackIntegration.csproj" />
   </ItemGroup>
 
 </Project>

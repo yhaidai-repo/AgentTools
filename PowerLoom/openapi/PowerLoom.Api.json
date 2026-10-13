@@ -2573,6 +2573,110 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/local-stack": {
+      "put": {
+        "tags": [
+          "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_local_stack",
+        "description": "PUT_api_vaults_vault_local_stack",
+        "operationId": "PUT_api_vaults_vault_local_stack",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLocalStackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalStackSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/local-stack/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_local_stack_test",
+        "description": "POST_api_vaults_vault_local_stack_test",
+        "operationId": "POST_api_vaults_vault_local_stack_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestLocalStackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalStackCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3350,6 +3454,40 @@
           }
         }
       },
+      "LocalStackCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalStackSummary": {
+        "required": [
+          "enabled",
+          "url",
+          "hasToken"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "hasToken": {
+            "type": "boolean"
+          }
+        }
+      },
       "MessagingStatus": {
         "required": [
           "incoming",
@@ -3871,6 +4009,31 @@
             "type": "string"
           },
           "pat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveLocalStackRequest": {
+        "required": [
+          "enabled",
+          "url",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
             "type": [
               "null",
               "string"
@@ -4471,6 +4634,27 @@
           }
         }
       },
+      "TestLocalStackRequest": {
+        "required": [
+          "url",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TestSqlConnectionRequest": {
         "required": [
           "name",
@@ -4715,6 +4899,9 @@
     },
     {
       "name": "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+    },
+    {
+      "name": "PowerLoom.LocalStackIntegration.Features.Bridge.LocalStackEndpoints"
     }
   ]
 }

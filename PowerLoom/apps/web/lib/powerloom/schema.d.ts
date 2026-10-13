@@ -1180,6 +1180,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/local-stack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_local_stack
+         * @description PUT_api_vaults_vault_local_stack
+         */
+        put: operations["PUT_api_vaults_vault_local_stack"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/local-stack/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_local_stack_test
+         * @description POST_api_vaults_vault_local_stack_test
+         */
+        post: operations["POST_api_vaults_vault_local_stack_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1377,6 +1417,15 @@ export interface components {
         LoadPageRequest: {
             url: string;
         };
+        LocalStackCheck: {
+            ok: boolean;
+            message: string;
+        };
+        LocalStackSummary: {
+            enabled: boolean;
+            url: string;
+            hasToken: boolean;
+        };
         MessagingStatus: {
             /** Format: int32 */
             incoming: number;
@@ -1506,6 +1555,11 @@ export interface components {
             team: string;
             user: string;
             pat: null | string;
+        };
+        SaveLocalStackRequest: {
+            enabled: boolean;
+            url: null | string;
+            token: null | string;
         };
         SaveReposRequest: {
             repos: string[];
@@ -1651,6 +1705,10 @@ export interface components {
             project: string;
             team: string;
             pat: null | string;
+        };
+        TestLocalStackRequest: {
+            url: null | string;
+            token: null | string;
         };
         TestSqlConnectionRequest: {
             name: null | string;
@@ -3424,6 +3482,76 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_local_stack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveLocalStackRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalStackSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_local_stack_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestLocalStackRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalStackCheck"];
+                };
             };
             /** @description Bad Request */
             400: {

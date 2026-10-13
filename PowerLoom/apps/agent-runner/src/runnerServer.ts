@@ -1,12 +1,14 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AgentRunJob } from "@powerloom/core";
 import type { AzureUserLogin } from "@powerloom/azure";
+import type { StackBridgeCheck } from "@powerloom/localstack";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
 // time; PowerLoom asks again later. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
-// signed in through the agents' own SQL driver, also while a run is in progress. `/azure/login/*`: the user's own
+// signed in through the agents' own SQL driver, also while a run is in progress. `POST /local-stack/test {url, token}` →
+// 200 {ok, message}: Settings' Local stack test, from the container the agents' bridge calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for App Insights (start, status, sign out); the runner keeps the token cache. `GET /health` for
 // PowerLoom's health check and Docker's.
 export class RunnerServer {
@@ -16,6 +18,7 @@ export class RunnerServer {
   constructor(
     private readonly run: (job: AgentRunJob) => Promise<void>,
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
+    private readonly testLocalStack: (url: string, token: string) => Promise<StackBridgeCheck>,
     private readonly azureLogin: AzureUserLogin,
   ) {
     this.server = createServer((request, response) => this.handle(request, response));
@@ -44,6 +47,12 @@ export class RunnerServer {
 
     if (request.method === "POST" && request.url === "/sql/test") {
       await this.test(request, response);
+
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/local-stack/test") {
+      await this.testStack(request, response);
 
       return;
     }
@@ -129,6 +138,18 @@ export class RunnerServer {
     }
 
     answer(response, 200, await this.testSql(body.connectionString));
+  }
+
+  private async testStack(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const body = (await readBody(request)) as { url?: unknown; token?: unknown } | null;
+
+    if (typeof body?.url !== "string" || typeof body.token !== "string") {
+      answer(response, 400, { error: "expected {url, token}" });
+
+      return;
+    }
+
+    answer(response, 200, await this.testLocalStack(body.url, body.token));
   }
 
   private async runThenFree(job: AgentRunJob): Promise<void> {

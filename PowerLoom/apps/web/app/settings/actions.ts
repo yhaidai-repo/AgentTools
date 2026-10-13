@@ -146,6 +146,31 @@ async function testSqlConnection(body: { name: string | null; connectionString: 
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
+// Local stack (user decision 2026-10-13), kept by PowerLoom: the vault's switch, the bridge's URL and token; an empty
+// token keeps the saved one. Each agent's own switch is on its Config page.
+export async function saveLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/local-stack", {
+    params: { path: { vault: await requireVault() } },
+    body: { enabled, url: field(form, "url") || null, token: field(form, "token") || null },
+  });
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with Local stack switched on may start this vault's services on this PC." : "Saved. Local stack is off: no agent starts services for this vault.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// Calls the bridge from the agent-runner with the typed URL and token (the saved ones for empty fields); saves nothing.
+export async function testLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const checked = await powerloom.POST("/api/vaults/{vault}/local-stack/test", {
+    params: { path: { vault: await requireVault() } },
+    body: { url: field(form, "url") || null, token: field(form, "token") || null },
+  });
+
+  return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
+}
+
 // Read Azure (user decisions 2026-10-12/13), kept by PowerLoom: one switch per kind here, and each agent's own
 // switches per kind on its Config page.
 export async function saveReadAzureKindAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

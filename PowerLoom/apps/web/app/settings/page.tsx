@@ -1,4 +1,4 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readLocalStackSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
 import type { AzureResourceRow } from "@/models/AzureResourceRow";
@@ -16,6 +16,7 @@ import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
 import { PullRequestSettingsForm } from "./PullRequestSettingsForm";
+import { LocalStackForm } from "./LocalStackForm";
 import { ReadAzurePanel } from "./ReadAzurePanel";
 import { ReadSqlPanel } from "./ReadSqlPanel";
 import { SettingsForm } from "./SettingsForm";
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
   const repos = await listVaultRepos(db, current);
   const readSql = await readReadSqlSettings(db, current);
   const readAzure = await readReadAzureSettings(db, current);
+  const localStack = await readLocalStackSettings(db, current);
 
   return (
     <>
@@ -51,6 +53,8 @@ export default async function SettingsPage() {
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <h2>Read Azure</h2>
       <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} resources={resourceRows(readAzure)} />
+      <h2>Local stack</h2>
+      <LocalStackForm key={`stack-${current}`} values={{ enabled: localStack.enabled, url: localStack.url, hasToken: localStack.token.length > 0 }} />
       <h2>Agents</h2>
       <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
       <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>

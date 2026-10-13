@@ -1,5 +1,7 @@
 export { StackBridgeClient } from "./StackBridgeClient";
 export { waitForStack } from "./waitForStack";
+export { checkStackBridge } from "./checkStackBridge";
+export type { StackBridgeCheck } from "./models/StackBridgeCheck";
 export type { WaitForStackOptions } from "./waitForStack";
 export type { BridgeAnswer } from "./models/BridgeAnswer";
 export type { StackLog } from "./models/StackLog";
