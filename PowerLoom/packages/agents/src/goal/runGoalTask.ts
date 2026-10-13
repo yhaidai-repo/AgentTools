@@ -19,14 +19,14 @@ import type { GoalDraft } from "./models/GoalDraft";
 type ItemRow = typeof localItem.$inferSelect;
 type Stage = typeof agentRun.$inferSelect["stage"];
 
-// A scheduled goal task (GT-…) of any agent (user decision 2026-10-06): the goal on the chosen repos, no PBI. The agent
-// reads code and docs and writes one result, which becomes the task's resolution.
+// A scheduled goal task (GT-…) of any agent (user decision 2026-10-06): the goal on the chosen repos; a goal filed under a
+// PBI gets the PBI's context too. The agent reads code and docs and writes one result, which becomes the task's resolution.
 export async function runGoalTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps, agent } = context;
   const data = task.data as GoalTaskData;
   const info: AgentRunInfo = {
     stage: agent.id as Stage,
-    pbiId: null,
+    pbiId: task.pbiId,
     itemId: task.id,
     labels: { agent: agent.id, item: task.id },
     model: agent.model,

@@ -8,6 +8,9 @@ type CommentRow = typeof reviewComment.$inferSelect;
 
 const MAX_PBI_TEXT = 2000;
 
+// A PR can link several PBIs, so they come as summaries; read_pbi gives each one's whole context (user decision 2026-10-13).
+const LINKED_PBIS_HINT = "Summaries. Read a PBI that is in PowerLoom in full (note, the user's notes, answers, refinement, design, results) with read_pbi(PBI-<id>).";
+
 // The first message: the PR, the PBIs it links (what refinement and design said), the files in scope, and every earlier
 // comment with the user's answer (user decision 2026-10-02: answers feed the next run).
 export function buildReviewMessage(context: ReviewContext, checkout: PullRequestCheckout, scope: DiffScope, outdatedIds: string[]): string {
@@ -26,7 +29,7 @@ export function buildReviewMessage(context: ReviewContext, checkout: PullRequest
       "</pull-request>",
     ].join("\n"),
     `<description>\n${pr.descriptionMd?.trim() || "(none)"}\n</description>`,
-    `<linked-pbis>\n${context.linkedPbis.map(pbiBlock).join("\n\n") || "none"}\n</linked-pbis>`,
+    `<linked-pbis>\n${LINKED_PBIS_HINT}\n${context.linkedPbis.map(pbiBlock).join("\n\n") || "none"}\n</linked-pbis>`,
     `<changed-files>\n${scope.reviewed.length} to review, ${scope.skipped.length} not in this review; get_pr_diff lists them.\n</changed-files>`,
     `<earlier-comments>\n${context.earlierComments.map((comment) => commentBlock(comment, outdatedIds)).join("\n\n") || "none: this is the first review"}\n</earlier-comments>`,
   ].join("\n\n");

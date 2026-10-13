@@ -18,6 +18,7 @@ import { loadReviewContext } from "./loadReviewContext";
 import type { ReviewRun } from "./models/ReviewRun";
 import { findOutdatedComments } from "./outdatedComments";
 import { parseUnifiedDiff, selectScope } from "./prDiff";
+import { createReadPbiTool } from "../pbiContext/readPbiTool";
 import { buildReviewMessage } from "./reviewMessage";
 import { reviewCheckoutsRoot } from "./reviewCheckouts";
 
@@ -90,6 +91,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
       ...createCodeReviewTools(run),
+      createReadPbiTool(deps.db, deps.vaultRoot),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
