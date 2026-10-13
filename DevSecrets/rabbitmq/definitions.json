@@ -1,0 +1,20 @@
+{
+  "users": [
+    { "name": "guest", "password": "guest", "tags": ["administrator"] }
+  ],
+  "vhosts": [
+    { "name": "pvs-local" }
+  ],
+  "permissions": [
+    { "user": "guest", "vhost": "pvs-local", "configure": ".*", "write": ".*", "read": ".*" }
+  ],
+  "exchanges": [
+    { "name": "cloud-events", "vhost": "pvs-local", "type": "topic", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "queues": [
+    { "name": "cloud-events.fw.service-bus", "vhost": "pvs-local", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "bindings": [
+    { "source": "cloud-events", "vhost": "pvs-local", "destination": "cloud-events.fw.service-bus", "destination_type": "queue", "routing_key": "#", "arguments": {} }
+  ]
+}

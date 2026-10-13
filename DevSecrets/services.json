@@ -5,7 +5,11 @@
     "note": "BFF.Aggregators.Api",
     "projects": [
       "pvs-internal/BFF.Aggregators/src/PVS.BFF.Aggregators.Api/PVS.BFF.Aggregators.Api.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/BFF.Aggregators/src/PVS.BFF.Aggregators.Api/PVS.BFF.Aggregators.Api.csproj",
+      "launchProfile": "https"
+    }
   },
   "configuration": {
     "localKey": null,
@@ -13,7 +17,11 @@
     "note": "PVS.Internal.Configuration",
     "projects": [
       "pvs-internal/Configuration/src/PVS.Internal.Configuration/PVS.Internal.Configuration.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/Configuration/src/PVS.Internal.Configuration/PVS.Internal.Configuration.csproj",
+      "launchProfile": "https"
+    }
   },
   "mappings": {
     "localKey": "dev",
@@ -21,7 +29,11 @@
     "note": "Mappings AppHost",
     "projects": [
       "pvs-internal/Mappings/src/PVS.Internal.Mappings.AppHost/PVS.Internal.Mappings.AppHost.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/Mappings/src/PVS.Internal.Mappings.AppHost/PVS.Internal.Mappings.AppHost.csproj",
+      "launchProfile": "https"
+    }
   },
   "patients": {
     "localKey": "dev",
@@ -30,7 +42,11 @@
     "projects": [
       "pvs-internal/Patients/src/PVS.Internal.Patients.App/PVS.Internal.Patients.App.csproj",
       "pvs-internal/Patients/src/PVS.Internal.Patients.AppHost/PVS.Internal.Patients.AppHost.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/Patients/src/PVS.Internal.Patients.AppHost/PVS.Internal.Patients.AppHost.csproj",
+      "launchProfile": "https"
+    }
   },
   "pvs-api": {
     "localKey": null,
@@ -38,21 +54,53 @@
     "note": "PVS.API.Core",
     "projects": [
       "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj",
+      "launchProfile": "PVS.API.Core.Development"
+    }
   },
   "pvs-background": {
+    "consumesBus": true,
     "localKey": null,
     "localUrl": null,
-    "note": "PVS background host and consumers",
+    "note": "PVS.BackgroundServiceHostCore (jobs, verification saga, integration-event consumers)",
     "projects": [
-      "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj",
-      "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj",
-      "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj",
-      "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj",
-      "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj",
-      "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj",
-      "pvs/PVS/PVS.MessageBus.Scheduler/PVS.MessageBus.Scheduler.csproj"
-    ]
+      "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Application started"
+    }
+  },
+  "pvs-failed-transaction-consumer": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.FailedTransactionConsumer",
+    "projects": [
+      "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
+  },
+  "pvs-failed-verification-delta-consumer": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.FailedVerificationDeltaConsumer",
+    "projects": [
+      "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
   },
   "pvs-internal-api": {
     "localKey": null,
@@ -60,15 +108,90 @@
     "note": "PVS.Internal.API.Core",
     "projects": [
       "pvs/PVS/PVS.Internal.API.Core/PVS.Internal.API.Core.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.Internal.API.Core/PVS.Internal.API.Core.csproj",
+      "launchProfile": "PVS.Internal.API.Core.Development"
+    }
+  },
+  "pvs-patient-processing-consumer": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.PatientProcessingConsumer",
+    "projects": [
+      "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
+  },
+  "pvs-scheduler": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.MessageBus.Scheduler",
+    "projects": [
+      "pvs/PVS/PVS.MessageBus.Scheduler/PVS.MessageBus.Scheduler.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.MessageBus.Scheduler/PVS.MessageBus.Scheduler.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
+  },
+  "pvs-transaction-consumer": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.TransactionConsumer (queue transactions.manual)",
+    "projects": [
+      "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
+  },
+  "pvs-verification-delta-consumer": {
+    "consumesBus": true,
+    "localKey": null,
+    "localUrl": null,
+    "note": "PVS.VerificationDeltaConsumer",
+    "projects": [
+      "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj"
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj",
+      "launchProfile": "Development",
+      "readyLog": "Bus started"
+    }
   },
   "pvs-web": {
     "localKey": null,
-    "localUrl": "http://localhost:5000",
-    "note": "PVS.Clients.WebClient.Core (portal)",
+    "localUrl": "http://localhost:5001",
+    "note": "PVS.Clients.WebClient.Core (portal); Program.cs hard-codes the port",
     "projects": [
       "pvs/PVS/PVS.Clients.WebClient.Core/PVS.Clients.WebClient.Core.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs/PVS/PVS.Clients.WebClient.Core/PVS.Clients.WebClient.Core.csproj",
+      "launchProfile": "PVS.Clients.WebClient.Core.Development"
+    }
+  },
+  "rabbitmq": {
+    "localKey": "guest",
+    "localUrl": "rabbitmq://localhost:5673/pvs-local",
+    "localUser": "guest",
+    "note": "Local RabbitMQ container (ports 5673/15673, so a Signals shared-resources RabbitMQ can run too) with a shovel of cloud-events to Service Bus; added automatically when a consumesBus service runs locally",
+    "projects": [],
+    "run": {
+      "kind": "rabbitmq-compose",
+      "managementUrl": "http://localhost:15673"
+    }
   },
   "signals": {
     "localKey": "dev",
@@ -78,7 +201,16 @@
       "pvs-internal/Signals/src/PVS.Signals.ApiService/PVS.Signals.ApiService.csproj",
       "pvs-internal/Signals/src/PVS.Signals.AppHost/PVS.Signals.AppHost.csproj",
       "pvs-internal/Signals/src/PVS.Signals.Runner.Deno/PVS.Signals.Runner.Deno.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/Signals/src/PVS.Signals.AppHost/PVS.Signals.AppHost.csproj",
+      "launchProfile": "https",
+      "readyProcess": "PVS.Signals.Runner.Deno",
+      "requiresEnv": {
+        "DENO_TLS_CA_STORE": "system"
+      },
+      "denoScripts": "pvs-internal/Signals/src/PVS.Signals.Runner.Deno/DenoScripts"
+    }
   },
   "vapi": {
     "localKey": null,
@@ -87,7 +219,11 @@
     "projects": [
       "vapi/src/VAPI.Api/VAPI.Api.csproj",
       "vapi/src/VAPI.X12Transfer/VAPI.X12Transfer.csproj"
-    ]
+    ],
+    "run": {
+      "project": "vapi/src/VAPI.Api/VAPI.Api.csproj",
+      "launchProfile": "VAPI.Api.Development"
+    }
   },
   "verifications": {
     "localKey": "dev",
@@ -95,6 +231,10 @@
     "note": "Verifications ApiService",
     "projects": [
       "pvs-internal/Verifications/src/PVS.Verifications.ApiService/PVS.Verifications.ApiService.csproj"
-    ]
+    ],
+    "run": {
+      "project": "pvs-internal/Verifications/src/PVS.Verifications.ApiService/PVS.Verifications.ApiService.csproj",
+      "launchProfile": "https"
+    }
   }
 }

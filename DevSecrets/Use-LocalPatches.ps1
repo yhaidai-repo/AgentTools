@@ -85,6 +85,16 @@ if ($Release) {
     return
 }
 
+function Test-PatchForRepo([string] $PatchPath) {
+    # Patches of several repos share the folder; a patch belongs to the repo that has all its files.
+    $missing = @(Get-PatchedFiles $PatchPath | Where-Object { -not (Test-Path -LiteralPath (Join-Path $Repo $_)) })
+
+    return $missing.Count -eq 0
+}
+
+$patches | Where-Object { -not (Test-PatchForRepo $_.FullName) } | ForEach-Object { Write-Host "$($_.Name): not for this repo, skipped" }
+$patches = @($patches | Where-Object { Test-PatchForRepo $_.FullName })
+
 $states = $patches | ForEach-Object { [pscustomobject]@{ Patch = $_; State = Get-PatchState $_.FullName } }
 $conflicts = @($states | Where-Object State -eq "conflict")
 

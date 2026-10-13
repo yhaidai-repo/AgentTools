@@ -1,0 +1,51 @@
+<#
+.SYNOPSIS
+    Shows the local stack started by Start-LocalStack.ps1: each service, whether it still runs, its URL and log.
+
+.EXAMPLE
+    ./Get-LocalStack.ps1
+
+.EXAMPLE
+    ./Get-LocalStack.ps1 -Json
+#>
+[CmdletBinding()]
+param(
+    [switch] $Json
+)
+
+$ErrorActionPreference = "Stop"
+
+. "$PSScriptRoot/DevSecrets.Common.ps1"
+. "$PSScriptRoot/LocalStack.RabbitMq.ps1"
+. "$PSScriptRoot/LocalStack.Process.ps1"
+
+function Get-EntryStatus([hashtable] $Entry) {
+    return [ordered]@{
+        name = $Entry.name
+        running = Test-EntryAlive $Entry
+        url = $Entry.url
+        log = $Entry.log
+    }
+}
+
+$state = Read-StackState ?? @{ services = @() }
+$status = [ordered]@{
+    running = $state.services.Count -gt 0
+    branch = $state.branch
+    services = @($state.services | ForEach-Object { Get-EntryStatus $_ })
+}
+
+if ($Json) {
+    $status | ConvertTo-Json -Depth 4
+
+    return
+}
+
+if (-not $status.running) {
+    Write-Host "No local stack is running."
+
+    return
+}
+
+Write-Host "Local stack$(if ($state.branch) { " (branch $($state.branch))" }):"
+$status.services | ForEach-Object { Write-Host "  $($_.name): $(if ($_.running) { 'running' } else { 'STOPPED' })$(if ($_.url) { " $($_.url)" }) log $($_.log)" }

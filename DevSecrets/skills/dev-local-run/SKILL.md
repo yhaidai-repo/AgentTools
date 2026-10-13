@@ -19,10 +19,12 @@ Never print, copy into chat or commit a secret value. Show key names, value name
 | `bff` | BFF.Aggregators.Api | https://localhost:7107 |
 | `mappings` | Mappings AppHost | https://localhost:7021 |
 | `configuration` | PVS.Internal.Configuration | https://localhost:7213 |
-| `pvs-web` | PVS.Clients.WebClient.Core (portal) | http://localhost:5000 |
+| `pvs-web` | PVS.Clients.WebClient.Core (portal; `Program.cs` hard-codes the port) | http://localhost:5001 |
 | `pvs-api` | PVS.API.Core | http://localhost:9977 |
 | `pvs-internal-api` | PVS.Internal.API.Core | https://localhost:7266 |
-| `pvs-background` | PVS background host and consumers | – |
+| `pvs-background` | PVS.BackgroundServiceHostCore (jobs, saga) | – |
+| `pvs-transaction-consumer`, `pvs-failed-transaction-consumer`, `pvs-patient-processing-consumer`, `pvs-verification-delta-consumer`, `pvs-failed-verification-delta-consumer`, `pvs-scheduler` | one PVS consumer each | – |
+| `rabbitmq` | local RabbitMQ container (added automatically for consumers) | rabbitmq://localhost:5673/pvs-local |
 | `vapi` | VAPI.Api (+ X12Transfer) | http://localhost:15788 |
 
 `services.json` is the source of truth; re-read it if the table seems out of date.
@@ -42,6 +44,18 @@ D:/Projects/AgentTools/DevSecrets/Use-DevSecrets.ps1 -Local <services>
 
 Dry-run first and show the `[calls: …=local|remote]` lines. Run the real write without asking when the request was clear; it only touches the listed services' user secrets and keeps a `secrets.json.bak`.
 If the script reports problems, it wrote nothing: fix the store (step 4) or tell the user which value is missing.
+
+### Run the services, not only configure them
+
+When the services must actually run (a test, a check, "start X and Y"):
+
+```powershell
+D:/Projects/AgentTools/DevSecrets/Start-LocalStack.ps1 -Services <services> [-Branch <branch>]
+D:/Projects/AgentTools/DevSecrets/Get-LocalStack.ps1 -Json
+D:/Projects/AgentTools/DevSecrets/Stop-LocalStack.ps1
+```
+
+It returns when every service is ready (or stops everything and prints the failing logs). Config goes in as environment variables, so this does not touch user secrets; the patches, Deno cache and worktree are handled. Always stop the stack when done. PVS services need the VPN. Read the README's "Start a local stack" before changing this.
 
 ## 3. Finish
 
