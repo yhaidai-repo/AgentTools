@@ -17,14 +17,13 @@ interface AgentFormProps {
   catalog: CatalogModel[];
   skills: SkillCatalog;
   skillFolders: SkillFolder[];
-  agentIds: string[];
   blockerKinds: BlockerKind[];
   /** This agent's finished runs today, what its daily budget counts. */
   spentTodayUsd: number;
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes.
-export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, blockerKinds, spentTodayUsd }: AgentFormProps) {
+export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, spentTodayUsd }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
@@ -77,7 +76,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, agentIds, bloc
           {spec.label} <span className="muted">· {spec.description}</span>
         </label>
       ))}
-      <PipelineFields agent={agent} agentIds={agentIds} blockerKinds={blockerKinds} />
+      <PipelineFields agent={agent} blockerKinds={blockerKinds} />
       <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
       <OptionsFields agent={agent} />
       <div className="actions">

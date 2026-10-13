@@ -52,7 +52,7 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
         return new RunInProgress(taskId, agentId, pbiId, since, now - since > limit);
     }
 
-    // A task for any agent of its kind says nothing about who took it; the open run on it does (its stage is the agent id).
+    // A task for any agent taking its type says nothing about who took it; the open run on it does (its stage is the agent id).
     private async Task<Dictionary<string, string>> RunningAgentsAsync(CancellationToken cancellation)
     {
         var runs = await db.AgentRuns.AsNoTracking()

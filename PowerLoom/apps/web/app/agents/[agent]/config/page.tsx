@@ -27,7 +27,6 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         catalog={modelCatalog()}
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
-        agentIds={(await store.list()).map((entry) => entry.id)}
         blockerKinds={BLOCKER_KINDS}
         spentTodayUsd={await spentToday({ agent: agent.id })}
       />
