@@ -15,6 +15,7 @@ import { loadPbiDetail, type PbiDetail } from "@/lib/pbiDetail";
 import { loadUserNotes } from "@/lib/userNotes";
 import { AttachmentForm } from "./AttachmentForm";
 import { ChildItems } from "./ChildItems";
+import { ContextSize } from "./ContextSize";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
@@ -160,6 +161,7 @@ function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null 
       {detail.bug && <span className="chip">bug: {BUG_ORIGINS[detail.bug.source]}, found in {detail.bug.foundIn}</span>}
       {adoUrl && <a className="chip" href={adoUrl} target="_blank" rel="noreferrer">open in ADO</a>}
       {pbi.vaultPath ? <span className="chip"><NoteLink vault={pbi.vault} path={pbi.vaultPath} label="open note" /></span> : <span className="chip">no note yet (prepare it in the Backlog)</span>}
+      <ContextSize pbi={pbi} />
     </div>
   );
 }
