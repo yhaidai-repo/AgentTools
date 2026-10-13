@@ -21,7 +21,7 @@ function getPbiTool(pbiMessage: string) {
   });
 }
 
-function listReposTool(db: PowerLoomDb, vault: string) {
+export function listReposTool(db: PowerLoomDb, vault: string) {
   return defineTool({
     name: "list_repos",
     description: "List the code repositories configured for this vault: name, Azure DevOps project (or local), summary.",

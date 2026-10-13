@@ -4224,7 +4224,8 @@
           "pull-requests",
           "code-review",
           "vault-review",
-          "better-research"
+          "better-research",
+          "better-refinement"
         ]
       },
       "StateLevel": {

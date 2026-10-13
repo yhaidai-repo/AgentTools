@@ -45,7 +45,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -237,6 +237,8 @@ export const refinement = pgTable("refinement", {
   relevantDocs: jsonb("relevant_docs").$type<{ path: string; why: string }[]>().notNull().default([]),
   docsRead: jsonb("docs_read").$type<string[]>().notNull().default([]),
   skills: jsonb("skills").$type<{ name: string; reason: string }[]>().notNull().default([]), // what this version recommended
+  // Better Refinement's full result (sources, affected areas, test data, blockers, status); null for earlier refinements.
+  details: jsonb("details").$type<object | null>(),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
 

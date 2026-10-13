@@ -98,6 +98,18 @@ const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const BETTER_REFINEMENT_OPTIONS: AgentOptionSpec[] = [
+  ...REFINEMENT_OPTIONS,
+  ...TASK_CREATION_OPTIONS,
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
 const DESIGN_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("PBIs"),
   {
@@ -243,6 +255,25 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     next: "design",
     canAssign: [],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
+  },
+  {
+    id: "better-refinement",
+    label: "Better Refinement",
+    description: "Makes a PBI developable: collects all its information, checks repos and affected areas in the code, test data, dependencies and blockers, and creates the tasks that close the gaps.",
+    enabled: false,
+    schedule: "15 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 60, timeoutMinutes: 20 },
+    budgets: { perRunUsd: 2, dailyUsd: 5 },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS } },
+    skills: ["powerloom-refinement-checklist"],
+    options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: BETTER_REFINEMENT_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    next: null,
+    canAssign: ["better-research", "design", "tech-writer"],
+    // Its tasks name their dependencies, and the documents it needs are linked to the PBI (user decision 2026-10-13).
+    waitFor: ["linkedDocuments"],
   },
   {
     id: "research",
