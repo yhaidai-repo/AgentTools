@@ -11,6 +11,7 @@ public sealed record AgentSummary(
     string? Schedule,
     string? Next,
     IReadOnlyList<string> WaitFor,
+    IReadOnlyList<string> Handles,
     bool WebAccess,
     int TimeoutMinutes,
     int BatchSize,

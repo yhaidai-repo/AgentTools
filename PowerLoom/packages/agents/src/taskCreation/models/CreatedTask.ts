@@ -4,7 +4,7 @@ import type { TaskEffort } from "./TaskEffort";
 
 // A task or question an agent created with create_task; written only when its run succeeds.
 export interface CreatedTask {
-  /** An agent id from the creator's canAssign, or "user". */
+  /** A task type from the creator's canAssign (research, design, docs), or "user". */
   assignee: string;
   kind: "task" | "question";
   title: string;

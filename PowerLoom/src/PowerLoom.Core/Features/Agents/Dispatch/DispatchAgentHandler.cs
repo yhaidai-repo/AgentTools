@@ -29,7 +29,7 @@ public static class DispatchAgentHandler
             return;
         }
 
-        var tasks = await OpenAgentTasks.ListAsync(db, agent.Id, cancellation);
+        var tasks = await OpenAgentTasks.ListAsync(db, agent.Id, agent.Handles, cancellation);
         var started = 0;
 
         foreach (var task in tasks.TakeWhile(_ => started < agent.BatchSize))

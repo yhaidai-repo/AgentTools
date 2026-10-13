@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Tasks.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -12,7 +13,7 @@ namespace PowerLoom.Domain.Tasks;
 // The tech-writer's merge tasks: one per vault draft (user decision 2026-10-02); a task whose draft is gone is done.
 public static partial class DraftTasks
 {
-    public const string Assignee = "agent:tech-writer";
+    public const string Assignee = AgentStages.AnyAgent;
 
     private const string Prefix = "WT";
     private const int TitleMax = 120;

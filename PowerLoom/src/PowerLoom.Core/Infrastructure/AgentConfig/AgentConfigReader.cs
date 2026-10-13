@@ -63,6 +63,7 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
             Text(root, "schedule"),
             Text(root, "next"),
             Strings(root, "waitFor"),
+            Strings(root, "handles"),
             root.TryGetProperty("capabilities", out var capabilities) && Flag(capabilities, "webAccess"),
             root.TryGetProperty("limits", out var limits) ? Number(limits, "timeoutMinutes", DefaultTimeoutMinutes) : DefaultTimeoutMinutes,
             Number(options, "batchSize", DefaultBatchSize),

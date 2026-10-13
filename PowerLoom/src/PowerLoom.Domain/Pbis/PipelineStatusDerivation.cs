@@ -16,19 +16,19 @@ public static class PipelineStatusDerivation
     {
         var blockers = items.Where(IsBlocker).ToList();
         // Only pipeline stages move the status; e.g. a tech-writer task on the PBI doesn't.
-        var agentTasks = blockers.Where(item => AgentStages.StageOf(item.Assignee) is not null).ToList();
+        var agentTasks = blockers.Where(item => AgentStages.IsAgentTask(item.Assignee) && AgentStages.StageOfKind(item.Kind) is not null).ToList();
         var running = agentTasks.FirstOrDefault(task => task.Status == ItemStatus.InProgress);
 
         if (running is not null)
-            return AgentStages.StageOf(running.Assignee)!.Running;
+            return AgentStages.StageOfKind(running.Kind)!.Running;
 
         if (blockers.Any(item => item.Assignee == Human && item.Kind != ItemKind.Finding && IsOpen(item)))
             return PipelineStatus.WaitingHuman;
 
-        var waiting = AgentStages.ByAgent.FirstOrDefault(stage => agentTasks.Any(task => task.Assignee == AgentStages.AssigneeOf(stage.Key) && task.Status == ItemStatus.Open));
+        var waiting = AgentStages.Pipeline.FirstOrDefault(stage => agentTasks.Any(task => task.Kind == stage.Kind && task.Status == ItemStatus.Open));
 
-        if (waiting.Value is not null)
-            return waiting.Value.Waiting;
+        if (waiting is not null)
+            return waiting.Waiting;
 
         // A stage that gave up (failed too often, over budget) still owes its answer, so the PBI keeps its status.
         if (agentTasks.Any(task => task.Status == ItemStatus.Blocked))

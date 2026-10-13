@@ -1,6 +1,7 @@
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Contracts;
 using PowerLoom.Features.Agents.AgentRun;
@@ -60,7 +61,8 @@ public sealed class AgentRunTests(PowerLoomHost host)
         Assert.Single(completed.Executed.MessagesOf<AgentRunCompleted>());
         Assert.Single(completed.Executed.MessagesOf<PbiChanged>());
         Assert.NotNull(ended.HandedOnAt);
-        Assert.Equal([$"DT-{ready}-001"], await OpenTaskIdsAsync(ready, "agent:design"));
+        // For any agent that handles design tasks, not one named agent (user decision 2026-10-13).
+        Assert.Equal([$"DT-{ready}-001"], await OpenTaskIdsAsync(ready, AgentStages.AnyAgent));
         Assert.Equal(PipelineStatus.ReadyForDesign, (await LoadPbiAsync(ready)).PipelineStatus);
     }
 

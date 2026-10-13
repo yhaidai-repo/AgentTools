@@ -1,4 +1,4 @@
-import { isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
+import { isFailedOutcome, listVaultTaskSchedules, workerLabel } from "@powerloom/core";
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -66,7 +66,7 @@ function TaskTable({ rows, filter }: { rows: TaskRow[]; filter: TaskFilter }) {
               <td><Link href={itemPath(row)}>{row.id}</Link></td>
               <td>{row.kind}</td>
               <td className={isOpen(row) && row.assignee === "human" ? "result-error" : undefined}>{row.status}{row.heldBy.length > 0 && row.status === "open" ? " (held)" : ""}</td>
-              <td>{row.assignee.replace("agent:", "")}</td>
+              <td>{workerLabel(row.assignee, row.kind)}</td>
               <td>{row.pbiId === null ? "–" : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}</td>
               <td><TaskRuns runs={row.runs} /></td>
               <td>{row.title}</td>

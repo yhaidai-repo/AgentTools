@@ -254,6 +254,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: "design",
     canAssign: [],
+    handles: ["refinement"],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
@@ -271,7 +272,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: BETTER_REFINEMENT_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
-    canAssign: ["better-research", "design", "tech-writer"],
+    canAssign: ["research", "design", "docs"],
+    handles: ["refinement"],
     // Its tasks name their dependencies, and the documents it needs are linked to the PBI (user decision 2026-10-13).
     waitFor: ["linkedDocuments"],
   },
@@ -291,6 +293,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: "design",
     canAssign: [],
+    handles: ["research"],
     waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
@@ -308,7 +311,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: BETTER_RESEARCH_OPTIONS,
     integrationSpecs: INTEGRATIONS,
     next: null,
-    canAssign: ["better-research", "design"],
+    canAssign: ["research", "design"],
+    handles: ["research"],
     // Its tasks name their dependencies (dependsOn), so it doesn't wait for every open question on the PBI; a draft only
     // adds docs, and a stuck merge would hold it forever (user decision 2026-10-13).
     waitFor: ["linkedDocuments"],
@@ -329,6 +333,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: null,
     canAssign: [],
+    handles: ["design"],
     waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
   },
   {
@@ -347,6 +352,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: null,
     canAssign: [],
+    handles: ["docs"],
     waitFor: [],
   },
   // Off until the user turns it on (assumption, 2026-10-02): the first pull-requests run queues a review for every open PR.
@@ -366,6 +372,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: null,
     canAssign: [],
+    handles: ["review"],
     waitFor: [],
   },
   // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
@@ -385,6 +392,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     next: null,
     canAssign: [],
+    handles: ["vault-review"],
     waitFor: [],
   },
 ];

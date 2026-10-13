@@ -1,4 +1,4 @@
-import { nextItemId, recommendPbiSkills, vaultOfPbiSql } from "@powerloom/core";
+import { ANY_AGENT, nextItemId, recommendPbiSkills, vaultOfPbiSql } from "@powerloom/core";
 import { agentRun, localItem, refinement, type PowerLoomDb } from "@powerloom/db";
 import { eq, max } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
@@ -47,7 +47,7 @@ async function insertResearchTasks(db: PowerLoomDb, adoId: number, runId: number
     const id = await nextItemId(db, "AT", adoId);
 
     await db.insert(localItem).values({
-      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), title: task.title, status: "open", assignee: "agent:research",
+      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), title: task.title, status: "open", assignee: ANY_AGENT,
       body: task.question, data: { goal: task.goal, depth: 1 }, createdByRun: runId,
     });
     ids.push(id);
