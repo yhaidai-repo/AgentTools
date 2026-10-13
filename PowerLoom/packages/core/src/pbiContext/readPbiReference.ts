@@ -7,13 +7,15 @@ import { buildPbiContext } from "./buildPbiContext";
 const PBI_REF = /^PBI-(\d+)$/i;
 const VERSIONED_REF = /^PBI-(\d+):(refinement|design)$/i;
 const DRAFT_REF = /^DRAFT-(\d+)$/i;
+const ATTACHMENT_REF = /^ATT-(\d+)$/i;
 
 // Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement or design, an item
-// (question, task, finding, result) or a vault draft.
+// (question, task, finding, result), a vault draft or an upload's text.
 export async function readPbiReference(db: PowerLoomDb, backlogMount: string, ref: string): Promise<Outcome<string>> {
   const versioned = VERSIONED_REF.exec(ref);
   const pbi = PBI_REF.exec(ref);
   const draft = DRAFT_REF.exec(ref);
+  const upload = ATTACHMENT_REF.exec(ref);
 
   if (versioned) {
     return readVersioned(db, Number(versioned[1]), versioned[2].toLowerCase());
@@ -25,6 +27,10 @@ export async function readPbiReference(db: PowerLoomDb, backlogMount: string, re
 
   if (draft) {
     return readDraft(db, Number(draft[1]));
+  }
+
+  if (upload) {
+    return readAttachment(db, Number(upload[1]));
   }
 
   return readItem(db, ref);
@@ -61,6 +67,17 @@ async function readDraft(db: PowerLoomDb, id: number): Promise<Outcome<string>> 
   const [draft] = await db.select().from(vaultCapture).where(eq(vaultCapture.id, id));
 
   return draft ? asJson(draft) : notFound(`DRAFT-${id}`);
+}
+
+// The whole text: a chat reads it at once (agents page through long ones with read_attachment).
+async function readAttachment(db: PowerLoomDb, id: number): Promise<Outcome<string>> {
+  const [file] = await db.select({ fileName: attachment.fileName, text: attachment.text }).from(attachment).where(eq(attachment.id, id));
+
+  if (!file) {
+    return notFound(attachmentRef(id));
+  }
+
+  return { ok: true, value: file.text ?? `${attachmentRef(id)} (${file.fileName}) has no text: images can't be read yet.` };
 }
 
 function asJson(value: unknown): Outcome<string> {

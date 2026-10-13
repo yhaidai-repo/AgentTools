@@ -2,6 +2,7 @@ using System.Net;
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Features.Vaults.Add;
 using PowerLoom.Features.Vaults.Add.Models;
 using PowerLoom.Persistence;
 
@@ -18,10 +19,30 @@ public sealed class AddVaultTests(PowerLoomHost host)
         var agents = await File.ReadAllTextAsync(Path.Combine(root, "AGENTS.md"));
 
         Assert.Equal("notes-vault", added!.Vault);
-        Assert.Equal(["draft/", ".usage/", ".obsidian/", "AGENTS.md"], added.Created);
+        Assert.Equal(["draft/", ".usage/", ".obsidian/"], added.Created.Take(3));
+        Assert.Equal(["AGENTS.md", "POWERLOOM.md"], added.Created.Skip(3).Order(StringComparer.Ordinal));
         Assert.Contains($"vault at {PowerLoomHost.HostRoot}/notes-vault", agents);
         Assert.DoesNotContain("{{", agents);
         Assert.True(await IsActiveVaultAsync("notes-vault"));
+    }
+
+    [Fact]
+    public async Task PowerLoom_s_own_file_follows_the_template_and_the_user_s_files_stay_as_they_are()
+    {
+        var initializer = host.Host.Services.GetRequiredService<VaultInitializer>();
+        var tools = Path.Combine(host.VaultRoot, "POWERLOOM.md");
+        var agents = Path.Combine(host.VaultRoot, "AGENTS.md");
+
+        await File.WriteAllTextAsync(tools, "old tools");
+        await File.WriteAllTextAsync(agents, "the user's rules");
+
+        var changed = await initializer.RefreshOwnedFilesAsync(PowerLoomHost.Vault, CancellationToken.None);
+        var changedAgain = await initializer.RefreshOwnedFilesAsync(PowerLoomHost.Vault, CancellationToken.None);
+
+        Assert.True(changed);
+        Assert.False(changedAgain);
+        Assert.Equal($"# PowerLoom tools for {PowerLoomHost.HostRoot}/{PowerLoomHost.Vault}", (await File.ReadAllTextAsync(tools)).TrimEnd());
+        Assert.Equal("the user's rules", await File.ReadAllTextAsync(agents));
     }
 
     [Fact]
