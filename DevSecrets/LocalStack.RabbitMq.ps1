@@ -68,7 +68,7 @@ function Start-LocalRabbitMq([hashtable] $Named, [hashtable] $Service) {
 
     Invoke-RabbitCompose @("up", "-d", "--wait")
     Set-RabbitShovel $managementUrl $Named
-    Write-Host "Started rabbitmq ($($Service.localUrl), management $managementUrl); the shovel connects once Signals has created its topic"
+    Write-Host "Started rabbitmq (management $managementUrl); the shovel connects once Signals has created its topic"
 
     return @{
         name = "rabbitmq"

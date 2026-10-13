@@ -6,6 +6,7 @@ import { api, byId, escapeHtml, showMessage } from "./core.js";
 const POLL_MS = 3000;
 const LOG_REFRESH_MS = 5000;
 const DEFAULT_TTL_MINUTES = 60;
+const DEFAULT_ENVIRONMENT = "dev";
 
 let pollTimer = null;
 let logTimer = null;
@@ -13,7 +14,7 @@ let logTimer = null;
 export async function renderStack(section) {
   stopTimers();
 
-  const [status, apps] = await Promise.all([api("/stack"), api("/config/apps")]);
+  const [status, apps, files] = await Promise.all([api("/stack"), api("/config/apps"), api("/config/secrets")]);
 
   section.innerHTML = `
     <div class="card" id="stack-status"></div>
@@ -23,6 +24,7 @@ export async function renderStack(section) {
       <form id="start-form">
         <div class="checks">${apps.filter((app) => app.run).map(appCheck).join("")}</div>
         <div class="form-grid">
+          <label>Environment (everything not running here: links, databases, keys)<select name="environment">${files.map((file) => `<option ${file.file === DEFAULT_ENVIRONMENT ? "selected" : ""}>${escapeHtml(file.file)}</option>`).join("")}</select></label>
           <label>Branch (its worktree per repo; empty = the main checkouts)<input name="branch" placeholder="feature/26885-Something"></label>
           <label>Stops by itself after (minutes)<input name="ttlMinutes" type="number" min="1" max="240" value="${DEFAULT_TTL_MINUTES}"></label>
         </div>
@@ -84,7 +86,7 @@ function phaseText(status) {
 
 function statusLine(status) {
   const owner = status.owner ? `started by ${escapeHtml(status.owner)}` : status.phase === "idle" ? "" : "started here or by hand";
-  const parts = [owner, status.branch ? `branch ${escapeHtml(status.branch)}` : "", status.expiresAt ? `stops by itself at ${new Date(status.expiresAt).toLocaleTimeString()}` : ""];
+  const parts = [owner, status.environment ? `environment ${escapeHtml(status.environment)}` : "", status.branch ? `branch ${escapeHtml(status.branch)}` : "", status.expiresAt ? `stops by itself at ${new Date(status.expiresAt).toLocaleTimeString()}` : ""];
 
   return parts.filter(Boolean).join(" · ") || "Nothing runs.";
 }
@@ -123,7 +125,7 @@ async function startStack(event) {
   event.preventDefault();
 
   const data = new FormData(event.target);
-  const request = { services: data.getAll("services"), branch: String(data.get("branch") ?? "").trim() || null, ttlMinutes: Number(data.get("ttlMinutes")) || DEFAULT_TTL_MINUTES };
+  const request = { services: data.getAll("services"), environment: data.get("environment") || DEFAULT_ENVIRONMENT, branch: String(data.get("branch") ?? "").trim() || null, ttlMinutes: Number(data.get("ttlMinutes")) || DEFAULT_TTL_MINUTES };
 
   if (request.services.length === 0) {
     showMessage(byId("start-message"), "Tick at least one app.", true);

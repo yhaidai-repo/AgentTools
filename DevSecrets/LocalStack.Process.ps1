@@ -63,7 +63,7 @@ function Start-ServiceProcess([string] $Name, [hashtable] $Service, [string] $Pr
         startedTicks = $process.StartTime.Ticks
         log = $log
         errorLog = $errorLog
-        url = $Service.localUrl
+        url = Get-LocalUrl $Name
         readyLog = $run.readyLog
         readyProcess = $run.readyProcess
     }

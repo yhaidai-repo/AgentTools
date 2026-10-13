@@ -1,7 +1,5 @@
 {
   "bff": {
-    "localKey": "dev",
-    "localUrl": "https://localhost:7107",
     "note": "BFF.Aggregators.Api",
     "projects": [
       "pvs-internal/BFF.Aggregators/src/PVS.BFF.Aggregators.Api/PVS.BFF.Aggregators.Api.csproj"
@@ -12,8 +10,6 @@
     }
   },
   "configuration": {
-    "localKey": null,
-    "localUrl": "https://localhost:7213",
     "note": "PVS.Internal.Configuration",
     "projects": [
       "pvs-internal/Configuration/src/PVS.Internal.Configuration/PVS.Internal.Configuration.csproj"
@@ -24,8 +20,6 @@
     }
   },
   "mappings": {
-    "localKey": "dev",
-    "localUrl": "https://localhost:7021",
     "note": "Mappings AppHost",
     "projects": [
       "pvs-internal/Mappings/src/PVS.Internal.Mappings.AppHost/PVS.Internal.Mappings.AppHost.csproj"
@@ -36,8 +30,6 @@
     }
   },
   "patients": {
-    "localKey": "dev",
-    "localUrl": "https://localhost:7058",
     "note": "Patients AppHost; its parameters:api-key becomes the local key",
     "projects": [
       "pvs-internal/Patients/src/PVS.Internal.Patients.App/PVS.Internal.Patients.App.csproj",
@@ -49,8 +41,6 @@
     }
   },
   "pvs-api": {
-    "localKey": null,
-    "localUrl": "http://localhost:9977",
     "note": "PVS.API.Core",
     "projects": [
       "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj"
@@ -62,8 +52,6 @@
   },
   "pvs-background": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.BackgroundServiceHostCore (jobs, verification saga, integration-event consumers)",
     "projects": [
       "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj"
@@ -76,8 +64,6 @@
   },
   "pvs-failed-transaction-consumer": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.FailedTransactionConsumer",
     "projects": [
       "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj"
@@ -90,8 +76,6 @@
   },
   "pvs-failed-verification-delta-consumer": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.FailedVerificationDeltaConsumer",
     "projects": [
       "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj"
@@ -103,8 +87,6 @@
     }
   },
   "pvs-internal-api": {
-    "localKey": null,
-    "localUrl": "https://localhost:7266",
     "note": "PVS.Internal.API.Core",
     "projects": [
       "pvs/PVS/PVS.Internal.API.Core/PVS.Internal.API.Core.csproj"
@@ -116,8 +98,6 @@
   },
   "pvs-patient-processing-consumer": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.PatientProcessingConsumer",
     "projects": [
       "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj"
@@ -130,8 +110,6 @@
   },
   "pvs-scheduler": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.MessageBus.Scheduler",
     "projects": [
       "pvs/PVS/PVS.MessageBus.Scheduler/PVS.MessageBus.Scheduler.csproj"
@@ -144,8 +122,6 @@
   },
   "pvs-transaction-consumer": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.TransactionConsumer (queue transactions.manual)",
     "projects": [
       "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj"
@@ -158,8 +134,6 @@
   },
   "pvs-verification-delta-consumer": {
     "consumesBus": true,
-    "localKey": null,
-    "localUrl": null,
     "note": "PVS.VerificationDeltaConsumer",
     "projects": [
       "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj"
@@ -171,8 +145,6 @@
     }
   },
   "pvs-web": {
-    "localKey": null,
-    "localUrl": "http://localhost:5001",
     "note": "PVS.Clients.WebClient.Core (portal); Program.cs hard-codes the port",
     "projects": [
       "pvs/PVS/PVS.Clients.WebClient.Core/PVS.Clients.WebClient.Core.csproj"
@@ -183,9 +155,6 @@
     }
   },
   "rabbitmq": {
-    "localKey": "guest",
-    "localUrl": "rabbitmq://localhost:5673/pvs-local",
-    "localUser": "guest",
     "note": "Local RabbitMQ container (ports 5673/15673, so a Signals shared-resources RabbitMQ can run too) with a shovel of cloud-events to Service Bus; added automatically when a consumesBus service runs locally",
     "projects": [],
     "run": {
@@ -194,8 +163,6 @@
     }
   },
   "signals": {
-    "localKey": "dev",
-    "localUrl": "https://localhost:7456",
     "note": "Signals AppHost (ApiService + Deno runner)",
     "projects": [
       "pvs-internal/Signals/src/PVS.Signals.ApiService/PVS.Signals.ApiService.csproj",
@@ -213,8 +180,6 @@
     }
   },
   "vapi": {
-    "localKey": null,
-    "localUrl": "http://localhost:15788",
     "note": "VAPI.Api",
     "projects": [
       "vapi/src/VAPI.Api/VAPI.Api.csproj",
@@ -226,8 +191,6 @@
     }
   },
   "verifications": {
-    "localKey": "dev",
-    "localUrl": "https://localhost:7561",
     "note": "Verifications ApiService",
     "projects": [
       "pvs-internal/Verifications/src/PVS.Verifications.ApiService/PVS.Verifications.ApiService.csproj"

@@ -10,7 +10,7 @@
        everything else to Azure dev.
     4. Starts the local RabbitMQ container when a service consumes the bus (services.json "consumesBus").
     5. Builds each run project, starts it with `dotnet run --no-build --launch-profile`, and waits until it is
-       ready: its localUrl answers, its log shows run.readyLog, or run.readyProcess runs.
+       ready: its local URL ("<app>-url" in values.local.json) answers, its log shows run.readyLog, or run.readyProcess runs.
 
     One stack per machine: ports are fixed in services.json. Stop it with Stop-LocalStack.ps1, inspect it with
     Get-LocalStack.ps1. Logs, stack.json and generated files go to D:/Projects/dev-secrets/stack (LOCAL_STACK_DIR).
@@ -34,7 +34,7 @@ param(
 
     [string[]] $Repo = @(),
 
-    [string] $Values = "remote",
+    [string] $Values = "dev",
 
     [int] $TimeoutSeconds = 300,
 
@@ -96,7 +96,7 @@ function Test-PortInUse([string] $Url) {
 function Get-ServicePorts([string] $Name) {
     $service = $Catalog[$Name]
 
-    return @($service.localUrl, $service.run.managementUrl) | Where-Object { $_ -and $_ -match '^https?://' }
+    return @((Get-LocalUrl $Name), $service.run.managementUrl) | Where-Object { $_ -and $_ -match '^https?://' }
 }
 
 function Assert-PortsFree([string[]] $Names) {
@@ -207,6 +207,7 @@ function Wait-StackReady([hashtable] $State) {
 
 $Catalog = Read-Services
 $Store = Read-Store
+Initialize-LocalValues
 $names = Get-ServiceNames $Services
 
 Assert-KnownServices $Catalog $names
@@ -239,7 +240,7 @@ if (-not $SkipBuild) {
     $appServices | ForEach-Object { Build-Project (Resolve-ProjectPath $roots $Catalog[$_].run.project) }
 }
 
-$state = @{ branch = $Branch; roots = $roots; services = @() }
+$state = @{ branch = $Branch; environment = $Values; roots = $roots; services = @() }
 
 if ($names -contains "rabbitmq") {
     $state.services += Start-LocalRabbitMq $named $Catalog["rabbitmq"]

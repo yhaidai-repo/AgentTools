@@ -6,10 +6,9 @@ This folder (in the AgentTools repo) holds no secrets. The values live outside g
 
 | File | What it holds |
 |---|---|
-| `services.json` | Runnable services: local URL, local API key (`dev`), their projects, how to run them (`run`), whether they consume the bus (`consumesBus`). |
-| `map.json` | Repos, and per project: config key → value name or routing reference. |
-| `D:/Projects/dev-secrets/values.remote.json` | Named values for the remote (Azure dev) infrastructure: connection strings, keys, remote service URLs. |
-| `D:/Projects/dev-secrets/values.local.json` | `"$extends": "remote"` plus values that differ for local infrastructure (used with `-Values local`). |
+| `services.json` | Runnable services: their projects, how to run them (`run`), whether they consume the bus (`consumesBus`). No links: those are values. |
+| `map.json` | Repos, and per project: config key → value name, or a call to an app (`@patients.url`). |
+| `D:/Projects/dev-secrets/values.<environment>.json` | One file per **environment** (user decision 2026-10-14): `values.dev.json` (Azure dev: connection strings, keys, every app's links `<app>-url`, `-key`, `-user`), `values.local.json` (`"$extends": "dev"`; every app's local links, e.g. `patients-url = https://localhost:7058`, plus local infrastructure overrides). `values.stage.json` later. |
 | `Use-DevSecrets.ps1` | Writes the secrets and routing of the services you run locally into their .NET user secrets. |
 | `Use-LocalPatches.ps1` + `patches/` | Local-only code fixes, applied and hidden from git. |
 | `Start-LocalStack.ps1`, `Get-LocalStack.ps1`, `Stop-LocalStack.ps1` | Start a chain of local services pointed at each other (config as environment variables), show it, stop it. |
@@ -29,16 +28,17 @@ This folder (in the AgentTools repo) holds no secrets. The values live outside g
 
 Then restart the AppHosts / services.
 
-- `-Local` lists the services you run. Only their projects are written. Their calls to each other go to localhost with key `dev`; every other call goes to the remote instance.
+- `-Local` lists the services you run. Only their projects are written. Their calls to each other read the links of `values.local.json`; every other call and value comes from the environment (`-Values`, default `dev`).
 - Services: `signals`, `patients`, `verifications`, `bff`, `mappings`, `configuration`, `pvs-web`, `pvs-api`, `pvs-internal-api`, `pvs-background` (jobs host), `pvs-transaction-consumer`, `pvs-failed-transaction-consumer`, `pvs-patient-processing-consumer`, `pvs-verification-delta-consumer`, `pvs-failed-verification-delta-consumer`, `pvs-scheduler`, `rabbitmq`, `vapi` (see `services.json` for URLs and projects).
 - `-All` writes every project (with the same routing), `-Project "<repo>/<path pattern>"` a subset.
-- `-Values local` uses `values.local.json` (local databases, storage, bus) instead of the remote infrastructure.
+- `-Values <environment>` picks the environment for everything not run locally: `dev` (default), `local` (all local, falling back to dev for what it doesn't define).
 
 ## Start a local stack
 
 ```powershell
 ./Start-LocalStack.ps1 -Services pvs-web,pvs-background,pvs-transaction-consumer,signals
 ./Start-LocalStack.ps1 -Services pvs-web,signals -Branch feature/26885-Transactions-management-feature
+./Start-LocalStack.ps1 -Services signals -Values local                  # everything else from values.local.json
 ./Get-LocalStack.ps1 [-Json]
 ./Stop-LocalStack.ps1
 ```
@@ -47,7 +47,7 @@ Then restart the AppHosts / services.
 2. Applies `patches/` to the used checkouts and installs the Deno cache when it is missing.
 3. Resolves each service's configuration like `Use-DevSecrets.ps1` and passes it as **environment variables**: user secrets and other worktrees stay untouched.
 4. A `consumesBus` service adds `rabbitmq`: a local container (`localhost:5673`, management `15673`, vhost `pvs-local`, guest/guest) instead of the dev broker, so local consumers never take dev messages. Its shovel forwards `cloud-events.fw.service-bus` to the Service Bus topic `<local-instance>-signals-integration-events`.
-5. Builds the run projects one after another, starts each with `dotnet run --no-build --launch-profile <run.launchProfile>` in a hidden console, and waits (`-TimeoutSeconds`, default 300) until `localUrl` answers, the log shows `run.readyLog`, or `run.readyProcess` runs. A service that exits or times out stops the whole stack and prints its last log lines.
+5. Builds the run projects one after another, starts each with `dotnet run --no-build --launch-profile <run.launchProfile>` in a hidden console, and waits (`-TimeoutSeconds`, default 300) until its local URL (`<app>-url` of `values.local.json`) answers, the log shows `run.readyLog`, or `run.readyProcess` runs. A service that exits or times out stops the whole stack and prints its last log lines.
 
 - One stack per machine: ports are fixed; start refuses while one runs or a port is taken.
 - Logs (`<service>.log`, `.err.log`) and `stack.json` (PIDs) go to `D:/Projects/dev-secrets/stack` (`LOCAL_STACK_DIR`). Logs can hold secrets: don't paste them.
@@ -60,15 +60,15 @@ Open `http://127.0.0.1:47811/` while DevHub runs (`Start-DevHub.ps1`); sign in w
 
 | Tab | Shows |
 |---|---|
-| Apps | `services.json`: each app's URL, key, what it starts, when it is ready, bus, projects; add, edit, delete |
-| Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value); add a project, add / edit / delete a setting |
+| Apps | `services.json`: what each app starts, when it is ready, bus, projects; its local link and its links in dev (values; a name opens it in Secrets); add, edit, delete |
+| Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: the app's `<app>-<part>` link from the local file while it runs, else from the environment); add a project, add / edit / delete a setting |
 | Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value; add, replace, delete |
 | Problems | `Use-DevSecrets.ps1 -All -Check` per values file (what a start would refuse), plus unused values and projects without an app |
-| Stack | what runs (phase, owner, apps with URLs, start output); start a chain of apps (optional branch, time limit), stop it, read an app's log (refresh every 5 s) |
+| Stack | what runs (phase, owner, environment, apps with URLs, start output); start a chain of apps in an environment (optional branch, time limit), stop it, read an app's log (refresh every 5 s) |
 
 Changes to apps and dependencies are made on a copy, checked by `Use-DevSecrets.ps1 -Check` on that copy (`DEV_SECRETS_STORE_DIR`) for every values file, and written only when they add no error; the files stay formatted as in git (apps and projects sorted, settings sorted case-insensitively). An app others call, or a project an app starts, can't be deleted. Secret changes:
 
-- A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the remote value takes over). `dev-hub-token` is read-only here.
+- A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the dev value takes over). `dev-hub-token` is read-only here.
 - Every write first keeps the old file in `D:/Projects/dev-secrets/backups/` (the newest 20 per file); keys are written sorted.
 
 `GET /config/apps|dependencies|secrets|problems`, `GET|PUT|DELETE /config/secrets/{file}/{name}`, `PUT|DELETE /config/apps/{name}`, `PUT /config/projects`, `DELETE /config/projects?project=`, `PUT /config/settings`, `DELETE /config/settings?project=&key=` (token required).
@@ -99,14 +99,15 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 
 ## Routing references (map.json)
 
-| Reference | Resolves to |
-|---|---|
-| `@patients.url\|patients-remote-url` | `services.json` patients `localUrl` when patients is in `-Local`, else the named value |
-| `@patients.key\|signals-patient-api-key` | patients `localKey` (`dev`) when local, else the named value |
-| `@patients.key` | always the local key: the service's own inbound key (e.g. Patients AppHost `parameters:api-key`) |
-| `@rabbitmq.user\|pvs-rabbitmq-user` | `services.json` rabbitmq `localUser` when rabbitmq runs locally, else the named value |
+A call names the app and the part; the value is the app's link in an environment file:
 
-Local inbound keys: Signals, Verifications and BFF read `ApiKey=dev` from their `launchSettings.json`; Patients and Mappings get theirs from the AppHost `parameters:api-key`, which the script sets to `dev`.
+| Reference | Reads | From |
+|---|---|---|
+| `@patients.url` | `patients-url` | `values.local.json` when patients runs in the stack (`-Local`), else the environment (`values.dev.json`) |
+| `@vapi.url-2` | `vapi-url-2` | the same; `-2` is an app's second address (VAPI has two instances) |
+| `@patients.key` in a Patients project | `patients-key` | always `values.local.json`: a project's own app is local (its inbound key, e.g. the AppHost `parameters:api-key`) |
+
+Local inbound keys: Signals, Verifications and BFF read `ApiKey=dev` from their `launchSettings.json`; Patients and Mappings get theirs from the AppHost `parameters:api-key` (`patients-key`, `mappings-key` in `values.local.json`).
 
 ## Where things are stored
 
@@ -116,10 +117,10 @@ Local inbound keys: Signals, Verifications and BFF read `ApiKey=dev` from their 
 
 ## Add a value, key, project or service
 
-- New secret: add the value to `values.remote.json` and `"<config key>": "<value name>"` under the project in `map.json` (`:` for nesting).
-- New call to another service: map the URL and key settings to `@<service>.url|<remote value>` and `@<service>.key|<remote value>`.
+- New secret: add the value to `values.dev.json` (and to `values.local.json` when it differs locally) and `"<config key>": "<value name>"` under the project in `map.json` (`:` for nesting).
+- New call to another service: map the URL and key settings to `@<service>.url` and `@<service>.key`; the app's links `<service>-url` / `-key` must exist in `values.local.json` and in every environment.
 - New project: give it a `UserSecretsId` (in the project or in `D:/Projects/Directory.Build.props`), add it to `map.json` and to its service's `projects` in `services.json`.
-- New runnable service: in `services.json` add `run` (`project`, `launchProfile`, and `readyLog` or `readyProcess` when it has no URL) and `consumesBus: true` when it consumes RabbitMQ.
+- New runnable service: add its local link `<service>-url` to `values.local.json`, and in `services.json` add `run` (`project`, `launchProfile`, and `readyLog` or `readyProcess` when it has no URL) and `consumesBus: true` when it consumes RabbitMQ.
 - Local infrastructure: override in `values.local.json`. Change together: `signals-storage` and `signals-blob-host` (Deno runner allowed host; `127.0.0.1` for Azurite).
 
 ## Other local-only settings

@@ -1,7 +1,8 @@
 import { api, byId, escapeHtml, showMessage, submitChange } from "./core.js";
 
 // Who calls whom, and every project's settings (map.json): add a project, add, change or delete a setting. A setting
-// reads a named value, or calls another app (local while that app runs in the stack, else the remote value).
+// reads a named value, or calls another app: its "<app>-<part>" link from values.local.json while that app runs in the
+// stack, else from the stack's environment.
 
 const PARTS = ["url", "key", "user"];
 
@@ -14,7 +15,7 @@ export async function renderDependencies(section) {
   section.innerHTML = `
     <div class="card">
       <h2>Who calls whom</h2>
-      <p class="muted">A call goes to localhost while the called app runs in the same stack, otherwise to Azure dev. Hover a chip for the settings that carry it.</p>
+      <p class="muted">A call reads the app's link from values.local.json while the app runs in the same stack, otherwise from the stack's environment (dev). Hover a chip for the settings that carry it.</p>
       <div class="calls">${view.apps.map(callRow).join("")}</div>
     </div>
     <div class="card">
@@ -92,9 +93,7 @@ function settingSource(setting) {
     return `<span class="chip">${escapeHtml(setting.valueName)}</span>`;
   }
 
-  const remote = setting.remoteValue ? ` <span class="muted">else</span> <span class="chip">${escapeHtml(setting.remoteValue)}</span>` : ` <span class="muted">always local</span>`;
-
-  return `<span class="chip local">${escapeHtml(setting.service)} ${escapeHtml(setting.part)}</span>${remote}`;
+  return `<span class="chip local">${escapeHtml(setting.service)} ${escapeHtml(setting.part)}</span> <span class="muted">reads</span> <span class="chip" title="values.local.json while ${escapeHtml(setting.service)} runs in the stack, else the stack's environment">${escapeHtml(setting.endpoint)}</span>`;
 }
 
 // --- Setting form ---
@@ -113,7 +112,7 @@ function openSettingForm(project, key) {
         <label data-source="value">Value name<input name="valueName" value="${escapeHtml(setting.valueName)}" list="value-names"></label>
         <label data-source="call">App<select name="service">${state.apps.map((app) => `<option ${app === setting.service ? "selected" : ""}>${escapeHtml(app)}</option>`).join("")}</select></label>
         <label data-source="call">Reads its<select name="part">${PARTS.map((part) => `<option ${part === setting.part ? "selected" : ""}>${part}</option>`).join("")}</select></label>
-        <label data-source="call">Else (app not local) the value<input name="remoteValue" value="${escapeHtml(setting.remoteValue)}" list="value-names" placeholder="empty: always the local one"></label>
+        <label data-source="call">Instance (2+ for an app's second address, e.g. vapi-url-2)<input name="instance" type="number" min="1" value="${instanceOf(setting)}"></label>
       </div>
       <div class="toolbar"><button type="submit" class="small">Save</button><button type="button" class="small secondary" data-cancel>Cancel</button></div>
       <p data-message></p>
@@ -125,6 +124,13 @@ function openSettingForm(project, key) {
   form.querySelector("[data-cancel]").addEventListener("click", () => { target.innerHTML = ""; });
   form.addEventListener("submit", (event) => saveSetting(event, project));
   showSource(form);
+}
+
+// "vapi-url-2" → 2; a first address has no suffix.
+function instanceOf(setting) {
+  const suffix = setting.endpoint?.slice(`${setting.service}-${setting.part}`.length);
+
+  return suffix ? Number(suffix.slice(1)) : 1;
 }
 
 function showSource(form) {
@@ -143,7 +149,7 @@ function settingRequest(form, project) {
     valueName: isCall ? null : data.get("valueName"),
     service: isCall ? data.get("service") : null,
     part: isCall ? data.get("part") : null,
-    remoteValue: isCall ? data.get("remoteValue") : null,
+    instance: isCall ? Number(data.get("instance")) || 1 : null,
   };
 }
 

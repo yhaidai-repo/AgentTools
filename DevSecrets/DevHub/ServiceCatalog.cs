@@ -1,19 +1,23 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using DevSecrets.DevHub.Config;
 using DevSecrets.DevHub.Models;
 using Microsoft.Extensions.Options;
 
 namespace DevSecrets.DevHub;
 
-// The runnable services of services.json, read on every call so edits apply without a restart.
-public sealed class ServiceCatalog(IOptions<DevHubOptions> options)
+// The runnable services of services.json, read on every call so edits apply without a restart; where each answers on
+// this PC is its "<app>-url" in values.local.json.
+public sealed class ServiceCatalog(IOptions<DevHubOptions> options, DevSecretsFiles files)
 {
     public IReadOnlyList<ServiceInfo> GetServices()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(options.Value.ScriptsDir, "services.json")));
+        var local = files.ReadValues("local") ?? [];
 
         return document.RootElement.EnumerateObject()
             .Where(service => service.Value.TryGetProperty("run", out _))
-            .Select(ToServiceInfo)
+            .Select(service => ToServiceInfo(service, local))
             .OrderBy(service => service.Name, StringComparer.Ordinal)
             .ToList();
     }
@@ -25,11 +29,11 @@ public sealed class ServiceCatalog(IOptions<DevHubOptions> options)
         return names.Where(name => !known.Contains(name)).ToArray();
     }
 
-    private static ServiceInfo ToServiceInfo(JsonProperty service) =>
+    private static ServiceInfo ToServiceInfo(JsonProperty service, JsonObject local) =>
         new(
             service.Name,
             ReadString(service.Value, "note"),
-            ReadString(service.Value, "localUrl"),
+            local[$"{service.Name}-url"]?.ToString(),
             service.Value.TryGetProperty("consumesBus", out var consumesBus) && consumesBus.GetBoolean()
         );
 

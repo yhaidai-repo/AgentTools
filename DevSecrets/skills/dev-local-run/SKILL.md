@@ -32,7 +32,7 @@ Never print, copy into chat or commit a secret value. Show key names, value name
 - "Configure Signals for a local run" → `-Local signals` (all dependencies remote).
 - "Run Signals and Verifications locally" → `-Local signals,verifications` (Signals calls the local Verifications API).
 - "Portal against my local Signals" → `-Local pvs-web,signals`.
-- "Use local database/storage/bus" → add `-Values local`; check that `values.local.json` has the overrides, else ask for them.
+- "Use local database/storage/bus" → add `-Values local`; check that `values.local.json` has the overrides, else ask for them. Environments are `values.<env>.json`: `dev` (default), `local`.
 - A service name you can't map → ask; don't guess.
 
 ## 2. Run
@@ -69,8 +69,8 @@ Tell the user, in a few lines:
 
 ## 4. Change the store
 
-- New secret: add the value to `D:/Projects/dev-secrets/values.remote.json`, then `"<config key>": "<value name>"` under the project in `map.json`.
-- New call to another service: map its URL and key settings to `@<service>.url|<remote value>` and `@<service>.key|<remote value>`; add the remote URL as a named value.
+- New secret: add the value to `D:/Projects/dev-secrets/values.dev.json` (and `values.local.json` when it differs locally), then `"<config key>": "<value name>"` under the project in `map.json`.
+- New call to another service: map its URL and key settings to `@<service>.url` and `@<service>.key`; the links `<service>-url` / `-key` live in `values.local.json` (local) and `values.dev.json` (dev).
 - New project: needs a `UserSecretsId` (in the project, else add a conditional block to `D:/Projects/Directory.Build.props`; never edit the tracked `.csproj` for this), an entry in `map.json` (`<repo>/<path to csproj>`) and in the service's `projects` in `services.json`.
-- New service: add it to `services.json` with `localUrl`, `localKey` (`dev` when its launch settings or AppHost use that) and `projects`.
+- New service: add it to `services.json` with `projects` and `run`; its links go to `values.local.json` (`<service>-url`, `<service>-key` = `dev` when its launch settings or AppHost use that) and `values.dev.json`.
 - Edit the JSON with a script that validates every reference before writing, then run `-DryRun -All` to check.

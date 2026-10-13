@@ -1,8 +1,14 @@
 # Resolves the configuration of a project from map.json, services.json and the named values (dot-sourced).
-# The caller sets $Store (map.json), $Catalog (services.json) and $LocalServices (names run locally) first.
+# The caller sets $Store (map.json), $Catalog (services.json) and $LocalServices (names run locally), then calls
+# Initialize-LocalValues.
+#
+# Every link to an app is a named value per environment (user decision 2026-10-14): "@patients.url" reads
+# "patients-url", "@vapi.url-2" reads "vapi-url-2". It comes from values.local.json while the app runs in the stack (or
+# is the project's own app: its inbound key), else from the stack's environment (values.dev.json, ...).
 
 $Placeholder = "<fill-me>"
-$ReferencePattern = '^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user)(\|(?<remote>.+))?$'
+$LocalValuesName = "local"
+$ReferencePattern = '^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user)(?<instance>-[0-9]+)?$'
 $MaxExtendsDepth = 5
 
 function Get-ValuesChain([string] $Name) {
@@ -46,30 +52,44 @@ function Get-UserSecretsId([string] $ProjectPath) {
     return $(if ($inProps.Success) { $inProps.Groups[1].Value } else { $null })
 }
 
-function Get-LocalPart([hashtable] $Service, [string] $Part) {
-    switch ($Part) {
-        'url' { return $Service.localUrl }
-        'key' { return $Service.localKey }
-        'user' { return $Service.localUser }
-    }
+function Initialize-LocalValues() {
+    $script:LocalNamed = Read-NamedValues $LocalValuesName
+    $script:AppOfProject = Get-AppOfProject
 }
 
-function Resolve-Reference([string] $Reference, [hashtable] $Named) {
+function Get-AppOfProject() {
+    $apps = @{}
+
+    foreach ($app in $Catalog.GetEnumerator()) {
+        $app.Value.projects | ForEach-Object { $apps[$_] = $app.Key }
+    }
+
+    return $apps
+}
+
+# Where an app answers when it runs on this PC (readiness checks, port checks, the UI).
+function Get-LocalUrl([string] $ServiceName) {
+    return $LocalNamed["$ServiceName-url"]
+}
+
+function Get-EndpointName([System.Text.RegularExpressions.Match] $Match) {
+    return "$($Match.Groups['service'].Value)-$($Match.Groups['part'].Value)$($Match.Groups['instance'].Value)"
+}
+
+function Test-LocalCall([string] $ServiceName, [string] $ProjectKey) {
+    return $LocalServices -contains $ServiceName -or $AppOfProject[$ProjectKey] -eq $ServiceName
+}
+
+function Resolve-Reference([string] $Reference, [hashtable] $Named, [string] $ProjectKey) {
     $match = [regex]::Match($Reference, $ReferencePattern)
-    $serviceName = $match.Groups['service'].Value
-    $part = $match.Groups['part'].Value
-    $remote = $match.Groups['remote'].Value
+    $values = if (Test-LocalCall $match.Groups['service'].Value $ProjectKey) { $LocalNamed } else { $Named }
 
-    if ($LocalServices -contains $serviceName -or -not $remote) {
-        return Get-LocalPart $Catalog[$serviceName] $part
-    }
-
-    return $Named[$remote]
+    return $values[(Get-EndpointName $match)]
 }
 
-function Resolve-MappedValue([string] $ValueName, [hashtable] $Named) {
+function Resolve-MappedValue([string] $ValueName, [hashtable] $Named, [string] $ProjectKey) {
     if ($ValueName.StartsWith('@')) {
-        return Resolve-Reference $ValueName $Named
+        return Resolve-Reference $ValueName $Named $ProjectKey
     }
 
     return $Named[$ValueName]
@@ -78,7 +98,7 @@ function Resolve-MappedValue([string] $ValueName, [hashtable] $Named) {
 function Resolve-ProjectConfig([string] $ProjectKey, [hashtable] $Named) {
     $config = [ordered]@{}
 
-    $Store.projects[$ProjectKey].GetEnumerator() | Sort-Object Key | ForEach-Object { $config[$_.Key] = Resolve-MappedValue $_.Value $Named }
+    $Store.projects[$ProjectKey].GetEnumerator() | Sort-Object Key | ForEach-Object { $config[$_.Key] = Resolve-MappedValue $_.Value $Named $ProjectKey }
 
     return $config
 }
@@ -100,15 +120,15 @@ function Get-ReferenceErrors([string] $ProjectKey, [hashtable] $Mapping) {
         ForEach-Object { "${ProjectKey}: '$($_.Key)' has an invalid reference '$($_.Value)'" }
 }
 
-function Test-ResolvesToNothing([string] $ValueName, [hashtable] $Named) {
-    $resolved = Resolve-MappedValue $ValueName $Named
+function Test-ResolvesToNothing([string] $ValueName, [hashtable] $Named, [string] $ProjectKey) {
+    $resolved = Resolve-MappedValue $ValueName $Named $ProjectKey
 
     return [string]::IsNullOrWhiteSpace($resolved) -or $resolved -eq $Placeholder
 }
 
 function Get-MissingValueErrors([string] $ProjectKey, [hashtable] $Mapping, [hashtable] $Named) {
     return $Mapping.GetEnumerator() |
-        Where-Object { Test-ResolvesToNothing $_.Value $Named } |
+        Where-Object { Test-ResolvesToNothing $_.Value $Named $ProjectKey } |
         ForEach-Object { "${ProjectKey}: '$($_.Key)' -> '$($_.Value)' resolves to nothing" }
 }
 
@@ -133,20 +153,20 @@ function Get-ProjectErrors([hashtable] $Roots, [string] $ProjectKey, [hashtable]
     return @(Get-MissingValueErrors $ProjectKey $mapping $Named)
 }
 
-function Get-RouteTarget([string] $ValueName) {
+# A call to another app: local or remote in this stack (the project's own app is always local, so not listed).
+function Get-RouteTarget([string] $ValueName, [string] $ProjectKey) {
     $match = [regex]::Match($ValueName, $ReferencePattern)
+    $serviceName = $match.Groups['service'].Value
 
-    if (-not $match.Success -or -not $match.Groups['remote'].Success) {
+    if (-not $match.Success -or $AppOfProject[$ProjectKey] -eq $serviceName) {
         return $null
     }
-
-    $serviceName = $match.Groups['service'].Value
 
     return $serviceName + $(if ($LocalServices -contains $serviceName) { '=local' } else { '=remote' })
 }
 
-function Format-Routes([hashtable] $Mapping) {
-    $routes = @($Mapping.Values | ForEach-Object { Get-RouteTarget $_ } | Where-Object { $_ } | Select-Object -Unique | Sort-Object)
+function Format-Routes([hashtable] $Mapping, [string] $ProjectKey) {
+    $routes = @($Mapping.Values | ForEach-Object { Get-RouteTarget $_ $ProjectKey } | Where-Object { $_ } | Select-Object -Unique | Sort-Object)
 
     return $(if ($routes.Count -gt 0) { " [calls: $($routes -join ', ')]" } else { "" })
 }

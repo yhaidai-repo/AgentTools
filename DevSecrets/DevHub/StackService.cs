@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using DevSecrets.DevHub.Config;
 using DevSecrets.DevHub.Models;
 using Microsoft.Extensions.Options;
 
@@ -10,6 +11,7 @@ public sealed partial class StackService(
     ScriptRunner runner,
     StackOperationTracker tracker,
     ServiceCatalog catalog,
+    DevSecretsFiles files,
     IOptions<DevHubOptions> options,
     TimeProvider time,
     ILogger<StackService> logger
@@ -56,6 +58,7 @@ public sealed partial class StackService(
             status.Running,
             operation.Services,
             operation.Branch,
+            status.Environment,
             operation.StartedAt,
             operation.ExpiresAt,
             operation.ExitCode,
@@ -115,7 +118,16 @@ public sealed partial class StackService(
         if (request.Branch is not null && !BranchName().IsMatch(request.Branch))
             return HubResult.Invalid($"Invalid branch name: {request.Branch}");
 
-        return null;
+        return EnvironmentRefusal(request.Environment);
+    }
+
+    // An environment is a values file; the name also goes to pwsh as an argument.
+    private HubResult? EnvironmentRefusal(string? environment)
+    {
+        if (environment is null || files.ValuesFileNames().Contains(environment))
+            return null;
+
+        return HubResult.Invalid($"Unknown environment {environment}: one of {string.Join(", ", files.ValuesFileNames())}.");
     }
 
     private int ResolveTtl(int? requested) =>
@@ -127,6 +139,9 @@ public sealed partial class StackService(
 
         if (!string.IsNullOrEmpty(request.Branch))
             arguments.AddRange(["-Branch", request.Branch]);
+
+        if (!string.IsNullOrEmpty(request.Environment))
+            arguments.AddRange(["-Values", request.Environment]);
 
         return arguments;
     }
