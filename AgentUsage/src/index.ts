@@ -3,7 +3,7 @@ export { UsageTracker } from "./UsageTracker";
 export { BudgetGuard } from "./BudgetGuard";
 export { budgetDayStart } from "./budgetDay";
 export { TraceRecorder } from "./TraceRecorder";
-export { toOutcome } from "./outcome";
+export { NOT_FAILED_OUTCOMES, isFailedOutcome, toOutcome } from "./outcome";
 export { subscriptionStatus } from "./subscription";
 export { runSubscriptionShares, subscriptionPeriods } from "./subscriptionPeriods";
 export { PostgresUsageStore } from "./stores/PostgresUsageStore";

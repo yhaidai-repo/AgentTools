@@ -1,3 +1,4 @@
+import { isFailedOutcome } from "@powerloom/core";
 import { agentRun, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
 import type { StoredTraceEvent, UsageRecord } from "@agenttools/usage";
 import { and, eq, inArray } from "drizzle-orm";
@@ -41,7 +42,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
       <h2>Outputs</h2>
       <Outputs run={run} />
       <Captures runId={run.id} />
-      {run.outcome !== "success" && run.outcome !== "running" && <Failure run={run} trace={trace} />}
+      {isFailedOutcome(run.outcome) && <Failure run={run} trace={trace} />}
       <h2>Input (first message)</h2>
       <details>
         <summary>Show</summary>

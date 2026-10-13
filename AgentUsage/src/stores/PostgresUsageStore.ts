@@ -7,6 +7,7 @@ import type { UsageRecord } from "../models/UsageRecord";
 import type { UsageStore } from "../models/UsageStore";
 import type { UsageTotals } from "../models/UsageTotals";
 import { SCHEMA_SQL } from "./postgresSchema";
+import { NOT_FAILED_OUTCOMES } from "../outcome";
 
 type Row = Record<string, any>;
 
@@ -51,14 +52,14 @@ export class PostgresUsageStore implements UsageStore {
 
   async totals(query: UsageQuery, groupBy: string): Promise<UsageTotals[]> {
     const result = await this.pool.query(
-      `SELECT labels ->> $4 AS grp, count(*) AS runs, count(*) FILTER (WHERE outcome <> 'success') AS failures,
+      `SELECT labels ->> $4 AS grp, count(*) AS runs, count(*) FILTER (WHERE outcome <> ALL($5::text[])) AS failures,
          sum(input_tokens) AS input, sum(output_tokens) AS output, sum(cache_read_tokens) AS cache_read,
          sum(cache_write_tokens) AS cache_write, sum(cost_usd) AS cost, sum(duration_ms) AS duration,
          max(ended_at) AS last_at, (array_agg(outcome ORDER BY started_at DESC))[1] AS last_outcome
        FROM agent_usage.usage_record
        WHERE started_at >= $1 AND started_at < $2 AND labels @> $3
        GROUP BY 1 ORDER BY 1`,
-      [query.from, query.to ?? new Date(), JSON.stringify(query.match ?? {}), groupBy],
+      [query.from, query.to ?? new Date(), JSON.stringify(query.match ?? {}), groupBy, NOT_FAILED_OUTCOMES],
     );
 
     return result.rows.map(toTotals);
