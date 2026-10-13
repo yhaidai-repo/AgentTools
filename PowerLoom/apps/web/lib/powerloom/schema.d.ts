@@ -1180,7 +1180,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vaults/{vault}/local-stack": {
+    "/api/vaults/{vault}/devhub": {
         parameters: {
             query?: never;
             header?: never;
@@ -1189,10 +1189,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * PUT_api_vaults_vault_local_stack
-         * @description PUT_api_vaults_vault_local_stack
+         * PUT_api_vaults_vault_devhub
+         * @description PUT_api_vaults_vault_devhub
          */
-        put: operations["PUT_api_vaults_vault_local_stack"];
+        put: operations["PUT_api_vaults_vault_devhub"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1200,7 +1200,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vaults/{vault}/local-stack/test": {
+    "/api/vaults/{vault}/devhub/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -1210,10 +1210,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_vaults_vault_local_stack_test
-         * @description POST_api_vaults_vault_local_stack_test
+         * POST_api_vaults_vault_devhub_test
+         * @description POST_api_vaults_vault_devhub_test
          */
-        post: operations["POST_api_vaults_vault_local_stack_test"];
+        post: operations["POST_api_vaults_vault_devhub_test"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1387,6 +1387,15 @@ export interface components {
             deleted: components["schemas"]["DeletedPbi"][];
             refused: string[];
         };
+        DevHubCheck: {
+            ok: boolean;
+            message: string;
+        };
+        DevHubSummary: {
+            enabled: boolean;
+            url: string;
+            hasToken: boolean;
+        };
         DispatchedAgent: {
             agentId: string;
         };
@@ -1416,15 +1425,6 @@ export interface components {
         };
         LoadPageRequest: {
             url: string;
-        };
-        LocalStackCheck: {
-            ok: boolean;
-            message: string;
-        };
-        LocalStackSummary: {
-            enabled: boolean;
-            url: string;
-            hasToken: boolean;
         };
         MessagingStatus: {
             /** Format: int32 */
@@ -1556,7 +1556,7 @@ export interface components {
             user: string;
             pat: null | string;
         };
-        SaveLocalStackRequest: {
+        SaveDevHubRequest: {
             enabled: boolean;
             url: null | string;
             token: null | string;
@@ -1706,7 +1706,7 @@ export interface components {
             team: string;
             pat: null | string;
         };
-        TestLocalStackRequest: {
+        TestDevHubRequest: {
             url: null | string;
             token: null | string;
         };
@@ -3494,7 +3494,7 @@ export interface operations {
             };
         };
     };
-    PUT_api_vaults_vault_local_stack: {
+    PUT_api_vaults_vault_devhub: {
         parameters: {
             query?: never;
             header?: never;
@@ -3505,7 +3505,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SaveLocalStackRequest"];
+                "application/json": components["schemas"]["SaveDevHubRequest"];
             };
         };
         responses: {
@@ -3515,7 +3515,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LocalStackSummary"];
+                    "application/json": components["schemas"]["DevHubSummary"];
                 };
             };
             /** @description Bad Request */
@@ -3529,7 +3529,7 @@ export interface operations {
             };
         };
     };
-    POST_api_vaults_vault_local_stack_test: {
+    POST_api_vaults_vault_devhub_test: {
         parameters: {
             query?: never;
             header?: never;
@@ -3540,7 +3540,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TestLocalStackRequest"];
+                "application/json": components["schemas"]["TestDevHubRequest"];
             };
         };
         responses: {
@@ -3550,7 +3550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LocalStackCheck"];
+                    "application/json": components["schemas"]["DevHubCheck"];
                 };
             };
             /** @description Bad Request */

@@ -11,7 +11,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { createSqlTools } from "../sqlTools";
 import { numberOption, outsideAccessContext, skillsTrace } from "../stage";
@@ -95,7 +95,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...skills.tools,
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
-      ...createLocalStackTools(deps, agent, access),
+      ...createDevHubTools(deps, agent, access),
       ...createCodeReviewTools(run),
       createReadPbiTool(deps.db, deps.vaultRoot),
     ],

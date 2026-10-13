@@ -95,7 +95,7 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 - A stack stops when `ttlMinutes` (default 60, max 240) runs out, and when DevHub stops.
 - Logs and start output can hold secrets; whoever holds the token can read them.
 - `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
-- PowerLoom: Settings → Local stack (URL, token, Test DevHub) per vault, and the agent switch "Local stack (run services)"; the runner stops a run's stack when the run ends.
+- PowerLoom: Settings → DevHub (URL, token, Test DevHub, Open DevHub) per vault, and the agent switch "DevHub (run services)"; the runner stops a run's stack when the run ends.
 
 ## Routing references (map.json)
 

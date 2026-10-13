@@ -146,15 +146,15 @@ async function testSqlConnection(body: { name: string | null; connectionString: 
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
-// Local stack (user decision 2026-10-13), kept by PowerLoom: the vault's switch, DevHub's URL and token; an empty
+// DevHub (user decision 2026-10-13), kept by PowerLoom: the vault's switch, DevHub's URL and token; an empty
 // token keeps the saved one. Each agent's own switch is on its Config page.
-export async function saveLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+export async function saveDevHubAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const enabled = isEnabled(form);
-  const saved = await powerloom.PUT("/api/vaults/{vault}/local-stack", {
+  const saved = await powerloom.PUT("/api/vaults/{vault}/devhub", {
     params: { path: { vault: await requireVault() } },
     body: { enabled, url: field(form, "url") || null, token: field(form, "token") || null },
   });
-  const result = powerloomResult(saved, enabled ? "Saved. Agents with Local stack switched on may start this vault's services on this PC." : "Saved. Local stack is off: no agent starts services for this vault.");
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with DevHub switched on may start this vault's services on this PC." : "Saved. DevHub is off: no agent starts services for this vault.");
 
   revalidatePath("/settings");
 
@@ -162,8 +162,8 @@ export async function saveLocalStackAction(_previous: ActionResult | null, form:
 }
 
 // Calls DevHub from the agent-runner with the typed URL and token (the saved ones for empty fields); saves nothing.
-export async function testLocalStackAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const checked = await powerloom.POST("/api/vaults/{vault}/local-stack/test", {
+export async function testDevHubAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const checked = await powerloom.POST("/api/vaults/{vault}/devhub/test", {
     params: { path: { vault: await requireVault() } },
     body: { url: field(form, "url") || null, token: field(form, "token") || null },
   });

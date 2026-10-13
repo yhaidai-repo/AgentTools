@@ -1,14 +1,14 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AgentRunJob } from "@powerloom/core";
 import type { AzureUserLogin } from "@powerloom/azure";
-import type { DevHubCheck } from "@powerloom/localstack";
+import type { DevHubCheck } from "@powerloom/devhub";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
 // time; PowerLoom asks again later. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
-// signed in through the agents' own SQL driver, also while a run is in progress. `POST /local-stack/test {url, token}` →
-// 200 {ok, message}: Settings' Local stack test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
+// signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
+// 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for App Insights (start, status, sign out); the runner keeps the token cache. `GET /health` for
 // PowerLoom's health check and Docker's.
 export class RunnerServer {
@@ -18,7 +18,7 @@ export class RunnerServer {
   constructor(
     private readonly run: (job: AgentRunJob) => Promise<void>,
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
-    private readonly testLocalStack: (url: string, token: string) => Promise<DevHubCheck>,
+    private readonly testDevHub: (url: string, token: string) => Promise<DevHubCheck>,
     private readonly azureLogin: AzureUserLogin,
   ) {
     this.server = createServer((request, response) => this.handle(request, response));
@@ -51,7 +51,7 @@ export class RunnerServer {
       return;
     }
 
-    if (request.method === "POST" && request.url === "/local-stack/test") {
+    if (request.method === "POST" && request.url === "/devhub/test") {
       await this.testStack(request, response);
 
       return;
@@ -149,7 +149,7 @@ export class RunnerServer {
       return;
     }
 
-    answer(response, 200, await this.testLocalStack(body.url, body.token));
+    answer(response, 200, await this.testDevHub(body.url, body.token));
   }
 
   private async runThenFree(job: AgentRunJob): Promise<void> {

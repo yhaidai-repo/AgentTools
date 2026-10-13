@@ -4,7 +4,7 @@ import type { AgentRunSession } from "../AgentRunSession";
 import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azureTools";
 import { createConfluenceTools } from "../confluenceTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { createTestCaseTools } from "../testCases/testCaseTools";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
@@ -30,7 +30,7 @@ export function readingTools(context: TaskContext, session: AgentRunSession, tas
     ...createConfluenceTools(deps, agent, access),
     ...createSqlTools(deps, agent, access),
     ...createAzureTools(deps, agent, access),
-    ...createLocalStackTools(deps, agent, access),
+    ...createDevHubTools(deps, agent, access),
     ...createTestCaseTools(deps, agent, access),
   ];
 }

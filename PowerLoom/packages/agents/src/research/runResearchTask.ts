@@ -10,7 +10,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { createSqlTools } from "../sqlTools";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
@@ -85,7 +85,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
-      ...createLocalStackTools(deps, agent, access),
+      ...createDevHubTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

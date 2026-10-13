@@ -18,7 +18,7 @@ import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { withPagesRead } from "../relevantPages";
 import { createAzureTools } from "../azureTools";
-import { createLocalStackTools } from "../localStackTools";
+import { createDevHubTools } from "../devHubTools";
 import { createTestCaseTools } from "../testCases/testCaseTools";
 import { createSqlTools } from "../sqlTools";
 import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAccessContext, skillsTrace } from "../stage";
@@ -95,7 +95,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createConfluenceTools(deps, agent, access),
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
-      ...createLocalStackTools(deps, agent, access),
+      ...createDevHubTools(deps, agent, access),
       ...createTestCaseTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
     ],

@@ -4,7 +4,7 @@ import type { AdoSettings } from "./models/AdoSettings";
 import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
-import type { LocalStackSettings } from "./models/LocalStackSettings";
+import type { DevHubSettings } from "./models/DevHubSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
@@ -20,9 +20,10 @@ const IMPORT_STATUS_KEY = "importStatus";
 const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
 const READ_AZURE_KEY = "readAzure";
-const LOCAL_STACK_KEY = "localStack";
+// "localStack": the stored key from before the rename to DevHub (2026-10-14): saved settings keep working.
+const DEVHUB_KEY = "localStack";
 // DevHub on the Windows host, as Docker containers reach it (DevSecrets Start-DevHub.ps1).
-export const DEFAULT_LOCAL_STACK_URL = "http://host.docker.internal:47811";
+export const DEFAULT_DEVHUB_URL = "http://host.docker.internal:47811";
 // Written by the agent-runner (the user's sign-in for App Insights): the account the page shows, and the MSAL cache.
 export const AZURE_USER_KEY = "azureUser";
 export const AZURE_USER_TOKEN_CACHE_KEY = "azureUserTokenCache";
@@ -125,10 +126,10 @@ export async function readReadSqlSettings(db: PowerLoomDb, vault: string): Promi
   return { enabled: stored?.enabled ?? false, connections: stored?.connections ?? [] };
 }
 
-export async function readLocalStackSettings(db: PowerLoomDb, vault: string): Promise<LocalStackSettings> {
-  const stored = await readValue<Partial<LocalStackSettings>>(db, vaultSettingKey(vault, LOCAL_STACK_KEY));
+export async function readDevHubSettings(db: PowerLoomDb, vault: string): Promise<DevHubSettings> {
+  const stored = await readValue<Partial<DevHubSettings>>(db, vaultSettingKey(vault, DEVHUB_KEY));
 
-  return { enabled: stored?.enabled ?? false, url: stored?.url || DEFAULT_LOCAL_STACK_URL, token: stored?.token ?? "" };
+  return { enabled: stored?.enabled ?? false, url: stored?.url || DEFAULT_DEVHUB_URL, token: stored?.token ?? "" };
 }
 
 export async function readReadAzureSettings(db: PowerLoomDb, vault: string): Promise<ReadAzureSettings> {

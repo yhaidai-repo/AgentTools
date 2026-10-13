@@ -2,11 +2,11 @@
 import "./preferIpv4";
 import { AdoClient } from "@powerloom/ado";
 import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readLocalStackSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
-import { DevHubClient, checkDevHub } from "@powerloom/localstack";
+import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
@@ -101,12 +101,12 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
   await purgeOldTraces();
 
   let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
-  let localStack: AgentDeps["localStack"] = null;
+  let devHub: AgentDeps["devHub"] = null;
 
   try {
     const deps = await depsFor(await vaultOfJob(job));
 
-    localStack = deps.localStack;
+    devHub = deps.devHub;
 
     const result = await runAgentTask(deps, job);
 
@@ -115,14 +115,14 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
     console.error(`${job.agentId} ${job.taskId} failed:`, error);
     completed = { runId: null, outcome: "failed", error: String(error) };
   } finally {
-    await stopStackOfRun(localStack, completed.runId);
+    await stopStackOfRun(devHub, completed.runId);
     await report(job.taskId, completed);
   }
 }
 
 // Before the callback, so the next task never finds this run's stack still running; DevHub's own clock stops it
 // when this is skipped (a crash) and the next start sweeps it.
-async function stopStackOfRun(access: AgentDeps["localStack"], runId: number | null): Promise<void> {
+async function stopStackOfRun(access: AgentDeps["devHub"], runId: number | null): Promise<void> {
   if (!access || runId === null) {
     return;
   }
@@ -139,7 +139,7 @@ async function stopOrphanedStacks(): Promise<void> {
 }
 
 async function devHubsOfVaults(): Promise<DevHubClient[]> {
-  const settings = await Promise.all((await readVaults(db)).map((vault) => readLocalStackSettings(db, vault.name)));
+  const settings = await Promise.all((await readVaults(db)).map((vault) => readDevHubSettings(db, vault.name)));
   const devHubs = new Map(settings.filter((stack) => stack.enabled && stack.token).map((stack) => [`${stack.url} ${stack.token}`, stack]));
 
   return [...devHubs.values()].map((stack) => new DevHubClient(stack.url, stack.token));
@@ -187,7 +187,7 @@ async function depsFor(vault: string): Promise<AgentDeps> {
     docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
     sql: await sqlAccessOf(vault),
     azure: await azureAccessOf(vault),
-    localStack: await localStackAccessOf(vault),
+    devHub: await devHubAccessOf(vault),
     ado: await adoAccessOf(vault),
   };
 }
@@ -203,8 +203,8 @@ async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
 
 // Read per run, so a switch flipped in Settings counts from the next run. Without a token DevHub refuses every
 // call, so the tools stay away until the vault has one.
-async function localStackAccessOf(vault: string): Promise<AgentDeps["localStack"]> {
-  const settings = await readLocalStackSettings(db, vault);
+async function devHubAccessOf(vault: string): Promise<AgentDeps["devHub"]> {
+  const settings = await readDevHubSettings(db, vault);
 
   return settings.enabled && settings.token ? { client: new DevHubClient(settings.url, settings.token), url: settings.url } : null;
 }
