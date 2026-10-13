@@ -1,9 +1,11 @@
 "use strict";
 
-// The DevSecrets configuration, read-only: apps (services.json), who calls whom and every project's settings (map.json),
-// the named values (values.*.json, masked; Show / Copy on request) and what the scripts would refuse.
+// The DevSecrets configuration: apps (services.json), who calls whom and every project's settings (map.json), the named
+// values (values.*.json, masked; Show / Copy on request; add, replace, delete) and what the scripts would refuse.
 
 const TOKEN_KEY = "devsecrets-bridge-token";
+// The bridge's own token: changed in the file and by restarting the bridge, never here.
+const READ_ONLY_VALUES = ["stack-bridge-token"];
 const TABS = ["apps", "dependencies", "secrets", "problems"];
 const loaders = { apps: renderApps, dependencies: renderDependencies, secrets: renderSecrets, problems: renderProblems };
 
@@ -17,8 +19,9 @@ function token() {
   return sessionStorage.getItem(TOKEN_KEY);
 }
 
-async function api(path) {
-  const response = await fetch(path, { headers: { Authorization: `Bearer ${token()}` } });
+async function api(path, method = "GET", body = undefined) {
+  const headers = { Authorization: `Bearer ${token()}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) };
+  const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
 
   if (response.status === 401) {
     sessionStorage.removeItem(TOKEN_KEY);
@@ -31,7 +34,9 @@ async function api(path) {
     throw new Error(problem.detail ?? `${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const text = await response.text();
+
+  return text ? JSON.parse(text) : null;
 }
 
 function showTokenForm(message) {
@@ -172,7 +177,7 @@ function settingSource(setting) {
 
 // --- Secrets ---
 
-async function renderSecrets(section) {
+async function renderSecrets(section, filterText = "") {
   const files = await api("/config/secrets");
 
   section.innerHTML = `
@@ -182,8 +187,19 @@ async function renderSecrets(section) {
   const filter = byId("secret-filter");
   const draw = () => drawSecretFiles(files, filter.value.trim().toLowerCase());
 
+  filter.value = filterText;
   filter.addEventListener("input", draw);
   draw();
+}
+
+// After a change: the list again, with the same filter, and the outcome under the file's card.
+async function reloadSecrets(file, message, isError) {
+  await renderSecrets(byId("secrets"), byId("secret-filter")?.value ?? "");
+
+  const target = byId(`secret-message-${file}`);
+
+  target.textContent = message;
+  target.className = isError ? "error" : "ok";
 }
 
 function drawSecretFiles(files, filter) {
@@ -194,11 +210,25 @@ function drawSecretFiles(files, filter) {
       <div class="card">
         <h2>values.${escapeHtml(file.file)}.json ${file.extends ? `<span class="muted">overrides values.${escapeHtml(file.extends)}.json</span>` : ""}</h2>
         ${secrets.length === 0 ? `<p class="muted">No values${filter ? " match" : ""}.</p>` : secretTable(secrets)}
+        ${addSecretForm(file.file)}
+        <p id="secret-message-${escapeHtml(file.file)}"></p>
       </div>`;
   }).join("");
 
   document.querySelectorAll("[data-show]").forEach((button) => button.addEventListener("click", () => showSecret(button)));
   document.querySelectorAll("[data-copy]").forEach((button) => button.addEventListener("click", () => copySecret(button)));
+  document.querySelectorAll("[data-replace]").forEach((button) => button.addEventListener("click", () => openReplace(button)));
+  document.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteSecret(button)));
+  document.querySelectorAll("form[data-add]").forEach((form) => form.addEventListener("submit", (event) => addSecret(event, form)));
+}
+
+function addSecretForm(file) {
+  return `
+    <form class="toolbar" data-add="${escapeHtml(file)}">
+      <input name="name" placeholder="new-value-name" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="64" required>
+      <input name="value" type="password" autocomplete="off" placeholder="value">
+      <button type="submit" class="small">Add or replace</button>
+    </form>`;
 }
 
 function secretTable(secrets) {
@@ -207,13 +237,21 @@ function secretTable(secrets) {
       <td class="mono">${escapeHtml(secret.name)}</td>
       <td>${secretState(secret)}<div class="secret-value mono" id="value-${escapeHtml(secret.file)}-${escapeHtml(secret.name)}"></div></td>
       <td>${secret.usedBy.length === 0 ? `<span class="warning">unused</span>` : `<details><summary>${secret.usedBy.length} setting(s)</summary>${secret.usedBy.map((use) => `<div class="mono muted">${escapeHtml(use)}</div>`).join("")}</details>`}</td>
-      <td>
-        <button class="small secondary" data-show="${escapeHtml(secret.file)}|${escapeHtml(secret.name)}">Show</button>
-        <button class="small secondary" data-copy="${escapeHtml(secret.file)}|${escapeHtml(secret.name)}">Copy</button>
-      </td>
+      <td>${secretActions(secret)}</td>
     </tr>`).join("");
 
   return `<table><thead><tr><th>Name</th><th>Value</th><th>Used by</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function secretActions(secret) {
+  const id = `${escapeHtml(secret.file)}|${escapeHtml(secret.name)}`;
+  const view = `<button class="small secondary" data-show="${id}">Show</button> <button class="small secondary" data-copy="${id}">Copy</button>`;
+
+  if (READ_ONLY_VALUES.includes(secret.name)) {
+    return `${view} <span class="muted" title="Change it in the file, restart the bridge, update PowerLoom's Local stack settings">read-only</span>`;
+  }
+
+  return `${view} <button class="small secondary" data-replace="${id}">Replace</button> <button class="small secondary" data-delete="${id}">Delete</button>`;
 }
 
 function secretState(secret) {
@@ -245,6 +283,59 @@ async function copySecret(button) {
   await navigator.clipboard.writeText(secret.value);
   button.textContent = "Copied";
   setTimeout(() => { button.textContent = "Copy"; }, 1500);
+}
+
+function openReplace(button) {
+  const [file, name] = button.getAttribute("data-replace").split("|");
+  const target = byId(`value-${file}-${name}`);
+
+  target.innerHTML = `
+    <form class="toolbar">
+      <input name="value" type="password" autocomplete="off" placeholder="new value">
+      <button type="submit" class="small">Save</button>
+      <button type="button" class="small secondary" data-cancel>Cancel</button>
+    </form>`;
+
+  const form = target.querySelector("form");
+
+  form.querySelector("[data-cancel]").addEventListener("click", () => { target.innerHTML = ""; });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveSecret(file, name, form.elements.value.value, `${name} replaced.`);
+  });
+  form.elements.value.focus();
+}
+
+function addSecret(event, form) {
+  event.preventDefault();
+
+  const name = form.elements.name.value.trim();
+
+  saveSecret(form.getAttribute("data-add"), name, form.elements.value.value, `${name} saved.`);
+}
+
+async function saveSecret(file, name, value, success) {
+  try {
+    await api(`/config/secrets/${encodeURIComponent(file)}/${encodeURIComponent(name)}`, "PUT", { value });
+    await reloadSecrets(file, success, false);
+  } catch (error) {
+    await reloadSecrets(file, error.message, true);
+  }
+}
+
+async function deleteSecret(button) {
+  const [file, name] = button.getAttribute("data-delete").split("|");
+
+  if (!confirm(`Delete ${name} from values.${file}.json? A backup of the file is kept.`)) {
+    return;
+  }
+
+  try {
+    await api(`/config/secrets/${encodeURIComponent(file)}/${encodeURIComponent(name)}`, "DELETE");
+    await reloadSecrets(file, `${name} deleted.`, false);
+  } catch (error) {
+    await reloadSecrets(file, error.message, true);
+  }
 }
 
 // --- Problems ---

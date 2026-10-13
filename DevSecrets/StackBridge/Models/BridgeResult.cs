@@ -12,4 +12,6 @@ public sealed record BridgeResult(int StatusCode, string? Error)
     public static BridgeResult Invalid(string error) => new(StatusCodes.Status400BadRequest, error);
 
     public static BridgeResult Conflict(string error) => new(StatusCodes.Status409Conflict, error);
+
+    public static BridgeResult NotFound(string error) => new(StatusCodes.Status404NotFound, error);
 }

@@ -22,6 +22,8 @@ builder.Services.AddSingleton<StackService>();
 builder.Services.AddSingleton<DevSecretsFiles>();
 builder.Services.AddSingleton<ConfigCatalog>();
 builder.Services.AddSingleton<ConfigProblems>();
+builder.Services.AddSingleton<ValuesFileWriter>();
+builder.Services.AddSingleton<SecretEditor>();
 builder.Services.AddHostedService<StackExpiryService>();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));

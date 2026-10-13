@@ -62,10 +62,15 @@ Open `http://127.0.0.1:47811/` while the bridge runs (`Start-StackBridge.ps1`); 
 |---|---|
 | Apps | `services.json`: each app's URL, key, what it starts, when it is ready, bus, projects |
 | Dependencies | who calls whom, and every project's settings from `map.json` (value name, or a call: local while that app runs, else the remote value) |
-| Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value |
+| Secrets | every `values.*.json` value masked, with who reads it; Show / Copy reveal one value; add, replace, delete |
 | Problems | `Use-DevSecrets.ps1 -All -Check` per values file (what a start would refuse), plus unused values and projects without an app |
 
-Read-only for now; edit the files directly. `GET /config/apps|dependencies|secrets|problems`, `GET /config/secrets/{file}/{name}` (token required).
+Apps and dependencies are read-only for now (edit the files directly). Secret changes:
+
+- A delete is refused while a project or script reads the value (an override in `values.local.json` may go: the remote value takes over). `stack-bridge-token` is read-only here.
+- Every write first keeps the old file in `D:/Projects/dev-secrets/backups/` (the newest 20 per file); keys are written sorted.
+
+`GET /config/apps|dependencies|secrets|problems`, `GET|PUT|DELETE /config/secrets/{file}/{name}` (token required).
 
 ## Stack bridge (for PowerLoom)
 
