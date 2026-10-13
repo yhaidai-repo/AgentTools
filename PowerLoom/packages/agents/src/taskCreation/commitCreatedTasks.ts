@@ -1,4 +1,4 @@
-import { ANY_AGENT, nextGlobalItemId, nextItemId, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
+import { ANY_AGENT, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type ItemPrefix } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, count, eq, isNotNull, like } from "drizzle-orm";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
@@ -51,7 +51,7 @@ function insertTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTa
 
 // `goal` in data is what the research message shows as the task's goal, so it carries the done-when.
 async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask, target: TaskTarget): Promise<string> {
-  const id = await nextItemId(db, target.prefix as "AT" | "DT", context.pbiId);
+  const id = await nextId(db, target.prefix as ItemPrefix, context.pbiId);
   const data = { ...decisionData(task), goal: task.doneWhen, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort, depth: context.depth + 1 };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data });
@@ -82,7 +82,7 @@ async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task:
 }
 
 async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
-  const id = await nextItemId(db, "HT", context.pbiId);
+  const id = await nextId(db, "HT", context.pbiId);
   const human = { why: task.reason, solves: task.goal, steps: task.steps };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: renderHumanTaskBody(human), data: { ...human, ...decisionData(task) } });
@@ -91,7 +91,7 @@ async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task:
 }
 
 async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
-  const id = await nextItemId(db, "Q", context.pbiId);
+  const id = await nextId(db, "Q", context.pbiId);
   const data = { why: task.reason, options: task.options, doneWhen: task.doneWhen, ...decisionData(task) };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: task.goal, data });
@@ -100,7 +100,12 @@ async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task:
 }
 
 function pbiItem(context: TaskCommitContext, id: string) {
-  return { id, pbiId: context.pbiId, vault: vaultOfPbiSql(context.pbiId), parentId: context.parentTaskId, createdByRun: context.runId };
+  return { id, pbiId: context.pbiId, vault: context.pbiId === null ? context.vault : vaultOfPbiSql(context.pbiId), parentId: context.parentTaskId, createdByRun: context.runId };
+}
+
+// Per PBI (`AT-36756-002`), or across the app for a task without one (`AT-004`), as access requests do.
+export function nextId(db: PowerLoomDb, prefix: ItemPrefix, pbiId: number | null): Promise<string> {
+  return pbiId === null ? nextScopedItemId(db, `${prefix}-`) : nextItemId(db, prefix, pbiId);
 }
 
 // Why the task exists and what it holds: kept on every created item (framework P9; Ready for dev reads `blocking`).

@@ -13,7 +13,6 @@ import { loadPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
-import { runBetterResearchGoal } from "../betterResearch/runBetterResearchGoal";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
@@ -33,15 +32,10 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   "vault-review": runVaultReviewTask,
 };
 
-// Agents that run goal tasks (GT-…) their own way, with their own prompt; every other agent runs them as a generic goal.
-const GOAL_EXECUTORS: Record<string, TaskExecutor> = {
-  "better-research": runBetterResearchGoal,
-};
-
-// Research without a PBI (created on the Tasks page, user decision 2026-10-14) has no PBI context to research, so it
-// runs like a goal: the task's own text on the repos it names.
+// Scheduled goal tasks (GT-…) run the generic goal prompt; every other task, with or without a PBI, runs its agent's own
+// executor (user decision 2026-10-14: a task the user creates goes the same way as every other task).
 function runsAsGoal(task: ItemRow): boolean {
-  return task.kind === "goal" || (task.kind === "research" && task.pbiId === null);
+  return task.kind === "goal";
 }
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.
@@ -73,7 +67,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const executor = runsAsGoal(task) ? (GOAL_EXECUTORS[agentId] ?? runGoalTask) : EXECUTORS[agentId];
+  const executor = runsAsGoal(task) ? runGoalTask : EXECUTORS[agentId];
   const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
@@ -100,10 +94,9 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
   };
 }
 
-// A goal task has its own prompt (user decision 2026-10-06), unless the agent runs goals its own way; every other task
-// uses the agent's.
+// A goal task has its own prompt (user decision 2026-10-06); every other task uses the agent's.
 async function taskPrompt(agentId: string, task: ItemRow, values: Record<string, string>): Promise<TaskContext["prompt"]> {
-  if (runsAsGoal(task) && !GOAL_EXECUTORS[agentId]) {
+  if (runsAsGoal(task)) {
     return loadPrompt("goal", values);
   }
 

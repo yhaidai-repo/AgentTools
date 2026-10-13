@@ -1,11 +1,10 @@
-import { setItemStatus } from "@powerloom/core";
-import { agentRun, type PowerLoomDb } from "@powerloom/db";
+import { setItemStatus, vaultOfPbiSql } from "@powerloom/core";
+import { agentRun, localItem, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
-import { insertItem, supersedeEarlierResults } from "../research/commitResearch";
-import type { ResearchContext } from "../research/models/ResearchContext";
+import { supersedeEarlierResults } from "../research/commitResearch";
 import type { ResearchResultOutput } from "../research/models/ResearchResultOutput";
-import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
+import { commitCreatedTasks, nextId } from "../taskCreation/commitCreatedTasks";
 import { commitCaptures } from "../vaultCapture";
 import type { BetterResearchDraft } from "./models/BetterResearchDraft";
 import type { BetterResearchResult } from "./models/BetterResearchResult";
@@ -13,28 +12,45 @@ import type { BetterResearchResult } from "./models/BetterResearchResult";
 const ACTOR = "agent:better-research";
 const RESULT_VERSION = 2;
 
-// Writes a successful run: the result, the tasks it created, drafts and pages; closes the task.
+type ItemRow = typeof localItem.$inferSelect;
+type WorkItemRow = typeof workItem.$inferSelect;
+
+// Writes a successful run: the result, the tasks it created, drafts and pages; closes the task. A task without a PBI
+// gets the same result item, numbered across the app; drafts and pages belong to a PBI, so it has none.
 export async function commitBetterResearch(
   db: PowerLoomDb,
-  context: ResearchContext,
+  task: ItemRow,
+  pbi: WorkItemRow | null,
   runId: number,
   draft: BetterResearchDraft & { result: BetterResearchResult },
   extra: { commits: Record<string, string>; docsRead: string[]; docsVault: string },
 ): Promise<string[]> {
-  const { task, pbi } = context;
+  const pbiId = pbi?.adoId ?? null;
   const depth = Number((task.data as { depth?: number } | null)?.depth ?? 1);
-  const taskIds = await commitCreatedTasks(db, { pbiId: pbi.adoId, parentTaskId: task.id, runId, depth, docsVault: extra.docsVault }, draft.tasks);
+  const taskIds = await commitCreatedTasks(db, { pbiId, vault: task.vault, parentTaskId: task.id, runId, depth, docsVault: extra.docsVault }, draft.tasks);
   const data = { ...readableResult(draft.result), result: draft.result, resultVersion: RESULT_VERSION, next: { taskIds, reason: draft.result.nextReason }, commits: extra.commits, docsRead: extra.docsRead };
-  const resultId = await insertItem(db, "RR", "research-result", context, runId, `Result: ${task.title}`, "final", draft.result.conclusion, data, ACTOR);
-  const captureIds = await commitCaptures(db, runId, pbi.adoId, task.id, draft.captures);
+  const resultId = await insertResult(db, task, pbiId, runId, draft.result.conclusion, data);
+  const captureIds = pbiId === null ? [] : await commitCaptures(db, runId, pbiId, task.id, draft.captures);
   const outputs = [resultId, ...taskIds, ...captureIds];
 
-  await commitRelevantPages(db, pbi.adoId, draft.pages, "research");
+  if (pbiId !== null) {
+    await commitRelevantPages(db, pbiId, draft.pages, "research");
+  }
+
   await supersedeEarlierResults(db, task.id, resultId, runId);
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
   await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
 
   return outputs;
+}
+
+async function insertResult(db: PowerLoomDb, task: ItemRow, pbiId: number | null, runId: number, conclusion: string, data: object): Promise<string> {
+  const id = await nextId(db, "RR", pbiId);
+  const vault = pbiId === null ? task.vault : vaultOfPbiSql(pbiId);
+
+  await db.insert(localItem).values({ id, kind: "research-result", pbiId, vault, parentId: task.id, title: `Result: ${task.title}`.slice(0, 120), status: "final", assignee: ACTOR, body: conclusion, data, createdByRun: runId });
+
+  return id;
 }
 
 // The fields every reader of a research result already shows (design's message, the PBI notes, the item page); the bug

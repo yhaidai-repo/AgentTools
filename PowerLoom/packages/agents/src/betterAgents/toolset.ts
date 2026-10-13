@@ -35,7 +35,7 @@ export function readingTools(context: TaskContext, session: AgentRunSession, tas
   ];
 }
 
-export async function taskLimits(context: TaskContext, pbiId: number, depth: number): Promise<TaskCreationLimits> {
+export async function taskLimits(context: TaskContext, pbiId: number | null, depth: number): Promise<TaskCreationLimits> {
   const { agent, deps } = context;
 
   return {
@@ -43,7 +43,7 @@ export async function taskLimits(context: TaskContext, pbiId: number, depth: num
     maxDepth: numberOption(agent, "maxDepth", 3),
     maxPerRun: numberOption(agent, "maxTasksPerRun", 5),
     maxPerPbi: numberOption(agent, "maxTasksPerPbi", 15),
-    createdOnPbi: await countAgentCreatedTasks(deps.db, pbiId),
+    createdOnPbi: pbiId === null ? 0 : await countAgentCreatedTasks(deps.db, pbiId),
   };
 }
 

@@ -7,6 +7,8 @@ import { CHECK_EACH_CRITERION, isUserTask } from "../tasks/userTasks";
 import type { RefinementDetails } from "../betterRefinement/models/RefinementDetails";
 import type { ResearchContext } from "./models/ResearchContext";
 
+type ItemRow = ResearchContext["task"];
+
 // The first message: the task, the PBI, the refinement and what refinement found worth reading.
 export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, context: ResearchContext, repos: RepoAccess): Promise<string> {
   const [latest] = await db.select().from(refinement).where(eq(refinement.pbiId, context.pbi.adoId)).orderBy(desc(refinement.version)).limit(1);
@@ -14,23 +16,28 @@ export async function buildResearchMessage(db: PowerLoomDb, vaultRoot: string, c
 
   return [
     "Answer this research task.",
-    taskBlock(context),
+    taskBlock(context.task),
     pbi,
     latest ? refinementBlock(latest) : "<refinement>none</refinement>",
     reposBlock(repos),
   ].join("\n\n");
 }
 
-function taskBlock(context: ResearchContext): string {
-  const data = (context.task.data ?? {}) as TaskData;
+// A research task without a PBI (e.g. one the user created on the Tasks page): the task and the repos it names.
+export function buildTaskResearchMessage(task: ItemRow, repos: RepoAccess): string {
+  return ["Answer this research task. It belongs to no PBI.", taskBlock(task), reposBlock(repos)].join("\n\n");
+}
+
+function taskBlock(task: ItemRow): string {
+  const data = (task.data ?? {}) as TaskData;
 
   return [
     "<task>",
-    `Id: ${context.task.id}`,
-    `Title: ${context.task.title}`,
-    `Question: ${context.task.body ?? context.task.title}`,
+    `Id: ${task.id}`,
+    `Title: ${task.title}`,
+    `Question: ${task.body ?? task.title}`,
     `Goal: ${data.goal ?? data.why ?? "-"}`,
-    ...(isUserTask(context.task) ? [`Created by the user: the goal holds the acceptance criteria. ${CHECK_EACH_CRITERION}`] : []),
+    ...(isUserTask(task) ? [`Created by the user: the goal holds the acceptance criteria. ${CHECK_EACH_CRITERION}`] : []),
     `Depth: ${data.depth ?? 1}`,
     ...(data.needsWeb ? [`Needs web research: yes. Use your web tools first. Suggested sources: ${data.sources?.join(", ") || "none"}`] : []),
     ...createdTaskLines(data),

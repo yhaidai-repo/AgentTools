@@ -22,6 +22,11 @@ export class DuplicateGuard {
     return new DuplicateGuard(rows.map((row) => ({ id: row.id, kind: row.kind, status: row.status, text: row.body ?? row.title })));
   }
 
+  // A task without a PBI has no earlier items to repeat; only what the run itself creates is checked.
+  static none(): DuplicateGuard {
+    return new DuplicateGuard([]);
+  }
+
   // The rejection message, or null when the text is new.
   check(kind: string, text: string): string | null {
     const match = this.known.find((item) => item.kind === kind && textSimilarity(item.text, text) >= DUPLICATE_SIMILARITY);

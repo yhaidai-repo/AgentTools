@@ -41,10 +41,28 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       {item.status === "open" && item.heldBy.length > 0 && <p className="result-error">Held by the dispatcher: {item.heldBy.join("; ")}</p>}
       <ItemContent item={item} />
+      <AgentResult detail={detail} />
       <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
     </>
+  );
+}
+
+// An agent task that ran without a PBI (a goal, or a task created on the Tasks page) keeps its result as its resolution,
+// in Markdown (Better Research's goal path); a PBI task's results are separate items, shown by Results.
+function AgentResult({ detail }: { detail: ItemDetail }) {
+  const { item } = detail;
+
+  if (item.assignee === "human" || !item.resolution) {
+    return null;
+  }
+
+  return (
+    <section className="card result-section">
+      <h2>Result · {item.status}</h2>
+      <MarkdownBlock text={item.resolution} />
+    </section>
   );
 }
 
@@ -55,7 +73,7 @@ function Results({ detail }: { detail: ItemDetail }) {
   }
 
   if (detail.results.length === 0) {
-    return <p className="muted">No result yet.</p>;
+    return detail.item.resolution ? null : <p className="muted">No result yet.</p>;
   }
 
   return (
