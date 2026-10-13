@@ -1319,6 +1319,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnName("params")
                         .HasDefaultValueSql("'{}'::jsonb");
 
+                    b.Property<string>("TaskType")
+                        .HasColumnType("text")
+                        .HasColumnName("task_type");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")

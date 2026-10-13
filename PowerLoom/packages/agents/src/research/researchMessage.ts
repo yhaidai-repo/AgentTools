@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import type { RepoAccess } from "../models/RepoAccess";
 import { buildPbiMessage } from "../refinement/pbiMessage";
 import { reposBlock } from "../repos/reposBlock";
+import { CHECK_EACH_CRITERION, isUserTask } from "../tasks/userTasks";
 import type { RefinementDetails } from "../betterRefinement/models/RefinementDetails";
 import type { ResearchContext } from "./models/ResearchContext";
 
@@ -29,6 +30,7 @@ function taskBlock(context: ResearchContext): string {
     `Title: ${context.task.title}`,
     `Question: ${context.task.body ?? context.task.title}`,
     `Goal: ${data.goal ?? data.why ?? "-"}`,
+    ...(isUserTask(context.task) ? [`Created by the user: the goal holds the acceptance criteria. ${CHECK_EACH_CRITERION}`] : []),
     `Depth: ${data.depth ?? 1}`,
     ...(data.needsWeb ? [`Needs web research: yes. Use your web tools first. Suggested sources: ${data.sources?.join(", ") || "none"}`] : []),
     ...createdTaskLines(data),

@@ -22,6 +22,7 @@ import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
 import { createTaskTool } from "../taskCreation/createTaskTool";
+import { userRequestBlock } from "../tasks/userTasks";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitBetterRefinement } from "./commitBetterRefinement";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
@@ -73,7 +74,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
   run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
 
-  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), reposBlock(run.repos)].join("\n\n");
+  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), userRequestBlock(task), reposBlock(run.repos)].filter(Boolean).join("\n\n");
   const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
   const limits = await taskLimits(context, row.adoId, DEPTH);

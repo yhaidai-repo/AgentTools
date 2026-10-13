@@ -27,4 +27,13 @@ public static class RepoCatalog
 
         return (await EnabledAsync(db, vault, cancellation)).Where(repo => wanted.Contains(repo.Name.ToLowerInvariant())).ToList();
     }
+
+    // Names an agent may not read: not among the vault's enabled repos (exact names, as the forms offer them).
+    public static async Task<string?> UnknownReposProblemAsync(PowerLoomDbContext db, string vault, IEnumerable<string> names, CancellationToken cancellation)
+    {
+        var offered = (await EnabledAsync(db, vault, cancellation)).Select(repo => repo.Name).ToHashSet();
+        var unknown = names.Where(name => !offered.Contains(name)).ToList();
+
+        return unknown.Count > 0 ? $"Not among the vault's enabled repositories: {string.Join(", ", unknown)}." : null;
+    }
 }

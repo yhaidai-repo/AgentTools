@@ -416,6 +416,38 @@
         }
       }
     },
+    "/api/tasks": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.CreateTask.CreateTaskEndpoint"
+        ],
+        "summary": "POST_api_tasks",
+        "description": "POST_api_tasks",
+        "operationId": "POST_api_tasks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedTask"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}/close": {
       "post": {
         "tags": [
@@ -3184,6 +3216,64 @@
           }
         }
       },
+      "CreateTaskRequest": {
+        "required": [
+          "vault",
+          "type",
+          "title",
+          "description",
+          "acceptanceCriteria",
+          "pbi",
+          "repos",
+          "docPath",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "acceptanceCriteria": {
+            "type": "string"
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "docPath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CreatedPbi": {
         "required": [
           "adoId",
@@ -3197,6 +3287,25 @@
           },
           "vault": {
             "type": "string"
+          }
+        }
+      },
+      "CreatedTask": {
+        "required": [
+          "id",
+          "pbiId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -4129,7 +4238,8 @@
           "agentId",
           "vault",
           "cron",
-          "enabled"
+          "enabled",
+          "taskType"
         ],
         "type": "object",
         "properties": {
@@ -4151,6 +4261,12 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "taskType": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4267,6 +4383,36 @@
             "items": {
               "type": "string"
             }
+          },
+          "taskType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acceptanceCriteria": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "docPath": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4816,6 +4962,9 @@
     },
     {
       "name": "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.CreateTask.CreateTaskEndpoint"
     },
     {
       "name": "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"

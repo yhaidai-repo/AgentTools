@@ -25,6 +25,7 @@ import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAc
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementRun } from "./models/RefinementRun";
+import { userRequestBlock } from "../tasks/userTasks";
 import { buildPbiMessage } from "./pbiMessage";
 import { createRefinementTools } from "./refinementTools";
 
@@ -72,7 +73,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
 
   const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
-  const firstMessage = [pbiMessage, reposBlock(run.repos)].join("\n\n");
+  const firstMessage = [pbiMessage, userRequestBlock(task), reposBlock(run.repos)].filter(Boolean).join("\n\n");
   const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
 

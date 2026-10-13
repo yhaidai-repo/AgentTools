@@ -10,7 +10,6 @@ import { isOpen, itemPath } from "@/lib/items";
 import { DEFAULT_RANGE, RANGES, rangeOptions } from "@/lib/ranges";
 import { TASK_KINDS, loadTaskList, type TaskRow } from "@/lib/taskList";
 import type { TaskFilter } from "@/models/TaskFilter";
-import { NewTaskMenu } from "./NewTaskMenu";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
 
@@ -42,7 +41,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   return (
     <>
       <h1>Tasks</h1>
-      <NewTaskMenu />
+      <Link className="button" href="/tasks/new">New task</Link>
       <h2>Scheduled tasks</h2>
       <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
       <h2>Tasks</h2>

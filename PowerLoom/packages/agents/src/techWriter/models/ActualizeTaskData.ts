@@ -10,6 +10,6 @@ export interface ActualizeTaskData {
   project: string;
   reasons: string;
   suspectFacts: string[];
-  /** The vault-review task that asked for it. */
-  reviewTask: string;
+  /** The task that asked for it (a vault review or an agent's task); absent when the user created it. */
+  reviewTask?: string;
 }

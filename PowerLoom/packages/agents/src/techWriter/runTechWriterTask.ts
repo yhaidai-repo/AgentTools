@@ -14,6 +14,7 @@ import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
+import { acceptanceCriteriaBlock, isUserTask } from "../tasks/userTasks";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
 import { relinkDraft, requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
@@ -160,16 +161,19 @@ async function draftMessage(vault: TaskVault, task: ItemRow, data: DraftTaskData
 async function actualizeMessage(vault: TaskVault, task: ItemRow, data: ActualizeTaskData, repos: RepoAccess): Promise<string> {
   const noteText = await readFile(join(vault.root, data.path), "utf8");
   const suspects = data.suspectFacts.map((fact) => `- ${fact}`).join("\n") || "- (none named)";
+  const userAsked = isUserTask(task);
+  const why = userAsked ? "the user asked for it" : "the vault review found it outdated";
 
   return [
-    "Actualize this note: the vault review found it outdated. Re-verify it against the code and rewrite it in place.",
-    `<task>\nId: ${task.id}\nMode: actualize\nVault: ${vault.name}\nNote: ${data.path}\nProject: ${data.project}\nAsked by: ${data.reviewTask}\n</task>`,
+    `Actualize this note: ${why}. Re-verify it against the code and rewrite it in place.`,
+    `<task>\nId: ${task.id}\nMode: actualize\nVault: ${vault.name}\nNote: ${data.path}\nProject: ${data.project}\nAsked by: ${userAsked ? "the user" : data.reviewTask}\n</task>`,
     `<reasons>\n${data.reasons}\n</reasons>`,
+    acceptanceCriteriaBlock(task),
     `<suspect-facts>\n${suspects}\n</suspect-facts>`,
     `<note>\n${noteText.trim()}\n</note>`,
     await projectIndexBlock(vault, data.project),
     reposBlock(repos),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 async function projectIndexBlock(vault: TaskVault, project: string): Promise<string> {

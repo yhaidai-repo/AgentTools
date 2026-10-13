@@ -51,5 +51,5 @@ public static class SchedulesEndpoints
         return TypedResults.Ok(new TickResult(await scheduling.TickAsync(schedule, force: true, cancellation)));
     }
 
-    private static SavedSchedule Summary(TaskSchedule row) => new(row.Id, row.Name, row.AgentId, row.Vault, row.Cron, row.Enabled);
+    private static SavedSchedule Summary(TaskSchedule row) => new(row.Id, row.Name, row.AgentId, row.Vault, row.Cron, row.Enabled, row.TaskType);
 }

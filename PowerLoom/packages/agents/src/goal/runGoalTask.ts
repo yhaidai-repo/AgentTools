@@ -13,6 +13,7 @@ import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
+import { acceptanceCriteriaBlock, goalTextOf } from "../tasks/userTasks";
 import { createAzureTools } from "../azureTools";
 import { createLocalStackTools } from "../localStackTools";
 import { createSqlTools } from "../sqlTools";
@@ -84,16 +85,12 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
 function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoAccess): string {
   return [
-    `Scheduled task ${task.id}: ${task.title}`,
-    "",
-    "<goal>",
-    data.goal,
-    "</goal>",
-    "",
+    `Task ${task.id}: ${task.title}`,
+    `<goal>\n${goalTextOf(task, data.goal)}\n</goal>`,
+    acceptanceCriteriaBlock(task),
     reposBlock(repos),
-    "",
     "Work on the goal, then call write_result once with the result.",
-  ].join("\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 function writeResultTool(draft: GoalDraft) {

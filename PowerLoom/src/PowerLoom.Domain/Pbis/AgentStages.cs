@@ -10,8 +10,11 @@ public static class AgentStages
 {
     private const string AgentPrefix = "agent:";
 
+    /// <summary>The agent id of "any agent that takes the type", e.g. on a schedule by task type.</summary>
+    public const string AnyAgentId = "*";
+
     /// <summary>A task for any agent that takes its type; `agent:&lt;id&gt;` pins one agent.</summary>
-    public const string AnyAgent = "agent:*";
+    public const string AnyAgent = AgentPrefix + AnyAgentId;
 
     /// <summary>The stages in pipeline order.</summary>
     public static readonly IReadOnlyList<AgentStage> Pipeline =

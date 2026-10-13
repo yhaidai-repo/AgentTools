@@ -18,6 +18,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { backlogMountOf, buildPbiContext } from "@powerloom/core";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
+import { acceptanceCriteriaBlock, goalTextOf } from "../tasks/userTasks";
 import { skillsTrace } from "../stage";
 import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
@@ -114,13 +115,10 @@ async function pbiContextOf(deps: AgentDeps, pbiId: number | null): Promise<stri
 function goalMessage(task: ItemRow, data: GoalTaskData, repos: RepoAccess): string {
   return [
     `Answer this research task (${task.id}): ${task.title}`,
-    "",
-    "<goal>",
-    data.goal,
-    "</goal>",
-    "",
+    `<goal>\n${goalTextOf(task, data.goal)}\n</goal>`,
+    acceptanceCriteriaBlock(task),
     reposBlock(repos),
-  ].join("\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 // The result is the task's resolution (Markdown) and stays structured in its data; the task closes here, so a run kept

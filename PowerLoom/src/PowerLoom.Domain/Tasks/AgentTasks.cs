@@ -41,8 +41,19 @@ public static class AgentTasks
         return id;
     }
 
+    // The PBI's open or running agent task of this type, if any.
+    public static Task<string?> OpenTaskIdAsync(PowerLoomDbContext db, ItemKind kind, int adoId, CancellationToken cancellation)
+    {
+        return OpenTasks(db, kind, adoId).Select(item => item.Id).FirstOrDefaultAsync(cancellation);
+    }
+
     private static Task<bool> HasOpenTaskAsync(PowerLoomDbContext db, ItemKind kind, int adoId, CancellationToken cancellation)
     {
-        return db.LocalItems.AnyAsync(item => item.PbiId == adoId && item.Kind == kind && item.Assignee.StartsWith("agent:") && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress), cancellation);
+        return OpenTasks(db, kind, adoId).AnyAsync(cancellation);
+    }
+
+    private static IQueryable<LocalItem> OpenTasks(PowerLoomDbContext db, ItemKind kind, int adoId)
+    {
+        return db.LocalItems.Where(item => item.PbiId == adoId && item.Kind == kind && item.Assignee.StartsWith("agent:") && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress));
     }
 }

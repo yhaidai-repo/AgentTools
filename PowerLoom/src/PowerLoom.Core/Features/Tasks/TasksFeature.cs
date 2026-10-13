@@ -1,3 +1,4 @@
+using PowerLoom.Features.Tasks.CreateTask;
 using PowerLoom.Features.Tasks.Producers;
 using PowerLoom.Features.Tasks.Schedules;
 using PowerLoom.Infrastructure.Scheduling;
@@ -10,6 +11,7 @@ public static class TasksFeature
     public static IServiceCollection AddTasksFeature(this IServiceCollection services)
     {
         services.AddScoped<TaskScheduling>();
+        services.AddScoped<TaskCreation>();
         services.AddScoped<ITaskProducer, VaultReviewProducer>();
         services.AddSingleton<ICronSource, TaskScheduleCronSource>();
 

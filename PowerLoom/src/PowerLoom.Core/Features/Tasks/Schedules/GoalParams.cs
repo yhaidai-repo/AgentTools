@@ -32,9 +32,6 @@ public sealed record GoalParams(string Goal, IReadOnlyList<string> Repos)
         if (Goal.Length > GoalMax)
             return $"The goal is too long ({Goal.Length} of {GoalMax} characters).";
 
-        var offered = (await RepoCatalog.EnabledAsync(db, vault, cancellation)).Select(repo => repo.Name).ToHashSet();
-        var unknown = Repos.Where(name => !offered.Contains(name)).ToList();
-
-        return unknown.Count > 0 ? $"Not among the vault's enabled repositories: {string.Join(", ", unknown)}." : null;
+        return await RepoCatalog.UnknownReposProblemAsync(db, vault, Repos, cancellation);
     }
 }

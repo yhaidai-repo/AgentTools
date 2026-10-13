@@ -38,6 +38,12 @@ const GOAL_EXECUTORS: Record<string, TaskExecutor> = {
   "better-research": runBetterResearchGoal,
 };
 
+// Research without a PBI (created on the Tasks page, user decision 2026-10-14) has no PBI context to research, so it
+// runs like a goal: the task's own text on the repos it names.
+function runsAsGoal(task: ItemRow): boolean {
+  return task.kind === "goal" || (task.kind === "research" && task.pbiId === null);
+}
+
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.
 // Returns null when the task was handed back without a run. An unexpected error still ends the task, then fails the job.
 export async function runAgentTask(deps: AgentDeps, job: AgentRunJob): Promise<AgentRunResult | null> {
@@ -67,7 +73,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const executor = task.kind === "goal" ? (GOAL_EXECUTORS[agentId] ?? runGoalTask) : EXECUTORS[agentId];
+  const executor = runsAsGoal(task) ? (GOAL_EXECUTORS[agentId] ?? runGoalTask) : EXECUTORS[agentId];
   const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
@@ -97,7 +103,7 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
 // A goal task has its own prompt (user decision 2026-10-06), unless the agent runs goals its own way; every other task
 // uses the agent's.
 async function taskPrompt(agentId: string, task: ItemRow, values: Record<string, string>): Promise<TaskContext["prompt"]> {
-  if (task.kind === "goal" && !GOAL_EXECUTORS[agentId]) {
+  if (runsAsGoal(task) && !GOAL_EXECUTORS[agentId]) {
     return loadPrompt("goal", values);
   }
 
@@ -105,7 +111,7 @@ async function taskPrompt(agentId: string, task: ItemRow, values: Record<string,
 }
 
 async function refusalReason(context: TaskContext, agentId: string, task: ItemRow): Promise<string | null> {
-  if (task.kind !== "goal" && !EXECUTORS[agentId]) {
+  if (!runsAsGoal(task) && !EXECUTORS[agentId]) {
     return `agent "${agentId}" can't run tasks yet`;
   }
 

@@ -24,6 +24,9 @@ type ItemData = {
   target?: string;
   source?: string;
   captured?: string;
+  createdBy?: string;
+  doneWhen?: string;
+  repos?: string[];
 };
 
 const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode> = {
@@ -35,11 +38,24 @@ const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode
   docs: DocsTaskContent,
 };
 
-// The full content of one item, laid out per kind.
+// The full content of one item, laid out per kind; a task the user created looks the same whatever its kind.
 export function ItemContent({ item }: { item: ItemRow }) {
-  const render = CONTENT[item.kind] ?? ((row: ItemRow) => <Section title="Details" text={row.body} />);
+  const data = (item.data ?? {}) as ItemData;
+  const render = data.createdBy === "user" ? UserTaskContent : (CONTENT[item.kind] ?? ((row: ItemRow) => <Section title="Details" text={row.body} />));
 
-  return <>{render(item, (item.data ?? {}) as ItemData)}</>;
+  return <>{render(item, data)}</>;
+}
+
+// Created on the Tasks page (user decision 2026-10-14): what to do, when it is done, and the note or repos it works on.
+function UserTaskContent(item: ItemRow, data: ItemData) {
+  return (
+    <>
+      <Section title="Description" text={item.body} />
+      <Section title="Acceptance criteria" text={data.doneWhen} />
+      {data.path && <p>Note: <code>{data.path}</code></p>}
+      {data.repos && data.repos.length > 0 && <p>Repositories: {data.repos.join(", ")}</p>}
+    </>
+  );
 }
 
 function QuestionContent(item: ItemRow, data: ItemData) {

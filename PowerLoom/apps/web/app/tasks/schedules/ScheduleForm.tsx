@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AgentChoice } from "@/models/AgentChoice";
 import type { ScheduleFormValues } from "@/models/ScheduleFormValues";
+import { RepoChoices } from "../RepoChoices";
 import { saveScheduleAction } from "./actions";
 
 // A scheduled task (user decision 2026-10-03; any agent since 2026-10-06): which agent, the goal it works on, the vault's
@@ -32,16 +33,7 @@ export function ScheduleForm({ values, agents, repos }: { values: ScheduleFormVa
         Goal: what the agent does on each task
         <textarea name="goal" defaultValue={values.goal} rows={5} required placeholder="e.g. Review the error handling of the payment flow and list the gaps." />
       </label>}
-      {takesGoal && <fieldset className="repo-choices">
-        <legend>Repositories the agent may read (the vault&apos;s enabled ones)</legend>
-        {repos.length === 0 && <span className="muted">None enabled: configure them in Settings → Repositories.</span>}
-        {repos.map((name) => (
-          <label key={name} className="inline">
-            <input type="checkbox" name="repos" value={name} defaultChecked={values.repos.includes(name)} />
-            {name}
-          </label>
-        ))}
-      </fieldset>}
+      {takesGoal && <RepoChoices repos={repos} checked={values.repos} />}
       <label>
         Schedule (cron): how often a task is created (none while the last one still waits)
         <input name="cron" defaultValue={values.cron} required />

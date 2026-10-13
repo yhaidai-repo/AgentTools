@@ -461,6 +461,7 @@ export const taskSchedule = pgTable("task_schedule", {
   cron: text("cron").notNull(),
   enabled: boolean("enabled").notNull().default(true),
   params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the producer's params, e.g. { vaults: [...] }
+  taskType: text("task_type"), // a schedule by task type (user decision 2026-10-14): its agent id is "*", params hold the task
   lastRunAt: ts("last_run_at"),
   lastResult: text("last_result"), // what the last tick did: the task it created, or why none
   createdAt: createdAt(),

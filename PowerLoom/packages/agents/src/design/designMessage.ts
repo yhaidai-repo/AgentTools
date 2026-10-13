@@ -6,6 +6,7 @@ import { reposBlock } from "../repos/reposBlock";
 import type { ResearchContext } from "../research/models/ResearchContext";
 import type { ResearchResultOutput } from "../research/models/ResearchResultOutput";
 import { refinementBlock } from "../research/researchMessage";
+import { userRequestBlock } from "../tasks/userTasks";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -16,11 +17,12 @@ export async function buildDesignMessage(db: PowerLoomDb, vaultRoot: string, con
 
   return [
     `Design the implementation of this PBI (task ${context.task.id}).`,
+    userRequestBlock(context.task),
     pbi,
     latest ? refinementBlock(latest) : "<refinement>none</refinement>",
     await researchBlock(db, context.pbi.adoId),
     reposBlock(repos),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 async function researchBlock(db: PowerLoomDb, adoId: number): Promise<string> {

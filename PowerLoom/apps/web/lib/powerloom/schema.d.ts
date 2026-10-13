@@ -208,6 +208,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_tasks
+         * @description POST_api_tasks
+         */
+        post: operations["POST_api_tasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}/close": {
         parameters: {
             query?: never;
@@ -1348,10 +1368,26 @@ export interface components {
             parentId: null | number;
             actor: null | string;
         };
+        CreateTaskRequest: {
+            vault: string;
+            type: string;
+            title: string;
+            description: string;
+            acceptanceCriteria: string;
+            pbi: null | string;
+            repos: null | string[];
+            docPath: null | string;
+            actor: null | string;
+        };
         CreatedPbi: {
             /** Format: int32 */
             adoId: number;
             vault: string;
+        };
+        CreatedTask: {
+            id: string;
+            /** Format: int32 */
+            pbiId: null | number;
         };
         DeadLetterAction: {
             /** Format: uuid */
@@ -1590,6 +1626,7 @@ export interface components {
             vault: string;
             cron: string;
             enabled: boolean;
+            taskType: null | string;
         };
         SavedSettings: {
             enabled: boolean;
@@ -1618,6 +1655,11 @@ export interface components {
             enabled: boolean;
             goal: null | string;
             repos: null | string[];
+            taskType?: null | string;
+            description?: null | string;
+            acceptanceCriteria?: null | string;
+            pbi?: null | string;
+            docPath?: null | string;
         };
         ScheduleStatus: {
             key: string;
@@ -2044,6 +2086,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedItem"];
+                };
+            };
+        };
+    };
+    POST_api_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedTask"];
                 };
             };
         };

@@ -17,6 +17,8 @@ public partial class TaskSchedule
 
     public string Params { get; set; } = null!;
 
+    public string? TaskType { get; set; }
+
     public DateTime? LastRunAt { get; set; }
 
     public string? LastResult { get; set; }

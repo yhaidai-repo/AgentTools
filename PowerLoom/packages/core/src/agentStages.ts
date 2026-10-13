@@ -15,6 +15,8 @@ export const ANY_AGENT = "agent:*";
 // The task types agents take (an agent's `handles`) and the ones agents may create for each other (`canAssign`).
 export const AGENT_TASK_TYPES = ["refinement", "research", "design", "docs", "review", "vault-review"];
 export const CREATABLE_TASK_TYPES = ["research", "design", "docs"];
+// The task types the user creates on the Tasks page (user decision 2026-10-14); PowerLoom's TaskCreation checks them.
+export const USER_TASK_TYPES = ["refinement", "research", "design", "docs"];
 
 // Who works on an agent task, for display: the pinned agent, or any agent taking its type.
 export function workerLabel(assignee: string, kind: string): string {

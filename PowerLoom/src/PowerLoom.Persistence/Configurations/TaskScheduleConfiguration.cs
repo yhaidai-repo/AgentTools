@@ -28,6 +28,7 @@ public partial class TaskScheduleConfiguration : IEntityTypeConfiguration<TaskSc
             .HasDefaultValueSql("'{}'::jsonb")
             .HasColumnType("jsonb")
             .HasColumnName("params");
+        entity.Property(e => e.TaskType).HasColumnName("task_type");
         entity.Property(e => e.UpdatedAt)
             .HasDefaultValueSql("now()")
             .HasColumnName("updated_at");
