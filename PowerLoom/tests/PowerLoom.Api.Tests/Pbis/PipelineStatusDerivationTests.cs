@@ -21,5 +21,21 @@ public sealed class PipelineStatusDerivationTests
         Assert.Null(PipelineStatusDerivation.Derive([Item(ItemKind.Docs, "agent:tech-writer", ItemStatus.Open)]));
     }
 
-    private static LocalItem Item(ItemKind kind, string assignee, ItemStatus status) => new() { Id = Guid.NewGuid().ToString("N"), Kind = kind, Assignee = assignee, Status = status, Title = "t", Vault = "v", HeldBy = "[]" };
+    [Fact]
+    public void A_refined_pbi_is_ready_for_dev_once_no_blocker_is_left()
+    {
+        var refined = Item(ItemKind.Refinement, "agent:refinement", ItemStatus.Done);
+        var openQuestion = Item(ItemKind.Question, "human", ItemStatus.Open);
+        var optionalQuestion = Item(ItemKind.Question, "human", ItemStatus.Open, """{"blocking":false}""");
+        var optionalResearch = Item(ItemKind.Research, "agent:research", ItemStatus.InProgress, """{"blocking":false}""");
+        var stuckResearch = Item(ItemKind.Research, "agent:research", ItemStatus.Blocked);
+
+        Assert.Equal(PipelineStatus.ReadyForDev, PipelineStatusDerivation.Derive([refined]));
+        Assert.Equal(PipelineStatus.ReadyForDev, PipelineStatusDerivation.Derive([refined, optionalQuestion, optionalResearch]));
+        Assert.Equal(PipelineStatus.WaitingHuman, PipelineStatusDerivation.Derive([refined, openQuestion]));
+        Assert.Null(PipelineStatusDerivation.Derive([refined, stuckResearch]));
+        Assert.Equal(PipelineStatus.ReadyForRefinement, PipelineStatusDerivation.Derive([Item(ItemKind.Refinement, "agent:refinement", ItemStatus.Open)]));
+    }
+
+    private static LocalItem Item(ItemKind kind, string assignee, ItemStatus status, string? data = null) => new() { Id = Guid.NewGuid().ToString("N"), Kind = kind, Assignee = assignee, Status = status, Title = "t", Vault = "v", HeldBy = "[]", Data = data };
 }
