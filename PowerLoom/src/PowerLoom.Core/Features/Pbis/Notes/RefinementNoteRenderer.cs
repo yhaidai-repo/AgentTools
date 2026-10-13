@@ -21,7 +21,7 @@ public static class RefinementNoteRenderer
                 ("pbi", pbi),
                 ("version", note.Version),
                 ("run", note.RunId is null ? null : $"RUN-{note.RunId}"),
-                ("created_by", "agent:refinement"),
+                ("created_by", note.Details is null ? "agent:refinement" : "agent:better-refinement"),
                 ("created", NoteText.IsoDate(note.Created)),
                 ("updated", NoteText.IsoDate(note.Created)),
                 ("tags", new[] { "powerloom", $"pbi-{note.AdoId}", "refinement" }),
@@ -47,7 +47,44 @@ public static class RefinementNoteRenderer
             NoteText.Bullets(note.RelevantDocs.Select(doc => $"`{doc.Path}`: {doc.Why}")),
             "## Docs read",
             NoteText.Bullets(note.DocsRead.Select(path => $"`{path}`")),
+            .. DetailSections(note.Details),
             notesSection,
         ]);
     }
+
+    // Better Refinement's details; an earlier refinement has none, so its note stays as it was.
+    private static IEnumerable<string> DetailSections(RefinementDetails? details)
+    {
+        if (details is null)
+            return [];
+
+        return
+        [
+            "## Status",
+            details.Status,
+            "## Sources",
+            NoteText.Bullets(details.Sources.Select(source => $"{source.What}{Refs(source.Evidence)}")),
+            "## Affected areas",
+            NoteText.Bullets(details.AffectedAreas.Select(area => $"{area.Area}: {area.Change}{Refs(area.Evidence)}")),
+            "## Test data",
+            TestDataText(details.TestData),
+            "## Blockers",
+            NoteText.Bullets(details.Blockers.Select(blocker => $"{blocker.What} → [[{blocker.ResolvedBy}]]{Refs(blocker.Evidence)}")),
+            "## Next",
+            details.NextReason,
+        ];
+    }
+
+    private static string TestDataText(TestDataNote testData)
+    {
+        if (!testData.Applicable)
+            return $"Not needed: {testData.Reason}";
+
+        var given = testData.Given.Select(item => $"Given: {item.What}{Refs(item.Evidence)}");
+        var missing = testData.Missing.Select(item => $"Missing: {item}");
+
+        return NoteText.Bullets(given.Concat(missing));
+    }
+
+    private static string Refs(IReadOnlyList<NoteEvidence> evidence) => evidence.Count == 0 ? "" : $" ({string.Join("; ", evidence.Select(item => $"`{item.Ref}`"))})";
 }

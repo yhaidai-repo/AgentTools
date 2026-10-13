@@ -18,6 +18,8 @@ import { ChildItems } from "./ChildItems";
 import { ContextSize } from "./ContextSize";
 import { isOpen } from "@/lib/items";
 import { ItemList } from "./ItemList";
+import { RefinementDetailsLine } from "./RefinementDetailsLine";
+import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
 import { DeletePbiButton } from "./DeletePbiButton";
 import { PreparePbiButton } from "./PreparePbiButton";
@@ -258,7 +260,12 @@ function Refinement({ detail }: { detail: PbiDetail }) {
     return <p className="muted">Not refined yet.</p>;
   }
 
-  return <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>;
+  return (
+    <>
+      <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>
+      <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
+    </>
+  );
 }
 
 function LinkedDocuments({ detail }: { detail: PbiDetail }) {
