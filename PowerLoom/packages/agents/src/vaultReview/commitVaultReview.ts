@@ -1,4 +1,4 @@
-import { nextGlobalItemId } from "@powerloom/core";
+import { ANY_AGENT, nextGlobalItemId } from "@powerloom/core";
 import { agentRun, localItem, vaultReviewDecision, type PowerLoomDb } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import { insertFindings } from "../findings";
@@ -129,7 +129,7 @@ async function createActualizeTask(db: PowerLoomDb, task: ItemRow, runId: number
     parentId: task.id,
     title: `Actualize: ${decision.vault}/${decision.path}`.slice(0, 120),
     status: "open",
-    assignee: `agent:${TECH_WRITER}`,
+    assignee: ANY_AGENT,
     body: [decision.reasons, ...decision.suspectFacts.map((fact) => `- ${fact}`)].join("\n"),
     data,
     createdByRun: runId,

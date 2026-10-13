@@ -1,4 +1,4 @@
-import { nextItemId, setItemStatus, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
+import { ANY_AGENT, nextItemId, setItemStatus, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
 import { commitRelevantPages } from "../relevantPages";
 import { agentRun, localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, ne } from "drizzle-orm";
@@ -46,7 +46,7 @@ async function insertFollowUps(db: PowerLoomDb, context: ResearchContext, runId:
   const ids: string[] = [];
 
   for (const task of tasks) {
-    ids.push(await insertItem(db, "AT", "research", context, runId, task.title, "open", task.question, { goal: task.goal, depth }, "agent:research"));
+    ids.push(await insertItem(db, "AT", "research", context, runId, task.title, "open", task.question, { goal: task.goal, depth }, ANY_AGENT));
   }
 
   return ids;

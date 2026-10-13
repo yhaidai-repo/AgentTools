@@ -32,7 +32,7 @@ public static class ReviewQueueing
         var id = await ItemIds.NextScopedAsync(db, $"CR-{prId}-", cancellation);
         var title = $"Review PR {prId}: {pr.Title}";
 
-        db.LocalItems.Add(new LocalItem { Id = id, Kind = ItemKind.Review, Title = title[..Math.Min(title.Length, TitleMax)], Status = ItemStatus.Open, Assignee = AgentStages.AssigneeOf(Agent), Data = JsonSerializer.Serialize(new { prId, commit = pr.SourceCommit }), Vault = pr.Vault, HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = id, Kind = ItemKind.Review, Title = title[..Math.Min(title.Length, TitleMax)], Status = ItemStatus.Open, Assignee = AgentStages.AnyAgent, Data = JsonSerializer.Serialize(new { prId, commit = pr.SourceCommit }), Vault = pr.Vault, HeldBy = "[]" });
 
         await db.SaveChangesAsync(cancellation);
         await db.CodeReviews.Where(review => review.PrId == prId).ExecuteUpdateAsync(set => set.SetProperty(review => review.Status, ReviewStatus.Active).SetProperty(review => review.ClosedReason, (string?)null).SetProperty(review => review.UpdatedAt, DateTime.UtcNow), cancellation);

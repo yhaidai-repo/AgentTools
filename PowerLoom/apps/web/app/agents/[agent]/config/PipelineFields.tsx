@@ -1,4 +1,4 @@
-import type { BlockerKind } from "@powerloom/core";
+import { AGENT_TASK_TYPES, CREATABLE_TASK_TYPES, type BlockerKind } from "@powerloom/core";
 import type { AgentDefinition } from "@agenttools/config";
 
 // Where the agent sits in the pipeline: the agent the worker calls after a successful task, and what it waits for.
@@ -19,11 +19,18 @@ export function PipelineFields({ agent, agentIds, blockerKinds }: { agent: Agent
         </select>
       </label>
       {unknownNext && <span className="result-error">&quot;{unknownNext}&quot; isn&apos;t configured: the tasks this creates wait until such an agent exists.</span>}
-      <span className="muted">Can create tasks for (agents with the create_task tool choose who works next; the user always can get one):</span>
-      {others.map((id) => (
-        <label key={id} className="inline choice">
-          <input type="checkbox" name="canAssign" value={id} defaultChecked={agent.canAssign.includes(id)} />
-          <span>{id}</span>
+      <span className="muted">Takes tasks of type (besides the tasks pinned to it; with two agents of a type on, whichever runs first takes a task):</span>
+      {AGENT_TASK_TYPES.map((type) => (
+        <label key={`handles-${type}`} className="inline choice">
+          <input type="checkbox" name="handles" value={type} defaultChecked={agent.handles.includes(type)} />
+          <span>{type}</span>
+        </label>
+      ))}
+      <span className="muted">Can create tasks of type (agents with the create_task tool choose what comes next; the user always can get one):</span>
+      {CREATABLE_TASK_TYPES.map((type) => (
+        <label key={`assign-${type}`} className="inline choice">
+          <input type="checkbox" name="canAssign" value={type} defaultChecked={agent.canAssign.includes(type)} />
+          <span>{type}</span>
         </label>
       ))}
       <span className="muted">Wait for (the worker doesn&apos;t start this agent on a PBI until each ticked check passes):</span>

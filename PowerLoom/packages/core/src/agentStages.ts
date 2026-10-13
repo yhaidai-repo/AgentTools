@@ -18,6 +18,18 @@ export const BLOCKER_KINDS: BlockerKind[] = [
   { key: "otherAgentTasks", label: "Other agents' tasks", description: "No other agent has an open task on the PBI (e.g. design waits until all research is done)." },
 ];
 
+// A task any agent that handles its type may take (user decision 2026-10-13); `agent:<id>` pins one agent.
+export const ANY_AGENT = "agent:*";
+
+// The task types agents take (an agent's `handles`), and the ones agents may create for each other (`canAssign`).
+export const AGENT_TASK_TYPES = ["refinement", "research", "design", "docs", "review", "vault-review"];
+export const CREATABLE_TASK_TYPES = ["research", "design", "docs"];
+
+// Who works on an agent task, for display: the pinned agent, or any agent of the task's type.
+export function workerLabel(assignee: string, kind: string): string {
+  return assignee === ANY_AGENT ? `any ${kind} agent` : (agentIdOf(assignee) ?? assignee);
+}
+
 export function agentIdOf(assignee: string): string | null {
   return assignee.startsWith("agent:") ? assignee.slice("agent:".length) : null;
 }

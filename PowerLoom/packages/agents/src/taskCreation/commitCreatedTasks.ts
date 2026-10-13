@@ -1,4 +1,4 @@
-import { nextGlobalItemId, nextItemId, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
+import { ANY_AGENT, nextGlobalItemId, nextItemId, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, count, eq, isNotNull, like } from "drizzle-orm";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
@@ -54,7 +54,7 @@ async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task
   const id = await nextItemId(db, target.prefix as "AT" | "DT", context.pbiId);
   const data = { ...decisionData(task), goal: task.doneWhen, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort, depth: context.depth + 1 };
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: `agent:${target.agentId}`, body: task.goal, data });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data });
 
   return id;
 }
@@ -75,7 +75,7 @@ async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task:
   };
 
   await db.insert(localItem).values({
-    id, kind: target.kind, pbiId: null, vault: context.docsVault, parentId: context.parentTaskId, title: task.title, status: "open", assignee: `agent:${target.agentId}`, body: task.goal, data: { ...data, ...decisionData(task) }, createdByRun: context.runId,
+    id, kind: target.kind, pbiId: null, vault: context.docsVault, parentId: context.parentTaskId, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data: { ...data, ...decisionData(task) }, createdByRun: context.runId,
   });
 
   return id;

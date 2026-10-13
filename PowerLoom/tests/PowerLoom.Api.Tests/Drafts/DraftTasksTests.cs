@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Features.Drafts;
 using PowerLoom.Infrastructure.Scheduling;
@@ -37,7 +38,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         var chat = tasks.Single(task => task.Body == "chat-note");
 
         Assert.Equal(2, tasks.Count);
-        Assert.Equal((ItemKind.Docs, "agent:tech-writer", ItemStatus.Open, adoId, "Merge draft: Topic"), (topic.Kind, topic.Assignee, topic.Status, topic.PbiId, topic.Title));
+        Assert.Equal((ItemKind.Docs, AgentStages.AnyAgent, ItemStatus.Open, adoId, "Merge draft: Topic"), (topic.Kind, topic.Assignee, topic.Status, topic.PbiId, topic.Title));
         Assert.Equal(("Merge draft: Chat note", (int?)null), (chat.Title, chat.PbiId));
         Assert.Contains("\"key\": \"merge:pvs-topic:2026-10-10\"", topic.Data);
         Assert.Contains("\"path\": \"draft/pvs-topic.md\"", topic.Data);

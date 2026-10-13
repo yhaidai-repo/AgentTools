@@ -1,4 +1,4 @@
-import { nextItemId, vaultOfPbiSql } from "@powerloom/core";
+import { ANY_AGENT, nextItemId, vaultOfPbiSql } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
@@ -40,7 +40,7 @@ export async function insertWebResearchTasks(db: PowerLoomDb, adoId: number, run
     const id = await nextItemId(db, "AT", adoId);
 
     await db.insert(localItem).values({
-      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), parentId, title: `Web research: ${request.topic}`.slice(0, 120), status: "open", assignee: "agent:research",
+      id, kind: "research", pbiId: adoId, vault: vaultOfPbiSql(adoId), parentId, title: `Web research: ${request.topic}`.slice(0, 120), status: "open", assignee: ANY_AGENT,
       body: request.topic, data: { needsWeb: true, why: request.why, sources: request.sources, depth }, createdByRun: runId,
     });
     ids.push(id);

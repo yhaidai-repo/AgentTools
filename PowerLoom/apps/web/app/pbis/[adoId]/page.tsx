@@ -1,4 +1,4 @@
-import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl } from "@powerloom/core";
+import { attachmentRef, enabledRepos, isFinishable, linkedDocumentKind, pbiLinkedUrls, readAdoSettings, workItemUrl, workerLabel } from "@powerloom/core";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { repo } from "@powerloom/db";
 import { eq } from "drizzle-orm";
@@ -199,7 +199,7 @@ function Blockers({ detail }: { detail: PbiDetail }) {
     <div className="card">
       <FindingsToReview findings={findings} />
       {forYou.length > 0 && <p className="result-error">Needs your action: {forYou.length} open {forYou.length === 1 ? "item" : "items"}. Agents don't work on this PBI until you close them.</p>}
-      {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${item.assignee.replace("agent:", "")}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
+      {forAgents.length > 0 && <p className="muted">Agent tasks: {forAgents.map((item) => `${item.id} (${workerLabel(item.assignee, item.kind)}, ${item.status}${item.heldBy.length > 0 ? `, held: ${item.heldBy.join("; ")}` : ""})`).join(" · ")}</p>}
       {pendingDrafts.length > 0 && <p className="muted">Vault drafts not merged yet: {pendingDrafts.map((draft) => draft.name).join(", ")}. Until they are verified and moved out of draft/, only the agent that captured them may work.</p>}
     </div>
   );
