@@ -1,22 +1,26 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
-import { AGENT_DEFAULTS, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
-import { readAdoSettings, readReadSqlSettings, vaultBacklogRoot, type AgentRunJob } from "@powerloom/core";
+import { AGENT_DEFAULTS, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readReadSqlSettings, readValue, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
-import { createDb, localItem } from "@powerloom/db";
-import { checkAzureIdentity } from "@powerloom/azure";
+import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
+import { AzureUserLogin } from "@powerloom/azure";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
 import { VaultWriter } from "@powerloom/vault";
 import { PostgresAgentConfigStore } from "@agenttools/config";
 import { ClaudeAgentSdkRuntime, RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import { PostgresUsageStore, PriceBook } from "@agenttools/usage";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, notInArray } from "drizzle-orm";
 import { adoAuthHeader, docsExclude, requireEnv, skillFolders } from "./env";
 import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
 import { RunnerServer } from "./runnerServer";
 
 const TRACE_RETENTION_DAYS = 30;
+// The data access log outlives the traces (user decision 2026-10-13: every outside read traceable); counts only, no data.
+const DATA_ACCESS_RETENTION_DAYS = Number(process.env.DATA_ACCESS_RETENTION_DAYS ?? "365");
+// Every other tool call (repos, docs, web, PowerLoom's own tools) is the bulk of the log and matters for less long.
+const TOOL_CALL_RETENTION_DAYS = Number(process.env.TOOL_CALL_RETENTION_DAYS ?? "90");
 const REPO_REFRESH_MINUTES = 30;
 const INTERRUPTED: CompletedRun = { runId: null, outcome: "aborted", error: "the agent-runner stopped during the run" };
 
@@ -51,6 +55,16 @@ if (!captureRules) {
 
 const sqlReader = new SqlReader();
 
+// The user's own sign-in for App Insights (user decision 2026-10-13): the MSAL cache and the account live in the config
+// table per vault, the only settings the runner writes. The cache text is wrapped in an object: the Postgres driver
+// sends a bare string into the jsonb column as JSON, and MSAL's JSON text would come back parsed.
+const azureLogin = new AzureUserLogin({
+  read: async (vault) => (await readValue<{ msal: string }>(db, vaultSettingKey(vault, AZURE_USER_TOKEN_CACHE_KEY)))?.msal ?? null,
+  write: (vault, cache) => saveValue(db, vaultSettingKey(vault, AZURE_USER_TOKEN_CACHE_KEY), { msal: cache }),
+  clear: (vault) => saveValue(db, vaultSettingKey(vault, AZURE_USER_TOKEN_CACHE_KEY), null),
+  saveAccount: (vault, account) => saveValue(db, vaultSettingKey(vault, AZURE_USER_KEY), account),
+});
+
 // What every run shares; the vault-bound parts come from depsFor.
 const shared = {
   db,
@@ -63,12 +77,13 @@ const shared = {
   repoCacheRoot,
   captureRules,
   vaults: { root: vaultsRoot, writer: (vault: string) => docsVaultOf(new VaultWriter(`${vaultsRoot}/${vault}`)) },
+  accessLog: new DataAccessLog(db),
   confluence: ConfluenceClient.fromEnv(),
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), checkAzureIdentity);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), azureLogin);
 
 server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
@@ -170,9 +185,13 @@ function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
 }
 
 async function purgeOldTraces(): Promise<void> {
-  const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  await usageStore.purgeTraceBefore(daysAgo(TRACE_RETENTION_DAYS));
+  await db.delete(dataAccess).where(lt(dataAccess.startedAt, daysAgo(DATA_ACCESS_RETENTION_DAYS)));
+  await db.delete(dataAccess).where(and(notInArray(dataAccess.kind, OUTSIDE_KINDS), lt(dataAccess.startedAt, daysAgo(TOOL_CALL_RETENTION_DAYS))));
+}
 
-  await usageStore.purgeTraceBefore(cutoff);
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
 async function stop(): Promise<void> {

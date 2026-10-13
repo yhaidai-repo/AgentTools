@@ -320,6 +320,103 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("config", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.DataAccess", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("agent_id");
+
+                    b.Property<int?>("Bytes")
+                        .HasColumnType("integer")
+                        .HasColumnName("bytes");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<int?>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Request")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("request");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("resource");
+
+                    b.Property<int?>("Rows")
+                        .HasColumnType("integer")
+                        .HasColumnName("rows");
+
+                    b.Property<long>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("target");
+
+                    b.Property<string>("TaskId")
+                        .HasColumnType("text")
+                        .HasColumnName("task_id");
+
+                    b.Property<string>("Tool")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tool");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("truncated");
+
+                    b.Property<string>("Vault")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vault");
+
+                    b.HasKey("Id")
+                        .HasName("data_access_pkey");
+
+                    b.HasIndex(new[] { "Resource", "StartedAt" }, "data_access_resource_started_idx");
+
+                    b.HasIndex(new[] { "RunId" }, "data_access_run_idx");
+
+                    b.HasIndex(new[] { "Vault", "StartedAt" }, "data_access_vault_started_idx");
+
+                    b.ToTable("data_access", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.DeletedPbi", b =>
                 {
                     b.Property<int>("AdoId")
@@ -1748,6 +1845,17 @@ namespace PowerLoom.Persistence.Migrations
                         .HasConstraintName("code_review_pr_id_pull_request_id_fk");
 
                     b.Navigation("Pr");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.DataAccess", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.Vault", "VaultNavigation")
+                        .WithMany()
+                        .HasForeignKey("Vault")
+                        .IsRequired()
+                        .HasConstraintName("data_access_vault_vault_name_fk");
+
+                    b.Navigation("VaultNavigation");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.Design", b =>

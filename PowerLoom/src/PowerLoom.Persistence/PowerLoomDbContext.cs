@@ -58,6 +58,8 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<VaultNoteWrite> VaultNoteWrites { get; set; }
 
+    public virtual DbSet<DataAccess> DataAccesses { get; set; }
+
     public virtual DbSet<VaultReviewDecision> VaultReviewDecisions { get; set; }
 
     public virtual DbSet<WorkItem> WorkItems { get; set; }

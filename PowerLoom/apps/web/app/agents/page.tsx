@@ -18,15 +18,33 @@ import { PauseControl, RunNowButton } from "./AgentControls";
 import { DeadLetterControls } from "./DeadLetterControls";
 import { RangeFilter } from "./RangeFilter";
 import { SubscriptionPanel } from "./SubscriptionPanel";
+import { AGENTS_TABS, AgentsTabs, DEFAULT_AGENTS_TAB } from "./AgentsTabs";
+import { ToolsTab } from "./ToolsTab";
 
 export const dynamic = "force-dynamic";
 
-export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const range = (await rememberedParams("/agents", await searchParams)).range ?? DEFAULT_RANGE;
+type SearchParams = Promise<{ tab?: string; range?: string; agent?: string; calls?: string }>;
+
+// Two tabs (user decision 2026-10-13): Overview (the agents, their runs and costs) and Tools (what they read outside).
+export default async function AgentsPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await rememberedParams("/agents", await searchParams);
+  const tab = AGENTS_TABS.find((choice) => choice.key === params.tab)?.key ?? DEFAULT_AGENTS_TAB;
+  const range = params.range ?? DEFAULT_RANGE;
   const vault = await currentVault();
 
   if (!vault) {
     return <NoVault title="Agents" />;
+  }
+
+  if (tab === "tools") {
+    return (
+      <>
+        <h1>Agents</h1>
+        <RememberFilters />
+        <AgentsTabs active={tab} />
+        <ToolsTab vault={vault} params={params} />
+      </>
+    );
   }
 
   const config = getAgentConfig();
@@ -41,11 +59,12 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
     <>
       <h1>Agents</h1>
       <RememberFilters />
+      <AgentsTabs active={tab} />
       <p className="muted">One set of agents for every vault; the runs, tokens and costs below are <code>{vault}</code>&apos;s.</p>
       <SubscriptionPanel statuses={await loadSubscriptionStatus()} />
       <PauseState global={global} />
       <PauseControl isPaused={isPaused(global)} />
-      <RangeFilter key={range} range={range} ranges={rangeOptions()} />
+      <RangeFilter key={range} range={range} ranges={rangeOptions()} keep={{ tab }} />
       <div className="table-wrap">
         <table>
           <thead>

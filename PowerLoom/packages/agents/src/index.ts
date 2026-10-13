@@ -9,6 +9,7 @@ export { READ_AZURE_LOGS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGR
 export { loadCaptureRules } from "./vaultCapture";
 export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";
 export { DocUsageLog } from "./DocUsageLog";
+export { DataAccessLog } from "./DataAccessLog";
 export type { AgentDeps } from "./models/AgentDeps";
 export type { AgentRunInfo } from "./models/AgentRunInfo";
 export type { AgentRunInput } from "./models/AgentRunInput";

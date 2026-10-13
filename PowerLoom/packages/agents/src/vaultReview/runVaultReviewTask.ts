@@ -14,7 +14,7 @@ import type { TaskContext } from "../models/TaskContext";
 import type { VaultsAccess } from "../models/VaultsAccess";
 import { reposByName } from "../research/resolveRepos";
 import { createSqlTools } from "../sqlTools";
-import { numberOption } from "../stage";
+import { numberOption, outsideAccessContext } from "../stage";
 import { commitVaultReview } from "./commitVaultReview";
 import type { ReviewLimits } from "./models/ReviewLimits";
 import type { VaultReviewDraft } from "./models/VaultReviewDraft";
@@ -98,6 +98,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("first-message", { chars: firstMessage.length, vaultRulesChars: rules.length });
 
+  const access = outsideAccessContext(agent.id, session.runId, task);
+
   return {
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, rules, skills.promptSection].filter(Boolean).join("\n\n"),
@@ -109,7 +111,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createFindingTools(deps, run.draft.findings),
       ...createRepoTools({ root: deps.repoCacheRoot, repos: repos.map((repo) => repo.name) }),
       ...skills.tools,
-      ...createSqlTools(deps, agent),
+      ...createSqlTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

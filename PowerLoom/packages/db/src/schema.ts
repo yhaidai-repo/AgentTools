@@ -12,6 +12,8 @@ import type { PbiConfluencePage } from "./models/PbiConfluencePage";
 import type { PbiImportResult } from "./models/PbiImportResult";
 import type { PbiSkill } from "./models/PbiSkill";
 import type { VaultFeatures } from "./models/VaultFeatures";
+import type { DataAccessKind } from "./models/DataAccessKind";
+import type { DataAccessOutcome } from "./models/DataAccessOutcome";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -402,6 +404,34 @@ export const vaultNoteWrite = pgTable("vault_note_write", {
   action: noteWriteAction("action").notNull(),
   writtenAt: ts("written_at").notNull().defaultNow(),
 }, (t) => [index("vault_note_write_path_idx").on(t.path)]);
+
+// Data access log (user decision 2026-10-13): one row per outside read an agent made through a tool (Read SQL, Read
+// Azure, Confluence): who, where, the request, the outcome and counts; never the returned data. Written by the
+// agent-runner; purged after DATA_ACCESS_RETENTION_DAYS.
+export const dataAccess = pgTable("data_access", {
+  id: serial("id").primaryKey(),
+  vault: vaultName(),
+  agentId: text("agent_id").notNull(),
+  runId: bigint("run_id", { mode: "number" }).notNull(), // no foreign key, like vault_note_write
+  taskId: text("task_id"),
+  pbiId: integer("pbi_id"),
+  tool: text("tool").notNull(),
+  kind: text("kind").$type<DataAccessKind>().notNull(),
+  resource: text("resource").notNull(), // the name Settings shows
+  target: text("target").notNull(), // server/database, account, component, site
+  request: text("request").notNull(), // the query, the filter, the queue, the link
+  outcome: text("outcome").$type<DataAccessOutcome>().notNull(),
+  reason: text("reason"),
+  rows: integer("rows"),
+  bytes: integer("bytes"),
+  truncated: boolean("truncated").notNull().default(false),
+  startedAt: ts("started_at").notNull(),
+  durationMs: integer("duration_ms").notNull(),
+}, (t) => [
+  index("data_access_vault_started_idx").on(t.vault, t.startedAt),
+  index("data_access_resource_started_idx").on(t.resource, t.startedAt),
+  index("data_access_run_idx").on(t.runId),
+]);
 
 // Scheduled tasks (user decision 2026-10-03): each row is a pg-boss schedule (key `schedule-<id>`) on the one
 // `task-schedule` queue; a tick creates the agent's task through its task producer, only when one is needed.

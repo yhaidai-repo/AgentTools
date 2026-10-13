@@ -22,7 +22,8 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
 
             var applied = await db.Database.GetAppliedMigrationsAsync();
 
-            Assert.Equal(2, applied.Count());
+            // The baseline is marked, every later migration (data_access, …) is run.
+            Assert.Equal(db.Database.GetMigrations().Count(), applied.Count());
             Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         }
         finally
@@ -54,9 +55,16 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
         }
     }
 
-    // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead.
+    // Tables the migrations after the baseline add: drizzle never built them, so they go before the pretence.
+    private static readonly string[] PostBaselineDrops = ["DROP TABLE IF EXISTS data_access"];
+
+    // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead; the
+    // schema is brought back to the baseline's state, as drizzle left it.
     private static async Task PretendDrizzleBuiltTheSchemaAsync(PowerLoomDbContext db, int drizzleMigrations)
     {
+        foreach (var drop in PostBaselineDrops)
+            await db.Database.ExecuteSqlRawAsync(drop);
+
         await db.Database.ExecuteSqlRawAsync("DROP TABLE \"__EFMigrationsHistory\"");
         await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA drizzle");
         await db.Database.ExecuteSqlRawAsync("CREATE TABLE drizzle.__drizzle_migrations (id serial PRIMARY KEY, hash text NOT NULL, created_at bigint)");

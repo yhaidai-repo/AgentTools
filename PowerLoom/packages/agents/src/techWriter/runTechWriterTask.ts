@@ -10,7 +10,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { resolveRepos, reposByName } from "../research/resolveRepos";
-import { createAgentDocTools, numberOption } from "../stage";
+import { createAgentDocTools, numberOption, outsideAccessContext } from "../stage";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
 import { requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
@@ -112,6 +112,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("first-message", { chars: firstMessage.length, vaultRulesChars: vaultRules.length });
 
+  const access = outsideAccessContext(context.agent.id, session.runId, task);
+
   return {
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, `## Vault rules (the ${vault.name} vault's AGENTS.md)\n\n${vaultRules}`, skills.promptSection].filter(Boolean).join("\n\n"),
@@ -121,8 +123,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createRepoTools({ root: deps.repoCacheRoot, repos: run.repos.map((repo) => repo.name) }),
       ...skills.tools,
       ...createTechWriterTools(deps, run.draft),
-      ...createConfluenceTools(deps, agent),
-      ...createSqlTools(deps, agent),
+      ...createConfluenceTools(deps, agent, access),
+      ...createSqlTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

@@ -24,3 +24,5 @@ export function createDb(url = process.env.DATABASE_URL) {
 
   return { db, pool };
 }
+export { OUTSIDE_KINDS, type DataAccessKind } from "./models/DataAccessKind";
+export type { DataAccessOutcome } from "./models/DataAccessOutcome";

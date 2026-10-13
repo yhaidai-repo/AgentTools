@@ -7,6 +7,7 @@ import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
 import { RunObserver } from "./RunObserver";
+import { ToolCallLogger } from "./ToolCallLogger";
 
 const MISSING_OUTPUT = "Run ended without its required output";
 const LIVE_TRACE_BATCH = 1;
@@ -80,7 +81,8 @@ export class AgentRunSession {
 
   private async runAgent(info: AgentRunInfo, input: AgentRunInput): Promise<AgentRunResult> {
     const guard = new BudgetGuard({ perRunUsd: input.perRunBudgetUsd, daily: [] }, this.deps.usageStore);
-    const observer = new RunObserver(this.tracker, guard, (event) => this.record(event));
+    const tools = new ToolCallLogger(this.deps.accessLog, { vault: this.deps.docsVaultName, agentId: String(info.labels.agent ?? info.stage), runId: this.runId, taskId: info.itemId ?? null, pbiId: info.pbiId });
+    const observer = new RunObserver(this.tracker, guard, (event) => this.record(event), tools);
 
     this.observer = observer;
     await this.deps.db.update(agentRun).set({ input: input.firstMessage }).where(eq(agentRun.id, this.runId));
@@ -94,6 +96,7 @@ export class AgentRunSession {
       await observer.observe(event);
     }
 
+    await tools.flush();
     await this.sampleSubscription(runtime);
 
     return this.agentResult(observer, input);

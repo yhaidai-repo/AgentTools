@@ -11,7 +11,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { createSqlTools } from "../sqlTools";
-import { createAgentDocTools, docsReadInRun, numberOption, skillsTrace } from "../stage";
+import { createAgentDocTools, docsReadInRun, numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitResearch } from "./commitResearch";
 import { loadResearchContext } from "./loadResearchContext";
@@ -68,6 +68,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("first-message", { chars: firstMessage.length });
 
+  const access = outsideAccessContext(context.agent.id, session.runId, task);
+
   return {
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
@@ -79,8 +81,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createResearchTools(run.draft, depth, numberOption(agent, "maxDepth", 2), guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(run.draft.webResearch, guard)]),
-      ...createConfluenceTools(deps, agent),
-      ...createSqlTools(deps, agent),
+      ...createConfluenceTools(deps, agent, access),
+      ...createSqlTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

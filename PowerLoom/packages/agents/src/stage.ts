@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { StageSkills } from "./models/StageSkills";
+import type { OutsideAccessContext } from "./models/OutsideAccessContext";
 
 const RATE_LIMIT_PAUSE_MS = 60 * 60 * 1000;
 
@@ -68,6 +69,11 @@ export async function docsReadInRun(deps: AgentDeps, runId: number): Promise<str
     .filter(Boolean);
 
   return [...new Set(paths)];
+}
+
+// Who is reading, for the data access log: the run, its agent and task, the task's PBI and vault.
+export function outsideAccessContext(agentId: string, runId: number, task: { id: string; pbiId: number | null; vault: string }): OutsideAccessContext {
+  return { vault: task.vault, agentId, runId, taskId: task.id, pbiId: task.pbiId };
 }
 
 // Confluence pages the agent read successfully in this run (read_confluence_page calls whose result wasn't an error).

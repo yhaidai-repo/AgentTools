@@ -1,9 +1,11 @@
 import type { AgentEvent, ResultEvent } from "@agenttools/runtime";
 import type { BudgetGuard, UsageTracker } from "@agenttools/usage";
+import type { ToolCallLogger } from "./ToolCallLogger";
 
 type Record = (entry: { type: string; [field: string]: unknown }) => Promise<void>;
 
-// Watches one run's agent events: traces them, adds usage, and aborts when the per-run budget is used up.
+// Watches one run's agent events: traces them, logs every tool call, adds usage, and aborts when the per-run budget is
+// used up.
 export class RunObserver {
   readonly abort = new AbortController();
   private result: ResultEvent | null = null;
@@ -14,6 +16,7 @@ export class RunObserver {
     private readonly tracker: UsageTracker,
     private readonly guard: BudgetGuard,
     private readonly record: Record,
+    private readonly tools: ToolCallLogger,
   ) {}
 
   get resultEvent(): ResultEvent | null {
@@ -32,6 +35,7 @@ export class RunObserver {
     const { runId, seq, at, ...body } = event;
 
     await this.record(body);
+    await this.tools.observe(event);
 
     switch (event.type) {
       case "usage":

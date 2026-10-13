@@ -12,7 +12,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { createSqlTools } from "../sqlTools";
-import { confluencePagesReadInRun, createAgentDocTools, numberOption, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, createAgentDocTools, numberOption, outsideAccessContext, skillsTrace } from "../stage";
 import { createVaultCaptureTool } from "../vaultCapture";
 import { commitDesign } from "./commitDesign";
 import { buildDesignMessage } from "./designMessage";
@@ -68,6 +68,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("first-message", { chars: firstMessage.length });
 
+  const access = outsideAccessContext(context.agent.id, session.runId, task);
+
   return {
     capabilities: agent.capabilities,
     systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
@@ -78,8 +80,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...skills.tools,
       createAttachmentTool(deps.db, requirePbiId(task)),
       ...createDesignTools(run.draft, guard),
-      ...createConfluenceTools(deps, agent),
-      ...createSqlTools(deps, agent),
+      ...createConfluenceTools(deps, agent, access),
+      ...createSqlTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

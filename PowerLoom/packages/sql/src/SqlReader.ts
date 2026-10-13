@@ -37,7 +37,7 @@ export class SqlReader {
     const problem = readOnlyProblem(text);
 
     if (problem) {
-      return { ok: false, message: problem };
+      return { ok: false, message: problem, refused: true };
     }
 
     return this.run(connectionString, text, {});
@@ -72,11 +72,16 @@ export class SqlReader {
 
       return await inRolledBackTransaction(pool, text, params);
     } catch (error) {
-      return { ok: false, message: (error as Error).message };
+      return { ok: false, message: (error as Error).message, denied: isLoginFailure(error) };
     } finally {
       await pool?.close();
     }
   }
+}
+
+// tedious names a refused login ELOGIN; everything else (a timeout, a bad query) is an ordinary failure.
+function isLoginFailure(error: unknown): boolean {
+  return (error as { code?: string }).code === "ELOGIN";
 }
 
 // The user's string with the reader's caps on top: read-only intent (a replica where the server has one), timeouts,

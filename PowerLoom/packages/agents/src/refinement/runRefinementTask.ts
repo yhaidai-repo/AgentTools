@@ -15,7 +15,7 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import { withPagesRead } from "../relevantPages";
 import { createSqlTools } from "../sqlTools";
-import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAccessContext, skillsTrace } from "../stage";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import { buildPbiMessage } from "./pbiMessage";
@@ -41,7 +41,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
   };
   const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [], captures: [], pages: [] };
   const session = await AgentRunSession.begin(deps, info);
-  const ran = await session.execute(info, () => prepare(context, session, row, draft));
+  const ran = await session.execute(info, () => prepare(context, session, task, row, draft));
   const commit = async () => {
     const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
 
@@ -51,7 +51,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
   return session.finish(ran, commit);
 }
 
-async function prepare(context: TaskContext, session: AgentRunSession, row: WorkItemRow, draft: RefinementDraft): Promise<AgentRunInput> {
+async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, row: WorkItemRow, draft: RefinementDraft): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
 
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
@@ -61,6 +61,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
 
   await session.phase("first-message", { chars: pbiMessage.length });
+
+  const access = outsideAccessContext(context.agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
@@ -73,8 +75,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, row: Work
       createAttachmentTool(deps.db, row.adoId),
       ...createRefinementTools(deps.db, deps.docsVaultName, draft, pbiMessage, recommendable, guard),
       ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
-      ...createConfluenceTools(deps, agent),
-      ...createSqlTools(deps, agent),
+      ...createConfluenceTools(deps, agent, access),
+      ...createSqlTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
