@@ -1,7 +1,7 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
-import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
-import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readLocalStackSettings, readReadAzureSettings, readReadSqlSettings, readValue, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
+import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readLocalStackSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
@@ -44,6 +44,8 @@ await config.ensureDefaults(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
 for (const taskId of await recoverInterruptedRuns(db)) {
   await report(taskId, INTERRUPTED);
 }
+
+await stopOrphanedStacks();
 
 const repoCacheRoot = requireEnv("REPO_CACHE_ROOT");
 
@@ -98,16 +100,53 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
   await purgeOldTraces();
 
   let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
+  let localStack: AgentDeps["localStack"] = null;
 
   try {
-    const result = await runAgentTask(await depsFor(await vaultOfJob(job)), job);
+    const deps = await depsFor(await vaultOfJob(job));
+
+    localStack = deps.localStack;
+
+    const result = await runAgentTask(deps, job);
 
     completed = result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : completed;
   } catch (error) {
     console.error(`${job.agentId} ${job.taskId} failed:`, error);
     completed = { runId: null, outcome: "failed", error: String(error) };
   } finally {
+    await stopStackOfRun(localStack, completed.runId);
     await report(job.taskId, completed);
+  }
+}
+
+// Before the callback, so the next task never finds this run's stack still running; the bridge's own clock stops it
+// when this is skipped (a crash) and the next start sweeps it.
+async function stopStackOfRun(access: AgentDeps["localStack"], runId: number | null): Promise<void> {
+  if (!access || runId === null) {
+    return;
+  }
+
+  logStackNote(await stopRunStack(access.client, runId));
+}
+
+// At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every bridge a
+// vault points at.
+async function stopOrphanedStacks(): Promise<void> {
+  for (const client of await stackBridgesOfVaults()) {
+    logStackNote(await stopOrphanedStack(client));
+  }
+}
+
+async function stackBridgesOfVaults(): Promise<StackBridgeClient[]> {
+  const settings = await Promise.all((await readVaults(db)).map((vault) => readLocalStackSettings(db, vault.name)));
+  const bridges = new Map(settings.filter((stack) => stack.enabled && stack.token).map((stack) => [`${stack.url} ${stack.token}`, stack]));
+
+  return [...bridges.values()].map((stack) => new StackBridgeClient(stack.url, stack.token));
+}
+
+function logStackNote(note: string | null): void {
+  if (note) {
+    console.log(note);
   }
 }
 

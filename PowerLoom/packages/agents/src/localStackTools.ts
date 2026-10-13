@@ -11,6 +11,8 @@ import type { OutsideToolResult } from "./models/OutsideToolResult";
 import { defineOutsideTool } from "./outsideAccess";
 
 export const LOCAL_STACK_INTEGRATION = "localStack";
+// The bridge knows a stack started by a run under this prefix plus the run id.
+export const RUN_OWNER_PREFIX = "powerloom-run-";
 
 // A start builds and starts up to five apps; past this the tool hands back and the agent checks stack_status.
 const START_WAIT_MS = 6 * 60_000;
@@ -46,9 +48,9 @@ export function createLocalStackTools(deps: AgentDeps, agent: AgentDefinition, c
   ];
 }
 
-// The bridge knows a stack's owner by this name; the runner uses it to stop the run's stack.
+// The runner stops the run's stack by this name when the run ends.
 export function stackOwner(runId: number): string {
-  return `powerloom-run-${runId}`;
+  return `${RUN_OWNER_PREFIX}${runId}`;
 }
 
 function listServicesTool(deps: AgentDeps, context: OutsideAccessContext, access: LocalStackAccess) {

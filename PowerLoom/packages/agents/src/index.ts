@@ -6,6 +6,7 @@ export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { READ_SQL_INTEGRATION } from "./sqlTools";
 export { LOCAL_STACK_INTEGRATION, stackOwner } from "./localStackTools";
+export { stopOrphanedStack, stopRunStack } from "./localStackCleanup";
 export { READ_AZURE_LOGS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azureIntegrations";
 export { loadCaptureRules } from "./vaultCapture";
 export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";

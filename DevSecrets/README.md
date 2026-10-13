@@ -75,6 +75,8 @@ PowerLoom's agents run in Docker and cannot run these scripts; the bridge runs t
 - `Authorization: Bearer <token>`: the dev-secrets value `stack-bridge-token`, created on the first run.
 - A stack stops when `ttlMinutes` (default 60, max 240) runs out, and when the bridge stops.
 - Logs and start output can hold secrets; whoever holds the token can read them.
+- `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
+- PowerLoom: Settings → Local stack (URL, token, Test bridge) per vault, and the agent switch "Local stack (run services)"; the runner stops a run's stack when the run ends.
 
 ## Routing references (map.json)
 
