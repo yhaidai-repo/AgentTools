@@ -31,7 +31,7 @@ export function createConfluenceTools(deps: AgentDeps, agent: AgentDefinition, c
 }
 
 function readPageTool(deps: AgentDeps, context: OutsideAccessContext, client: ConfluenceClient) {
-  return defineOutsideTool(deps.accessLog, context, {
+  return defineOutsideTool(deps.outside, context, {
     name: "read_confluence_page",
     description: "Read a Confluence page as Markdown: a spec, design or how-to the PBI, a doc or a search result points to. Takes the page's link.",
     input: { url: z.string().url().describe("The page link, e.g. https://<site>.atlassian.net/wiki/spaces/AA/pages/123/Title") },
@@ -52,7 +52,7 @@ function readPageTool(deps: AgentDeps, context: OutsideAccessContext, client: Co
 }
 
 function searchTool(deps: AgentDeps, context: OutsideAccessContext, client: ConfluenceClient, site: string) {
-  return defineOutsideTool(deps.accessLog, context, {
+  return defineOutsideTool(deps.outside, context, {
     name: "search_confluence",
     description: "Find Confluence pages whose text matches, best match first. Returns titles, links and excerpts; read a page with read_confluence_page.",
     input: {

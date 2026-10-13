@@ -34,7 +34,7 @@ export function createSqlTools(deps: AgentDeps, agent: AgentDefinition, context:
 function queryTool(deps: AgentDeps, context: OutsideAccessContext, connection: z.ZodEnum<Record<string, string>>) {
   const access = deps.sql!;
 
-  return defineOutsideTool(deps.accessLog, context, {
+  return defineOutsideTool(deps.outside, context, {
     name: "sql_query",
     description: "Run one read-only SQL Server query (SELECT or WITH … SELECT; T-SQL) and get the rows as a table, at most 200. Writes, EXEC, SET and several statements are refused. Find tables and columns with sql_describe first.",
     input: {
@@ -50,7 +50,7 @@ function queryTool(deps: AgentDeps, context: OutsideAccessContext, connection: z
 function describeTool(deps: AgentDeps, context: OutsideAccessContext, connection: z.ZodEnum<Record<string, string>>) {
   const access = deps.sql!;
 
-  return defineOutsideTool(deps.accessLog, context, {
+  return defineOutsideTool(deps.outside, context, {
     name: "sql_describe",
     description: "List a database's tables and views, or, with a table, its columns: type, max length, nullable, primary key and the column a foreign key references.",
     input: {

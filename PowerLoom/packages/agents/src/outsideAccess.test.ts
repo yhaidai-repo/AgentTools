@@ -14,8 +14,10 @@ function fakeLog(): { log: DataAccessLog; entries: DataAccessEntry[] } {
   return { log: { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog, entries };
 }
 
-function tool(log: DataAccessLog, handler: () => Promise<{ text: string; isError?: boolean; refusal?: string; denied?: boolean; rows?: number; truncated?: boolean }>) {
-  return defineOutsideTool(log, context, {
+const noRequests = { request: async () => ({ id: "HT-1-001", created: true }) };
+
+function tool(log: DataAccessLog, handler: () => Promise<{ text: string; isError?: boolean; refusal?: string; denied?: boolean; rows?: number; truncated?: boolean }>, requests = noRequests) {
+  return defineOutsideTool({ log, requests }, context, {
     name: "sql_query",
     description: "test",
     input: { connection: z.string(), sql: z.string() },
@@ -59,6 +61,38 @@ describe("defineOutsideTool", () => {
 
     try {
       assert.deepEqual(await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" }), { text: "fine", isError: undefined });
+    } finally {
+      console.error = quiet;
+    }
+  });
+});
+
+describe("defineOutsideTool on a denied call", () => {
+  it("asks for access once, names the task to the agent and logs denied", async () => {
+    const { log, entries } = fakeLog();
+    const asked: unknown[] = [];
+    const requests = { request: async (...args: unknown[]) => { asked.push(args); return { id: "HT-1-002", created: true }; } };
+    const defined = tool(log, async () => ({ text: "Login failed for user 'reader'.", isError: true, denied: true }), requests);
+
+    const result = await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" });
+
+    assert.equal(result.isError, true);
+    assert.match(result.text, /Task HT-1-002 asks a person to fix it, and your task runs again once it's closed/);
+    assert.equal(asked.length, 1);
+    assert.deepEqual(asked[0], [context, { kind: "sql", resource: "pvs-dev", target: "db1/Pvs" }, "sql_query", "Login failed for user 'reader'."]);
+    assert.equal(entries[0].outcome, "denied");
+  });
+
+  it("keeps the refusal readable when the request can't be written", async () => {
+    const { log } = fakeLog();
+    const requests = { request: async () => { throw new Error("db down"); } };
+    const defined = tool(log, async () => ({ text: "401", isError: true, denied: true }), requests);
+    const quiet = console.error;
+
+    console.error = () => undefined;
+
+    try {
+      assert.match((await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" })).text, /no task could be created/);
     } finally {
       console.error = quiet;
     }

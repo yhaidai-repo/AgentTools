@@ -1,6 +1,6 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
-import { AGENT_DEFAULTS, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, type AgentDeps } from "@powerloom/agents";
 import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, readAdoSettings, readReadSqlSettings, readValue, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
@@ -78,6 +78,7 @@ const shared = {
   captureRules,
   vaults: { root: vaultsRoot, writer: (vault: string) => docsVaultOf(new VaultWriter(`${vaultsRoot}/${vault}`)) },
   accessLog: new DataAccessLog(db),
+  outside: { log: new DataAccessLog(db), requests: new AccessRequests(db) },
   confluence: ConfluenceClient.fromEnv(),
   confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
 };

@@ -4,6 +4,7 @@ import type { AgentConfigStore } from "@agenttools/config";
 import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
 import type { PriceBook, UsageStore } from "@agenttools/usage";
 import type { DataAccessLog } from "../DataAccessLog";
+import type { OutsideAccessServices } from "./OutsideAccessServices";
 import type { DocUsageLog } from "../DocUsageLog";
 import type { CaptureRules } from "./CaptureRules";
 import type { DocsVault } from "./DocsVault";
@@ -41,8 +42,10 @@ export interface AgentDeps {
   confluence: ConfluenceClient | null;
   /** The Confluence site agents search (CONFLUENCE_SITE); null = no search tool, page links still work. */
   confluenceSite: string | null;
-  /** Every outside read (SQL, Azure, Confluence) goes here (user decision 2026-10-13: traceable). */
+  /** Every tool call goes here (user decision 2026-10-13: traceable). */
   accessLog: DataAccessLog;
+  /** The outside-read tools' wrapper: the same log, plus a human task for a denied call. */
+  outside: OutsideAccessServices;
   /** The run's vault's Read SQL connections for agents with the integration on; null while the vault's Read SQL is off. */
   sql: SqlAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */

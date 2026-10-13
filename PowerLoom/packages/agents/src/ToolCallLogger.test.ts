@@ -43,7 +43,7 @@ describe("ToolCallLogger", () => {
     const { log, entries } = fakeLog();
     const logger = new ToolCallLogger(log, context);
 
-    defineOutsideTool(log, context, { name: "sql_query", description: "t", input: { sql: z.string() }, resource: () => ({ kind: "sql", resource: "pvs-dev", target: "db" }), request: (input) => input.sql, handler: async () => ({ text: "" }) });
+    defineOutsideTool({ log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } }, context, { name: "sql_query", description: "t", input: { sql: z.string() }, resource: () => ({ kind: "sql", resource: "pvs-dev", target: "db" }), request: (input) => input.sql, handler: async () => ({ text: "" }) });
 
     await logger.observe(call("s1", "sql_query", { sql: "SELECT 1" }));
     await logger.observe(result("s1", "rows"));
