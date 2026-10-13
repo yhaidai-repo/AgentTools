@@ -8,6 +8,7 @@ import type { DownloadedFile } from "./models/DownloadedFile";
 import type { IterationDto } from "./models/IterationDto";
 import type { PullRequestDto } from "./models/PullRequestDto";
 import type { RepositoryDto } from "./models/RepositoryDto";
+import type { WorkItemRelationsDto } from "./models/WorkItemRelationsDto";
 import { AdoRequestError } from "./models/AdoRequestError";
 
 const API_VERSION = "api-version=7.1";
@@ -39,6 +40,16 @@ export class AdoClient {
     }
 
     return items;
+  }
+
+  // The work items one item links with a relation type (e.g. Tested By), from its links; the batch call can't expand
+  // links, so this is one call per item.
+  async getLinkedIds(id: number, relation: string): Promise<number[]> {
+    const url = `${this.projectUrl()}/_apis/wit/workitems/${id}?$expand=relations&${API_VERSION}`;
+    const body = await this.request<WorkItemRelationsDto>(url);
+    const linked = (body.relations ?? []).filter((link) => link.rel === relation);
+
+    return linked.map((link) => Number(link.url.split("/").pop())).filter(Number.isInteger);
   }
 
   // ADO only accepts `current` as a timeframe filter; without it, all team iterations are returned.

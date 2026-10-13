@@ -1,7 +1,8 @@
 export { AdoClient } from "./AdoClient";
 export { checkConnection } from "./checkConnection";
 export { CURRENT_SPRINT, resolveSprint } from "./resolveSprint";
-export { FIELD, SYNC_FIELDS } from "./fields";
+export { FIELD, SYNC_FIELDS, TESTED_BY_RELATION, TEST_CASE_FIELD, TEST_CASE_FIELDS } from "./fields";
+export { parseTestSteps } from "./testSteps";
 export { sprintScopeQuery, sprintTasksQuery } from "./wiql";
 export { AdoRequestError } from "./models/AdoRequestError";
 export type { AdoConnection } from "./models/AdoConnection";
@@ -12,3 +13,4 @@ export type { AdoRepository } from "./models/AdoRepository";
 export type { AdoWorkItem } from "./models/AdoWorkItem";
 export type { DownloadedFile } from "./models/DownloadedFile";
 export type { ConnectionCheck } from "./models/ConnectionCheck";
+export type { TestStep } from "./models/TestStep";
