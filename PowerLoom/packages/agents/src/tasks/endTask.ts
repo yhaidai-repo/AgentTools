@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import { numberOption, pauseForRateLimit } from "../stage";
+import { askUserAboutBlockedDraft } from "../techWriter/blockedDraft";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -13,7 +14,7 @@ const ACTOR = "agent-runner";
 // After the run: success → done (if the commit didn't close it already); rate limit → back to open and every agent
 // paused; budget exceeded → blocked at once, since a retry would cost the same again (user decision 2026-10-13: Re-run
 // after raising the budget); any other failure → one more attempt counted, back to open or, after `maxFailures`,
-// blocked.
+// blocked. A blocked draft-merge task also gives the user a task for its draft.
 export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: ItemRow, result: AgentRunResult): Promise<void> {
   const [current] = await deps.db.select({ status: localItem.status }).from(localItem).where(eq(localItem.id, task.id));
 
@@ -35,12 +36,19 @@ export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: Ite
   }
 
   if (result.outcome === "budget-exceeded") {
-    await blockTask(deps.db, task, `Budget exceeded: the run cost more than ${agent.budgets.perRunUsd} USD. Raise ${agent.id}'s per-run budget or narrow the task, then Re-run.`, result.runId);
+    const reason = `Budget exceeded: the run cost more than ${agent.budgets.perRunUsd} USD. Raise ${agent.id}'s per-run budget or narrow the task, then Re-run.`;
+
+    await blockTask(deps.db, task, reason, result.runId);
+    await askUserAboutBlockedDraft(deps.db, task, reason);
 
     return;
   }
 
-  await countFailure(deps.db, task, numberOption(agent, "maxFailures", 3), result.runId);
+  const status = await countFailure(deps.db, task, numberOption(agent, "maxFailures", 3), result.runId);
+
+  if (status === "blocked") {
+    await askUserAboutBlockedDraft(deps.db, task, result.error ?? "It failed too often.");
+  }
 }
 
 // The task goes back to the dispatcher without counting an attempt; the reason shows on the PBI page.
@@ -64,9 +72,12 @@ export async function failAfterError(db: PowerLoomDb, task: ItemRow, maxFailures
   }
 }
 
-async function countFailure(db: PowerLoomDb, task: ItemRow, maxFailures: number, runId: number | undefined): Promise<void> {
+async function countFailure(db: PowerLoomDb, task: ItemRow, maxFailures: number, runId: number | undefined): Promise<"blocked" | "open"> {
   const attempts = task.attempts + 1;
+  const status = attempts >= maxFailures ? "blocked" : "open";
 
   await db.update(localItem).set({ attempts }).where(eq(localItem.id, task.id));
-  await setItemStatus(db, task.id, "in-progress", attempts >= maxFailures ? "blocked" : "open", ACTOR, runId);
+  await setItemStatus(db, task.id, "in-progress", status, ACTOR, runId);
+
+  return status;
 }

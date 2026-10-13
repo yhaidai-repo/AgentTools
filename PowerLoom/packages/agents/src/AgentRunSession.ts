@@ -64,9 +64,10 @@ export class AgentRunSession {
     }
   }
 
-  /** Commits a successful run's output, then stores the final outcome and usage. A failing commit fails the run. */
-  async finish(result: AgentRunResult, commit: Commit | null): Promise<AgentRunResult> {
-    const final = await this.commitIfSuccess(result, commit);
+  /** Commits a successful run's output, then stores the final outcome and usage. A failing commit fails the run.
+   *  `keepOnBudgetStop`: a run stopped by its budget still commits what it saved (a partial result); the outcome stays. */
+  async finish(result: AgentRunResult, commit: Commit | null, keepOnBudgetStop = false): Promise<AgentRunResult> {
+    const final = await this.commitIfSuccess(result, commit, keepOnBudgetStop);
     const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd });
 
     await this.trace.flush();
@@ -74,6 +75,11 @@ export class AgentRunSession {
     await this.deps.db.update(agentRun).set({ outcome: final.outcome, error: final.error, endedAt: new Date() }).where(eq(agentRun.id, this.runId));
 
     return { ...final, costUsd: record.costUsd };
+  }
+
+  /** What the run has cost so far, from the usage events seen; the budget notes show it to the agent. */
+  get spentUsd(): number {
+    return this.tracker.costUsd;
   }
 
   get providerCostUsd(): number | null {
@@ -129,8 +135,10 @@ export class AgentRunSession {
     }
   }
 
-  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null): Promise<AgentRunResult> {
-    if (result.outcome !== "success" || !commit) {
+  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnBudgetStop: boolean): Promise<AgentRunResult> {
+    const isKept = result.outcome === "success" || (keepOnBudgetStop && result.outcome === "budget-exceeded");
+
+    if (!isKept || !commit) {
       return result;
     }
 

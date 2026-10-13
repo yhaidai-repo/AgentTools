@@ -97,16 +97,27 @@ public static class TaskValidation
         return missing.Select(url => $"Linked document without content: {url}").ToList();
     }
 
-    // Drafts the agent itself captured don't hold it back.
+    // Drafts the agent itself captured don't hold it back, nor do drafts whose merge task is blocked: nothing would merge
+    // them, so they would hold every agent forever; the user gets a task for each instead (user decision 2026-10-13).
     private static async Task<List<string>> UnmergedDraftsAsync(PowerLoomDbContext db, string agentId, int pbiId, CancellationToken cancellation)
     {
         var drafts = await db.VaultCaptures.AsNoTracking()
             .Where(capture => capture.PbiId == pbiId && UnmergedDrafts.Contains(capture.Status))
             .Join(db.AgentRuns.AsNoTracking(), capture => capture.RunId, run => run.Id, (capture, run) => new { capture.Name, run.Stage })
             .ToListAsync(cancellation);
-        var names = drafts.Where(draft => Labels.TranslateMemberName(draft.Stage.ToString()) != agentId).Select(draft => draft.Name).ToList();
+        var stuck = await StuckDraftsAsync(db, cancellation);
+        var names = drafts.Where(draft => Labels.TranslateMemberName(draft.Stage.ToString()) != agentId && !stuck.Contains(draft.Name)).Select(draft => draft.Name).ToList();
 
         return names.Count > 0 ? [$"Vault drafts not merged: {string.Join(", ", names)}"] : [];
+    }
+
+    private static async Task<HashSet<string>> StuckDraftsAsync(PowerLoomDbContext db, CancellationToken cancellation)
+    {
+        var names = await db.Database
+            .SqlQuery<string>($"select data->>'draft' as \"Value\" from local_item where kind = 'docs' and status = 'blocked' and data->>'draft' is not null")
+            .ToListAsync(cancellation);
+
+        return names.ToHashSet();
     }
 
     private static async Task<List<string>> OtherAgentsOpenTasksAsync(PowerLoomDbContext db, string agentId, int pbiId, CancellationToken cancellation)
