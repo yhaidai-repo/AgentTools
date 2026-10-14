@@ -64,7 +64,7 @@ public sealed class LiveTranscriber
 
             foreach (var segment in segments)
             {
-                Publish(Labelled(segment, chunk, chunkLabel));
+                Publish(Labelled(segment, chunk, chunkLabel, segments.Count));
             }
         }
         catch (Exception exception)
@@ -73,10 +73,12 @@ public sealed class LiveTranscriber
         }
     }
 
-    private TranscriptSegment Labelled(TranscriptSegment segment, SpeechChunk chunk, string? chunkLabel)
+    // A chunk with several sentences: each long enough sentence is matched on its own among the voices heard so far
+    // (never opening one); a chunk with one sentence is the sentence, judged once.
+    private TranscriptSegment Labelled(TranscriptSegment segment, SpeechChunk chunk, string? chunkLabel, int sentences)
     {
-        if (chunkLabel is null)
-            return segment;
+        if (chunkLabel is null || sentences < 2)
+            return chunkLabel is null ? segment : segment with { Speaker = chunkLabel };
 
         var own = SentenceLabel(segment, chunk);
 
@@ -91,7 +93,7 @@ public sealed class LiveTranscriber
         var from = Math.Clamp((int)((segment.Start - chunk.Start).TotalSeconds * MonoResampler.WhisperRate), 0, chunk.Samples.Length);
         var to = Math.Clamp((int)((segment.End - chunk.Start).TotalSeconds * MonoResampler.WhisperRate), from, chunk.Samples.Length);
 
-        return _speakers?.LabelFor(chunk.Samples[from..to]);
+        return _speakers?.LabelFor(chunk.Samples[from..to], mayOpen: false);
     }
 
     private static bool IsSystem(SpeechChunk chunk) => chunk.Speaker == SessionRecorder.SystemChannel;

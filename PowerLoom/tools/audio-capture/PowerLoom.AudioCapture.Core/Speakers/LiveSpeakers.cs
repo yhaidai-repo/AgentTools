@@ -6,13 +6,19 @@ namespace PowerLoom.AudioCapture.Speakers;
 // The voices of a running recording, told apart on the fly: every stretch of the others' channel gets a voice print;
 // a print close to a stored profile takes that name, one close to a voice already heard in this meeting joins it,
 // and a long enough stretch that matches nothing starts "Speaker n". Short stretches never open a voice (their prints
-// are weak; 35 voices in one meeting on 2026-10-14): they join the closest one. Now and then voices whose prints have
-// grown close are merged, and naming a voice with a name another voice has merges the two.
+// are weak): they join the closest voice when it is at least somewhat close, else they stay unassigned. A voice's
+// centre moves only on long stretches, so a voice can't swallow a meeting by absorbing every piece that merely leaned
+// its way (2026-10-14: one stored profile took 31 of 32 segments). Now and then voices whose centres have grown close
+// are merged, and naming a voice with a name another voice has merges the two.
 public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
 {
     private const double MinSeconds = 1.5;
     private const double MinSecondsForNewVoice = 4;
+    private const double MinSecondsToMerge = 10;
     private const int MergeEvery = 20;
+
+    // Replays print every decision (`live-replay --trace`); the resident process keeps its log quiet.
+    public static bool Trace { get; set; }
 
     private readonly Lock _sync = new();
     private readonly List<LiveSpeaker> _speakers = [];
@@ -23,7 +29,8 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
     // A voice's label changed (a name given, or the voice merged into another one): old label → new label.
     public event Action<string, string>? Relabeled;
 
-    public string? LabelFor(float[] samples)
+    // The voice of a stretch; `mayOpen` false (a sentence inside a chunk) only picks among the voices heard so far.
+    public string? LabelFor(float[] samples, bool mayOpen = true)
     {
         var seconds = samples.Length / (double)MonoResampler.WhisperRate;
 
@@ -37,7 +44,7 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
 
         store.Space.Observe(embedding);
 
-        return Assign(embedding, seconds);
+        return Assign(embedding, seconds, mayOpen && seconds >= MinSecondsForNewVoice);
     }
 
     public bool Rename(string oldLabel, string name)
@@ -84,23 +91,23 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
         }
     }
 
-    private string Assign(float[] embedding, double seconds)
+    private string? Assign(float[] embedding, double seconds, bool mayOpen)
     {
-        LiveSpeaker speaker;
+        LiveSpeaker? speaker;
         bool created;
         List<(string Old, string New)> merges;
 
         lock (_sync)
         {
-            speaker = Find(embedding, seconds) ?? Create(embedding);
-            created = speaker.Seconds == 0;
-            speaker.Add(embedding, seconds);
+            speaker = Find(embedding, seconds, mayOpen);
+            created = speaker is { Seconds: 0 };
+            speaker?.Add(embedding, seconds, moveCentre: seconds >= MinSecondsForNewVoice);
             merges = ++_assignments % MergeEvery == 0 ? MergeCloseVoices() : [];
         }
 
         Announce(created, merges);
 
-        return speaker.Label;
+        return speaker?.Label;
     }
 
     private void Announce(bool created, List<(string Old, string New)> merges)
@@ -114,19 +121,35 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
             Changed?.Invoke(Snapshot());
     }
 
-    private LiveSpeaker? Find(float[] embedding, double seconds)
+    // A stored profile first; then the closest voice of the meeting (a long stretch needs it close, a short one only
+    // somewhat close); a long stretch that matches nothing opens a voice; a short one stays unassigned.
+    private LiveSpeaker? Find(float[] embedding, double seconds, bool mayOpen)
     {
-        if (store.Match(embedding) is { } name)
-            return _speakers.FirstOrDefault(s => s.Label == name) ?? Create(embedding, name);
+        var stored = store.Best(embedding);
+
+        if (stored is { } best && best.Score >= store.Space.StoredMatch)
+            return Traced(_speakers.FirstOrDefault(s => s.Label == best.Name) ?? Create(embedding, best.Name), $"stored {best.Name} {best.Score:F2}", seconds);
 
         var closest = _speakers.Select(s => (Speaker: s, Score: store.Space.Similarity(s.Centroid, embedding)))
             .OrderByDescending(c => c.Score)
             .FirstOrDefault();
+        var why = $"closest {closest.Speaker?.Label ?? "none"} {closest.Score:F2}, stored best {stored?.Name ?? "none"} {stored?.Score ?? 0:F2}";
 
-        if (closest.Speaker is null)
-            return null;
+        if (closest.Speaker is not null && closest.Score >= store.Space.SameInMeeting)
+            return Traced(closest.Speaker, why, seconds);
 
-        return closest.Score >= store.Space.SameInMeeting || seconds < MinSecondsForNewVoice ? closest.Speaker : null;
+        if (mayOpen)
+            return Traced(Create(embedding), why + " → new", seconds);
+
+        return Traced(closest.Speaker is not null && closest.Score >= store.Space.ShortJoin ? closest.Speaker : null, why, seconds);
+    }
+
+    private static LiveSpeaker? Traced(LiveSpeaker? speaker, string why, double seconds)
+    {
+        if (Trace)
+            Console.WriteLine($"   voice: {seconds:F1} s → {speaker?.Label ?? "unassigned"} ({why})");
+
+        return speaker;
     }
 
     private LiveSpeaker Create(float[] embedding, string? name = null)
@@ -144,8 +167,8 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
         _speakers.Select(s => s.Label).Where(l => l.StartsWith("Speaker ", StringComparison.Ordinal))
             .Select(l => int.TryParse(l["Speaker ".Length..], out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
 
-    // Pairs whose centroids sit within the same-voice distance become one; a named voice absorbs an unnamed one, the
-    // older one absorbs the younger; two differently named voices stay apart.
+    // Pairs of established voices whose centres sit within the merge distance become one; a named voice absorbs an
+    // unnamed one, the older one absorbs the younger; two differently named voices stay apart.
     private List<(string Old, string New)> MergeCloseVoices()
     {
         var merges = new List<(string, string)>();
@@ -162,11 +185,11 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
 
     private (LiveSpeaker Into, LiveSpeaker Gone)? ClosePair()
     {
-        foreach (var a in _speakers)
+        foreach (var a in _speakers.Where(s => s.Seconds >= MinSecondsToMerge))
         {
-            foreach (var b in _speakers.Where(b => b.Index > a.Index && CanMerge(a, b)))
+            foreach (var b in _speakers.Where(b => b.Index > a.Index && b.Seconds >= MinSecondsToMerge && CanMerge(a, b)))
             {
-                if (store.Space.Similarity(a.Centroid, b.Centroid) >= store.Space.SameInMeeting)
+                if (store.Space.Similarity(a.Centroid, b.Centroid) >= store.Space.Merge)
                     return a.Known || !b.Known ? (a, b) : (b, a);
             }
         }
@@ -234,12 +257,22 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
 
         public double Seconds { get; private set; }
 
-        // Running mean of the prints: the voice's centre settles as the meeting goes on.
-        public void Add(float[] embedding, double seconds) => Blend(embedding, 1, seconds);
+        // The centre is the mean of the long stretches' prints; short ones only count as speech time.
+        public void Add(float[] embedding, double seconds, bool moveCentre)
+        {
+            Seconds += seconds;
 
-        public void Absorb(LiveSpeaker other) => Blend(other.Centroid, Math.Max(1, other._count), other.Seconds);
+            if (moveCentre)
+                Blend(embedding, 1);
+        }
 
-        private void Blend(float[] embedding, int weight, double seconds)
+        public void Absorb(LiveSpeaker other)
+        {
+            Seconds += other.Seconds;
+            Blend(other.Centroid, Math.Max(1, other._count));
+        }
+
+        private void Blend(float[] embedding, int weight)
         {
             for (var i = 0; i < Centroid.Length; i++)
             {
@@ -247,7 +280,6 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
             }
 
             _count += weight;
-            Seconds += seconds;
         }
     }
 }

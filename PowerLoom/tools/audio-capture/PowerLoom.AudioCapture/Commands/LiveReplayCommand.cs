@@ -23,6 +23,8 @@ public static class LiveReplayCommand
         using var engine = new WhisperEngine(await ModelStore.EnsureAsync(model, Console.WriteLine), transcription);
 
         var speakerTools = options.Has("--no-speakers") ? null : await TranscribeCommands.LoadSpeakerToolsAsync();
+
+        LiveSpeakers.Trace = options.Has("--trace");
         var count = await ReplayAsync(folder, engine, speakerTools?.NewLiveSpeakers());
 
         Console.WriteLine($"{count} live segments (runtime {RuntimeSelection.Loaded})");
