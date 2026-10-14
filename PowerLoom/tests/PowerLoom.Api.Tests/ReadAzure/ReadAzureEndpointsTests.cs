@@ -12,46 +12,31 @@ namespace PowerLoom.Api.Tests.ReadAzure;
 public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
 {
     private const string ReadAzure = $"/api/vaults/{PowerLoomHost.Vault}/read-azure";
-    private const string Logs = "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/pvs-stage/providers/microsoft.insights/components/pvs-api";
-    private const string Mongo = "mongodb://pvs-mongo:k3y==@pvs-mongo.mongo.cosmos.azure.com:10255/?ssl=true";
-    private const string Bus = "Endpoint=sb://pvs-bus.servicebus.windows.net/;SharedAccessKeyName=listen;SharedAccessKey=k3y=";
 
     [Fact]
-    public async Task A_resource_is_shown_by_its_target_and_a_connection_string_only_by_its_host()
+    public async Task A_cosmos_or_mongo_account_is_added_by_its_name_and_azure_access_has_no_resources()
     {
-        var logs = await host.Host.PostJson(new AddAzureResourceRequest("pvs-logs", "appInsights", Logs, null), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        var cosmos = await host.Host.PostJson(new AddAzureResourceRequest("pvs-cosmos", "cosmos", "https://pvs.documents.azure.com", "r0-key=="), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        var bus = await host.Host.PostJson(new AddAzureResourceRequest("pvs-bus", "serviceBus", null, Bus), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        var mongo = await host.Host.PostJson(new AddAzureResourceRequest("pvs-mongo", "mongo", null, Mongo), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var cosmos = await host.Host.PostJson(new AddAzureResourceRequest("pvs-cosmos", "cosmos", "AA-Stage-Signals-Cosmos"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        var mongo = await host.Host.PostJson(new AddAzureResourceRequest("pvs-mongo", "mongo", "aa-stage-cosmos-mongo"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
 
         var saved = await ReadSettingsAsync();
 
-        Assert.Equal(new AzureResourceSummary("pvs-logs", "appInsights", Logs, true), logs);
-        Assert.Equal(new AzureResourceSummary("pvs-cosmos", "cosmos", "https://pvs.documents.azure.com", true), cosmos);
-        Assert.Equal(new AzureResourceSummary("pvs-bus", "serviceBus", "pvs-bus.servicebus.windows.net", true), bus);
-        Assert.Equal(new AzureResourceSummary("pvs-mongo", "mongo", "pvs-mongo.mongo.cosmos.azure.com:10255", true), mongo);
-        Assert.Equal(("r0-key==", Bus, Mongo, ""), (saved.Find("pvs-cosmos")!.Secret, saved.Find("pvs-bus")!.Secret, saved.Find("pvs-mongo")!.Secret, saved.Find("pvs-logs")!.Secret));
-    }
+        Assert.Equal(new AzureResourceSummary("pvs-cosmos", "cosmos", "aa-stage-signals-cosmos", true), cosmos);
+        Assert.Equal(new AzureResourceSummary("pvs-mongo", "mongo", "aa-stage-cosmos-mongo", true), mongo);
+        Assert.Equal("aa-stage-signals-cosmos", saved.Find("pvs-cosmos")!.Target);
 
-    [Fact]
-    public async Task A_target_that_does_not_fit_its_kind_a_taken_name_and_an_unknown_kind_are_refused()
-    {
-        await host.Host.PostJson(new AddAzureResourceRequest("taken", "cosmos", "https://pvs.documents.azure.com", "k"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-
-        await AddShouldFailAsync(new AddAzureResourceRequest("TAKEN", "cosmos", "https://pvs.documents.azure.com", "k"), HttpStatusCode.Conflict);
-        await AddShouldFailAsync(new AddAzureResourceRequest("wrong-kind", "blob", "https://x", null), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("logs-as-url", "appInsights", "https://portal.azure.com/x", null), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("cosmos-as-id", "cosmos", Logs, "k"), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("cosmos-no-key", "cosmos", "https://pvs.documents.azure.com", ""), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("bus-as-fqdn", "serviceBus", null, "pvs.servicebus.windows.net"), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddAzureResourceRequest("mongo-as-sql", "mongo", null, "Server=x;Database=y"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("PVS-COSMOS", "cosmos", "other-account"), HttpStatusCode.Conflict);
+        await AddShouldFailAsync(new AddAzureResourceRequest("access", "azureAccess", "anything"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("wrong-kind", "blob", "x"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("endpoint", "cosmos", "https://pvs.documents.azure.com"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddAzureResourceRequest("too-short", "mongo", "ab"), HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Each_kind_has_its_own_switch_a_resource_switch_is_saved_and_a_removed_resource_is_gone()
     {
-        await host.Host.PostJson(new AddAzureResourceRequest("switched", "serviceBus", null, Bus), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
-        await host.Host.Scenario(scenario => scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/serviceBus/enabled"));
+        await host.Host.PostJson(new AddAzureResourceRequest("switched", "cosmos", "pvs-switched"), $"{ReadAzure}/resources").Receive<AzureResourceSummary>();
+        await host.Host.Scenario(scenario => scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/azureAccess/enabled"));
 
         var off = await host.Host.PutJson(new EnabledRequest(false), $"{ReadAzure}/resources/switched/enabled").Receive<AzureResourceSummary>();
         var switched = await ReadSettingsAsync();
@@ -61,14 +46,14 @@ public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
         var removed = await ReadSettingsAsync();
 
         Assert.False(off!.Enabled);
-        Assert.True(switched.IsEnabled("serviceBus"));
+        Assert.True(switched.IsEnabled("azureAccess"));
         Assert.False(switched.IsEnabled("cosmos"));
         Assert.False(switched.Find("switched")!.Enabled);
         Assert.Null(removed.Find("switched"));
 
         await host.Host.Scenario(scenario =>
         {
-            scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/blob/enabled");
+            scenario.Put.Json(new EnabledRequest(true)).ToUrl($"{ReadAzure}/serviceBus/enabled");
             scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
         });
 
@@ -82,6 +67,27 @@ public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
         {
             scenario.Put.Json(new EnabledRequest(true)).ToUrl("/api/vaults/no-such-vault/read-azure/cosmos/enabled");
             scenario.StatusCodeShouldBe(HttpStatusCode.NotFound);
+        });
+    }
+
+    [Fact]
+    public async Task The_default_subscription_is_saved_trimmed_and_cleared_by_an_empty_value()
+    {
+        await host.Host.Scenario(scenario => scenario.Put.Json(new AzureSubscriptionRequest("  AA Dev ")).ToUrl($"{ReadAzure}/subscription"));
+
+        var saved = await ReadSettingsAsync();
+
+        await host.Host.Scenario(scenario => scenario.Put.Json(new AzureSubscriptionRequest(null)).ToUrl($"{ReadAzure}/subscription"));
+
+        var cleared = await ReadSettingsAsync();
+
+        Assert.Equal("AA Dev", saved.Subscription);
+        Assert.Equal("", cleared.Subscription);
+
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(new AzureSubscriptionRequest(new string('x', 121))).ToUrl($"{ReadAzure}/subscription");
+            scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
         });
     }
 

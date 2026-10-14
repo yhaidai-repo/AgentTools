@@ -2,18 +2,18 @@ import { randomUUID } from "node:crypto";
 import { PublicClientApplication, type AccountInfo, type AuthenticationResult, type ICachePlugin } from "@azure/msal-node";
 import type { AzureLoginStart } from "./models/AzureLoginStart";
 import type { AzureLoginStatus } from "./models/AzureLoginStatus";
+import type { AzureToken } from "./models/AzureToken";
 import type { AzureTokenCacheStore } from "./models/AzureTokenCacheStore";
-import type { AzureTokenCredential } from "./models/AzureTokenCredential";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
 import { NotSignedInError } from "./models/NotSignedInError";
 
-// The one scope this identity ever asks for (user decision 2026-10-13: the user's own account reads App Insights;
-// no app registration exists): a token for the logs API can't touch anything else.
-const LOGS_SCOPE = "https://api.loganalytics.io/.default";
+// The scope the sign-in asks for; the refresh token it yields serves every API the Azure MCP server asks a token for
+// (user decision 2026-10-14: the user's own account, delegated to the server through the `az` shim).
+const SIGN_IN_SCOPE = "https://management.azure.com/.default";
 const AUTHORITY = "https://login.microsoftonline.com/organizations";
 
-// Azure CLI's public client id: tenants consent to it already, and `az monitor log-analytics query` signs in with it
-// for the same API. AZURE_PUBLIC_CLIENT_ID overrides it when a tenant refuses it.
+// Azure CLI's public client id: tenants consent to it already, and az itself signs in with it for the same APIs.
+// AZURE_PUBLIC_CLIENT_ID overrides it when a tenant refuses it.
 const AZURE_CLI_CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46";
 
 // A finished flow stays readable this long, then it's forgotten.
@@ -47,7 +47,7 @@ export class AzureUserLogin {
     return new Promise<AzureLoginStart>((resolve, reject) => {
       this.appOf(vault)
         .acquireTokenByDeviceCode({
-          scopes: [LOGS_SCOPE],
+          scopes: [SIGN_IN_SCOPE],
           deviceCodeCallback: (code) => resolve({ flowId, userCode: code.userCode, verificationUri: code.verificationUri, message: code.message, expiresInSeconds: code.expiresIn }),
         })
         .then((result) => this.finish(flowId, flow, result))
@@ -85,21 +85,20 @@ export class AzureUserLogin {
     await this.store.saveAccount(vault, null);
   }
 
-  // What LogsQueryClient takes: a silent token from the cached refresh token, or a clear error when nobody signed in.
-  logsCredential(vault: string): AzureTokenCredential {
-    return {
-      getToken: async () => {
-        const account = await this.accountOf(vault);
+  // What the `az` shim prints for the Azure MCP server: a silent token for the API it asks for, from the cached
+  // refresh token, or a clear error when nobody signed in.
+  async token(vault: string, resource: string, tenant: string | null): Promise<AzureToken> {
+    const account = await this.accountOf(vault);
 
-        if (!account) {
-          throw new NotSignedInError(vault);
-        }
+    if (!account) {
+      throw new NotSignedInError(vault);
+    }
 
-        const result = await this.appOf(vault).acquireTokenSilent({ account, scopes: [LOGS_SCOPE] });
+    const authority = tenant ? `https://login.microsoftonline.com/${tenant}` : undefined;
+    const scope = `${resource.replace(/\/+$/, "")}/.default`;
+    const result = await this.appOf(vault).acquireTokenSilent({ account, scopes: [scope], authority });
 
-        return { token: result.accessToken, expiresOnTimestamp: result.expiresOn?.getTime() ?? Date.now() + 5 * 60_000 };
-      },
-    };
+    return tokenOf(result);
   }
 
   private async finish(flowId: string, flow: LoginFlow, result: AuthenticationResult | null): Promise<void> {
@@ -164,4 +163,17 @@ function cachePluginOf(store: AzureTokenCacheStore, vault: string): ICachePlugin
 
 function accountSummary(account: AccountInfo): AzureUserAccount {
   return { username: account.username, tenantId: account.tenantId, signedInAt: new Date().toISOString() };
+}
+
+// As `az account get-access-token` prints it; a missing expiry counts as five minutes from now.
+function tokenOf(result: AuthenticationResult): AzureToken {
+  const expiresOn = result.expiresOn ?? new Date(Date.now() + 5 * 60_000);
+
+  return { accessToken: result.accessToken, expiresOn: azTimestamp(expiresOn), expires_on: Math.floor(expiresOn.getTime() / 1000), tenant: result.tenantId, tokenType: "Bearer" };
+}
+
+function azTimestamp(date: Date): string {
+  const pad = (value: number, width = 2) => String(value).padStart(width, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}000`;
 }

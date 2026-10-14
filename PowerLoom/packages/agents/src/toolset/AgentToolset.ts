@@ -3,7 +3,7 @@ import { localItem } from "@powerloom/db";
 import { createAdoTools } from "../ado/adoTools";
 import type { AgentRunSession } from "../AgentRunSession";
 import { createAttachmentTool } from "../attachmentTools";
-import { createAzureTools } from "../azureTools";
+import { createAzureTools } from "../azure/azureTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";

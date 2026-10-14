@@ -11,10 +11,9 @@ type ItemData = { rerunAfter?: string[]; accessRequest?: { kind: string; resourc
 const FIXES: Record<string, string> = {
   sql: "Settings → Read SQL: Test the connection; the server refused its login. Fix the login or the connection string, or grant the login db_datareader.",
   confluence: "Check CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN in .env, and that the account may see the page.",
-  azureLogs: "Settings → Read Azure → App Insights: sign in again with your account (the sign-in expired or was refused).",
-  cosmos: "Settings → Read Azure → Cosmos DB: check the account's read-only key; remove the resource and add it again with the current key.",
-  serviceBus: "Settings → Read Azure → Service Bus: check the Listen policy's connection string; remove the resource and add it again.",
-  mongo: "Settings → Read Azure → Mongo: check the read-only connection string; remove the resource and add it again.",
+  azure: "Settings → Read Azure: sign in again with your account (the sign-in expired or was refused), or the account has no read role on the resource: ask an Azure admin for Reader on it.",
+  cosmos: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB account's keys: ask an Azure admin for Cosmos DB Account Reader on it.",
+  mongo: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB for MongoDB account's connection strings: ask an Azure admin for Cosmos DB Account Reader on it.",
   ado: "Settings → Azure DevOps: check that the PAT has Work Items (Read) and Code (Read) and hasn't expired; save a new one if it lacks a scope or has expired.",
 };
 

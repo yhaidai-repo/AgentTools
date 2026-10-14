@@ -1,0 +1,37 @@
+#!/bin/sh
+# The agent-runner's `az` (user decision 2026-10-14: delegated token). The Azure MCP server signs in through its
+# AzureCliCredential, which runs `az account get-access-token --output json --resource <api> [--tenant <id>]` (newer
+# versions: `--scope <api>/.default`). This shim asks the runner, which answers with a token from the vault's own
+# sign-in. Any other az command does not exist here.
+command="$*"
+resource=""
+tenant=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --resource) resource="$2"; shift ;;
+    --scope) resource="${2%/.default}"; shift ;;
+    --tenant) tenant="$2"; shift ;;
+  esac
+  shift
+done
+
+case "$command" in
+  *get-access-token*) ;;
+  *) echo "ERROR: this az only answers 'account get-access-token' (the agent-runner's Azure sign-in)." >&2; exit 1 ;;
+esac
+
+if [ -z "$POWERLOOM_RUNNER_URL" ] || [ -z "$POWERLOOM_AZURE_VAULT" ]; then
+  echo "ERROR: POWERLOOM_RUNNER_URL and POWERLOOM_AZURE_VAULT must be set." >&2
+  exit 1
+fi
+
+answer=$(wget -qO- "$POWERLOOM_RUNNER_URL/azure/token?vault=$POWERLOOM_AZURE_VAULT&resource=$resource&tenant=$tenant" 2>&1)
+
+if [ $? -ne 0 ]; then
+  # Azure.Identity reads this sentence as "not signed in" and reports it as such.
+  echo "ERROR: Please run 'az login' to setup account. ($answer)" >&2
+  exit 1
+fi
+
+printf '%s\n' "$answer"

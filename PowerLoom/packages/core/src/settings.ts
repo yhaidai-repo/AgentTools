@@ -135,7 +135,7 @@ export async function readDevHubSettings(db: PowerLoomDb, vault: string): Promis
 export async function readReadAzureSettings(db: PowerLoomDb, vault: string): Promise<ReadAzureSettings> {
   const stored = await readValue<Partial<ReadAzureSettings>>(db, vaultSettingKey(vault, READ_AZURE_KEY));
 
-  return { enabledKinds: stored?.enabledKinds ?? {}, resources: stored?.resources ?? [] };
+  return { enabledKinds: stored?.enabledKinds ?? {}, resources: stored?.resources ?? [], subscription: stored?.subscription ?? "" };
 }
 
 // Null until the user signed in for this vault.

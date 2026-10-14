@@ -1,6 +1,6 @@
 import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
-import { AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS } from "./azureIntegrations";
+import { AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS } from "./azure/azureIntegrations";
 import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";

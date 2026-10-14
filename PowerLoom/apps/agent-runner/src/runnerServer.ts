@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AgentRunJob } from "@powerloom/core";
-import type { AzureUserLogin } from "@powerloom/azure";
+import { NotSignedInError, type AzureUserLogin } from "@powerloom/azure";
 import type { DevHubCheck } from "@powerloom/devhub";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 
@@ -9,8 +9,8 @@ import type { SqlConnectionCheck } from "@powerloom/sql";
 // time; PowerLoom asks again later. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
 // signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
 // 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
-// device-code sign-in for App Insights (start, status, sign out); the runner keeps the token cache. `GET /health` for
-// PowerLoom's health check and Docker's.
+// device-code sign-in for Azure (start, status, sign out); the runner keeps the token cache. `GET /azure/token`: the `az` shim's
+// question for the Azure MCP server, a token of that sign-in for one API. `GET /health` for PowerLoom's health check and Docker's.
 export class RunnerServer {
   private running: string | null = null;
   private readonly server: Server;
@@ -59,6 +59,12 @@ export class RunnerServer {
 
     const url = new URL(request.url ?? "/", "http://runner");
 
+    if (request.method === "GET" && url.pathname === "/azure/token") {
+      await this.token(response, url);
+
+      return;
+    }
+
     if (url.pathname.startsWith("/azure/login")) {
       await this.login(request, response, url);
 
@@ -89,6 +95,24 @@ export class RunnerServer {
     }
 
     answer(response, 404, { error: "not found" });
+  }
+
+  // 401 when nobody signed in, so the shim answers as a signed-out az would and the tool call becomes `denied`.
+  private async token(response: ServerResponse, url: URL): Promise<void> {
+    const vault = vaultOf(url);
+    const resource = url.searchParams.get("resource");
+
+    if (!vault || !resource) {
+      answer(response, 400, { error: "expected ?vault=&resource=" });
+
+      return;
+    }
+
+    try {
+      answer(response, 200, await this.azureLogin.token(vault, resource, url.searchParams.get("tenant") || null));
+    } catch (error) {
+      answer(response, error instanceof NotSignedInError ? 401 : 502, { error: (error as Error).message });
+    }
   }
 
   // Entra's code comes back at once; a refusal before that (a blocked client id, no network) is the answer.

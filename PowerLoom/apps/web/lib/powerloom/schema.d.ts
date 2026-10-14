@@ -1080,6 +1080,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/read-azure/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_read_azure_subscription
+         * @description PUT_api_vaults_vault_read_azure_subscription
+         */
+        put: operations["PUT_api_vaults_vault_read_azure_subscription"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/read-azure/resources": {
         parameters: {
             query?: never;
@@ -1248,7 +1268,6 @@ export interface components {
             name: string;
             kind: string;
             target: null | string;
-            secret: null | string;
         };
         AddLinkRequest: {
             url: string;
@@ -1310,6 +1329,9 @@ export interface components {
             kind: string;
             display: string;
             enabled: boolean;
+        };
+        AzureSubscriptionRequest: {
+            subscription: null | string;
         };
         BudgetStatus: {
             /** Format: double */
@@ -3346,6 +3368,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_read_azure_subscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AzureSubscriptionRequest"];
             };
         };
         responses: {

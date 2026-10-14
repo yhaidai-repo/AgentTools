@@ -9,8 +9,8 @@ import { azureLoginStatusAction, signOutAzureAction, startAzureLoginAction } fro
 // How often the page asks whether the user finished at the link.
 const POLL_MS = 3000;
 
-// Sign in with your own account for App Insights (user decision 2026-10-13): Entra hands out a code, you type it at
-// the link, the runner keeps the sign-in. One account per vault.
+// Sign in with your own account (user decisions 2026-10-13/14): Entra hands out a code, you type it at the link, the
+// runner keeps the sign-in and hands its tokens to the Azure MCP server. One account per vault.
 export function AzureUserLoginForm({ account }: { account: AzureUserAccount | null }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -59,12 +59,12 @@ export function AzureUserLoginForm({ account }: { account: AzureUserAccount | nu
     <div>
       {account ? (
         <p>
-          Signed in as <strong>{account.username}</strong> for App Insights (since {new Date(account.signedInAt).toLocaleString()}).{" "}
+          Signed in as <strong>{account.username}</strong> (since {new Date(account.signedInAt).toLocaleString()}).{" "}
           <button type="button" className="secondary" disabled={isPending} onClick={() => startTransition(() => signOutAzureAction())}>Sign out</button>
         </p>
       ) : (
         <p>
-          Nobody is signed in for App Insights.{" "}
+          Nobody is signed in for Azure.{" "}
           <button type="button" disabled={isPending} onClick={start}>{isPending ? "Starting…" : "Sign in with my account"}</button>
         </p>
       )}

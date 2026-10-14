@@ -52,7 +52,7 @@ export default async function SettingsPage() {
       <h2>Read SQL</h2>
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <h2>Read Azure</h2>
-      <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} resources={resourceRows(readAzure)} />
+      <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
       <h2>DevHub</h2>
       <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />
       <h2>Agents</h2>
@@ -95,7 +95,7 @@ function connectionRows(settings: ReadSqlSettings): SqlConnectionRow[] {
   return settings.connections.map((connection) => ({ name: connection.name, server: connection.server, database: connection.database, enabled: connection.enabled }));
 }
 
-// The browser never gets a secret, only a resource's display.
+// What the page shows per account.
 function resourceRows(settings: ReadAzureSettings): AzureResourceRow[] {
   return settings.resources.map((resource) => ({ name: resource.name, kind: resource.kind, display: resource.display, enabled: resource.enabled }));
 }

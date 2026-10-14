@@ -31,7 +31,7 @@ export async function agentChoices(db: PowerLoomDb, vault: string): Promise<stri
 // set up in .env, not per vault: it appears once a call was logged.
 export async function configuredResources(db: PowerLoomDb, vault: string): Promise<ConfiguredResource[]> {
   const sql = (await readReadSqlSettings(db, vault)).connections.map((connection) => ({ kind: "sql" as const, resource: connection.name, target: `${connection.server}/${connection.database || "default"}` }));
-  const azure = (await readReadAzureSettings(db, vault)).resources.map((resource) => ({ kind: azureKindOf(resource.kind), resource: resource.name, target: resource.display }));
+  const azure = (await readReadAzureSettings(db, vault)).resources.map((resource) => ({ kind: resource.kind as DataAccessKind, resource: resource.target, target: resource.display }));
 
   return [...sql, ...azure];
 }
@@ -85,8 +85,4 @@ function usageOf(resource: ConfiguredResource, rows: DataAccessRow[], lastUsed: 
 
 function keyOf(entry: { kind: string; resource: string }): string {
   return `${entry.kind}:${entry.resource}`;
-}
-
-function azureKindOf(kind: string): DataAccessKind {
-  return kind === "appInsights" ? "azureLogs" : (kind as DataAccessKind);
 }

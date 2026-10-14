@@ -10,9 +10,9 @@ using Wolverine.Http;
 
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
-// Settings → Read Azure (user decisions 2026-10-12/13): one feature per kind with its own switch, the user's own
-// sign-in for App Insights, and resources with a key each. Which agents may read is each agent's own switch per kind
-// (the `readAzureLogs`, `readCosmos`, `readServiceBus`, `readMongo` integrations in its Config).
+// Settings → Read Azure (user decisions 2026-10-12/14): one switch per kind, the user's own sign-in (the Azure MCP
+// server reads with it), the default subscription, and the Cosmos / Mongo accounts. Which agents may read is each
+// agent's own switch per kind (the `azureAccess`, `readCosmos`, `readMongo` integrations in its Config).
 public static class ReadAzureEndpoints
 {
     public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
@@ -25,10 +25,18 @@ public static class ReadAzureEndpoints
         return changed.Ok ? TypedResults.Ok() : changed.Problem.ToProblemResult();
     }
 
+    [WolverinePut("/api/vaults/{vault}/read-azure/subscription")]
+    public static async Task<Results<Ok, ProblemHttpResult>> SetSubscription(string vault, AzureSubscriptionRequest request, ReadAzureResources resources, CancellationToken cancellation)
+    {
+        var changed = await resources.SetSubscriptionAsync(vault, request.Subscription ?? "", cancellation);
+
+        return changed.Ok ? TypedResults.Ok() : changed.Problem.ToProblemResult();
+    }
+
     [WolverinePost("/api/vaults/{vault}/read-azure/resources")]
     public static async Task<Results<Ok<AzureResourceSummary>, ProblemHttpResult>> Add(string vault, AddAzureResourceRequest request, ReadAzureResources resources, CancellationToken cancellation)
     {
-        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target ?? "", request.Secret ?? "", cancellation);
+        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target ?? "", cancellation);
 
         return added.Ok ? TypedResults.Ok(SummaryOf(added.Value)) : added.Problem.ToProblemResult();
     }
@@ -49,7 +57,7 @@ public static class ReadAzureEndpoints
         return TypedResults.Ok();
     }
 
-    // The user's own sign-in for App Insights: Entra's code to type at the link; the runner finishes it in the background.
+    // The user's own sign-in: Entra's code to type at the link; the runner finishes it in the background.
     [WolverinePost("/api/vaults/{vault}/read-azure/user-login/start")]
     public static async Task<Results<Ok<AzureLoginStart>, ProblemHttpResult>> StartUserLogin(string vault, [FromServices] IAzureUserLogin login, CancellationToken cancellation)
     {

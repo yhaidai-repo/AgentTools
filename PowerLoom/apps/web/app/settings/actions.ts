@@ -171,7 +171,7 @@ export async function testDevHubAction(_previous: ActionResult | null, form: For
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
-// Read Azure (user decisions 2026-10-12/13), kept by PowerLoom: one switch per kind here, and each agent's own
+// Read Azure (user decisions 2026-10-12/14), kept by PowerLoom: one switch per kind here, and each agent's own
 // switches per kind on its Config page.
 export async function saveReadAzureKindAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const enabled = isEnabled(form);
@@ -187,7 +187,7 @@ export async function saveReadAzureKindAction(_previous: ActionResult | null, fo
 export async function addAzureResourceAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const added = await powerloom.POST("/api/vaults/{vault}/read-azure/resources", {
     params: { path: { vault: await requireVault() } },
-    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target"), secret: field(form, "secret") },
+    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target") },
   });
 
   revalidatePath("/settings");
@@ -195,7 +195,17 @@ export async function addAzureResourceAction(_previous: ActionResult | null, for
   return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
 }
 
-// The user's own sign-in for App Insights (user decision 2026-10-13): the runner gets Entra's code; the page polls.
+export async function saveAzureSubscriptionAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const subscription = field(form, "subscription");
+  const saved = await powerloom.PUT("/api/vaults/{vault}/read-azure/subscription", { params: { path: { vault: await requireVault() } }, body: { subscription } });
+  const result = powerloomResult(saved, subscription ? `Saved. Tools use ${subscription} unless an agent names a subscription.` : "Saved. No default: agents name a subscription per call.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// The user's own sign-in (user decision 2026-10-13): the runner gets Entra's code; the page polls.
 export async function startAzureLoginAction(): Promise<{ ok: true; start: AzureLoginStart } | { ok: false; message: string }> {
   const started = await powerloom.POST("/api/vaults/{vault}/read-azure/user-login/start", { params: { path: { vault: await requireVault() } } });
 

@@ -1,10 +1,9 @@
-import type { CosmosReader, LogsReader } from "@powerloom/azure";
+import type { AzureMcpServer } from "@powerloom/azure";
 import type { ReadAzureSettings } from "@powerloom/core";
 
-// The run's vault's Read Azure: its per-kind switches and resources, the logs reader bound to the vault's sign-in, the
-// Cosmos reader (keys come from the resources).
+// The run's vault's Read Azure: its per-kind switches and Cosmos/Mongo accounts, and the Azure MCP server started
+// for this run with the vault's sign-in (closed by the runner when the run ends).
 export interface AzureAccess {
   settings: ReadAzureSettings;
-  logs: LogsReader;
-  cosmos: CosmosReader;
+  server: AzureMcpServer;
 }

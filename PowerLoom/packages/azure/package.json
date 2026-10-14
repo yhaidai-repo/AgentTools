@@ -8,9 +8,9 @@
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@azure/cosmos": "4.10.1",
-    "@azure/monitor-query-logs": "1.0.0",
-    "@azure/msal-node": "6.0.1"
+    "@azure/mcp": "3.0.0",
+    "@azure/msal-node": "6.0.1",
+    "@modelcontextprotocol/sdk": "^1.31.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

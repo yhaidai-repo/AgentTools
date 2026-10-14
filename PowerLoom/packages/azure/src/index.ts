@@ -1,12 +1,11 @@
+export { AzureMcpServer } from "./AzureMcpServer";
 export { AzureUserLogin } from "./AzureUserLogin";
-export { CosmosReader } from "./CosmosReader";
-export { LogsReader } from "./LogsReader";
-export { kqlProblem, timespanDuration } from "./kqlGuard";
 export { NotSignedInError } from "./models/NotSignedInError";
-export type { AzureAnswer } from "./models/AzureAnswer";
-export type { AzureRows } from "./models/AzureRows";
 export type { AzureLoginStart } from "./models/AzureLoginStart";
 export type { AzureLoginStatus } from "./models/AzureLoginStatus";
+export type { AzureMcpAnswer } from "./models/AzureMcpAnswer";
+export type { AzureMcpStart } from "./models/AzureMcpStart";
+export type { AzureMcpInputSchema, AzureMcpProperty, AzureMcpTool } from "./models/AzureMcpTool";
+export type { AzureToken } from "./models/AzureToken";
 export type { AzureTokenCacheStore } from "./models/AzureTokenCacheStore";
-export type { AzureTokenCredential } from "./models/AzureTokenCredential";
 export type { AzureUserAccount } from "./models/AzureUserAccount";

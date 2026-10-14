@@ -1,11 +1,11 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
 import { AdoClient } from "@powerloom/ado";
-import { AGENT_DEFAULTS, AccessRequests, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
+import { AGENT_DEFAULTS, AZURE_ACCESS_NAMESPACES, AccessRequests, COSMOS_NAMESPACE, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
-import { AzureUserLogin, CosmosReader, LogsReader } from "@powerloom/azure";
+import { AzureMcpServer, AzureUserLogin } from "@powerloom/azure";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
@@ -59,7 +59,7 @@ if (!captureRules) {
 
 const sqlReader = new SqlReader();
 
-// The user's own sign-in for App Insights (user decision 2026-10-13): the MSAL cache and the account live in the config
+// The user's own sign-in for Azure (user decisions 2026-10-13/14): the MSAL cache and the account live in the config
 // table per vault, the only settings the runner writes. The cache text is wrapped in an object: the Postgres driver
 // sends a bare string into the jsonb column as JSON, and MSAL's JSON text would come back parsed.
 const azureLogin = new AzureUserLogin({
@@ -88,9 +88,10 @@ const shared = {
 };
 
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
+const runnerPort = Number(process.env.RUNNER_PORT ?? "3200");
 const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin);
 
-server.listen(Number(process.env.RUNNER_PORT ?? "3200"));
+server.listen(runnerPort);
 console.log(`agent-runner started; providers: ${shared.runtimes.providers().join(", ")}`);
 
 process.once("SIGTERM", stop);
@@ -102,11 +103,13 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
 
   let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
   let devHub: AgentDeps["devHub"] = null;
+  let azure: AgentDeps["azure"] = null;
 
   try {
     const deps = await depsFor(await vaultOfJob(job));
 
     devHub = deps.devHub;
+    azure = deps.azure;
 
     const result = await runAgentTask(deps, job);
 
@@ -116,6 +119,7 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
     completed = { runId: null, outcome: "failed", error: String(error) };
   } finally {
     await stopStackOfRun(devHub, completed.runId);
+    await closeAzure(azure);
     await report(job.taskId, completed);
   }
 }
@@ -192,13 +196,34 @@ async function depsFor(vault: string): Promise<AgentDeps> {
   };
 }
 
-// Read per run, so a switch flipped in Settings counts from the next run. The logs reader is bound to the vault's
-// sign-in; a missing one answers `denied` at call time, which asks the user to sign in.
+// Read per run, so a switch flipped in Settings counts from the next run. The Azure MCP server runs for the run with
+// the vault's sign-in: its `az` shim asks this runner for tokens (POWERLOOM_RUNNER_URL, the vault), the tenant is the
+// signed-in account's. Nobody signed in = every call answers `denied`, which asks the user to sign in.
 async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   const settings = await readReadAzureSettings(db, vault);
-  const anyKindOn = Object.values(settings.enabledKinds).some(Boolean);
+  const namespaces = [...(settings.enabledKinds.azureAccess ? AZURE_ACCESS_NAMESPACES : []), ...(settings.enabledKinds.cosmos ? [COSMOS_NAMESPACE] : [])];
 
-  return anyKindOn ? { settings, logs: new LogsReader(azureLogin.logsCredential(vault)), cosmos: new CosmosReader() } : null;
+  if (namespaces.length === 0) {
+    return null;
+  }
+
+  const account = await readAzureUserAccount(db, vault);
+  const env = { POWERLOOM_RUNNER_URL: `http://127.0.0.1:${runnerPort}`, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
+
+  return { settings, server: await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) };
+}
+
+// The run's server process ends with the run; a close that fails is logged, the run's outcome stands.
+async function closeAzure(azure: AgentDeps["azure"]): Promise<void> {
+  try {
+    await azure?.server.close();
+  } catch (error) {
+    console.error("the Azure MCP server did not close:", error);
+  }
+}
+
+function withoutEmpty(env: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(env).filter(([, value]) => value.length > 0));
 }
 
 // Read per run, so a switch flipped in Settings counts from the next run. Without a token DevHub refuses every

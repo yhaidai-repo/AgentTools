@@ -2324,6 +2324,51 @@
         }
       }
     },
+    "/api/vaults/{vault}/read-azure/subscription": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_subscription",
+        "description": "PUT_api_vaults_vault_read_azure_subscription",
+        "operationId": "PUT_api_vaults_vault_read_azure_subscription",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AzureSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/read-azure/resources": {
       "post": {
         "tags": [
@@ -2717,8 +2762,7 @@
         "required": [
           "name",
           "kind",
-          "target",
-          "secret"
+          "target"
         ],
         "type": "object",
         "properties": {
@@ -2729,12 +2773,6 @@
             "type": "string"
           },
           "target": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "secret": {
             "type": [
               "null",
               "string"
@@ -2973,6 +3011,20 @@
           },
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "AzureSubscriptionRequest": {
+        "required": [
+          "subscription"
+        ],
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
