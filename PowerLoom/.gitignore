@@ -16,3 +16,4 @@ next-env.d.ts
 /import-inbox/
 /tools/outlook-export/state.json
 /tools/audio-capture/home/
+/tools/audio-capture/bin/

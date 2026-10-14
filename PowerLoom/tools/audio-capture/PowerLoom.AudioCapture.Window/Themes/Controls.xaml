@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Plain control looks that take their colours from the theme dictionary (WPF's defaults are light only). -->
+    <Style TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextForeground}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource TextForeground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BubbleBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextForeground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BubbleBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextForeground}" />
+    </Style>
+</ResourceDictionary>

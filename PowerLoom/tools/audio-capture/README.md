@@ -12,10 +12,19 @@ docs vault.
 - Two channels give the speakers: `Me:` (mic) and `Them:` (system audio). A mic segment that repeats what the system channel
   said at the same moment (speakers, headset leakage) is dropped; silence hallucinations are filtered.
 
+## Projects
+| Project | Role |
+|---|---|
+| `PowerLoom.AudioCapture.Core` | recording, transcription, the resident process's logic (`RecorderDaemon`), control files, install |
+| `PowerLoom.AudioCapture.Window` | the resident process you see: tray icon, conversation window (bubbles, level meters, Start/Stop) |
+| `PowerLoom.AudioCapture` | the command line |
+
+Both executables build into `bin\Release\` (one folder, so `install` finds the window app beside the CLI).
+
 ## Install (once)
 ```powershell
-dotnet build -c Release
-.\bin\Release\net10.0-windows\PowerLoom.AudioCapture.exe install --inbox D:\Projects\AgentTools\PowerLoom\import-inbox\meetings
+dotnet build PowerLoom.AudioCapture.Window -c Release
+.\bin\Release\PowerLoom.AudioCapture.exe install --inbox D:\Projects\AgentTools\PowerLoom\import-inbox\meetings
 ```
 Writes `settings.json` and `prompt.txt` into the tool's home (`%LOCALAPPDATA%\PowerLoom\audio-capture`, or `--home <path>`,
 remembered in `home.txt` beside the exe), registers the Task Scheduler task **PowerLoom audio capture** (the resident `run`
@@ -27,11 +36,28 @@ The first transcription downloads the model (1.6 GB turbo, 3.1 GB large-v3) from
 ## Use
 | Do | How |
 |---|---|
-| Start recording | hotkey (default `Ctrl+Alt+F9`), or `PowerLoom.AudioCapture.exe record start [--title "Sprint planning"]` |
-| Stop | the hotkey again, or `record stop`; transcription runs right after, the inbox file appears in seconds to a minute |
+| Start recording | hotkey (default `Ctrl+Alt+F9`), the window's **Start recording**, the tray menu, or `PowerLoom.AudioCapture.exe record start [--title "Sprint planning"]` |
+| Stop | the same again; transcription runs right after, the inbox file appears in seconds to a minute |
+| See the conversation | double-click the tray icon (grey dot; red while recording) or start `PowerLoom.AudioCapture.Window.exe`: bubbles per turn (Me right, Them left), level meters, clock, Open folder; the last session shows at start |
 | See what it does | `status`; `audio-capture.log` has one line per event |
-| Stop the resident process | `quit` (also needed before `dotnet build`: the exe is locked while it runs) |
+| Stop the resident process | tray **Quit** or `quit` (also needed before `dotnet build`: the exe is locked while it runs) |
 | Remove | `uninstall` (settings, models and recordings stay) |
+
+Closing the window hides it; the process stays for the hotkey and the CLI.
+
+While recording, the window streams: each channel is cut at pauses (0.7 s of silence after at least 0.8 s of speech, or
+15 s), every chunk is transcribed at once and shown as a dimmed, italic bubble a few seconds behind the speech. After Stop
+the final pass replaces them. The window follows Windows' app mode (dark or light); `install --theme dark|light|system`.
+
+## Devices and languages
+- `devices` lists microphones and outputs with their default roles. Without a setting the tool records the **default
+  communications** devices, the ones Teams uses unless its own device settings say otherwise. `install --mic AirPods
+  --system AirPods` names them by a part of their friendly name.
+- A Bluetooth headset mic (AirPods) delivers a low, narrow-band signal; a wired or USB mic transcribes your own voice better.
+- `--languages uk,ru,en` (default): a segment detected as another language is treated as noise. Silence hallucinations
+  ("Дякую за перегляд!", "[музыка]") are filtered; Whisper only sees stretches with sound.
+- `prompt.txt` in the home steers the spelling of terms: keep it a **list of terms**. A sentence in Ukrainian made a
+  Russian speaker's chunks come out half Ukrainian.
 
 Without `--title` the name comes from the Teams call window ("Weekly sync | Microsoft Teams"), else it is `meeting`.
 The resident process starts itself on the first `record start` when the task isn't running.

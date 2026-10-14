@@ -37,6 +37,8 @@ public static class CommandLine
         "uninstall" => await InstallCommands.UninstallAsync(),
         "transcribe" => await TranscribeCommands.TranscribeAsync(options),
         "download-model" => await TranscribeCommands.DownloadModelAsync(options),
+        "devices" => TranscribeCommands.Devices(),
+        "live-replay" => await LiveReplayCommand.RunAsync(options),
         "record-for" => await TranscribeCommands.RecordForAsync(options),
         _ => Unknown(command),
     };
@@ -53,7 +55,8 @@ public static class CommandLine
     {
         Console.WriteLine("""
             PowerLoom.AudioCapture <command>
-              install --inbox <path> [--model <name>] [--hotkey <keys>]   settings + logon task; starts the resident process
+              install --inbox <path> [--home <path>] [--model <name>] [--hotkey <keys>] [--mic <name>] [--system <name>] [--languages uk,ru,en] [--theme dark|light|system]
+                                                                        settings + logon task; starts the resident process
               uninstall                                                 removes the task and stops the resident process
               record start [--title <text>]                             starts a recording (title: Teams call window, else "meeting")
               record stop                                               stops it; transcription and inbox hand-over follow
@@ -61,6 +64,8 @@ public static class CommandLine
               run                                                       the resident process itself (hotkey, control files)
               transcribe <folder> [--model <name>] [--prompt-file <path>] [--with-context] [--runtime cuda|vulkan|cpu] [--inbox <path>]
               download-model <large-v3|large-v3-turbo>
+              devices                                                   microphones and outputs with their default roles
+              live-replay <folder> [--model <name>] [--prompt-file <path>] [--languages uk,ru,en]   a session's WAVs through the live path (chunks at pauses), no playback
               record-for <seconds> [--title <text>] [--no-aec]          fixed-length recording without the resident process
             """);
     }

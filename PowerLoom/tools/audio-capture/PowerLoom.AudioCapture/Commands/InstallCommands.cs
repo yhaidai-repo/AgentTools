@@ -21,6 +21,10 @@ public static class InstallCommands
             InboxPath = Path.GetFullPath(inbox),
             Model = options.Value("--model") ?? current.Model,
             Hotkey = options.Value("--hotkey") ?? current.Hotkey,
+            MicDevice = options.Value("--mic") ?? current.MicDevice,
+            SystemDevice = options.Value("--system") ?? current.SystemDevice,
+            Languages = options.Value("--languages") ?? current.Languages,
+            Theme = options.Value("--theme") ?? current.Theme,
         };
 
         SettingsStore.Save(settings);

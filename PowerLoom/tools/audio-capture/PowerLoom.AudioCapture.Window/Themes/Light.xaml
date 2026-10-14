@@ -1,0 +1,15 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="WindowBackground" Color="#F4F5F7" />
+    <SolidColorBrush x:Key="TextForeground" Color="#1F2328" />
+    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ButtonBackground" Color="#E9EBEF" />
+    <SolidColorBrush x:Key="ButtonHover" Color="#DDE1E7" />
+    <SolidColorBrush x:Key="MeBubble" Color="#D9E8FF" />
+    <SolidColorBrush x:Key="ThemBubble" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="BubbleBorder" Color="#D5D8DE" />
+    <SolidColorBrush x:Key="Muted" Color="#6B7280" />
+    <SolidColorBrush x:Key="Accent" Color="#2563EB" />
+    <SolidColorBrush x:Key="Recording" Color="#DC2626" />
+    <SolidColorBrush x:Key="MeterTrack" Color="#E5E7EB" />
+</ResourceDictionary>
