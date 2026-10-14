@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PowerLoom.AudioCapture</RootNamespace>
+    <!-- Windows only: WASAPI capture and loopback. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- Whisper.net's native runtimes ship for x64 only. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" />
+    <PackageReference Include="Whisper.net" />
+    <PackageReference Include="Whisper.net.Runtime" />
+    <PackageReference Include="Whisper.net.Runtime.Cuda" />
+    <PackageReference Include="Whisper.net.Runtime.Vulkan" />
+  </ItemGroup>
+
+</Project>
