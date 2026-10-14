@@ -33,6 +33,7 @@ export const itemKind = pgEnum("item_kind", [
   "review", // code-review task: one review of one pull request
   "vault-review", // one review pass over the selected vaults: stale notes, invalid links
   "goal", // a scheduled task of any agent: a goal on chosen repositories, no PBI (user decision 2026-10-06)
+  "meeting", // a recorded meeting to turn into notes and follow-ups (tools/audio-capture, 2026-10-14)
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -45,7 +46,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",

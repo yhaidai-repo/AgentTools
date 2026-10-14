@@ -20,6 +20,24 @@ function batchSizeOption(unit: string): AgentOptionSpec {
   };
 }
 
+const MEETING_NOTES_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("Meetings"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking a meeting",
+    description: "After this many failed runs, the meeting task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "maxTasksPerRun",
+    label: "Follow-ups per meeting",
+    description: "Most tasks and questions one meeting may create.",
+    min: 0,
+    max: 20,
+  },
+];
+
 const REFINEMENT_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("PBIs"),
   {
@@ -416,6 +434,26 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["vault-review"],
+    waitFor: [],
+  },
+  // Turns each recorded meeting (MT-…, from tools/audio-capture) into notes in its vault and the follow-ups it asked for;
+  // off until the user turns it on (user decision 2026-10-14, stage 4 of the audio capture design).
+  {
+    id: "meeting-notes",
+    label: "Meeting notes",
+    description: "Reads a recorded meeting's transcript and writes its notes into the vault: summary, decisions, action items, work items discussed, open questions. Creates tasks for your action items, questions left to you, and research or design on the work items discussed.",
+    enabled: false,
+    schedule: "*/10 * * * *",
+    model: { provider: "anthropic", model: "claude-sonnet-5" },
+    limits: { maxTurns: 30, timeoutMinutes: 15 },
+    budgets: { perRunUsd: 1, dailyUsd: 5 },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [READ_TEST_CASES_INTEGRATION]: false } },
+    skills: [],
+    options: { batchSize: 2, maxFailures: 2, maxTasksPerRun: 8 },
+    optionSpecs: MEETING_NOTES_OPTIONS,
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["research", "design"],
+    handles: ["meeting"],
     waitFor: [],
   },
 ];

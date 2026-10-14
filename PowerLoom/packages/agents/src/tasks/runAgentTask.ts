@@ -16,6 +16,7 @@ import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
+import { runMeetingNotesTask } from "../meetingNotes/runMeetingNotesTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
 import { endTask, failAfterError, releaseTask } from "./endTask";
 
@@ -30,6 +31,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,
   "vault-review": runVaultReviewTask,
+  "meeting-notes": runMeetingNotesTask,
 };
 
 // Scheduled goal tasks (GT-…) run the generic goal prompt; every other task, with or without a PBI, runs its agent's own

@@ -14,4 +14,6 @@ public enum ItemKind
     Review,
     VaultReview,
     Goal,
+    // A recorded meeting to turn into notes and tasks (tools/audio-capture; design 2026-10-14).
+    Meeting,
 }

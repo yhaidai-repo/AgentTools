@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The command line: record start/stop, status, install, transcribe. The window app is the usual resident process. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PowerLoom.AudioCapture</RootNamespace>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- One folder for both executables: `install` finds the window app beside the CLI. -->
+    <OutDir>$(MSBuildThisFileDirectory)..\bin\$(Configuration)\</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PowerLoom.AudioCapture.Core\PowerLoom.AudioCapture.Core.csproj" />
+  </ItemGroup>
+
+</Project>
