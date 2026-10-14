@@ -57,7 +57,14 @@ the final pass replaces them. The window follows Windows' app mode (dark or ligh
 - **Naming**: type a name into a voice's box and press Enter, during the meeting or after (or
   `speakers <folder> --rename "Speaker 2=Anna"`). The bubbles, `speakers.json`, the transcript and the inbox file (while it
   still waits) take the name, and the voice print goes into `voices.json` in the home. From then on that voice is named
-  in later meetings, live.
+  in later meetings, live. Giving a voice a name another voice already has merges the two.
+- **Fewer false voices**: a stretch shorter than 4 s never opens a new voice, it joins the closest one; every 20 stretches
+  voices that have drifted close are merged (a named voice absorbs an unnamed one). Voices under 3 s are not boxed, only
+  counted ("+n under 3 s"). Each sentence of a stretch is labelled by its own print, so a speaker change inside a stretch
+  lands on the right voice.
+- **Moving a bubble**: right-click a bubble of the others and pick the right voice, or a new name. Live it changes the
+  recording's transcript; after Stop it rewrites the files, and when the bubble is 3 s or longer the chosen voice learns
+  from its audio.
 - **At Stop** the live transcript is saved as it is and handed to PowerLoom in about a second; there is no second pass
   (user, 2026-10-14). `transcribe <folder>` still re-runs recognition and diarization on a session by hand.
 - *Not used at Stop any more:* the channel can be diarized properly (pyannote segmentation 3.0 + the same embeddings; the two models, 33 MB,
