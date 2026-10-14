@@ -72,7 +72,11 @@ the final pass replaces them. The window follows Windows' app mode (dark or ligh
   meeting takes a few minutes in the background.
 - Prints compare in a **voice space** (`voice-space.json`): the mean of every print ever seen is subtracted first, which
   separates strangers (raw cosine crowded them together). Until eight prints are seen, matching is strict; it loosens
-  as the space fills during the first meeting.
+  as the space fills during the first meeting. A stored profile needs 0.6, joining a voice of the meeting 0.55, a short
+  stretch may join at 0.35 or stays unassigned ("Them"); a voice's centre moves only on stretches of 4 s or more.
+- `voices` lists the stored profiles, `voices --forget Andrew` drops one that went wrong (a profile named on a voice
+  that had absorbed other people matches everyone); name the person again in the next meeting.
+- `live-replay <folder> --trace` prints every voice decision with its scores: the way to see why a meeting came out as it did.
 - Diarization can split one person into two voices (a short interjection) or merge two similar ones; name what is right,
   the stored prints improve the matching. The mic channel is always `Me`.
 
