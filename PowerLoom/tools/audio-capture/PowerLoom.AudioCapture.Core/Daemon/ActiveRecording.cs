@@ -6,14 +6,15 @@ using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Daemon;
 
-// The recording in progress: its recorder, folder and title, and the live path (chunkers per channel → live transcriber).
+// The recording in progress: its recorder, folder and title, the live path (chunkers per channel → live transcriber)
+// and the voices heard so far.
 public sealed class ActiveRecording
 {
     private readonly SessionRecorder _recorder;
     private readonly Dictionary<string, SpeechChunker> _chunkers;
     private readonly LiveTranscriber _live;
 
-    private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine, VoiceNamer? namer)
+    private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine, LiveSpeakers? speakers)
     {
         _recorder = recorder;
         _chunkers = new Dictionary<string, SpeechChunker>
@@ -21,7 +22,8 @@ public sealed class ActiveRecording
             [SessionRecorder.MicChannel] = new SpeechChunker(SessionRecorder.MicChannel),
             [SessionRecorder.SystemChannel] = new SpeechChunker(SessionRecorder.SystemChannel),
         };
-        _live = new LiveTranscriber(engine, namer);
+        _live = new LiveTranscriber(engine, speakers);
+        Speakers = speakers;
         Folder = folder;
         Title = title;
         StartedAt = DateTimeOffset.Now;
@@ -37,17 +39,19 @@ public sealed class ActiveRecording
 
     public event Action<TranscriptSegment>? LiveSegment;
 
+    public LiveSpeakers? Speakers { get; }
+
     public string Folder { get; }
 
     public string Title { get; }
 
     public DateTimeOffset StartedAt { get; }
 
-    public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, VoiceNamer? namer, Action<string, float> onLevel)
+    public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, LiveSpeakers? speakers, Action<string, float> onLevel)
     {
         var folder = SessionFolders.NewSessionFolder(title);
         var recorder = new SessionRecorder(folder, title, devices, echoCancellation: true);
-        var recording = new ActiveRecording(recorder, folder, title, engine, namer);
+        var recording = new ActiveRecording(recorder, folder, title, engine, speakers);
 
         recorder.Level += onLevel;
         recorder.Start();
@@ -55,7 +59,8 @@ public sealed class ActiveRecording
         return recording;
     }
 
-    // Stops the capture, lets the last chunks through the live path, and returns the session for the final pass.
+    // Stops the capture, lets the last chunks through the live path, keeps the live voices for the final pass, and
+    // returns the session.
     public async Task<RecordingSession> StopAsync()
     {
         var session = _recorder.Stop();
@@ -68,6 +73,9 @@ public sealed class ActiveRecording
         }
 
         await _live.CompleteAsync();
+
+        if (Speakers is not null)
+            SessionSpeakers.Save(Folder, Speakers.Snapshot());
 
         return session;
     }

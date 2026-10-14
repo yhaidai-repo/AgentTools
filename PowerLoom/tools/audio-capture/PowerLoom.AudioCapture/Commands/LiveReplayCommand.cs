@@ -2,6 +2,7 @@ using System.Diagnostics;
 using PowerLoom.AudioCapture.Live;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Commands;
@@ -21,16 +22,20 @@ public static class LiveReplayCommand
 
         using var engine = new WhisperEngine(await ModelStore.EnsureAsync(model, Console.WriteLine), transcription);
 
-        var count = await ReplayAsync(folder, engine);
+        var speakerTools = options.Has("--no-speakers") ? null : await TranscribeCommands.LoadSpeakerToolsAsync();
+        var count = await ReplayAsync(folder, engine, speakerTools?.NewLiveSpeakers());
 
         Console.WriteLine($"{count} live segments (runtime {RuntimeSelection.Loaded})");
 
         return 0;
     }
 
-    private static async Task<int> ReplayAsync(string folder, WhisperEngine engine)
+    private static async Task<int> ReplayAsync(string folder, WhisperEngine engine, LiveSpeakers? speakers)
     {
-        var live = new LiveTranscriber(engine, namer: null);
+        var live = new LiveTranscriber(engine, speakers);
+
+        if (speakers is not null)
+            speakers.Changed += list => Console.WriteLine($"-- voices: {string.Join(", ", list.Select(s => s.Label))}");
         var watch = Stopwatch.StartNew();
         var count = 0;
 

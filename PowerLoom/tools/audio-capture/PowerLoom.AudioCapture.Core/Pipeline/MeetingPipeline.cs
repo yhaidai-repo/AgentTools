@@ -85,7 +85,7 @@ public sealed class MeetingPipeline(ToolSettings settings) : IDisposable
         var tools = await Task.Run(() => new SpeakerTools(
             new SpeakerDiarizer(SpeakerModels.SegmentationPath, SpeakerModels.EmbeddingPath),
             new VoiceEmbedder(SpeakerModels.EmbeddingPath),
-            new VoiceStore()));
+            new VoiceStore(new VoiceSpace())));
 
         Log.Info($"Speaker models loaded; {tools.Store.Names.Count} named voices");
 

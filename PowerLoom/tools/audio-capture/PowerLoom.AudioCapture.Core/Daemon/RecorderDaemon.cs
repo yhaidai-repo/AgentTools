@@ -27,6 +27,9 @@ public sealed class RecorderDaemon(ToolSettings settings)
 
     public event Action<TranscriptSegment>? LiveSegment;
 
+    // The voices heard so far in the running recording (a new one, or a name given to one).
+    public event Action<IReadOnlyList<SpeakerInfo>>? SpeakersChanged;
+
     public event Action<TranscriptResult, string>? TranscriptReady;
 
     public event Action<string>? Failed;
@@ -50,6 +53,9 @@ public sealed class RecorderDaemon(ToolSettings settings)
     public void RequestStop() => Interlocked.Exchange(ref _stopPending, 1);
 
     public void RequestQuit() => Interlocked.Exchange(ref _quitPending, 1);
+
+    // A name typed in the window while recording: relabels the live voice and stores its profile.
+    public bool RenameLiveSpeaker(string oldLabel, string name) => _active?.Speakers?.Rename(oldLabel, name) ?? false;
 
     public async Task RunAsync(CancellationToken cancellation)
     {
@@ -126,8 +132,11 @@ public sealed class RecorderDaemon(ToolSettings settings)
         var engine = await _pipeline.EngineAsync();
         var speakerTools = await _pipeline.SpeakerToolsAsync();
 
-        _active = ActiveRecording.Start(title, CaptureSelection.From(settings), engine, speakerTools?.Namer, (channel, level) => Level?.Invoke(channel, level));
+        _active = ActiveRecording.Start(title, CaptureSelection.From(settings), engine, speakerTools?.NewLiveSpeakers(), (channel, level) => Level?.Invoke(channel, level));
         _active.LiveSegment += segment => LiveSegment?.Invoke(segment);
+
+        if (_active.Speakers is not null)
+            _active.Speakers.Changed += speakers => SpeakersChanged?.Invoke(speakers);
         Log.Info($"Recording '{title}' into {_active.Folder}");
         PublishState();
         RecordingStarted?.Invoke(_active);

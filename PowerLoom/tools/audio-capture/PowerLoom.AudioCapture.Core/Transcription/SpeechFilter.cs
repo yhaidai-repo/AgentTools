@@ -13,6 +13,10 @@ public static partial class SpeechFilter
     private const double SparseMinSeconds = 6;
     private const double SparseWordsPerSecond = 0.3;
 
+    // Whisper's favourite output for a short stretch of noise; alone in a segment it is never a real line of a meeting.
+    private static readonly HashSet<string> LoneFillers = new(StringComparer.OrdinalIgnoreCase)
+        { "thank you", "thanks", "thank you very much", "bye", "you", "hmm", "mm-hmm", "uh", "um" };
+
     private static readonly string[] StockPhrases =
     [
         "дякую за перегляд", "дякую за увагу", "підписуйтесь", "спасибо за просмотр", "спасибо за внимание", "подписывайтесь",
@@ -39,6 +43,9 @@ public static partial class SpeechFilter
             return false;
 
         if (StockPhrases.Any(phrase => text.Contains(phrase, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        if (LoneFillers.Contains(text.TrimEnd('.', '!', ',')))
             return false;
 
         return ScriptMatches(text, language);

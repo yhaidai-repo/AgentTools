@@ -16,6 +16,7 @@ public partial class MainWindow
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.Bubbles.CollectionChanged += OnBubblesChanged;
+        viewModel.ConversationGrew += () => Conversation.ScrollToEnd();
     }
 
     // Closing hides: the process stays resident for the hotkey and the CLI; Quit is in the tray menu.

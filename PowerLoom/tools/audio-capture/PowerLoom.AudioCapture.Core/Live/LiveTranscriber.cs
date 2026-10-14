@@ -8,19 +8,19 @@ namespace PowerLoom.AudioCapture.Live;
 
 // Transcribes chunks in arrival order on one worker and raises each segment as soon as it is known (provisional text;
 // the final pass after the recording replaces it). Mic segments that repeat recent system-channel text are echo and
-// dropped. A system-channel chunk whose voice print matches a named voice carries that name.
+// dropped. A system-channel chunk carries the live voice it belongs to ("Speaker 2", or a stored name).
 public sealed class LiveTranscriber
 {
     private static readonly TimeSpan EchoMemory = TimeSpan.FromSeconds(30);
     private readonly Channel<SpeechChunk> _queue = Channel.CreateUnbounded<SpeechChunk>();
     private readonly List<TranscriptSegment> _recentSystem = [];
-    private readonly VoiceNamer? _namer;
+    private readonly LiveSpeakers? _speakers;
     private readonly Task _worker;
     private int _pending;
 
-    public LiveTranscriber(WhisperEngine engine, VoiceNamer? namer)
+    public LiveTranscriber(WhisperEngine engine, LiveSpeakers? speakers)
     {
-        _namer = namer;
+        _speakers = speakers;
         _worker = Task.Run(() => WorkAsync(engine));
     }
 
@@ -58,11 +58,11 @@ public sealed class LiveTranscriber
         try
         {
             var segments = await engine.TranscribeSamplesAsync(chunk.Samples, chunk.Speaker, chunk.Start);
-            var name = NameOf(chunk);
+            var label = segments.Count > 0 ? LabelOf(chunk) : null;
 
             foreach (var segment in segments)
             {
-                Publish(name is null ? segment : segment with { Speaker = name });
+                Publish(label is null ? segment : segment with { Speaker = label });
             }
         }
         catch (Exception exception)
@@ -71,8 +71,8 @@ public sealed class LiveTranscriber
         }
     }
 
-    private string? NameOf(SpeechChunk chunk) =>
-        chunk.Speaker == SessionRecorder.SystemChannel ? _namer?.NameOf(chunk.Samples) : null;
+    private string? LabelOf(SpeechChunk chunk) =>
+        chunk.Speaker == SessionRecorder.SystemChannel ? _speakers?.LabelFor(chunk.Samples) : null;
 
     private void Publish(TranscriptSegment segment)
     {

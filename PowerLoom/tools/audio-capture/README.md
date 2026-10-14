@@ -50,13 +50,20 @@ While recording, the window streams: each channel is cut at pauses (0.7 s of sil
 the final pass replaces them. The window follows Windows' app mode (dark or light); `install --theme dark|light|system`.
 
 ## Speakers
-- After Stop the others' channel is split into voices (sherpa-onnx: pyannote segmentation 3.0 + WeSpeaker ResNet34
-  embeddings, CPU, offline; the two models, 33 MB, download on first use into `models\`). Each voice is labelled
-  `Speaker 1`, `Speaker 2`, … in order of first appearance; a one-hour meeting takes a few minutes in the background.
-- **Naming**: in the window, type a name into a voice's box above the bubbles and press Enter (or
-  `speakers <folder> --rename "Speaker 2=Anna"`). The transcript, `speakers.json` and the inbox file (while it still waits)
-  take the name, and the voice print goes into `voices.json` in the home. From then on that voice is named in later
-  meetings, in the live view too. Several voices of one meeting that match the same stored name all get it.
+- **Live**: every chunk of the others' channel gets a voice print (WeSpeaker ResNet34 embeddings, CPU, offline). A print
+  close to a stored profile shows that name at once; one close to a voice already heard in this meeting joins it; any
+  other starts `Speaker 1`, `Speaker 2`, … in order of first appearance. The boxes above the bubbles appear as voices
+  are heard. One Start before the meeting, one Stop after; nothing else to press.
+- **Naming**: type a name into a voice's box and press Enter, during the meeting or after (or
+  `speakers <folder> --rename "Speaker 2=Anna"`). The bubbles, `speakers.json`, the transcript and the inbox file (while it
+  still waits) take the name, and the voice print goes into `voices.json` in the home. From then on that voice is named
+  in later meetings, live.
+- **After Stop** the channel is diarized properly (pyannote segmentation 3.0 + the same embeddings; the two models, 33 MB,
+  download on first use into `models\`); the clusters take the live labels and names, so what you saw stays. A one-hour
+  meeting takes a few minutes in the background.
+- Prints compare in a **voice space** (`voice-space.json`): the mean of every print ever seen is subtracted first, which
+  separates strangers (raw cosine crowded them together). Until eight prints are seen, matching is strict; it loosens
+  as the space fills during the first meeting.
 - Diarization can split one person into two voices (a short interjection) or merge two similar ones; name what is right,
   the stored prints improve the matching. The mic channel is always `Me`.
 

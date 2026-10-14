@@ -30,11 +30,11 @@ public static class TranscribeCommands
         return options.Value("--inbox") is { } inbox ? SendToInbox(folder, inbox, result, model) : 0;
     }
 
-    private static async Task<SpeakerTools> LoadSpeakerToolsAsync()
+    public static async Task<SpeakerTools> LoadSpeakerToolsAsync()
     {
         await SpeakerModels.EnsureAsync(Console.WriteLine);
 
-        return new SpeakerTools(new SpeakerDiarizer(SpeakerModels.SegmentationPath, SpeakerModels.EmbeddingPath), new VoiceEmbedder(SpeakerModels.EmbeddingPath), new VoiceStore());
+        return new SpeakerTools(new SpeakerDiarizer(SpeakerModels.SegmentationPath, SpeakerModels.EmbeddingPath), new VoiceEmbedder(SpeakerModels.EmbeddingPath), new VoiceStore(new VoiceSpace()));
     }
 
     public static int Devices()

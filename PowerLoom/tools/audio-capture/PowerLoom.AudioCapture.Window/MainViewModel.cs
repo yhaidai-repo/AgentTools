@@ -17,6 +17,7 @@ namespace PowerLoom.AudioCapture.Ui;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private static readonly TimeSpan LevelHold = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan LiveBubbleGap = TimeSpan.FromSeconds(2.5);
     private const float SpeakingLevel = 0.12f;
 
     private readonly RecorderDaemon _daemon;
@@ -35,7 +36,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel(ToolSettings settings, RecorderDaemon daemon)
     {
         _daemon = daemon;
-        _renamer = new SpeakerRenamer(new VoiceStore(), settings);
+        _renamer = new SpeakerRenamer(new VoiceStore(new VoiceSpace()), settings);
         _status = $"Idle · hotkey {settings.Hotkey}";
         ToggleCommand = new RelayCommand(Toggle);
         OpenFolderCommand = new RelayCommand(OpenFolder, () => _sessionFolder is not null);
@@ -44,6 +45,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    // Raised on every live addition (new bubble or grown bubble) so the window scrolls to it.
+    public event Action? ConversationGrew;
 
     public ObservableCollection<BubbleViewModel> Bubbles { get; } = [];
 
@@ -106,15 +110,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Title = "";
     }
 
-    // A live segment while recording: provisional text, joined to the previous bubble when the same speaker goes on.
+    // A live segment while recording: provisional text, joined to the previous bubble when the same speaker goes on
+    // without a pause; a pause or a long bubble starts a new one, so the view keeps moving.
     public void OnLiveSegment(TranscriptSegment segment)
     {
         var last = Bubbles.LastOrDefault();
 
-        if (last is not null && last.IsProvisional && last.Speaker == segment.Speaker)
-            last.Append(segment.Text);
+        if (last is not null && last.CanTake(segment, LiveBubbleGap))
+            last.Append(segment);
         else
             Bubbles.Add(BubbleViewModel.Provisional(segment));
+
+        ConversationGrew?.Invoke();
     }
 
     public void OnFailed(string message) => Status = message;
@@ -153,13 +160,52 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // Enter or focus loss on a speaker's box: the new name goes into the files and the voice store, then the session reloads.
+    // Enter or focus loss on a speaker's box. While recording the live voice is renamed in place (bubbles follow, profile
+    // stored); otherwise the name goes into the session's files and the voice store, and the session reloads.
     public void CommitSpeakerName(SpeakerViewModel speaker)
+    {
+        if (IsRecording)
+            CommitLiveSpeakerName(speaker);
+        else
+            CommitStoredSpeakerName(speaker);
+    }
+
+    // The live voices: new ones are added, renamed ones update their label; a box being edited is left alone.
+    public void OnSpeakersChanged(IReadOnlyList<SpeakerInfo> speakers)
+    {
+        foreach (var info in speakers)
+        {
+            var existing = Speakers.FirstOrDefault(s => s.OriginalLabel == info.Label || s.Label == info.Label);
+
+            if (existing is null)
+                Speakers.Add(new SpeakerViewModel(info.Label, info.Seconds, info.Known));
+        }
+    }
+
+    private void CommitLiveSpeakerName(SpeakerViewModel speaker)
+    {
+        if (!_daemon.RenameLiveSpeaker(speaker.OriginalLabel, speaker.Label))
+            return;
+
+        RelabelBubbles(speaker.OriginalLabel, speaker.Label.Trim());
+        speaker.Renamed();
+        Status = $"Named {speaker.Label}; voice stored";
+    }
+
+    private void CommitStoredSpeakerName(SpeakerViewModel speaker)
     {
         if (_sessionFolder is null || !_renamer.Rename(_sessionFolder, speaker.OriginalLabel, speaker.Label))
             return;
 
         ShowSession(_sessionFolder, SessionHistory.LoadSegments(_sessionFolder), $"Named {speaker.OriginalLabel} as {speaker.Label.Trim()}; voice stored");
+    }
+
+    private void RelabelBubbles(string oldLabel, string name)
+    {
+        foreach (var bubble in Bubbles)
+        {
+            bubble.Relabel(oldLabel, name);
+        }
     }
 
     private void Toggle()

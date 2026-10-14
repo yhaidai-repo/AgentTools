@@ -9,7 +9,10 @@ public sealed class SpeakerViewModel(string label, double seconds, bool known) :
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string OriginalLabel { get; } = label;
+    public string OriginalLabel { get; private set; } = label;
+
+    // After a live rename the current label is the one later renames start from.
+    public void Renamed() => OriginalLabel = Label.Trim();
 
     public string Detail { get; } = $"{seconds:F0} s{(known ? ", known voice" : "")}";
 

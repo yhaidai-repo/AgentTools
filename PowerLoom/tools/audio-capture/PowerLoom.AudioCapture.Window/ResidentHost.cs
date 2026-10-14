@@ -30,6 +30,7 @@ public sealed class ResidentHost : IDisposable
         _daemon.Level += (channel, level) => OnUi(() => _viewModel.OnLevel(channel, level));
         _daemon.ShowRequested += () => OnUi(ShowWindow);
         _daemon.LiveSegment += segment => OnUi(() => _viewModel.OnLiveSegment(segment));
+        _daemon.SpeakersChanged += speakers => OnUi(() => _viewModel.OnSpeakersChanged(speakers));
     }
 
     public void Start(bool startHidden)

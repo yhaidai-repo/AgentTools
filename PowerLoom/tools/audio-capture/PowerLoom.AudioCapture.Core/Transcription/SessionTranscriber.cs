@@ -48,7 +48,8 @@ public sealed class SessionTranscriber(WhisperEngine engine, SpeakerTools? speak
         var watch = Stopwatch.StartNew();
         var samples = WavSamples.ReadAll(Path.Combine(folder, "system.wav"));
         var spans = speakerTools.Diarizer.Diarize(samples);
-        var (labeled, speakers) = SpeakerLabeling.Label(system, spans, samples, speakerTools.Embedder, speakerTools.Store);
+        var liveSpeakers = SessionSpeakers.Load(folder);
+        var (labeled, speakers) = SpeakerLabeling.Label(system, spans, samples, speakerTools.Embedder, speakerTools.Store, liveSpeakers);
 
         SessionSpeakers.Save(folder, speakers);
         log($"Voices: {speakers.Count} ({string.Join(", ", speakers.Select(s => $"{s.Label} {s.Seconds:F0} s"))}) in {watch.Elapsed.TotalSeconds:F1} s");

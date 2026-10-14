@@ -28,7 +28,7 @@ public static class SpeakersCommand
         if (parts.Length != 2)
             throw new ArgumentException("--rename takes \"<old label>=<name>\"");
 
-        var renamed = new SpeakerRenamer(new VoiceStore(), SettingsStore.Load()).Rename(folder, parts[0], parts[1]);
+        var renamed = new SpeakerRenamer(new VoiceStore(new VoiceSpace()), SettingsStore.Load()).Rename(folder, parts[0], parts[1]);
 
         Console.WriteLine(renamed ? $"Renamed {parts[0]} to {parts[1]}; voice stored" : $"No speaker '{parts[0]}' in {folder}");
     }
