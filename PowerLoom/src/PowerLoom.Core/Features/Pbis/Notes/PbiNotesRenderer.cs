@@ -45,6 +45,7 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
         var note = new RefinementNote(adoId, latest.Version, latest.RunId, latest.CreatedAt, latest.Summary,
             NoteJson.List<string>(latest.ScopeIn), NoteJson.List<string>(latest.ScopeOut), NoteJson.List<AcceptanceGap>(latest.AcGaps), NoteJson.List<string>(latest.Dependencies),
             NoteJson.List<RepoReason>(latest.Repos), NoteJson.List<string>(latest.Assumptions), NoteJson.List<RelevantDoc>(latest.RelevantDocs), NoteJson.List<string>(latest.DocsRead),
+            latest.EstHours, latest.EstimateBasis,
             NoteJson.Object<RefinementDetails>(latest.Details));
 
         await files.WriteNoteAsync(vault, BacklogPaths.RefinementNotePath(pbiPath, adoId), notesSection => RefinementNoteRenderer.Render(note, notesSection), cancellation);

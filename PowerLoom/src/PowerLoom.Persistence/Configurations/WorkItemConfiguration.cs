@@ -37,6 +37,8 @@ public partial class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
             .HasDefaultValueSql("now()")
             .HasColumnName("created_at");
         entity.Property(e => e.DescriptionMd).HasColumnName("description_md");
+        entity.Property(e => e.DiscussionMd).HasColumnName("discussion_md");
+        entity.Property(e => e.DiscussionRev).HasColumnName("discussion_rev");
         entity.Property(e => e.Effort).HasColumnName("effort");
         entity.Property(e => e.IterationPath).HasColumnName("iteration_path");
         entity.Property(e => e.ParentId).HasColumnName("parent_id");

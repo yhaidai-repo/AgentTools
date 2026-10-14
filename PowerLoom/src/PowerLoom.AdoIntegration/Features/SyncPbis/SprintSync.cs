@@ -25,7 +25,7 @@ public sealed class SprintSync(PowerLoomDbContext db, WorkItemStore store, SyncB
         if (scope.Sprint.TimeFrame == "current")
         {
             await bookkeeping.SaveCurrentSprintAsync(vault, scope.Sprint.Path, cancellation);
-            await bookkeeping.SnapshotSprintAsync(scope.Sprint.Path, cancellation);
+            await bookkeeping.SnapshotSprintAsync(scope.Sprint.Path, scope.ChildEffort, cancellation);
         }
 
         return new SyncOutcome(RunOutcome.Success, $"{scope.Sprint.Name}: {scope.AllIds.Count} PBIs and {scope.BugIds.Count} bugs from your sprint tasks, {changed + newBugs} changed");

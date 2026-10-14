@@ -9,6 +9,8 @@ namespace PowerLoom.AdoIntegration.Client;
 public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoClient
 {
     private const string ApiVersion = "api-version=7.1";
+    // Work item comments have no released 7.1 version yet.
+    private const string CommentsApiVersion = "api-version=7.1-preview.4";
     private const int BatchLimit = 200;
     private const int PullRequestPage = 100;
 
@@ -31,6 +33,14 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
             items.AddRange(await GetWorkItemBatchAsync(batch, fields, cancellation));
 
         return items;
+    }
+
+    public async Task<IReadOnlyList<AdoComment>> GetCommentsAsync(int workItemId, int top, CancellationToken cancellation)
+    {
+        var url = $"{ProjectUrl()}/_apis/wit/workItems/{workItemId}/comments?$top={top}&order=desc&{CommentsApiVersion}";
+        var body = await RequestAsync<CommentListDto>(url, null, cancellation);
+
+        return body.Comments.Select(ToComment).Reverse().ToList();
     }
 
     public async Task<IReadOnlyList<AdoIteration>> GetIterationsAsync(bool onlyCurrent, CancellationToken cancellation)
@@ -83,6 +93,11 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
         var body = await RequestAsync<ValueList<AdoWorkItem?>>($"{ProjectUrl()}/_apis/wit/workitemsbatch?{ApiVersion}", new { ids, fields, errorPolicy = "Omit" }, cancellation);
 
         return body.Value.Where(item => item is not null).Select(item => item!).ToList();
+    }
+
+    private static AdoComment ToComment(CommentDto dto)
+    {
+        return new AdoComment(dto.CreatedBy?.DisplayName ?? dto.CreatedBy?.UniqueName, dto.CreatedDate, dto.Text ?? "");
     }
 
     private AdoPullRequest ToPullRequest(PullRequestDto dto)

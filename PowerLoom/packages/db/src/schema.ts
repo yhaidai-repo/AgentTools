@@ -239,6 +239,9 @@ export const refinement = pgTable("refinement", {
   skills: jsonb("skills").$type<{ name: string; reason: string }[]>().notNull().default([]), // what this version recommended
   // Better Refinement's full result (sources, affected areas, test data, blockers, status); null for earlier refinements.
   details: jsonb("details").$type<object | null>(),
+  // Refinement's rough estimate in developer hours; null for refinements from before it gave one.
+  estHours: numeric("est_hours"),
+  estimateBasis: text("estimate_basis"),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("refinement_pbi_version_uq").on(t.pbiId, t.version)]);
 

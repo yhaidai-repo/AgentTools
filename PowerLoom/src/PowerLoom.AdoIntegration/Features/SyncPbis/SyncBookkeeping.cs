@@ -30,26 +30,27 @@ public sealed class SyncBookkeeping(PowerLoomDbContext db)
         await db.DeletedPbis.Where(row => row.AdoId == adoId).ExecuteDeleteAsync(cancellation);
     }
 
-    // One row per PBI per day for the current sprint; a later sync the same day overwrites it.
-    public async Task SnapshotSprintAsync(string iterationPath, CancellationToken cancellation)
+    // One row per PBI per day for the current sprint; a later sync the same day overwrites it. Effort is the sum of the
+    // user's Tasks under the item (ChildTaskEffort), so a [BUG] Task's own Effort counts once, under its parent.
+    public async Task SnapshotSprintAsync(string iterationPath, IReadOnlyDictionary<int, decimal> childEffort, CancellationToken cancellation)
     {
         var takenOn = DateOnly.FromDateTime(DateTime.UtcNow);
         var items = await db.WorkItems.AsNoTracking().Where(item => item.IterationPath == iterationPath).ToListAsync(cancellation);
         var existing = await db.SprintSnapshots.Where(row => row.IterationPath == iterationPath && row.TakenOn == takenOn).ToDictionaryAsync(row => row.AdoId, cancellation);
 
         foreach (var item in items)
-            Snapshot(existing.GetValueOrDefault(item.AdoId), item, iterationPath, takenOn);
+            Snapshot(existing.GetValueOrDefault(item.AdoId), item, iterationPath, takenOn, childEffort);
 
         await db.SaveChangesAsync(cancellation);
     }
 
-    private void Snapshot(SprintSnapshot? row, WorkItem item, string iterationPath, DateOnly takenOn)
+    private void Snapshot(SprintSnapshot? row, WorkItem item, string iterationPath, DateOnly takenOn, IReadOnlyDictionary<int, decimal> childEffort)
     {
         if (row is null)
             db.SprintSnapshots.Add(row = new SprintSnapshot { IterationPath = iterationPath, TakenOn = takenOn, AdoId = item.AdoId, AdoState = "" });
 
         row.AdoState = item.AdoState;
-        row.Effort = item.Effort;
+        row.Effort = childEffort.TryGetValue(item.AdoId, out var effort) ? effort : null;
         row.RemainingWork = item.RemainingWork;
     }
 }

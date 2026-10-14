@@ -6,6 +6,6 @@ export interface SprintSummary {
   days: number;
   items: number;
   done: number;
-  /** Null when ADO carries no effort on the sprint's items. */
+  /** The sum of the user's Tasks' Effort in the sprint; null when none carries any. */
   effort: number | null;
 }

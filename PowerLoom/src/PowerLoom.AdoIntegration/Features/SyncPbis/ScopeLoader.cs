@@ -12,7 +12,7 @@ namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 // be found.
 public static class ScopeLoader
 {
-    private static readonly string[] TaskFields = [AdoFields.Type, AdoFields.Title, AdoFields.Parent];
+    private static readonly string[] TaskFields = [AdoFields.Type, AdoFields.Title, AdoFields.Parent, AdoFields.State, AdoFields.Effort];
 
     public static async Task<SyncScope?> LoadAsync(IAdoClient client, AdoSettings ado, SyncSettings sync, CancellationToken cancellation)
     {
@@ -26,7 +26,7 @@ public static class ScopeLoader
         var parents = tasks.Select(ParentOf).Where(parent => parent is not null).Select(parent => parent!.Value).Distinct().Order().ToList();
         var bugs = tasks.Where(task => BugRule.IsMarkedBug(Text(task, AdoFields.Type), Text(task, AdoFields.Title))).Select(task => task.Id).ToList();
 
-        return new SyncScope(parents, bugs, iteration);
+        return new SyncScope(parents, bugs, iteration, ChildTaskEffort.SumByParent(tasks));
     }
 
     private static int? ParentOf(AdoWorkItem task)

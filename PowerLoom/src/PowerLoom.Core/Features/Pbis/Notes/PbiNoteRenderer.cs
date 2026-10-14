@@ -8,12 +8,24 @@ namespace PowerLoom.Features.Pbis.Notes;
 public static class PbiNoteRenderer
 {
     private const string EmptyText = "_Empty in Azure DevOps._";
+    private const string NoCommentsText = "_No comments in Azure DevOps._";
 
     public static string Render(string template, PbiNote note, string notesSection, IReadOnlyDictionary<string, string> regions)
     {
         var body = NoteText.ReplaceRegions(PbiTemplate.Fill(template, Placeholders(note)), regions);
 
-        return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{notesSection}";
+        return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{DiscussionSection(note.DiscussionMd)}{notesSection}";
+    }
+
+    // Written by the app like the frontmatter, not by the template, so it also reaches vaults whose template predates it.
+    private static string DiscussionSection(string? discussionMd)
+    {
+        if (discussionMd is null)
+            return "";
+
+        var text = discussionMd.Length == 0 ? NoCommentsText : discussionMd;
+
+        return $"## Discussion\n\n{text}\n\n";
     }
 
     private static Dictionary<string, string> Placeholders(PbiNote note)

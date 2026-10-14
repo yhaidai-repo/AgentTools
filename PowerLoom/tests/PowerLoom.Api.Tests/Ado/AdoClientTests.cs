@@ -25,6 +25,18 @@ public sealed class AdoClientTests
     }
 
     [Fact]
+    public async Task A_work_items_newest_comments_are_read_and_returned_oldest_first()
+    {
+        var handler = new ScriptedHandler(_ => Json("""{"comments":[{"text":"<p>new</p>","createdBy":{"displayName":"Ann"},"createdDate":"2026-10-02T08:00:00Z"},{"text":"<p>old</p>","createdBy":{"uniqueName":"bo@x.io"},"createdDate":"2026-10-01T08:00:00Z"}]}"""));
+        var client = new AdoClient(new HttpClient(handler), Connection);
+
+        var comments = await client.GetCommentsAsync(42, 200, CancellationToken.None);
+
+        Assert.Equal("https://dev.azure.com/org/Proj/_apis/wit/workItems/42/comments?$top=200&order=desc&api-version=7.1-preview.4", handler.Requests[0].RequestUri!.ToString());
+        Assert.Equal([("bo@x.io", "<p>old</p>"), ("Ann", "<p>new</p>")], comments.Select(comment => (comment.Author, comment.TextHtml)).ToList());
+    }
+
+    [Fact]
     public async Task A_sign_in_page_instead_of_json_is_reported_as_a_token_problem()
     {
         var handler = new ScriptedHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html>sign in</html>", Encoding.UTF8, "text/html") });

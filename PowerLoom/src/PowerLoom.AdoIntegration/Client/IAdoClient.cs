@@ -9,6 +9,9 @@ public interface IAdoClient
 
     Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string> fields, CancellationToken cancellation);
 
+    // The newest `top` comments of a work item's discussion, oldest of them first.
+    Task<IReadOnlyList<AdoComment>> GetCommentsAsync(int workItemId, int top, CancellationToken cancellation);
+
     // ADO only accepts `current` as a timeframe filter; without it, all team iterations are returned.
     Task<IReadOnlyList<AdoIteration>> GetIterationsAsync(bool onlyCurrent, CancellationToken cancellation);
 

@@ -38,6 +38,11 @@ public partial class Refinement
     /// <summary>Better Refinement's full result (jsonb): sources, affected areas, test data, blockers, status; null for earlier refinements.</summary>
     public string? Details { get; set; }
 
+    /// <summary>Refinement's rough estimate in developer hours; null for refinements from before it gave one.</summary>
+    public decimal? EstHours { get; set; }
+
+    public string? EstimateBasis { get; set; }
+
     public virtual WorkItem Pbi { get; set; } = null!;
 
     public virtual AgentRun? Run { get; set; }

@@ -47,6 +47,10 @@ public partial class WorkItem
 
     public string? AcceptanceCriteriaMd { get; set; }
 
+    public string? DiscussionMd { get; set; }
+
+    public int? DiscussionRev { get; set; }
+
     public string Skills { get; set; } = null!;
 
     public DateTime? SkillsEditedAt { get; set; }

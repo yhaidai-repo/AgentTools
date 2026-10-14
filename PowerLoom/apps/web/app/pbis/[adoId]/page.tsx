@@ -263,6 +263,7 @@ function Refinement({ detail }: { detail: PbiDetail }) {
   return (
     <>
       <p>{detail.refinement.summary} <span className="muted">(v{detail.refinement.version})</span></p>
+      {detail.refinement.estHours && <p className="muted">Estimate: ~{Number(detail.refinement.estHours)} h (developer): {detail.refinement.estimateBasis}</p>}
       <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
     </>
   );

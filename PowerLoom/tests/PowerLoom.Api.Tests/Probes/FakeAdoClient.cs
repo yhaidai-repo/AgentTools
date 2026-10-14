@@ -20,6 +20,9 @@ public sealed class FakeAdoClient : IAdoClient
 
     public Dictionary<int, AdoPullRequestDetails> Details { get; } = [];
 
+    // Work item id â†’ its discussion, oldest first.
+    public Dictionary<int, List<AdoComment>> Comments { get; } = [];
+
     // Attachment URL → file; a URL not listed fails like an expired token would.
     public Dictionary<string, AdoDownload> Downloads { get; } = [];
 
@@ -33,6 +36,13 @@ public sealed class FakeAdoClient : IAdoClient
     public Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string> fields, CancellationToken cancellation)
     {
         return Task.FromResult<IReadOnlyList<AdoWorkItem>>(WorkItems.Where(item => ids.Contains(item.Id)).ToList());
+    }
+
+    public Task<IReadOnlyList<AdoComment>> GetCommentsAsync(int workItemId, int top, CancellationToken cancellation)
+    {
+        var comments = Comments.GetValueOrDefault(workItemId, []);
+
+        return Task.FromResult<IReadOnlyList<AdoComment>>(comments.TakeLast(top).ToList());
     }
 
     public Task<IReadOnlyList<AdoIteration>> GetIterationsAsync(bool onlyCurrent, CancellationToken cancellation)

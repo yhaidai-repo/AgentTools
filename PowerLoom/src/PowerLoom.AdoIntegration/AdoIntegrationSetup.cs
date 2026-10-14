@@ -25,6 +25,7 @@ public static class AdoIntegrationSetup
         builder.Services.AddScoped<SprintSync>();
         builder.Services.AddScoped<SinglePbiSync>();
         builder.Services.AddScoped<ImportSync>();
+        builder.Services.AddScoped<DiscussionSync>();
         builder.Services.AddScoped<PullRequestSync>();
         builder.Services.AddScoped<LinkedDocumentCollector>();
         builder.Services.AddSingleton<ICronSource, AdoCronSource>();

@@ -946,6 +946,14 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnName("docs_read")
                         .HasDefaultValueSql("'[]'::jsonb");
 
+                    b.Property<decimal?>("EstHours")
+                        .HasColumnType("numeric")
+                        .HasColumnName("est_hours");
+
+                    b.Property<string>("EstimateBasis")
+                        .HasColumnType("text")
+                        .HasColumnName("estimate_basis");
+
                     b.Property<int>("PbiId")
                         .HasColumnType("integer")
                         .HasColumnName("pbi_id");
@@ -1661,6 +1669,14 @@ namespace PowerLoom.Persistence.Migrations
                     b.Property<string>("DescriptionMd")
                         .HasColumnType("text")
                         .HasColumnName("description_md");
+
+                    b.Property<string>("DiscussionMd")
+                        .HasColumnType("text")
+                        .HasColumnName("discussion_md");
+
+                    b.Property<int?>("DiscussionRev")
+                        .HasColumnType("integer")
+                        .HasColumnName("discussion_rev");
 
                     b.Property<decimal?>("Effort")
                         .HasColumnType("numeric")

@@ -42,6 +42,8 @@ public partial class RefinementConfiguration : IEntityTypeConfiguration<Refineme
         entity.Property(e => e.Details)
             .HasColumnType("jsonb")
             .HasColumnName("details");
+        entity.Property(e => e.EstHours).HasColumnName("est_hours");
+        entity.Property(e => e.EstimateBasis).HasColumnName("estimate_basis");
         entity.Property(e => e.RunId).HasColumnName("run_id");
         entity.Property(e => e.ScopeIn)
             .HasColumnType("jsonb")

@@ -37,7 +37,11 @@ public static class PipelineRegions
             return "Pending.";
 
         var parts = new List<string> { $"{latest.Summary}\n\nDetails: [[{BacklogPaths.RefinementNoteName(adoId)}]] (v{latest.Version})" };
+        var estimate = RefinementNoteRenderer.EstimateText(latest.EstHours, latest.EstimateBasis);
         var design = await DesignLineAsync(db, adoId, cancellation);
+
+        if (estimate is not null)
+            parts.Add($"Estimate: {estimate}");
 
         if (design is not null)
             parts.Add(design);
