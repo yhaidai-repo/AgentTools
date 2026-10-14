@@ -1,6 +1,6 @@
 import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
-import type { AzureMcpAnswer, AzureMcpTool } from "@powerloom/azure";
+import type { AzureMcpAnswer, AzureMcpServer, AzureMcpTool } from "@powerloom/azure";
 import type { AzureResourceSettings } from "@powerloom/core";
 import { z } from "zod";
 import type { AgentDeps } from "../models/AgentDeps";
@@ -10,6 +10,7 @@ import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
 import { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION } from "./azureIntegrations";
 import { jsonSchemaShape } from "./jsonSchemaShape";
+import { createMongoTools } from "./mongoTools";
 
 // The server's namespaces behind the Azure access switch; `cosmos` is its own kind with an allow-list of accounts.
 export const AZURE_ACCESS_NAMESPACES = ["monitor", "applicationinsights", "servicebus", "group", "subscription"];
@@ -28,8 +29,8 @@ const MAIN_TARGET = ["account", "namespace", "resource-id", "workspace", "resour
 type ToolInput = Record<string, unknown>;
 
 // The Read Azure tools (user decision 2026-10-14): the Azure MCP server's read-only tools, each re-exposed through
-// the outside wrapper (logged, a refusal raises an access request). Azure access tools exist when the agent's and
-// the vault's switches are on; Cosmos tools when both Cosmos switches are on and an account is enabled.
+// the outside wrapper (logged, a refusal raises an access request), plus the Mongo tools. Azure access tools exist
+// when the agent's and the vault's switches are on; Cosmos tools when both Cosmos switches are on and an account is enabled.
 export function createAzureTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
   const azure = deps.azure;
 
@@ -37,14 +38,22 @@ export function createAzureTools(deps: AgentDeps, agent: AgentDefinition, contex
     return [];
   }
 
+  return [...serverTools(deps, agent, context, azure, azure.server), ...createMongoTools(deps, agent, context)];
+}
+
+function serverTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, azure: AzureAccess, server: AzureMcpServer | null): ToolDefinition<any>[] {
+  if (!server) {
+    return [];
+  }
+
   const accounts = cosmosAccounts(azure);
   const accessOn = switchedOn(agent, azure, AZURE_ACCESS_INTEGRATION, "azureAccess");
   const cosmosOn = switchedOn(agent, azure, READ_COSMOS_INTEGRATION, "cosmos") && accounts.length > 0;
 
-  return azure.server
+  return server
     .tools()
     .filter((tool) => offered(tool, accessOn, cosmosOn))
-    .map((tool) => (namespaceOf(tool.name) === COSMOS_NAMESPACE ? cosmosTool(deps, context, azure, tool, accounts) : accessTool(deps, context, azure, tool)));
+    .map((tool) => (namespaceOf(tool.name) === COSMOS_NAMESPACE ? cosmosTool(deps, context, server, tool, accounts) : accessTool(deps, context, server, tool)));
 }
 
 function offered(tool: AzureMcpTool, accessOn: boolean, cosmosOn: boolean): boolean {
@@ -57,20 +66,20 @@ function offered(tool: AzureMcpTool, accessOn: boolean, cosmosOn: boolean): bool
   return namespace === COSMOS_NAMESPACE ? cosmosOn : accessOn && AZURE_ACCESS_NAMESPACES.includes(namespace);
 }
 
-function accessTool(deps: AgentDeps, context: OutsideAccessContext, azure: AzureAccess, tool: AzureMcpTool): ToolDefinition<any> {
+function accessTool(deps: AgentDeps, context: OutsideAccessContext, server: AzureMcpServer, tool: AzureMcpTool): ToolDefinition<any> {
   return defineOutsideTool(deps.outside, context, {
     name: tool.name,
     description: tool.description,
     input: jsonSchemaShape(tool.inputSchema, INJECTED),
     resource: (input: ToolInput) => ({ kind: "azure", resource: mainTarget(tool, input), target: mainTarget(tool, input) }),
     request: (input: ToolInput) => requestOf(tool, input),
-    handler: async (input: ToolInput) => resultOf(await azure.server.call(tool.name, input)),
+    handler: async (input: ToolInput) => resultOf(await server.call(tool.name, input)),
   });
 }
 
 // A Cosmos tool takes one of the vault's enabled accounts and reads it with the account's read-only key, which the
 // server fetches with the sign-in (the user has no Cosmos data-plane role, runtime-verified 2026-10-14).
-function cosmosTool(deps: AgentDeps, context: OutsideAccessContext, azure: AzureAccess, tool: AzureMcpTool, accounts: AzureResourceSettings[]): ToolDefinition<any> {
+function cosmosTool(deps: AgentDeps, context: OutsideAccessContext, server: AzureMcpServer, tool: AzureMcpTool, accounts: AzureResourceSettings[]): ToolDefinition<any> {
   const names = accounts.map((account) => account.target) as [string, ...string[]];
   const input = { ...jsonSchemaShape(tool.inputSchema, INJECTED), account: z.enum(names).describe(`The Cosmos DB account: ${names.join(", ")}`) };
 
@@ -85,7 +94,7 @@ function cosmosTool(deps: AgentDeps, context: OutsideAccessContext, azure: Azure
         return { text: `${String(call.account)} isn't an enabled Cosmos DB account of this vault: ${names.join(", ")}.`, isError: true, refusal: "account not enabled" };
       }
 
-      return resultOf(await azure.server.call(tool.name, { ...call, "auth-method": "key" }));
+      return resultOf(await server.call(tool.name, { ...call, "auth-method": "key" }));
     },
   });
 }

@@ -5,7 +5,8 @@ import { AGENT_DEFAULTS, AZURE_ACCESS_NAMESPACES, AccessRequests, COSMOS_NAMESPA
 import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
-import { AzureMcpServer, AzureUserLogin } from "@powerloom/azure";
+import { AzureMcpServer, AzureUserLogin, CosmosConnectionStrings } from "@powerloom/azure";
+import { MongoReader } from "@powerloom/mongo";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
@@ -58,6 +59,7 @@ if (!captureRules) {
 }
 
 const sqlReader = new SqlReader();
+const mongoReader = new MongoReader();
 
 // The user's own sign-in for Azure (user decisions 2026-10-13/14): the MSAL cache and the account live in the config
 // table per vault, the only settings the runner writes. The cache text is wrapped in an object: the Postgres driver
@@ -198,25 +200,32 @@ async function depsFor(vault: string): Promise<AgentDeps> {
 
 // Read per run, so a switch flipped in Settings counts from the next run. The Azure MCP server runs for the run with
 // the vault's sign-in: its `az` shim asks this runner for tokens (POWERLOOM_RUNNER_URL, the vault), the tenant is the
-// signed-in account's. Nobody signed in = every call answers `denied`, which asks the user to sign in.
+// signed-in account's. The Mongo reads take the same sign-in's tokens for the connection strings. Nobody signed in =
+// every call answers `denied`, which asks the user to sign in.
 async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   const settings = await readReadAzureSettings(db, vault);
   const namespaces = [...(settings.enabledKinds.azureAccess ? AZURE_ACCESS_NAMESPACES : []), ...(settings.enabledKinds.cosmos ? [COSMOS_NAMESPACE] : [])];
+  const mongoOn = settings.enabledKinds.mongo === true;
 
-  if (namespaces.length === 0) {
+  if (namespaces.length === 0 && !mongoOn) {
     return null;
   }
 
   const account = await readAzureUserAccount(db, vault);
   const env = { POWERLOOM_RUNNER_URL: `http://127.0.0.1:${runnerPort}`, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
+  const tokens = new CosmosConnectionStrings(async (resource) => (await azureLogin.token(vault, resource, account?.tenantId ?? null)).accessToken, settings.subscription);
 
-  return { settings, server: await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) };
+  return {
+    settings,
+    server: namespaces.length > 0 ? await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) : null,
+    mongo: mongoOn ? { reader: mongoReader, connectionStrings: tokens } : null,
+  };
 }
 
 // The run's server process ends with the run; a close that fails is logged, the run's outcome stands.
 async function closeAzure(azure: AgentDeps["azure"]): Promise<void> {
   try {
-    await azure?.server.close();
+    await azure?.server?.close();
   } catch (error) {
     console.error("the Azure MCP server did not close:", error);
   }

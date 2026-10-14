@@ -1,5 +1,7 @@
 export { AzureMcpServer } from "./AzureMcpServer";
 export { AzureUserLogin } from "./AzureUserLogin";
+export { CosmosConnectionStrings } from "./CosmosConnectionStrings";
+export { readOnlyMongoString } from "./readOnlyMongoString";
 export { NotSignedInError } from "./models/NotSignedInError";
 export type { AzureLoginStart } from "./models/AzureLoginStart";
 export type { AzureLoginStatus } from "./models/AzureLoginStatus";
@@ -7,5 +9,8 @@ export type { AzureMcpAnswer } from "./models/AzureMcpAnswer";
 export type { AzureMcpStart } from "./models/AzureMcpStart";
 export type { AzureMcpInputSchema, AzureMcpProperty, AzureMcpTool } from "./models/AzureMcpTool";
 export type { AzureToken } from "./models/AzureToken";
+export type { ArmConnectionString } from "./models/ArmConnectionString";
+export type { ConnectionStringAnswer } from "./models/ConnectionStringAnswer";
+export type { TokenProvider } from "./models/TokenProvider";
 export type { AzureTokenCacheStore } from "./models/AzureTokenCacheStore";
 export type { AzureUserAccount } from "./models/AzureUserAccount";

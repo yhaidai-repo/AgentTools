@@ -8,6 +8,9 @@
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
     "@powerloom/ado": "*",
     "@powerloom/attachments": "*",
     "@powerloom/azure": "*",
@@ -15,11 +18,9 @@
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/devhub": "*",
+    "@powerloom/mongo": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
-    "@agenttools/config": "*",
-    "@agenttools/runtime": "*",
-    "@agenttools/usage": "*",
     "drizzle-orm": "^0.45.3",
     "zod": "^4.0.0"
   },

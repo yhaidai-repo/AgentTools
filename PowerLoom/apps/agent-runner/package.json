@@ -8,6 +8,9 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
     "@powerloom/ado": "*",
     "@powerloom/agents": "*",
     "@powerloom/azure": "*",
@@ -15,12 +18,10 @@
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/devhub": "*",
+    "@powerloom/mongo": "*",
     "@powerloom/notes": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
-    "@agenttools/config": "*",
-    "@agenttools/runtime": "*",
-    "@agenttools/usage": "*",
     "tsx": "^4.23.15"
   },
   "devDependencies": {

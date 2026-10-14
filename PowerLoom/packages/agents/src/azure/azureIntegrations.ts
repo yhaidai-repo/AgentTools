@@ -20,7 +20,7 @@ export const AZURE_INTEGRATION_SPECS: AgentIntegrationSpec[] = [
   {
     key: READ_MONGO_INTEGRATION,
     label: "Read Azure: Mongo",
-    description: "The agent may find documents in the vault's Cosmos DB for MongoDB accounts during its runs (the reader is still to come).",
+    description: "The agent may list, find and aggregate documents in the vault's enabled Cosmos DB for MongoDB accounts (Settings → Read Azure → Mongo), read-only, with the read-only connection string the sign-in fetches at call time.",
   },
 ];
 
