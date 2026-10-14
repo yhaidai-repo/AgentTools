@@ -17,5 +17,6 @@ public static class MeetingImports
             model,
             result.MarkdownPath,
             File.ReadAllText(result.MarkdownPath),
-            result.Segments.Count);
+            result.Segments.Count,
+            result.Segments.Select(segment => segment.Speaker).Distinct().ToList());
 }

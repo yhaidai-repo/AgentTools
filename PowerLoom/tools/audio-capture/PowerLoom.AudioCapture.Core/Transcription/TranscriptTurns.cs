@@ -22,7 +22,7 @@ public static class TranscriptTurns
 
         if (last is null || last.Speaker != segment.Speaker)
         {
-            turns.Add(new TranscriptTurn(segment.Speaker, segment.Start, segment.End, segment.Text));
+            turns.Add(new TranscriptTurn(segment.Speaker, segment.ChannelOrSpeaker, segment.Start, segment.End, segment.Text));
 
             return;
         }

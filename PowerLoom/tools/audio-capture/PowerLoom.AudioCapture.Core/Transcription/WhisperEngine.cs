@@ -68,7 +68,7 @@ public sealed class WhisperEngine(string modelPath, TranscriptionOptions options
     }
 
     private static TranscriptSegment ToSegment(SegmentData segment, string speaker, TimeSpan offset) =>
-        new(speaker, offset + segment.Start, offset + segment.End, segment.Text.Trim(), segment.Language, segment.Probability, segment.NoSpeechProbability);
+        new(speaker, offset + segment.Start, offset + segment.End, segment.Text.Trim(), segment.Language, segment.Probability, segment.NoSpeechProbability, Channel: speaker);
 
     private static bool IsSilence(WhisperProcessingException exception) =>
         exception.Message.Contains("auto-detect language", StringComparison.OrdinalIgnoreCase);

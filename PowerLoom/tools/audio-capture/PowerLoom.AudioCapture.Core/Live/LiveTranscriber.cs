@@ -1,21 +1,26 @@
 using System.Threading.Channels;
 using PowerLoom.AudioCapture.Models;
+using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Live;
 
 // Transcribes chunks in arrival order on one worker and raises each segment as soon as it is known (provisional text;
-// the final pass after the recording replaces it). Mic segments that repeat recent system-channel text are echo and dropped.
+// the final pass after the recording replaces it). Mic segments that repeat recent system-channel text are echo and
+// dropped. A system-channel chunk whose voice print matches a named voice carries that name.
 public sealed class LiveTranscriber
 {
     private static readonly TimeSpan EchoMemory = TimeSpan.FromSeconds(30);
     private readonly Channel<SpeechChunk> _queue = Channel.CreateUnbounded<SpeechChunk>();
     private readonly List<TranscriptSegment> _recentSystem = [];
+    private readonly VoiceNamer? _namer;
     private readonly Task _worker;
     private int _pending;
 
-    public LiveTranscriber(WhisperEngine engine)
+    public LiveTranscriber(WhisperEngine engine, VoiceNamer? namer)
     {
+        _namer = namer;
         _worker = Task.Run(() => WorkAsync(engine));
     }
 
@@ -53,10 +58,11 @@ public sealed class LiveTranscriber
         try
         {
             var segments = await engine.TranscribeSamplesAsync(chunk.Samples, chunk.Speaker, chunk.Start);
+            var name = NameOf(chunk);
 
             foreach (var segment in segments)
             {
-                Publish(segment);
+                Publish(name is null ? segment : segment with { Speaker = name });
             }
         }
         catch (Exception exception)
@@ -65,9 +71,12 @@ public sealed class LiveTranscriber
         }
     }
 
+    private string? NameOf(SpeechChunk chunk) =>
+        chunk.Speaker == SessionRecorder.SystemChannel ? _namer?.NameOf(chunk.Samples) : null;
+
     private void Publish(TranscriptSegment segment)
     {
-        if (segment.Speaker == SystemChannelName)
+        if (segment.Channel == SessionRecorder.SystemChannel)
             Remember(segment);
         else if (EchoFilter.IsEchoOf(segment, _recentSystem))
             return;
@@ -80,6 +89,4 @@ public sealed class LiveTranscriber
         _recentSystem.Add(segment);
         _recentSystem.RemoveAll(old => segment.End - old.End > EchoMemory);
     }
-
-    private static string SystemChannelName => Recording.SessionRecorder.SystemChannel;
 }

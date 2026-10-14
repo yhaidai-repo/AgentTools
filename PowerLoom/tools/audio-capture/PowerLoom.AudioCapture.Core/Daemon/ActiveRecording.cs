@@ -1,6 +1,7 @@
 using PowerLoom.AudioCapture.Live;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Daemon;
@@ -12,7 +13,7 @@ public sealed class ActiveRecording
     private readonly Dictionary<string, SpeechChunker> _chunkers;
     private readonly LiveTranscriber _live;
 
-    private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine)
+    private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine, VoiceNamer? namer)
     {
         _recorder = recorder;
         _chunkers = new Dictionary<string, SpeechChunker>
@@ -20,7 +21,7 @@ public sealed class ActiveRecording
             [SessionRecorder.MicChannel] = new SpeechChunker(SessionRecorder.MicChannel),
             [SessionRecorder.SystemChannel] = new SpeechChunker(SessionRecorder.SystemChannel),
         };
-        _live = new LiveTranscriber(engine);
+        _live = new LiveTranscriber(engine, namer);
         Folder = folder;
         Title = title;
         StartedAt = DateTimeOffset.Now;
@@ -42,11 +43,11 @@ public sealed class ActiveRecording
 
     public DateTimeOffset StartedAt { get; }
 
-    public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, Action<string, float> onLevel)
+    public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, VoiceNamer? namer, Action<string, float> onLevel)
     {
         var folder = SessionFolders.NewSessionFolder(title);
         var recorder = new SessionRecorder(folder, title, devices, echoCancellation: true);
-        var recording = new ActiveRecording(recorder, folder, title, engine);
+        var recording = new ActiveRecording(recorder, folder, title, engine, namer);
 
         recorder.Level += onLevel;
         recorder.Start();

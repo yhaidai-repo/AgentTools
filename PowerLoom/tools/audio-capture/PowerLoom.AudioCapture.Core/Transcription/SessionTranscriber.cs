@@ -2,12 +2,14 @@ using System.Diagnostics;
 using System.Text.Json;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 
 namespace PowerLoom.AudioCapture.Transcription;
 
 // The final pass: each channel's WAV cut into speech chunks (silence never reaches Whisper), transcribed through the
-// engine, merged into one timeline, written as transcript.md / transcript.json next to the audio.
-public sealed class SessionTranscriber(WhisperEngine engine, Action<string> log)
+// engine; the system channel's voices told apart and labelled; merged into one timeline, written as transcript.md /
+// transcript.json (and speakers.json) next to the audio.
+public sealed class SessionTranscriber(WhisperEngine engine, SpeakerTools? speakerTools, Action<string> log)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
@@ -15,9 +17,9 @@ public sealed class SessionTranscriber(WhisperEngine engine, Action<string> log)
     {
         var mic = await TranscribeChannelAsync(Path.Combine(folder, "mic.wav"), SessionRecorder.MicChannel);
         var system = await TranscribeChannelAsync(Path.Combine(folder, "system.wav"), SessionRecorder.SystemChannel);
-        var segments = TranscriptMerger.Merge(EchoFilter.WithoutEcho(mic, system), system);
+        var labeled = LabelVoices(folder, EchoFilter.WithoutEcho(mic, system), system);
 
-        return Write(folder, segments);
+        return Write(folder, labeled);
     }
 
     private async Task<List<TranscriptSegment>> TranscribeChannelAsync(string wavPath, string speaker)
@@ -35,6 +37,23 @@ public sealed class SessionTranscriber(WhisperEngine engine, Action<string> log)
         log($"{speaker}: {audioSeconds:F0} s of audio, {chunks.Count} speech chunks, in {watch.Elapsed.TotalSeconds:F1} s ({audioSeconds / watch.Elapsed.TotalSeconds:F1}x realtime), {segments.Count} segments");
 
         return segments;
+    }
+
+    // Without the speaker models (not downloaded yet, or failed) the others stay "Them".
+    private IReadOnlyList<TranscriptSegment> LabelVoices(string folder, List<TranscriptSegment> mic, List<TranscriptSegment> system)
+    {
+        if (speakerTools is null || system.Count == 0)
+            return TranscriptMerger.Merge(mic, system);
+
+        var watch = Stopwatch.StartNew();
+        var samples = WavSamples.ReadAll(Path.Combine(folder, "system.wav"));
+        var spans = speakerTools.Diarizer.Diarize(samples);
+        var (labeled, speakers) = SpeakerLabeling.Label(system, spans, samples, speakerTools.Embedder, speakerTools.Store);
+
+        SessionSpeakers.Save(folder, speakers);
+        log($"Voices: {speakers.Count} ({string.Join(", ", speakers.Select(s => $"{s.Label} {s.Seconds:F0} s"))}) in {watch.Elapsed.TotalSeconds:F1} s");
+
+        return TranscriptMerger.Merge(mic, labeled);
     }
 
     private static TranscriptResult Write(string folder, IReadOnlyList<TranscriptSegment> segments)

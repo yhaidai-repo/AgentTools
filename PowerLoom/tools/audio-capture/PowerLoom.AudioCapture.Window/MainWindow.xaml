@@ -118,10 +118,32 @@
                      Fill="{DynamicResource Muted}" Opacity="{Binding SystemLevel, Mode=OneWay}" />
         </Grid>
 
-        <!-- Conversation -->
-        <ScrollViewer x:Name="Conversation" Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
-            <ItemsControl ItemsSource="{Binding Bubbles}" Margin="0,0,8,0" />
-        </ScrollViewer>
+        <!-- Conversation: the voices of the session (type a name, Enter) above the bubbles -->
+        <DockPanel Grid.Row="3" Margin="0,6,0,0">
+            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Speakers}" Margin="0,0,0,6">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type ui:SpeakerViewModel}">
+                        <Border Margin="0,0,8,4" Padding="8,4" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BubbleBorder}"
+                                Background="{DynamicResource ThemBubble}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}" MinWidth="90" Padding="4,2"
+                                         BorderThickness="0" Background="Transparent" ToolTip="Name this voice; Enter saves it for later meetings"
+                                         KeyDown="OnSpeakerKeyDown" LostFocus="OnSpeakerLostFocus" />
+                                <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ScrollViewer x:Name="Conversation" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Bubbles}" Margin="0,0,8,0" />
+            </ScrollViewer>
+        </DockPanel>
 
         <!-- Footer -->
         <DockPanel Grid.Row="4" Margin="0,10,0,0">

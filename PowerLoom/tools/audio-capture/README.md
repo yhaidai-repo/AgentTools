@@ -49,6 +49,17 @@ While recording, the window streams: each channel is cut at pauses (0.7 s of sil
 15 s), every chunk is transcribed at once and shown as a dimmed, italic bubble a few seconds behind the speech. After Stop
 the final pass replaces them. The window follows Windows' app mode (dark or light); `install --theme dark|light|system`.
 
+## Speakers
+- After Stop the others' channel is split into voices (sherpa-onnx: pyannote segmentation 3.0 + WeSpeaker ResNet34
+  embeddings, CPU, offline; the two models, 33 MB, download on first use into `models\`). Each voice is labelled
+  `Speaker 1`, `Speaker 2`, … in order of first appearance; a one-hour meeting takes a few minutes in the background.
+- **Naming**: in the window, type a name into a voice's box above the bubbles and press Enter (or
+  `speakers <folder> --rename "Speaker 2=Anna"`). The transcript, `speakers.json` and the inbox file (while it still waits)
+  take the name, and the voice print goes into `voices.json` in the home. From then on that voice is named in later
+  meetings, in the live view too. Several voices of one meeting that match the same stored name all get it.
+- Diarization can split one person into two voices (a short interjection) or merge two similar ones; name what is right,
+  the stored prints improve the matching. The mic channel is always `Me`.
+
 ## Devices and languages
 - `devices` lists microphones and outputs with their default roles. Without a setting the tool records the **default
   communications** devices, the ones Teams uses unless its own device settings say otherwise. `install --mic AirPods

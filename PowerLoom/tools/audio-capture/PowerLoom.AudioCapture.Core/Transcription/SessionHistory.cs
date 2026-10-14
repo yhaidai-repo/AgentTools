@@ -21,6 +21,8 @@ public static class SessionHistory
     public static List<TranscriptSegment> LoadSegments(string folder) =>
         JsonSerializer.Deserialize<List<TranscriptSegment>>(File.ReadAllText(TranscriptJsonOf(folder))) ?? [];
 
+    public static string TranscriptJsonOf(string folder) => Path.Combine(folder, "transcript.json");
+
     public static string TitleOf(string folder)
     {
         var meetingFile = RecordingSession.FileOf(folder);
@@ -28,6 +30,4 @@ public static class SessionHistory
 
         return title.Length > 0 ? title : Path.GetFileName(folder);
     }
-
-    private static string TranscriptJsonOf(string folder) => Path.Combine(folder, "transcript.json");
 }

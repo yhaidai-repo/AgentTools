@@ -1,6 +1,7 @@
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Pipeline;
 using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Commands;
@@ -21,11 +22,19 @@ public static class TranscribeCommands
 
         using var engine = new WhisperEngine(modelPath, transcription);
 
-        var result = await new SessionTranscriber(engine, Console.WriteLine).TranscribeAsync(folder);
+        var speakerTools = options.Has("--no-speakers") ? null : await LoadSpeakerToolsAsync();
+        var result = await new SessionTranscriber(engine, speakerTools, Console.WriteLine).TranscribeAsync(folder);
 
         Console.WriteLine($"Transcript: {result.MarkdownPath} ({result.Segments.Count} segments, runtime {RuntimeSelection.Loaded})");
 
         return options.Value("--inbox") is { } inbox ? SendToInbox(folder, inbox, result, model) : 0;
+    }
+
+    private static async Task<SpeakerTools> LoadSpeakerToolsAsync()
+    {
+        await SpeakerModels.EnsureAsync(Console.WriteLine);
+
+        return new SpeakerTools(new SpeakerDiarizer(SpeakerModels.SegmentationPath, SpeakerModels.EmbeddingPath), new VoiceEmbedder(SpeakerModels.EmbeddingPath), new VoiceStore());
     }
 
     public static int Devices()

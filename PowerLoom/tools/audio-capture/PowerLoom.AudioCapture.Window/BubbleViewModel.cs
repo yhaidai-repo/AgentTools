@@ -9,11 +9,11 @@ public sealed class BubbleViewModel : INotifyPropertyChanged
 {
     private string _text;
 
-    private BubbleViewModel(string speaker, TimeSpan start, string text, bool isProvisional)
+    private BubbleViewModel(string speaker, string channel, TimeSpan start, string text, bool isProvisional)
     {
         Speaker = speaker;
         Time = start.ToString(@"hh\:mm\:ss");
-        IsMe = speaker == SessionRecorder.MicChannel;
+        IsMe = channel == SessionRecorder.MicChannel;
         IsProvisional = isProvisional;
         _text = text;
     }
@@ -38,9 +38,9 @@ public sealed class BubbleViewModel : INotifyPropertyChanged
         }
     }
 
-    public static BubbleViewModel Final(TranscriptTurn turn) => new(turn.Speaker, turn.Start, turn.Text, isProvisional: false);
+    public static BubbleViewModel Final(TranscriptTurn turn) => new(turn.Speaker, turn.Channel, turn.Start, turn.Text, isProvisional: false);
 
-    public static BubbleViewModel Provisional(TranscriptSegment segment) => new(segment.Speaker, segment.Start, segment.Text, isProvisional: true);
+    public static BubbleViewModel Provisional(TranscriptSegment segment) => new(segment.Speaker, segment.ChannelOrSpeaker, segment.Start, segment.Text, isProvisional: true);
 
     public void Append(string text) => Text = Text + " " + text;
 }

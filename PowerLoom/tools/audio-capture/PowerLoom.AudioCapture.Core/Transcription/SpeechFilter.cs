@@ -10,6 +10,9 @@ namespace PowerLoom.AudioCapture.Transcription;
 // detected language (Cyrillic tagged English).
 public static partial class SpeechFilter
 {
+    private const double SparseMinSeconds = 6;
+    private const double SparseWordsPerSecond = 0.3;
+
     private static readonly string[] StockPhrases =
     [
         "дякую за перегляд", "дякую за увагу", "підписуйтесь", "спасибо за просмотр", "спасибо за внимание", "подписывайтесь",
@@ -24,7 +27,7 @@ public static partial class SpeechFilter
         if ((segment.End - segment.Start).TotalSeconds < options.MinSegmentSeconds)
             return false;
 
-        if (!options.AcceptsLanguage(segment.Language))
+        if (!options.AcceptsLanguage(segment.Language) || IsTooSparse(segment))
             return false;
 
         return IsPlausibleText(segment.Text.Trim(), segment.Language);
@@ -39,6 +42,15 @@ public static partial class SpeechFilter
             return false;
 
         return ScriptMatches(text, language);
+    }
+
+    // Two words stretched over half a minute ("Thank you." on 29 s of a quiet mic) is noise; speech runs 1–3 words a second.
+    private static bool IsTooSparse(SegmentData segment)
+    {
+        var seconds = (segment.End - segment.Start).TotalSeconds;
+        var words = segment.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+
+        return seconds >= SparseMinSeconds && words / seconds < SparseWordsPerSecond;
     }
 
     // English with Cyrillic letters is a hallucination; Ukrainian or Russian written in Latin letters is a term or a name.

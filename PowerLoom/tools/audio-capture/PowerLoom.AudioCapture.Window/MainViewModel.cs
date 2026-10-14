@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using PowerLoom.AudioCapture.Daemon;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Recording;
+using PowerLoom.AudioCapture.Speakers;
 using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Ui;
@@ -19,6 +20,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private const float SpeakingLevel = 0.12f;
 
     private readonly RecorderDaemon _daemon;
+    private readonly SpeakerRenamer _renamer;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly Dictionary<string, DateTime> _levelSeen = new();
     private string _title = "";
@@ -33,6 +35,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel(ToolSettings settings, RecorderDaemon daemon)
     {
         _daemon = daemon;
+        _renamer = new SpeakerRenamer(new VoiceStore(), settings);
         _status = $"Idle · hotkey {settings.Hotkey}";
         ToggleCommand = new RelayCommand(Toggle);
         OpenFolderCommand = new RelayCommand(OpenFolder, () => _sessionFolder is not null);
@@ -43,6 +46,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<BubbleViewModel> Bubbles { get; } = [];
+
+    // The voices of the shown session (the others only); editing a label names the voice for this and later meetings.
+    public ObservableCollection<SpeakerViewModel> Speakers { get; } = [];
 
     public RelayCommand ToggleCommand { get; }
 
@@ -77,6 +83,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _recordingStartedAt = recording.StartedAt;
         Title = recording.Title;
         Bubbles.Clear();
+        Speakers.Clear();
         SetSessionFolder(recording.Folder);
         IsRecording = true;
         Status = $"Recording · {recording.Title}";
@@ -131,8 +138,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
             Bubbles.Add(BubbleViewModel.Final(turn));
         }
 
+        LoadSpeakers(folder);
         SetSessionFolder(folder);
         Status = status;
+    }
+
+    private void LoadSpeakers(string folder)
+    {
+        Speakers.Clear();
+
+        foreach (var speaker in SessionSpeakers.Load(folder))
+        {
+            Speakers.Add(new SpeakerViewModel(speaker.Label, speaker.Seconds, speaker.Known));
+        }
+    }
+
+    // Enter or focus loss on a speaker's box: the new name goes into the files and the voice store, then the session reloads.
+    public void CommitSpeakerName(SpeakerViewModel speaker)
+    {
+        if (_sessionFolder is null || !_renamer.Rename(_sessionFolder, speaker.OriginalLabel, speaker.Label))
+            return;
+
+        ShowSession(_sessionFolder, SessionHistory.LoadSegments(_sessionFolder), $"Named {speaker.OriginalLabel} as {speaker.Label.Trim()}; voice stored");
     }
 
     private void Toggle()

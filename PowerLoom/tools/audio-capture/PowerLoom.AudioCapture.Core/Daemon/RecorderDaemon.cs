@@ -72,9 +72,12 @@ public sealed class RecorderDaemon(ToolSettings settings)
         await ShutdownAsync();
     }
 
-    // The model loads in the background so the first recording streams at once; a failure shows up on the first use.
-    private void WarmUpEngine() => _ = _pipeline.EngineAsync().ContinueWith(
-        task => Log.Error("Model load failed", task.Exception!.GetBaseException()), TaskContinuationOptions.OnlyOnFaulted);
+    // The models load in the background so the first recording streams at once; a failure shows up on the first use.
+    private void WarmUpEngine() => _ = Task.Run(async () =>
+    {
+        await _pipeline.EngineAsync();
+        await _pipeline.SpeakerToolsAsync();
+    }).ContinueWith(task => Log.Error("Model load failed", task.Exception!.GetBaseException()), TaskContinuationOptions.OnlyOnFaulted);
 
     private async Task LoopAsync(CancellationToken cancellation)
     {
@@ -121,8 +124,9 @@ public sealed class RecorderDaemon(ToolSettings settings)
 
         var title = requestedTitle ?? TeamsWindows.MeetingTitle() ?? "meeting";
         var engine = await _pipeline.EngineAsync();
+        var speakerTools = await _pipeline.SpeakerToolsAsync();
 
-        _active = ActiveRecording.Start(title, CaptureSelection.From(settings), engine, (channel, level) => Level?.Invoke(channel, level));
+        _active = ActiveRecording.Start(title, CaptureSelection.From(settings), engine, speakerTools?.Namer, (channel, level) => Level?.Invoke(channel, level));
         _active.LiveSegment += segment => LiveSegment?.Invoke(segment);
         Log.Info($"Recording '{title}' into {_active.Folder}");
         PublishState();

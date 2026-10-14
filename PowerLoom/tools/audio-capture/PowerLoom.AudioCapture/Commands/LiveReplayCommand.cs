@@ -30,7 +30,7 @@ public static class LiveReplayCommand
 
     private static async Task<int> ReplayAsync(string folder, WhisperEngine engine)
     {
-        var live = new LiveTranscriber(engine);
+        var live = new LiveTranscriber(engine, namer: null);
         var watch = Stopwatch.StartNew();
         var count = 0;
 

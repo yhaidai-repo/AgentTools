@@ -39,6 +39,7 @@ public static class CommandLine
         "download-model" => await TranscribeCommands.DownloadModelAsync(options),
         "devices" => TranscribeCommands.Devices(),
         "live-replay" => await LiveReplayCommand.RunAsync(options),
+        "speakers" => SpeakersCommand.Run(options),
         "record-for" => await TranscribeCommands.RecordForAsync(options),
         _ => Unknown(command),
     };
@@ -62,9 +63,10 @@ public static class CommandLine
               record stop                                               stops it; transcription and inbox hand-over follow
               status | quit                                             the resident process
               run                                                       the resident process itself (hotkey, control files)
-              transcribe <folder> [--model <name>] [--prompt-file <path>] [--with-context] [--runtime cuda|vulkan|cpu] [--inbox <path>]
+              transcribe <folder> [--model <name>] [--prompt-file <path>] [--with-context] [--runtime cuda|vulkan|cpu] [--inbox <path>] [--no-speakers]
               download-model <large-v3|large-v3-turbo>
               devices                                                   microphones and outputs with their default roles
+              speakers <folder> [--rename "Speaker 1=Anna"]              a session's voices; naming stores the voice for later meetings
               live-replay <folder> [--model <name>] [--prompt-file <path>] [--languages uk,ru,en]   a session's WAVs through the live path (chunks at pauses), no playback
               record-for <seconds> [--title <text>] [--no-aec]          fixed-length recording without the resident process
             """);
