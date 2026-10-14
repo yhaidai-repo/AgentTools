@@ -4,7 +4,7 @@ using PowerLoom.AudioCapture.Recording;
 namespace PowerLoom.AudioCapture.Live;
 
 // Cuts one channel's stream into chunks at pauses, so the live view can transcribe while the meeting goes on:
-// a chunk ends after 0.7 s of silence once it holds 0.8 s of speech, or at 15 s; a stretch with no speech is dropped.
+// a chunk ends after 0.4 s of silence once it holds 0.8 s of speech, or at 8 s; a stretch with no speech is dropped.
 // Energy-based: a 20 ms frame is speech when its RMS is well above the channel's noise floor, which is tracked as the
 // quietest recent level (a Bluetooth headset mic sits 40x below a loopback). Used from the channel's capture thread only.
 public sealed class SpeechChunker(string speaker)
@@ -16,9 +16,11 @@ public sealed class SpeechChunker(string speaker)
     private const float MinSpeechRms = 0.004f;
     private const float FloorRise = 1.0005f;
     private const float FloorStart = 0.02f;
+    // Short pauses and short chunks keep one chunk to one speaker most of the time (a speaker change inside a chunk
+    // lands the next person's first words on the previous voice).
     private const double MinSpeechSeconds = 0.8;
-    private const double CutSilenceSeconds = 0.7;
-    private const double MaxChunkSeconds = 15;
+    private const double CutSilenceSeconds = 0.4;
+    private const double MaxChunkSeconds = 8;
     private const double DropSilentAfterSeconds = 5;
     private const double FlushMinSpeechSeconds = 0.3;
 

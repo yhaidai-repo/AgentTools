@@ -6,12 +6,14 @@ using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Live;
 
-// Transcribes chunks in arrival order on one worker and raises each segment as soon as it is known (provisional text;
-// the final pass after the recording replaces it). Mic segments that repeat recent system-channel text are echo and
-// dropped. A system-channel chunk carries the live voice it belongs to ("Speaker 2", or a stored name).
+// Transcribes chunks in arrival order on one worker and raises each segment as soon as it is known (provisional text).
+// Mic segments that repeat recent system-channel text are echo and dropped. On the system channel every sentence long
+// enough for a voice print is labelled by its own print, so a speaker change inside a chunk lands on the right voice;
+// shorter sentences take the chunk's voice.
 public sealed class LiveTranscriber
 {
     private static readonly TimeSpan EchoMemory = TimeSpan.FromSeconds(30);
+    private const double SentencePrintSeconds = 1.5;
     private readonly Channel<SpeechChunk> _queue = Channel.CreateUnbounded<SpeechChunk>();
     private readonly List<TranscriptSegment> _recentSystem = [];
     private readonly LiveSpeakers? _speakers;
@@ -58,11 +60,11 @@ public sealed class LiveTranscriber
         try
         {
             var segments = await engine.TranscribeSamplesAsync(chunk.Samples, chunk.Speaker, chunk.Start);
-            var label = segments.Count > 0 ? LabelOf(chunk) : null;
+            var chunkLabel = segments.Count > 0 && IsSystem(chunk) ? _speakers?.LabelFor(chunk.Samples) : null;
 
             foreach (var segment in segments)
             {
-                Publish(label is null ? segment : segment with { Speaker = label });
+                Publish(Labelled(segment, chunk, chunkLabel));
             }
         }
         catch (Exception exception)
@@ -71,8 +73,28 @@ public sealed class LiveTranscriber
         }
     }
 
-    private string? LabelOf(SpeechChunk chunk) =>
-        chunk.Speaker == SessionRecorder.SystemChannel ? _speakers?.LabelFor(chunk.Samples) : null;
+    private TranscriptSegment Labelled(TranscriptSegment segment, SpeechChunk chunk, string? chunkLabel)
+    {
+        if (chunkLabel is null)
+            return segment;
+
+        var own = SentenceLabel(segment, chunk);
+
+        return segment with { Speaker = own ?? chunkLabel };
+    }
+
+    private string? SentenceLabel(TranscriptSegment segment, SpeechChunk chunk)
+    {
+        if ((segment.End - segment.Start).TotalSeconds < SentencePrintSeconds)
+            return null;
+
+        var from = Math.Clamp((int)((segment.Start - chunk.Start).TotalSeconds * MonoResampler.WhisperRate), 0, chunk.Samples.Length);
+        var to = Math.Clamp((int)((segment.End - chunk.Start).TotalSeconds * MonoResampler.WhisperRate), from, chunk.Samples.Length);
+
+        return _speakers?.LabelFor(chunk.Samples[from..to]);
+    }
+
+    private static bool IsSystem(SpeechChunk chunk) => chunk.Speaker == SessionRecorder.SystemChannel;
 
     private void Publish(TranscriptSegment segment)
     {

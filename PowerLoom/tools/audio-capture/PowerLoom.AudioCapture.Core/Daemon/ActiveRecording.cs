@@ -6,8 +6,8 @@ using PowerLoom.AudioCapture.Transcription;
 
 namespace PowerLoom.AudioCapture.Daemon;
 
-// The recording in progress: its recorder, folder and title, the live path (chunkers per channel → live transcriber)
-// and the voices heard so far.
+// The recording in progress: its recorder, folder and title, the live path (chunkers per channel → live transcriber),
+// the voices heard so far and every live segment in the labels the user sees now.
 public sealed class ActiveRecording
 {
     private readonly SessionRecorder _recorder;
@@ -15,7 +15,7 @@ public sealed class ActiveRecording
     private readonly LiveTranscriber _live;
     private readonly Lock _sync = new();
     private readonly List<TranscriptSegment> _segments = [];
-    private readonly Dictionary<string, string> _renames = [];
+    private readonly Dictionary<string, string> _relabels = [];
 
     private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine, LiveSpeakers? speakers)
     {
@@ -38,9 +38,15 @@ public sealed class ActiveRecording
 
         _recorder.Samples += (channel, samples, count) => _chunkers[channel].Add(samples.AsSpan(0, count));
         _live.Segment += segment => LiveSegment?.Invoke(Collect(segment));
+
+        if (speakers is not null)
+            speakers.Relabeled += OnRelabeled;
     }
 
     public event Action<TranscriptSegment>? LiveSegment;
+
+    // A voice's label changed (named, or merged into another voice): old → new; the collected segments already follow.
+    public event Action<string, string>? SpeakerRelabeled;
 
     public LiveSpeakers? Speakers { get; }
 
@@ -62,18 +68,19 @@ public sealed class ActiveRecording
         }
     }
 
-    public bool RenameSpeaker(string oldLabel, string name)
-    {
-        if (Speakers is null || !Speakers.Rename(oldLabel, name))
-            return false;
+    public bool RenameSpeaker(string oldLabel, string name) => Speakers?.Rename(oldLabel, name) ?? false;
 
+    // The user moves what one bubble holds (the system-channel segments between start and end) to another voice.
+    public void ReassignSegments(TimeSpan start, TimeSpan end, string label)
+    {
         lock (_sync)
         {
-            _renames[oldLabel] = name.Trim();
-            Relabel(oldLabel, name.Trim());
+            for (var i = 0; i < _segments.Count; i++)
+            {
+                if (_segments[i].Channel == SessionRecorder.SystemChannel && _segments[i].Start >= start && _segments[i].Start <= end)
+                    _segments[i] = _segments[i] with { Speaker = label };
+            }
         }
-
-        return true;
     }
 
     public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, LiveSpeakers? speakers, Action<string, float> onLevel)
@@ -112,7 +119,7 @@ public sealed class ActiveRecording
     {
         lock (_sync)
         {
-            var labeled = _renames.TryGetValue(segment.Speaker, out var name) ? segment with { Speaker = name } : segment;
+            var labeled = _relabels.TryGetValue(segment.Speaker, out var name) ? segment with { Speaker = name } : segment;
 
             _segments.Add(labeled);
 
@@ -120,12 +127,24 @@ public sealed class ActiveRecording
         }
     }
 
-    private void Relabel(string oldLabel, string name)
+    private void OnRelabeled(string oldLabel, string name)
     {
-        for (var i = 0; i < _segments.Count; i++)
+        lock (_sync)
         {
-            if (_segments[i].Speaker == oldLabel)
-                _segments[i] = _segments[i] with { Speaker = name };
+            _relabels[oldLabel] = name;
+
+            foreach (var key in _relabels.Where(r => r.Value == oldLabel).Select(r => r.Key).ToList())
+            {
+                _relabels[key] = name;
+            }
+
+            for (var i = 0; i < _segments.Count; i++)
+            {
+                if (_segments[i].Speaker == oldLabel)
+                    _segments[i] = _segments[i] with { Speaker = name };
+            }
         }
+
+        SpeakerRelabeled?.Invoke(oldLabel, name);
     }
 }

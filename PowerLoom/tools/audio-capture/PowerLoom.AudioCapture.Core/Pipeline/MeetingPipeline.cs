@@ -31,6 +31,8 @@ public sealed class MeetingPipeline(ToolSettings settings) : IDisposable
     }
 
     // The speaker models are optional: a download or load failure is logged once and the others stay "Them".
+    public SpeakerTools? LoadedSpeakerTools => _speakerTools;
+
     public async Task<SpeakerTools?> SpeakerToolsAsync()
     {
         if (_speakerTools is not null || _speakerToolsFailed)

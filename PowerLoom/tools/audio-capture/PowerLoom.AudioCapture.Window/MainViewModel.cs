@@ -54,6 +54,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     // The voices of the shown session (the others only); editing a label names the voice for this and later meetings.
     public ObservableCollection<SpeakerViewModel> Speakers { get; } = [];
 
+    // Voices too short to name (under 3 s) are not boxed, only counted.
+    public string ShortVoicesNote { get => _shortVoicesNote; private set => Set(ref _shortVoicesNote, value); }
+
+    private string _shortVoicesNote = "";
+    private const double BoxedSeconds = 3;
+
     public RelayCommand ToggleCommand { get; }
 
     public RelayCommand OpenFolderCommand { get; }
@@ -153,11 +159,55 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void LoadSpeakers(string folder)
     {
         Speakers.Clear();
+        ShowSpeakers(SessionSpeakers.Load(folder));
+    }
 
-        foreach (var speaker in SessionSpeakers.Load(folder))
+    private void ShowSpeakers(IReadOnlyList<SpeakerInfo> speakers)
+    {
+        foreach (var info in speakers.Where(IsBoxed).OrderByDescending(s => s.Seconds))
         {
-            Speakers.Add(new SpeakerViewModel(speaker.Label, speaker.Seconds, speaker.Known));
+            if (Speakers.All(s => s.OriginalLabel != info.Label && s.Label != info.Label))
+                Speakers.Add(new SpeakerViewModel(info.Label, info.Seconds, info.Known));
         }
+
+        var hidden = speakers.Count(s => !IsBoxed(s));
+
+        ShortVoicesNote = hidden == 0 ? "" : $"+{hidden} under {BoxedSeconds:F0} s";
+    }
+
+    private static bool IsBoxed(SpeakerInfo speaker) => speaker.Known || speaker.Seconds >= BoxedSeconds;
+
+    // A live voice got a name or merged into another one: bubbles and boxes follow.
+    public void OnSpeakerRelabeled(string oldLabel, string name)
+    {
+        RelabelBubbles(oldLabel, name);
+
+        var box = Speakers.FirstOrDefault(s => s.OriginalLabel == oldLabel || s.Label == oldLabel);
+
+        if (box is null)
+            return;
+
+        if (Speakers.Any(s => s != box && (s.Label == name || s.OriginalLabel == name)))
+            Speakers.Remove(box);
+        else
+            box.Rename(name);
+    }
+
+    // The user moves one bubble to another voice (right-click): live or on the saved session.
+    public void ReassignBubble(BubbleViewModel bubble, string label)
+    {
+        var trimmed = label.Trim();
+
+        if (trimmed.Length == 0 || bubble.IsMe || bubble.Speaker == trimmed)
+            return;
+
+        if (IsRecording)
+            _daemon.ReassignLiveSegments(bubble.Start, bubble.End, trimmed);
+        else if (_sessionFolder is not null)
+            _renamer.Reassign(_sessionFolder, bubble.Start, bubble.End, trimmed, _daemon.Embedder);
+
+        bubble.Reassign(trimmed);
+        Status = $"Moved a bubble to {trimmed}";
     }
 
     // Enter or focus loss on a speaker's box. While recording the live voice is renamed in place (bubbles follow, profile
@@ -170,26 +220,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
             CommitStoredSpeakerName(speaker);
     }
 
-    // The live voices: new ones are added, renamed ones update their label; a box being edited is left alone.
+    // The live voices: new ones are boxed once they have enough speech; a box being edited is left alone.
     public void OnSpeakersChanged(IReadOnlyList<SpeakerInfo> speakers)
     {
-        foreach (var info in speakers)
+        foreach (var gone in Speakers.Where(box => speakers.All(s => s.Label != box.Label && s.Label != box.OriginalLabel)).ToList())
         {
-            var existing = Speakers.FirstOrDefault(s => s.OriginalLabel == info.Label || s.Label == info.Label);
-
-            if (existing is null)
-                Speakers.Add(new SpeakerViewModel(info.Label, info.Seconds, info.Known));
+            Speakers.Remove(gone);
         }
+
+        ShowSpeakers(speakers);
     }
 
+    // The daemon answers with SpeakerRelabeled (bubbles, boxes, merges), so only the status is set here.
     private void CommitLiveSpeakerName(SpeakerViewModel speaker)
     {
-        if (!_daemon.RenameLiveSpeaker(speaker.OriginalLabel, speaker.Label))
-            return;
-
-        RelabelBubbles(speaker.OriginalLabel, speaker.Label.Trim());
-        speaker.Renamed();
-        Status = $"Named {speaker.Label}; voice stored";
+        if (_daemon.RenameLiveSpeaker(speaker.OriginalLabel, speaker.Label))
+            Status = $"Named {speaker.Label.Trim()}; voice stored";
     }
 
     private void CommitStoredSpeakerName(SpeakerViewModel speaker)

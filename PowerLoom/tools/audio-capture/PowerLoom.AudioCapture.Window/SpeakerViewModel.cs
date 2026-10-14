@@ -11,8 +11,12 @@ public sealed class SpeakerViewModel(string label, double seconds, bool known) :
 
     public string OriginalLabel { get; private set; } = label;
 
-    // After a live rename the current label is the one later renames start from.
-    public void Renamed() => OriginalLabel = Label.Trim();
+    // After a rename the current label is the one later renames start from.
+    public void Rename(string name)
+    {
+        OriginalLabel = name;
+        Label = name;
+    }
 
     public string Detail { get; } = $"{seconds:F0} s{(known ? ", known voice" : "")}";
 

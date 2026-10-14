@@ -1,4 +1,3 @@
-using System.Text.Json;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Pipeline;
 using PowerLoom.AudioCapture.Transcription;
@@ -9,8 +8,6 @@ namespace PowerLoom.AudioCapture.Speakers;
 // hasn't taken it yet, the inbox file; the voice print is stored under the name for the next meetings.
 public sealed class SpeakerRenamer(VoiceStore store, ToolSettings settings)
 {
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
-
     public bool Rename(string folder, string oldLabel, string newName)
     {
         var speakers = SessionSpeakers.Load(folder);
@@ -27,21 +24,50 @@ public sealed class SpeakerRenamer(VoiceStore store, ToolSettings settings)
         return true;
     }
 
+    // After Stop: the system-channel segments of one bubble (between start and end) move to another voice; the voice's
+    // print learns from the bubble's audio when it is long enough to carry one.
+    public bool Reassign(string folder, TimeSpan start, TimeSpan end, string label, VoiceEmbedder? embedder)
+    {
+        var segments = SessionHistory.LoadSegments(folder);
+        var moved = segments.Select(s => IsInBubble(s, start, end) ? s with { Speaker = label.Trim() } : s).ToList();
+
+        if (moved.SequenceEqual(segments))
+            return false;
+
+        WriteTranscript(folder, moved);
+        Learn(folder, start, end, label.Trim(), embedder);
+
+        return true;
+    }
+
+    private static bool IsInBubble(TranscriptSegment segment, TimeSpan start, TimeSpan end) =>
+        segment.ChannelOrSpeaker == Recording.SessionRecorder.SystemChannel && segment.Start >= start && segment.Start <= end;
+
+    private void Learn(string folder, TimeSpan start, TimeSpan end, string label, VoiceEmbedder? embedder)
+    {
+        if (embedder is null || (end - start).TotalSeconds < 3 || label.StartsWith("Speaker ", StringComparison.Ordinal))
+            return;
+
+        var samples = WavSamples.ReadAll(Path.Combine(folder, "system.wav"));
+        var from = Math.Clamp((int)(start.TotalSeconds * Recording.MonoResampler.WhisperRate), 0, samples.Length);
+        var to = Math.Clamp((int)(end.TotalSeconds * Recording.MonoResampler.WhisperRate), from, samples.Length);
+        var embedding = embedder.Embed(samples[from..to]);
+
+        if (embedding is not null)
+            store.Add(label, embedding);
+    }
+
     private void Remember(SpeakerInfo speaker, string name)
     {
         if (speaker.Embedding.Length > 0)
             store.Add(name, speaker.Embedding);
     }
 
-    private void RewriteTranscript(string folder, string oldLabel, string name)
-    {
-        var segments = SessionHistory.LoadSegments(folder).Select(s => s.Speaker == oldLabel ? s with { Speaker = name } : s).ToList();
-        var markdownPath = Path.Combine(folder, "transcript.md");
+    private void RewriteTranscript(string folder, string oldLabel, string name) =>
+        WriteTranscript(folder, SessionHistory.LoadSegments(folder).Select(s => s.Speaker == oldLabel ? s with { Speaker = name } : s).ToList());
 
-        File.WriteAllText(SessionHistory.TranscriptJsonOf(folder), JsonSerializer.Serialize(segments, Json));
-        File.WriteAllText(markdownPath, TranscriptMerger.ToMarkdown(segments));
-        RewriteInbox(folder, new TranscriptResult(markdownPath, SessionHistory.TranscriptJsonOf(folder), segments));
-    }
+    private void WriteTranscript(string folder, IReadOnlyList<TranscriptSegment> segments) =>
+        RewriteInbox(folder, TranscriptFiles.Write(folder, segments));
 
     // Only while the file still waits in the inbox; once PowerLoom took it, the task's transcript is PowerLoom's.
     private void RewriteInbox(string folder, TranscriptResult result)

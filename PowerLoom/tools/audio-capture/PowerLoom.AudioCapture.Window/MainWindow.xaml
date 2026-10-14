@@ -32,7 +32,8 @@
         </Style>
 
         <DataTemplate DataType="{x:Type ui:BubbleViewModel}">
-            <Border x:Name="Bubble" MaxWidth="400" Margin="0,4" Padding="12,8" CornerRadius="12"
+            <Border x:Name="Bubble" MaxWidth="400" Margin="0,4" Padding="12,8" CornerRadius="12" ContextMenuOpening="OnBubbleMenuOpening"
+                    ToolTip="Right-click to move this bubble to another voice"
                     BorderThickness="1" BorderBrush="{DynamicResource BubbleBorder}"
                     Background="{DynamicResource ThemBubble}" HorizontalAlignment="Left">
                 <StackPanel>
@@ -120,7 +121,10 @@
 
         <!-- Conversation: the voices of the session (type a name, Enter) above the bubbles -->
         <DockPanel Grid.Row="3" Margin="0,6,0,0">
-            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Speakers}" Margin="0,0,0,6">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <TextBlock DockPanel.Dock="Right" Text="{Binding ShortVoicesNote}" Foreground="{DynamicResource Muted}" FontSize="11" VerticalAlignment="Top" Margin="6,6,0,0" />
+            <ScrollViewer MaxHeight="84" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Speakers}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel />
@@ -140,6 +144,8 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            </ScrollViewer>
+            </DockPanel>
             <ScrollViewer x:Name="Conversation" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Bubbles}" Margin="0,0,8,0" />
             </ScrollViewer>

@@ -17,6 +17,7 @@ public sealed class BubbleViewModel : INotifyPropertyChanged
         IsMe = channel == SessionRecorder.MicChannel;
         IsProvisional = isProvisional;
         _text = text;
+        Start = start;
         End = start;
     }
 
@@ -46,6 +47,10 @@ public sealed class BubbleViewModel : INotifyPropertyChanged
             Speaker = name;
     }
 
+    public void Reassign(string label) => Speaker = label;
+
+    public TimeSpan Start { get; private set; }
+
     public string Time { get; }
 
     public bool IsMe { get; }
@@ -62,7 +67,7 @@ public sealed class BubbleViewModel : INotifyPropertyChanged
         }
     }
 
-    public static BubbleViewModel Final(TranscriptTurn turn) => new(turn.Speaker, turn.Channel, turn.Start, turn.Text, isProvisional: false);
+    public static BubbleViewModel Final(TranscriptTurn turn) => new(turn.Speaker, turn.Channel, turn.Start, turn.Text, isProvisional: false) { End = turn.End };
 
     public static BubbleViewModel Provisional(TranscriptSegment segment) =>
         new(segment.Speaker, segment.ChannelOrSpeaker, segment.Start, segment.Text, isProvisional: true) { End = segment.End };

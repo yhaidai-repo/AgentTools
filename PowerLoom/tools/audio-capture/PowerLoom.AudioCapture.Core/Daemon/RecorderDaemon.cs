@@ -2,6 +2,7 @@ using System.Text.Json;
 using PowerLoom.AudioCapture.Control;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Pipeline;
+using PowerLoom.AudioCapture.Speakers;
 
 namespace PowerLoom.AudioCapture.Daemon;
 
@@ -30,6 +31,9 @@ public sealed class RecorderDaemon(ToolSettings settings)
     // The voices heard so far in the running recording (a new one, or a name given to one).
     public event Action<IReadOnlyList<SpeakerInfo>>? SpeakersChanged;
 
+    // A live voice's label changed (named, or merged into another voice): old → new.
+    public event Action<string, string>? SpeakerRelabeled;
+
     public event Action<TranscriptResult, string>? TranscriptReady;
 
     public event Action<string>? Failed;
@@ -56,6 +60,10 @@ public sealed class RecorderDaemon(ToolSettings settings)
 
     // A name typed in the window while recording: relabels the live voice and stores its profile.
     public bool RenameLiveSpeaker(string oldLabel, string name) => _active?.RenameSpeaker(oldLabel, name) ?? false;
+
+    public void ReassignLiveSegments(TimeSpan start, TimeSpan end, string label) => _active?.ReassignSegments(start, end, label);
+
+    public VoiceEmbedder? Embedder => _pipeline.LoadedSpeakerTools?.Embedder;
 
     public async Task RunAsync(CancellationToken cancellation)
     {
@@ -134,6 +142,8 @@ public sealed class RecorderDaemon(ToolSettings settings)
 
         _active = ActiveRecording.Start(title, CaptureSelection.From(settings), engine, speakerTools?.NewLiveSpeakers(), (channel, level) => Level?.Invoke(channel, level));
         _active.LiveSegment += segment => LiveSegment?.Invoke(segment);
+
+        _active.SpeakerRelabeled += (old, name) => SpeakerRelabeled?.Invoke(old, name);
 
         if (_active.Speakers is not null)
             _active.Speakers.Changed += speakers => SpeakersChanged?.Invoke(speakers);
