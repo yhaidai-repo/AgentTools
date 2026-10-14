@@ -1,3 +1,4 @@
+import type { AgentToolset } from "../../toolset/AgentToolset";
 import type { PullRequestCheckout } from "@agenttools/runtime";
 import type { RepoAccess } from "../../models/RepoAccess";
 import type { DiffScope } from "./DiffScope";
@@ -14,4 +15,6 @@ export interface ReviewRun {
   /** The PR's repo, taken from the cache; released when the run ends. */
   repos: RepoAccess;
   draft: ReviewDraft;
+  /** The shared tools of the run (its Config's); null until prepared. */
+  toolset: AgentToolset | null;
 }

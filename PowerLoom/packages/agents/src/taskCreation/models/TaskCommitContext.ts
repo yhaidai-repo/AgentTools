@@ -10,4 +10,6 @@ export interface TaskCommitContext {
   depth: number;
   /** The docs vault, where a tech-writer task's note lives. */
   docsVault: string;
+  /** The creating run's repos: a research task without a PBI reads them (the PBI's otherwise). */
+  repos?: string[];
 }

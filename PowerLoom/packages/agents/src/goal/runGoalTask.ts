@@ -1,5 +1,4 @@
 import type { GoalTaskData } from "@powerloom/core";
-import { createAdoTools } from "../ado/adoTools";
 import { agentRun, localItem } from "@powerloom/db";
 import { defineTool } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
@@ -15,10 +14,8 @@ import type { TaskContext } from "../models/TaskContext";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { acceptanceCriteriaBlock, goalTextOf } from "../tasks/userTasks";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
-import { createSqlTools } from "../sqlTools";
-import { createAgentDocTools, outsideAccessContext } from "../stage";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GoalDraft } from "./models/GoalDraft";
 import type { GoalRun } from "./models/GoalRun";
 
@@ -39,13 +36,13 @@ export async function runGoalTask(context: TaskContext, task: ItemRow): Promise<
     promptVersion: context.prompt.version,
   };
   const draft: GoalDraft = { result: null, findings: [] };
-  const run: GoalRun = { repos: noRepos() };
+  const run: GoalRun = { repos: noRepos(), toolset: null };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, data, draft, run));
 
-    return await session.finish(ran, () => commit(context, task, session.runId, draft));
+    return await session.finish(ran, () => commit(context, task, session.runId, draft, run));
   } finally {
     closeRepos(deps, run.repos);
   }
@@ -58,38 +55,31 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("context", { task: task.id, vault: task.vault });
   run.repos = await openRepos(context, session, [{ vault: task.vault, names: data.repos }]);
 
-  const firstMessage = buildFirstMessage(task, data, run.repos);
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos });
+  const firstMessage = buildFirstMessage(task, data, run.repos, toolset.webDocumentsBlock());
+  const tools = [writeResultTool(draft), ...toolset.tools(firstMessage), ...createFindingTools(deps, draft.findings)];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
-
-  const access = outsideAccessContext(agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      writeResultTool(draft),
-      ...run.repos.tools,
-      ...createAgentDocTools(deps, agent.id, session.runId),
-      ...createFindingTools(deps, draft.findings),
-      ...skills.tools,
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => draft.result !== null,
   };
 }
 
-function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoAccess): string {
+function buildFirstMessage(task: ItemRow, data: GoalTaskData, repos: RepoAccess, webDocuments: string): string {
   return [
     `Task ${task.id}: ${task.title}`,
     `<goal>\n${goalTextOf(task, data.goal)}\n</goal>`,
     acceptanceCriteriaBlock(task),
+    webDocuments,
     reposBlock(repos),
     "Work on the goal, then call write_result once with the result.",
   ].filter(Boolean).join("\n\n");
@@ -108,12 +98,13 @@ function writeResultTool(draft: GoalDraft) {
   });
 }
 
-// The result becomes the task's resolution; findings become items for the user; the run lists both.
-async function commit(context: TaskContext, task: ItemRow, runId: number, draft: GoalDraft): Promise<void> {
+// The result becomes the task's resolution; findings and what the shared tools created become items; the run lists all.
+async function commit(context: TaskContext, task: ItemRow, runId: number, draft: GoalDraft, run: GoalRun): Promise<void> {
   const { db } = context.deps;
   const findingIds = await insertFindings(db, task, runId, draft.findings);
   const firstLine = (draft.result ?? "").split(/\r?\n/).find((line) => line.trim()) ?? "";
 
   await db.update(localItem).set({ resolution: draft.result }).where(eq(localItem.id, task.id));
   await db.update(agentRun).set({ outputs: [`result: ${firstLine.slice(0, 120)}`, ...findingIds] }).where(eq(agentRun.id, runId));
+  await run.toolset?.commit(runId);
 }

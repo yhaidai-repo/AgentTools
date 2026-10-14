@@ -1,3 +1,4 @@
+import type { AgentToolset } from "../../toolset/AgentToolset";
 import type { RepoAccess } from "../../models/RepoAccess";
 import type { TechWriterDraft } from "./TechWriterDraft";
 
@@ -5,4 +6,6 @@ import type { TechWriterDraft } from "./TechWriterDraft";
 export interface TechWriterRun {
   repos: RepoAccess;
   draft: TechWriterDraft;
+  /** The shared tools of the run (its Config's); null until prepared. */
+  toolset: AgentToolset | null;
 }

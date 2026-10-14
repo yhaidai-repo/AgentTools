@@ -15,7 +15,7 @@ export function PipelineFields({ agent, blockerKinds, taskTypes }: { agent: Agen
           <span>{type}</span>
         </label>
       ))}
-      <span className="muted">Can create tasks of type (agents with the create_task tool choose what comes next; the user always can get one):</span>
+      <span className="muted">Can create tasks of type (ticked types give the agent the create_task tool, so it decides what comes next; the user always can get one):</span>
       {taskTypes.creatable.map((type) => (
         <label key={`assign-${type}`} className="inline choice">
           <input type="checkbox" name="canAssign" value={type} defaultChecked={agent.canAssign.includes(type)} />

@@ -52,7 +52,7 @@ function insertTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTa
 // `goal` in data is what the research message shows as the task's goal, so it carries the done-when.
 async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask, target: TaskTarget): Promise<string> {
   const id = await nextId(db, target.prefix as ItemPrefix, context.pbiId);
-  const data = { ...decisionData(task), goal: task.doneWhen, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort, depth: context.depth + 1 };
+  const data = { ...decisionData(task), ...reposData(context), goal: task.doneWhen, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort, depth: context.depth + 1 };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data });
 
@@ -97,6 +97,11 @@ async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task:
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: task.goal, data });
 
   return id;
+}
+
+// A task without a PBI names its own repos (the Tasks page's choice); one an agent creates inherits its run's.
+function reposData(context: TaskCommitContext): { repos?: string[] } {
+  return context.pbiId === null ? { repos: context.repos ?? [] } : {};
 }
 
 function pbiItem(context: TaskCommitContext, id: string) {

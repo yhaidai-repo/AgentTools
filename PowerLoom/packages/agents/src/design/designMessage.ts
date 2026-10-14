@@ -4,8 +4,8 @@ import type { RepoAccess } from "../models/RepoAccess";
 import { buildPbiMessage } from "../refinement/pbiMessage";
 import { reposBlock } from "../repos/reposBlock";
 import type { ResearchContext } from "../research/models/ResearchContext";
-import type { ResearchResultOutput } from "../research/models/ResearchResultOutput";
 import { refinementBlock } from "../research/researchMessage";
+import { resultBlock } from "../research/researchResultBlock";
 import { userRequestBlock } from "../tasks/userTasks";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -38,21 +38,4 @@ async function researchBlock(db: PowerLoomDb, adoId: number): Promise<string> {
   }
 
   return ["<research>", ...results.map((result) => resultBlock(result, tasks.find((task) => task.id === result.parentId))), "</research>"].join("\n");
-}
-
-function resultBlock(result: ItemRow, task: ItemRow | undefined): string {
-  const data = result.data as ResearchResultOutput;
-
-  return [
-    `## ${result.id} for ${task?.id ?? "?"}: ${task?.body ?? task?.title ?? result.title}`,
-    `Conclusion (${data.confidence}): ${data.conclusion}`,
-    `Findings:\n${lines(data.findings)}`,
-    `Evidence:\n${lines(data.evidence.map((item) => `${item.location}: ${item.note}`))}`,
-    `Docs for design:\n${lines(data.relevantDocs.map((doc) => `${doc.path}: ${doc.why}`))}`,
-    `Code for design:\n${lines(data.codeRefs.map((ref) => `${ref.location}: ${ref.why}`))}`,
-  ].join("\n");
-}
-
-function lines(items: string[]): string {
-  return items.length > 0 ? items.map((item) => `- ${item}`).join("\n") : "- none";
 }

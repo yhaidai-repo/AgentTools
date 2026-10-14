@@ -1,9 +1,6 @@
 import { localItem } from "@powerloom/db";
 import { AgentRunSession } from "../AgentRunSession";
 import { withBudgetNotes } from "../budget/budgetNotes";
-import { DuplicateGuard } from "../DuplicateGuard";
-import { ReadLog } from "../evidence/ReadLog";
-import { recordReads } from "../evidence/recordReads";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
@@ -14,14 +11,11 @@ import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { buildResearchMessage, buildTaskResearchMessage } from "../research/researchMessage";
 import { docsReadInRun, skillsTrace } from "../stage";
-import { createTaskTool } from "../taskCreation/createTaskTool";
-import { createVaultCaptureTool } from "../vaultCapture";
-import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
-import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
-import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { depthOf } from "../toolset/taskLimits";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitBetterResearch } from "./commitBetterResearch";
 import type { BetterResearchRun } from "./models/BetterResearchRun";
-import { depthOf, readingTools, taskLimits } from "../betterAgents/toolset";
 import { RESULT_TOOL, createResultTool } from "./resultTool";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -41,7 +35,7 @@ export async function runBetterResearchTask(context: TaskContext, task: ItemRow)
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: BetterResearchRun = { research: null, repos: noRepos(), readLog: null, draft: { result: null, tasks: [], captures: [], pages: [] } };
+  const run: BetterResearchRun = { research: null, repos: noRepos(), toolset: null, draft: { result: null, tasks: [], captures: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -53,7 +47,7 @@ export async function runBetterResearchTask(context: TaskContext, task: ItemRow)
     };
 
     // A run stopped by its budget keeps the result it saved (status partial), so the work so far isn't lost.
-    return await session.finish(ran, run.readLog ? commit : null, run.draft.result !== null);
+    return await session.finish(ran, run.toolset ? commit : null, run.draft.result !== null);
   } finally {
     closeRepos(deps, run.repos);
   }
@@ -66,33 +60,24 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("context", { task: task.id, pbi: task.pbiId, depth, skills: skillsTrace(skills) });
   run.research = task.pbiId === null ? null : await loadResearchContext(deps, task);
-  run.repos = await openRepos(context, session, await repoSources(context, task));
+  run.repos = await openRepos(context, session, await repoSources(context, task), { vault: task.vault });
 
-  const webDocuments = await webDocumentRun(context, task, session.runId);
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, depth, createTask: true, tasks: run.draft.tasks, captures: run.draft.captures });
   const taskMessage = run.research ? await buildResearchMessage(deps.db, deps.vaultRoot, run.research, run.repos) : buildTaskResearchMessage(task, run.repos);
-  const firstMessage = [taskMessage, webDocumentsBlock(webDocuments)].filter(Boolean).join("\n\n");
-  const guard = task.pbiId === null ? DuplicateGuard.none() : await DuplicateGuard.load(deps.db, task.pbiId);
-  const limits = await taskLimits(context, task.pbiId, depth);
+  const firstMessage = [taskMessage, toolset.webDocumentsBlock()].filter(Boolean).join("\n\n");
+  const tools = withBudgetNotes([...toolset.tools(firstMessage), createResultTool(run.draft, toolset.readLog)], () => session.spentUsd, agent.budgets.perRunUsd, RESULT_TOOL);
 
-  run.readLog = new ReadLog(firstMessage);
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: withBudgetNotes([
-      ...recordReads([...readingTools(context, session, task, run.repos), ...createFetchDocumentTools(webDocuments)], run.readLog),
-      ...skills.tools,
-      createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
-      createResultTool(run.draft, run.readLog),
-      ...createWebDocumentTools(deps.db, webDocuments),
-      // A vault draft belongs to a PBI.
-      ...(deps.captureRules && task.pbiId !== null ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
-    ], () => session.spentUsd, agent.budgets.perRunUsd, RESULT_TOOL),
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
-    observe: (event) => run.readLog?.observe(event),
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => run.draft.result !== null,
   };
 }

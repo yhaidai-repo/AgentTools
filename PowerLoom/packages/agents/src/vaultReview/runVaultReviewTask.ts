@@ -1,5 +1,4 @@
 import { candidateCount, vaultReviewOptions } from "@powerloom/core";
-import { createAdoTools } from "../ado/adoTools";
 import { localItem } from "@powerloom/db";
 import { listVaults, vaultsExclude } from "@powerloom/vault";
 import { readdir, readFile } from "node:fs/promises";
@@ -16,10 +15,9 @@ import type { TaskContext } from "../models/TaskContext";
 import type { VaultsAccess } from "../models/VaultsAccess";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
-import { createSqlTools } from "../sqlTools";
-import { numberOption, outsideAccessContext } from "../stage";
+import { numberOption } from "../stage";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitVaultReview } from "./commitVaultReview";
 import type { ReviewLimits } from "./models/ReviewLimits";
 import type { VaultReviewRun } from "./models/VaultReviewRun";
@@ -51,7 +49,7 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: VaultReviewRun = { repos: noRepos(), draft: { decisions: [], linkFixes: [], records: [], findings: [], summary: null } };
+  const run: VaultReviewRun = { repos: noRepos(), toolset: null, draft: { decisions: [], linkFixes: [], records: [], findings: [], summary: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -59,6 +57,7 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
 
     return await session.finish(ran, async () => {
       await commitVaultReview(deps.db, vaults, scope, task, session.runId, run.draft);
+      await run.toolset?.commit(session.runId);
     });
   } finally {
     closeRepos(deps, run.repos);
@@ -87,33 +86,30 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     throw new Error("none of the task's vaults is available under the vaults root");
   }
 
-  run.repos = await openRepos(context, session, await vaultRepoSources(scope));
+  run.repos = await openRepos(context, session, await vaultRepoSources(scope), { vault: task.vault });
 
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos });
   const firstMessage = await buildFirstMessage(context, task, scope, limits, run.repos);
   const rules = await vaultRules(scope);
+  const tools = [
+    ...createVaultReviewReadTools(scope),
+    ...createVaultReviewActionTools(scope, run.draft, limits),
+    ...createVaultReviewRecordTools(scope, run.draft, limits),
+    ...createFindingTools(deps, run.draft.findings),
+    ...toolset.tools(firstMessage),
+  ];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length, vaultRulesChars: rules.length });
-
-  const access = outsideAccessContext(agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, rules, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, rules, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      ...createVaultReviewReadTools(scope),
-      ...createVaultReviewActionTools(scope, run.draft, limits),
-      ...createVaultReviewRecordTools(scope, run.draft, limits),
-      ...createFindingTools(deps, run.draft.findings),
-      ...run.repos.tools,
-      ...skills.tools,
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => run.draft.summary !== null,
   };
 }

@@ -81,6 +81,25 @@ const TASK_CREATION_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+// What the shared toolset reads on every agent (user decision 2026-10-14): create_task's caps and open_repo's.
+const TOOLSET_OPTIONS: AgentOptionSpec[] = [
+  ...TASK_CREATION_OPTIONS,
+  {
+    key: "maxOpenedRepos",
+    label: "Repos opened per run",
+    description: "Most repos of the catalog one run may add with open_repo beyond the ones attached to its task; a clone of a big repo takes minutes.",
+    min: 0,
+    max: 20,
+  },
+];
+
+// An agent's own options first, then the toolset's it doesn't declare itself.
+function withToolsetOptions(specs: AgentOptionSpec[]): AgentOptionSpec[] {
+  const declared = new Set(specs.map((spec) => spec.key));
+
+  return [...specs, ...TOOLSET_OPTIONS.filter((spec) => !declared.has(spec.key))];
+}
+
 const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("Tasks"),
   {
@@ -262,7 +281,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
-    optionSpecs: REFINEMENT_OPTIONS,
+    optionSpecs: withToolsetOptions(REFINEMENT_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["refinement"],
@@ -280,7 +299,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
-    optionSpecs: BETTER_REFINEMENT_OPTIONS,
+    optionSpecs: withToolsetOptions(BETTER_REFINEMENT_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: ["research", "design", "docs"],
     handles: ["refinement"],
@@ -299,7 +318,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
-    optionSpecs: RESEARCH_OPTIONS,
+    optionSpecs: withToolsetOptions(RESEARCH_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["research"],
@@ -317,7 +336,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
-    optionSpecs: BETTER_RESEARCH_OPTIONS,
+    optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: ["research", "design"],
     handles: ["research"],
@@ -337,7 +356,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
-    optionSpecs: DESIGN_OPTIONS,
+    optionSpecs: withToolsetOptions(DESIGN_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["design"],
@@ -355,7 +374,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-tech-writer", "powerloom-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
-    optionSpecs: TECH_WRITER_OPTIONS,
+    optionSpecs: withToolsetOptions(TECH_WRITER_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["docs"],
@@ -374,7 +393,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
-    optionSpecs: CODE_REVIEW_OPTIONS,
+    optionSpecs: withToolsetOptions(CODE_REVIEW_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["review"],
@@ -393,7 +412,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
-    optionSpecs: VAULT_REVIEW_OPTIONS,
+    optionSpecs: withToolsetOptions(VAULT_REVIEW_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["vault-review"],

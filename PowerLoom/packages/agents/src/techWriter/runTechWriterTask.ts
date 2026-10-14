@@ -1,6 +1,4 @@
 import { localItem } from "@powerloom/db";
-import { createAdoTools } from "../ado/adoTools";
-import { createConfluenceTools } from "../confluenceTools";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AgentRunSession } from "../AgentRunSession";
@@ -14,9 +12,12 @@ import type { TaskContext } from "../models/TaskContext";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
-import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { acceptanceCriteriaBlock, isUserTask } from "../tasks/userTasks";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
+import { isDelegating, waitForCreatedTasks } from "./delegation";
+import { dependenciesBlock } from "./dependenciesBlock";
 import { relinkDraft, requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
 import type { DraftTaskData } from "./models/DraftTaskData";
@@ -24,9 +25,6 @@ import type { TaskVault } from "./models/TaskVault";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
 import type { TechWriterRun } from "./models/TechWriterRun";
 import { projectRepoName } from "../docsRepos";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
-import { createSqlTools } from "../sqlTools";
 import { createTechWriterTools } from "./techWriterTools";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -47,13 +45,13 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: TechWriterRun = { repos: noRepos(), draft: { edits: [], findings: [], home: null } };
+  const run: TechWriterRun = { repos: noRepos(), toolset: null, draft: { edits: [], findings: [], home: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, vault, run));
 
-    return await session.finish(ran, () => commit(context, vault, task, session.runId, run.draft));
+    return await session.finish(ran, () => commit(context, vault, task, session.runId, run));
   } finally {
     closeRepos(deps, run.repos);
   }
@@ -87,7 +85,20 @@ function actualizeVault(deps: AgentDeps, data: ActualizeTaskData): TaskVault {
   return { name: data.vault, root: isDocsVault ? deps.docsRoot : join(deps.vaults.root, data.vault), writer: deps.vaults.writer(data.vault), isDocsVault };
 }
 
-async function commit(context: TaskContext, vault: TaskVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<void> {
+// Handed work on: the tasks are written and this task waits for them; notes written in the same run are not kept.
+async function commit(context: TaskContext, vault: TaskVault, task: ItemRow, runId: number, run: TechWriterRun): Promise<void> {
+  const created = await run.toolset?.commit(runId);
+
+  if (created && created.taskIds.length > 0) {
+    await waitForCreatedTasks(context.deps.db, task, runId, created.taskIds);
+
+    return;
+  }
+
+  await commitNotes(context, vault, task, runId, run.draft);
+}
+
+async function commitNotes(context: TaskContext, vault: TaskVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<void> {
   if (isActualize(task)) {
     await commitActualize(context.deps.db, vault, task, runId, draft);
 
@@ -107,34 +118,28 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const data = task.data as DraftTaskData | ActualizeTaskData;
 
   await session.phase("context", { task: task.id, vault: vault.name, path: data.path, project: data.project, mode: isActualize(task) ? "actualize" : "draft" });
-  run.repos = await openRepos(context, session, await taskRepoSources(context, task, vault, data.project));
+  run.repos = await openRepos(context, session, await taskRepoSources(context, task, vault, data.project), { vault: task.vault });
 
-  const firstMessage = isActualize(task) ? await actualizeMessage(vault, task, data as ActualizeTaskData, run.repos) : await draftMessage(vault, task, data as DraftTaskData, run.repos);
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: vault.root });
+  const taskMessage = isActualize(task) ? await actualizeMessage(vault, task, data as ActualizeTaskData, run.repos) : await draftMessage(vault, task, data as DraftTaskData, run.repos);
+  const firstMessage = [taskMessage, await dependenciesBlock(deps.db, task), toolset.webDocumentsBlock()].filter(Boolean).join("\n\n");
   const vaultRules = await readFile(join(vault.root, "AGENTS.md"), "utf8");
+  const tools = [...toolset.tools(firstMessage), ...createTechWriterTools(deps, run.draft)];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length, vaultRulesChars: vaultRules.length });
-
-  const access = outsideAccessContext(context.agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, `## Vault rules (the ${vault.name} vault's AGENTS.md)\n\n${vaultRules}`, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, `## Vault rules (the ${vault.name} vault's AGENTS.md)\n\n${vaultRules}`, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      ...createAgentDocTools(deps, context.agent.id, session.runId, vault.root),
-      ...run.repos.tools,
-      ...skills.tools,
-      ...createTechWriterTools(deps, run.draft),
-      ...createConfluenceTools(deps, agent, access),
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
-    // A draft has to leave draft/, and an actualized note has to be rewritten: a run that doesn't do it didn't do the job.
-    hasRequiredOutput: () => (isActualize(task) ? run.draft.edits.some((edit) => edit.path === data.path) : run.draft.edits.length > 0),
+    observe: (event) => toolset.observe(event),
+    // A draft has to leave draft/, and an actualized note has to be rewritten, unless the run handed work on and waits
+    // for it: a run that does neither didn't do the job.
+    hasRequiredOutput: () => isDelegating(run) || (isActualize(task) ? run.draft.edits.some((edit) => edit.path === data.path) : run.draft.edits.length > 0),
   };
 }
 

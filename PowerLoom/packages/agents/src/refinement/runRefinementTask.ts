@@ -1,14 +1,10 @@
 import { localItem, workItem } from "@powerloom/db";
-import { createAdoTools } from "../ado/adoTools";
 import { isRecommendableSkill, requirePbiId } from "@powerloom/core";
 import { createListSkillsTool, listSkills } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
-import { createAttachmentTool } from "../attachmentTools";
-import { createConfluenceTools } from "../confluenceTools";
 import { documentedRepos } from "../docsRepos";
-import { createVaultCaptureTool } from "../vaultCapture";
 import { createWebResearchTool } from "../webResearch";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
@@ -18,10 +14,9 @@ import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { withPagesRead } from "../relevantPages";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
-import { createSqlTools } from "../sqlTools";
-import { confluencePagesReadInRun, createAgentDocTools, docsReadInRun, outsideAccessContext, skillsTrace } from "../stage";
+import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitRefinement } from "./commitRefinement";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementRun } from "./models/RefinementRun";
@@ -33,6 +28,8 @@ type ItemRow = typeof localItem.$inferSelect;
 type WorkItemRow = typeof workItem.$inferSelect;
 
 const AGENT = "refinement";
+// Refinement starts a PBI's chain: the tasks it creates are depth 1.
+const DEPTH = 0;
 
 // One refinement task (RT-…): one run on its PBI; on success the refinement, research tasks and questions are committed.
 export async function runRefinementTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
@@ -48,7 +45,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
     promptVersion: context.prompt.version,
   };
   const draft: RefinementDraft = { refinement: null, researchTasks: [], questions: [], webResearch: [], captures: [], pages: [] };
-  const run: RefinementRun = { repos: noRepos() };
+  const run: RefinementRun = { repos: noRepos(), toolset: null };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -57,6 +54,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
       const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
 
       await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
+      await run.toolset?.commit(session.runId);
     };
 
     return await session.finish(ran, commit);
@@ -70,38 +68,31 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const { deps, agent, prompt, skills } = context;
 
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
-  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId), { vault: task.vault });
 
-  const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
-  const firstMessage = [pbiMessage, userRequestBlock(task), reposBlock(run.repos)].filter(Boolean).join("\n\n");
-  const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
   const guard = await DuplicateGuard.load(deps.db, row.adoId);
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, depth: DEPTH, guard, captures: draft.captures });
+  const pbiMessage = await buildPbiMessage(deps.db, deps.vaultRoot, row);
+  const firstMessage = [pbiMessage, userRequestBlock(task), toolset.webDocumentsBlock(), reposBlock(run.repos)].filter(Boolean).join("\n\n");
+  const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
+  const tools = [
+    ...toolset.tools(firstMessage),
+    createListSkillsTool(deps.skillFolders, isRecommendableSkill),
+    ...createRefinementTools(draft, pbiMessage, recommendable, guard),
+    ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
+  ];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
-
-  const access = outsideAccessContext(context.agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      ...createAgentDocTools(deps, context.agent.id, session.runId),
-      ...run.repos.tools,
-      ...skills.tools,
-      createListSkillsTool(deps.skillFolders, isRecommendableSkill),
-      createAttachmentTool(deps.db, row.adoId),
-      ...createRefinementTools(deps.db, deps.docsVaultName, draft, pbiMessage, recommendable, guard),
-      ...(agent.capabilities.webAccess ? [] : [createWebResearchTool(draft.webResearch, guard)]),
-      ...createConfluenceTools(deps, agent, access),
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-      ...(deps.captureRules ? [createVaultCaptureTool(draft.captures, deps.captureRules)] : []),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => draft.refinement !== null,
   };
 }

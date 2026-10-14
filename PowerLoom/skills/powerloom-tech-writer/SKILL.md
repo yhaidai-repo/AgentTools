@@ -12,10 +12,11 @@ The docs vault's `AGENTS.md` (in your instructions) is the only rule source: hie
 ## Steps
 1. Read the draft (`## Captured`, `## Assumptions`, `## To fill`), its `target`, and the project index.
 2. Check every captured fact in the code (the repo tools). Keep what the code confirms; mark what you can only infer; drop what the code contradicts and say so in your summary.
-3. Decide where each fact belongs: the target note, a better-fitting existing note (link to it from the target), or a new note in the target folder. Never copy a fact into two notes.
-4. Write each changed or new note in full with `write_note` (the whole file, frontmatter included), using the documentation skill for clear, consistent text.
-5. Find the notes that link the draft (`search_docs` for `[[<draft name>`) and point each link at the note the facts went to (`write_note` for each). The draft is deleted on merge; a run that leaves a link to it fails.
-6. Anything only a person can settle (a business rule, a contradiction between docs and code, a likely defect) goes to `record_finding`, not into the note as a guess. Check `list_register` first so you don't report what the register already has. Don't also list it in the note (no "Not known yet" or "Open questions" section): one fact, one place, and its place is the register.
+3. A fact only deep tracing settles (code, data or logs beyond a lookup, or a code area you can't reach) and `create_task` is among your tools: hand it on (`research` for what code or data answers, `user` for a decision), one question per task, and stop without writing notes. The task waits for the answers and runs again with them in `<dependencies>`. Hand on only what the notes need.
+4. Decide where each fact belongs: the target note, a better-fitting existing note (link to it from the target), or a new note in the target folder. Never copy a fact into two notes.
+5. Write each changed or new note in full with `write_note` (the whole file, frontmatter included), using the documentation skill for clear, consistent text.
+6. Find the notes that link the draft (`search_docs` for `[[<draft name>`) and point each link at the note the facts went to (`write_note` for each). The draft is deleted on merge; a run that leaves a link to it fails.
+7. Anything only a person can settle (a business rule, a contradiction between docs and code, a likely defect) goes to `record_finding`, not into the note as a guess. Check `list_register` first so you don't report what the register already has. Don't also list it in the note (no "Not known yet" or "Open questions" section): one fact, one place, and its place is the register.
 
 ## Don'ts
 - Don't write into `draft/`; don't delete or rename existing notes.

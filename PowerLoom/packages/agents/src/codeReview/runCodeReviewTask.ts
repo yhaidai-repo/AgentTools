@@ -1,5 +1,4 @@
 import type { ReviewTaskData } from "@powerloom/core";
-import { createAdoTools } from "../ado/adoTools";
 import type { localItem } from "@powerloom/db";
 import type { RepoRef } from "@agenttools/runtime";
 import { rm } from "node:fs/promises";
@@ -11,18 +10,16 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
-import { createSqlTools } from "../sqlTools";
-import { numberOption, outsideAccessContext, skillsTrace } from "../stage";
+import { numberOption, skillsTrace } from "../stage";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { createCodeReviewTools } from "./codeReviewTools";
 import { commitReview } from "./commitReview";
 import { loadPullRequest, loadReviewContext } from "./loadReviewContext";
 import type { ReviewRun } from "./models/ReviewRun";
 import { findOutdatedComments } from "./outdatedComments";
 import { parseUnifiedDiff, selectScope } from "./prDiff";
-import { createReadPbiTool } from "../pbiContext/readPbiTool";
 import { buildReviewMessage } from "./reviewMessage";
 import { reviewCheckoutsRoot } from "./reviewCheckouts";
 
@@ -43,13 +40,14 @@ export async function runCodeReviewTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepos(), draft: { summary: null, comments: [], updates: [] } };
+  const run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepos(), toolset: null, draft: { summary: null, comments: [], updates: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
     const commit = async () => {
       await commitReview(deps.db, run, session.runId);
+      await run.toolset?.commit(session.runId);
     };
 
     return await session.finish(ran, commit);
@@ -67,7 +65,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   const reviewed = await loadPullRequest(deps.db, data.prId);
 
-  run.repos = await openRepos(context, session, [{ vault: reviewed.vault, names: [reviewed.repoName] }], reviewCheckoutsRoot(deps, session.runId));
+  run.repos = await openRepos(context, session, [{ vault: reviewed.vault, names: [reviewed.repoName] }], { toolsRoot: reviewCheckoutsRoot(deps, session.runId) });
   run.context = await loadReviewContext(deps.db, reviewed, reviewRepo(run.repos, reviewed.repoName));
 
   const { pr, repo } = run.context;
@@ -81,28 +79,21 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   run.outdatedIds = await findOutdatedComments(deps.repoCache, repo, run.context.earlierComments, run.checkout.sourceCommit);
   await session.phase("diff", { files: files.length, reviewed: run.scope.reviewed.length, skipped: run.scope.skipped.length, outdated: run.outdatedIds });
 
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos });
   const firstMessage = buildReviewMessage(run.context, run.checkout, run.scope, run.outdatedIds);
+  const tools = [...toolset.tools(firstMessage), ...createCodeReviewTools(run)];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
-
-  const access = outsideAccessContext(agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      ...run.repos.tools,
-      ...skills.tools,
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-      ...createCodeReviewTools(run),
-      createReadPbiTool(deps.db, deps.vaultRoot),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => run.draft.summary !== null,
   };
 }

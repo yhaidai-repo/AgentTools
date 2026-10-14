@@ -16,6 +16,15 @@ function contextWith(readRepos: boolean): TaskContext {
   return { deps: { repoCache }, agent } as unknown as TaskContext;
 }
 
+// Read repositories on, nothing attached: the catalog is still there for open_repo (select().from().where().orderBy()).
+function contextWithCatalog(): TaskContext {
+  const agent = { options: {}, capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true } } } as unknown as AgentDefinition;
+  const db = { select: () => ({ from: () => ({ where: () => ({ orderBy: async () => [PVS] }) }) }) };
+  const repoCache = { acquire: async () => ({}), release: () => {}, root: "/repo-cache/v", refs: {} };
+
+  return { deps: { db, repoCache }, agent } as unknown as TaskContext;
+}
+
 function sessionLog(): { session: AgentRunSession; phases: Record<string, unknown>[] } {
   const phases: Record<string, unknown>[] = [];
 
@@ -30,6 +39,16 @@ describe("openRepos", () => {
 
     assert.deepEqual(access, noRepos());
     assert.deepEqual(phases, [{ name: "repos", readRepos: false }]);
+  });
+
+  it("offers open_repo for the task's vault when nothing is attached to the task", async () => {
+    const { session } = sessionLog();
+
+    const access = await openRepos(contextWithCatalog(), session, [], { vault: "v" });
+
+    assert.equal(access.isOn, true);
+    assert.deepEqual(access.repos, []);
+    assert.ok(access.tools.some((tool) => tool.name === "open_repo"));
   });
 });
 

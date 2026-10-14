@@ -1,10 +1,7 @@
 import { requirePbiId } from "@powerloom/core";
-import { createAdoTools } from "../ado/adoTools";
-import { localItem } from "@powerloom/db";
+import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
-import { createAttachmentTool } from "../attachmentTools";
-import { createConfluenceTools } from "../confluenceTools";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
@@ -13,11 +10,11 @@ import { withPagesRead } from "../relevantPages";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { loadResearchContext } from "../research/loadResearchContext";
-import { createAzureTools } from "../azureTools";
-import { createDevHubTools } from "../devHubTools";
-import { createSqlTools } from "../sqlTools";
-import { confluencePagesReadInRun, createAgentDocTools, outsideAccessContext, skillsTrace } from "../stage";
-import { createVaultCaptureTool } from "../vaultCapture";
+import { confluencePagesReadInRun, skillsTrace } from "../stage";
+import { recordWaiting } from "../tasks/waiting";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { ownTools } from "../toolset/ownTools";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitDesign } from "./commitDesign";
 import { buildDesignMessage } from "./designMessage";
 import { createDesignTools } from "./designTools";
@@ -40,7 +37,7 @@ export async function runDesignTask(context: TaskContext, task: ItemRow): Promis
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: DesignRun = { context: null, repos: noRepos(), draft: { design: null, gaps: [], captures: [], pages: [] } };
+  const run: DesignRun = { context: null, repos: noRepos(), toolset: null, draft: { design: null, gaps: [], captures: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -49,6 +46,7 @@ export async function runDesignTask(context: TaskContext, task: ItemRow): Promis
       const pages = withPagesRead(run.draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by design while designing.");
 
       await commitDesign(deps.db, task, pbiId, session.runId, { ...run.draft, pages });
+      await waitForCreatedTasks(deps.db, task, session.runId, run);
     };
 
     return await session.finish(ran, commit);
@@ -63,39 +61,40 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   await session.phase("context", { task: task.id, skills: skillsTrace(skills) });
   run.context = await loadResearchContext(deps, task);
-  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)));
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, requirePbiId(task)), { vault: task.vault });
 
-  const firstMessage = await buildDesignMessage(deps.db, deps.vaultRoot, run.context, run.repos);
   const guard = await DuplicateGuard.load(deps.db, requirePbiId(task));
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, guard, captures: run.draft.captures });
+  const firstMessage = [await buildDesignMessage(deps.db, deps.vaultRoot, run.context, run.repos), toolset.webDocumentsBlock()].filter(Boolean).join("\n\n");
+  const shared = toolset.tools(firstMessage);
+  const tools = [...shared, ...ownTools(createDesignTools(run.draft, guard), shared)];
 
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
-
-  const access = outsideAccessContext(context.agent.id, session.runId, task);
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: [
-      ...createAgentDocTools(deps, context.agent.id, session.runId),
-      ...run.repos.tools,
-      ...skills.tools,
-      createAttachmentTool(deps.db, requirePbiId(task)),
-      ...createDesignTools(run.draft, guard),
-      ...createConfluenceTools(deps, agent, access),
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-      ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
-    ],
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => hasOutput(run),
   };
 }
 
-// A design, or the questions and tasks for the user that stop it: either counts as a finished run.
+// A design, or the questions and tasks for the user that stop it, or work handed on with create_task: each counts as a
+// finished run.
 function hasOutput(run: DesignRun): boolean {
-  return run.draft.design !== null || run.draft.gaps.length > 0;
+  return run.draft.design !== null || run.draft.gaps.length > 0 || (run.toolset?.tasks.length ?? 0) > 0;
+}
+
+// Without a design the task is open again (commitDesign); the tasks the shared tools created hold it like its gaps do.
+async function waitForCreatedTasks(db: PowerLoomDb, task: ItemRow, runId: number, run: DesignRun): Promise<void> {
+  const created = await run.toolset?.commit(runId);
+
+  if (created && created.taskIds.length > 0 && run.draft.design === null) {
+    await recordWaiting(db, task, runId, created.taskIds);
+  }
 }

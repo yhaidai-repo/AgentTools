@@ -8,8 +8,9 @@ import type { RefinementDraft } from "./models/RefinementDraft";
 
 // Pipeline tools of the refinement agent. They only fill the draft; nothing is written until the run succeeds.
 // `availableSkills`: the skills it may recommend for the PBI (what list_skills shows).
-export function createRefinementTools(db: PowerLoomDb, vault: string, draft: RefinementDraft, pbiMessage: string, availableSkills: string[], guard: DuplicateGuard): ToolDefinition<any>[] {
-  return [getPbiTool(pbiMessage), listReposTool(db, vault), writeRefinementTool(draft, availableSkills), createResearchTaskTool(draft, guard), createQuestionTool(draft, guard)];
+// list_repos, which write_refinement's repos come from, is one of the shared tools every agent has.
+export function createRefinementTools(draft: RefinementDraft, pbiMessage: string, availableSkills: string[], guard: DuplicateGuard): ToolDefinition<any>[] {
+  return [getPbiTool(pbiMessage), writeRefinementTool(draft, availableSkills), createResearchTaskTool(draft, guard), createQuestionTool(draft, guard)];
 }
 
 function getPbiTool(pbiMessage: string) {

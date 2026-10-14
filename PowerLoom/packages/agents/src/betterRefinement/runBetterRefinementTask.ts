@@ -3,37 +3,29 @@ import { localItem, workItem } from "@powerloom/db";
 import { createListSkillsTool, listSkills } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
-import { DuplicateGuard } from "../DuplicateGuard";
-import { readingTools, taskLimits } from "../betterAgents/toolset";
 import { withBudgetNotes } from "../budget/budgetNotes";
 import { documentedRepos } from "../docsRepos";
-import { ReadLog } from "../evidence/ReadLog";
-import { recordReads } from "../evidence/recordReads";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { buildPbiMessage } from "../refinement/pbiMessage";
-import { listReposTool } from "../refinement/refinementTools";
 import { withPagesRead } from "../relevantPages";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
-import { createTaskTool } from "../taskCreation/createTaskTool";
 import { userRequestBlock } from "../tasks/userTasks";
-import { createVaultCaptureTool } from "../vaultCapture";
-import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
-import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
-import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
+import { AgentToolset } from "../toolset/AgentToolset";
+import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitBetterRefinement } from "./commitBetterRefinement";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
 import { REFINEMENT_TOOL, createRefinementTool } from "./refinementTool";
 
 type ItemRow = typeof localItem.$inferSelect;
 type WorkItemRow = typeof workItem.$inferSelect;
-type Run = { repos: RepoAccess; readLog: ReadLog | null; draft: BetterRefinementDraft };
+type Run = { repos: RepoAccess; toolset: AgentToolset | null; draft: BetterRefinementDraft };
 
 const AGENT = "better-refinement";
 // Refinement starts a PBI's chain: the tasks it creates are depth 1.
@@ -53,7 +45,7 @@ export async function runBetterRefinementTask(context: TaskContext, task: ItemRo
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: Run = { repos: noRepos(), readLog: null, draft: { refinement: null, tasks: [], captures: [], pages: [] } };
+  const run: Run = { repos: noRepos(), toolset: null, draft: { refinement: null, tasks: [], captures: [], pages: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -75,33 +67,28 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const { deps, agent, prompt, skills } = context;
 
   await session.phase("context", { pbi: row.adoId, note: row.vaultPath, skills: skillsTrace(skills) });
-  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId));
+  run.repos = await openRepos(context, session, await pbiRepoSources(deps.db, row.adoId), { vault: task.vault });
 
-  const webDocuments = await webDocumentRun(context, task, session.runId);
-  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), userRequestBlock(task), webDocumentsBlock(webDocuments), reposBlock(run.repos)].filter(Boolean).join("\n\n");
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, depth: DEPTH, createTask: true, tasks: run.draft.tasks, captures: run.draft.captures });
+  const firstMessage = [await buildPbiMessage(deps.db, deps.vaultRoot, row), userRequestBlock(task), toolset.webDocumentsBlock(), reposBlock(run.repos)].filter(Boolean).join("\n\n");
   const recommendable = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name).filter(isRecommendableSkill);
-  const guard = await DuplicateGuard.load(deps.db, row.adoId);
-  const limits = await taskLimits(context, row.adoId, DEPTH);
+  const tools = withBudgetNotes([
+    ...toolset.tools(firstMessage),
+    createListSkillsTool(deps.skillFolders, isRecommendableSkill),
+    createRefinementTool(run.draft, toolset.readLog, recommendable),
+  ], () => session.spentUsd, agent.budgets.perRunUsd, REFINEMENT_TOOL);
 
-  run.readLog = new ReadLog(firstMessage);
+  run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
-    tools: withBudgetNotes([
-      ...recordReads([...readingTools(context, session, task, run.repos), listReposTool(deps.db, deps.docsVaultName), ...createFetchDocumentTools(webDocuments)], run.readLog),
-      ...skills.tools,
-      createListSkillsTool(deps.skillFolders, isRecommendableSkill),
-      createTaskTool(agent.canAssign, run.draft.tasks, guard, run.readLog, limits),
-      createRefinementTool(run.draft, run.readLog, recommendable),
-      ...createWebDocumentTools(deps.db, webDocuments),
-      ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
-    ], () => session.spentUsd, agent.budgets.perRunUsd, REFINEMENT_TOOL),
+    tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
-    observe: (event) => run.readLog?.observe(event),
+    observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => run.draft.refinement !== null,
   };
 }
