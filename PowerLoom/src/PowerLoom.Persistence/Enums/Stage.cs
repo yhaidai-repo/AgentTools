@@ -13,4 +13,6 @@ public enum Stage
     VaultReview,
     BetterResearch,
     BetterRefinement,
+    // Turns a recorded meeting into notes and follow-ups (tools/audio-capture; design 2026-10-14).
+    MeetingNotes,
 }
