@@ -91,8 +91,9 @@ The resident process starts itself on the first `record start` when the task isn
 
 ## Inbox file
 `<inbox>/<stamp>-<slug>.json` (written as `.json.tmp`, then renamed): `source` (`audio-capture`), `sourceRef`, `title`,
-`startedAt`, `endedAt`, `durationSec`, `model`, `transcriptPath` (PC path), `transcript` (markdown, `[hh:mm:ss] Me|Them: …`),
-`segmentCount`.
+`startedAt`, `endedAt`, `durationSec`, `model`, `transcriptPath` (PC path), `transcript` (markdown, `[hh:mm:ss] <speaker>: …`),
+`segmentCount`, `speakers`. PowerLoom's meetings import (`Features/Meetings`, on the vault's import schedule) turns it into
+the vault note `meetings/<sourceRef>-transcript.md` and a `meeting` task `MT-nnn` for the meeting notes agent.
 
 ## Checks and re-runs
 - `record-for 20 --title test`: a fixed-length recording without the resident process.

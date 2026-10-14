@@ -54,15 +54,16 @@ public sealed class MeetingTaskCreation(PowerLoomDbContext db, VaultFiles files)
             HeldBy = "[]",
         };
 
+    // The wall-clock time the tool sent (its offset), not the container's clock (UTC): the user's 18:42 stays 18:42.
     private static string Title(MeetingImport meeting)
     {
-        var title = $"Meeting notes: {meeting.Title} ({meeting.StartedAt.LocalDateTime:yyyy-MM-dd HH:mm})";
+        var title = $"Meeting notes: {meeting.Title} ({meeting.StartedAt.DateTime:yyyy-MM-dd HH:mm})";
 
         return title.Length <= TitleMax ? title : title[..TitleMax];
     }
 
     private static string Body(MeetingImport meeting) =>
-        $"Recorded {meeting.StartedAt.LocalDateTime:yyyy-MM-dd HH:mm}, {Math.Round(meeting.DurationSec / 60.0)} min, speakers: {string.Join(", ", meeting.Speakers)}. The transcript is the note {MeetingTranscriptNote.PathOf(meeting)}.";
+        $"Recorded {meeting.StartedAt.DateTime:yyyy-MM-dd HH:mm}, {Math.Round(meeting.DurationSec / 60.0)} min, speakers: {string.Join(", ", meeting.Speakers)}. The transcript is the note {MeetingTranscriptNote.PathOf(meeting)}.";
 
     private static Dictionary<string, object?> Data(MeetingImport meeting, string notePath) =>
         new()
