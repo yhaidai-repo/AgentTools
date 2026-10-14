@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using PowerLoom.AudioCapture.Models;
 using PowerLoom.AudioCapture.Recording;
 using PowerLoom.AudioCapture.Speakers;
@@ -11,15 +10,13 @@ namespace PowerLoom.AudioCapture.Transcription;
 // transcript.json (and speakers.json) next to the audio.
 public sealed class SessionTranscriber(WhisperEngine engine, SpeakerTools? speakerTools, Action<string> log)
 {
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
-
     public async Task<TranscriptResult> TranscribeAsync(string folder)
     {
         var mic = await TranscribeChannelAsync(Path.Combine(folder, "mic.wav"), SessionRecorder.MicChannel);
         var system = await TranscribeChannelAsync(Path.Combine(folder, "system.wav"), SessionRecorder.SystemChannel);
         var labeled = LabelVoices(folder, EchoFilter.WithoutEcho(mic, system), system);
 
-        return Write(folder, labeled);
+        return TranscriptFiles.Write(folder, labeled);
     }
 
     private async Task<List<TranscriptSegment>> TranscribeChannelAsync(string wavPath, string speaker)
@@ -55,16 +52,5 @@ public sealed class SessionTranscriber(WhisperEngine engine, SpeakerTools? speak
         log($"Voices: {speakers.Count} ({string.Join(", ", speakers.Select(s => $"{s.Label} {s.Seconds:F0} s"))}) in {watch.Elapsed.TotalSeconds:F1} s");
 
         return TranscriptMerger.Merge(mic, labeled);
-    }
-
-    private static TranscriptResult Write(string folder, IReadOnlyList<TranscriptSegment> segments)
-    {
-        var markdownPath = Path.Combine(folder, "transcript.md");
-        var jsonPath = Path.Combine(folder, "transcript.json");
-
-        File.WriteAllText(markdownPath, TranscriptMerger.ToMarkdown(segments));
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(segments, Json));
-
-        return new TranscriptResult(markdownPath, jsonPath, segments);
     }
 }

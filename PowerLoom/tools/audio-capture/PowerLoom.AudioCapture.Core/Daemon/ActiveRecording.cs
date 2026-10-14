@@ -13,6 +13,9 @@ public sealed class ActiveRecording
     private readonly SessionRecorder _recorder;
     private readonly Dictionary<string, SpeechChunker> _chunkers;
     private readonly LiveTranscriber _live;
+    private readonly Lock _sync = new();
+    private readonly List<TranscriptSegment> _segments = [];
+    private readonly Dictionary<string, string> _renames = [];
 
     private ActiveRecording(SessionRecorder recorder, string folder, string title, WhisperEngine engine, LiveSpeakers? speakers)
     {
@@ -34,7 +37,7 @@ public sealed class ActiveRecording
         }
 
         _recorder.Samples += (channel, samples, count) => _chunkers[channel].Add(samples.AsSpan(0, count));
-        _live.Segment += segment => LiveSegment?.Invoke(segment);
+        _live.Segment += segment => LiveSegment?.Invoke(Collect(segment));
     }
 
     public event Action<TranscriptSegment>? LiveSegment;
@@ -46,6 +49,32 @@ public sealed class ActiveRecording
     public string Title { get; }
 
     public DateTimeOffset StartedAt { get; }
+
+    // Everything said so far, in the labels the user sees now: the transcript of the meeting once it stops.
+    public IReadOnlyList<TranscriptSegment> Segments
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return TranscriptMerger.InTimeOrder(_segments);
+            }
+        }
+    }
+
+    public bool RenameSpeaker(string oldLabel, string name)
+    {
+        if (Speakers is null || !Speakers.Rename(oldLabel, name))
+            return false;
+
+        lock (_sync)
+        {
+            _renames[oldLabel] = name.Trim();
+            Relabel(oldLabel, name.Trim());
+        }
+
+        return true;
+    }
 
     public static ActiveRecording Start(string title, CaptureSelection devices, WhisperEngine engine, LiveSpeakers? speakers, Action<string, float> onLevel)
     {
@@ -59,8 +88,7 @@ public sealed class ActiveRecording
         return recording;
     }
 
-    // Stops the capture, lets the last chunks through the live path, keeps the live voices for the final pass, and
-    // returns the session.
+    // Stops the capture, lets the last chunks through the live path, keeps the live voices, and returns the session.
     public async Task<RecordingSession> StopAsync()
     {
         var session = _recorder.Stop();
@@ -78,5 +106,26 @@ public sealed class ActiveRecording
             SessionSpeakers.Save(Folder, Speakers.Snapshot());
 
         return session;
+    }
+
+    private TranscriptSegment Collect(TranscriptSegment segment)
+    {
+        lock (_sync)
+        {
+            var labeled = _renames.TryGetValue(segment.Speaker, out var name) ? segment with { Speaker = name } : segment;
+
+            _segments.Add(labeled);
+
+            return labeled;
+        }
+    }
+
+    private void Relabel(string oldLabel, string name)
+    {
+        for (var i = 0; i < _segments.Count; i++)
+        {
+            if (_segments[i].Speaker == oldLabel)
+                _segments[i] = _segments[i] with { Speaker = name };
+        }
     }
 }

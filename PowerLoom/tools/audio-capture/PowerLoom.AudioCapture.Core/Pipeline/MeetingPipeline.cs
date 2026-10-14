@@ -49,9 +49,10 @@ public sealed class MeetingPipeline(ToolSettings settings) : IDisposable
         return _speakerTools;
     }
 
-    public async Task<(TranscriptResult Result, string InboxFile)> CompleteAsync(RecordingSession session)
+    // At Stop: the live transcript is written as it is and handed over at once (no second pass; user, 2026-10-14).
+    public (TranscriptResult Result, string InboxFile) Complete(RecordingSession session, IReadOnlyList<TranscriptSegment> segments)
     {
-        var result = await TranscribeAsync(session.Folder);
+        var result = TranscriptFiles.Write(session.Folder, segments);
         var import = MeetingImports.From(session, result, settings.Model);
 
         return (result, InboxWriter.Write(settings.InboxPath, import));

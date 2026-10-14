@@ -58,7 +58,9 @@ the final pass replaces them. The window follows Windows' app mode (dark or ligh
   `speakers <folder> --rename "Speaker 2=Anna"`). The bubbles, `speakers.json`, the transcript and the inbox file (while it
   still waits) take the name, and the voice print goes into `voices.json` in the home. From then on that voice is named
   in later meetings, live.
-- **After Stop** the channel is diarized properly (pyannote segmentation 3.0 + the same embeddings; the two models, 33 MB,
+- **At Stop** the live transcript is saved as it is and handed to PowerLoom in about a second; there is no second pass
+  (user, 2026-10-14). `transcribe <folder>` still re-runs recognition and diarization on a session by hand.
+- *Not used at Stop any more:* the channel can be diarized properly (pyannote segmentation 3.0 + the same embeddings; the two models, 33 MB,
   download on first use into `models\`); the clusters take the live labels and names, so what you saw stays. A one-hour
   meeting takes a few minutes in the background.
 - Prints compare in a **voice space** (`voice-space.json`): the mean of every print ever seen is subtracted first, which

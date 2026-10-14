@@ -55,7 +55,7 @@ public sealed class RecorderDaemon(ToolSettings settings)
     public void RequestQuit() => Interlocked.Exchange(ref _quitPending, 1);
 
     // A name typed in the window while recording: relabels the live voice and stores its profile.
-    public bool RenameLiveSpeaker(string oldLabel, string name) => _active?.Speakers?.Rename(oldLabel, name) ?? false;
+    public bool RenameLiveSpeaker(string oldLabel, string name) => _active?.RenameSpeaker(oldLabel, name) ?? false;
 
     public async Task RunAsync(CancellationToken cancellation)
     {
@@ -155,18 +155,18 @@ public sealed class RecorderDaemon(ToolSettings settings)
         var session = await recording.StopAsync();
 
         _active = null;
-        Log.Info($"Stopped '{recording.Title}' after {session.DurationSeconds:F0} s; transcribing");
+        Log.Info($"Stopped '{recording.Title}' after {session.DurationSeconds:F0} s");
         PublishState();
         RecordingStopped?.Invoke(session, recording.Title);
 
-        await CompleteAsync(session, recording.Title);
+        Complete(session, recording.Title, recording.Segments);
     }
 
-    private async Task CompleteAsync(RecordingSession session, string title)
+    private void Complete(RecordingSession session, string title, IReadOnlyList<TranscriptSegment> segments)
     {
         try
         {
-            var (result, inboxFile) = await _pipeline.CompleteAsync(session);
+            var (result, inboxFile) = _pipeline.Complete(session, segments);
 
             _lastResult = $"{title}: {Path.GetFileName(inboxFile)}";
             Log.Info($"Handed over: {inboxFile}");

@@ -78,7 +78,7 @@ public sealed class ResidentHost : IDisposable
     {
         _viewModel.OnRecordingStopped(session, title);
         _tray.SetRecording(false);
-        _tray.Notify("Stopped", $"{title}: transcribing");
+        _tray.Notify("Stopped", $"{title}: saved and handed to PowerLoom");
     }
 
     private void OnUi(Action action) => _dispatcher.BeginInvoke(action);

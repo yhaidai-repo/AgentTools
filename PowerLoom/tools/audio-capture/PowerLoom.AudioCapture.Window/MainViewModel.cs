@@ -99,7 +99,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Elapsed = "";
         MicLevel = 0;
         SystemLevel = 0;
-        Status = $"Transcribing · {title} ({session.DurationSeconds:F0} s)";
+        Status = $"Saving · {title} ({session.DurationSeconds:F0} s)";
     }
 
     public void OnTranscriptReady(TranscriptResult result, string inboxFile)
