@@ -1,4 +1,5 @@
 import { localItem } from "@powerloom/db";
+import { createAdoTools } from "../ado/adoTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -128,6 +129,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
       ...createDevHubTools(deps, agent, access),
+      ...createAdoTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

@@ -34,7 +34,7 @@ describe("loadPrompt", () => {
   it("keeps today's prompts unchanged", async () => {
     const prompt = await loadPrompt("research", { team: "Signals" });
 
-    assert.equal(prompt.version, "v11");
+    assert.equal(prompt.version, "v12");
     assert.doesNotMatch(prompt.text, /How you work/);
   });
 });

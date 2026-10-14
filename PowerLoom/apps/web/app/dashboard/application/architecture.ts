@@ -131,7 +131,7 @@ const runnerTools: SchemeNode[] = [
   node("tool-sql", "read SQL", "component", "runner-tools"),
   node("tool-azure", "read Azure", "component", "runner-tools"),
   node("tool-devhub", "DevHub", "component", "runner-tools"),
-  node("tool-test-cases", "ADO test cases", "component", "runner-tools", "read_test_cases: Tested By, saved to the PBI"),
+  node("tool-ado", "ADO (read)", "component", "runner-tools", "work items, pull requests with their threads, test cases (saved to the PBI)"),
   node("tool-access", "access requests", "component", "runner-tools", "every outside call logged; a refused one becomes a human task"),
 ];
 
@@ -179,7 +179,7 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-sql", "sql-server"),
   link("tool-azure", "azure"),
   link("tool-devhub", "devhub"),
-  link("tool-test-cases", "ado", "test cases"),
+  link("tool-ado", "ado", "work items, PRs, test cases"),
   link("tool-pbi-context", "schema-public"),
   link("tool-access", "schema-public"),
   link("web-cli", "schema-public", "pbi.read"),

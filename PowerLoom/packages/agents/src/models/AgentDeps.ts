@@ -55,7 +55,7 @@ export interface AgentDeps {
   azure: AzureAccess | null;
   /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
   devHub: DevHubAccess | null;
-  /** The vault's Azure DevOps while its integration is on (read_test_cases). */
+  /** The vault's Azure DevOps while its integration is on (the ADO tools). */
   ado: AdoAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
   docUsageLog: DocUsageLog | null;

@@ -1,4 +1,7 @@
-// A work item read with `$expand=relations`: only its links are used.
+// A work item read with `$expand=relations`: its fields and its links.
 export interface WorkItemRelationsDto {
-  relations?: { rel: string; url: string }[];
+  id: number;
+  rev: number;
+  fields: Record<string, unknown>;
+  relations?: { rel: string; url: string; attributes?: { name?: string; comment?: string } }[];
 }

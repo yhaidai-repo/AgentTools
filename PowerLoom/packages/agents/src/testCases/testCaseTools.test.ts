@@ -1,28 +1,23 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AgentDefinition } from "@agenttools/config";
 import { AdoRequestError, TESTED_BY_RELATION, type AdoClient } from "@powerloom/ado";
 import type { DataAccessLog } from "../DataAccessLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import { fetchTestCases } from "./fetchTestCases";
 import { stepsMarkdown } from "./testCaseMarkdown";
-import { READ_TEST_CASES_INTEGRATION, createTestCaseTools } from "./testCaseTools";
+import { testCaseTools } from "./testCaseTools";
 
 const context = { vault: "work-projects", agentId: "refinement", runId: 7, taskId: "RT-36973-001", pbiId: 36973 };
 
 const STEPS = `<steps id="0" last="4"><step id="2" type="ActionStep"><parameterizedString isformatted="true">&lt;P&gt;Open the &lt;B&gt;Features&lt;/B&gt; tab&lt;/P&gt;</parameterizedString><parameterizedString isformatted="true">&lt;P&gt;The checkbox shows&lt;/P&gt;</parameterizedString><description/></step><compref id="3" ref="500"/></steps>`;
 const SHARED = `<steps id="0" last="2"><step id="2" type="ActionStep"><parameterizedString isformatted="true">Sign in as admin</parameterizedString><parameterizedString isformatted="true"/><description/></step></steps>`;
 
-function agentWith(isOn: boolean): AgentDefinition {
-  return { capabilities: { webAccess: false, integrations: { [READ_TEST_CASES_INTEGRATION]: isOn } } } as unknown as AgentDefinition;
-}
-
-function depsWith(client: Partial<AdoClient> | null): { deps: AgentDeps; entries: DataAccessEntry[] } {
+function depsWith(client: Partial<AdoClient>): { deps: AgentDeps; entries: DataAccessEntry[] } {
   const entries: DataAccessEntry[] = [];
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
   const outside = { log, requests: { request: async () => ({ id: "HT-36973-001", created: true }) } };
-  const ado = client ? { client: client as AdoClient, orgUrl: "https://dev.azure.com/org" } : null;
+  const ado = { client: client as AdoClient, orgUrl: "https://dev.azure.com/org" };
 
   return { deps: { outside, ado } as unknown as AgentDeps, entries };
 }
@@ -34,18 +29,20 @@ const client: Partial<AdoClient> = {
     : { id, rev: 3, fields: { "System.Title": "Display the checkbox", "System.State": "Ready", "Microsoft.VSTS.Common.Priority": 2, "Microsoft.VSTS.TCM.Steps": STEPS } })),
 };
 
-describe("createTestCaseTools", () => {
-  it("gives the tool only with the agent's switch on, the vault's Azure DevOps on and a PBI", () => {
-    assert.equal(createTestCaseTools(depsWith(client).deps, agentWith(false), context).length, 0);
-    assert.equal(createTestCaseTools(depsWith(null).deps, agentWith(true), context).length, 0);
-    assert.equal(createTestCaseTools(depsWith(client).deps, agentWith(true), { ...context, pbiId: null }).length, 0);
-    assert.deepEqual(createTestCaseTools(depsWith(client).deps, agentWith(true), context).map((tool) => tool.name), ["read_test_cases"]);
+function toolsOf(deps: AgentDeps, pbiId: number | null) {
+  return testCaseTools(deps, { ...context, pbiId }, deps.ado!);
+}
+
+describe("testCaseTools", () => {
+  it("gives the tool only on a run with a PBI", () => {
+    assert.equal(toolsOf(depsWith(client).deps, null).length, 0);
+    assert.deepEqual(toolsOf(depsWith(client).deps, 36973).map((tool) => tool.name), ["read_test_cases"]);
   });
 
   it("logs a refused token as denied and asks the user for access", async () => {
     const refusing: Partial<AdoClient> = { getLinkedIds: async () => { throw new AdoRequestError(401, "token expired"); } };
     const { deps, entries } = depsWith(refusing);
-    const [tool] = createTestCaseTools(deps, agentWith(true), context);
+    const [tool] = toolsOf(deps, 36973);
 
     const result = await tool.handler({});
 

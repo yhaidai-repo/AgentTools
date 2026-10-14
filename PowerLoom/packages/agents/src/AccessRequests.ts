@@ -15,7 +15,7 @@ const FIXES: Record<string, string> = {
   cosmos: "Settings → Read Azure → Cosmos DB: check the account's read-only key; remove the resource and add it again with the current key.",
   serviceBus: "Settings → Read Azure → Service Bus: check the Listen policy's connection string; remove the resource and add it again.",
   mongo: "Settings → Read Azure → Mongo: check the read-only connection string; remove the resource and add it again.",
-  ado: "Settings → Azure DevOps: check the PAT (Work Items Read) and that it hasn't expired; save a new one if it has.",
+  ado: "Settings → Azure DevOps: check that the PAT has Work Items (Read) and Code (Read) and hasn't expired; save a new one if it lacks a scope or has expired.",
 };
 
 const OPEN = ["open", "in-progress"] as const;

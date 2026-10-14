@@ -1,4 +1,5 @@
 import { requirePbiId } from "@powerloom/core";
+import { createAdoTools } from "../ado/adoTools";
 import { localItem } from "@powerloom/db";
 import { AgentRunSession } from "../AgentRunSession";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -92,6 +93,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
       ...createDevHubTools(deps, agent, access),
+      ...createAdoTools(deps, agent, access),
       ...(deps.captureRules ? [createVaultCaptureTool(run.draft.captures, deps.captureRules)] : []),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },

@@ -1,4 +1,5 @@
 import type { GoalTaskData } from "@powerloom/core";
+import { createAdoTools } from "../ado/adoTools";
 import { agentRun, localItem } from "@powerloom/db";
 import { defineTool } from "@agenttools/runtime";
 import { eq } from "drizzle-orm";
@@ -76,6 +77,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
       ...createSqlTools(deps, agent, access),
       ...createAzureTools(deps, agent, access),
       ...createDevHubTools(deps, agent, access),
+      ...createAdoTools(deps, agent, access),
     ],
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,

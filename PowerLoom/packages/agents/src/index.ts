@@ -6,7 +6,7 @@ export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { READ_SQL_INTEGRATION } from "./sqlTools";
 export { DEVHUB_INTEGRATION, stackOwner } from "./devHubTools";
-export { READ_TEST_CASES_INTEGRATION } from "./testCases/testCaseTools";
+export { ADO_INTEGRATION } from "./ado/adoTools";
 export { stopOrphanedStack, stopRunStack } from "./devHubCleanup";
 export { READ_AZURE_LOGS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azureIntegrations";
 export { loadCaptureRules } from "./vaultCapture";
