@@ -18,4 +18,8 @@ public sealed record RecordingSession(
 
     public static void Save(RecordingSession session) =>
         File.WriteAllText(FileOf(session.Folder), JsonSerializer.Serialize(session, Json));
+
+    public static RecordingSession Load(string folder) =>
+        JsonSerializer.Deserialize<RecordingSession>(File.ReadAllText(FileOf(folder)), Json)
+        ?? throw new InvalidOperationException($"Unreadable {FileOf(folder)}");
 }

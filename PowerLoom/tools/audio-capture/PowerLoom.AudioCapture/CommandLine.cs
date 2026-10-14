@@ -1,10 +1,7 @@
-using PowerLoom.AudioCapture.Models;
-using PowerLoom.AudioCapture.Recording;
-using PowerLoom.AudioCapture.Transcription;
+using PowerLoom.AudioCapture.Commands;
 
 namespace PowerLoom.AudioCapture;
 
-// The commands of the spike (stage 1): record a session folder for N seconds, download a model, transcribe a session.
 public static class CommandLine
 {
     public static async Task<int> RunAsync(string[] args)
@@ -18,73 +15,31 @@ public static class CommandLine
 
         var options = CommandOptions.Parse(args.Skip(1));
 
-        return args[0] switch
+        try
         {
-            "record" => await RecordAsync(options),
-            "download-model" => await DownloadModelAsync(options),
-            "transcribe" => await TranscribeAsync(options),
-            _ => Unknown(args[0]),
-        };
-    }
-
-    private static async Task<int> RecordAsync(CommandOptions options)
-    {
-        var folder = options.Positional(0) ?? SessionFolders.NewSessionFolder(options.Value("--title"));
-        var seconds = int.Parse(options.Value("--seconds") ?? "0");
-
-        using var recorder = new SessionRecorder(folder, echoCancellation: !options.Has("--no-aec"));
-
-        recorder.Start();
-        Console.WriteLine($"Recording into {folder} ({(seconds > 0 ? seconds + " s" : "until Enter")})");
-
-        await WaitForStopAsync(seconds);
-
-        var session = recorder.Stop();
-
-        Console.WriteLine($"Stopped after {session.DurationSeconds:F0} s: {session.MicPath}, {session.SystemPath}");
-
-        return 0;
-    }
-
-    private static async Task<int> DownloadModelAsync(CommandOptions options)
-    {
-        var model = WhisperModels.Parse(options.Positional(0));
-        var path = await ModelStore.EnsureAsync(model, Console.WriteLine);
-
-        Console.WriteLine($"Model ready: {path}");
-
-        return 0;
-    }
-
-    private static async Task<int> TranscribeAsync(CommandOptions options)
-    {
-        var folder = options.Positional(0) ?? throw new ArgumentException("transcribe needs a session folder");
-        var model = WhisperModels.Parse(options.Value("--model"));
-        var prompt = options.Value("--prompt-file") is { } promptFile ? await File.ReadAllTextAsync(promptFile) : "";
-        var transcription = new TranscriptionOptions(prompt.Trim(), NoContext: !options.Has("--with-context"));
-
-        RuntimeSelection.Apply(options.Value("--runtime"));
-
-        var modelPath = await ModelStore.EnsureAsync(model, Console.WriteLine);
-        var transcriber = new SessionTranscriber(modelPath, transcription, Console.WriteLine);
-        var result = await transcriber.TranscribeAsync(folder, model);
-
-        Console.WriteLine($"Transcript: {result.MarkdownPath} ({result.Segments.Count} segments, runtime {RuntimeSelection.Loaded})");
-
-        return 0;
-    }
-
-    private static async Task WaitForStopAsync(int seconds)
-    {
-        if (seconds > 0)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(seconds));
-
-            return;
+            return await DispatchAsync(args[0], options);
         }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            Console.Error.WriteLine(exception.Message);
 
-        await Task.Run(Console.ReadLine);
+            return 1;
+        }
     }
+
+    private static async Task<int> DispatchAsync(string command, CommandOptions options) => command switch
+    {
+        "run" => await RecordCommands.RunAsync(),
+        "record" => await RecordCommands.RecordAsync(options),
+        "status" => RecordCommands.Status(),
+        "quit" => await RecordCommands.QuitAsync(),
+        "install" => await InstallCommands.InstallAsync(options),
+        "uninstall" => await InstallCommands.UninstallAsync(),
+        "transcribe" => await TranscribeCommands.TranscribeAsync(options),
+        "download-model" => await TranscribeCommands.DownloadModelAsync(options),
+        "record-for" => await TranscribeCommands.RecordForAsync(options),
+        _ => Unknown(command),
+    };
 
     private static int Unknown(string command)
     {
@@ -98,9 +53,15 @@ public static class CommandLine
     {
         Console.WriteLine("""
             PowerLoom.AudioCapture <command>
-              record [folder] [--title <text>] [--seconds <n>] [--no-aec]   mic + system audio into <folder>/mic.wav and system.wav
-              download-model <large-v3|large-v3-turbo>              fetch the ggml model into the model store
-              transcribe <folder> --model <name> [--runtime cuda|vulkan|cpu] [--prompt-file <path>] [--with-context]
+              install --inbox <path> [--model <name>] [--hotkey <keys>]   settings + logon task; starts the resident process
+              uninstall                                                 removes the task and stops the resident process
+              record start [--title <text>]                             starts a recording (title: Teams call window, else "meeting")
+              record stop                                               stops it; transcription and inbox hand-over follow
+              status | quit                                             the resident process
+              run                                                       the resident process itself (hotkey, control files)
+              transcribe <folder> [--model <name>] [--prompt-file <path>] [--with-context] [--runtime cuda|vulkan|cpu] [--inbox <path>]
+              download-model <large-v3|large-v3-turbo>
+              record-for <seconds> [--title <text>] [--no-aec]          fixed-length recording without the resident process
             """);
     }
 }

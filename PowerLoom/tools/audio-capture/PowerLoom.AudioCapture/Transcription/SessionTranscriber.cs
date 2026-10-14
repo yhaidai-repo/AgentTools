@@ -4,12 +4,12 @@ using PowerLoom.AudioCapture.Models;
 
 namespace PowerLoom.AudioCapture.Transcription;
 
-// Transcribes both channels of a session folder and writes transcript-<model>.md / .json next to them.
+// Transcribes both channels of a session folder and writes transcript.md / transcript.json next to them.
 public sealed class SessionTranscriber(string modelPath, TranscriptionOptions options, Action<string> log)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
-    public async Task<TranscriptResult> TranscribeAsync(string folder, WhisperModel model)
+    public async Task<TranscriptResult> TranscribeAsync(string folder)
     {
         using var transcriber = new WhisperTranscriber(modelPath, options);
 
@@ -17,7 +17,7 @@ public sealed class SessionTranscriber(string modelPath, TranscriptionOptions op
         var system = await TranscribeChannelAsync(transcriber, Path.Combine(folder, "system.wav"), "Them");
         var segments = TranscriptMerger.Merge(EchoFilter.WithoutEcho(mic, system), system);
 
-        return Write(folder, WhisperModels.Name(model), segments);
+        return Write(folder, segments);
     }
 
     private async Task<List<TranscriptSegment>> TranscribeChannelAsync(WhisperTranscriber transcriber, string wavPath, string speaker)
@@ -31,10 +31,10 @@ public sealed class SessionTranscriber(string modelPath, TranscriptionOptions op
         return segments;
     }
 
-    private static TranscriptResult Write(string folder, string modelName, IReadOnlyList<TranscriptSegment> segments)
+    private static TranscriptResult Write(string folder, IReadOnlyList<TranscriptSegment> segments)
     {
-        var markdownPath = Path.Combine(folder, $"transcript-{modelName}.md");
-        var jsonPath = Path.Combine(folder, $"transcript-{modelName}.json");
+        var markdownPath = Path.Combine(folder, "transcript.md");
+        var jsonPath = Path.Combine(folder, "transcript.json");
 
         File.WriteAllText(markdownPath, TranscriptMerger.ToMarkdown(segments));
         File.WriteAllText(jsonPath, JsonSerializer.Serialize(segments, Json));

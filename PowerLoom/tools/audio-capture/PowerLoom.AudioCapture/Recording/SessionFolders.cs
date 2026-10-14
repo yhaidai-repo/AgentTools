@@ -1,9 +1,9 @@
 namespace PowerLoom.AudioCapture.Recording;
 
-// Where recordings live: %LOCALAPPDATA%\PowerLoom\audio-capture\recordings\<yyyy-MM-dd_HHmm>-<slug>.
+// Where recordings live: <home>/recordings/<yyyy-MM-dd_HHmm>-<slug>.
 public static class SessionFolders
 {
-    public static string Root { get; } = Path.Combine(AppPaths.Home, "recordings");
+    public static string Root => Path.Combine(AppPaths.Home, "recordings");
 
     public static string NewSessionFolder(string? title)
     {

@@ -3,10 +3,10 @@ using Whisper.net.Ggml;
 
 namespace PowerLoom.AudioCapture.Transcription;
 
-// ggml models under %LOCALAPPDATA%\PowerLoom\audio-capture\models, fetched once from Hugging Face (ggerganov/whisper.cpp).
+// ggml models under <home>/models, fetched once from Hugging Face (ggerganov/whisper.cpp).
 public static class ModelStore
 {
-    public static string Root { get; } = Path.Combine(AppPaths.Home, "models");
+    public static string Root => Path.Combine(AppPaths.Home, "models");
 
     public static async Task<string> EnsureAsync(WhisperModel model, Action<string> log)
     {
