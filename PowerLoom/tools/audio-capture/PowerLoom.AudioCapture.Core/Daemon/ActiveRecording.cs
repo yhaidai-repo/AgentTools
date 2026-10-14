@@ -70,6 +70,8 @@ public sealed class ActiveRecording
 
     public bool RenameSpeaker(string oldLabel, string name) => Speakers?.Rename(oldLabel, name) ?? false;
 
+    public string? RemoveSpeaker(string label) => Speakers?.Remove(label);
+
     // The user moves what one bubble holds (the system-channel segments between start and end) to another voice.
     public void ReassignSegments(TimeSpan start, TimeSpan end, string label)
     {

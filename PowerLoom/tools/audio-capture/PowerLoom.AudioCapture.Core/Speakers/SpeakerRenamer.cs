@@ -40,6 +40,33 @@ public sealed class SpeakerRenamer(VoiceStore store, ToolSettings settings)
         return true;
     }
 
+    // After Stop: a voice made by mistake is folded into the closest other voice of the session (by print; the one with
+    // the most speech when prints are missing). Returns the voice it went to; stored profiles stay as they are.
+    public string? Remove(string folder, string label)
+    {
+        var speakers = SessionSpeakers.Load(folder);
+        var gone = speakers.FirstOrDefault(s => s.Label == label);
+        var into = gone is null ? null : ClosestOther(speakers, gone);
+
+        if (gone is null || into is null)
+            return null;
+
+        SessionSpeakers.Save(folder, speakers.Where(s => s != gone).Select(s => s == into ? s with { Seconds = s.Seconds + gone.Seconds } : s).ToList());
+        RewriteTranscript(folder, label, into.Label);
+
+        return into.Label;
+    }
+
+    private SpeakerInfo? ClosestOther(List<SpeakerInfo> speakers, SpeakerInfo gone)
+    {
+        var others = speakers.Where(s => s != gone).ToList();
+
+        if (gone.Embedding.Length == 0 || others.All(s => s.Embedding.Length == 0))
+            return others.MaxBy(s => s.Seconds);
+
+        return others.Where(s => s.Embedding.Length > 0).MaxBy(s => store.Space.Similarity(s.Embedding, gone.Embedding));
+    }
+
     private static bool IsInBubble(TranscriptSegment segment, TimeSpan start, TimeSpan end) =>
         segment.ChannelOrSpeaker == Recording.SessionRecorder.SystemChannel && segment.Start >= start && segment.Start <= end;
 

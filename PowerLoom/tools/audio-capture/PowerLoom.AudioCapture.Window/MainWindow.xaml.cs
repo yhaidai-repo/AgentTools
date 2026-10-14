@@ -41,6 +41,12 @@ public partial class MainWindow
 
     private void OnSpeakerLostFocus(object sender, RoutedEventArgs e) => CommitSpeaker(sender);
 
+    private void OnSpeakerRemove(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: SpeakerViewModel speaker })
+            _viewModel.RemoveSpeaker(speaker);
+    }
+
     // Right-click on a bubble: the session's voices to move it to, or a new name.
     private void OnBubbleMenuOpening(object sender, ContextMenuEventArgs e)
     {

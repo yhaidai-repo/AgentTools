@@ -61,6 +61,21 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
         return true;
     }
 
+    // A voice the user says was made by mistake: it is folded into the closest remaining voice (its speech, and the
+    // stretches that would have matched it, go there). The last voice can't be removed.
+    public string? Remove(string label)
+    {
+        var merge = RemoveLocked(label);
+
+        if (merge is null)
+            return null;
+
+        Relabeled?.Invoke(merge.Value.Old, merge.Value.New);
+        Changed?.Invoke(Snapshot());
+
+        return merge.Value.New;
+    }
+
     public List<SpeakerInfo> Snapshot()
     {
         lock (_sync)
@@ -167,6 +182,17 @@ public sealed class LiveSpeakers(VoiceEmbedder embedder, VoiceStore store)
         _speakers.Remove(gone);
 
         return (gone.Label, into.Label);
+    }
+
+    private (string Old, string New)? RemoveLocked(string label)
+    {
+        lock (_sync)
+        {
+            var gone = _speakers.FirstOrDefault(s => s.Label == label);
+            var closest = gone is null ? null : _speakers.Where(s => s != gone).MaxBy(s => store.Space.Similarity(s.Centroid, gone.Centroid));
+
+            return gone is null || closest is null ? null : Merge(closest, gone);
+        }
     }
 
     private (bool Renamed, bool Merged, float[] Centroid) RenameLocked(string oldLabel, string name)

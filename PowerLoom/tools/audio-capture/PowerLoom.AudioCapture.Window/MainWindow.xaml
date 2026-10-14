@@ -139,6 +139,9 @@
                                          BorderThickness="0" Background="Transparent" ToolTip="Name this voice; Enter saves it for later meetings"
                                          KeyDown="OnSpeakerKeyDown" LostFocus="OnSpeakerLostFocus" />
                                 <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                <Button Content="×" Click="OnSpeakerRemove" Margin="6,0,0,0" Padding="4,0" MinWidth="0" Background="Transparent"
+                                        BorderThickness="0" Foreground="{DynamicResource Muted}" FontSize="14" VerticalAlignment="Center"
+                                        ToolTip="Remove this voice: its speech goes to the closest other voice" />
                             </StackPanel>
                         </Border>
                     </DataTemplate>

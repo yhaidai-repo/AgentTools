@@ -61,6 +61,8 @@ public sealed class RecorderDaemon(ToolSettings settings)
     // A name typed in the window while recording: relabels the live voice and stores its profile.
     public bool RenameLiveSpeaker(string oldLabel, string name) => _active?.RenameSpeaker(oldLabel, name) ?? false;
 
+    public string? RemoveLiveSpeaker(string label) => _active?.RemoveSpeaker(label);
+
     public void ReassignLiveSegments(TimeSpan start, TimeSpan end, string label) => _active?.ReassignSegments(start, end, label);
 
     public VoiceEmbedder? Embedder => _pipeline.LoadedSpeakerTools?.Embedder;

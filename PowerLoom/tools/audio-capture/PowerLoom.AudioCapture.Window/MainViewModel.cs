@@ -193,6 +193,39 @@ public sealed class MainViewModel : INotifyPropertyChanged
             box.Rename(name);
     }
 
+    // The × on a voice box: live the daemon folds it into the closest voice and answers with SpeakerRelabeled (bubbles
+    // and boxes follow); after Stop the session's files are rewritten and the session reloads.
+    public void RemoveSpeaker(SpeakerViewModel speaker)
+    {
+        if (IsRecording)
+        {
+            var into = _daemon.RemoveLiveSpeaker(speaker.OriginalLabel);
+
+            Status = into is null ? "The last voice can't be removed" : $"Removed {speaker.OriginalLabel}; its speech went to {into}";
+
+            return;
+        }
+
+        RemoveStoredSpeaker(speaker);
+    }
+
+    private void RemoveStoredSpeaker(SpeakerViewModel speaker)
+    {
+        if (_sessionFolder is null)
+            return;
+
+        var into = _renamer.Remove(_sessionFolder, speaker.OriginalLabel);
+
+        if (into is null)
+        {
+            Status = "The last voice can't be removed";
+
+            return;
+        }
+
+        ShowSession(_sessionFolder, SessionHistory.LoadSegments(_sessionFolder), $"Removed {speaker.OriginalLabel}; its speech went to {into}");
+    }
+
     // The user moves one bubble to another voice (right-click): live or on the saved session.
     public void ReassignBubble(BubbleViewModel bubble, string label)
     {
