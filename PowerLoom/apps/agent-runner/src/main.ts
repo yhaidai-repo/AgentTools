@@ -200,14 +200,16 @@ async function depsFor(vault: string): Promise<AgentDeps> {
 
 // Read per run, so a switch flipped in Settings counts from the next run. The Azure MCP server runs for the run with
 // the vault's sign-in: its `az` shim asks this runner for tokens (POWERLOOM_RUNNER_URL, the vault), the tenant is the
-// signed-in account's. The Service Bus peeks and the Mongo reads take the same sign-in's tokens. Nobody signed in =
+// signed-in account's. The Mongo reads take the same sign-in's tokens; the Service Bus peeks use each namespace's own
+// connection string from Settings. Nobody signed in =
 // every call answers `denied`, which asks the user to sign in.
 async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   const settings = await readReadAzureSettings(db, vault);
   const namespaces = [...(settings.enabledKinds.azureAccess ? AZURE_ACCESS_NAMESPACES : []), ...(settings.enabledKinds.cosmos ? [COSMOS_NAMESPACE] : [])];
   const mongoOn = settings.enabledKinds.mongo === true;
+  const serviceBusOn = settings.enabledKinds.serviceBus === true;
 
-  if (namespaces.length === 0 && !mongoOn) {
+  if (namespaces.length === 0 && !mongoOn && !serviceBusOn) {
     return null;
   }
 
@@ -218,7 +220,7 @@ async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   return {
     settings,
     server: namespaces.length > 0 ? await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) : null,
-    serviceBus: settings.enabledKinds.azureAccess ? { peeker: new ServiceBusPeeker(token) } : null,
+    serviceBus: serviceBusOn ? { peeker: new ServiceBusPeeker() } : null,
     mongo: mongoOn ? { reader: mongoReader, connectionStrings: new CosmosConnectionStrings(token, settings.subscription) } : null,
   };
 }

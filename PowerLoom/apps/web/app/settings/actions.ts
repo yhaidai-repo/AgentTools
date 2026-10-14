@@ -187,7 +187,7 @@ export async function saveReadAzureKindAction(_previous: ActionResult | null, fo
 export async function addAzureResourceAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const added = await powerloom.POST("/api/vaults/{vault}/read-azure/resources", {
     params: { path: { vault: await requireVault() } },
-    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target") },
+    body: { name: field(form, "name"), kind: field(form, "kind"), target: field(form, "target"), secret: field(form, "secret") },
   });
 
   revalidatePath("/settings");

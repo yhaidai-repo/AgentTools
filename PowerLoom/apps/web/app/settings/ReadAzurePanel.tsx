@@ -19,7 +19,7 @@ const KINDS: Record<AzureResourceKind, KindText> = {
   azureAccess: {
     title: "Azure access",
     switchLabel: "Enabled: agents with the Azure access switch on may read Azure as you, through Microsoft's Azure MCP Server (read-only)",
-    help: "App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts and peeked messages (never received), resource groups and subscriptions: whatever your account sees. Tools that would return keys or settings are never offered.",
+    help: "App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts, resource groups and subscriptions: whatever your account sees. Tools that would return keys or settings are never offered.",
   },
   cosmos: {
     title: "Cosmos DB",
@@ -30,6 +30,11 @@ const KINDS: Record<AzureResourceKind, KindText> = {
     title: "Mongo",
     switchLabel: "Enabled: agents with the Mongo switch on may find documents in the accounts below",
     help: "Cosmos DB for MongoDB accounts: agents list, find and aggregate documents with the read-only connection string fetched with your sign-in at call time; nothing is stored here.",
+  },
+  serviceBus: {
+    title: "Service Bus",
+    switchLabel: "Enabled: agents with the Service Bus switch on may peek messages in the namespaces below",
+    help: "Each namespace is read with the connection string of a shared access policy with Listen only, stored here and never shown again. Agents only peek: messages stay in place. Counts come with Azure access.",
   },
 };
 
@@ -71,7 +76,7 @@ function AccessSection({ account, subscription }: { account: AzureUserAccount | 
 function ResourcesSection({ kind, resources }: { kind: AzureResourceKind; resources: AzureResourceRow[] }) {
   return (
     <>
-      {resources.length === 0 ? <p className="muted">No accounts yet: add one below.</p> : <ResourceTable resources={resources} />}
+      {resources.length === 0 ? <p className="muted">Nothing added yet: add one below.</p> : <ResourceTable resources={resources} />}
       <AddAzureResourceForm kind={kind} />
     </>
   );
@@ -82,7 +87,7 @@ function ResourceTable({ resources }: { resources: AzureResourceRow[] }) {
     <div className="table-wrap">
       <table>
         <thead>
-          <tr><th>Enabled</th><th>Name</th><th>Account</th><th></th></tr>
+          <tr><th>Enabled</th><th>Name</th><th>Account or namespace</th><th></th></tr>
         </thead>
         <tbody>
           {resources.map((row) => <AzureResourceRowForm key={row.name} resource={row} />)}

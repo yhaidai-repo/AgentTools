@@ -11,7 +11,7 @@ const MOST_USED = 20;
 const CALLS = 50;
 const SHOW_ALL = "all";
 
-const KIND_LABELS: Record<string, string> = { sql: "SQL", azure: "Azure", cosmos: "Cosmos DB", mongo: "Mongo", confluence: "Confluence", localStack: "DevHub", ado: "Azure DevOps", repo: "Repo", docs: "Docs", web: "Web", skills: "Skills", internal: "PowerLoom", other: "Other" };
+const KIND_LABELS: Record<string, string> = { sql: "SQL", azure: "Azure", cosmos: "Cosmos DB", mongo: "Mongo", serviceBus: "Service Bus", confluence: "Confluence", localStack: "DevHub", ado: "Azure DevOps", repo: "Repo", docs: "Docs", web: "Web", skills: "Skills", internal: "PowerLoom", other: "Other" };
 
 type ToolsParams = { range?: string; agent?: string; calls?: string };
 

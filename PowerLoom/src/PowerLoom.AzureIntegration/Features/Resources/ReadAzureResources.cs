@@ -5,8 +5,8 @@ using PowerLoom.Contracts;
 
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
-// Settings → Read Azure: each kind's switch, the default subscription and the Cosmos / Mongo accounts. A resource is
-// added once and then only switched or removed.
+// Settings → Read Azure: each kind's switch, the default subscription, the Cosmos / Mongo accounts and the Service Bus
+// namespaces. A resource is added once and then only switched or removed; a Service Bus secret is never read back by the page.
 public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
 {
     // A subscription id or display name, as the Azure MCP server takes it.
@@ -40,7 +40,7 @@ public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
         return Outcome<string>.Success(trimmed);
     }
 
-    public async Task<Outcome<AzureResourceSettings>> AddAsync(string vault, string name, string kind, string target, CancellationToken cancellation)
+    public async Task<Outcome<AzureResourceSettings>> AddAsync(string vault, string name, string kind, string target, string secret, CancellationToken cancellation)
     {
         var settings = await store.ReadAsync(vault, cancellation);
         var problem = ProblemOf(settings, name.Trim(), kind.Trim());
@@ -48,7 +48,7 @@ public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
         if (problem is not null)
             return Outcome<AzureResourceSettings>.Failure(problem);
 
-        var resolved = AzureTargets.Resolve(kind.Trim(), target.Trim());
+        var resolved = AzureTargets.Resolve(kind.Trim(), target.Trim(), secret.Trim());
 
         if (!resolved.Ok)
             return Outcome<AzureResourceSettings>.Failure(resolved.Problem);
@@ -97,7 +97,7 @@ public sealed partial class ReadAzureResources(ReadAzureSettingsStore store)
 
     private static AzureResourceSettings NewResource(string name, string kind, AzureResourceTarget resolved)
     {
-        return new AzureResourceSettings { Name = name, Kind = kind, Target = resolved.Target, Display = resolved.Display, Enabled = true };
+        return new AzureResourceSettings { Name = name, Kind = kind, Target = resolved.Target, Secret = resolved.Secret, Display = resolved.Display, Enabled = true };
     }
 
     private static Problem UnknownKind(string kind) => Problem.Invalid($"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.");

@@ -2762,7 +2762,8 @@
         "required": [
           "name",
           "kind",
-          "target"
+          "target",
+          "secret"
         ],
         "type": "object",
         "properties": {
@@ -2773,6 +2774,12 @@
             "type": "string"
           },
           "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret": {
             "type": [
               "null",
               "string"

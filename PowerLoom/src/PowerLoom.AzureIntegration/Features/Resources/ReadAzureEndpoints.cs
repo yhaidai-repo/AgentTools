@@ -11,8 +11,8 @@ using Wolverine.Http;
 namespace PowerLoom.AzureIntegration.Features.Resources;
 
 // Settings → Read Azure (user decisions 2026-10-12/14): one switch per kind, the user's own sign-in (the Azure MCP
-// server reads with it), the default subscription, and the Cosmos / Mongo accounts. Which agents may read is each
-// agent's own switch per kind (the `azureAccess`, `readCosmos`, `readMongo` integrations in its Config).
+// server reads with it), the default subscription, the Cosmos / Mongo accounts and the Service Bus namespaces. Which
+// agents may read is each agent's own switch per kind (`azureAccess`, `readCosmos`, `readMongo`, `readServiceBus`).
 public static class ReadAzureEndpoints
 {
     public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
@@ -36,7 +36,7 @@ public static class ReadAzureEndpoints
     [WolverinePost("/api/vaults/{vault}/read-azure/resources")]
     public static async Task<Results<Ok<AzureResourceSummary>, ProblemHttpResult>> Add(string vault, AddAzureResourceRequest request, ReadAzureResources resources, CancellationToken cancellation)
     {
-        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target ?? "", cancellation);
+        var added = await resources.AddAsync(vault, request.Name, request.Kind, request.Target ?? "", request.Secret ?? "", cancellation);
 
         return added.Ok ? TypedResults.Ok(SummaryOf(added.Value)) : added.Problem.ToProblemResult();
     }

@@ -1268,6 +1268,7 @@ export interface components {
             name: string;
             kind: string;
             target: null | string;
+            secret: null | string;
         };
         AddLinkRequest: {
             url: string;
