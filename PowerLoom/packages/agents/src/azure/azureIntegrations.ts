@@ -10,7 +10,7 @@ export const AZURE_INTEGRATION_SPECS: AgentIntegrationSpec[] = [
   {
     key: AZURE_ACCESS_INTEGRATION,
     label: "Azure access (read)",
-    description: "The agent may read Azure with the vault's sign-in (Settings → Read Azure) through Microsoft's Azure MCP Server, read-only: App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts, resource groups and subscriptions. It sees what the signed-in account sees.",
+    description: "The agent may read Azure with the vault's sign-in (Settings → Read Azure) through Microsoft's Azure MCP Server, read-only: App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts and peeked messages, resource groups and subscriptions. It sees what the signed-in account sees.",
   },
   {
     key: READ_COSMOS_INTEGRATION,

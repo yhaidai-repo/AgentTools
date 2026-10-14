@@ -90,7 +90,7 @@ export class CosmosConnectionStrings {
 
   private async call(method: "GET" | "POST", path: string): Promise<unknown> {
     const token = await this.token(ARM);
-    const response = await fetch(`${ARM}${path}`, { method, headers: { authorization: `Bearer ${token}` } });
+    const response = await fetch(`${ARM}${path}`, { method, headers: { authorization: `Bearer ${token.accessToken}` } });
 
     if (!response.ok) {
       throw new ArmError(response.status, await response.text());

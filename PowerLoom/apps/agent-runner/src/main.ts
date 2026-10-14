@@ -5,7 +5,7 @@ import { AGENT_DEFAULTS, AZURE_ACCESS_NAMESPACES, AccessRequests, COSMOS_NAMESPA
 import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
-import { AzureMcpServer, AzureUserLogin, CosmosConnectionStrings } from "@powerloom/azure";
+import { AzureMcpServer, AzureUserLogin, CosmosConnectionStrings, ServiceBusPeeker } from "@powerloom/azure";
 import { MongoReader } from "@powerloom/mongo";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { VaultCaptureCli } from "@powerloom/notes";
@@ -200,7 +200,7 @@ async function depsFor(vault: string): Promise<AgentDeps> {
 
 // Read per run, so a switch flipped in Settings counts from the next run. The Azure MCP server runs for the run with
 // the vault's sign-in: its `az` shim asks this runner for tokens (POWERLOOM_RUNNER_URL, the vault), the tenant is the
-// signed-in account's. The Mongo reads take the same sign-in's tokens for the connection strings. Nobody signed in =
+// signed-in account's. The Service Bus peeks and the Mongo reads take the same sign-in's tokens. Nobody signed in =
 // every call answers `denied`, which asks the user to sign in.
 async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
   const settings = await readReadAzureSettings(db, vault);
@@ -213,12 +213,13 @@ async function azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
 
   const account = await readAzureUserAccount(db, vault);
   const env = { POWERLOOM_RUNNER_URL: `http://127.0.0.1:${runnerPort}`, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
-  const tokens = new CosmosConnectionStrings(async (resource) => (await azureLogin.token(vault, resource, account?.tenantId ?? null)).accessToken, settings.subscription);
+  const token = (resource: string) => azureLogin.token(vault, resource, account?.tenantId ?? null);
 
   return {
     settings,
     server: namespaces.length > 0 ? await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) : null,
-    mongo: mongoOn ? { reader: mongoReader, connectionStrings: tokens } : null,
+    serviceBus: settings.enabledKinds.azureAccess ? { peeker: new ServiceBusPeeker(token) } : null,
+    mongo: mongoOn ? { reader: mongoReader, connectionStrings: new CosmosConnectionStrings(token, settings.subscription) } : null,
   };
 }
 

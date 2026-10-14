@@ -19,7 +19,7 @@ const KINDS: Record<AzureResourceKind, KindText> = {
   azureAccess: {
     title: "Azure access",
     switchLabel: "Enabled: agents with the Azure access switch on may read Azure as you, through Microsoft's Azure MCP Server (read-only)",
-    help: "App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts, resource groups and subscriptions: whatever your account sees. Tools that would return keys or settings are never offered.",
+    help: "App Insights and Log Analytics queries, metrics and activity logs, Service Bus queue and topic counts and peeked messages (never received), resource groups and subscriptions: whatever your account sees. Tools that would return keys or settings are never offered.",
   },
   cosmos: {
     title: "Cosmos DB",

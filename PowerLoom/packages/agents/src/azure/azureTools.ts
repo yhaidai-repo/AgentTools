@@ -11,6 +11,7 @@ import { defineOutsideTool } from "../outsideAccess";
 import { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION } from "./azureIntegrations";
 import { jsonSchemaShape } from "./jsonSchemaShape";
 import { createMongoTools } from "./mongoTools";
+import { createServiceBusTools } from "./serviceBusTools";
 
 // The server's namespaces behind the Azure access switch; `cosmos` is its own kind with an allow-list of accounts.
 export const AZURE_ACCESS_NAMESPACES = ["monitor", "applicationinsights", "servicebus", "group", "subscription"];
@@ -29,7 +30,7 @@ const MAIN_TARGET = ["account", "namespace", "resource-id", "workspace", "resour
 type ToolInput = Record<string, unknown>;
 
 // The Read Azure tools (user decision 2026-10-14): the Azure MCP server's read-only tools, each re-exposed through
-// the outside wrapper (logged, a refusal raises an access request), plus the Mongo tools. Azure access tools exist
+// the outside wrapper (logged, a refusal raises an access request), plus the Service Bus peek and the Mongo tools. Azure access tools exist
 // when the agent's and the vault's switches are on; Cosmos tools when both Cosmos switches are on and an account is enabled.
 export function createAzureTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
   const azure = deps.azure;
@@ -38,7 +39,7 @@ export function createAzureTools(deps: AgentDeps, agent: AgentDefinition, contex
     return [];
   }
 
-  return [...serverTools(deps, agent, context, azure, azure.server), ...createMongoTools(deps, agent, context)];
+  return [...serverTools(deps, agent, context, azure, azure.server), ...createServiceBusTools(deps, agent, context), ...createMongoTools(deps, agent, context)];
 }
 
 function serverTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, azure: AzureAccess, server: AzureMcpServer | null): ToolDefinition<any>[] {
