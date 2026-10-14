@@ -24,7 +24,7 @@ namespace PowerLoom.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attachment_origin", new[] { "upload", "ado", "confluence", "agent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bug_source", new[] { "ado", "internal" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "entity_kind", new[] { "pbi", "item" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal", "meeting" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_status", new[] { "open", "in-progress", "done", "blocked", "cancelled", "answered", "dismissed", "draft", "final", "superseded", "deleted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "note_write_action", new[] { "created", "updated" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed" });

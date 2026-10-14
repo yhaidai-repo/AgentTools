@@ -7,6 +7,7 @@ using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
 using PowerLoom.Features.Drafts;
 using PowerLoom.Features.ImportSources;
+using PowerLoom.Features.Meetings;
 using PowerLoom.Features.Pbis;
 using PowerLoom.Features.Repos;
 using PowerLoom.Features.Skills;
@@ -52,6 +53,7 @@ public static class PowerLoomSetup
         builder.Services.AddContinueFeature();
         builder.Services.AddPbisFeature();
         builder.Services.AddImportSourcesFeature();
+        builder.Services.AddMeetingsFeature();
         builder.Services.AddTasksFeature();
         builder.Services.AddReposFeature();
         builder.Services.AddSkillsFeature();
