@@ -5,6 +5,9 @@ using PowerLoom.Api.Tests.Probes;
 using PowerLoom.AzureIntegration.Features.Resources.Models;
 using PowerLoom.AzureIntegration.Settings;
 using PowerLoom.Features.Repos.Models;
+using PowerLoom.Persistence;
+using PowerLoom.Persistence.Settings;
+using Microsoft.EntityFrameworkCore;
 
 namespace PowerLoom.Api.Tests.ReadAzure;
 
@@ -92,6 +95,37 @@ public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task Settings_saved_in_the_old_shape_lose_their_kinds_and_secrets_and_keep_the_accounts_by_name()
+    {
+        var legacy = new
+        {
+            enabledKinds = new Dictionary<string, bool> { ["appInsights"] = true, ["serviceBus"] = true, ["cosmos"] = false },
+            resources = new object[]
+            {
+                new { kind = "appInsights", name = "logs", target = "/subscriptions/x/resourceGroups/y/providers/microsoft.insights/components/z", secret = "", display = "z", enabled = true },
+                new { kind = "cosmos", name = "signals", target = "https://aa-dev-signals-cosmos.documents.azure.com:443/", secret = "k3y==", display = "https://aa-dev-signals-cosmos.documents.azure.com:443/", enabled = true },
+                new { kind = "mongo", name = "mongo", target = "aa-dev-cosmos-mongo.mongo.cosmos.azure.com:10255", secret = "mongodb://…", display = "aa-dev-cosmos-mongo.mongo.cosmos.azure.com:10255", enabled = false },
+                new { kind = "serviceBus", name = "bus", target = "aa-dev-sb01.servicebus.windows.net", secret = "Endpoint=…", display = "aa-dev-sb01.servicebus.windows.net", enabled = true },
+            },
+        };
+
+        using (var scope = host.Host.Services.CreateScope())
+        {
+            await VaultSettings.SaveAsync(scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>(), PowerLoomHost.Vault, "readAzure", legacy, CancellationToken.None);
+        }
+
+        var upgraded = await ReadSettingsAsync();
+        var stored = await RawSettingsAsync();
+
+        Assert.Equal(["cosmos"], upgraded.EnabledKinds.Keys);
+        Assert.Equal(["signals", "mongo"], upgraded.Resources.Select(resource => resource.Name));
+        Assert.Equal(("aa-dev-signals-cosmos", "aa-dev-signals-cosmos", true), (upgraded.Find("signals")!.Target, upgraded.Find("signals")!.Display, upgraded.Find("signals")!.Enabled));
+        Assert.Equal(("aa-dev-cosmos-mongo", false), (upgraded.Find("mongo")!.Target, upgraded.Find("mongo")!.Enabled));
+        Assert.DoesNotContain("k3y==", stored);
+        Assert.DoesNotContain("secret", stored);
+    }
+
+    [Fact]
     public async Task The_user_sign_in_starts_at_the_runner_reports_its_status_and_signs_out()
     {
         var login = host.Host.Services.GetRequiredService<FakeAzureUserLogin>();
@@ -132,5 +166,15 @@ public sealed class ReadAzureEndpointsTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<ReadAzureSettingsStore>().ReadAsync(PowerLoomHost.Vault, CancellationToken.None);
+    }
+
+    // The JSON as the config table holds it: what a secret would still be in.
+    private async Task<string> RawSettingsAsync()
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var key = VaultSettings.KeyOf(PowerLoomHost.Vault, "readAzure");
+
+        return await db.Configs.AsNoTracking().Where(entry => entry.Key == key).Select(entry => entry.Value).SingleAsync();
     }
 }

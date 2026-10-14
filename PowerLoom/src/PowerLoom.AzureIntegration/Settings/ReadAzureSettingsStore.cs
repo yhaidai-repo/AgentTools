@@ -8,7 +8,16 @@ public sealed class ReadAzureSettingsStore(PowerLoomDbContext db)
 {
     private const string ReadAzureKey = "readAzure";
 
-    public async Task<ReadAzureSettings> ReadAsync(string vault, CancellationToken cancellation) => await VaultSettings.ReadAsync<ReadAzureSettings>(db, vault, ReadAzureKey, cancellation) ?? new ReadAzureSettings();
+    // Settings saved in the old shape are upgraded on first read and saved back at once (ReadAzureLegacy).
+    public async Task<ReadAzureSettings> ReadAsync(string vault, CancellationToken cancellation)
+    {
+        var settings = await VaultSettings.ReadAsync<ReadAzureSettings>(db, vault, ReadAzureKey, cancellation) ?? new ReadAzureSettings();
+
+        if (ReadAzureLegacy.Upgrade(settings))
+            await SaveAsync(vault, settings, cancellation);
+
+        return settings;
+    }
 
     public Task SaveAsync(string vault, ReadAzureSettings settings, CancellationToken cancellation) => VaultSettings.SaveAsync(db, vault, ReadAzureKey, settings, cancellation);
 }
