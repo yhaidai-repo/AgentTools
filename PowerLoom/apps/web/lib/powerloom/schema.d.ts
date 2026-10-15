@@ -1502,6 +1502,12 @@ export interface components {
             kind: components["schemas"]["ChatKind"];
             id: string;
         };
+        OutsideComponentState: {
+            component: string;
+            tool: string;
+            state: components["schemas"]["StateLevel"];
+            detail: string;
+        };
         PbiConfluencePage: {
             url: string;
             title: string;
@@ -1713,7 +1719,7 @@ export interface components {
             enabled: boolean;
         };
         /** @enum {unknown} */
-        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement";
+        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement" | "meeting-notes";
         /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {
@@ -1758,6 +1764,7 @@ export interface components {
             schedules: components["schemas"]["ScheduleStatus"][];
             recentSyncs: components["schemas"]["SyncRun"][];
             budget: components["schemas"]["BudgetStatus"];
+            outside: components["schemas"]["OutsideComponentState"][];
             attention: components["schemas"]["Attention"][];
         };
         TaskRef: {

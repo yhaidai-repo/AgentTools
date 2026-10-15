@@ -3706,6 +3706,29 @@
           }
         }
       },
+      "OutsideComponentState": {
+        "required": [
+          "component",
+          "tool",
+          "state",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
       "PbiConfluencePage": {
         "required": [
           "url",
@@ -4593,7 +4616,8 @@
           "code-review",
           "vault-review",
           "better-research",
-          "better-refinement"
+          "better-refinement",
+          "meeting-notes"
         ]
       },
       "StateLevel": {
@@ -4737,6 +4761,7 @@
           "schedules",
           "recentSyncs",
           "budget",
+          "outside",
           "attention"
         ],
         "type": "object",
@@ -4786,6 +4811,12 @@
           },
           "budget": {
             "$ref": "#/components/schemas/BudgetStatus"
+          },
+          "outside": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutsideComponentState"
+            }
           },
           "attention": {
             "type": "array",

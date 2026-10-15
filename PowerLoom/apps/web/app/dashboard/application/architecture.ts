@@ -35,9 +35,11 @@ const topLevel: SchemeNode[] = [
   node("database", "Postgres", "service", undefined, "state, queues, usage, config", 1.5, 2),
   node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 3, 2),
   node("backup", "backup", "service", undefined, "daily pg_dump", 0, 2),
-  // What the agents read outside on their own (per-agent switches), in a row of their own.
+  // What the agents read outside on their own (per-agent switches), in a row of their own; their colors come from the
+  // agents' recent reads and open access requests.
+  node("mongo", "Mongo", "external", undefined, "Cosmos DB for MongoDB, and servers by connection string (Read Azure)", 1, 3),
   node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 2, 3),
-  node("azure", "Azure", "external", undefined, "App Insights, Cosmos DB, Service Bus, Mongo (Read Azure)", 3, 3),
+  node("azure", "Azure", "external", undefined, "App Insights, logs, metrics, Service Bus, Cosmos DB, with your sign-in (Read Azure)", 3, 3),
   node("devhub", "DevHub", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
 ];
 
@@ -60,7 +62,7 @@ const powerloomFeatures: SchemeNode[] = [
   node("docs", "Docs / Records", "component", "pl-features", "www log, registers, chat notes"),
   node("continue", "Continue", "component", "pl-features", "chats with Claude"),
   node("drafts", "Drafts", "component", "pl-features", "the drafts scan every 10 minutes"),
-  node("import-sources", "Import sources", "component", "pl-features", "Outlook, inbox"),
+  node("import-sources", "Import sources", "component", "pl-features", "Outlook, inbox, meeting recordings (tools/audio-capture)"),
   node("vault-features", "Vaults", "component", "pl-features", "add, trash, features, POWERLOOM.md"),
   node("skills", "Skills", "component", "pl-features", "edits, revisions"),
   node("status", "Status", "component", "pl-features", "GET /api/status, the dashboard"),
@@ -98,7 +100,7 @@ const infrastructureParts: SchemeNode[] = [
 ];
 
 const runnerModules: SchemeNode[] = [
-  node("runner-server", "HTTP port", "module", "agent-runner", "POST /runs, GET /health", 0, 0),
+  node("runner-server", "HTTP port", "module", "agent-runner", "POST /runs, GET /health, the Azure sign-in and its tokens", 0, 0),
   node("runner-agents", "Agents", "module", "agent-runner", "the pipeline's agents", 1, 0),
   node("runner-tools", "Tools", "module", "agent-runner", "what an agent can do", 2, 0),
   node("agent-config", "AgentConfig", "module", "agent-runner", "definitions, pause, budgets", 0, 1),
@@ -116,6 +118,7 @@ const runnerAgents: SchemeNode[] = [
   node("agent-goal", "goal tasks", "component", "runner-agents"),
   node("agent-better-refinement", "better-refinement", "component", "runner-agents"),
   node("agent-better-research", "better-research", "component", "runner-agents"),
+  node("agent-meeting-notes", "meeting-notes", "component", "runner-agents"),
 ];
 
 const runnerTools: SchemeNode[] = [
@@ -129,7 +132,8 @@ const runnerTools: SchemeNode[] = [
   node("tool-pbi-context", "PBI context", "component", "runner-tools", "read_pbi: the context of every run on a PBI"),
   node("tool-create-task", "create task", "component", "runner-tools", "tasks for other agents or the user"),
   node("tool-sql", "read SQL", "component", "runner-tools"),
-  node("tool-azure", "read Azure", "component", "runner-tools"),
+  node("tool-azure", "read Azure", "component", "runner-tools", "Microsoft's Azure MCP Server per run (read-only, an az shim for the sign-in); Service Bus peek"),
+  node("tool-mongo", "read Mongo", "component", "runner-tools", "find, aggregate; Cosmos strings fetched at call time"),
   node("tool-devhub", "DevHub", "component", "runner-tools"),
   node("tool-ado", "ADO (read)", "component", "runner-tools", "work items, pull requests with their threads, test cases (saved to the PBI)"),
   node("tool-access", "access requests", "component", "runner-tools", "every outside call logged; a refused one becomes a human task"),
@@ -178,6 +182,7 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-confluence", "confluence"),
   link("tool-sql", "sql-server"),
   link("tool-azure", "azure"),
+  link("tool-mongo", "mongo"),
   link("tool-devhub", "devhub"),
   link("tool-ado", "ado", "work items, PRs, test cases"),
   link("tool-pbi-context", "schema-public"),
