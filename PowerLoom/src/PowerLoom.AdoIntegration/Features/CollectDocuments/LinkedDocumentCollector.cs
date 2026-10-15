@@ -12,20 +12,24 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.AdoIntegration.Features.CollectDocuments;
 
-// The PBI's linked documents not handled yet, from its description, acceptance criteria and its files attached in ADO:
+// The PBI's linked documents not handled yet, from its description, acceptance criteria and its files attached in ADO,
+// plus the ADO attachments its discussion and the team's own text fields show (images pasted into a comment):
 // an ADO attachment is downloaded with the vault's token and stored as the PBI's attachment; a failed download, and a
 // web page when asked for, become the user's task. Returns how many documents changed.
 public sealed class LinkedDocumentCollector(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILogger<LinkedDocumentCollector> logger)
 {
     public async Task<int> CollectAsync(string vault, int adoId, bool askForWebPages, CancellationToken cancellation)
     {
-        var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd, row.AttachedFiles }).SingleOrDefaultAsync(cancellation);
+        var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd, row.AttachedFiles, row.DiscussionMd, row.ExtraFieldsMd }).SingleOrDefaultAsync(cancellation);
 
         if (pbi is null)
             return 0;
 
         var handled = await DocumentTasks.HandledUrlsAsync(db, adoId, cancellation);
-        var linked = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Concat(AttachedFileUrls(pbi.AttachedFiles)).Distinct();
+        var linked = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd)
+            .Concat(AttachedFileUrls(pbi.AttachedFiles))
+            .Concat(AdoAttachmentsIn(pbi.DiscussionMd, pbi.ExtraFieldsMd))
+            .Distinct();
         var missing = linked.Where(url => !handled.Contains(url) && IsCollected(url, askForWebPages)).ToList();
         var changed = 0;
 
@@ -38,6 +42,12 @@ public sealed class LinkedDocumentCollector(PowerLoomDbContext db, AdoSettingsSt
     private static IEnumerable<string> AttachedFileUrls(string? attachedFiles)
     {
         return attachedFiles is null ? [] : JsonSerializer.Deserialize<List<string>>(attachedFiles) ?? [];
+    }
+
+    // Only ADO attachments: a web link in a comment is chat, not a document the PBI depends on, so it never becomes a task.
+    private static IEnumerable<string> AdoAttachmentsIn(string? discussionMd, string? extraFieldsMd)
+    {
+        return UrlText.PbiLinkedUrls(discussionMd, extraFieldsMd).Where(url => LinkedDocuments.KindOf(url) == LinkedDocuments.AdoAttachment);
     }
 
     // Confluence pages are SyncPbiPages'; a web page only for an agent without web access (user decision 2026-10-14).

@@ -60,6 +60,34 @@ public sealed class LinkedDocumentsTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task Ado_attachments_in_the_discussion_and_the_teams_fields_are_stored_and_their_web_links_never_become_tasks()
+    {
+        const int adoId = 66003;
+        const string commentImage = $"{OrgUrl}/_apis/wit/attachments/ccc-333?fileName=image.png";
+        const string notesFile = $"{OrgUrl}/_apis/wit/attachments/ddd-444?fileName=x12.txt";
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.Downloads[commentImage] = new AdoDownload("image.png", "image/png", [1, 2, 3]);
+        ado.Downloads[notesFile] = new AdoDownload("x12.txt", "text/plain", Encoding.UTF8.GetBytes("LS*2120~"));
+        await host.Host.PutJson(new SaveConnectionRequest(true, OrgUrl, "Proj", "Team", "sam@x.io", "token-docs"), $"/api/vaults/{PowerLoomHost.Vault}/ado/connection").Receive<SavedConnection>();
+        await SeedTalkAsync(adoId, $"### Ann · 2026-10-01\n\n> ![Image]({commentImage}) see {WebPage}", $"### Notes\n\n[x12]({notesFile})");
+
+        await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(context => context.InvokeAsync(new CollectLinkedDocuments(PowerLoomHost.Vault, adoId, AskForWebPages: true)));
+
+        Assert.Equal([commentImage, notesFile], (await AttachmentsAsync(adoId)).Select(row => row.SourceUrl).ToList());
+        Assert.Empty(await HumanTasksAsync(adoId));
+    }
+
+    private async Task SeedTalkAsync(int adoId, string discussionMd, string extraFieldsMd)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow, DiscussionMd = discussionMd, ExtraFieldsMd = extraFieldsMd });
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task A_web_page_holds_only_an_agent_without_web_access_and_its_anchors_are_one_document()
     {
         const int adoId = 66002;
