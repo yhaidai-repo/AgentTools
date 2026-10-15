@@ -19,6 +19,7 @@ public static class AdoFields
     public const string BacklogPriority = "Microsoft.VSTS.Common.BacklogPriority";
     public const string Effort = "Microsoft.VSTS.Scheduling.Effort";
     public const string RemainingWork = "Microsoft.VSTS.Scheduling.RemainingWork";
+    public const string OriginalEstimate = "Microsoft.VSTS.Scheduling.OriginalEstimate";
     public const string Parent = "System.Parent";
 
     public static readonly IReadOnlyList<string> Sync =

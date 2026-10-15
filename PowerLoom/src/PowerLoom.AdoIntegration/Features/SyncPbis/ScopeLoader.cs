@@ -12,7 +12,7 @@ namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 // be found.
 public static class ScopeLoader
 {
-    private static readonly string[] TaskFields = [AdoFields.Type, AdoFields.Title, AdoFields.Parent, AdoFields.State, AdoFields.Effort];
+    private static readonly string[] TaskFields = [AdoFields.Type, AdoFields.Title, AdoFields.Parent, AdoFields.State, AdoFields.OriginalEstimate];
 
     public static async Task<SyncScope?> LoadAsync(IAdoClient client, AdoSettings ado, SyncSettings sync, CancellationToken cancellation)
     {

@@ -28,9 +28,9 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         ado.QueryResult = [51010, 51011, 51012];
         ado.WorkItems =
         [
-            WorkItemMapperTests.Item(51010, 1, """{"System.WorkItemType":"Task","System.Title":"Write it","System.Parent":51001,"Microsoft.VSTS.Scheduling.Effort":3}"""),
-            WorkItemMapperTests.Item(51011, 1, """{"System.WorkItemType":"Task","System.Title":"[BUG] It breaks","System.Parent":51001,"System.State":"New","Microsoft.VSTS.Scheduling.Effort":2.5}"""),
-            WorkItemMapperTests.Item(51012, 1, """{"System.WorkItemType":"Task","System.Title":"Dropped","System.Parent":51001,"System.State":"Removed","Microsoft.VSTS.Scheduling.Effort":8}"""),
+            WorkItemMapperTests.Item(51010, 1, """{"System.WorkItemType":"Task","System.Title":"Write it","System.Parent":51001,"Microsoft.VSTS.Scheduling.OriginalEstimate":3}"""),
+            WorkItemMapperTests.Item(51011, 1, """{"System.WorkItemType":"Task","System.Title":"[BUG] It breaks","System.Parent":51001,"System.State":"New","Microsoft.VSTS.Scheduling.OriginalEstimate":2.5}"""),
+            WorkItemMapperTests.Item(51012, 1, """{"System.WorkItemType":"Task","System.Title":"Dropped","System.Parent":51001,"System.State":"Removed","Microsoft.VSTS.Scheduling.OriginalEstimate":8}"""),
             WorkItemMapperTests.Item(51001, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"The PBI","System.State":"Committed","System.IterationPath":"proj\\Sprint 7","System.Description":"<p>v1</p>"}"""),
         ];
 

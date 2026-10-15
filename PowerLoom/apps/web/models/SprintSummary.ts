@@ -6,6 +6,6 @@ export interface SprintSummary {
   days: number;
   items: number;
   done: number;
-  /** The sum of the user's Tasks' Effort in the sprint; null when none carries any. */
+  /** The sum of the user's Tasks' Original Estimate in the sprint; null when none carries any. */
   effort: number | null;
 }
