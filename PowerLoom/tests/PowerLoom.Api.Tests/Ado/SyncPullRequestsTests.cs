@@ -29,13 +29,14 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             PullRequest(7102, "PVS", "sam@x.io", "c1", author: "sam@x.io"),
             PullRequest(7103, "PVS", "pat@x.io", "c1"),
             PullRequest(7104, "PVS", "sam@x.io", "c1", draft: true),
+            PullRequest(7105, "PVS", "pat@x.io", "c1", author: "sam@x.io"),
         ];
         ado.Details[7101] = new AdoPullRequestDetails(2, [51001]);
 
         await Sync();
         var mirrored = await LoadAsync();
 
-        Assert.Equal([7101, 7104], mirrored.Keys.Where(id => id is >= 7100 and < 7200).Order());
+        Assert.Equal([7101, 7102, 7104, 7105], mirrored.Keys.Where(id => id is >= 7100 and < 7200).Order());
         Assert.Equal((2, "[51001]", ReviewStatus.Active), (mirrored[7101].Iteration, mirrored[7101].WorkItemIds, mirrored[7101].CodeReview!.Status));
         Assert.Null(mirrored[7104].CodeReview);
         Assert.Equal(RunOutcome.Success, await LastRunOutcomeAsync());

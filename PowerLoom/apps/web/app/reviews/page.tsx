@@ -47,7 +47,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
         <ReviewStatusFilter key={status} status={status} statuses={REVIEW_LIST_STATUSES} />
         {adoActive ? <CheckNowForm /> : <span className="muted">No Azure DevOps integration for <code>{vault}</code>: enable it in <Link href="/settings">Settings</Link> to list pull requests.</span>}
       </div>
-      {rows.length === 0 ? <p className="muted">No reviews. Check now lists the active PRs where you&apos;re a reviewer; you start each review.</p> : <ReviewsForm><ReviewTable rows={rows} /></ReviewsForm>}
+      {rows.length === 0 ? <p className="muted">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={rows} /></ReviewsForm>}
     </>
   );
 }
