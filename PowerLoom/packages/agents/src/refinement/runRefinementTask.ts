@@ -53,7 +53,7 @@ export async function runRefinementTask(context: TaskContext, task: ItemRow): Pr
     const commit = async () => {
       const pages = withPagesRead(draft.pages, await confluencePagesReadInRun(deps, session.runId), "Read by refinement while refining.");
 
-      await commitRefinement(deps.db, pbiId, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
+      await commitRefinement(deps.db, { id: task.id, pbiId }, session.runId, { ...draft, refinement: draft.refinement!, pages }, await docsReadInRun(deps, session.runId), await documentedRepos(deps.docsRoot));
       await run.toolset?.commit(session.runId);
     };
 

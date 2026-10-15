@@ -102,7 +102,7 @@ describe("better-refinement prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
     const prompt = await loadPrompt("better-refinement", { team: "Signals" });
 
-    assert.equal(prompt.version, "v4+framework.v2");
+    assert.equal(prompt.version, "v5+framework.v2");
     assert.match(prompt.text, /^## How you work/);
     assert.match(prompt.text, /You are Better Refinement for one PBI of the Signals team/);
   });
