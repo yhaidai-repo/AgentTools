@@ -35,6 +35,7 @@ public static class WorkItemMapper
             Date(Text(fields, AdoFields.ChangedDate)),
             HtmlMarkdown.Convert(descriptionHtml),
             HtmlMarkdown.Convert(acceptanceCriteriaHtml),
+            ExtraTextFields.Render(fields),
             ContentHash(title, descriptionHtml, acceptanceCriteriaHtml));
     }
 

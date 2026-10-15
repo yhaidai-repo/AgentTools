@@ -58,7 +58,8 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
     // Tables the migrations after the baseline add: drizzle never built them, so they go before the pretence.
     private static readonly string[] PostBaselineDrops = ["DROP TABLE IF EXISTS data_access", "DROP TABLE IF EXISTS test_case", "ALTER TABLE refinement DROP COLUMN IF EXISTS details", "ALTER TABLE task_schedule DROP COLUMN IF EXISTS task_type",
         "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_rev",
-        "ALTER TABLE refinement DROP COLUMN IF EXISTS est_hours", "ALTER TABLE refinement DROP COLUMN IF EXISTS estimate_basis"];
+        "ALTER TABLE refinement DROP COLUMN IF EXISTS est_hours", "ALTER TABLE refinement DROP COLUMN IF EXISTS estimate_basis",
+        "ALTER TABLE work_item DROP COLUMN IF EXISTS extra_fields_md"];
 
     // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead; the
     // schema is brought back to the baseline's state, as drizzle left it.

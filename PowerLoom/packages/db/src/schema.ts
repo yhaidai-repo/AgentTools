@@ -120,6 +120,8 @@ export const workItem = pgTable("work_item", {
   contentHash: text("content_hash").notNull(),
   descriptionMd: text("description_md"),
   acceptanceCriteriaMd: text("acceptance_criteria_md"),
+  // The team's own ADO rich-text fields (e.g. Notes), as the backend's sync renders them; empty when it has none.
+  extraFieldsMd: text("extra_fields_md"),
   adoChangedAt: ts("ado_changed_at"),
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
   vaultPath: text("vault_path"),

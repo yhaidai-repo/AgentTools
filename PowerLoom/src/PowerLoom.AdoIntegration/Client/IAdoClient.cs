@@ -7,7 +7,8 @@ public interface IAdoClient
 {
     Task<IReadOnlyList<int>> QueryIdsAsync(string wiql, CancellationToken cancellation);
 
-    Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string> fields, CancellationToken cancellation);
+    // `fields` null (AdoFields.Every): every field each work item has.
+    Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string>? fields, CancellationToken cancellation);
 
     // The newest `top` comments of a work item's discussion, oldest of them first.
     Task<IReadOnlyList<AdoComment>> GetCommentsAsync(int workItemId, int top, CancellationToken cancellation);

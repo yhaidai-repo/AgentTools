@@ -25,7 +25,7 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
         return body.WorkItems.Select(item => item.Id).ToList();
     }
 
-    public async Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string> fields, CancellationToken cancellation)
+    public async Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string>? fields, CancellationToken cancellation)
     {
         var items = new List<AdoWorkItem>();
 
@@ -87,12 +87,29 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
         return new AdoPullRequestDetails(Math.Max(1, iterations.Value.Select(iteration => iteration.Id).DefaultIfEmpty(1).Max()), ids);
     }
 
-    private async Task<IReadOnlyList<AdoWorkItem>> GetWorkItemBatchAsync(int[] ids, IReadOnlyList<string> fields, CancellationToken cancellation)
+    private async Task<IReadOnlyList<AdoWorkItem>> GetWorkItemBatchAsync(int[] ids, IReadOnlyList<string>? fields, CancellationToken cancellation)
     {
-        // Omit: items deleted in ADO come back as null instead of failing the whole batch.
-        var body = await RequestAsync<ValueList<AdoWorkItem?>>($"{ProjectUrl()}/_apis/wit/workitemsbatch?{ApiVersion}", new { ids, fields, errorPolicy = "Omit" }, cancellation);
+        var body = await RequestAsync<ValueList<AdoWorkItem?>>($"{ProjectUrl()}/_apis/wit/workitemsbatch?{ApiVersion}", BatchBody(ids, fields), cancellation);
 
         return body.Value.Where(item => item is not null).Select(item => item!).ToList();
+    }
+
+    // Omit: items deleted in ADO come back as null instead of failing the whole batch. ADO takes either a field list or
+    // `$expand=fields` (every field), not both.
+    private static Dictionary<string, object> BatchBody(int[] ids, IReadOnlyList<string>? fields)
+    {
+        var body = new Dictionary<string, object> { ["ids"] = ids, ["errorPolicy"] = "Omit" };
+
+        if (fields is null)
+        {
+            body["$expand"] = "fields";
+        }
+        else
+        {
+            body["fields"] = fields;
+        }
+
+        return body;
     }
 
     private static AdoComment ToComment(CommentDto dto)

@@ -14,7 +14,17 @@ public static class PbiNoteRenderer
     {
         var body = NoteText.ReplaceRegions(PbiTemplate.Fill(template, Placeholders(note)), regions);
 
-        return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{DiscussionSection(note.DiscussionMd)}{notesSection}";
+        return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{ExtraFieldsSection(note.ExtraFieldsMd)}{DiscussionSection(note.DiscussionMd)}{notesSection}";
+    }
+
+    // Like the discussion, written by the app. One section for all the team's fields: a field called Notes must not
+    // become a `## Notes` heading, which starts the user's own section.
+    private static string ExtraFieldsSection(string? extraFieldsMd)
+    {
+        if (string.IsNullOrEmpty(extraFieldsMd))
+            return "";
+
+        return $"## More from Azure DevOps\n\n{extraFieldsMd}\n\n";
     }
 
     // Written by the app like the frontmatter, not by the template, so it also reaches vaults whose template predates it.

@@ -85,6 +85,12 @@ async function AdoTab({ detail }: { detail: PbiDetail }) {
       <TextBlock text={pbi.descriptionMd} />
       <h2>Acceptance criteria</h2>
       <TextBlock text={pbi.acceptanceCriteriaMd} />
+      {pbi.extraFieldsMd && (
+        <>
+          <h2>More from Azure DevOps</h2>
+          <MarkdownBlock text={pbi.extraFieldsMd} />
+        </>
+      )}
       <h2>Child items</h2>
       <ChildItems items={detail.children} ado={await readAdoSettings(getDb(), pbi.vault)} />
       <h2>Linked documents</h2>

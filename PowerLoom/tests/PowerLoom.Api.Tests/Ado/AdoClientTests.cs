@@ -15,13 +15,31 @@ public sealed class AdoClientTests
         var handler = new ScriptedHandler(request => Json("""{"value":[{"id":1,"rev":3,"fields":{"System.Title":"a"}},null]}"""));
         var client = new AdoClient(new HttpClient(handler), Connection);
 
-        var items = await client.GetWorkItemsAsync(Enumerable.Range(1, 201).ToList(), AdoFields.Sync, CancellationToken.None);
+        var items = await client.GetWorkItemsAsync(Enumerable.Range(1, 201).ToList(), [AdoFields.Title], CancellationToken.None);
 
         Assert.Equal(2, handler.Requests.Count);
         Assert.Equal("https://dev.azure.com/org/Proj/_apis/wit/workitemsbatch?api-version=7.1", handler.Requests[0].RequestUri!.ToString());
         Assert.Equal("Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes(":secret")), handler.Requests[0].Headers.Authorization!.ToString());
         Assert.Equal(2, items.Count);
         Assert.Equal("a", items[0].Fields["System.Title"].GetString());
+    }
+
+    [Fact]
+    public async Task Every_field_is_asked_for_with_expand_instead_of_a_field_list()
+    {
+        var body = "";
+        var handler = new ScriptedHandler(request =>
+        {
+            body = request.Content!.ReadAsStringAsync().Result;
+
+            return Json("""{"value":[]}""");
+        });
+        var client = new AdoClient(new HttpClient(handler), Connection);
+
+        await client.GetWorkItemsAsync([1], AdoFields.Every, CancellationToken.None);
+
+        Assert.Contains("\"$expand\":\"fields\"", body);
+        Assert.DoesNotContain("\"fields\":", body);
     }
 
     [Fact]

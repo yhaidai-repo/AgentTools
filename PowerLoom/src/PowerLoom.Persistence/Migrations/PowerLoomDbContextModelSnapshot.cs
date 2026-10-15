@@ -1682,6 +1682,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("effort");
 
+                    b.Property<string>("ExtraFieldsMd")
+                        .HasColumnType("text")
+                        .HasColumnName("extra_fields_md");
+
                     b.Property<string>("IterationPath")
                         .HasColumnType("text")
                         .HasColumnName("iteration_path");

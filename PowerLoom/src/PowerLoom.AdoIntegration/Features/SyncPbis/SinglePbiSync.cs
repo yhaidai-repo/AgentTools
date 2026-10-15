@@ -26,7 +26,7 @@ public sealed class SinglePbiSync(PowerLoomDbContext db, WorkItemStore store, Sy
 
     public async Task<Outcome<string>> FetchAndStoreAsync(string vault, int adoId, IAdoClient client, long runId, bool onlyNotStarted, CancellationToken cancellation)
     {
-        var item = (await client.GetWorkItemsAsync([adoId], AdoFields.Sync, cancellation)).FirstOrDefault()
+        var item = (await client.GetWorkItemsAsync([adoId], AdoFields.Every, cancellation)).FirstOrDefault()
             ?? throw new InvalidOperationException($"PBI {adoId} isn't in Azure DevOps, or the token can't see it");
         var mapped = WorkItemMapper.Map(item);
 

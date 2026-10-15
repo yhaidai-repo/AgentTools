@@ -91,8 +91,10 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         var read = await LoadAsync(adoId);
 
         Assert.Equal(("### Ann · 2026-10-01\n\n> Use the old API.", 1), (read.DiscussionMd, read.DiscussionRev));
-        // Not prepared yet: no note to render.
-        Assert.DoesNotContain(first.Sent.MessagesOf<PbiChanged>(), changed => changed.AdoId == adoId);
+        // Not prepared yet, and still its note is written.
+        Assert.Contains(first.Sent.MessagesOf<PbiChanged>(), changed => changed.AdoId == adoId);
+        Assert.Contains("## Discussion\n\n### Ann · 2026-10-01", await File.ReadAllTextAsync(noteFile));
+        Assert.Equal(PipelineStatus.New, read.PipelineStatus);
 
         await PrepareAsync(adoId, noteFile, notePath);
         ado.WorkItems[^1] = WorkItemMapperTests.Item(adoId, 2, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Talk","System.State":"Committed"}""");
@@ -110,6 +112,38 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         var third = await Sync(adoId);
 
         Assert.DoesNotContain(third.Sent.MessagesOf<PbiChanged>(), changed => changed.AdoId == adoId);
+    }
+
+    [Fact]
+    public async Task An_item_synced_before_its_teams_text_fields_were_read_gets_them_once_and_its_note_shows_them()
+    {
+        const int adoId = 51030;
+        const string notePath = "pbi/PBI-51030-notes/PBI-51030.md";
+        var noteFile = Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, notePath);
+
+        await ConfigureAsync();
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.WorkItems.Add(WorkItemMapperTests.Item(adoId, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Notes","System.State":"Committed","Custom.Notes":"<ul><li>NM101 is parsed</li></ul>"}"""));
+        await Sync(adoId);
+        await PrepareAsync(adoId, noteFile, notePath);
+        await ForgetExtraFieldsAsync(adoId);
+
+        var session = await Sync(adoId);
+        var note = await File.ReadAllTextAsync(noteFile);
+
+        Assert.Contains(session.Sent.MessagesOf<PbiChanged>(), changed => changed.AdoId == adoId);
+        Assert.Contains("## More from Azure DevOps\n\n### Notes\n\n- NM101 is parsed", note);
+        Assert.EndsWith("## Notes\n\nKeep this.\n", note);
+        Assert.Equal(PipelineStatus.New, (await LoadAsync(adoId)).PipelineStatus);
+    }
+
+    private async Task ForgetExtraFieldsAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        await db.WorkItems.Where(row => row.AdoId == adoId).ExecuteUpdateAsync(set => set.SetProperty(row => row.ExtraFieldsMd, (string?)null));
     }
 
     private async Task PrepareAsync(int adoId, string noteFile, string notePath)

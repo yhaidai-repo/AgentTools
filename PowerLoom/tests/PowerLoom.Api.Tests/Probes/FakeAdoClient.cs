@@ -33,7 +33,7 @@ public sealed class FakeAdoClient : IAdoClient
         return Task.FromResult<IReadOnlyList<int>>(QueryResult);
     }
 
-    public Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string> fields, CancellationToken cancellation)
+    public Task<IReadOnlyList<AdoWorkItem>> GetWorkItemsAsync(IReadOnlyList<int> ids, IReadOnlyList<string>? fields, CancellationToken cancellation)
     {
         return Task.FromResult<IReadOnlyList<AdoWorkItem>>(WorkItems.Where(item => ids.Contains(item.Id)).ToList());
     }

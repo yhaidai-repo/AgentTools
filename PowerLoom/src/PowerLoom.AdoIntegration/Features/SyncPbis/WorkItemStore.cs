@@ -8,7 +8,7 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
-// Mirrors work items into `work_item` (database only: notes are created later, when the user prepares a PBI).
+// Mirrors work items into `work_item`; their notes follow from DiscussionSync, after the sync.
 public sealed class WorkItemStore(PowerLoomDbContext db)
 {
     private const string Actor = "sync";
@@ -34,6 +34,9 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
 
             return true;
         }
+
+        if (existing.Rev == item.Rev && existing.ExtraFieldsMd is null)
+            return await AddExtraFieldsAsync(existing, item, cancellation);
 
         if (existing.Rev == item.Rev)
             return await LinkArrivedParentAsync(vault, existing, item, cancellation);
@@ -72,6 +75,18 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
 
         await db.SaveChangesAsync(cancellation);
         await LinkChildAsync(item, previousParentId, parentId, cancellation);
+    }
+
+    // An item synced before the team's own text fields were read gets them once without an ADO change; clearing the
+    // discussion rev has its discussion read again and its notes rendered again (DiscussionSync).
+    private async Task<bool> AddExtraFieldsAsync(WorkItem existing, MappedWorkItem item, CancellationToken cancellation)
+    {
+        existing.ExtraFieldsMd = item.ExtraFieldsMd;
+        existing.DiscussionRev = null;
+
+        await db.SaveChangesAsync(cancellation);
+
+        return true;
     }
 
     // A child whose parent came into PowerLoom after it (e.g. a deleted parent synced by hand again) is linked on the next
@@ -137,6 +152,7 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         row.ContentHash = item.ContentHash;
         row.DescriptionMd = item.DescriptionMd;
         row.AcceptanceCriteriaMd = item.AcceptanceCriteriaMd;
+        row.ExtraFieldsMd = item.ExtraFieldsMd;
         row.AdoChangedAt = item.AdoChangedAt;
         row.SyncedAt = DateTime.UtcNow;
     }

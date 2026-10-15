@@ -57,6 +57,7 @@ public sealed class PbiNoteWriter(PowerLoomDbContext db, BacklogFiles files, IWo
             tags,
             row.DescriptionMd,
             row.AcceptanceCriteriaMd,
+            row.ExtraFieldsMd,
             row.DiscussionMd,
             row.ParentId,
             row.CreatedAt,

@@ -1,7 +1,8 @@
 namespace PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 
 // A work item as PowerLoom mirrors it. `AdoParentId` is ADO's System.Parent; a child in PowerLoom only when that parent is a
-// PBI PowerLoom has. `ContentHash` covers what agents read: title, description and acceptance criteria.
+// PBI PowerLoom has. `ContentHash` covers title, description and acceptance criteria; `ExtraFieldsMd` (the team's own
+// rich-text fields, ExtraTextFields) is left out of it, so adding it marked no refined PBI stale.
 public sealed record MappedWorkItem(
     int AdoId,
     int Rev,
@@ -20,4 +21,5 @@ public sealed record MappedWorkItem(
     DateTime? AdoChangedAt,
     string DescriptionMd,
     string AcceptanceCriteriaMd,
+    string ExtraFieldsMd,
     string ContentHash);

@@ -20,8 +20,9 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
 
         var row = await db.WorkItems.AsNoTracking().SingleOrDefaultAsync(item => item.AdoId == adoId, cancellation);
 
-        // A PBI gets its note only from "Prepare for refinement"; until then answers and uploads stay in the database.
-        if (row?.VaultPath is null)
+        // Every synced PBI gets its note, so agents and chats read its ADO content before it is prepared; Prepare only
+        // starts refinement (user decision 2026-10-15).
+        if (row is null)
             return;
 
         var pbiPath = await notes.WritePbiAsync(row, row.PipelineStatus, cancellation);

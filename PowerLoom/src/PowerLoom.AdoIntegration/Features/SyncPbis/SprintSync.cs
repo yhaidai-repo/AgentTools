@@ -35,7 +35,7 @@ public sealed class SprintSync(PowerLoomDbContext db, WorkItemStore store, SyncB
     {
         var ids = await SyncedIdsAsync(vault, scope, cancellation);
         var window = SyncWindow.Select(ids, await bookkeeping.ReadCursorAsync(vault, cancellation), settings.MaxItemsPerRun);
-        var fetched = await client.GetWorkItemsAsync(window.Ids, AdoFields.Sync, cancellation);
+        var fetched = await client.GetWorkItemsAsync(window.Ids, AdoFields.Every, cancellation);
         var changed = await store.UpsertAsync(vault, runId, fetched.Select(WorkItemMapper.Map), cancellation);
 
         await bookkeeping.SaveCursorAsync(vault, window.NextCursor, cancellation);
@@ -64,9 +64,9 @@ public sealed class SprintSync(PowerLoomDbContext db, WorkItemStore store, SyncB
         if (newIds.Count == 0)
             return 0;
 
-        var bugs = (await client.GetWorkItemsAsync(newIds, AdoFields.Sync, cancellation)).Select(WorkItemMapper.Map).ToList();
+        var bugs = (await client.GetWorkItemsAsync(newIds, AdoFields.Every, cancellation)).Select(WorkItemMapper.Map).ToList();
         var parentIds = bugs.Select(bug => bug.AdoParentId).Where(id => id is not null && !skipped.Contains(id.Value)).Select(id => id!.Value).Distinct().ToList();
-        var parents = parentIds.Count == 0 ? [] : (await client.GetWorkItemsAsync(parentIds, AdoFields.Sync, cancellation)).Select(WorkItemMapper.Map).ToList();
+        var parents = parentIds.Count == 0 ? [] : (await client.GetWorkItemsAsync(parentIds, AdoFields.Every, cancellation)).Select(WorkItemMapper.Map).ToList();
 
         return await store.UpsertAsync(vault, runId, parents, cancellation) + await store.UpsertAsync(vault, runId, bugs, cancellation);
     }

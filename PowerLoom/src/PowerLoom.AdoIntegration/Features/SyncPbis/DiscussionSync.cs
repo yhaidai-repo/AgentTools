@@ -9,9 +9,9 @@ using Wolverine;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
-// After each sync, every work item whose rev moved since its discussion was read (a new ADO comment is a new revision too)
-// gets its discussion read again, and a prepared PBI's notes are rendered again, so every ADO change reaches the note
-// agents read (user decision 2026-10-14). At most maxItems per run; the rest follow in the next run.
+// After each sync, every work item whose rev moved since its discussion was read (a new ADO comment is a new revision too),
+// or that has no note yet, gets its discussion read and its notes rendered, so every ADO change reaches the note agents
+// read, prepared or not (user decisions 2026-10-14/15). At most maxItems per run; the rest follow in the next run.
 public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
 {
     // ADO returns at most 200 comments per call; older ones of a longer discussion are left out.
@@ -20,7 +20,7 @@ public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
     public async Task<int> RunAsync(string vault, IAdoClient client, int maxItems, CancellationToken cancellation)
     {
         var moved = await db.WorkItems
-            .Where(row => row.Vault == vault && row.Source == WorkItemSource.Ado && row.DiscussionRev != row.Rev)
+            .Where(row => row.Vault == vault && row.Source == WorkItemSource.Ado && (row.DiscussionRev != row.Rev || row.VaultPath == null))
             .OrderBy(row => row.AdoId)
             .Take(maxItems)
             .ToListAsync(cancellation);
@@ -29,7 +29,7 @@ public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
             await ReadDiscussionAsync(row, client, cancellation);
 
         await db.SaveChangesAsync(cancellation);
-        await RenderPreparedNotesAsync(vault, moved);
+        await RenderNotesAsync(vault, moved);
 
         return moved.Count;
     }
@@ -56,11 +56,9 @@ public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
         }
     }
 
-    private async Task RenderPreparedNotesAsync(string vault, IEnumerable<WorkItem> rows)
+    private async Task RenderNotesAsync(string vault, IEnumerable<WorkItem> rows)
     {
-        var prepared = rows.Where(row => row.VaultPath is not null);
-
-        foreach (var row in prepared)
+        foreach (var row in rows)
             await bus.PublishAsync(new PbiChanged(vault, row.AdoId));
     }
 }

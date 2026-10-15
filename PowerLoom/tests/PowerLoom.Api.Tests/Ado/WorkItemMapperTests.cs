@@ -26,13 +26,25 @@ public sealed class WorkItemMapperTests
     }
 
     [Fact]
+    public void The_teams_own_rich_text_fields_come_under_their_names_and_ados_own_fields_and_plain_values_stay_out()
+    {
+        var item = Item(8, 1, """{"System.Title":"t","System.Description":"<p>d</p>","System.History":"<p>last comment</p>","Custom.DevNotes":"<h2>Notes</h2><ul><li>NM101 is parsed</li></ul>","Custom.Team":"<b>never</b> mind","Custom.Code":"ABC-1"}""");
+
+        var mapped = WorkItemMapper.Map(item);
+
+        Assert.Equal("### Dev Notes\n\n#### Notes\n\n- NM101 is parsed\n\n### Team\n\n**never** mind", mapped.ExtraFieldsMd);
+    }
+
+    [Fact]
     public void The_hash_follows_the_title_description_and_criteria_only()
     {
         var a = WorkItemMapper.Map(Item(1, 1, """{"System.Title":"t","System.Description":"d","System.State":"New"}"""));
         var b = WorkItemMapper.Map(Item(1, 2, """{"System.Title":"t","System.Description":"d","System.State":"Done"}"""));
         var c = WorkItemMapper.Map(Item(1, 3, """{"System.Title":"t","System.Description":"changed","System.State":"New"}"""));
+        var withNotes = WorkItemMapper.Map(Item(1, 4, """{"System.Title":"t","System.Description":"d","System.State":"New","Custom.Notes":"<p>n</p>"}"""));
 
         Assert.Equal(a.ContentHash, b.ContentHash);
+        Assert.Equal(a.ContentHash, withNotes.ContentHash);
         Assert.NotEqual(a.ContentHash, c.ContentHash);
     }
 
