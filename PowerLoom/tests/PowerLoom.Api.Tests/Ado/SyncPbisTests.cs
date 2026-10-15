@@ -124,7 +124,13 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         await ConfigureAsync();
         var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
 
-        ado.WorkItems.Add(WorkItemMapperTests.Item(adoId, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Notes","System.State":"Committed","Custom.Notes":"<ul><li>NM101 is parsed</li></ul>"}"""));
+        const string attached = "https://dev.azure.com/org/p1/_apis/wit/attachments/n-1?fileName=edi.txt";
+
+        ado.WorkItems.Add(WorkItemMapperTests.Item(adoId, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Notes","System.State":"Committed","Custom.Notes":"<ul><li>NM101 is parsed</li></ul>"}""") with
+        {
+            Relations = [new AdoWorkItemRelation("AttachedFile", "https://dev.azure.com/org/p1/_apis/wit/attachments/n-1", new Dictionary<string, System.Text.Json.JsonElement> { ["name"] = System.Text.Json.JsonSerializer.SerializeToElement("edi.txt") })],
+        });
+        ado.Downloads[attached] = new AdoDownload("edi.txt", "text/plain", System.Text.Encoding.UTF8.GetBytes("LS*2120~"));
         await Sync(adoId);
         await PrepareAsync(adoId, noteFile, notePath);
         await ForgetExtraFieldsAsync(adoId);
@@ -136,6 +142,16 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         Assert.Contains("## More from Azure DevOps\n\n### Notes\n\n- NM101 is parsed", note);
         Assert.EndsWith("## Notes\n\nKeep this.\n", note);
         Assert.Equal(PipelineStatus.New, (await LoadAsync(adoId)).PipelineStatus);
+        // The file attached in ADO is the PBI's attachment, without Prepare.
+        Assert.Equal([(attached, "LS*2120~")], await AttachmentsAsync(adoId));
+    }
+
+    private async Task<List<(string?, string?)>> AttachmentsAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var rows = await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Attachments.AsNoTracking().Where(row => row.PbiId == adoId).ToListAsync();
+
+        return rows.Select(row => (row.SourceUrl, row.Text)).ToList();
     }
 
     private async Task ForgetExtraFieldsAsync(int adoId)

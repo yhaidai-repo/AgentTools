@@ -36,6 +36,7 @@ public static class WorkItemMapper
             HtmlMarkdown.Convert(descriptionHtml),
             HtmlMarkdown.Convert(acceptanceCriteriaHtml),
             ExtraTextFields.Render(fields),
+            AttachedFiles.Urls(item.Relations),
             ContentHash(title, descriptionHtml, acceptanceCriteriaHtml));
     }
 

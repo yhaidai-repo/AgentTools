@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
 using PowerLoom.Domain.Pbis;
@@ -35,8 +36,8 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
             return true;
         }
 
-        if (existing.Rev == item.Rev && existing.ExtraFieldsMd is null)
-            return await AddExtraFieldsAsync(existing, item, cancellation);
+        if (existing.Rev == item.Rev && (existing.ExtraFieldsMd is null || existing.AttachedFiles is null))
+            return await AddLateFieldsAsync(existing, item, cancellation);
 
         if (existing.Rev == item.Rev)
             return await LinkArrivedParentAsync(vault, existing, item, cancellation);
@@ -77,11 +78,12 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         await LinkChildAsync(item, previousParentId, parentId, cancellation);
     }
 
-    // An item synced before the team's own text fields were read gets them once without an ADO change; clearing the
-    // discussion rev has its discussion read again and its notes rendered again (DiscussionSync).
-    private async Task<bool> AddExtraFieldsAsync(WorkItem existing, MappedWorkItem item, CancellationToken cancellation)
+    // An item synced before the team's own text fields and its attached files were read gets them once without an ADO
+    // change; clearing the discussion rev has its notes rendered and its documents collected again (DiscussionSync).
+    private async Task<bool> AddLateFieldsAsync(WorkItem existing, MappedWorkItem item, CancellationToken cancellation)
     {
         existing.ExtraFieldsMd = item.ExtraFieldsMd;
+        existing.AttachedFiles = JsonSerializer.Serialize(item.AttachedFileUrls);
         existing.DiscussionRev = null;
 
         await db.SaveChangesAsync(cancellation);
@@ -153,6 +155,7 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         row.DescriptionMd = item.DescriptionMd;
         row.AcceptanceCriteriaMd = item.AcceptanceCriteriaMd;
         row.ExtraFieldsMd = item.ExtraFieldsMd;
+        row.AttachedFiles = JsonSerializer.Serialize(item.AttachedFileUrls);
         row.AdoChangedAt = item.AdoChangedAt;
         row.SyncedAt = DateTime.UtcNow;
     }

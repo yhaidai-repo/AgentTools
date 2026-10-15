@@ -22,4 +22,5 @@ public sealed record MappedWorkItem(
     string DescriptionMd,
     string AcceptanceCriteriaMd,
     string ExtraFieldsMd,
+    IReadOnlyList<string> AttachedFileUrls,
     string ContentHash);

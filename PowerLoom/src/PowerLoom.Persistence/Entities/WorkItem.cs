@@ -49,6 +49,9 @@ public partial class WorkItem
 
     public string? ExtraFieldsMd { get; set; }
 
+    /// <summary>The download links of the files attached in ADO (jsonb string list); null until the sync has read them.</summary>
+    public string? AttachedFiles { get; set; }
+
     public string? DiscussionMd { get; set; }
 
     public int? DiscussionRev { get; set; }

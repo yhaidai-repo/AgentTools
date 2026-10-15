@@ -95,14 +95,14 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
     }
 
     // Omit: items deleted in ADO come back as null instead of failing the whole batch. ADO takes either a field list or
-    // `$expand=fields` (every field), not both.
+    // `$expand=all` (every field and link), not both.
     private static Dictionary<string, object> BatchBody(int[] ids, IReadOnlyList<string>? fields)
     {
         var body = new Dictionary<string, object> { ["ids"] = ids, ["errorPolicy"] = "Omit" };
 
         if (fields is null)
         {
-            body["$expand"] = "fields";
+            body["$expand"] = "all";
         }
         else
         {

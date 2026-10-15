@@ -22,6 +22,7 @@ public static class AdoFields
     public const string OriginalEstimate = "Microsoft.VSTS.Scheduling.OriginalEstimate";
     public const string Parent = "System.Parent";
 
-    // The sync reads every field a work item has, so a team's own rich-text fields (e.g. Notes) reach its note too.
+    // The sync reads every field and link a work item has, so a team's own rich-text fields (e.g. Notes) and its attached
+    // files reach its note too.
     public static readonly IReadOnlyList<string>? Every = null;
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.Contracts;
+using PowerLoom.Contracts.Documents;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -10,8 +11,9 @@ using Wolverine;
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
 // After each sync, every work item whose rev moved since its discussion was read (a new ADO comment is a new revision too),
-// or that has no note yet, gets its discussion read and its notes rendered, so every ADO change reaches the note agents
-// read, prepared or not (user decisions 2026-10-14/15). At most maxItems per run; the rest follow in the next run.
+// or that has no note yet, gets its discussion read, its notes rendered and its ADO attachments collected, so every ADO
+// change reaches what agents read, prepared or not (user decisions 2026-10-14/15). At most maxItems per run; the rest
+// follow in the next run.
 public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
 {
     // ADO returns at most 200 comments per call; older ones of a longer discussion are left out.
@@ -56,9 +58,17 @@ public sealed class DiscussionSync(PowerLoomDbContext db, IMessageBus bus)
         }
     }
 
+    // Without asking for web pages, the collector only downloads ADO attachments here; web pages wait for Prepare and the
+    // agents.
     private async Task RenderNotesAsync(string vault, IEnumerable<WorkItem> rows)
     {
         foreach (var row in rows)
-            await bus.PublishAsync(new PbiChanged(vault, row.AdoId));
+            await PublishChangedAsync(vault, row.AdoId);
+    }
+
+    private async Task PublishChangedAsync(string vault, int adoId)
+    {
+        await bus.PublishAsync(new PbiChanged(vault, adoId));
+        await bus.PublishAsync(new CollectLinkedDocuments(vault, adoId));
     }
 }

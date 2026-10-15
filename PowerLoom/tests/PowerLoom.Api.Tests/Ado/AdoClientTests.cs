@@ -25,7 +25,7 @@ public sealed class AdoClientTests
     }
 
     [Fact]
-    public async Task Every_field_is_asked_for_with_expand_instead_of_a_field_list()
+    public async Task Every_field_and_link_is_asked_for_with_expand_instead_of_a_field_list()
     {
         var body = "";
         var handler = new ScriptedHandler(request =>
@@ -38,7 +38,7 @@ public sealed class AdoClientTests
 
         await client.GetWorkItemsAsync([1], AdoFields.Every, CancellationToken.None);
 
-        Assert.Contains("\"$expand\":\"fields\"", body);
+        Assert.Contains("\"$expand\":\"all\"", body);
         Assert.DoesNotContain("\"fields\":", body);
     }
 

@@ -1644,6 +1644,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("assigned_to");
 
+                    b.Property<string>("AttachedFiles")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attached_files");
+
                     b.Property<double?>("BacklogPriority")
                         .HasColumnType("double precision")
                         .HasColumnName("backlog_priority");

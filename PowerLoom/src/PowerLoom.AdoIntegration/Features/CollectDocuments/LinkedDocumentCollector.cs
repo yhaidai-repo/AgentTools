@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
@@ -11,26 +12,32 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.AdoIntegration.Features.CollectDocuments;
 
-// The PBI's linked documents not handled yet: an ADO attachment is downloaded with the vault's token and stored as the
-// PBI's attachment; a failed download, and a web page when asked for, become the user's task. Returns how many
-// documents changed.
+// The PBI's linked documents not handled yet, from its description, acceptance criteria and its files attached in ADO:
+// an ADO attachment is downloaded with the vault's token and stored as the PBI's attachment; a failed download, and a
+// web page when asked for, become the user's task. Returns how many documents changed.
 public sealed class LinkedDocumentCollector(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILogger<LinkedDocumentCollector> logger)
 {
     public async Task<int> CollectAsync(string vault, int adoId, bool askForWebPages, CancellationToken cancellation)
     {
-        var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd }).SingleOrDefaultAsync(cancellation);
+        var pbi = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => new { row.DescriptionMd, row.AcceptanceCriteriaMd, row.AttachedFiles }).SingleOrDefaultAsync(cancellation);
 
         if (pbi is null)
             return 0;
 
         var handled = await DocumentTasks.HandledUrlsAsync(db, adoId, cancellation);
-        var missing = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Where(url => !handled.Contains(url) && IsCollected(url, askForWebPages)).ToList();
+        var linked = UrlText.PbiLinkedUrls(pbi.DescriptionMd, pbi.AcceptanceCriteriaMd).Concat(AttachedFileUrls(pbi.AttachedFiles)).Distinct();
+        var missing = linked.Where(url => !handled.Contains(url) && IsCollected(url, askForWebPages)).ToList();
         var changed = 0;
 
         foreach (var url in missing)
             changed += await CollectOneAsync(vault, adoId, url, cancellation) ? 1 : 0;
 
         return changed;
+    }
+
+    private static IEnumerable<string> AttachedFileUrls(string? attachedFiles)
+    {
+        return attachedFiles is null ? [] : JsonSerializer.Deserialize<List<string>>(attachedFiles) ?? [];
     }
 
     // Confluence pages are SyncPbiPages'; a web page only for an agent without web access (user decision 2026-10-14).

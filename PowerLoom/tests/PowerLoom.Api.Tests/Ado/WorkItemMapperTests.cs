@@ -36,6 +36,24 @@ public sealed class WorkItemMapperTests
     }
 
     [Fact]
+    public void Attached_files_become_download_links_with_their_names_and_other_links_stay_out()
+    {
+        var name = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""{"name":"41856275 Commercial (1).271"}""");
+        var item = Item(9, 1, """{"System.Title":"t"}""") with
+        {
+            Relations =
+            [
+                new AdoWorkItemRelation("AttachedFile", "https://dev.azure.com/org/p1/_apis/wit/attachments/abc", name),
+                new AdoWorkItemRelation("System.LinkTypes.Hierarchy-Reverse", "https://dev.azure.com/org/p1/_apis/wit/workItems/1", null),
+            ],
+        };
+
+        var mapped = WorkItemMapper.Map(item);
+
+        Assert.Equal(["https://dev.azure.com/org/p1/_apis/wit/attachments/abc?fileName=41856275%20Commercial%20%281%29.271"], mapped.AttachedFileUrls);
+    }
+
+    [Fact]
     public void The_hash_follows_the_title_description_and_criteria_only()
     {
         var a = WorkItemMapper.Map(Item(1, 1, """{"System.Title":"t","System.Description":"d","System.State":"New"}"""));

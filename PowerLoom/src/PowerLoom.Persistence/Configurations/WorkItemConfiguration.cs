@@ -39,6 +39,9 @@ public partial class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
         entity.Property(e => e.DescriptionMd).HasColumnName("description_md");
         entity.Property(e => e.DiscussionMd).HasColumnName("discussion_md");
         entity.Property(e => e.ExtraFieldsMd).HasColumnName("extra_fields_md");
+        entity.Property(e => e.AttachedFiles)
+            .HasColumnType("jsonb")
+            .HasColumnName("attached_files");
         entity.Property(e => e.DiscussionRev).HasColumnName("discussion_rev");
         entity.Property(e => e.Effort).HasColumnName("effort");
         entity.Property(e => e.IterationPath).HasColumnName("iteration_path");
