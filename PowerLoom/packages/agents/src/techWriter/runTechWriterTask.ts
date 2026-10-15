@@ -12,7 +12,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
-import { acceptanceCriteriaBlock, isUserTask } from "../tasks/userTasks";
+import { acceptanceCriteriaBlock, isUserTask, userRequestBlock } from "../tasks/userTasks";
 import { AgentToolset } from "../toolset/AgentToolset";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
@@ -21,6 +21,7 @@ import { dependenciesBlock } from "./dependenciesBlock";
 import { relinkDraft, requireNoDraftLinks } from "./draftLinks";
 import type { ActualizeTaskData } from "./models/ActualizeTaskData";
 import type { DraftTaskData } from "./models/DraftTaskData";
+import type { RequestTaskData } from "./models/RequestTaskData";
 import type { TaskVault } from "./models/TaskVault";
 import type { TechWriterDraft } from "./models/TechWriterDraft";
 import type { TechWriterRun } from "./models/TechWriterRun";
@@ -29,11 +30,15 @@ import { createTechWriterTools } from "./techWriterTools";
 
 type ItemRow = typeof localItem.$inferSelect;
 
+type TaskData = DraftTaskData | ActualizeTaskData | RequestTaskData;
+
+type Mode = "draft" | "actualize" | "request";
+
 const AGENT = "tech-writer";
 
-// One tech-writer task (WT-…), one run: a draft moved into the docs vault (user decision 2026-10-02), or an existing note
-// brought up to date for the vault review (actualize, user decision 2026-10-03). The repos it took from the cache are
-// released whatever happens.
+// One tech-writer task (WT-…), one run: a draft moved into the docs vault (user decision 2026-10-02), an existing note
+// brought up to date for the vault review (actualize, user decision 2026-10-03), or a docs task the user wrote without
+// naming a note (request, user decision 2026-10-15). The repos it took from the cache are released whatever happens.
 export async function runTechWriterTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps } = context;
   const vault = taskVault(deps, task);
@@ -57,12 +62,14 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
   }
 }
 
-function isActualize(task: ItemRow): boolean {
-  return (task.data as { mode?: string } | null)?.mode === "actualize";
+function modeOf(task: ItemRow): Mode {
+  const mode = (task.data as { mode?: string } | null)?.mode;
+
+  return mode === "actualize" || mode === "request" ? mode : "draft";
 }
 
 function taskVault(deps: AgentDeps, task: ItemRow): TaskVault {
-  return isActualize(task) ? actualizeVault(deps, task.data as ActualizeTaskData) : draftVault(deps);
+  return modeOf(task) === "draft" ? draftVault(deps) : noteVault(deps, (task.data as ActualizeTaskData | RequestTaskData).vault);
 }
 
 // Drafts live in the task's vault (the run's; mounted writable, and VaultWriter keeps every path inside it).
@@ -74,15 +81,15 @@ function draftVault(deps: AgentDeps): TaskVault {
   return { name: deps.docsVaultName, root: deps.docsRoot, writer: deps.docsVault, isDocsVault: true };
 }
 
-// The note's own vault, read through the docs root when it is the docs vault, so reads still reach its usage log.
-function actualizeVault(deps: AgentDeps, data: ActualizeTaskData): TaskVault {
+// The task's own vault, read through the docs root when it is the docs vault, so reads still reach its usage log.
+function noteVault(deps: AgentDeps, vault: string): TaskVault {
   if (!deps.vaults) {
     throw new Error("the vaults root isn't mounted for the agent-runner (VAULTS_DIR)");
   }
 
-  const isDocsVault = data.vault === deps.docsVaultName;
+  const isDocsVault = vault === deps.docsVaultName;
 
-  return { name: data.vault, root: isDocsVault ? deps.docsRoot : join(deps.vaults.root, data.vault), writer: deps.vaults.writer(data.vault), isDocsVault };
+  return { name: vault, root: isDocsVault ? deps.docsRoot : join(deps.vaults.root, vault), writer: deps.vaults.writer(vault), isDocsVault };
 }
 
 // Handed work on: the tasks are written and this task waits for them; notes written in the same run are not kept.
@@ -99,7 +106,7 @@ async function commit(context: TaskContext, vault: TaskVault, task: ItemRow, run
 }
 
 async function commitNotes(context: TaskContext, vault: TaskVault, task: ItemRow, runId: number, draft: TechWriterDraft): Promise<void> {
-  if (isActualize(task)) {
+  if (modeOf(task) !== "draft") {
     await commitActualize(context.deps.db, vault, task, runId, draft);
 
     return;
@@ -115,13 +122,15 @@ async function commitNotes(context: TaskContext, vault: TaskVault, task: ItemRow
 // The repository first (user decision 2026-10-02), then the task's note and the vault rules; each step is a traced phase.
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, vault: TaskVault, run: TechWriterRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
-  const data = task.data as DraftTaskData | ActualizeTaskData;
+  const data = task.data as TaskData;
+  const mode = modeOf(task);
+  const project = "project" in data ? data.project : "";
 
-  await session.phase("context", { task: task.id, vault: vault.name, path: data.path, project: data.project, mode: isActualize(task) ? "actualize" : "draft" });
-  run.repos = await openRepos(context, session, await taskRepoSources(context, task, vault, data.project), { vault: task.vault });
+  await session.phase("context", { task: task.id, vault: vault.name, path: "path" in data ? data.path : null, project, mode });
+  run.repos = await openRepos(context, session, await taskRepoSources(context, task, vault, project), { vault: task.vault });
 
   const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: vault.root });
-  const taskMessage = isActualize(task) ? await actualizeMessage(vault, task, data as ActualizeTaskData, run.repos) : await draftMessage(vault, task, data as DraftTaskData, run.repos);
+  const taskMessage = await messageOf(mode, vault, task, data, run.repos);
   const firstMessage = [taskMessage, await dependenciesBlock(deps.db, task), toolset.webDocumentsBlock()].filter(Boolean).join("\n\n");
   const vaultRules = await readFile(join(vault.root, "AGENTS.md"), "utf8");
   const tools = [...toolset.tools(firstMessage), ...createTechWriterTools(deps, run.draft)];
@@ -137,16 +146,32 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     observe: (event) => toolset.observe(event),
-    // A draft has to leave draft/, and an actualized note has to be rewritten, unless the run handed work on and waits
-    // for it: a run that does neither didn't do the job.
-    hasRequiredOutput: () => isDelegating(run) || (isActualize(task) ? run.draft.edits.some((edit) => edit.path === data.path) : run.draft.edits.length > 0),
+    // A draft has to leave draft/, an actualized note has to be rewritten and a request has to change some note, unless
+    // the run handed work on and waits for it: a run that does neither didn't do the job.
+    hasRequiredOutput: () => isDelegating(run) || hasWritten(mode, data, run),
   };
 }
 
+function hasWritten(mode: Mode, data: TaskData, run: TechWriterRun): boolean {
+  if (mode === "actualize") {
+    return run.draft.edits.some((edit) => edit.path === (data as ActualizeTaskData).path);
+  }
+
+  return run.draft.edits.length > 0;
+}
+
+function messageOf(mode: Mode, vault: TaskVault, task: ItemRow, data: TaskData, repos: RepoAccess): Promise<string> {
+  if (mode === "actualize") {
+    return actualizeMessage(vault, task, data as ActualizeTaskData, repos);
+  }
+
+  return mode === "request" ? requestMessage(vault, task, repos) : draftMessage(vault, task, data as DraftTaskData, repos);
+}
+
 // The repos attached to the task: the project's repo from its index note, plus the PBI's repos for a draft PowerLoom
-// captured.
+// captured; a request names no project, so it opens repos itself.
 async function taskRepoSources(context: TaskContext, task: ItemRow, vault: TaskVault, project: string): Promise<RepoSource[]> {
-  const projectRepo = await projectRepoName(vault.root, project);
+  const projectRepo = project ? await projectRepoName(vault.root, project) : null;
   const fromProject = projectRepo ? [{ vault: vault.name, names: [projectRepo] }] : [];
   const fromPbi = task.pbiId === null ? [] : await pbiRepoSources(context.deps.db, task.pbiId);
 
@@ -179,6 +204,19 @@ async function actualizeMessage(vault: TaskVault, task: ItemRow, data: Actualize
     `<suspect-facts>\n${suspects}\n</suspect-facts>`,
     `<note>\n${noteText.trim()}\n</note>`,
     await projectIndexBlock(vault, data.project),
+    reposBlock(repos),
+  ].filter(Boolean).join("\n\n");
+}
+
+// No draft and no note: the user's request, with the vault's entry note to start finding the notes it is about.
+async function requestMessage(vault: TaskVault, task: ItemRow, repos: RepoAccess): Promise<string> {
+  const index = await readFile(join(vault.root, "index.md"), "utf8").catch(() => "(no index.md)");
+
+  return [
+    "Do what the user asks in the docs vault: find the notes it is about, then update them or create new ones as the vault rules say.",
+    `<task>\nId: ${task.id}\nMode: request\nVault: ${vault.name}\n</task>`,
+    userRequestBlock(task),
+    `<vault-index>\n${index.trim()}\n</vault-index>`,
     reposBlock(repos),
   ].filter(Boolean).join("\n\n");
 }

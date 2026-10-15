@@ -9,11 +9,15 @@ import { formText } from "@/lib/formFields";
 import { itemPath } from "@/lib/items";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
+import type { TaskActionResult } from "@/models/TaskActionResult";
+import type { TaskFormValues } from "@/models/TaskFormValues";
 
 // One task now, or with a cron a schedule by task type (user decision 2026-10-14). PowerLoom checks the task against its
-// type (PBI, note, repos) either way.
-export async function saveTaskAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  return formText(form, "cron") === null ? createTask(form) : saveSchedule(form);
+// type (PBI, repos) either way; a refusal returns what was typed, so the form keeps it.
+export async function saveTaskAction(_previous: TaskActionResult | null, form: FormData): Promise<TaskActionResult> {
+  const saved = formText(form, "cron") === null ? await createTask(form) : await saveSchedule(form);
+
+  return { ...saved, values: submittedValues(form) };
 }
 
 // The new task's page opens.
@@ -34,7 +38,7 @@ async function saveSchedule(form: FormData): Promise<ActionResult> {
   const previous = id === null ? null : await readTaskSchedule(getDb(), id);
   const task = readTask(form);
   const saved = await powerloom.PUT("/api/task-schedules", {
-    body: { id, name: task.title, agentId: "", vault: previous?.vault ?? (await requireVault()), cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", goal: null, repos: task.repos, taskType: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi, docPath: task.docPath },
+    body: { id, name: task.title, agentId: "", vault: previous?.vault ?? (await requireVault()), cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", goal: null, repos: task.repos, taskType: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi },
   });
 
   if (!saved.response.ok) {
@@ -53,6 +57,23 @@ function readTask(form: FormData) {
     acceptanceCriteria: formText(form, "acceptanceCriteria") ?? "",
     pbi: formText(form, "pbi"),
     repos: form.getAll("repos").map(String).filter(Boolean),
-    docPath: formText(form, "docPath"),
+  };
+}
+
+// The form as it was sent, untrimmed: what the user sees again after a refusal.
+function submittedValues(form: FormData): TaskFormValues {
+  const text = (name: string) => String(form.get(name) ?? "");
+  const scheduleId = formText(form, "scheduleId");
+
+  return {
+    type: text("type"),
+    title: text("title"),
+    description: text("description"),
+    acceptanceCriteria: text("acceptanceCriteria"),
+    pbi: text("pbi"),
+    repos: form.getAll("repos").map(String).filter(Boolean),
+    scheduleId: scheduleId === null ? null : Number(scheduleId),
+    cron: text("cron"),
+    enabled: form.get("enabled") === "on",
   };
 }

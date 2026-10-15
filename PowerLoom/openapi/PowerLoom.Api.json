@@ -3284,7 +3284,6 @@
           "acceptanceCriteria",
           "pbi",
           "repos",
-          "docPath",
           "actor"
         ],
         "type": "object",
@@ -3318,12 +3317,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "docPath": {
-            "type": [
-              "null",
-              "string"
-            ]
           },
           "actor": {
             "type": [
@@ -4485,12 +4478,6 @@
             ]
           },
           "pbi": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "docPath": {
             "type": [
               "null",
               "string"

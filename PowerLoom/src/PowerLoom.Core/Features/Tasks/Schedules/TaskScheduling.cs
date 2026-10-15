@@ -73,7 +73,7 @@ public sealed class TaskScheduling(PowerLoomDbContext db, IEnumerable<ITaskProdu
     private async Task<Outcome<ScheduleSettings>> TypeSettingsAsync(ScheduleInput input, CancellationToken cancellation)
     {
         var pbiProblem = OptionalPbi.Parse(input.Pbi, out var pbiId);
-        var task = new NewTask(input.Vault, input.TaskType!.Trim(), input.Name, input.Description ?? "", input.AcceptanceCriteria ?? "", pbiId, input.Repos ?? [], input.DocPath?.Trim());
+        var task = new NewTask(input.Vault, input.TaskType!.Trim(), input.Name, input.Description ?? "", input.AcceptanceCriteria ?? "", pbiId, input.Repos ?? []);
         var problem = pbiProblem ?? await creation.ProblemAsync(task, cancellation);
 
         if (problem is not null)

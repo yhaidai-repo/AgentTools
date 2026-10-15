@@ -43,7 +43,7 @@ public static class CreateTaskEndpoint
         if (pbiProblem is not null)
             return Outcome<NewTask>.Failure(pbiProblem);
 
-        return Outcome<NewTask>.Success(new NewTask(request.Vault, (request.Type ?? "").Trim(), request.Title ?? "", request.Description ?? "", request.AcceptanceCriteria ?? "", pbiId, request.Repos ?? [], request.DocPath?.Trim()));
+        return Outcome<NewTask>.Success(new NewTask(request.Vault, (request.Type ?? "").Trim(), request.Title ?? "", request.Description ?? "", request.AcceptanceCriteria ?? "", pbiId, request.Repos ?? []));
     }
 
     private static string ActorOf(CreateTaskRequest request) => string.IsNullOrWhiteSpace(request.Actor) ? DefaultActor : request.Actor.Trim();

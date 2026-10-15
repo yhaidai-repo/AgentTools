@@ -1399,7 +1399,6 @@ export interface components {
             acceptanceCriteria: string;
             pbi: null | string;
             repos: null | string[];
-            docPath: null | string;
             actor: null | string;
         };
         CreatedPbi: {
@@ -1688,7 +1687,6 @@ export interface components {
             description?: null | string;
             acceptanceCriteria?: null | string;
             pbi?: null | string;
-            docPath?: null | string;
         };
         ScheduleStatus: {
             key: string;
