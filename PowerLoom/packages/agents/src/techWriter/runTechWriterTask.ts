@@ -1,3 +1,4 @@
+import type { AgentEvent } from "@agenttools/runtime";
 import { localItem } from "@powerloom/db";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -50,7 +51,7 @@ export async function runTechWriterTask(context: TaskContext, task: ItemRow): Pr
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: TechWriterRun = { repos: noRepos(), toolset: null, draft: { edits: [], findings: [], home: null } };
+  const run: TechWriterRun = { repos: noRepos(), toolset: null, draft: { edits: [], findings: [], home: null, summary: null } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -145,11 +146,21 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
-    observe: (event) => toolset.observe(event),
+    observe: (event) => {
+      toolset.observe(event);
+      keepSummary(run.draft, event);
+    },
     // A draft has to leave draft/, an actualized note has to be rewritten and a request has to change some note, unless
     // the run handed work on and waits for it: a run that does neither didn't do the job.
     hasRequiredOutput: () => isDelegating(run) || hasWritten(mode, data, run),
   };
+}
+
+// The last message the agent writes is its summary; each text replaces the one before.
+function keepSummary(draft: TechWriterDraft, event: AgentEvent): void {
+  if (event.type === "text" && event.text.trim()) {
+    draft.summary = event.text.trim();
+  }
 }
 
 function hasWritten(mode: Mode, data: TaskData, run: TechWriterRun): boolean {
