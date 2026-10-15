@@ -14,7 +14,7 @@ const FIXES: Record<string, string> = {
   azure: "Settings → Read Azure: sign in again with your account (the sign-in expired or was refused), or the account has no read role on the resource: ask an Azure admin for Reader on it.",
   cosmos: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB account's keys: ask an Azure admin for Cosmos DB Account Reader on it.",
   serviceBus: "Settings → Read Azure → Service Bus: the namespace refused its connection string (a rotated key or a policy without Listen); remove the namespace and add it again with a current Listen-only connection string.",
-  mongo: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB for MongoDB account's connection strings: ask an Azure admin for Cosmos DB Account Reader on it.",
+  mongo: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB for MongoDB account's connection strings: ask an Azure admin for Cosmos DB Account Reader on it. A server added by connection string: its user or password was refused; remove it and add it again with a current read-only user's string.",
   ado: "Settings → Azure DevOps: check that the PAT has Work Items (Read) and Code (Read) and hasn't expired; save a new one if it lacks a scope or has expired.",
 };
 

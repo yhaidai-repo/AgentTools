@@ -8,11 +8,11 @@ public sealed class AzureResourceSettings
     // One of AzureResourceKinds (Cosmos, Mongo or Service Bus: Azure access has no resources).
     public string Kind { get; set; } = "";
 
-    // The Cosmos DB account name, or the Service Bus namespace host.
+    // The Cosmos DB account name, or the host of a Service Bus namespace or a Mongo server outside Cosmos.
     public string Target { get; set; } = "";
 
-    // Service Bus only: the Listen-only connection string (user decision 2026-10-14). Stored in the database, never
-    // shown again; empty for Cosmos and Mongo, whose keys come with the sign-in at call time.
+    // The Service Bus Listen-only connection string, or a Mongo server's connection string (user decisions 2026-10-14/15).
+    // Stored in the database, never shown again; empty for Cosmos accounts, whose keys come with the sign-in at call time.
     public string Secret { get; set; } = "";
 
     // What the Settings page shows for the target.

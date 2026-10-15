@@ -7,6 +7,9 @@ const MAX_DOCUMENTS = 200;
 const DEFAULT_DOCUMENTS = 20;
 const QUERY_TIMEOUT_MS = 30_000;
 const CONNECT_TIMEOUT_MS = 15_000;
+// Above the query timeout, and set here so a short socketTimeoutMS in a stored connection string can't cut a read off
+// (options in code win over the string's).
+const SOCKET_TIMEOUT_MS = 45_000;
 
 // describe samples one document per collection for its fields; a database with more collections lists the rest by name only.
 const MAX_SAMPLED_COLLECTIONS = 50;
@@ -16,8 +19,8 @@ const DENIED_CODES = [13, 18];
 
 type Filter = Record<string, unknown>;
 
-// Reads Cosmos DB for MongoDB (and any Mongo) for agents with the account's read-only connection string (user
-// decision 2026-10-14: fetched with the vault's sign-in at call time, never stored). Only find, aggregate and
+// Reads Cosmos DB for MongoDB and any other Mongo server for agents (user decisions 2026-10-14/15): a Cosmos account
+// with the read-only connection string the vault's sign-in fetches at call time, another server with its stored one. Only find, aggregate and
 // listings; the guards refuse what writes or runs code. One client per call.
 export class MongoReader {
   // The account's databases, or one database's collections with the top-level fields of a sample document each.
@@ -56,7 +59,7 @@ export class MongoReader {
   }
 
   private async withClient(connectionString: string, read: (client: MongoClient) => Promise<MongoAnswer>): Promise<MongoAnswer> {
-    const client = new MongoClient(connectionString, { serverSelectionTimeoutMS: CONNECT_TIMEOUT_MS, connectTimeoutMS: CONNECT_TIMEOUT_MS, maxPoolSize: 1 });
+    const client = new MongoClient(connectionString, { serverSelectionTimeoutMS: CONNECT_TIMEOUT_MS, connectTimeoutMS: CONNECT_TIMEOUT_MS, socketTimeoutMS: SOCKET_TIMEOUT_MS, maxPoolSize: 1 });
 
     try {
       await client.connect();

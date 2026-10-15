@@ -17,6 +17,7 @@ public static class AzureResourceKinds
 
     public static bool HasResources(string kind) => kind is Cosmos or Mongo or ServiceBus;
 
-    // Only Service Bus stores a secret; Cosmos and Mongo keys come with the sign-in at call time.
-    public static bool HasSecret(string kind) => kind == ServiceBus;
+    // Service Bus always stores a secret, Mongo only for a server outside Cosmos (user decision 2026-10-15); Cosmos keys
+    // come with the sign-in at call time.
+    public static bool HasSecret(string kind) => kind is ServiceBus or Mongo;
 }

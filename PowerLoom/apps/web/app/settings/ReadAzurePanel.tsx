@@ -29,7 +29,7 @@ const KINDS: Record<AzureResourceKind, KindText> = {
   mongo: {
     title: "Mongo",
     switchLabel: "Enabled: agents with the Mongo switch on may find documents in the accounts below",
-    help: "Cosmos DB for MongoDB accounts: agents list, find and aggregate documents with the read-only connection string fetched with your sign-in at call time; nothing is stored here.",
+    help: "Cosmos DB for MongoDB accounts, read with the read-only connection string fetched with your sign-in at call time (nothing stored), or any other Mongo server by its connection string, stored here and never shown again. Agents list, find and aggregate; writes are refused, and a read-only user is the real barrier.",
   },
   serviceBus: {
     title: "Service Bus",

@@ -7,9 +7,9 @@ export interface AzureResourceSettings {
   /** What agents pick the resource by: letters, digits, `_` and `-`. */
   name: string;
   kind: AzureResourceKind;
-  /** The Cosmos DB account name (also for Cosmos DB for MongoDB), or the Service Bus namespace host. */
+  /** The Cosmos DB account name (also for Cosmos DB for MongoDB), or the host of a Service Bus namespace or a Mongo server outside Cosmos. */
   target: string;
-  /** Service Bus only: the Listen-only connection string; empty for the accounts, whose keys come with the sign-in. Never shown. */
+  /** The Service Bus Listen-only connection string, or a Mongo server's connection string; empty for Cosmos accounts, whose keys come with the sign-in. Never shown. */
   secret: string;
   /** What pages show for the target. */
   display: string;

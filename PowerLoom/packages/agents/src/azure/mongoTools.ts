@@ -19,8 +19,11 @@ const document = z.record(z.string(), z.unknown());
 
 type Document = Record<string, unknown>;
 
-// The Mongo tools (user decision 2026-10-14): the vault's enabled Cosmos DB for MongoDB accounts, read with the
-// read-only connection string the sign-in fetches at call time. Every call goes through the outside wrapper.
+type Connect = (target: string) => Promise<ConnectionStringAnswer>;
+
+// The Mongo tools (user decisions 2026-10-14/15): the vault's enabled Mongo resources, each a Cosmos DB for MongoDB
+// account read with the read-only connection string the sign-in fetches at call time, or a server outside Cosmos read
+// with the connection string stored in Settings. Every call goes through the outside wrapper.
 export function createMongoTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
   const mongo = deps.azure?.mongo ?? null;
   const accounts = deps.azure?.settings.resources.filter((resource) => resource.kind === "mongo" && resource.enabled) ?? [];
@@ -30,23 +33,24 @@ export function createMongoTools(deps: AgentDeps, agent: AgentDefinition, contex
     return [];
   }
 
-  const account = z.enum(accounts.map((entry) => entry.target) as [string, ...string[]]).describe(`The Cosmos DB for MongoDB account: ${accounts.map(accountLabel).join("; ")}`);
+  const account = z.enum(accounts.map((entry) => entry.target) as [string, ...string[]]).describe(`The Mongo account or server: ${accounts.map(accountLabel).join("; ")}`);
+  const connect: Connect = (target) => connectionOf(mongo, accounts, target);
 
-  return [describeTool(deps, context, mongo, account), findTool(deps, context, mongo, account), aggregateTool(deps, context, mongo, account)];
+  return [describeTool(deps, context, mongo, account, connect), findTool(deps, context, mongo, account, connect), aggregateTool(deps, context, mongo, account, connect)];
 }
 
-function describeTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>): ToolDefinition<any> {
+function describeTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>, connect: Connect): ToolDefinition<any> {
   return defineOutsideTool(deps.outside, context, {
     name: "mongo_describe",
-    description: "List a Cosmos DB for MongoDB account's databases, or, with a database, its collections with the top-level fields of one sample document each. Then read with mongo_find or mongo_aggregate.",
+    description: "List a Mongo account's or server's databases, or, with a database, its collections with the top-level fields of one sample document each. Then read with mongo_find or mongo_aggregate.",
     input: { account, database: z.string().optional().describe("A database name; leave out to list the databases") },
     resource: (input) => resourceOf(input.account),
     request: (input) => (input.database ? `describe ${input.database}` : "list databases"),
-    handler: (input) => withConnection(mongo, input.account, (connectionString) => mongo.reader.describe(connectionString, input.database ?? null)),
+    handler: (input) => withConnection(connect, input.account, (connectionString) => mongo.reader.describe(connectionString, input.database ?? null)),
   });
 }
 
-function findTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>): ToolDefinition<any> {
+function findTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>, connect: Connect): ToolDefinition<any> {
   return defineOutsideTool(deps.outside, context, {
     name: "mongo_find",
     description: "Find documents in a collection (read-only): a MongoDB filter, an optional projection and sort, at most 200 documents (20 by default). $where is refused.",
@@ -61,11 +65,11 @@ function findTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAc
     },
     resource: (input) => resourceOf(input.account),
     request: (input) => `${input.database}/${input.collection}: find ${JSON.stringify(input.filter ?? {})}${input.sort ? ` sort ${JSON.stringify(input.sort)}` : ""} limit ${input.limit ?? 20}`,
-    handler: (input) => withConnection(mongo, input.account, (connectionString) => mongo.reader.find(connectionString, input.database, input.collection, input.filter ?? {}, input.projection, input.sort, input.limit)),
+    handler: (input) => withConnection(connect, input.account, (connectionString) => mongo.reader.find(connectionString, input.database, input.collection, input.filter ?? {}, input.projection, input.sort, input.limit)),
   });
 }
 
-function aggregateTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>): ToolDefinition<any> {
+function aggregateTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAccess, account: z.ZodEnum<Record<string, string>>, connect: Connect): ToolDefinition<any> {
   return defineOutsideTool(deps.outside, context, {
     name: "mongo_aggregate",
     description: "Run an aggregation pipeline on a collection (read-only), at most 200 documents out. $out, $merge, $where, $function and $accumulator are refused.",
@@ -77,13 +81,20 @@ function aggregateTool(deps: AgentDeps, context: OutsideAccessContext, mongo: Mo
     },
     resource: (input) => resourceOf(input.account),
     request: (input) => `${input.database}/${input.collection}: aggregate ${JSON.stringify(input.pipeline)}`,
-    handler: (input) => withConnection(mongo, input.account, (connectionString) => mongo.reader.aggregate(connectionString, input.database, input.collection, input.pipeline as Document[])),
+    handler: (input) => withConnection(connect, input.account, (connectionString) => mongo.reader.aggregate(connectionString, input.database, input.collection, input.pipeline as Document[])),
   });
 }
 
+// A server outside Cosmos has its connection string in Settings; a Cosmos account's is fetched with the sign-in.
+function connectionOf(mongo: MongoAccess, accounts: AzureResourceSettings[], target: string): Promise<ConnectionStringAnswer> {
+  const stored = accounts.find((entry) => entry.target === target)?.secret ?? "";
+
+  return stored ? Promise.resolve({ ok: true, connectionString: stored }) : mongo.connectionStrings.readOnlyMongo(target);
+}
+
 // The connection string comes first; a refused fetch is the call's answer (denied when the sign-in is the problem).
-async function withConnection(mongo: MongoAccess, account: string, read: (connectionString: string) => Promise<MongoAnswer>): Promise<OutsideToolResult> {
-  const connection = await mongo.connectionStrings.readOnlyMongo(account);
+async function withConnection(connect: Connect, account: string, read: (connectionString: string) => Promise<MongoAnswer>): Promise<OutsideToolResult> {
+  const connection = await connect(account);
 
   if (!connection.ok) {
     return connectionResult(connection);
