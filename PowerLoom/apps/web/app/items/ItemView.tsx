@@ -14,6 +14,7 @@ import { DeleteItemButton } from "./DeleteItemButton";
 import { FindingForm } from "./FindingForm";
 import { ItemContent } from "./ItemContent";
 import { RerunTaskButton } from "./RerunTaskButton";
+import { TaskResults } from "./TaskResults";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 
@@ -45,6 +46,7 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       <ItemContent item={item} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
+      <TaskResults detail={detail} />
       <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />

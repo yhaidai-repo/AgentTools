@@ -3,6 +3,7 @@ import { pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
+import { loadTaskResults } from "./taskResults";
 
 // Uploads without their bytes (downloads read those on their own).
 const ATTACHMENT_SUMMARY = {
@@ -65,7 +66,9 @@ export async function loadItemDetail(itemId: string) {
 
   const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
 
-  return { item, attachments, results, findings, runs };
+  const taskResults = await loadTaskResults(db, item, runs.map((run) => run.id));
+
+  return { item, attachments, results, findings, runs, taskResults };
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;
