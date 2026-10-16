@@ -1652,6 +1652,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("backlog_priority");
 
+                    b.Property<bool>("ClosedByUser")
+                        .HasColumnType("boolean")
+                        .HasColumnName("closed_by_user");
+
                     b.Property<string>("ConfluencePages")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

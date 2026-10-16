@@ -38,11 +38,7 @@ public static class FinishEndpoint
 
         var wwwRecordId = await RecordFeedbackAsync(db, bus, adoId, request, cancellation);
 
-        await PbiChanges.PublishAsync(db, bus, adoId, actor, cancellation);
-
-        // The children were finished with it: their notes show it too.
-        foreach (var childId in await PbiChildren.ChildIdsAsync(db, adoId, cancellation))
-            await PbiChanges.PublishAsync(db, bus, childId, actor, cancellation);
+        await PbiChanges.PublishWithChildrenAsync(db, bus, adoId, actor, cancellation);
 
         return TypedResults.Ok(new FinishedPbi(finished.Value!, wwwRecordId));
     }

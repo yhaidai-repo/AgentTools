@@ -124,6 +124,7 @@ export const workItem = pgTable("work_item", {
   extraFieldsMd: text("extra_fields_md"),
   adoChangedAt: ts("ado_changed_at"),
   pipelineStatus: pipelineStatus("pipeline_status").notNull().default("new"),
+  closedByUser: boolean("closed_by_user").notNull().default(false), // closed in PowerLoom; the sync keeps it closed
   vaultPath: text("vault_path"),
   vault: vaultName(),
   source: workItemSource("source").notNull().default("ado"),

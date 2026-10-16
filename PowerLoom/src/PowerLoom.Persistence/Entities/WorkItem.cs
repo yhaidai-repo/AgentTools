@@ -68,6 +68,10 @@ public partial class WorkItem
 
     public PipelineStatus PipelineStatus { get; set; }
 
+    // The user closed it in PowerLoom (user decision 2026-10-16): the sync keeps it closed, whatever its ADO state, until
+    // the user reopens it.
+    public bool ClosedByUser { get; set; }
+
     public WorkItemSource Source { get; set; }
 
     public virtual ICollection<AgentRun> AgentRuns { get; set; } = new List<AgentRun>();

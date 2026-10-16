@@ -18,16 +18,20 @@ public static class PrepareEndpoint
     public static async Task<Results<Accepted<PreparedPbis>, ProblemHttpResult>> Post(PrepareRequest request, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
     {
         var ids = request.AdoIds.Distinct().ToList();
-        var known = await db.WorkItems.AsNoTracking().Where(row => ids.Contains(row.AdoId)).Select(row => new { row.AdoId, row.Vault }).ToListAsync(cancellation);
+        var known = await db.WorkItems.AsNoTracking().Where(row => ids.Contains(row.AdoId)).Select(row => new { row.AdoId, row.Vault, row.ClosedByUser }).ToListAsync(cancellation);
 
         if (known.Count == 0)
             return Problem.NotFound("None of the PBIs is in PowerLoom.").ToProblemResult();
 
-        foreach (var pbi in known)
+        var preparable = known.Where(pbi => !pbi.ClosedByUser).ToList();
+
+        foreach (var pbi in preparable)
             await bus.PublishAsync(new PreparePbi(pbi.Vault, pbi.AdoId, Actor));
 
-        var queued = known.Select(pbi => pbi.AdoId).ToList();
+        var queued = preparable.Select(pbi => pbi.AdoId).ToList();
+        var closed = known.Where(pbi => pbi.ClosedByUser).Select(pbi => pbi.AdoId).ToList();
+        var unknown = ids.Except(known.Select(pbi => pbi.AdoId)).ToList();
 
-        return TypedResults.Accepted((string?)null, new PreparedPbis(queued, ids.Except(queued).ToList()));
+        return TypedResults.Accepted((string?)null, new PreparedPbis(queued, unknown, closed));
     }
 }

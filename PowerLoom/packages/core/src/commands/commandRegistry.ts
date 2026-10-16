@@ -1,6 +1,7 @@
 import type { Command } from "../models/Command";
 import { answerReviewCommentCommand } from "./answerReviewCommentCommand";
 import { closeItemCommand } from "./closeItemCommand";
+import { closePbiCommand } from "./closePbiCommand";
 import { createWwwRecordCommand } from "./createWwwRecordCommand";
 import { createPbiCommand } from "./createPbiCommand";
 import { deletePbiCommand } from "./deletePbiCommand";
@@ -9,6 +10,7 @@ import { finishPbiCommand } from "./finishPbiCommand";
 import { getPbiCommand } from "./getPbiCommand";
 import { readPbiCommand } from "./readPbiCommand";
 import { openChatCommand } from "./openChatCommand";
+import { reopenPbiCommand } from "./reopenPbiCommand";
 import { reportBugCommand } from "./reportBugCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
 import { savePbiReposCommand } from "./savePbiReposCommand";
@@ -22,6 +24,8 @@ import { sqlQueryCommand } from "./sqlQueryCommand";
 export const COMMANDS: readonly Command<any, any>[] = [
   finishPbiCommand,
   deletePbiCommand,
+  closePbiCommand,
+  reopenPbiCommand,
   createPbiCommand,
   getPbiCommand,
   readPbiCommand,

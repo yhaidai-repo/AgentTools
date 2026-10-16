@@ -600,6 +600,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_close
+         * @description POST_api_pbis_close
+         */
+        post: operations["POST_api_pbis_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pbis/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_reopen
+         * @description POST_api_pbis_reopen
+         */
+        post: operations["POST_api_pbis_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/{adoId}/attachments": {
         parameters: {
             query?: never;
@@ -1365,6 +1405,10 @@ export interface components {
             itemId: string;
             status: string;
         };
+        ClosedPbis: {
+            done: string[];
+            refused: string[];
+        };
         CompletedRunRequest: {
             /** Format: int64 */
             runId: null | number;
@@ -1513,6 +1557,10 @@ export interface components {
             why: string;
             by: string;
         };
+        PbiIdsRequest: {
+            adoIds: number[];
+            actor: null | string;
+        };
         PbiSyncSettingsRequest: {
             enabled: boolean;
             cron: string;
@@ -1529,6 +1577,7 @@ export interface components {
         PreparedPbis: {
             queued: number[];
             unknown: number[];
+            closed: number[];
         };
         ProblemDetails: {
             type?: null | string;
@@ -2691,6 +2740,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PbiConfluencePage"][];
+                };
+            };
+        };
+    };
+    POST_api_pbis_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PbiIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedPbis"];
+                };
+            };
+        };
+    };
+    POST_api_pbis_reopen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PbiIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedPbis"];
                 };
             };
         };

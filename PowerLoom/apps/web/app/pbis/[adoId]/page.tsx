@@ -21,6 +21,7 @@ import { ItemList } from "./ItemList";
 import { RefinementDetailsLine } from "./RefinementDetailsLine";
 import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ConfluenceLinkForm } from "./ConfluenceLinkForm";
+import { ClosePbiButton } from "./ClosePbiButton";
 import { DeletePbiButton } from "./DeletePbiButton";
 import { PreparePbiButton } from "./PreparePbiButton";
 import { FinishPbiButton } from "./FinishPbiButton";
@@ -66,7 +67,7 @@ export default async function PbiPage({ params, searchParams }: { params: Promis
   return (
     <>
       <h1>PBI-{pbi.adoId} · {pbi.title}</h1>
-      <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> <PreparePbiButton adoId={pbi.adoId} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <DeletePbiButton adoId={pbi.adoId} /></div>
+      <div className="actions"><Link href="/pbis">← Backlog</Link> <Continue detail={detail} /> <PreparePbiButton adoId={pbi.adoId} /> {isFinishable(pbi.pipelineStatus) && <FinishPbiButton adoId={pbi.adoId} title={pbi.title} />} <ClosePbiButton adoId={pbi.adoId} closedByUser={pbi.closedByUser} isClosed={pbi.pipelineStatus === "closed"} /> <DeletePbiButton adoId={pbi.adoId} /></div>
       <Summary detail={detail} adoUrl={await adoUrl(pbi)} />
       <PbiTabs adoId={pbi.adoId} active={tab} />
       {tab === "ado" && <AdoTab detail={detail} />}

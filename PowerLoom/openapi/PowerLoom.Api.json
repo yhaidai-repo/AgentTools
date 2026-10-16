@@ -1281,6 +1281,70 @@
         }
       }
     },
+    "/api/pbis/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Close.CloseEndpoint"
+        ],
+        "summary": "POST_api_pbis_close",
+        "description": "POST_api_pbis_close",
+        "operationId": "POST_api_pbis_close",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/reopen": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Close.ReopenEndpoint"
+        ],
+        "summary": "POST_api_pbis_reopen",
+        "description": "POST_api_pbis_reopen",
+        "operationId": "POST_api_pbis_reopen",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pbis/{adoId}/attachments": {
       "post": {
         "tags": [
@@ -3157,6 +3221,27 @@
           }
         }
       },
+      "ClosedPbis": {
+        "required": [
+          "done",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CompletedRunRequest": {
         "required": [
           "runId",
@@ -3745,6 +3830,28 @@
           }
         }
       },
+      "PbiIdsRequest": {
+        "required": [
+          "adoIds",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "PbiSyncSettingsRequest": {
         "required": [
           "enabled",
@@ -3801,7 +3908,8 @@
       "PreparedPbis": {
         "required": [
           "queued",
-          "unknown"
+          "unknown",
+          "closed"
         ],
         "type": "object",
         "properties": {
@@ -3813,6 +3921,13 @@
             }
           },
           "unknown": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "closed": {
             "type": "array",
             "items": {
               "type": "integer",
@@ -5081,6 +5196,12 @@
     },
     {
       "name": "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Close.CloseEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Close.ReopenEndpoint"
     },
     {
       "name": "PowerLoom.Features.Pbis.Attachments.AttachmentsEndpoint"

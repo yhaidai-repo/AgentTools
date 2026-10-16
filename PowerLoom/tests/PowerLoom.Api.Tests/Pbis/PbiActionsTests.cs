@@ -5,8 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Contracts;
 using PowerLoom.Domain.Pbis.Models;
 using PowerLoom.Features.Pbis.Attachments.Models;
+using PowerLoom.Features.Pbis.Close.Models;
 using PowerLoom.Features.Pbis.Create.Models;
 using PowerLoom.Features.Pbis.Finish.Models;
+using PowerLoom.Features.Pbis.Prepare.Models;
 using PowerLoom.Features.Pbis.Repos.Models;
 using PowerLoom.Features.Pbis.Skills.Models;
 using PowerLoom.Persistence;
@@ -61,6 +63,41 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         Assert.NotNull(finished.Value.WwwRecordId);
         Assert.Equal(finished.Value.WwwRecordId.ToString(), finished.Session.Executed.SingleMessage<AddRecord>().SourceId);
         Assert.Contains("PBI-" + adoId + ": Took long", await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md")));
+    }
+
+    [Fact]
+    public async Task A_closed_pbi_stays_with_its_items_cancelled_skips_prepare_and_reopens_as_new()
+    {
+        await SeedAsync();
+
+        var created = await host.Host.PostJson(new CreatePbiRequest(PowerLoomHost.Vault, "Went to a colleague", null, null, "Do it", null, null, null), "/api/pbis").Receive<CreatedPbi>();
+        var child = await host.Host.PostJson(new CreatePbiRequest(null, "Its child", "Task", 3, null, null, created!.AdoId, "cli"), "/api/pbis").Receive<CreatedPbi>();
+        var adoId = created.AdoId;
+
+        await SeedItemsAsync(adoId);
+
+        var closed = await Tracked(() => host.Host.PostJson(new PbiIdsRequest([adoId, 61998], null), "/api/pbis/close").Receive<ClosedPbis>());
+        var again = await host.Host.PostJson(new PbiIdsRequest([adoId], null), "/api/pbis/close").Receive<ClosedPbis>();
+        var prepared = await host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new PrepareRequest([adoId])).ToUrl("/api/pbis/prepare");
+            scenario.StatusCodeShouldBe(202);
+        });
+        var closedPbi = await LoadAsync(adoId);
+        var items = await LoadItemsAsync(adoId);
+        var reopened = await Tracked(() => host.Host.PostJson(new PbiIdsRequest([adoId], "cli"), "/api/pbis/reopen").Receive<ClosedPbis>());
+        var reopenedPbi = await LoadAsync(adoId);
+
+        Assert.Equal([$"PBI-{adoId} closed; 1 child item(s) closed; 2 open item(s) cancelled."], closed.Value!.Done);
+        Assert.Equal(["PBI-61998: PBI-61998 isn't in PowerLoom."], closed.Value.Refused);
+        Assert.Equal((PipelineStatus.Closed, true), (closedPbi.PipelineStatus, closedPbi.ClosedByUser));
+        Assert.Equal(PipelineStatus.Closed, (await LoadAsync(child!.AdoId)).PipelineStatus);
+        Assert.Equal((ItemStatus.Cancelled, ItemStatus.Cancelled), (items[$"Q-{adoId}-001"].Status, items[$"AT-{adoId}-001"].Status));
+        Assert.Equal([$"PBI-{adoId}: PBI-{adoId} is closed already."], again!.Refused);
+        Assert.Equal([adoId], (await prepared.ReadAsJsonAsync<PreparedPbis>())!.Closed);
+        Assert.Equal([$"PBI-{adoId} reopened as new."], reopened.Value!.Done);
+        Assert.Equal((PipelineStatus.New, false), (reopenedPbi.PipelineStatus, reopenedPbi.ClosedByUser));
+        Assert.Equal(PipelineStatus.Closed, (await LoadAsync(child.AdoId)).PipelineStatus);
     }
 
     private async Task<StoredAttachments?> UploadAsync(int adoId)

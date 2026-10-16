@@ -63,6 +63,8 @@ export { sqlTarget } from "./readSql/sqlTarget";
 export type { CommandInfo } from "./models/CommandInfo";
 export { finishPbiCommand } from "./commands/finishPbiCommand";
 export { deletePbiCommand } from "./commands/deletePbiCommand";
+export { closePbiCommand } from "./commands/closePbiCommand";
+export { reopenPbiCommand } from "./commands/reopenPbiCommand";
 export { createPbiCommand } from "./commands/createPbiCommand";
 export { deleteReviewCommand } from "./commands/deleteReviewCommand";
 export type { NewPbi } from "./models/NewPbi";

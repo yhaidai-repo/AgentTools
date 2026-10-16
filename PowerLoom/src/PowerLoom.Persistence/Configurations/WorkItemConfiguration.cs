@@ -32,6 +32,7 @@ public partial class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
             .HasDefaultValueSql("'[]'::jsonb")
             .HasColumnType("jsonb")
             .HasColumnName("confluence_pages");
+        entity.Property(e => e.ClosedByUser).HasColumnName("closed_by_user");
         entity.Property(e => e.ContentHash).HasColumnName("content_hash");
         entity.Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()")

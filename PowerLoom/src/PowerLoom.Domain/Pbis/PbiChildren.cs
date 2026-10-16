@@ -45,6 +45,12 @@ public static class PbiChildren
     }
 
     // The agent run working on the PBI now, if any.
+    // The first run still working on any of the PBIs; null when none is.
+    public static Task<RunningRun?> RunningRunOnAnyAsync(PowerLoomDbContext db, List<int> adoIds, CancellationToken cancellation)
+    {
+        return db.AgentRuns.AsNoTracking().Where(run => run.PbiId != null && adoIds.Contains(run.PbiId.Value) && run.Outcome == RunOutcome.Running).Select(run => new RunningRun(run.Id, run.PbiId!.Value)).FirstOrDefaultAsync(cancellation);
+    }
+
     public static async Task<long?> RunningRunOnAsync(PowerLoomDbContext db, int adoId, CancellationToken cancellation)
     {
         var running = await db.AgentRuns.AsNoTracking().Where(run => run.PbiId == adoId && run.Outcome == RunOutcome.Running).Select(run => run.Id).FirstOrDefaultAsync(cancellation);

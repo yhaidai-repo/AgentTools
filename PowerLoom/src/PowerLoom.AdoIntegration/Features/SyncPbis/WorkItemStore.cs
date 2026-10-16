@@ -65,7 +65,7 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
     {
         var parentId = await ParentInPowerLoomAsync(vault, item, cancellation);
         var previousParentId = existing.ParentId;
-        var status = PipelineStatusRule.Next(existing.PipelineStatus, item.AdoState);
+        var status = PipelineStatusRule.Next(existing.PipelineStatus, item.AdoState, existing.ClosedByUser);
 
         Mirror(existing, item);
         existing.ParentId = parentId;

@@ -41,6 +41,7 @@ JSON
 | `item.close` | answers a question or closes a human task |
 | `review.answerComment` | answers a code-review comment |
 | `pbi.create`, `pbi.delete`, `pbi.finish` | creates, deletes or finishes a PBI |
+| `pbi.close`, `pbi.reopen` | closes a PBI in PowerLoom (kept for the agents, work on it stops) or reopens it |
 | `pbi.saveRepos`, `pbi.saveSkills` | sets a PBI's repos or skills for later agents |
 | `bug.report` | reports a bug found on a PBI |
 | `task.rerun` | runs a finished agent task again |

@@ -4,7 +4,7 @@ import { useActionState, useRef, useState, type MouseEvent, type ReactNode } fro
 import { FinishDialog } from "@/components/FinishDialog";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiToFinish } from "@/models/PbiToFinish";
-import { deleteSelected, prepareSelected } from "./actions";
+import { closeSelected, deleteSelected, prepareSelected, reopenSelected } from "./actions";
 
 // Wraps the server-rendered table so its row checkboxes submit with this form: Prepare the selected PBIs, or Finish them
 // through the Finish dialog, one PBI at a time.
@@ -12,6 +12,8 @@ export function BacklogForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
   const [prepared, prepareAction, isPreparing] = useActionState<ActionResult | null, FormData>(prepareSelected, null);
   const [deleted, deleteAction, isDeleting] = useActionState<ActionResult | null, FormData>(deleteSelected, null);
+  const [closed, closeAction, isClosing] = useActionState<ActionResult | null, FormData>(closeSelected, null);
+  const [reopened, reopenAction, isReopening] = useActionState<ActionResult | null, FormData>(reopenSelected, null);
   const [toFinish, setToFinish] = useState<PbiToFinish[] | null>(null);
   const [finished, setFinished] = useState<string | null>(null);
 
@@ -34,10 +36,14 @@ export function BacklogForm({ children }: { children: ReactNode }) {
         <div className="toolbar">
           <button type="submit" disabled={isPreparing}>{isPreparing ? "Queuing…" : "Prepare for refinement"}</button>
           <button type="button" className="secondary" onClick={onFinish}>Finish</button>
+          <button type="submit" className="secondary" formAction={closeAction} disabled={isClosing} onClick={confirmClose}>{isClosing ? "Closing…" : "Close"}</button>
+          <button type="submit" className="secondary" formAction={reopenAction} disabled={isReopening}>{isReopening ? "Reopening…" : "Reopen"}</button>
           <button type="submit" className="secondary" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete}>{isDeleting ? "Deleting…" : "Delete"}</button>
-          <span className="muted">Prepare writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined). Finish marks the PBIs done in PowerLoom. Delete removes them from PowerLoom only.</span>
+          <span className="muted">Prepare writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined). Finish marks the PBIs done in PowerLoom. Close keeps them for the agents to read but stops all work on them (Reopen brings them back as new). Delete removes them from PowerLoom only.</span>
           {prepared && <span className={prepared.ok ? "result-ok" : "result-error"}>{prepared.message}</span>}
           {deleted && <span className={deleted.ok ? "result-ok" : "result-error"}>{deleted.message}</span>}
+          {closed && <span className={closed.ok ? "result-ok" : "result-error"}>{closed.message}</span>}
+          {reopened && <span className={reopened.ok ? "result-ok" : "result-error"}>{reopened.message}</span>}
           {finished && <span className="muted">{finished}</span>}
         </div>
         {children}
@@ -52,6 +58,15 @@ function confirmDelete(event: React.MouseEvent<HTMLButtonElement>): void {
   const count = selectedPbis(event.currentTarget.form).length;
 
   if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from PowerLoom? Their child items, tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
+    event.preventDefault();
+  }
+}
+
+// Asks first: the selected PBIs stop (open tasks and questions cancelled, open children closed); ADO stays untouched.
+function confirmClose(event: MouseEvent<HTMLButtonElement>): void {
+  const count = selectedPbis(event.currentTarget.form).length;
+
+  if (count === 0 || !window.confirm(`Close ${count} PBI(s) in PowerLoom? Their open tasks and questions are cancelled and their open child items close with them. They stay for the agents to read; Azure DevOps is not changed.`)) {
     event.preventDefault();
   }
 }

@@ -22,4 +22,13 @@ public static class PbiChanges
         await PbiStatusSync.RecalculateAsync(db, adoId.Value, actor, cancellation);
         await bus.PublishAsync(new PbiChanged(vault, adoId.Value));
     }
+
+    // A change that reached its child items too (finish, close): their notes show it as well.
+    public static async Task PublishWithChildrenAsync(PowerLoomDbContext db, IMessageBus bus, int adoId, string actor, CancellationToken cancellation)
+    {
+        await PublishAsync(db, bus, adoId, actor, cancellation);
+
+        foreach (var childId in await PbiChildren.ChildIdsAsync(db, adoId, cancellation))
+            await PublishAsync(db, bus, childId, actor, cancellation);
+    }
 }

@@ -11,8 +11,12 @@ public static class PipelineStatusRule
 
     // A changed title, description or AC keeps the status: the sync pulls the new text and the work goes on with it
     // (user decision 2026-10-16; it used to make the PBI stale). Only ADO Done/Removed closes it, and a closed one reopens.
-    public static PipelineStatus Next(PipelineStatus current, string adoState)
+    // A PBI the user closed in PowerLoom stays as it is until the user reopens it (user decision 2026-10-16).
+    public static PipelineStatus Next(PipelineStatus current, string adoState, bool closedByUser)
     {
+        if (closedByUser)
+            return current;
+
         if (IsClosed(adoState))
             return PipelineStatus.Closed;
 

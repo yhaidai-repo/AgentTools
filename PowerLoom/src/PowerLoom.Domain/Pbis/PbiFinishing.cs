@@ -55,8 +55,7 @@ public static class PbiFinishing
         if (!IsFinishable(pbi.PipelineStatus))
             return $"PBI-{pbi.AdoId} is {new KebabCaseNameTranslator().TranslateMemberName(pbi.PipelineStatus.ToString())}.";
 
-        var ids = children.Select(child => child.AdoId).Prepend(pbi.AdoId).ToList();
-        var running = await db.AgentRuns.AsNoTracking().Where(run => run.PbiId != null && ids.Contains(run.PbiId.Value) && run.Outcome == RunOutcome.Running).Select(run => new { run.Id, run.PbiId }).FirstOrDefaultAsync(cancellation);
+        var running = await PbiChildren.RunningRunOnAnyAsync(db, children.Select(child => child.AdoId).Prepend(pbi.AdoId).ToList(), cancellation);
 
         return running is null ? null : $"RUN-{running.Id} is working on PBI-{running.PbiId}; finish it when the run has ended.";
     }

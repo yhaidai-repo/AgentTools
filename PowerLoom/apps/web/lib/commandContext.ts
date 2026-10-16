@@ -44,6 +44,16 @@ const powerloomPort: PowerLoomPort = {
 
     return data.refused.length === 0 ? { ok: true, value: data.deleted[0]?.title ?? "" } : { ok: false, error: data.refused[0] };
   },
+  async closePbi(adoId, actor) {
+    const { data, error, response } = await powerloom.POST("/api/pbis/close", { body: { adoIds: [adoId], actor } });
+
+    return data ? oneChanged(data) : failure(error, response);
+  },
+  async reopenPbi(adoId, actor) {
+    const { data, error, response } = await powerloom.POST("/api/pbis/reopen", { body: { adoIds: [adoId], actor } });
+
+    return data ? oneChanged(data) : failure(error, response);
+  },
   async closeItem(request: CloseItemRequest, dryRun = false) {
     const { data, error, response } = await powerloom.POST("/api/items/{id}/close", {
       params: { path: { id: request.itemId } },
@@ -125,6 +135,11 @@ export async function uploadAttachments(adoId: number, files: UploadedFile[], ta
   const { data, error, response } = await powerloom.POST("/api/pbis/{adoId}/attachments", { params: { path: { adoId } }, body: form as never, bodySerializer: (body) => body as unknown as FormData });
 
   return data ? { ok: true, value: data.refs } : failure(error, response);
+}
+
+// Close and reopen answer per PBI; for one PBI, its line is the outcome.
+function oneChanged(data: { done: string[]; refused: string[] }): Outcome<string> {
+  return data.refused.length === 0 ? { ok: true, value: data.done[0] ?? "" } : { ok: false, error: data.refused[0] };
 }
 
 // An expected refusal comes back as ProblemDetails; its detail is the message.

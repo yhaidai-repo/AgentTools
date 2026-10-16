@@ -75,7 +75,15 @@ public sealed class WorkItemMapperTests
     [InlineData(PipelineStatus.Closed, "Committed", PipelineStatus.New)]
     public void The_sync_owns_only_the_closed_and_reopened_transitions(PipelineStatus current, string adoState, PipelineStatus expected)
     {
-        Assert.Equal(expected, PipelineStatusRule.Next(current, adoState));
+        Assert.Equal(expected, PipelineStatusRule.Next(current, adoState, closedByUser: false));
+    }
+
+    [Theory]
+    [InlineData("Committed")]
+    [InlineData("Done")]
+    public void A_PBI_the_user_closed_stays_closed_whatever_its_ADO_state(string adoState)
+    {
+        Assert.Equal(PipelineStatus.Closed, PipelineStatusRule.Next(PipelineStatus.Closed, adoState, closedByUser: true));
     }
 
     [Fact]

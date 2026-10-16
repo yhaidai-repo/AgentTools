@@ -1,6 +1,6 @@
 "use server";
 
-import { createPbiCommand, finishPbiCommand, isAdoActive, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type PbiFeedback } from "@powerloom/core";
+import { closePbiCommand, createPbiCommand, finishPbiCommand, isAdoActive, reopenPbiCommand, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type Outcome, type PbiFeedback } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
@@ -63,7 +63,56 @@ async function preparePbis(adoIds: number[]): Promise<ActionResult> {
     return powerloomResult(prepared, "");
   }
 
-  return { ok: true, message: `${prepared.data.queued.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").` };
+  const closed = prepared.data.closed.length > 0 ? ` Skipped ${prepared.data.closed.map((adoId) => `PBI-${adoId}`).join(", ")}: closed, reopen first.` : "";
+
+  return { ok: true, message: `${prepared.data.queued.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").${closed}` };
+}
+
+// The Backlog's Close and Reopen (user decision 2026-10-16): the selected PBIs in one request; a refused one is reported.
+export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return changeSelected(form, "/api/pbis/close");
+}
+
+export async function reopenSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  return changeSelected(form, "/api/pbis/reopen");
+}
+
+async function changeSelected(form: FormData, path: "/api/pbis/close" | "/api/pbis/reopen"): Promise<ActionResult> {
+  const adoIds = selectedIds(form);
+
+  if (adoIds.length === 0) {
+    return { ok: false, message: "Select at least one PBI." };
+  }
+
+  const changed = await powerloom.POST(path, { body: { adoIds, actor: null } });
+
+  if (!changed.response.ok || !changed.data) {
+    return powerloomResult(changed, "");
+  }
+
+  revalidatePath("/pbis");
+
+  return { ok: changed.data.refused.length === 0, message: [...changed.data.done, ...changed.data.refused].join(" ") };
+}
+
+// The PBI page's Close and Reopen.
+export async function closePbiAction(adoId: number): Promise<ActionResult> {
+  return pageResult(adoId, await runWebCommand(closePbiCommand, { adoId }));
+}
+
+export async function reopenPbiAction(adoId: number): Promise<ActionResult> {
+  return pageResult(adoId, await runWebCommand(reopenPbiCommand, { adoId }));
+}
+
+function pageResult(adoId: number, outcome: Outcome<{ message: string }>): ActionResult {
+  if (!outcome.ok) {
+    return { ok: false, message: outcome.error };
+  }
+
+  revalidatePath(`/pbis/${adoId}`);
+  revalidatePath("/pbis");
+
+  return { ok: true, message: outcome.value.message };
 }
 
 // The Backlog's Delete (user decision 2026-10-06): the selected PBIs in one request; a refused one is reported.
