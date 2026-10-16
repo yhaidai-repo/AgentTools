@@ -57,6 +57,20 @@ public sealed class OpenChatTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task A_finished_agent_task_gets_a_follow_up_chat_with_its_result()
+    {
+        await StoreAgentTaskAsync("GT-7002");
+
+        var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Item, "GT-7002"), "/api/chats").Receive<ChatLink>();
+        var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "item-GT-7002.md"));
+
+        Assert.StartsWith("claude://code/new?", link!.Url);
+        Assert.Contains("# Help me follow up on agent task GT-7002: Map the payers", note);
+        Assert.Contains("**What the agent did**", note);
+        Assert.Contains("Result:\n\nThree payers map to one code.", note);
+    }
+
+    [Fact]
     public async Task An_unknown_item_is_not_found()
     {
         await host.Host.Scenario(scenario =>
@@ -81,6 +95,26 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Status = ItemStatus.Open,
             Body = "the finding's full text",
             Data = """{"type":"question","project":"adoa","default":[],"options":[]}""",
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private async Task StoreAgentTaskAsync(string id)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.LocalItems.Add(new LocalItem
+        {
+            Id = id,
+            Title = "Map the payers",
+            Assignee = "agent:better-research",
+            Vault = PowerLoomHost.Vault,
+            Kind = ItemKind.Research,
+            Status = ItemStatus.Done,
+            Body = "Find how payers map to codes.",
+            Resolution = "Three payers map to one code.",
+            HeldBy = "[]",
         });
         await db.SaveChangesAsync();
     }

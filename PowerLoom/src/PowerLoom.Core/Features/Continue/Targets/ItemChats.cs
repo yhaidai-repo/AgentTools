@@ -1,3 +1,5 @@
+using PowerLoom.Domain.Pbis;
+using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Features.Continue.Targets;
@@ -42,5 +44,17 @@ public static class ItemChats
             "Change no file: the record is submitted through PowerLoom."),
     };
 
-    public static Outline? For(ItemKind kind) => Outlines.GetValueOrDefault(kind);
+    // Any agent task, whatever its kind or status (user decision 2026-10-16): talk over what the agent did and what's next.
+    private static readonly Outline AgentTask = new(
+        "Help me follow up on agent task",
+        [
+            "**The task**: what it asked for, in short.",
+            "**What the agent did**: its result, from the task and the notes it wrote, with `file:line` where it read code.",
+            "**What is left or doubtful**: open questions, gaps, anything that looks wrong.",
+            "**Next step**: what I should do now (answer a question, re-run the task, change code, or nothing).",
+        ],
+        "End by asking \"What next?\" Change no file unless I ask. Anything for PowerLoom (an answer, a re-run reason) is given as plain text to paste there.",
+        "Change no file unless the user asks.");
+
+    public static Outline? For(LocalItem item) => AgentStages.IsAgentTask(item.Assignee) ? AgentTask : Outlines.GetValueOrDefault(item.Kind);
 }

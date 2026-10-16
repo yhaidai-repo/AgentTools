@@ -10,7 +10,7 @@ using PowerLoom.Persistence.Entities;
 namespace PowerLoom.Features.Continue.Targets;
 
 // A chat on a question, human task or finding: the item's note and its PBI's notes; a finding without a PBI brings
-// its text and its project's registers (user decision 2026-10-05).
+// its text and its project's registers (user decision 2026-10-05). An agent task too (user decision 2026-10-16).
 public sealed class ItemChatTarget(PowerLoomDbContext db, HostPaths hostPaths, PbiRepos pbiRepos) : IChatTarget
 {
     public ChatKind Kind => ChatKind.Item;
@@ -18,7 +18,7 @@ public sealed class ItemChatTarget(PowerLoomDbContext db, HostPaths hostPaths, P
     public async Task<Outcome<ChatBrief>> BriefAsync(string id, IChatLauncher launcher, CancellationToken cancellation)
     {
         var item = await db.LocalItems.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id, cancellation);
-        var outline = item is null ? null : ItemChats.For(item.Kind);
+        var outline = item is null ? null : ItemChats.For(item);
 
         if (item is null || outline is null)
             return Outcome<ChatBrief>.Failure(item is null ? Problem.NotFound($"{id} not found.") : Problem.Invalid($"No chat for a {item.Kind}."));
@@ -83,6 +83,10 @@ public sealed class ItemChatTarget(PowerLoomDbContext db, HostPaths hostPaths, P
 
         if (data?.Options is { Length: > 0 } options)
             parts.Add($"Options: {string.Join("; ", options)}");
+
+        // An agent task without a PBI keeps its result here; a PBI task's results are in the PBI's notes.
+        if (!string.IsNullOrWhiteSpace(item.Resolution))
+            parts.Add($"Result:\n\n{item.Resolution}");
 
         return string.Join("\n\n", parts);
     }
