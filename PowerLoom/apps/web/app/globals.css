@@ -16,6 +16,10 @@
   --series-6: #008300;
   --series-7: #4a3aa7;
   --series-8: #e34948;
+  --series-9: #0b8fa3;
+  --series-10: #9a5b25;
+  --series-11: #a03fc0;
+  --series-12: #6f7d12;
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-critical: #d03b3b;
@@ -41,6 +45,10 @@
     --series-6: #008300;
     --series-7: #9085e9;
     --series-8: #e66767;
+    --series-9: #22a9bc;
+    --series-10: #b8794a;
+    --series-11: #c070dc;
+    --series-12: #a1ad3a;
     --grid: #242a31;
     color-scheme: dark;
   }
