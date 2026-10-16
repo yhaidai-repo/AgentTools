@@ -57,7 +57,8 @@ public sealed class SyncPbisTests(PowerLoomHost host)
 
         var updated = await LoadAsync(51001);
 
-        Assert.Equal((PipelineStatus.Stale, "v2", 2), (updated.PipelineStatus, updated.DescriptionMd, updated.Rev));
+        // A content change brings the new text and keeps the status.
+        Assert.Equal((PipelineStatus.Refining, "v2", 2), (updated.PipelineStatus, updated.DescriptionMd, updated.Rev));
     }
 
     [Fact]

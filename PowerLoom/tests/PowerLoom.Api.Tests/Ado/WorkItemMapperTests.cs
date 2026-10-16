@@ -67,15 +67,15 @@ public sealed class WorkItemMapperTests
     }
 
     [Theory]
-    [InlineData(PipelineStatus.Refining, "Committed", true, PipelineStatus.Stale)]
-    [InlineData(PipelineStatus.New, "Committed", true, PipelineStatus.New)]
-    [InlineData(PipelineStatus.Done, "Committed", true, PipelineStatus.Done)]
-    [InlineData(PipelineStatus.Refining, "Done", false, PipelineStatus.Closed)]
-    [InlineData(PipelineStatus.Closed, "Committed", false, PipelineStatus.New)]
-    [InlineData(PipelineStatus.Refining, "Committed", false, PipelineStatus.Refining)]
-    public void The_sync_owns_only_the_closed_reopened_and_stale_transitions(PipelineStatus current, string adoState, bool changed, PipelineStatus expected)
+    [InlineData(PipelineStatus.Refining, "Committed", PipelineStatus.Refining)]
+    [InlineData(PipelineStatus.WaitingHuman, "Committed", PipelineStatus.WaitingHuman)]
+    [InlineData(PipelineStatus.New, "Committed", PipelineStatus.New)]
+    [InlineData(PipelineStatus.Done, "Committed", PipelineStatus.Done)]
+    [InlineData(PipelineStatus.Refining, "Done", PipelineStatus.Closed)]
+    [InlineData(PipelineStatus.Closed, "Committed", PipelineStatus.New)]
+    public void The_sync_owns_only_the_closed_and_reopened_transitions(PipelineStatus current, string adoState, PipelineStatus expected)
     {
-        Assert.Equal(expected, PipelineStatusRule.Next(current, adoState, changed));
+        Assert.Equal(expected, PipelineStatusRule.Next(current, adoState));
     }
 
     [Fact]
