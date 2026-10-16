@@ -137,8 +137,9 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         return gone.Count;
     }
 
-    // Other reviewers' new comments on a reviewed PR queue a Better Review follow-up (user decision 2026-10-16), while
-    // Better Review is on and reads Azure DevOps (null: it's off, or a run couldn't read the comments). No new comment, no
+    // Other reviewers' new comments on a reviewed PR queue a follow-up review task in the pool (user decision 2026-10-16),
+    // while Better Review, the review agent that reads the threads, is on with Azure DevOps (read) (null: no agent would
+    // read the comments). No new comment, no
     // run: a push alone or an edited comment queues nothing (user decision 2026-10-16). Each comment counts once: the review remembers what the sync saw, so a run
     // that fails doesn't queue again. The first check of a review counts only comments posted after it was reviewed.
     // Your comments and the PR author's queue nothing; a PR with a review task open waits for it to finish.

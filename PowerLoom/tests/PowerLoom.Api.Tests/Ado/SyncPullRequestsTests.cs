@@ -77,7 +77,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
     }
 
     [Fact]
-    public async Task Another_reviewers_new_comment_on_a_reviewed_pull_request_queues_a_better_review_follow_up()
+    public async Task Another_reviewers_new_comment_on_a_reviewed_pull_request_queues_a_follow_up_review_in_the_pool()
     {
         await ConfigureAsync();
         await SetBetterReviewAsync(true);
@@ -110,7 +110,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             await Sync();
             var queued = Assert.Single(await ReviewTasksAsync(7301));
 
-            Assert.Equal(("agent:better-review", ItemStatus.Open), (queued.Assignee, queued.Status));
+            Assert.Equal(("agent:*", ItemStatus.Open), (queued.Assignee, queued.Status));
             Assert.Contains("\"trigger\":\"reviewer-comments\"", queued.Data);
             Assert.Contains("\"threads\":[1]", queued.Data);
 
