@@ -13,6 +13,7 @@ import { ReviewBadges } from "../ReviewBadges";
 import { BetterReviewInfo } from "./BetterReviewInfo";
 import { CommentCard } from "./CommentCard";
 import { ReviewActions } from "./ReviewActions";
+import { ReviewRuns } from "./ReviewRuns";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ prId: s
       <h2>Summary</h2>
       {review.summaryMd ? <MarkdownBlock text={review.summaryMd} /> : <p className="muted">Not reviewed yet.</p>}
       <BetterReviewInfo details={review.details ?? null} />
-      <p className="muted">
-        Reviewed commit {review.reviewedCommit?.slice(0, 8) ?? "–"}, <LocalTime date={review.reviewedAt} />. Runs:{" "}
-        {detail.runs.length === 0 ? "none" : detail.runs.map((run) => <Link key={run.id} className="chip" href={`/agents/runs/${run.id}`}>RUN-{run.id} · {run.outcome}</Link>)}
-      </p>
+      <p className="muted">Reviewed commit {review.reviewedCommit?.slice(0, 8) ?? "–"}, <LocalTime date={review.reviewedAt} />.</p>
+      <h2>Runs</h2>
+      <ReviewRuns detail={detail} />
       <h2>Comments ({detail.comments.open} open / {detail.comments.total})</h2>
       {detail.allComments.length === 0 ? <p className="muted">No comments.</p> : groupByFile(detail.allComments).map(([file, comments]) => <FileComments key={file} file={file} comments={comments} />)}
     </>
