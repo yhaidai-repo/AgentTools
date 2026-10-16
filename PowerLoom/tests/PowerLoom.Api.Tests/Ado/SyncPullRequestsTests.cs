@@ -111,8 +111,10 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             var queued = Assert.Single(await ReviewTasksAsync(7301));
 
             Assert.Equal(("agent:*", ItemStatus.Open), (queued.Assignee, queued.Status));
-            Assert.Contains("\"trigger\":\"reviewer-comments\"", queued.Data);
-            Assert.Contains("\"threads\":[1]", queued.Data);
+            using var data = JsonDocument.Parse(queued.Data!);
+
+            Assert.Equal("reviewer-comments", data.RootElement.GetProperty("trigger").GetString());
+            Assert.Equal([1], data.RootElement.GetProperty("threads").EnumerateArray().Select(thread => thread.GetInt32()));
 
             await SetTaskStatusAsync(queued.Id, ItemStatus.Done);
             await Sync();
