@@ -2,12 +2,10 @@ import { StackedColumns } from "@/components/charts/StackedColumns";
 import { Lines } from "@/components/charts/Lines";
 import { StatTile } from "@/components/StatTile";
 import { formatDayOfMonth } from "@/lib/format";
-import { doneOn, isClosedState, itemsOn, sprintStates } from "@/lib/sprintProgress";
+import { doneOn, hasStateColor, itemsOn, OTHER_STATE_COLOR, sprintStates, stateColor } from "@/lib/sprintProgress";
 import type { ChartSeries } from "@/models/ChartSeries";
 import type { SprintDay } from "@/models/SprintDay";
 import type { SprintSummary } from "@/models/SprintSummary";
-
-const SERIES_SLOTS = 8;
 
 // The chosen sprint: its counters today, the items per ADO state over its days, and the remaining work when ADO
 // carries it (a burndown needs the Remaining Work field filled in).
@@ -38,12 +36,14 @@ export function SprintSection({ sprint, days }: { sprint: SprintSummary; days: S
   );
 }
 
-// A state keeps its color across sprints: its slot in the pipeline order of the states this sprint saw.
+// A state keeps its color across sprints (stateColor); states ADO adds later fold into one "Other" series.
 function stateSeries(days: SprintDay[], states: string[]): ChartSeries[] {
-  return states.slice(0, SERIES_SLOTS).map((state, slot) => ({
-    key: state,
-    label: state,
-    color: isClosedState(state) ? "var(--series-6)" : `var(--series-${slot + 1})`,
-    values: days.map((day) => day.itemsByState[state] ?? 0),
-  }));
+  const known = states.filter(hasStateColor).map((state) => ({ key: state, label: state, color: stateColor(state), values: days.map((day) => day.itemsByState[state] ?? 0) }));
+  const others = states.filter((state) => !hasStateColor(state));
+
+  if (others.length === 0) {
+    return known;
+  }
+
+  return [...known, { key: "other", label: "Other", color: OTHER_STATE_COLOR, values: days.map((day) => others.reduce((sum, state) => sum + (day.itemsByState[state] ?? 0), 0)) }];
 }

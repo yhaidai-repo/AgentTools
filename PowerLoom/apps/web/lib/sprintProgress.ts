@@ -5,11 +5,33 @@ import type { SprintSummary } from "@/models/SprintSummary";
 import { getDb } from "./db";
 
 // ADO states in the order a sprint item moves through them; states ADO adds later go after, as they come.
-export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Ready for Release", "Resolved", "Done", "Closed"];
+export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Testing", "Ready for Release", "Resolved", "Done", "Closed"];
 
 // Ready for Release counts as done: the sprint's work is over by then (user decision 2026-10-13).
 const DONE_STATES = ["Ready for Release", "Done", "Closed"];
-const CLOSED_STATES = ["Done", "Closed"];
+
+// Each state has its own fixed color, so it looks the same in every sprint (user, 2026-10-16: Code Review took Done's
+// green when colors went by position). Green is the done states: Ready for Release, Done and Closed (user, 2026-10-16).
+// The usual run New → To Do → Ready for Dev → In Progress → Rework Required → Code Review → Testing → done passes the
+// palette's adjacent colorblind and contrast checks in both modes. A state ADO adds later is "Other".
+const STATE_SLOTS: Record<string, number> = {
+  New: 1,
+  Approved: 12,
+  Committed: 10,
+  "To Do": 2,
+  "Ready for Dev": 3,
+  "In Progress": 11,
+  Active: 9,
+  "Rework Required": 4,
+  "Code Review": 5,
+  Testing: 7,
+  "Ready for Release": 6,
+  Resolved: 8,
+  Done: 6,
+  Closed: 6,
+};
+
+export const OTHER_STATE_COLOR = "var(--muted)";
 
 interface StateCount {
   day: string;
@@ -64,9 +86,12 @@ export function isDoneState(state: string): boolean {
   return DONE_STATES.includes(state);
 }
 
-// The chart keeps Ready for Release in its own color, apart from Done and Closed.
-export function isClosedState(state: string): boolean {
-  return CLOSED_STATES.includes(state);
+export function hasStateColor(state: string): boolean {
+  return state in STATE_SLOTS;
+}
+
+export function stateColor(state: string): string {
+  return hasStateColor(state) ? `var(--series-${STATE_SLOTS[state]})` : OTHER_STATE_COLOR;
 }
 
 export function itemsOn(day: SprintDay): number {
