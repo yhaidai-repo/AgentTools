@@ -210,6 +210,11 @@ const CODE_REVIEW_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
+const BETTER_REVIEW_OPTIONS: AgentOptionSpec[] = [
+  ...CODE_REVIEW_OPTIONS,
+  ...TASK_CREATION_OPTIONS,
+];
+
 const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("Review tasks"),
   {
@@ -414,6 +419,26 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     optionSpecs: withToolsetOptions(CODE_REVIEW_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
+    handles: ["review"],
+    waitFor: [],
+  },
+  // Takes the same review tasks as Code review (user decision 2026-10-16: a new agent; switch one off and the other on).
+  // Azure DevOps (read) is on so it reads the other reviewers' threads; create_task hands open questions to research.
+  {
+    id: "better-review",
+    label: "Better Review",
+    description: "Reviews one pull request against its PBIs' goals and acceptance criteria, the business logic and the repo's own style; follows the repo's review rules, weighs the other reviewers' comments, learns decisions and lessons into the rules, asks research when unsure, and after fixes reviews only what changed since its last review. Never writes to ADO.",
+    enabled: false,
+    schedule: "*/15 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 80, timeoutMinutes: 30 },
+    budgets: { perRunUsd: 4, dailyUsd: 20 },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true } },
+    skills: ["powerloom-better-review", "powerloom-code-review"],
+    options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, maxDepth: 2, maxTasksPerRun: 3, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: withToolsetOptions(BETTER_REVIEW_OPTIONS),
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["research"],
     handles: ["review"],
     waitFor: [],
   },

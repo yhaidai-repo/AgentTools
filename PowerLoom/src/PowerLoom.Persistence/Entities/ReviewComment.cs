@@ -39,6 +39,9 @@ public partial class ReviewComment
 
     public ReviewSeverity Severity { get; set; }
 
+    /// <summary>What the comment is about (business-logic, correctness, style, ...); null for Code review's comments.</summary>
+    public string? Category { get; set; }
+
     public ReviewCommentStatus Status { get; set; }
 
     public virtual PullRequest Pr { get; set; } = null!;

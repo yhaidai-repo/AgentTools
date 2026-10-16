@@ -10,6 +10,7 @@ import { loadReviewDetail } from "@/lib/reviews";
 import type { ReviewDetail } from "@/models/ReviewDetail";
 import { LinkedPbis } from "../LinkedPbis";
 import { ReviewBadges } from "../ReviewBadges";
+import { BetterReviewInfo } from "./BetterReviewInfo";
 import { CommentCard } from "./CommentCard";
 import { ReviewActions } from "./ReviewActions";
 
@@ -47,6 +48,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ prId: s
       {review.status === "closed" && <p className="muted">Closed{review.closedReason ? `: ${review.closedReason}` : ""}. Starting a review reopens it.</p>}
       <h2>Summary</h2>
       {review.summaryMd ? <MarkdownBlock text={review.summaryMd} /> : <p className="muted">Not reviewed yet.</p>}
+      <BetterReviewInfo details={review.details ?? null} />
       <p className="muted">
         Reviewed commit {review.reviewedCommit?.slice(0, 8) ?? "–"}, <LocalTime date={review.reviewedAt} />. Runs:{" "}
         {detail.runs.length === 0 ? "none" : detail.runs.map((run) => <Link key={run.id} className="chip" href={`/agents/runs/${run.id}`}>RUN-{run.id} · {run.outcome}</Link>)}

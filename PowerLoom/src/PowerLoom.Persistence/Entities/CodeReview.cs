@@ -25,5 +25,8 @@ public partial class CodeReview
 
     public ReviewStatus Status { get; set; }
 
+    /// <summary>Better Review's last result (jsonb): mode and base commit, acceptance criteria, other reviewers, rules, tasks; null for Code review.</summary>
+    public string? Details { get; set; }
+
     public virtual PullRequest Pr { get; set; } = null!;
 }

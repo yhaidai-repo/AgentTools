@@ -30,11 +30,11 @@ namespace PowerLoom.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_kind", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_source", new[] { "agent-assumed", "user-confirmed", "vault-documented" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_comment_status", new[] { "open", "answered", "withdrawn", "outdated" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_comment_status", new[] { "open", "answered", "withdrawn", "outdated", "fixed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_severity", new[] { "blocker", "major", "minor", "nit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_status", new[] { "active", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "run_outcome", new[] { "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited", "timeout", "aborted", "max-turns" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "vault_review_action", new[] { "keep", "remove", "actualize", "close" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "work_item_source", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.UseSerialColumns(modelBuilder);
@@ -262,6 +262,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1089,6 +1093,10 @@ namespace PowerLoom.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("body_md");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text")
+                        .HasColumnName("category");
 
                     b.Property<string>("CodeSnippet")
                         .IsRequired()

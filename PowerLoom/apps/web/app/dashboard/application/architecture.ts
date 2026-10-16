@@ -119,6 +119,7 @@ const runnerAgents: SchemeNode[] = [
   node("agent-better-refinement", "better-refinement", "component", "runner-agents"),
   node("agent-better-research", "better-research", "component", "runner-agents"),
   node("agent-meeting-notes", "meeting-notes", "component", "runner-agents"),
+  node("agent-better-review", "better-review", "component", "runner-agents"),
 ];
 
 const runnerTools: SchemeNode[] = [

@@ -46,7 +46,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -73,7 +73,7 @@ export const reviewStatus = pgEnum("review_status", ["active", "closed"]);
 export const reviewSeverity = pgEnum("review_severity", ["blocker", "major", "minor", "nit"]);
 
 // answered: the user replied, the next run reads it; withdrawn: the agent took it back; outdated: the code under it changed.
-export const reviewCommentStatus = pgEnum("review_comment_status", ["open", "answered", "withdrawn", "outdated"]);
+export const reviewCommentStatus = pgEnum("review_comment_status", ["open", "answered", "withdrawn", "outdated", "fixed"]); // fixed: a follow-up review found it fixed (Better Review)
 
 // Settings (ADO org/project/team/user, crons, models, budgets…)
 
@@ -521,6 +521,7 @@ export const codeReview = pgTable("code_review", {
   reviewedCommit: text("reviewed_commit"),
   reviewedIteration: integer("reviewed_iteration"),
   summaryMd: text("summary_md"),
+  details: jsonb("details").$type<object | null>(), // Better Review's last result: mode, acceptance criteria, other reviewers, rules, tasks
   reviewedAt: ts("reviewed_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -535,6 +536,7 @@ export const reviewComment = pgTable("review_comment", {
   startLine: integer("start_line").notNull(),
   endLine: integer("end_line").notNull(),
   severity: reviewSeverity("severity").notNull(),
+  category: text("category"), // Better Review: business-logic, correctness, style, ...; null for Code review
   bodyMd: text("body_md").notNull(),
   codeSnippet: text("code_snippet").notNull(),
   snippetStartLine: integer("snippet_start_line").notNull(),

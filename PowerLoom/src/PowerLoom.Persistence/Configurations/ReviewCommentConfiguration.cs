@@ -20,6 +20,7 @@ public partial class ReviewCommentConfiguration : IEntityTypeConfiguration<Revie
         entity.Property(e => e.AnswerMd).HasColumnName("answer_md");
         entity.Property(e => e.AnsweredAt).HasColumnName("answered_at");
         entity.Property(e => e.BodyMd).HasColumnName("body_md");
+        entity.Property(e => e.Category).HasColumnName("category");
         entity.Property(e => e.CodeSnippet).HasColumnName("code_snippet");
         entity.Property(e => e.Commit).HasColumnName("commit");
         entity.Property(e => e.CreatedAt)

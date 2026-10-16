@@ -1,6 +1,6 @@
 "use server";
 
-import { REVIEW_AGENT, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@powerloom/core";
+import { REVIEW_AGENTS, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
@@ -100,9 +100,12 @@ export async function queueReview(prId: number): Promise<ActionResult> {
     return { ok: false, message: queued.data.refused[0] };
   }
 
-  await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: REVIEW_AGENT } } });
+  for (const agentId of REVIEW_AGENTS) {
+    await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId } } });
+  }
+
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return { ok: true, message: `${queued.data.done[0].value} queued; it starts now if the code-review agent is enabled (Agents page).` };
+  return { ok: true, message: `${queued.data.done[0].value} queued; it starts now if Code review or Better Review is enabled (Agents page).` };
 }
