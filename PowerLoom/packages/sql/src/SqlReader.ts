@@ -47,9 +47,16 @@ export class SqlReader {
     return this.run(connectionString, TABLES, {});
   }
 
-  // `table` as `schema.name` or `name` (the login's default schema).
-  describeTable(connectionString: string, table: string): Promise<SqlAnswer> {
-    return this.run(connectionString, COLUMNS, { table });
+  // `table` as `schema.name` or `name` (the login's default schema). An unknown table has no columns, which reads better
+  // as a miss than as an empty table.
+  async describeTable(connectionString: string, table: string): Promise<SqlAnswer> {
+    const answer = await this.run(connectionString, COLUMNS, { table });
+
+    if (answer.ok && answer.rows.rows.length === 0) {
+      return { ok: false, message: `No table or view named ${table}.` };
+    }
+
+    return answer;
   }
 
   async check(connectionString: string): Promise<SqlConnectionCheck> {

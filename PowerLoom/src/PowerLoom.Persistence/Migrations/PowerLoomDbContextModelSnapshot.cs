@@ -374,7 +374,7 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("rows");
 
-                    b.Property<long>("RunId")
+                    b.Property<long?>("RunId")
                         .HasColumnType("bigint")
                         .HasColumnName("run_id");
 

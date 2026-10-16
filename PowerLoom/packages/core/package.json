@@ -9,6 +9,7 @@
   "dependencies": {
     "@powerloom/confluence": "*",
     "@powerloom/db": "*",
+    "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "drizzle-orm": "^0.45.3",
     "zod": "^4.0.0"

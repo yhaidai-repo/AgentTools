@@ -1,7 +1,7 @@
 import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
-import type { SqlConnectionSettings } from "@powerloom/core";
-import { toMarkdownTable, type SqlAnswer } from "@powerloom/sql";
+import { sqlTarget, type SqlConnectionSettings } from "@powerloom/core";
+import { sqlRowsText, type SqlAnswer } from "@powerloom/sql";
 import { z } from "zod";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
@@ -11,9 +11,6 @@ import type { SqlAccess } from "./models/SqlAccess";
 import { defineOutsideTool } from "./outsideAccess";
 
 export const READ_SQL_INTEGRATION = "readSql";
-
-// An answer's text is cut here so one wide result can't fill the agent's context (as for Confluence pages).
-const MAX_ANSWER_CHARS = 60_000;
 
 // The Read SQL tools (user decision 2026-10-12), for an agent with the integration switched on in its Config while its
 // vault's Read SQL is on with at least one enabled connection. Read only: SqlReader refuses anything but one SELECT and
@@ -66,18 +63,9 @@ function describeTool(deps: AgentDeps, context: OutsideAccessContext, connection
         return answerResult(await access.reader.listTables(target));
       }
 
-      return columnsResult(await access.reader.describeTable(target, input.table), input.table, input.connection);
+      return answerResult(await access.reader.describeTable(target, input.table));
     },
   });
-}
-
-// An unknown table has no columns, which reads better as a miss than as an empty table.
-function columnsResult(answer: SqlAnswer, table: string, connection: string): OutsideToolResult {
-  if (answer.ok && answer.rows.rows.length === 0) {
-    return { text: `No table or view named ${table} in ${connection}.`, isError: true };
-  }
-
-  return answerResult(answer);
 }
 
 function answerResult(answer: SqlAnswer): OutsideToolResult {
@@ -85,18 +73,13 @@ function answerResult(answer: SqlAnswer): OutsideToolResult {
     return { text: answer.message, isError: true, refusal: answer.refused ? answer.message : undefined, denied: answer.denied };
   }
 
-  const { columns, rows, truncated, moreResultSets } = answer.rows;
-  const notes = [truncated ? "[first 200 rows only: narrow the query]" : "", moreResultSets > 0 ? `[${moreResultSets} more result set(s) not shown: one SELECT per query]` : ""].filter(Boolean);
-  const text = [`${rows.length} row(s)`, toMarkdownTable(columns, rows), ...notes].join("\n\n");
-  const cut = text.length > MAX_ANSWER_CHARS ? `\n\n[cut at ${MAX_ANSWER_CHARS} of ${text.length} characters: select fewer columns or rows]` : "";
-
-  return { text: `${text.slice(0, MAX_ANSWER_CHARS)}${cut}`, rows: rows.length, truncated: truncated || cut.length > 0 };
+  return sqlRowsText(answer.rows);
 }
 
 function resourceOf(access: SqlAccess, name: string): OutsideResource {
   const connection = access.connections.find((entry) => entry.name === name)!;
 
-  return { kind: "sql", resource: connection.name, target: `${connection.server}/${connection.database || "default"}` };
+  return { kind: "sql", resource: connection.name, target: sqlTarget(connection) };
 }
 
 function connectionString(access: SqlAccess, name: string): string {

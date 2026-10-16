@@ -10,7 +10,7 @@ docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- <command> '<j
 
 - The answer is JSON: `{"ok": true, "value": …}`, or `{"ok": false, "error": "…"}` with exit code 1.
 - Without a command it lists every command with its input schema.
-- `pbi.read` and `pbi.get` only read. Ask the user before any other command: they change PowerLoom.
+- `pbi.read`, `pbi.get`, `sql.query` and `sql.describe` only read. Ask the user before any other command: they change PowerLoom.
 
 ## Working on a PBI
 1. Start with `pbi.read '{"ref":"PBI-<id>"}'`: the PBI's prepared context, the same the agents get. It holds the ADO
@@ -21,6 +21,19 @@ docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- <command> '<j
 3. `pbi.get '{"link":"<ADO link, #id or id>"}'`: fields, statuses, parent, child items, repos, skills, note path.
 
 Answers in `<existing-items>` are the team's decisions; the user's notes are their own input on the PBI.
+
+## Reading SQL
+The vault's Read SQL connections (Settings > Read SQL), with the agents' guards: one `SELECT` or `WITH`, rolled back,
+at most 200 rows. Every read goes to the data access log. Pass the JSON on stdin so the SQL needs no shell quoting:
+
+```bash
+docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- sql.query <<'JSON'
+{"vault": "{{vaultName}}", "connection": "<name>", "sql": "SELECT TOP 20 Id, Status FROM dbo.Verification"}
+JSON
+```
+
+- `sql.describe` with `{"vault", "connection"}` lists the tables; add `"table": "dbo.Verification"` for its columns. Describe first, then query.
+- A wrong or disabled connection name answers with the enabled ones.
 
 ## Commands that change PowerLoom (ask first)
 | Command | Does |

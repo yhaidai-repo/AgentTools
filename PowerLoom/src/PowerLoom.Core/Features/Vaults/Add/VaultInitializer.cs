@@ -81,13 +81,14 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
         return true;
     }
 
-    // `{{vaultPath}}` is the vault's path on the PC, `{{date}}` today.
+    // `{{vaultPath}}` is the vault's path on the PC, `{{vaultName}}` its name, `{{date}}` today.
     private async Task<string> RenderAsync(string file, string vault, CancellationToken cancellation)
     {
         var template = await File.ReadAllTextAsync(Path.Combine(options.Value.TemplateHome, file), cancellation);
 
         return template
             .Replace("{{vaultPath}}", $"{options.Value.HostRoot.Replace('\\', '/').TrimEnd('/')}/{vault}")
+            .Replace("{{vaultName}}", vault)
             .Replace("{{date}}", clock.GetUtcNow().ToString("yyyy-MM-dd"));
     }
 }

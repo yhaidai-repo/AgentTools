@@ -10,7 +10,8 @@ public partial class DataAccess
 
     public string AgentId { get; set; } = null!;
 
-    public long RunId { get; set; }
+    // Null for a chat's read through the CLI (user decision 2026-10-16).
+    public long? RunId { get; set; }
 
     public string? TaskId { get; set; }
 

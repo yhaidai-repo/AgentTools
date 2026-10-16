@@ -13,6 +13,8 @@ import { reportBugCommand } from "./reportBugCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
 import { savePbiReposCommand } from "./savePbiReposCommand";
 import { savePbiSkillsCommand } from "./savePbiSkillsCommand";
+import { sqlDescribeCommand } from "./sqlDescribeCommand";
+import { sqlQueryCommand } from "./sqlQueryCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -32,6 +34,8 @@ export const COMMANDS: readonly Command<any, any>[] = [
   answerReviewCommentCommand,
   createWwwRecordCommand,
   openChatCommand,
+  sqlQueryCommand,
+  sqlDescribeCommand,
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see COMMANDS

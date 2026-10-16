@@ -107,7 +107,7 @@ function CallsTable({ rows }: { rows: DataAccessRow[] }) {
               <td className={row.outcome === "ok" ? undefined : "result-error"}>{row.outcome}{row.reason ? `: ${row.reason}` : ""}</td>
               <td>{row.rows ?? "–"}{row.truncated ? " (cut)" : ""}</td>
               <td>{row.durationMs} ms</td>
-              <td><Link href={`/runs?run=${row.runId}`}>RUN-{row.runId}</Link></td>
+              <td>{row.runId === null ? "chat" : <Link href={`/runs?run=${row.runId}`}>RUN-{row.runId}</Link>}</td>
             </tr>
           ))}
         </tbody>

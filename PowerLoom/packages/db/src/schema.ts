@@ -436,7 +436,7 @@ export const dataAccess = pgTable("data_access", {
   id: serial("id").primaryKey(),
   vault: vaultName(),
   agentId: text("agent_id").notNull(),
-  runId: bigint("run_id", { mode: "number" }).notNull(), // no foreign key, like vault_note_write
+  runId: bigint("run_id", { mode: "number" }), // no foreign key, like vault_note_write; null for a chat's CLI read
   taskId: text("task_id"),
   pbiId: integer("pbi_id"),
   tool: text("tool").notNull(),
