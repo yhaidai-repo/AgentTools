@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client.Models;
@@ -116,6 +117,11 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             await SetTaskStatusAsync(queued.Id, ItemStatus.Done);
             await Sync();
             Assert.Single(await ReviewTasksAsync(7301));
+
+            ado.PullRequests = [PullRequest(7301, "PVS", "sam@x.io", "c2")];
+
+            await Sync();
+            Assert.Single(await ReviewTasksAsync(7301));
         }
         finally
         {
@@ -174,7 +180,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
     private async Task SetBetterReviewAsync(bool enabled)
     {
         using var scope = host.Host.Services.CreateScope();
-        var definition = $$"""{"id":"better-review","label":"Better Review","enabled":{{(enabled ? "true" : "false")}},"handles":["review"]}""";
+        var definition = JsonSerializer.Serialize(new { id = "better-review", label = "Better Review", enabled, handles = new[] { "review" }, capabilities = new { integrations = new { adoTestCases = true } } });
 
         await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Database.ExecuteSqlAsync($"INSERT INTO agent_config.agent (id, definition) VALUES ('better-review', {definition}::jsonb) ON CONFLICT (id) DO UPDATE SET definition = excluded.definition");
     }
