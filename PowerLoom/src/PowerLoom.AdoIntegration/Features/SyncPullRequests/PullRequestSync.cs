@@ -18,8 +18,9 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
 {
     private const string Actor = "pull-requests";
     private const string UnlistedReason = "The PR was completed or abandoned in Azure DevOps, or you're no longer a reviewer.";
-    // Better Review's "Azure DevOps (read)" integration (the agents' ADO_INTEGRATION key).
+    // An agent's "Azure DevOps (read)" integration (the agents' ADO_INTEGRATION key), and the task type reviews are.
     private const string ReadsAdo = "adoTestCases";
+    private const string ReviewTaskType = "review";
     private const string RepoNotSelectedReason = "Its repo isn't selected for code review in Settings, or is disabled there.";
 
     public async Task<string> RunAsync(string vault, AdoSettings ado, PullRequestSettings settings, IAdoClient client, CancellationToken cancellation)
@@ -138,16 +139,15 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     }
 
     // Other reviewers' new comments on a reviewed PR queue a follow-up review task in the pool (user decision 2026-10-16),
-    // while Better Review, the review agent that reads the threads, is on with Azure DevOps (read) (null: no agent would
-    // read the comments). No new comment, no
+    // while an enabled agent taking review tasks has Azure DevOps (read) on (null: none would read the comments). No new comment, no
     // run: a push alone or an edited comment queues nothing (user decision 2026-10-16). Each comment counts once: the review remembers what the sync saw, so a run
     // that fails doesn't queue again. The first check of a review counts only comments posted after it was reviewed.
     // Your comments and the PR author's queue nothing; a PR with a review task open waits for it to finish.
     private async Task<FollowUps?> QueueForReviewerCommentsAsync(List<AdoPullRequest> listed, AdoSettings ado, IAdoClient client, CancellationToken cancellation)
     {
-        var agent = await agents.ReadAsync(ReviewQueueing.BetterReviewAgent, cancellation);
+        var readers = (await agents.ListAsync(cancellation)).Where(agent => agent.Enabled && agent.Handles.Contains(ReviewTaskType) && agent.Integrations.Contains(ReadsAdo));
 
-        if (agent is not { Enabled: true } || !agent.Integrations.Contains(ReadsAdo))
+        if (!readers.Any())
             return null;
 
         var prs = listed.Where(pr => !pr.IsDraft).ToDictionary(pr => pr.Id);

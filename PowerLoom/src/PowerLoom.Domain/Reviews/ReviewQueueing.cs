@@ -16,7 +16,6 @@ namespace PowerLoom.Domain.Reviews;
 public static class ReviewQueueing
 {
     public const string Agent = "code-review";
-    public const string BetterReviewAgent = "better-review";
     public const string ReviewerCommentsTrigger = "reviewer-comments";
 
     private const int TitleMax = 120;

@@ -1,13 +1,17 @@
 "use server";
 
-import { REVIEW_AGENTS, answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@powerloom/core";
+import { answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
+import { getAgentConfig } from "@/lib/agentConfig";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
+
+// The task type review agents take (an agent's `handles`).
+const REVIEW_TASK_TYPE = "review";
 
 // PowerLoom checks the vault's pull requests; one vault's checks run one after the other.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
@@ -88,7 +92,8 @@ export async function deleteReview(prId: number): Promise<ActionResult> {
 }
 
 // The user starts every review (user decision 2026-10-02): a full review of the PR's current commit, earlier comments and
-// answers included. The agent's open tasks start now if it's enabled (same as its schedule or "Run now").
+// answers included. The task goes to the pool; every enabled agent taking review tasks is started now (same as its
+// schedule or "Run now"), and one of them claims it.
 export async function queueReview(prId: number): Promise<ActionResult> {
   const queued = await powerloom.POST("/api/reviews/queue", { body: { prIds: [prId] } });
 
@@ -100,12 +105,14 @@ export async function queueReview(prId: number): Promise<ActionResult> {
     return { ok: false, message: queued.data.refused[0] };
   }
 
-  for (const agentId of REVIEW_AGENTS) {
-    await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId } } });
+  const reviewers = (await getAgentConfig().list()).filter((agent) => agent.enabled && agent.handles.includes(REVIEW_TASK_TYPE));
+
+  for (const agent of reviewers) {
+    await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: agent.id } } });
   }
 
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return { ok: true, message: `${queued.data.done[0].value} queued; it starts now if Code review or Better Review is enabled (Agents page).` };
+  return { ok: true, message: `${queued.data.done[0].value} queued; ${reviewers.length > 0 ? "it starts now" : "no enabled agent takes review tasks yet (Agents page)"}.` };
 }
