@@ -87,14 +87,14 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
             var reviewedAt = DateTime.UtcNow.AddHours(-1);
 
-            ado.PullRequests = [PullRequest(7301, "PVS", "sam@x.io", "c1")];
-            ado.Threads[7301] = [new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1))];
+            ado.PullRequests = [PullRequest(7401, "PVS", "sam@x.io", "c1")];
+            ado.Threads[7401] = [new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1))];
 
             await Sync();
-            Assert.Empty(await ReviewTasksAsync(7301));
+            Assert.Empty(await ReviewTasksAsync(7401));
 
-            await MarkReviewedAsync(7301, reviewedAt);
-            ado.Threads[7301] =
+            await MarkReviewedAsync(7401, reviewedAt);
+            ado.Threads[7401] =
             [
                 new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1)),
                 new AdoThreadComment(2, 1, "sam@x.io", DateTime.UtcNow),
@@ -102,13 +102,13 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             ];
 
             await Sync();
-            Assert.Empty(await ReviewTasksAsync(7301));
+            Assert.Empty(await ReviewTasksAsync(7401));
 
-            ado.Threads[7301] = [.. ado.Threads[7301], new AdoThreadComment(1, 2, "Lee@x.io", DateTime.UtcNow)];
+            ado.Threads[7401] = [.. ado.Threads[7401], new AdoThreadComment(1, 2, "Lee@x.io", DateTime.UtcNow)];
 
             await Sync();
             await Sync();
-            var queued = Assert.Single(await ReviewTasksAsync(7301));
+            var queued = Assert.Single(await ReviewTasksAsync(7401));
 
             Assert.Equal(("agent:*", ItemStatus.Open), (queued.Assignee, queued.Status));
             using var data = JsonDocument.Parse(queued.Data!);
@@ -118,12 +118,12 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
 
             await SetTaskStatusAsync(queued.Id, ItemStatus.Done);
             await Sync();
-            Assert.Single(await ReviewTasksAsync(7301));
+            Assert.Single(await ReviewTasksAsync(7401));
 
-            ado.PullRequests = [PullRequest(7301, "PVS", "sam@x.io", "c2")];
+            ado.PullRequests = [PullRequest(7401, "PVS", "sam@x.io", "c2")];
 
             await Sync();
-            Assert.Single(await ReviewTasksAsync(7301));
+            Assert.Single(await ReviewTasksAsync(7401));
         }
         finally
         {
