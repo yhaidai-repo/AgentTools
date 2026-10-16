@@ -23,24 +23,27 @@ export interface SchemeLink {
 const node = (id: string, label: string, kind: NodeKind, parent?: string, detail?: string, x?: number, y?: number): SchemeNode => ({ id, label, kind, parent, detail, x, y });
 const link = (from: string, to: string, label?: string): SchemeLink => ({ from, to, label });
 
+// The top level as a hub: agent-runner in the middle with what only the agents read around it, what both services use
+// (web, Confluence, Azure DevOps, the vaults) in the row below it, and PowerLoom under that, so no two links cross and
+// no link runs through a node. Check a new top-level node or link for crossings before placing it.
 const topLevel: SchemeNode[] = [
-  node("ado", "Azure DevOps", "external", undefined, "work items, pull requests, repositories", 0, 0),
-  node("confluence", "Confluence", "external", undefined, "linked pages", 1, 0),
-  node("claude", "Claude", "external", undefined, "the agents' model", 2, 0),
-  node("vaults", "Obsidian vaults", "external", undefined, "docs vaults and the backlog vault on disk", 3, 0),
-  node("repos", "Repositories", "external", undefined, "git checkouts on disk", 4, 0),
-  node("web", "web", "service", undefined, "Next.js UI and CLI", 0, 1),
-  node("powerloom", "PowerLoom", "service", undefined, ".NET backend: Wolverine, Postgres", 1.5, 1),
+  node("ado", "Azure DevOps", "external", undefined, "work items, pull requests, repositories", 3.5, 2),
+  node("confluence", "Confluence", "external", undefined, "linked pages", 2.5, 2),
+  node("claude", "Claude", "external", undefined, "the agents' model", 2.5, 0),
+  node("vaults", "Obsidian vaults", "external", undefined, "docs vaults and the backlog vault on disk", 4.5, 2),
+  node("repos", "Repositories", "external", undefined, "git checkouts on disk", 4.5, 0),
+  node("web", "web", "service", undefined, "Next.js UI and CLI", 1.5, 2),
+  node("powerloom", "PowerLoom", "service", undefined, ".NET backend: Wolverine, Postgres", 3, 3),
   node("agent-runner", "agent-runner", "service", undefined, "runs one agent task at a time", 3, 1),
-  node("database", "Postgres", "service", undefined, "state, queues, usage, config", 1.5, 2),
-  node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 3, 2),
-  node("backup", "backup", "service", undefined, "daily pg_dump", 0, 2),
-  // What the agents read outside on their own (per-agent switches), in a row of their own; their colors come from the
+  node("database", "Postgres", "service", undefined, "state, queues, usage, config", 0, 2),
+  node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 4.5, 3),
+  node("backup", "backup", "service", undefined, "daily pg_dump", 0, 1),
+  // What the agents read outside on their own (per-agent switches), around agent-runner; their colors come from the
   // agents' recent reads and open access requests.
-  node("mongo", "Mongo", "external", undefined, "Cosmos DB for MongoDB, and servers by connection string (Read Azure)", 1, 3),
-  node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 2, 3),
-  node("azure", "Azure", "external", undefined, "App Insights, logs, metrics, Service Bus, Cosmos DB, with your sign-in (Read Azure)", 3, 3),
-  node("devhub", "DevHub", "external", undefined, "DevSecrets: services on the Windows host", 4, 3),
+  node("mongo", "Mongo", "external", undefined, "Cosmos DB for MongoDB, and servers by connection string (Read Azure)", 1.5, 1),
+  node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 4.5, 1),
+  node("azure", "Azure", "external", undefined, "App Insights, logs, metrics, Service Bus, Cosmos DB, with your sign-in (Read Azure)", 3.5, 0),
+  node("devhub", "DevHub", "external", undefined, "DevSecrets: services on the Windows host", 1.5, 0),
 ];
 
 const powerloomModules: SchemeNode[] = [
@@ -185,7 +188,7 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-azure", "azure"),
   link("tool-mongo", "mongo"),
   link("tool-devhub", "devhub"),
-  link("tool-ado", "ado", "work items, PRs, test cases"),
+  link("tool-ado", "ado", "work items, PRs"),
   link("tool-pbi-context", "schema-public"),
   link("tool-access", "schema-public"),
   link("web-cli", "schema-public", "pbi.read"),

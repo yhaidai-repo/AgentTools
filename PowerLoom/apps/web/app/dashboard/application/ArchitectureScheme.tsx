@@ -136,11 +136,16 @@ function Link({ link, paired }: { link: PlacedLink; paired: boolean }) {
   const start = shift(edgePoint(from, to), offset);
   const end = shift(edgePoint(to, from), offset);
   const labelShift = paired ? perpendicular(from, to, PAIR_OFFSET + 6) : { x: 0, y: -4 };
+  const labelAt = { x: (start.x + end.x) / 2 + labelShift.x, y: (start.y + end.y) / 2 + labelShift.y };
+  // Beside a steep pair the labels run along the lines, so they fit between the pair and the nodes beside it.
+  const angle = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+  const upright = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
+  const rotate = paired && Math.abs(upright) > 45 ? `rotate(${upright} ${labelAt.x} ${labelAt.y})` : undefined;
 
   return (
     <g className="scheme-link">
       <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} markerEnd="url(#scheme-arrow)" />
-      {link.label && <text x={(start.x + end.x) / 2 + labelShift.x} y={(start.y + end.y) / 2 + labelShift.y} className="scheme-link-label">{link.label}</text>}
+      {link.label && <text x={labelAt.x} y={labelAt.y} className="scheme-link-label" dominantBaseline={rotate ? "central" : undefined} transform={rotate}>{link.label}</text>}
     </g>
   );
 }
