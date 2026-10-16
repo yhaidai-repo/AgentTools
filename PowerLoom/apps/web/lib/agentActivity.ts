@@ -3,6 +3,7 @@ import { agentRun } from "@powerloom/db";
 import type { UsageRecord } from "@agenttools/usage";
 import { and, eq, gte, notInArray, sql } from "drizzle-orm";
 import type { AgentActivity } from "@/models/AgentActivity";
+import type { AgentDay } from "@/models/AgentDay";
 import type { DayActivity } from "@/models/DayActivity";
 import { getDb } from "./db";
 import { getUsageStore } from "./usage";
@@ -47,6 +48,23 @@ export async function loadDailyActivity(from: Date, now: Date): Promise<DayActiv
   return [...days.values()];
 }
 
+// One agent's days (every agent's when null) from `from` to today, all vaults, for the agent chart (user request
+// 2026-10-16): runs from the run table, cost and run time from the finished runs' usage records.
+export async function loadAgentDays(from: Date, now: Date, agentId: string | null): Promise<AgentDay[]> {
+  const days = new Map(dayKeys(from, now).map((day) => [day, { day, runs: 0, finishedRuns: 0, costUsd: 0, durationMs: 0 } as AgentDay]));
+  const records = (await usageRecords(from)).filter((record) => agentId === null || agentOf(record) === agentId);
+
+  for (const row of await runsPerDay(from, agentId)) {
+    setRuns(days.get(row.day), row.runs);
+  }
+
+  for (const record of records) {
+    addDayUsage(days.get(dayKey(record.startedAt)), record);
+  }
+
+  return [...days.values()];
+}
+
 // Per agent in the period, all vaults.
 export async function loadAgentActivity(from: Date): Promise<Map<string, AgentActivity>> {
   const byAgent = new Map<string, AgentActivity>();
@@ -62,7 +80,9 @@ export async function loadAgentActivity(from: Date): Promise<Map<string, AgentAc
   return byAgent;
 }
 
-async function runsPerDay(from: Date): Promise<RunDay[]> {
+// A run's agent is its stage (as runsPerAgent counts it); the text cast lets an id outside the stage enum match nothing
+// instead of failing the query.
+async function runsPerDay(from: Date, agentId: string | null = null): Promise<RunDay[]> {
   const day = sql<string>`to_char(${agentRun.startedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
 
   return getDb()
@@ -73,7 +93,7 @@ async function runsPerDay(from: Date): Promise<RunDay[]> {
       budgetStops: sql<number>`(count(*) FILTER (WHERE ${BUDGET_STOP_FILTER}))::int`,
     })
     .from(agentRun)
-    .where(and(gte(agentRun.startedAt, from), notInArray(agentRun.stage, JOB_STAGES)))
+    .where(and(gte(agentRun.startedAt, from), notInArray(agentRun.stage, JOB_STAGES), agentId === null ? undefined : sql`${agentRun.stage}::text = ${agentId}`))
     .groupBy(day);
 }
 
@@ -101,6 +121,22 @@ function addCost(day: DayActivity | undefined, record: UsageRecord): void {
   const agent = agentOf(record);
 
   day.costByAgent[agent] = (day.costByAgent[agent] ?? 0) + record.costUsd;
+}
+
+function setRuns(day: AgentDay | undefined, runs: number): void {
+  if (day) {
+    day.runs = runs;
+  }
+}
+
+function addDayUsage(day: AgentDay | undefined, record: UsageRecord): void {
+  if (!day) {
+    return;
+  }
+
+  day.finishedRuns += 1;
+  day.costUsd += record.costUsd;
+  day.durationMs += record.durationMs;
 }
 
 function activityOf(byAgent: Map<string, AgentActivity>, agentId: string): AgentActivity {

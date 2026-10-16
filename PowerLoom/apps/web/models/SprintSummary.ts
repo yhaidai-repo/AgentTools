@@ -8,4 +8,6 @@ export interface SprintSummary {
   done: number;
   /** The sum of the user's Tasks' Original Estimate in the sprint; null when none carries any. */
   effort: number | null;
+  /** The part of `effort` on items in a done state; null when `effort` is. */
+  doneEffort: number | null;
 }

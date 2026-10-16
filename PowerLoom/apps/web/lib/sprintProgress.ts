@@ -38,7 +38,6 @@ interface StateCount {
   state: string;
   items: number;
   effort: string | null;
-  remainingWork: string | null;
 }
 
 // Every sprint with snapshots, newest first.
@@ -62,12 +61,7 @@ export async function loadSprintDays(iterationPath: string): Promise<SprintDay[]
   const days = new Map<string, SprintDay>();
 
   for (const row of await stateCounts(iterationPath)) {
-    const day = days.get(row.day) ?? { day: row.day, itemsByState: {}, effort: null, remainingWork: null };
-
-    day.itemsByState[row.state] = row.items;
-    day.effort = addNullable(day.effort, row.effort);
-    day.remainingWork = addNullable(day.remainingWork, row.remainingWork);
-    days.set(row.day, day);
+    days.set(row.day, addStateCount(days.get(row.day) ?? { day: row.day, itemsByState: {}, effortByState: {}, effort: null }, row));
   }
 
   return [...days.values()].sort((a, b) => a.day.localeCompare(b.day));
@@ -99,7 +93,27 @@ export function itemsOn(day: SprintDay): number {
 }
 
 export function doneOn(day: SprintDay): number {
-  return Object.entries(day.itemsByState).filter(([state]) => isDoneState(state)).reduce((sum, [, count]) => sum + count, 0);
+  return sumDone(day.itemsByState);
+}
+
+// Null when no item carries effort, like the day's total.
+export function doneEffortOn(day: SprintDay): number | null {
+  return day.effort === null ? null : sumDone(day.effortByState);
+}
+
+function sumDone(byState: Record<string, number>): number {
+  return Object.entries(byState).filter(([state]) => isDoneState(state)).reduce((sum, [, value]) => sum + value, 0);
+}
+
+function addStateCount(day: SprintDay, row: StateCount): SprintDay {
+  day.itemsByState[row.state] = row.items;
+  day.effort = addNullable(day.effort, row.effort);
+
+  if (row.effort !== null) {
+    day.effortByState[row.state] = Number(row.effort);
+  }
+
+  return day;
 }
 
 async function summaryOf(row: { iterationPath: string; firstDay: string; lastDay: string; days: number }): Promise<SprintSummary> {
@@ -110,6 +124,7 @@ async function summaryOf(row: { iterationPath: string; firstDay: string; lastDay
     items: lastDay ? itemsOn(lastDay) : 0,
     done: lastDay ? doneOn(lastDay) : 0,
     effort: lastDay?.effort ?? null,
+    doneEffort: lastDay ? doneEffortOn(lastDay) : null,
   };
 }
 
@@ -120,7 +135,6 @@ function stateCounts(iterationPath: string): Promise<StateCount[]> {
       state: sprintSnapshot.adoState,
       items: sql<number>`count(*)::int`,
       effort: sql<string | null>`sum(${sprintSnapshot.effort})::text`,
-      remainingWork: sql<string | null>`sum(${sprintSnapshot.remainingWork})::text`,
     })
     .from(sprintSnapshot)
     .where(eq(sprintSnapshot.iterationPath, iterationPath))

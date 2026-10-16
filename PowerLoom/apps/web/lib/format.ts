@@ -35,6 +35,11 @@ export function formatHours(hours: number): string {
   return minutes > 0 ? `${minutes} min` : "<1 min";
 }
 
+// Effort in work hours, at most one decimal: 2, 4.5. Not formatHours: 26 work hours aren't "1 d 2 h".
+export function formatEffortHours(hours: number): string {
+  return String(Math.round(hours * 10) / 10);
+}
+
 const AGE_UNITS = [
   { suffix: "d", ms: 24 * 60 * 60 * 1000 },
   { suffix: "h", ms: 60 * 60 * 1000 },

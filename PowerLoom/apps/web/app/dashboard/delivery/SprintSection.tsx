@@ -1,20 +1,24 @@
 import { StackedColumns } from "@/components/charts/StackedColumns";
-import { Lines } from "@/components/charts/Lines";
 import { StatTile } from "@/components/StatTile";
 import { formatDayOfMonth } from "@/lib/format";
 import { doneOn, hasStateColor, itemsOn, OTHER_STATE_COLOR, sprintStates, stateColor } from "@/lib/sprintProgress";
 import type { ChartSeries } from "@/models/ChartSeries";
 import type { SprintDay } from "@/models/SprintDay";
 import type { SprintSummary } from "@/models/SprintSummary";
+import { SprintTable } from "./SprintTable";
 
-// The chosen sprint: its counters today, the items per ADO state over its days, and the remaining work when ADO
-// carries it (a burndown needs the Remaining Work field filled in).
-export function SprintSection({ sprint, days }: { sprint: SprintSummary; days: SprintDay[] }) {
+interface SprintSectionProps {
+  sprint: SprintSummary;
+  days: SprintDay[];
+  sprints: SprintSummary[];
+}
+
+// The chosen sprint: its counters today and the items per ADO state over its days, next to every sprint's table. No
+// burndown: the team leaves Remaining Work empty (user request 2026-10-16: the empty panel is gone).
+export function SprintSection({ sprint, days, sprints }: SprintSectionProps) {
   const today = days.at(-1);
   const states = sprintStates(days);
   const labels = days.map((day) => day.day);
-  const remaining = days.map((day) => day.remainingWork);
-  const hasRemaining = remaining.some((value) => value !== null && value > 0);
 
   return (
     <>
@@ -26,11 +30,7 @@ export function SprintSection({ sprint, days }: { sprint: SprintSummary; days: S
       </div>
       <div className="dashboard-charts">
         <StackedColumns title="Items per state, per day" labels={labels} series={stateSeries(days, states)} format={String} axisLabel={formatDayOfMonth} />
-        {hasRemaining ? (
-          <Lines title="Remaining work" labels={labels} values={remaining} format={String} axisLabel={formatDayOfMonth} />
-        ) : (
-          <figure className="chart chart-empty"><figcaption>Remaining work</figcaption><p className="muted">The sprint&apos;s items carry no Remaining Work in ADO: no burndown. The state chart shows the progress instead.</p></figure>
-        )}
+        <SprintTable sprints={sprints} />
       </div>
     </>
   );

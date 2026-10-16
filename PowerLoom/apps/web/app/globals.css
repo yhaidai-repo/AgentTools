@@ -1080,6 +1080,44 @@ tbody[data-folded] tr.child-row {
   font-size: 13px;
 }
 
-.dashboard-charts .table-wrap {
+.dashboard-charts .table-wrap,
+.dashboard-charts .chart {
   align-self: start;
+}
+
+/* Horizontal bars (the Agents tab's cost per minute): label, bar, value */
+.bars {
+  display: grid;
+  gap: 6px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.bar-label {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 12px;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 2px;
+}
+
+.bar-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }

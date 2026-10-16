@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_REFRESH_MS = 30_000;
 
-type SearchParams = Promise<{ tab?: string; focus?: string; mark?: string; range?: string; sprint?: string }>;
+type SearchParams = Promise<{ tab?: string; focus?: string; mark?: string; range?: string; sprint?: string; agent?: string; metric?: string }>;
 
 // The home page (user decision 2026-10-11): Application (the architecture scheme with PowerLoom's live status and what
 // needs attention), Agents (costs, runs, errors) and Delivery (sprints, throughput).
@@ -28,7 +28,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       <RememberFilters />
       <DashboardTabs active={tab} />
       {tab === "application" && <ApplicationTab status={await loadSystemStatus()} focus={params.focus ?? null} mark={params.mark ?? null} />}
-      {tab === "agents" && <AgentsTab range={params.range} />}
+      {tab === "agents" && <AgentsTab range={params.range} agent={params.agent} metric={params.metric} />}
       {tab === "delivery" && <DeliveryTab sprint={params.sprint} />}
     </>
   );
