@@ -151,9 +151,12 @@ function AgentsTab({ detail }: { detail: PbiDetail }) {
   );
 }
 
-// Shown once there is a design; the reason it's disabled comes from the same check the click runs.
+// Shown once there is a design, or once refinement alone made the PBI ready for dev (the chat then plans from the
+// refinement); the reason it's disabled comes from the same check the click runs.
 function Continue({ detail }: { detail: PbiDetail }) {
-  return detail.design ? <ContinueChat target={{ kind: "pbi", adoId: detail.pbi.adoId }} /> : null;
+  const isReadyForDev = detail.pbi.pipelineStatus === "ready-for-dev";
+
+  return detail.design || isReadyForDev ? <ContinueChat target={{ kind: "pbi", adoId: detail.pbi.adoId }} /> : null;
 }
 
 function Summary({ detail, adoUrl }: { detail: PbiDetail; adoUrl: string | null }) {
