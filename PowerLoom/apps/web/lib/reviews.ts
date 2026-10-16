@@ -3,10 +3,13 @@ import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { ReviewDetail } from "@/models/ReviewDetail";
 import type { ReviewRow } from "@/models/ReviewRow";
 import type { ReviewState } from "@/models/ReviewState";
+import { getUsageStore } from "./usage";
 
 export const REVIEW_LIST_STATUSES = ["active", "closed", "all"] as const;
 
 export type ReviewListStatus = (typeof REVIEW_LIST_STATUSES)[number];
+
+const MAX_USAGE_RECORDS = 2000;
 
 const STATE_BY_TASK_STATUS: Record<string, ReviewState> = { open: "queued", "in-progress": "reviewing", done: "reviewed", blocked: "failed" };
 
@@ -36,10 +39,25 @@ export async function loadReviewDetail(db: PowerLoomDb, prId: number): Promise<R
 
   const tasks = await db.select().from(localItem).where(reviewTasksOf(prId)).orderBy(desc(localItem.createdAt));
   const taskIds = tasks.map((task) => task.id);
-  const runs = taskIds.length > 0 ? await db.select({ id: agentRun.id, outcome: agentRun.outcome, startedAt: agentRun.startedAt, itemId: agentRun.itemId }).from(agentRun).where(inArray(agentRun.itemId, taskIds)).orderBy(desc(agentRun.id)) : [];
+  const runs = taskIds.length > 0 ? await db.select().from(agentRun).where(inArray(agentRun.itemId, taskIds)).orderBy(desc(agentRun.id)) : [];
   const allComments = await db.select().from(reviewComment).where(eq(reviewComment.prId, prId)).orderBy(reviewComment.filePath, reviewComment.startLine, reviewComment.id);
 
-  return { ...toReviewRow(row), allComments, tasks, runs };
+  return { ...toReviewRow(row), allComments, tasks, runs: await withUsage(runs) };
+}
+
+// Every run of the PR's review tasks, whichever review agent took them, with its tokens and cost once it ended (a run
+// gets its usage record when it ends).
+async function withUsage(runs: (typeof agentRun.$inferSelect)[]): Promise<ReviewDetail["runs"]> {
+  if (runs.length === 0) {
+    return [];
+  }
+
+  const ids = new Set(runs.map((run) => String(run.id)));
+  const from = new Date(Math.min(...runs.map((run) => run.startedAt.getTime())));
+  const records = (await getUsageStore().records({ from }, MAX_USAGE_RECORDS)).filter((record) => ids.has(record.runId));
+  const usage = new Map(records.map((record) => [record.runId, record]));
+
+  return runs.map((run) => ({ run, usage: usage.get(String(run.id)) ?? null }));
 }
 
 function countColumns(): { open: SQL<number>; answered: SQL<number>; total: SQL<number> } {
