@@ -10,11 +10,14 @@ import { ReadLog } from "../evidence/ReadLog";
 import { noRepos } from "../repos/openRepos";
 import { loadPrompt } from "../prompts";
 import { createBetterReviewTools } from "./betterReviewTools";
+import { buildBetterReviewMessage } from "./betterReviewMessage";
+import type { BetterReviewContext } from "./models/BetterReviewContext";
 import type { BetterReviewRun } from "./models/BetterReviewRun";
 import type { ReviewMode } from "./models/ReviewMode";
 import { renderSummary } from "./renderSummary";
 import { appendReviewRules, parseReviewRules, reviewRulesPath } from "./reviewRules";
 import { followUpScope } from "./reviewScope";
+import { commentKeys, lastCommentIds, reviewerNotesWithCarried } from "./threadsSeen";
 
 type CommentRow = typeof reviewComment.$inferSelect;
 
@@ -37,7 +40,7 @@ function thread(id: number, content: string): AdoPrThread {
   return { id, status: "active", filePath: "/src/a.ts", startLine: 4, endLine: 4, comments: [{ id: 1, parentId: 0, author: "Dana", createdAt: null, type: "text", content, isDeleted: false }] };
 }
 
-async function runWith(options: { comments?: CommentRow[]; threads?: AdoPrThread[]; mode?: ReviewMode; outdated?: string[]; rules?: string } = {}): Promise<BetterReviewRun> {
+async function runWith(options: { comments?: CommentRow[]; threads?: AdoPrThread[]; mode?: ReviewMode; outdated?: string[]; rules?: string; previous?: BetterReviewContext["previous"] } = {}): Promise<BetterReviewRun> {
   const root = await mkdtemp(join(tmpdir(), "better-review-"));
 
   await mkdir(join(root, "Repo", "src"), { recursive: true });
@@ -55,12 +58,13 @@ async function runWith(options: { comments?: CommentRow[]; threads?: AdoPrThread
       rules: { path: reviewRulesPath("Repo"), rules: options.rules ? parseReviewRules(options.rules) : [], writable: true },
       otherReviews: { threads: options.threads ?? [] },
       research: [],
-      previous: null,
+      previous: options.previous ?? null,
     },
     checkout: { path: root, sourceCommit: HEAD, mergeBase: "m" } as never,
     scope: { reviewed: files, skipped: [] },
     mode: options.mode ?? { kind: "follow-up", baseCommit: BASE },
     fullPatches: new Map(files.map((entry) => [entry.path, `${entry.patch}\nFULL`])),
+    triggerThreads: null,
     outdatedIds: options.outdated ?? [],
     repos: noRepos(),
     toolset: null,
@@ -186,6 +190,46 @@ describe("Better Review tools", () => {
   });
 });
 
+describe("reviewer threads in a follow-up", () => {
+  const weighed = { commit: BASE, summaryMd: null, reviewerNotes: [{ threadId: 1, verdict: "covered" as const, coveredBy: "RC-7-001", note: "same as ours" }, { threadId: 2, verdict: "disagree" as const, coveredBy: null, note: "the cache is per request" }], threadsSeen: { "1": 1, "2": 1 } };
+
+  function answered(id: number): AdoPrThread {
+    const base = thread(id, "why a cache here?");
+
+    return { ...base, comments: [...base.comments, { id: 2, parentId: 1, author: "Lee", createdAt: null, type: "text", content: "it is still wrong", isDeleted: false }] };
+  }
+
+  it("asks only for the new and changed threads and carries the other verdicts", async () => {
+    const run = await runWith({ threads: [thread(1, "total is never reset"), answered(2), thread(3, "name it resetTotals")], previous: weighed });
+    const summary = tool(run, "write_review_summary");
+    const refused = await summary.handler(SUMMARY);
+
+    assert.ok(refused.isError);
+    assert.match(refused.text, /assess_reviewer_comment: 2, 3/);
+
+    await tool(run, "assess_reviewer_comment").handler({ thread_id: 2, verdict: "disagree", note: "still per request" });
+    await tool(run, "assess_reviewer_comment").handler({ thread_id: 3, verdict: "not_applicable", note: "naming is fine" });
+
+    assert.ok(!(await summary.handler(SUMMARY)).isError);
+    assert.deepEqual(reviewerNotesWithCarried(run.context!, run.draft.reviewerNotes).map((note) => [note.threadId, note.note]), [[1, "same as ours"], [2, "still per request"], [3, "naming is fine"]]);
+  });
+
+  it("marks weighed threads and the sync's trigger in the first message", async () => {
+    const run = await runWith({ threads: [thread(1, "total is never reset"), answered(2)], previous: weighed });
+    const message = buildBetterReviewMessage(run.context!, run.checkout!, { reviewed: [], skipped: [] }, run.mode, [], [2]);
+
+    assert.match(message, /Thread 1 \[active, weighed: covered by RC-7-001: same as ours\]/);
+    assert.match(message, /Thread 2 \[active\] on/);
+    assert.match(message, /other reviewers commented on thread\(s\) 2 since the last review/);
+    assert.match(message, /No code changed since then/);
+  });
+
+  it("remembers the comments it saw", () => {
+    assert.deepEqual(lastCommentIds([thread(1, "a"), answered(2)]), { "1": 1, "2": 2 });
+    assert.deepEqual(commentKeys([answered(2)]), ["2:1", "2:2"]);
+  });
+});
+
 describe("Better Review summary and prompt", () => {
   it("renders the reviewer notes", () => {
     const text = renderSummary({ verdict: "not_ready", assessment: "a", status: "complete", goals: [], criteria: [], businessLogic: "b", risks: [], notReviewed: [], nextReason: "c" }, [{ threadId: 3, verdict: "covered", coveredBy: "RC-7-004", note: "same point" }]);
@@ -196,7 +240,7 @@ describe("Better Review summary and prompt", () => {
   it("starts from the shared framework", async () => {
     const prompt = await loadPrompt("better-review", { team: "Core" });
 
-    assert.match(prompt.version, /^v1\+framework\./);
+    assert.match(prompt.version, /^v2\+framework\./);
     assert.match(prompt.text, /## How you work/);
     assert.match(prompt.text, /Better Review of the Core team/);
   });

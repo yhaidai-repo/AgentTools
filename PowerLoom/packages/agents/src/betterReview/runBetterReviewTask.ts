@@ -50,6 +50,7 @@ export async function runBetterReviewTask(context: TaskContext, task: ItemRow): 
     scope: { reviewed: [], skipped: [] },
     mode: { kind: "full", reason: "not prepared" },
     fullPatches: new Map(),
+    triggerThreads: null,
     outdatedIds: [],
     repos: noRepos(),
     toolset: null,
@@ -74,7 +75,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const { deps, agent, prompt, skills } = context;
   const data = task.data as ReviewTaskData & { full?: boolean };
 
-  await session.phase("context", { task: task.id, pr: data.prId, skills: skillsTrace(skills) });
+  run.triggerThreads = data.trigger === "reviewer-comments" ? data.threads ?? [] : null;
+
+  await session.phase("context", { task: task.id, pr: data.prId, trigger: data.trigger ?? "user", skills: skillsTrace(skills) });
 
   const reviewed = await loadPullRequest(deps.db, data.prId);
 
@@ -103,7 +106,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("diff", { mode: run.mode, files: prFiles.length, reviewed: run.scope.reviewed.length, skipped: run.scope.skipped.length, changedComments: run.outdatedIds });
 
   const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, createTask: true });
-  const firstMessage = buildBetterReviewMessage(run.context, run.checkout, run.scope, run.mode, run.outdatedIds);
+  const firstMessage = buildBetterReviewMessage(run.context, run.checkout, run.scope, run.mode, run.outdatedIds, run.triggerThreads);
   const tools = withBudgetNotes([...toolset.tools(firstMessage), ...createBetterReviewTools(run, toolset.readLog)], () => session.spentUsd, agent.budgets.perRunUsd, SUMMARY_TOOL);
 
   run.toolset = toolset;

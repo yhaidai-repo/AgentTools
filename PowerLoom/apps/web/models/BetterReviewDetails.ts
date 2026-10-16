@@ -9,4 +9,6 @@ export interface BetterReviewDetails {
   rulesPath: string;
   rulesSaved: boolean;
   researchTaskIds: string[];
+  /** Thread id → the newest ADO comment id the review saw in it (absent before reviewer comments were tracked). */
+  threadsSeen?: Record<string, number>;
 }

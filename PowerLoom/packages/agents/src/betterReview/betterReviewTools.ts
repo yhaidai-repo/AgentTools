@@ -14,6 +14,7 @@ import type { BetterReviewSummary } from "./models/BetterReviewSummary";
 import type { ReviewerNote } from "./models/ReviewerNote";
 import type { ReviewRuleDraft } from "./models/ReviewRuleDraft";
 import { renderSummary } from "./renderSummary";
+import { reviewerNotesWithCarried, weighedThreads } from "./threadsSeen";
 
 type CommentRow = typeof reviewComment.$inferSelect;
 
@@ -187,7 +188,7 @@ function decisionRule(source: string, earlier: CommentRow, input: RuleInput): Re
 function assessTool(run: BetterReviewRun) {
   return defineTool({
     name: "assess_reviewer_comment",
-    description: "Weigh one Azure DevOps thread another reviewer (or the author) left: covered (a comment of yours makes the point), missed (a real point your review didn't make: give the lesson as rule), disagree (the point is wrong: say why), not_applicable (a question answered, praise, a copy of your comment). Call once per thread; a second call replaces the first.",
+    description: "Weigh one Azure DevOps thread another reviewer (or the author) left: covered (a comment of yours makes the point), missed (a real point your review didn't make: give the lesson as rule), disagree (the point is wrong: say why), not_applicable (a question answered, praise, a copy of your comment). Call once per new or changed thread (a thread marked weighed keeps the last review's verdict unless you weigh it again); a second call replaces the first.",
     input: {
       thread_id: z.number().int().describe("The thread's id, as listed in <other-reviewers>"),
       verdict: z.enum(["covered", "missed", "disagree", "not_applicable"]),
@@ -292,7 +293,7 @@ function summaryTool(run: BetterReviewRun, readLog: ReadLog) {
       };
 
       run.draft.result = result;
-      run.draft.summary = renderSummary(result, run.draft.reviewerNotes);
+      run.draft.summary = renderSummary(result, reviewerNotesWithCarried(run.context!, run.draft.reviewerNotes));
 
       return { text: `Review summary saved (${input.verdict}, ${input.status}).` };
     },
@@ -303,12 +304,14 @@ function criteriaProblems(criteria: z.infer<typeof criterionInput>[]): string[] 
   return criteria.filter((item) => ["met", "partly", "not_met"].includes(item.status) && item.evidence.length === 0).map((item) => `"${item.criterion}" is ${item.status}: cite the code that shows it`);
 }
 
-// The summary waits for what the review must settle first: every answered comment decided, every thread weighed.
+// The summary waits for what the review must settle first: every answered comment decided, every thread weighed (in a
+// follow-up, the threads the last review weighed and nobody commented on since keep their verdict).
 function openWork(run: BetterReviewRun): string[] {
   const decided = new Set(run.draft.updates.map((update) => update.id));
   const answered = run.context!.earlierComments.filter((comment) => comment.status === "answered" && !decided.has(comment.id)).map((comment) => comment.id);
+  const weighed = weighedThreads(run.context!);
   const assessed = new Set(run.draft.reviewerNotes.map((note) => note.threadId));
-  const threads = threadsOf(run).filter((thread) => !assessed.has(thread.id)).map((thread) => thread.id);
+  const threads = threadsOf(run).filter((thread) => !assessed.has(thread.id) && !weighed.has(thread.id)).map((thread) => thread.id);
 
   return [
     ...(answered.length > 0 ? [`decide the answered comments first with update_comment: ${answered.join(", ")}`] : []),

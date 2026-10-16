@@ -1,6 +1,6 @@
 import { setItemStatus } from "@powerloom/core";
 import { agentRun, codeReview, type localItem } from "@powerloom/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { applyUpdates, insertComments, markOutdated } from "../codeReview/commitReview";
 import type { AgentDeps } from "../models/AgentDeps";
 import { addRunOutputs } from "../tasks/runOutputs";
@@ -9,6 +9,7 @@ import type { BetterReviewRun } from "./models/BetterReviewRun";
 import type { ReviewerNote } from "./models/ReviewerNote";
 import { renderSummary } from "./renderSummary";
 import { appendReviewRules } from "./reviewRules";
+import { commentKeys, lastCommentIds, reviewerNotesWithCarried } from "./threadsSeen";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -18,8 +19,9 @@ const NEW_COMMENT = /^new:(\d+)$/;
 
 // A successful run: the agent's decisions on earlier comments apply (fixed, kept and moved, refined, withdrawn), earlier
 // comments whose code changed and that it didn't decide on are outdated, its new comments are added, the research tasks
-// it created are written, and the review records the reviewed commit (the next follow-up's anchor), the summary and the
-// details. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
+// it created are written, and the review records the reviewed commit (the next follow-up's anchor), the summary, the
+// details (the threads' verdicts, carried ones included, and the newest comment it saw in each) and the comments it saw,
+// so the PR sync doesn't queue a follow-up for them. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
 // here, so a run its budget stopped after the summary keeps its review.
 export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: BetterReviewRun, runId: number, toolset: AgentToolset): Promise<string[]> {
   const { pr } = run.context!;
@@ -32,7 +34,8 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
   await applyUpdates(deps.db, run.draft.updates);
 
   const added = await insertComments(deps.db, pr.id, checkout.sourceCommit, runId, run.draft.comments);
-  const notes = run.draft.reviewerNotes.map((note) => withCommentId(note, added));
+  const notes = reviewerNotesWithCarried(run.context!, run.draft.reviewerNotes.map((note) => withCommentId(note, added)));
+  const threads = "threads" in run.context!.otherReviews ? run.context!.otherReviews.threads : null;
   const reviewedIteration = pr.sourceCommit === checkout.sourceCommit ? pr.iteration : null;
   const outputs = [...added, ...run.draft.updates.map((update) => `${update.id} ${update.action}`), ...outdated.map((id) => `${id} outdated`)];
 
@@ -47,6 +50,7 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
     mode: run.mode,
     result,
     reviewerNotes: notes,
+    threadsSeen: threads ? lastCommentIds(threads) : run.context!.previous?.threadsSeen ?? {},
     rules: run.draft.rules.map((rule, index) => ({ ...rule, id: rules.ids[index] ?? null })),
     rulesPath: run.context!.rules.path,
     rulesSaved: rules.saved,
@@ -58,6 +62,7 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
     reviewedIteration,
     summaryMd: renderSummary(result, notes),
     details,
+    ...(threads ? { seenComments: sql`(select coalesce(jsonb_agg(distinct key), '[]'::jsonb) from jsonb_array_elements_text(coalesce(${codeReview.seenComments}, '[]'::jsonb) || ${JSON.stringify(commentKeys(threads))}::jsonb) as key)` } : {}),
     reviewedAt: new Date(),
     updatedAt: new Date(),
   }).where(eq(codeReview.prId, pr.id));

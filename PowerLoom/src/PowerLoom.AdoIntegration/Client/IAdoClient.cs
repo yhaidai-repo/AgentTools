@@ -23,6 +23,9 @@ public interface IAdoClient
 
     Task<AdoPullRequestDetails> GetPullRequestDetailsAsync(string repoId, int pullRequestId, CancellationToken cancellation);
 
+    // People's comments on the pull request's threads that weren't deleted (system comments left out).
+    Task<IReadOnlyList<AdoThreadComment>> GetPullRequestCommentsAsync(string repoId, int pullRequestId, CancellationToken cancellation);
+
     // A work item attachment (an `_apis/wit/attachments` link in a PBI), fetched with the vault's token.
     Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation);
 }

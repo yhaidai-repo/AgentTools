@@ -4,6 +4,8 @@ using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Settings;
 using PowerLoom.Domain.Repos;
+using PowerLoom.Domain.Reviews;
+using PowerLoom.Infrastructure.AgentConfig;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -12,7 +14,7 @@ using PowerLoom.Persistence.Reviews;
 namespace PowerLoom.AdoIntegration.Features.SyncPullRequests;
 
 // One check of the vault's pull requests; the database only (the review's notes come from the review runs).
-public sealed class PullRequestSync(PowerLoomDbContext db)
+public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader agents)
 {
     private const string Actor = "pull-requests";
     private const string UnlistedReason = "The PR was completed or abandoned in Azure DevOps, or you're no longer a reviewer.";
@@ -35,16 +37,19 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
 
         var added = await AddNewReviewsAsync(listed, cancellation);
         var closed = await CloseUnlistedAsync(listed, mine, cancellation);
+        var followUps = await QueueForReviewerCommentsAsync(listed, ado, client, cancellation);
 
-        return Summary(listed.Count, mine.Count - listed.Count, updated.Count, changed.Count - updated.Count, added, closed);
+        return Summary(listed.Count, mine.Count - listed.Count, updated.Count, changed.Count - updated.Count, added, closed, followUps);
     }
 
-    private static string Summary(int listed, int notSelected, int updated, int waiting, int added, int closed)
+    private static string Summary(int listed, int notSelected, int updated, int waiting, int added, int closed, FollowUps? followUps)
     {
         var notSelectedNote = notSelected > 0 ? $" ({notSelected} more in repos not selected or disabled)" : "";
         var waitingNote = waiting > 0 ? $" ({waiting} next run)" : "";
+        var failedNote = followUps is { Failed: > 0 } ? $" ({followUps.Failed} PR(s) whose threads couldn't be read)" : "";
+        var followUpNote = followUps is null ? "" : $", {followUps.Queued} follow-up review(s) for reviewer comments{failedNote}";
 
-        return $"{listed} PR(s) you review{notSelectedNote}, {updated} updated{waitingNote}, {added} new review(s), {closed} closed";
+        return $"{listed} PR(s) you review{notSelectedNote}, {updated} updated{waitingNote}, {added} new review(s), {closed} closed{followUpNote}";
     }
 
     // New PRs and PRs with a new push need their details (pushes, linked work items); the rest are unchanged.
@@ -128,6 +133,72 @@ public sealed class PullRequestSync(PowerLoomDbContext db)
             await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation);
 
         return gone.Count;
+    }
+
+    // Other reviewers' new comments on a reviewed PR queue a Better Review follow-up (user decision 2026-10-16), while
+    // Better Review is on (null: it's off). Each comment counts once: the review remembers what the sync saw, so a run
+    // that fails doesn't queue again. The first check of a review counts only comments posted after it was reviewed.
+    // Your comments and the PR author's queue nothing; a PR with a review task open waits for it to finish.
+    private async Task<FollowUps?> QueueForReviewerCommentsAsync(List<AdoPullRequest> listed, AdoSettings ado, IAdoClient client, CancellationToken cancellation)
+    {
+        if (await agents.ReadAsync(ReviewQueueing.BetterReviewAgent, cancellation) is not { Enabled: true })
+            return null;
+
+        var prs = listed.Where(pr => !pr.IsDraft).ToDictionary(pr => pr.Id);
+        var ids = prs.Keys.ToList();
+        var reviews = await db.CodeReviews.Where(review => ids.Contains(review.PrId) && review.Status == ReviewStatus.Active && review.ReviewedAt != null).ToListAsync(cancellation);
+        var followUps = new FollowUps();
+
+        foreach (var review in reviews)
+        {
+            if (await ReviewTasks.OpenTaskIdAsync(db, review.PrId, cancellation) is not null)
+                continue;
+
+            var pr = prs[review.PrId];
+            IReadOnlyList<AdoThreadComment> comments;
+
+            try
+            {
+                comments = await client.GetPullRequestCommentsAsync(pr.RepoId, pr.Id, cancellation);
+            }
+            catch (AdoRequestException)
+            {
+                followUps.Failed++;
+
+                continue;
+            }
+
+            var seen = SeenComments(review.SeenComments);
+            var fresh = comments.Where(comment => IsOtherReviewer(comment, pr, ado.User) && (seen is null ? comment.PublishedAt > review.ReviewedAt : !seen.Contains(comment.Key))).ToList();
+            var all = (seen ?? []).Union(comments.Select(comment => comment.Key)).ToList();
+
+            if (seen is null || all.Count != seen.Count)
+            {
+                review.SeenComments = JsonSerializer.Serialize(all);
+                await db.SaveChangesAsync(cancellation);
+            }
+
+            if (fresh.Count > 0 && (await ReviewQueueing.QueueForReviewerCommentsAsync(db, pr.Id, fresh.Select(comment => comment.ThreadId).Distinct().ToList(), cancellation)).Ok)
+                followUps.Queued++;
+        }
+
+        return followUps;
+    }
+
+    private static List<string>? SeenComments(string? json) => json is null ? null : JsonSerializer.Deserialize<List<string>>(json);
+
+    private static bool IsOtherReviewer(AdoThreadComment comment, AdoPullRequest pr, string user)
+    {
+        return comment.Author is not null && !Same(comment.Author, user) && (pr.Author is null || !Same(comment.Author, pr.Author));
+    }
+
+    private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    private sealed class FollowUps
+    {
+        public int Queued { get; set; }
+
+        public int Failed { get; set; }
     }
 
     private async Task UnlistAsync(PullRequest pr, string reason, CancellationToken cancellation)

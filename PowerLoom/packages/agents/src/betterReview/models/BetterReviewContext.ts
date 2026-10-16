@@ -1,6 +1,7 @@
 import type { ReviewContext } from "../../codeReview/models/ReviewContext";
 import type { OtherReviews } from "./OtherReviews";
 import type { ResearchFollowUp } from "./ResearchFollowUp";
+import type { ReviewerNote } from "./ReviewerNote";
 import type { ReviewRules } from "./ReviewRules";
 
 // Code review's context plus what Better Review reads before it starts: each linked PBI in full, the repo's review
@@ -10,5 +11,7 @@ export interface BetterReviewContext extends ReviewContext {
   rules: ReviewRules;
   otherReviews: OtherReviews;
   research: ResearchFollowUp[];
-  previous: { commit: string; summaryMd: string | null } | null;
+  /** The last review: its commit (a follow-up's anchor) and summary; a Better Review's verdicts on the threads and the
+   *  newest comment it saw in each (none after a Code review). */
+  previous: { commit: string; summaryMd: string | null; reviewerNotes: ReviewerNote[]; threadsSeen: Record<string, number> } | null;
 }

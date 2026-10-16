@@ -12,6 +12,7 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
     // Work item comments have no released 7.1 version yet.
     private const string CommentsApiVersion = "api-version=7.1-preview.4";
     private const int BatchLimit = 200;
+    private const string SystemComment = "system";
     private const int PullRequestPage = 100;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -85,6 +86,21 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
         var ids = workItems.Value.Select(item => int.TryParse(item.Id, out var id) ? id : (int?)null).Where(id => id is not null).Select(id => id!.Value).ToList();
 
         return new AdoPullRequestDetails(Math.Max(1, iterations.Value.Select(iteration => iteration.Id).DefaultIfEmpty(1).Max()), ids);
+    }
+
+    public async Task<IReadOnlyList<AdoThreadComment>> GetPullRequestCommentsAsync(string repoId, int pullRequestId, CancellationToken cancellation)
+    {
+        var threads = await RequestAsync<ValueList<ThreadDto>>($"{ProjectUrl()}/_apis/git/repositories/{repoId}/pullRequests/{pullRequestId}/threads?{ApiVersion}", null, cancellation);
+
+        return threads.Value.Where(thread => thread.IsDeleted != true)
+            .SelectMany(thread => (thread.Comments ?? []).Where(comment => comment.IsDeleted != true && comment.CommentType != SystemComment)
+                .Select(comment => new AdoThreadComment(thread.Id, comment.Id, comment.Author?.UniqueName ?? comment.Author?.DisplayName, ParseDate(comment.PublishedDate))))
+            .ToList();
+    }
+
+    private static DateTime? ParseDate(string? value)
+    {
+        return DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var date) ? date : null;
     }
 
     private async Task<IReadOnlyList<AdoWorkItem>> GetWorkItemBatchAsync(int[] ids, IReadOnlyList<string>? fields, CancellationToken cancellation)
@@ -209,6 +225,10 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
     private sealed record RepositoryRefDto(string Id, string Name);
 
     private sealed record CommitDto(string CommitId);
+
+    private sealed record ThreadDto(int Id, bool? IsDeleted, List<ThreadCommentDto>? Comments);
+
+    private sealed record ThreadCommentDto(int Id, string? CommentType, bool? IsDeleted, string? PublishedDate, IdentityDto? Author);
 
     private sealed record ReviewerDto(string? UniqueName, bool? IsContainer);
 }

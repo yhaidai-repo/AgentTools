@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client.Models;
 using PowerLoom.AdoIntegration.Features.SyncPullRequests;
 using PowerLoom.AdoIntegration.Settings;
+using PowerLoom.Domain.Reviews;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -74,6 +75,73 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
         Assert.Contains("disabled", after[7201].CodeReview!.ClosedReason);
     }
 
+    [Fact]
+    public async Task Another_reviewers_new_comment_on_a_reviewed_pull_request_queues_a_better_review_follow_up()
+    {
+        await ConfigureAsync();
+        await SetBetterReviewAsync(true);
+
+        try
+        {
+            var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+            var reviewedAt = DateTime.UtcNow.AddHours(-1);
+
+            ado.PullRequests = [PullRequest(7301, "PVS", "sam@x.io", "c1")];
+            ado.Threads[7301] = [new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1))];
+
+            await Sync();
+            Assert.Empty(await ReviewTasksAsync(7301));
+
+            await MarkReviewedAsync(7301, reviewedAt);
+            ado.Threads[7301] =
+            [
+                new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1)),
+                new AdoThreadComment(2, 1, "sam@x.io", DateTime.UtcNow),
+                new AdoThreadComment(3, 1, "pat@x.io", DateTime.UtcNow),
+            ];
+
+            await Sync();
+            Assert.Empty(await ReviewTasksAsync(7301));
+
+            ado.Threads[7301] = [.. ado.Threads[7301], new AdoThreadComment(1, 2, "Lee@x.io", DateTime.UtcNow)];
+
+            await Sync();
+            await Sync();
+            var queued = Assert.Single(await ReviewTasksAsync(7301));
+
+            Assert.Equal(("agent:better-review", ItemStatus.Open), (queued.Assignee, queued.Status));
+            Assert.Contains("\"trigger\":\"reviewer-comments\"", queued.Data);
+            Assert.Contains("\"threads\":[1]", queued.Data);
+
+            await SetTaskStatusAsync(queued.Id, ItemStatus.Done);
+            await Sync();
+            Assert.Single(await ReviewTasksAsync(7301));
+        }
+        finally
+        {
+            await SetBetterReviewAsync(false);
+        }
+    }
+
+    [Fact]
+    public async Task Reviewer_comments_queue_nothing_while_better_review_is_off()
+    {
+        await ConfigureAsync();
+        await SetBetterReviewAsync(false);
+
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.PullRequests = [PullRequest(7311, "PVS", "sam@x.io", "c1")];
+
+        await Sync();
+        await MarkReviewedAsync(7311, DateTime.UtcNow.AddHours(-1));
+        ado.Threads[7311] = [new AdoThreadComment(1, 1, "lee@x.io", DateTime.UtcNow)];
+
+        await Sync();
+
+        Assert.Empty(await ReviewTasksAsync(7311));
+    }
+
     private static AdoPullRequest PullRequest(int id, string repo, string reviewer, string commit, string author = "pat@x.io", bool draft = false)
     {
         return new AdoPullRequest(id, $"r-{repo}", repo, $"PR {id}", null, draft, author, "refs/heads/f", "refs/heads/main", commit, "t1", [reviewer], "2026-10-01T10:00:00Z", $"https://x/pr/{id}");
@@ -101,6 +169,35 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().AgentRuns.AsNoTracking().Where(run => run.Stage == Stage.PullRequests).OrderByDescending(run => run.Id).Select(run => run.Outcome).FirstAsync();
+    }
+
+    private async Task SetBetterReviewAsync(bool enabled)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var definition = $$"""{"id":"better-review","label":"Better Review","enabled":{{(enabled ? "true" : "false")}},"handles":["review"]}""";
+
+        await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Database.ExecuteSqlAsync($"INSERT INTO agent_config.agent (id, definition) VALUES ('better-review', {definition}::jsonb) ON CONFLICT (id) DO UPDATE SET definition = excluded.definition");
+    }
+
+    private async Task MarkReviewedAsync(int prId, DateTime reviewedAt)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().CodeReviews.Where(review => review.PrId == prId).ExecuteUpdateAsync(set => set.SetProperty(review => review.ReviewedAt, reviewedAt).SetProperty(review => review.ReviewedCommit, "c1"));
+    }
+
+    private async Task<List<LocalItem>> ReviewTasksAsync(int prId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        return await ReviewTasks.Of(scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>(), prId).AsNoTracking().ToListAsync();
+    }
+
+    private async Task SetTaskStatusAsync(string id, ItemStatus status)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.Where(item => item.Id == id).ExecuteUpdateAsync(set => set.SetProperty(item => item.Status, status));
     }
 
     private async Task AddRepoAsync(string id, string name)

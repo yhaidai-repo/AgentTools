@@ -10,4 +10,6 @@ export interface BetterReviewRun extends ReviewRun {
   mode: ReviewMode;
   /** Follow-up: the PR's full patch per changed file, for get_pr_diff(full: true). */
   fullPatches: Map<string, string>;
+  /** Queued by the PR sync for other reviewers' new comments: the threads that have them. */
+  triggerThreads: number[] | null;
 }

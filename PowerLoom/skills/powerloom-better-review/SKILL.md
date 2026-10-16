@@ -28,6 +28,8 @@ description: How Better Review reviews one pull request against its PBIs, the re
 - The anchor is the commit the last review saw (`<review-mode>`): review only what changed since. The rest was reviewed; don't comment on unchanged code unless a change breaks it.
 - For each earlier comment whose code changed: read the code now. Fixed → `fixed` with where. Partly or not → `keep` with `start_line` / `end_line` where it is now, and say what is still wrong. The fix created a new problem → a new comment.
 - An answer without a code change: weigh it as in a first review.
+- Threads marked weighed in `<other-reviewers>` got no comment since the last review: their verdict stands. Weigh the new and changed ones.
+- A run the PR sync queued for reviewer comments (`<review-mode>` says so) may have no code change: weigh those threads, update the comments they touch, and write the summary.
 
 ## Research tasks
 - Create one when a point depends on something this run can't settle: another repo or service, data in an environment, history the code doesn't show. Give the branch, the files and lines, and what decides the comment.

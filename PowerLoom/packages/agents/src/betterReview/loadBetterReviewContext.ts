@@ -14,6 +14,7 @@ import type { TaskContext } from "../models/TaskContext";
 import type { BetterReviewContext } from "./models/BetterReviewContext";
 import type { OtherReviews } from "./models/OtherReviews";
 import type { ResearchFollowUp } from "./models/ResearchFollowUp";
+import type { ReviewerNote } from "./models/ReviewerNote";
 import type { ReviewRules } from "./models/ReviewRules";
 import { parseReviewRules, reviewRulesPath } from "./reviewRules";
 
@@ -100,9 +101,13 @@ async function loadResearchFollowUps(db: PowerLoomDb, prId: number): Promise<Res
 }
 
 async function loadPrevious(db: PowerLoomDb, prId: number): Promise<BetterReviewContext["previous"]> {
-  const [row] = await db.select({ commit: codeReview.reviewedCommit, summaryMd: codeReview.summaryMd }).from(codeReview).where(eq(codeReview.prId, prId));
+  const [row] = await db.select({ commit: codeReview.reviewedCommit, summaryMd: codeReview.summaryMd, details: codeReview.details }).from(codeReview).where(eq(codeReview.prId, prId));
+  const details = (row?.details ?? null) as { agent?: string; reviewerNotes?: ReviewerNote[]; threadsSeen?: Record<string, number> } | null;
+  const ours = details?.agent === "better-review";
 
-  return row?.commit ? { commit: row.commit, summaryMd: row.summaryMd } : null;
+  return row?.commit
+    ? { commit: row.commit, summaryMd: row.summaryMd, reviewerNotes: ours ? details.reviewerNotes ?? [] : [], threadsSeen: ours ? details.threadsSeen ?? {} : {} }
+    : null;
 }
 
 function clip(text: string): string {

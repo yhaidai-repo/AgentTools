@@ -522,6 +522,7 @@ export const codeReview = pgTable("code_review", {
   reviewedIteration: integer("reviewed_iteration"),
   summaryMd: text("summary_md"),
   details: jsonb("details").$type<object | null>(), // Better Review's last result: mode, acceptance criteria, other reviewers, rules, tasks
+  seenComments: jsonb("seen_comments").$type<string[] | null>(), // ADO comments ("thread:comment") the PR sync or a Better Review run already saw
   reviewedAt: ts("reviewed_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

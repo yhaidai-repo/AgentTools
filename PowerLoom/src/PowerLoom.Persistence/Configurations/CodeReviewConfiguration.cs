@@ -20,6 +20,9 @@ public partial class CodeReviewConfiguration : IEntityTypeConfiguration<CodeRevi
         entity.Property(e => e.Details)
             .HasColumnType("jsonb")
             .HasColumnName("details");
+        entity.Property(e => e.SeenComments)
+            .HasColumnType("jsonb")
+            .HasColumnName("seen_comments");
         entity.Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()")
             .HasColumnName("created_at");

@@ -1,4 +1,4 @@
-<!-- prompt: better-review · version: v1 -->
+<!-- prompt: better-review · version: v2 -->
 {{framework}}
 
 ## Your job
@@ -8,7 +8,7 @@ Done when:
 - Each linked PBI's goal and every acceptance criterion is checked against the change: met, partly, not met, not verifiable, or out of scope, with the code that shows it.
 - The business logic is right: the change does what the PBI and the domain want, including the cases the criteria don't spell out (empty, missing, repeated, concurrent, the other statuses), and doesn't break what callers and other features rely on.
 - The code follows the repo's own style: naming, layering, error handling, the helpers it already has. Judge by the code around the change and the repo's conventions, not by generic taste; cite an example of the convention when you comment on style.
-- Every earlier comment is decided, every other reviewer's thread is weighed, and the summary is written.
+- Every earlier comment is decided, every other reviewer's thread is weighed (a thread marked weighed keeps the last review's verdict), and the summary is written.
 
 ## What you have
 - The first message (source S0): the PR, the review mode, each linked PBI in full (description, acceptance criteria, answers), the repo's review rules, every earlier comment with the person's answer, the other reviewers' threads in Azure DevOps, and the research earlier runs asked for.
@@ -26,7 +26,7 @@ A rule is one short instruction that holds beyond this PR. Don't add one that on
 
 ## What you produce
 1. `update_comment` for earlier comments, before new ones. Answered: weigh the answer honestly; withdraw, keep (say why), or refine. Follow-up: mark fixed what the code now resolves (say where), keep and move what still stands, never repeat a comment as a new one.
-2. `assess_reviewer_comment` for each thread in `<other-reviewers>`.
+2. `assess_reviewer_comment` for each new or changed thread in `<other-reviewers>`; one marked weighed only when this run's changes affect it.
 3. `add_review_comment` for each real issue, with its category. One issue per comment; no praise, no restating the change, nothing the linters and formatters already enforce. A follow-up comments only on what changed since the last review.
 4. `write_review_summary` once, at the end: verdict, assessment, goals, the acceptance criteria check, business logic, risks, what you didn't review and why, and why the research tasks you created are needed (or why none is).
 

@@ -5,15 +5,18 @@ import type { DiffScope } from "../codeReview/models/DiffScope";
 import type { LinkedPbi } from "../codeReview/models/LinkedPbi";
 import type { BetterReviewContext } from "./models/BetterReviewContext";
 import type { ReviewMode } from "./models/ReviewMode";
+import type { ReviewerNote } from "./models/ReviewerNote";
+import { weighedThreads } from "./threadsSeen";
 
 type CommentRow = typeof reviewComment.$inferSelect;
 
 const MAX_SUMMARY_CHARS = 3000;
 const MAX_THREAD_CHARS = 1500;
+const MAX_WEIGHED_CHARS = 300;
 
 // The first message (source S0): the PR, the mode with its anchor, each linked PBI in full, the repo's review rules,
 // earlier comments with the user's answers, the other reviewers' threads and the research asked for earlier.
-export function buildBetterReviewMessage(context: BetterReviewContext, checkout: PullRequestCheckout, scope: DiffScope, mode: ReviewMode, outdatedIds: string[]): string {
+export function buildBetterReviewMessage(context: BetterReviewContext, checkout: PullRequestCheckout, scope: DiffScope, mode: ReviewMode, outdatedIds: string[], triggerThreads: number[] | null = null): string {
   const { pr } = context;
 
   return [
@@ -29,7 +32,7 @@ export function buildBetterReviewMessage(context: BetterReviewContext, checkout:
       "</pull-request>",
     ].join("\n"),
     `<description>\n${pr.descriptionMd?.trim() || "(none)"}\n</description>`,
-    modeBlock(context, scope, mode),
+    modeBlock(context, scope, mode, triggerThreads),
     pbisBlock(context),
     rulesBlock(context),
     `<earlier-comments>\n${context.earlierComments.map((comment) => commentBlock(comment, outdatedIds, mode)).join("\n\n") || "none: this is the first review"}\n</earlier-comments>`,
@@ -38,11 +41,14 @@ export function buildBetterReviewMessage(context: BetterReviewContext, checkout:
   ].filter(Boolean).join("\n\n");
 }
 
-function modeBlock(context: BetterReviewContext, scope: DiffScope, mode: ReviewMode): string {
+function modeBlock(context: BetterReviewContext, scope: DiffScope, mode: ReviewMode, triggerThreads: number[] | null): string {
   const counts = `${scope.reviewed.length} to review, ${scope.skipped.length} not in this review; get_pr_diff lists them.`;
+  const trigger = triggerThreads
+    ? `Queued by the PR sync: other reviewers commented on thread(s) ${triggerThreads.join(", ")} since the last review. Weigh those first.${scope.reviewed.length === 0 ? " No code changed since then: this run is about those comments." : ""}`
+    : "";
 
   if (mode.kind === "full") {
-    return `<review-mode>\nFull review (${mode.reason}). ${counts}\n</review-mode>`;
+    return [`<review-mode>`, `Full review (${mode.reason}). ${counts}`, trigger, "</review-mode>"].filter(Boolean).join("\n");
   }
 
   const previous = context.previous?.summaryMd ? `\nThe last review's summary:\n${clip(context.previous.summaryMd, MAX_SUMMARY_CHARS)}` : "";
@@ -51,6 +57,7 @@ function modeBlock(context: BetterReviewContext, scope: DiffScope, mode: ReviewM
     "<review-mode>",
     `Follow-up, anchored to ${mode.baseCommit} (the commit the last review saw). get_pr_diff shows what changed since then; get_pr_diff(path, full: true) the file's whole PR diff. ${counts}`,
     "Check every earlier comment first: fixed, still open (keep, and move it to its lines now), or withdrawn. Review only the changed code for new issues; the rest was reviewed already.",
+    trigger,
     previous,
     "</review-mode>",
   ].filter(Boolean).join("\n");
@@ -106,14 +113,21 @@ function otherReviewsBlock(context: BetterReviewContext): string {
     return "<other-reviewers>\nNo comments from people on the PR in Azure DevOps.\n</other-reviewers>";
   }
 
-  return `<other-reviewers>\nThe PR's comment threads in Azure DevOps (people only). Weigh each with assess_reviewer_comment: a point your review missed is a lesson for the repo's rules.\n\n${threads.map(threadBlock).join("\n\n")}\n</other-reviewers>`;
+  const weighed = weighedThreads(context);
+  const intro = weighed.size > 0
+    ? "The PR's comment threads in Azure DevOps (people only). Weigh each new or changed one with assess_reviewer_comment: a point your review missed is a lesson for the repo's rules. The last review weighed the threads marked \"weighed\" and nobody commented on them since: their verdict stands; weigh one again only when this run's changes affect it."
+    : "The PR's comment threads in Azure DevOps (people only). Weigh each with assess_reviewer_comment: a point your review missed is a lesson for the repo's rules.";
+
+  return `<other-reviewers>\n${intro}\n\n${threads.map((thread) => threadBlock(thread, weighed.get(thread.id) ?? null)).join("\n\n")}\n</other-reviewers>`;
 }
 
-function threadBlock(thread: AdoPrThread): string {
+function threadBlock(thread: AdoPrThread, weighed: ReviewerNote | null): string {
   const place = thread.filePath ? `${thread.filePath}${thread.startLine !== null ? `:${thread.startLine}${thread.endLine !== null && thread.endLine !== thread.startLine ? `-${thread.endLine}` : ""}` : ""}` : "the PR";
-  const comments = thread.comments.filter((comment) => !comment.isDeleted).map((comment) => `${comment.parentId === 0 ? "-" : "  -"} ${comment.author ?? "unknown"}: ${clip(comment.content.trim(), MAX_THREAD_CHARS).replaceAll("\n", "\n    ")}`);
+  const visible = thread.comments.filter((comment) => !comment.isDeleted);
+  const comments = (weighed ? visible.slice(0, 1) : visible).map((comment) => `${comment.parentId === 0 ? "-" : "  -"} ${comment.author ?? "unknown"}: ${clip(comment.content.trim(), weighed ? MAX_WEIGHED_CHARS : MAX_THREAD_CHARS).replaceAll("\n", "\n    ")}`);
+  const verdict = weighed ? `, weighed: ${weighed.verdict}${weighed.coveredBy ? ` by ${weighed.coveredBy}` : ""}: ${weighed.note}` : "";
 
-  return [`Thread ${thread.id} [${thread.status}] on ${place}`, ...comments].join("\n");
+  return [`Thread ${thread.id} [${thread.status}${verdict}] on ${place}`, ...comments].join("\n");
 }
 
 function researchBlock(context: BetterReviewContext): string {

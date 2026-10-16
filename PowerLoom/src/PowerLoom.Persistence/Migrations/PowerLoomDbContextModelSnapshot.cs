@@ -279,6 +279,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("reviewed_iteration");
 
+                    b.Property<string>("SeenComments")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("seen_comments");
+
                     b.Property<ReviewStatus>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("review_status")
