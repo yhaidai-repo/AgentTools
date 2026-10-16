@@ -20,7 +20,32 @@ public sealed class SyncPbisTests(PowerLoomHost host)
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task The_sprint_sync_brings_the_tasks_parents_records_bugs_and_marks_changed_content_stale()
+    public async Task A_pbi_moved_out_of_the_sprint_stays_in_its_snapshot_with_the_state_it_left_in()
+    {
+        await ConfigureAsync();
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+
+        ado.QueryResult = [];
+        ado.WorkItems = [];
+        await AddSnapshotAsync(new SprintSnapshot { IterationPath = "proj\\Sprint 7", TakenOn = yesterday, AdoId = 51090, AdoState = "Testing", Effort = 4m });
+
+        try
+        {
+            await Sync(null);
+
+            var today = await LoadSnapshotAsync(51090, yesterday.AddDays(1));
+
+            Assert.Equal(("Testing", 4m), (today.AdoState, today.Effort));
+        }
+        finally
+        {
+            await ForgetSnapshotsAsync(51090);
+        }
+    }
+
+    [Fact]
+    public async Task The_sprint_sync_brings_the_tasks_parents_records_bugs_and_keeps_the_status_on_changed_content()
     {
         await ConfigureAsync();
         var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
@@ -220,6 +245,30 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().SprintSnapshots.Where(row => row.AdoId == adoId).Select(row => row.Effort).SingleAsync();
+    }
+
+    private async Task AddSnapshotAsync(SprintSnapshot snapshot)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.SprintSnapshots.Add(snapshot);
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<SprintSnapshot> LoadSnapshotAsync(int adoId, DateOnly takenOn)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().SprintSnapshots.AsNoTracking().SingleAsync(row => row.AdoId == adoId && row.TakenOn == takenOn);
+    }
+
+    private async Task ForgetSnapshotsAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().SprintSnapshots.Where(row => row.AdoId == adoId).ExecuteDeleteAsync();
     }
 
     private async Task<int> CountSnapshotsAsync(string iterationPath)

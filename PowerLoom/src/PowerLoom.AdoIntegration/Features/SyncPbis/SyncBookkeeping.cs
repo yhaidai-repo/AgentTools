@@ -41,6 +41,7 @@ public sealed class SyncBookkeeping(PowerLoomDbContext db)
         foreach (var item in items)
             Snapshot(existing.GetValueOrDefault(item.AdoId), item, iterationPath, takenOn, childEffort);
 
+        await CarryMovedOutAsync(iterationPath, takenOn, items.Select(item => item.AdoId).ToHashSet(), existing, cancellation);
         await db.SaveChangesAsync(cancellation);
     }
 
@@ -52,5 +53,21 @@ public sealed class SyncBookkeeping(PowerLoomDbContext db)
         row.AdoState = item.AdoState;
         row.Effort = childEffort.TryGetValue(item.AdoId, out var effort) ? effort : null;
         row.RemainingWork = item.RemainingWork;
+    }
+
+    // A PBI moved out of the sprint (e.g. to the next one while in testing) stays in its statistics with the state it
+    // left in (user decision 2026-10-16): each later day copies its last row, so the sprint keeps what it held. A row an
+    // earlier sync took today already holds that state.
+    private async Task CarryMovedOutAsync(string iterationPath, DateOnly takenOn, HashSet<int> inSprint, Dictionary<int, SprintSnapshot> today, CancellationToken cancellation)
+    {
+        var previousDay = await db.SprintSnapshots.Where(row => row.IterationPath == iterationPath && row.TakenOn < takenOn).MaxAsync(row => (DateOnly?)row.TakenOn, cancellation);
+
+        if (previousDay is null)
+            return;
+
+        var movedOut = await db.SprintSnapshots.AsNoTracking().Where(row => row.IterationPath == iterationPath && row.TakenOn == previousDay && !inSprint.Contains(row.AdoId)).ToListAsync(cancellation);
+
+        foreach (var row in movedOut.Where(row => !today.ContainsKey(row.AdoId)))
+            db.SprintSnapshots.Add(new SprintSnapshot { IterationPath = iterationPath, TakenOn = takenOn, AdoId = row.AdoId, AdoState = row.AdoState, Effort = row.Effort, RemainingWork = row.RemainingWork });
     }
 }
