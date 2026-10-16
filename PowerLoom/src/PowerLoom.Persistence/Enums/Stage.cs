@@ -15,4 +15,6 @@ public enum Stage
     BetterRefinement,
     // Turns a recorded meeting into notes and follow-ups (tools/audio-capture; design 2026-10-14).
     MeetingNotes,
+    // Reviews a pull request against its PBIs, the project's review rules and the other reviewers (design 2026-10-16).
+    BetterReview,
 }

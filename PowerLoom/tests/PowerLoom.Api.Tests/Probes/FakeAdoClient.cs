@@ -20,6 +20,9 @@ public sealed class FakeAdoClient : IAdoClient
 
     public Dictionary<int, AdoPullRequestDetails> Details { get; } = [];
 
+    // PR id → people's comments on its threads.
+    public Dictionary<int, List<AdoThreadComment>> Threads { get; } = [];
+
     // Work item id â†’ its discussion, oldest first.
     public Dictionary<int, List<AdoComment>> Comments { get; } = [];
 
@@ -57,6 +60,11 @@ public sealed class FakeAdoClient : IAdoClient
     public Task<AdoPullRequestDetails> GetPullRequestDetailsAsync(string repoId, int pullRequestId, CancellationToken cancellation)
     {
         return Task.FromResult(Details.GetValueOrDefault(pullRequestId, new AdoPullRequestDetails(1, [])));
+    }
+
+    public Task<IReadOnlyList<AdoThreadComment>> GetPullRequestCommentsAsync(string repoId, int pullRequestId, CancellationToken cancellation)
+    {
+        return Task.FromResult<IReadOnlyList<AdoThreadComment>>(Threads.GetValueOrDefault(pullRequestId, []));
     }
 
     public Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation)

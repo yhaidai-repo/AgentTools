@@ -25,5 +25,11 @@ public partial class CodeReview
 
     public ReviewStatus Status { get; set; }
 
+    /// <summary>Better Review's last result (jsonb): mode and base commit, acceptance criteria, other reviewers, rules, tasks; null for Code review.</summary>
+    public string? Details { get; set; }
+
+    /// <summary>The ADO comments ("thread:comment" ids, jsonb array) the PR sync or a Better Review run already saw; a reviewer's comment not in it queues a follow-up review. Null until the first check.</summary>
+    public string? SeenComments { get; set; }
+
     public virtual PullRequest Pr { get; set; } = null!;
 }

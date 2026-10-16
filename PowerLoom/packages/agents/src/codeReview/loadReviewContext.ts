@@ -1,6 +1,6 @@
 import { topLevelPbi } from "@powerloom/core";
 import { design, pullRequest, refinement, reviewComment, workItem, type PowerLoomDb } from "@powerloom/db";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import type { RepoRef } from "@agenttools/runtime";
 import type { LinkedPbi } from "./models/LinkedPbi";
 import type { ReviewContext } from "./models/ReviewContext";
@@ -17,13 +17,13 @@ export async function loadPullRequest(db: PowerLoomDb, prId: number): Promise<Pu
   return pr;
 }
 
-// The pull request with its repo (opened like any agent's repo), the comments earlier runs left (withdrawn ones are done
-// with) and the work items the PR links.
+// The pull request with its repo (opened like any agent's repo), the comments earlier runs left (withdrawn and fixed ones
+// are done with) and the work items the PR links.
 export async function loadReviewContext(db: PowerLoomDb, pr: PullRequestRow, repo: RepoRef): Promise<ReviewContext> {
   return {
     pr,
     repo,
-    earlierComments: await db.select().from(reviewComment).where(and(eq(reviewComment.prId, pr.id), ne(reviewComment.status, "withdrawn"))).orderBy(reviewComment.id),
+    earlierComments: await db.select().from(reviewComment).where(and(eq(reviewComment.prId, pr.id), notInArray(reviewComment.status, ["withdrawn", "fixed"]))).orderBy(reviewComment.id),
     linkedPbis: await loadLinkedPbis(db, pr.workItemIds),
   };
 }

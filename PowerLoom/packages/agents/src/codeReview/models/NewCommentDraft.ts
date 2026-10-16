@@ -7,6 +7,8 @@ export interface NewCommentDraft {
   endLine: number;
   severity: (typeof reviewSeverity.enumValues)[number];
   body: string;
+  /** Better Review: what the comment is about (business-logic, correctness, style, ...). */
+  category?: string | null;
   snippet: string;
   snippetStartLine: number;
 }

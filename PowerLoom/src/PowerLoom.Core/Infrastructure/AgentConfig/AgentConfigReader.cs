@@ -67,7 +67,8 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
             root.TryGetProperty("limits", out var limits) ? Number(limits, "timeoutMinutes", DefaultTimeoutMinutes) : DefaultTimeoutMinutes,
             Number(options, "batchSize", DefaultBatchSize),
             options,
-            root.TryGetProperty("budgets", out var budgets) ? Money(budgets, "dailyUsd") : AgentSummaryDefaults.DailyBudgetUsd);
+            root.TryGetProperty("budgets", out var budgets) ? Money(budgets, "dailyUsd") : AgentSummaryDefaults.DailyBudgetUsd,
+            root.TryGetProperty("capabilities", out var withIntegrations) ? SwitchedOn(withIntegrations, "integrations") : []);
     }
 
     private static AgentsGlobal ParseGlobal(string value)
@@ -89,6 +90,14 @@ public sealed class AgentConfigReader(PowerLoomDbContext db)
     private static decimal Money(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDecimal() : AgentSummaryDefaults.DailyBudgetUsd;
 
     private static int Number(JsonElement element, string name, int fallback) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : fallback;
+
+    private static IReadOnlyList<string> SwitchedOn(JsonElement element, string name)
+    {
+        if (!element.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Object)
+            return [];
+
+        return value.EnumerateObject().Where(entry => entry.Value.ValueKind == JsonValueKind.True).Select(entry => entry.Name).ToList();
+    }
 
     private static IReadOnlyList<string> Strings(JsonElement element, string name)
     {

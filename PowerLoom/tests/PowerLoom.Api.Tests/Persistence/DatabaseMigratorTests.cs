@@ -60,7 +60,8 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
         "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_rev",
         "ALTER TABLE refinement DROP COLUMN IF EXISTS est_hours", "ALTER TABLE refinement DROP COLUMN IF EXISTS estimate_basis",
         "ALTER TABLE work_item DROP COLUMN IF EXISTS extra_fields_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS attached_files",
-        "ALTER TABLE work_item DROP COLUMN IF EXISTS closed_by_user"];
+        "ALTER TABLE work_item DROP COLUMN IF EXISTS closed_by_user",
+        "ALTER TABLE code_review DROP COLUMN IF EXISTS details", "ALTER TABLE code_review DROP COLUMN IF EXISTS seen_comments", "ALTER TABLE review_comment DROP COLUMN IF EXISTS category"];
 
     // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead; the
     // schema is brought back to the baseline's state, as drizzle left it.

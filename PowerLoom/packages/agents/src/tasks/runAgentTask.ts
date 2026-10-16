@@ -14,6 +14,7 @@ import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
+import { runBetterReviewTask } from "../betterReview/runBetterReviewTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { runMeetingNotesTask } from "../meetingNotes/runMeetingNotesTask";
@@ -30,6 +31,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,
+  "better-review": runBetterReviewTask,
   "vault-review": runVaultReviewTask,
   "meeting-notes": runMeetingNotesTask,
 };

@@ -7,4 +7,6 @@ public enum ReviewCommentStatus
     Answered,
     Withdrawn,
     Outdated,
+    // A follow-up review found the code now fixes it (Better Review, 2026-10-16).
+    Fixed,
 }

@@ -4719,7 +4719,8 @@
           "vault-review",
           "better-research",
           "better-refinement",
-          "meeting-notes"
+          "meeting-notes",
+          "better-review"
         ]
       },
       "StateLevel": {

@@ -108,17 +108,17 @@ function fileList(run: ReviewRun): string {
   return [`Review these (${reviewed.length}):`, ...reviewed, "", `Not in this review (${skipped.length}):`, ...skipped].join("\n");
 }
 
-function describe(file: DiffFile): string {
+export function describe(file: DiffFile): string {
   const renamed = file.oldPath ? ` (renamed from ${file.oldPath})` : "";
 
   return `${file.path}${renamed} [${file.status}] +${file.added} −${file.removed}`;
 }
 
-function changedFile(run: ReviewRun, path: string): DiffFile | undefined {
+export function changedFile(run: ReviewRun, path: string): DiffFile | undefined {
   return [...run.scope.reviewed, ...run.scope.skipped.map((entry) => entry.file)].find((file) => file.path === path);
 }
 
-async function commentProblem(run: ReviewRun, path: string, startLine: number, endLine: number): Promise<string | null> {
+export async function commentProblem(run: ReviewRun, path: string, startLine: number, endLine: number): Promise<string | null> {
   const file = changedFile(run, path);
 
   if (!file || file.status === "deleted" || file.status === "binary") {
@@ -151,10 +151,10 @@ function duplicateOf(run: ReviewRun, path: string, startLine: number, endLine: n
 }
 
 function isStanding(run: ReviewRun, comment: CommentRow): boolean {
-  return !run.outdatedIds.includes(comment.id) && run.draft.updates.every((update) => update.id !== comment.id || update.action !== "withdraw");
+  return !run.outdatedIds.includes(comment.id) && comment.status !== "fixed" && run.draft.updates.every((update) => update.id !== comment.id || update.action !== "withdraw");
 }
 
-async function readSnippet(run: ReviewRun, path: string, startLine: number, endLine: number): Promise<{ snippet: string; snippetStartLine: number }> {
+export async function readSnippet(run: ReviewRun, path: string, startLine: number, endLine: number): Promise<{ snippet: string; snippetStartLine: number }> {
   const lines = await readLines(run, path);
   const from = Math.max(1, startLine - SNIPPET_CONTEXT);
   const to = Math.min(lines.length, endLine + SNIPPET_CONTEXT);
@@ -162,7 +162,7 @@ async function readSnippet(run: ReviewRun, path: string, startLine: number, endL
   return { snippet: lines.slice(from - 1, to).join("\n"), snippetStartLine: from };
 }
 
-async function readLines(run: ReviewRun, path: string): Promise<string[]> {
+export async function readLines(run: ReviewRun, path: string): Promise<string[]> {
   const text = await readFile(resolveInside(run.checkout!.path, path), "utf8");
 
   return text.split(/\r?\n/);

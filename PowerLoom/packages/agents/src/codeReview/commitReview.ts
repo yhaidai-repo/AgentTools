@@ -4,7 +4,7 @@ import type { CommentUpdateDraft } from "./models/CommentUpdateDraft";
 import type { NewCommentDraft } from "./models/NewCommentDraft";
 import type { ReviewRun } from "./models/ReviewRun";
 
-const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open"> = { withdraw: "withdrawn", keep: "open", refine: "open" };
+const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open" | "fixed"> = { withdraw: "withdrawn", keep: "open", refine: "open", fixed: "fixed" };
 
 // A successful run: earlier comments whose code changed are outdated, the agent's decisions on earlier comments apply, its
 // new comments are added, and the review records the reviewed commit and summary. Returns the run's outputs.
@@ -34,21 +34,22 @@ export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: numbe
   return outputs;
 }
 
-async function markOutdated(db: PowerLoomDb, ids: string[]): Promise<void> {
+export async function markOutdated(db: PowerLoomDb, ids: string[]): Promise<void> {
   if (ids.length > 0) {
     await db.update(reviewComment).set({ status: "outdated", updatedAt: new Date() }).where(inArray(reviewComment.id, ids));
   }
 }
 
-async function applyUpdates(db: PowerLoomDb, updates: CommentUpdateDraft[]): Promise<void> {
+export async function applyUpdates(db: PowerLoomDb, updates: CommentUpdateDraft[]): Promise<void> {
   for (const update of updates) {
     const body = update.action === "refine" && update.body ? { bodyMd: update.body } : {};
+    const anchor = update.anchor ? { commit: update.anchor.commit, startLine: update.anchor.startLine, endLine: update.anchor.endLine, codeSnippet: update.anchor.snippet, snippetStartLine: update.anchor.snippetStartLine } : {};
 
-    await db.update(reviewComment).set({ ...body, status: UPDATED_STATUS[update.action], agentReplyMd: update.reply, updatedAt: new Date() }).where(eq(reviewComment.id, update.id));
+    await db.update(reviewComment).set({ ...body, ...anchor, status: UPDATED_STATUS[update.action], agentReplyMd: update.reply, updatedAt: new Date() }).where(eq(reviewComment.id, update.id));
   }
 }
 
-async function insertComments(db: PowerLoomDb, prId: number, commit: string, runId: number, comments: NewCommentDraft[]): Promise<string[]> {
+export async function insertComments(db: PowerLoomDb, prId: number, commit: string, runId: number, comments: NewCommentDraft[]): Promise<string[]> {
   const first = await nextCommentNumber(db, prId);
   const rows = comments.map((comment, index) => ({
     id: `RC-${prId}-${String(first + index).padStart(3, "0")}`,
@@ -59,6 +60,7 @@ async function insertComments(db: PowerLoomDb, prId: number, commit: string, run
     startLine: comment.startLine,
     endLine: comment.endLine,
     severity: comment.severity,
+    category: comment.category ?? null,
     bodyMd: comment.body,
     codeSnippet: comment.snippet,
     snippetStartLine: comment.snippetStartLine,

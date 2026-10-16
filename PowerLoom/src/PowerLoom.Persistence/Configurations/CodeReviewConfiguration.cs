@@ -17,6 +17,12 @@ public partial class CodeReviewConfiguration : IEntityTypeConfiguration<CodeRevi
             .ValueGeneratedNever()
             .HasColumnName("pr_id");
         entity.Property(e => e.ClosedReason).HasColumnName("closed_reason");
+        entity.Property(e => e.Details)
+            .HasColumnType("jsonb")
+            .HasColumnName("details");
+        entity.Property(e => e.SeenComments)
+            .HasColumnType("jsonb")
+            .HasColumnName("seen_comments");
         entity.Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()")
             .HasColumnName("created_at");
