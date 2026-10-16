@@ -5,8 +5,9 @@ export type NodeHealth = StateLevel | "off";
 
 const ORDER: Record<NodeHealth, number> = { off: 0, ok: 1, degraded: 2, failed: 3 };
 
-// What color each node gets: the status of the components PowerLoom reports, the attention entries' components, and
-// for every parent the worst of its children (so a problem shows from the top level down).
+// What color each node gets: the status of the components PowerLoom reports, the outside systems the agents read (and
+// their tool nodes), the attention entries' components, and for every parent the worst of its children (so a problem
+// shows from the top level down).
 export function schemeHealth(status: SystemStatus | null): Record<string, NodeHealth> {
   const health: Record<string, NodeHealth> = status ? ownStates(status) : { powerloom: "failed", "pl-http": "failed" };
 
@@ -37,6 +38,11 @@ function ownStates(status: SystemStatus): Record<string, NodeHealth> {
     "pl-http": "ok",
     web: "ok",
   };
+
+  for (const outside of status.outside) {
+    states[outside.component] = worse(states[outside.component], outside.state);
+    states[outside.tool] = worse(states[outside.tool], outside.state);
+  }
 
   for (const item of status.attention) {
     states[item.component] = worse(states[item.component], item.severity);

@@ -12,6 +12,7 @@ public static class StatusFeature
         services.AddScoped<RunsStatusProbe>();
         services.AddScoped<SchedulesStatusProbe>();
         services.AddScoped<BudgetStatusProbe>();
+        services.AddScoped<OutsideAccessProbe>();
 
         return services;
     }

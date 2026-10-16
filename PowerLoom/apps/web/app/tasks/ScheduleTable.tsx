@@ -36,7 +36,7 @@ export function ScheduleTable({ schedules }: { schedules: TaskSchedule[] }) {
 // works on; a producer's: its params.
 function paramsText(params: Record<string, unknown>): string {
   if (typeof params.description === "string") {
-    const target = params.pbiId ? ` · PBI-${params.pbiId}` : params.docPath ? ` · note: ${params.docPath}` : "";
+    const target = params.pbiId ? ` · PBI-${params.pbiId}` : "";
     const repos = Array.isArray(params.repos) && params.repos.length > 0 ? ` · repos: ${params.repos.join(", ")}` : "";
 
     return `${params.description.split(/\r?\n/)[0].slice(0, 80)}${target}${repos}`;

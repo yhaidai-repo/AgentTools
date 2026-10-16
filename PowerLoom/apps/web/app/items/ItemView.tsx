@@ -6,12 +6,15 @@ import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
+import { writtenNotes } from "@/lib/writtenNotes";
+import { DocLink } from "../vault/DocLink";
 import { CloseItemForm } from "./CloseItemForm";
 import { ContinueItem } from "./ContinueItem";
 import { DeleteItemButton } from "./DeleteItemButton";
 import { FindingForm } from "./FindingForm";
 import { ItemContent } from "./ItemContent";
 import { RerunTaskButton } from "./RerunTaskButton";
+import { TaskResults } from "./TaskResults";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 
@@ -42,6 +45,8 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       {item.status === "open" && item.heldBy.length > 0 && <p className="result-error">Held by the dispatcher: {item.heldBy.join("; ")}</p>}
       <ItemContent item={item} />
       <AgentResult detail={detail} />
+      <DocsResult detail={detail} />
+      <TaskResults detail={detail} />
       <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
@@ -54,7 +59,7 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
 function AgentResult({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
 
-  if (item.assignee === "human" || !item.resolution) {
+  if (item.assignee === "human" || item.kind === "docs" || !item.resolution) {
     return null;
   }
 
@@ -62,6 +67,26 @@ function AgentResult({ detail }: { detail: ItemDetail }) {
     <section className="card result-section">
       <h2>Result · {item.status}</h2>
       <MarkdownBlock text={item.resolution} />
+    </section>
+  );
+}
+
+// A docs task's result (user, 2026-10-15): the tech-writer's last message and the notes its latest successful run wrote,
+// each opening in Obsidian.
+function DocsResult({ detail }: { detail: ItemDetail }) {
+  const { item } = detail;
+  const run = detail.runs.find((candidate) => candidate.outcome === "success");
+  const notes = run ? writtenNotes(run.outputs, item.vault) : [];
+
+  if (item.kind !== "docs" || (!item.resolution && notes.length === 0)) {
+    return null;
+  }
+
+  return (
+    <section className="card result-section">
+      <h2>Result · {item.status}{run ? ` · RUN-${run.id}` : ""}</h2>
+      {item.resolution && <MarkdownBlock text={item.resolution} />}
+      {notes.length > 0 && <ul className="item-list">{notes.map((path) => <li key={path}><DocLink vault={item.vault} path={path} /></li>)}</ul>}
     </section>
   );
 }

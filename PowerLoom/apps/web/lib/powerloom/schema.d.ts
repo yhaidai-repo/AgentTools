@@ -1399,7 +1399,6 @@ export interface components {
             acceptanceCriteria: string;
             pbi: null | string;
             repos: null | string[];
-            docPath: null | string;
             actor: null | string;
         };
         CreatedPbi: {
@@ -1501,6 +1500,12 @@ export interface components {
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
             id: string;
+        };
+        OutsideComponentState: {
+            component: string;
+            tool: string;
+            state: components["schemas"]["StateLevel"];
+            detail: string;
         };
         PbiConfluencePage: {
             url: string;
@@ -1682,7 +1687,6 @@ export interface components {
             description?: null | string;
             acceptanceCriteria?: null | string;
             pbi?: null | string;
-            docPath?: null | string;
         };
         ScheduleStatus: {
             key: string;
@@ -1713,7 +1717,7 @@ export interface components {
             enabled: boolean;
         };
         /** @enum {unknown} */
-        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement";
+        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement" | "meeting-notes";
         /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {
@@ -1758,6 +1762,7 @@ export interface components {
             schedules: components["schemas"]["ScheduleStatus"][];
             recentSyncs: components["schemas"]["SyncRun"][];
             budget: components["schemas"]["BudgetStatus"];
+            outside: components["schemas"]["OutsideComponentState"][];
             attention: components["schemas"]["Attention"][];
         };
         TaskRef: {

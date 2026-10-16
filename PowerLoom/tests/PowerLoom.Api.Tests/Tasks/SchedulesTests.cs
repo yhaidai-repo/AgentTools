@@ -100,7 +100,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
 
     private static ScheduleInput TypedInput(string type, string? pbi = null, List<string>? repos = null)
     {
-        return new ScheduleInput(null, "Weekly look", "", PowerLoomHost.Vault, "0 7 * * 1", true, null, repos, type, "Check the retries", "Lists every retry", pbi, null);
+        return new ScheduleInput(null, "Weekly look", "", PowerLoomHost.Vault, "0 7 * * 1", true, null, repos, type, "Check the retries", "Lists every retry", pbi);
     }
 
     private async Task SeedPbiWithOpenRefinementAsync(int adoId)

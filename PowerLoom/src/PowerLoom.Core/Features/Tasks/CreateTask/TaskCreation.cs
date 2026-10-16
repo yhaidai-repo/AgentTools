@@ -6,7 +6,6 @@ using PowerLoom.Domain.Repos;
 using PowerLoom.Domain.Tasks;
 using PowerLoom.Features.Tasks.CreateTask.Models;
 using PowerLoom.Features.Tasks.Schedules;
-using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -16,7 +15,7 @@ namespace PowerLoom.Features.Tasks.CreateTask;
 // Tasks the user creates (user decision 2026-10-14): any enabled agent that takes the type works on it, like the tasks
 // agents create for each other. The description is the body; the acceptance criteria are `doneWhen`, and `goal` too,
 // which research reads as the task's goal (as on agent-created tasks).
-public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
+public sealed class TaskCreation(PowerLoomDbContext db)
 {
     private const int TitleMax = 120;
     private const int TextMax = 4_000;
@@ -29,10 +28,10 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
     // Refinement and design run once per PBI at a time, as the pipeline creates them; research comes in numbers.
     public static readonly IReadOnlyList<UserTaskType> Types =
     [
-        new("refinement", ItemKind.Refinement, PbiUse.Required, NeedsDocPath: false, OnePerPbi: true),
-        new("research", ItemKind.Research, PbiUse.Optional, NeedsDocPath: false, OnePerPbi: false),
-        new("design", ItemKind.Design, PbiUse.Required, NeedsDocPath: false, OnePerPbi: true),
-        new("docs", ItemKind.Docs, PbiUse.None, NeedsDocPath: true, OnePerPbi: false),
+        new("refinement", ItemKind.Refinement, PbiUse.Required, OnePerPbi: true),
+        new("research", ItemKind.Research, PbiUse.Optional, OnePerPbi: false),
+        new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true),
+        new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false),
     ];
 
     public async Task<Outcome<CreatedTask>> CreateAsync(NewTask task, CancellationToken cancellation)
@@ -69,8 +68,7 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
         return LengthProblem("Title", task.Title, TitleMax)
             ?? LengthProblem("Description", task.Description, TextMax)
             ?? LengthProblem("Acceptance criteria", task.AcceptanceCriteria, TextMax)
-            ?? PbiProblem(task, type)
-            ?? DocPathProblem(task, type);
+            ?? PbiProblem(task, type);
     }
 
     private static Problem? LengthProblem(string field, string text, int max)
@@ -88,27 +86,11 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
         return type.Pbi == PbiUse.None && task.PbiId is not null ? Problem.Invalid($"A {type.Name} task takes no PBI.") : null;
     }
 
-    private static Problem? DocPathProblem(NewTask task, UserTaskType type)
-    {
-        if (!type.NeedsDocPath)
-            return null;
-
-        if (string.IsNullOrWhiteSpace(task.DocPath))
-            return Problem.Invalid($"A {type.Name} task needs the path of the note in the vault.");
-
-        var path = VaultPath.Parse(task.DocPath);
-
-        return path.Ok ? null : path.Problem;
-    }
-
-    // Each type is checked against what it works on: its PBI, its note, or the repos it may read.
+    // Each type is checked against what it works on: its PBI, or the repos it may read.
     private async Task<Problem?> ContextProblemAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
         if (task.PbiId is not null)
             return await PbiProblemAsync(task.Vault, task.PbiId.Value, cancellation);
-
-        if (type.NeedsDocPath)
-            return files.Exists(task.Vault, task.DocPath!) ? null : Problem.NotFound($"{task.DocPath} isn't a note in {task.Vault}.");
 
         var unknownRepos = await RepoCatalog.UnknownReposProblemAsync(db, task.Vault, task.Repos, cancellation);
 
@@ -137,7 +119,7 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
     // PBI tasks are numbered per PBI like the pipeline's; research without a PBI is a goal (GT), docs tasks are global.
     private Task<string> NextIdAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
-        if (type.NeedsDocPath)
+        if (type.Kind == ItemKind.Docs)
             return ItemIds.NextGlobalAsync(db, DocsPrefix, cancellation);
 
         if (task.PbiId is null)
@@ -149,7 +131,7 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
     // A schedule's task carries the schedule, so its next tick sees it still waiting.
     private static string DataOf(NewTask task, UserTaskType type)
     {
-        var data = type.NeedsDocPath ? DocsData(task) : AgentData(task);
+        var data = type.Kind == ItemKind.Docs ? DocsData(task) : AgentData(task);
 
         data["createdBy"] = CreatedBy;
         data["doneWhen"] = task.AcceptanceCriteria.Trim();
@@ -168,20 +150,10 @@ public sealed class TaskCreation(PowerLoomDbContext db, VaultFiles files)
         return new() { ["goal"] = task.AcceptanceCriteria.Trim(), ["repos"] = task.PbiId is null ? task.Repos : Array.Empty<string>() };
     }
 
-    // The tech-writer's actualize task, as the vault review asks for it: the note is brought up to date in place.
+    // The tech-writer's request task (user decision 2026-10-15): no note is named; the tech-writer finds the notes the
+    // description is about, then updates or creates them as the vault's rules say.
     private static Dictionary<string, object?> DocsData(NewTask task)
     {
-        var path = VaultPath.Trusted(task.DocPath!);
-
-        return new()
-        {
-            ["key"] = $"actualize:{task.Vault}:{path}:user:{DateTime.UtcNow:O}",
-            ["mode"] = "actualize",
-            ["vault"] = task.Vault,
-            ["path"] = path,
-            ["project"] = path.Split('/')[0],
-            ["reasons"] = task.Description.Trim(),
-            ["suspectFacts"] = Array.Empty<string>(),
-        };
+        return new() { ["key"] = $"request:{task.Vault}:user:{DateTime.UtcNow:O}", ["mode"] = "request", ["vault"] = task.Vault };
     }
 }

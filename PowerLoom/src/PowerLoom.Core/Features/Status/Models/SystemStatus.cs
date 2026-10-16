@@ -13,4 +13,5 @@ public sealed record SystemStatus(
     List<ScheduleStatus> Schedules,
     List<SyncRun> RecentSyncs,
     BudgetStatus Budget,
+    List<OutsideComponentState> Outside,
     List<Attention> Attention);

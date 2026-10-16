@@ -79,7 +79,7 @@ async function AdoSections({ db, current, vault, ado, repos }: { db: PowerLoomDb
       <ImportSettingsForm key={current} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} />
       <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />
       <h2>Pull request sync (code review)</h2>
-      <p className="muted">Lists the active Azure DevOps PRs where you&apos;re a reviewer; a new PR gets a review on the <Link href="/reviews">Reviews</Link> page. The code-review agent itself is configured on the Agents page.</p>
+      <p className="muted">Lists the active Azure DevOps PRs where you&apos;re a reviewer or the author; a new PR gets a review on the <Link href="/reviews">Reviews</Link> page. The code-review agent itself is configured on the Agents page.</p>
       <PullRequestSettingsForm key={current} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
     </>
   );

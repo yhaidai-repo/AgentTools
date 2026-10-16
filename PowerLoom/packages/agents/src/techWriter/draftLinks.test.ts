@@ -22,7 +22,7 @@ describe("relinkDraft", () => {
   });
 
   it("points notes on disk and the run's own notes at the marked note, keeping labels", async () => {
-    const draft = { edits: [{ path: "adoa/chain/powerloom-local-chain.md", content: "---\n---\nSee [[powerloom-local-app-chain]].\n" }], findings: [], home: "adoa/chain/powerloom-local-chain.md" };
+    const draft = { edits: [{ path: "adoa/chain/powerloom-local-chain.md", content: "---\n---\nSee [[powerloom-local-app-chain]].\n" }], findings: [], home: "adoa/chain/powerloom-local-chain.md", summary: null };
 
     const edits = await relinkDraft(root, "powerloom-local-app-chain", draft);
 
@@ -33,15 +33,23 @@ describe("relinkDraft", () => {
   });
 
   it("uses the only note of the run when none is marked", async () => {
-    const draft = { edits: [{ path: "adoa/chain/powerloom-local-chain.md", content: "---\n---\n" }], findings: [], home: null };
+    const draft = { edits: [{ path: "adoa/chain/powerloom-local-chain.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
 
     const edits = await relinkDraft(root, "powerloom-local-app-chain", draft);
 
     assert.equal(edits[1].content, "| Chain | [[powerloom-local-chain|local chain]] |\n");
   });
 
+  it("lets links stay when the run's note keeps the draft's name", async () => {
+    const draft = { edits: [{ path: "adoa/chain/powerloom-local-app-chain.md", content: "---\n---\n" }, { path: "adoa/adoa-other.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
+
+    const edits = await relinkDraft(root, "powerloom-local-app-chain", draft);
+
+    await requireNoDraftLinks(root, "powerloom-local-app-chain", edits);
+  });
+
   it("leaves root files alone, so a link there still stops the run", async () => {
-    const draft = { edits: [{ path: "pvs/pvs-note.md", content: "---\n---\n" }], findings: [], home: null };
+    const draft = { edits: [{ path: "pvs/pvs-note.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
 
     const edits = await relinkDraft(root, "other-draft", draft);
 

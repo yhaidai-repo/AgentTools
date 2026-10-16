@@ -53,22 +53,18 @@ public sealed class CreateTaskTests(PowerLoomHost host)
     }
 
     [Fact]
-    public async Task A_docs_task_actualizes_an_existing_note_and_takes_no_PBI()
+    public async Task A_docs_task_names_no_note_and_takes_no_PBI()
     {
-        Directory.CreateDirectory(Path.Combine(host.VaultRoot, "proj"));
-        await File.WriteAllTextAsync(Path.Combine(host.VaultRoot, "proj", "create-note.md"), "# Note\n");
-
-        var missing = await PostAsync(Request("docs", docPath: "proj/missing.md"), 404);
-        var withPbi = await PostAsync(Request("docs", pbi: AdoId.ToString(), docPath: "proj/create-note.md"), 400);
-        var created = await host.Host.PostJson(Request("docs", docPath: "proj/create-note.md"), "/api/tasks").Receive<CreatedTask>();
+        var withPbi = await PostAsync(Request("docs", pbi: AdoId.ToString()), 400);
+        var created = await host.Host.PostJson(Request("docs"), "/api/tasks").Receive<CreatedTask>();
         var task = await LoadAsync(created!.Id);
         var data = JsonDocument.Parse(task.Data!).RootElement;
 
-        Assert.Contains("proj/missing.md isn't a note in test-vault.", missing);
         Assert.Contains("A docs task takes no PBI.", withPbi);
         Assert.StartsWith("WT-", task.Id);
-        Assert.Equal((ItemKind.Docs, "agent:*"), (task.Kind, task.Assignee));
-        Assert.Equal(("actualize", "proj/create-note.md", "proj", "Find out why", Criteria), (data.GetProperty("mode").GetString(), data.GetProperty("path").GetString(), data.GetProperty("project").GetString(), data.GetProperty("reasons").GetString(), data.GetProperty("doneWhen").GetString()));
+        Assert.Equal((ItemKind.Docs, "agent:*", "Find out why"), (task.Kind, task.Assignee, task.Body));
+        Assert.Equal(("request", PowerLoomHost.Vault, Criteria), (data.GetProperty("mode").GetString(), data.GetProperty("vault").GetString(), data.GetProperty("doneWhen").GetString()));
+        Assert.False(data.TryGetProperty("path", out _));
     }
 
     [Fact]
@@ -81,9 +77,9 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         Assert.Contains("Acceptance criteria: 1 to 4000 characters required.", noCriteria);
     }
 
-    private static CreateTaskRequest Request(string type, string? pbi = null, List<string>? repos = null, string? docPath = null)
+    private static CreateTaskRequest Request(string type, string? pbi = null, List<string>? repos = null)
     {
-        return new CreateTaskRequest(PowerLoomHost.Vault, type, "Why it fails", "Find out why", Criteria, pbi, repos, docPath, null);
+        return new CreateTaskRequest(PowerLoomHost.Vault, type, "Why it fails", "Find out why", Criteria, pbi, repos, null);
     }
 
     private async Task<string> PostAsync(CreateTaskRequest request, int status)
