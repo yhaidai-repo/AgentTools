@@ -28,11 +28,20 @@ export async function relinkDraft(docsRoot: string, draftName: string, draft: Te
 // Checked before anything is written: links the relink couldn't fix (root files, or no note took the draft's place)
 // stop the run, with the notes to fix.
 export async function requireNoDraftLinks(docsRoot: string, draftName: string, edits: NoteEdit[]): Promise<void> {
+  if (keepsDraftName(draftName, edits)) {
+    return;
+  }
+
   const linking = await notesLinkingDraft(docsRoot, draftName, edits);
 
   if (linking.length > 0) {
     throw new Error(`these notes still link [[${draftName}]], which is deleted on merge, and couldn't be relinked (a root file, or no note marked takesDraftPlace): ${linking.join(", ")}`);
   }
+}
+
+// A note the run wrote outside draft/ under the draft's own name: links to that name reach it once the draft is deleted.
+function keepsDraftName(draftName: string, edits: NoteEdit[]): boolean {
+  return edits.some((edit) => !SKIPPED.includes(edit.path.split("/")[0]) && linkKey(basename(edit.path, ".md")) === linkKey(draftName));
 }
 
 // The marked note, or the only note the run wrote.

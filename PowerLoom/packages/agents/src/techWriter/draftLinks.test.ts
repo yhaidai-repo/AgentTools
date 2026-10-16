@@ -40,6 +40,14 @@ describe("relinkDraft", () => {
     assert.equal(edits[1].content, "| Chain | [[powerloom-local-chain|local chain]] |\n");
   });
 
+  it("lets links stay when the run's note keeps the draft's name", async () => {
+    const draft = { edits: [{ path: "adoa/chain/powerloom-local-app-chain.md", content: "---\n---\n" }, { path: "adoa/adoa-other.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
+
+    const edits = await relinkDraft(root, "powerloom-local-app-chain", draft);
+
+    await requireNoDraftLinks(root, "powerloom-local-app-chain", edits);
+  });
+
   it("leaves root files alone, so a link there still stops the run", async () => {
     const draft = { edits: [{ path: "pvs/pvs-note.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
 
