@@ -1,5 +1,6 @@
 import type { AgentDefinition } from "@agenttools/config";
 import Link from "next/link";
+import { agentColor } from "@/lib/agentColors";
 import { budgetLevel } from "@/lib/budget";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import type { SystemStatus } from "@/lib/systemStatus";
@@ -54,7 +55,7 @@ function AgentRow({ agent, slot, activity, today, range }: AgentRowProps) {
 
   return (
     <tr>
-      <td><span className="chart-swatch" style={{ background: `var(--series-${slot + 1})` }} />{agent.label}{agent.enabled ? "" : " (off)"}</td>
+      <td><span className="chart-swatch" style={{ background: agentColor(slot) }} />{agent.label}{agent.enabled ? "" : " (off)"}</td>
       <td><Link href={`/runs?agent=${agent.id}&range=${range}`} title="Show runs">{activity?.runs ?? 0}</Link></td>
       <td className={activity?.failures ? "result-error" : undefined}>{activity?.failures ?? 0}</td>
       <td>{formatUsd(activity?.costUsd ?? 0)} / {formatUsd(average(activity?.costUsd ?? 0, finished))}</td>
