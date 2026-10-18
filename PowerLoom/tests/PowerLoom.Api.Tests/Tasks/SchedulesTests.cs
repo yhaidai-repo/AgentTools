@@ -13,28 +13,6 @@ namespace PowerLoom.Api.Tests.Tasks;
 [Collection(PowerLoomCollection.Name)]
 public sealed class SchedulesTests(PowerLoomHost host)
 {
-    [Fact]
-    public async Task A_goal_schedule_creates_its_task_once_until_it_is_done()
-    {
-        await SeedRepoAsync("r-sched", "SchedRepo");
-
-        var refused = await host.Host.Scenario(scenario =>
-        {
-            scenario.Put.Json(new ScheduleInput(null, "Nightly check", "research", PowerLoomHost.Vault, "0 2 * * *", true, "Look around", ["Nope"])).ToUrl("/api/task-schedules");
-            scenario.StatusCodeShouldBe(400);
-        });
-        var saved = await host.Host.PutJson(new ScheduleInput(null, "Nightly check", "research", PowerLoomHost.Vault, "0 2 * * *", true, "Look around", ["SchedRepo"]), "/api/task-schedules").Receive<SavedSchedule>();
-        var first = await host.Host.PostJson(new { }, $"/api/task-schedules/{saved!.Id}/tick").Receive<TickResult>();
-        var second = await host.Host.PostJson(new { }, $"/api/task-schedules/{saved.Id}/tick").Receive<TickResult>();
-        var task = await LoadAsync(first!.Result.Split(' ')[0]);
-
-        Assert.Contains("Not among the vault's enabled repositories: Nope.", await refused.ReadAsTextAsync());
-        Assert.Equal((ItemKind.Goal, "agent:research", "Look around", ItemStatus.Open), (task.Kind, task.Assignee, task.Body, task.Status));
-        Assert.Contains($"\"scheduleId\": {saved.Id}", task.Data);
-        Assert.Equal($"{task.Id} still waits; no new task", second!.Result);
-        Assert.Contains((await CronEntriesAsync()), entry => entry.Key == $"task-schedule:{saved.Id}" && entry.Message is CreateScheduledTask created && created.ScheduleId == saved.Id);
-    }
-
     // A schedule by task type (user decision 2026-10-14): each tick creates the task the form described, for any agent
     // that takes the type.
     [Fact]
@@ -59,6 +37,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
         Assert.Contains($"\"scheduleId\": {saved.Id}", task.Data);
         Assert.Contains("\"doneWhen\": \"Lists every retry\"", task.Data);
         Assert.Equal($"{task.Id} still waits; no new task", second!.Result);
+        Assert.Contains(await CronEntriesAsync(), entry => entry.Key == $"task-schedule:{saved.Id}" && entry.Message is CreateScheduledTask created && created.ScheduleId == saved.Id);
     }
 
     [Fact]
@@ -74,20 +53,17 @@ public sealed class SchedulesTests(PowerLoomHost host)
         Assert.Equal($"no task: RT-{adoId}-001 is still open on PBI-{adoId}.", ticked!.Result);
     }
 
+    // The vault review is a task type (user decision 2026-10-18): every tick reviews the schedule's vault.
     [Fact]
-    public async Task The_vault_review_schedule_makes_a_task_only_when_the_vault_has_candidates()
+    public async Task A_vault_review_schedule_creates_a_review_of_its_vault_for_any_agent_taking_it()
     {
-        Directory.CreateDirectory(Path.Combine(host.VaultRoot, "proj"));
-        await File.WriteAllTextAsync(Path.Combine(host.VaultRoot, "proj", "note.md"), "# Note\n\nSee [[missing-note]].\n");
-
-        var saved = await host.Host.PutJson(new ScheduleInput(null, $"Vault review of {PowerLoomHost.Vault}", "vault-review", PowerLoomHost.Vault, "0 6 * * 1", true, null, null), "/api/task-schedules").Receive<SavedSchedule>();
+        var saved = await host.Host.PutJson(TypedInput("vault-review"), "/api/task-schedules").Receive<SavedSchedule>();
         var ticked = await host.Host.PostJson(new { }, $"/api/task-schedules/{saved!.Id}/tick").Receive<TickResult>();
         var task = await LoadAsync(ticked!.Result.Split(' ')[0]);
 
         Assert.StartsWith("VR-", task.Id);
-        Assert.Equal((ItemKind.VaultReview, "agent:vault-review"), (task.Kind, task.Assignee));
-        Assert.Contains($"Review the vault {PowerLoomHost.Vault}:", task.Title);
-        Assert.Contains($"\"vaults\": [\"{PowerLoomHost.Vault}\"]", task.Data);
+        Assert.Equal((ItemKind.VaultReview, "agent:*", PowerLoomHost.Vault), (task.Kind, task.Assignee, task.Vault));
+        Assert.Contains($"\"scheduleId\": {saved.Id}", task.Data);
 
         await host.Host.Scenario(scenario =>
         {
@@ -100,7 +76,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
 
     private static ScheduleInput TypedInput(string type, string? pbi = null, List<string>? repos = null)
     {
-        return new ScheduleInput(null, "Weekly look", "", PowerLoomHost.Vault, "0 7 * * 1", true, null, repos, type, "Check the retries", "Lists every retry", pbi);
+        return new ScheduleInput(null, "Weekly look", PowerLoomHost.Vault, "0 7 * * 1", true, type, "Check the retries", "Lists every retry", pbi, repos);
     }
 
     private async Task SeedPbiWithOpenRefinementAsync(int adoId)

@@ -16,7 +16,7 @@ public static class CreateScheduledTaskHandler
             return;
         }
 
-        var result = await scheduling.TickAsync(schedule, force: false, cancellation);
+        var result = await scheduling.TickAsync(schedule, cancellation);
 
         logger.LogInformation("task-schedule {ScheduleId} ({Name}): {Result}", schedule.Id, schedule.Name, result);
     }

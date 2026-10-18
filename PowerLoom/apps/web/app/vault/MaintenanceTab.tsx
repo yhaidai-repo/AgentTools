@@ -1,10 +1,9 @@
-import { VAULT_REVIEW_AGENT, listVaultTaskSchedules, type TaskSchedule } from "@powerloom/core";
+import { listVaultTaskSchedules, type TaskSchedule } from "@powerloom/core";
 import { listTrash, type WwwRecord } from "@powerloom/vault";
 import { getDb } from "@/lib/db";
 import { WWW_LOG_PATH, isOpenWww, readVaultRegisters } from "@/lib/vaultRegisters";
 import type { ProjectRegisterRecord } from "@/models/ProjectRegisterRecord";
 import { ScheduleTable } from "../tasks/ScheduleTable";
-import { AddVaultReviewButton } from "./AddVaultReviewButton";
 import { TrashTable } from "./TrashTable";
 import { DocLink } from "./DocLink";
 
@@ -18,9 +17,8 @@ export async function MaintenanceTab({ root, vault }: { root: string; vault: str
   return (
     <>
       <h2>Maintenance jobs</h2>
-      <p className="muted">The scheduled tasks of <code>{vault}</code>. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
+      <p className="muted">The scheduled tasks of <code>{vault}</code>; Tasks → New task (type vault-review, with a cron) schedules the vault review. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
       <VaultSchedules schedules={schedules} />
-      {!schedules.some((schedule) => schedule.agentId === VAULT_REVIEW_AGENT) && <AddVaultReviewButton />}
       <h2>What went wrong ({openCount(registers.www.filter(isOpenWww).length, registers.www.length)})</h2>
       <WwwRecords vault={vault} records={registers.www} />
       <h2>Known issues ({openCount(unresolved(registers.issues), registers.issues.length)})</h2>

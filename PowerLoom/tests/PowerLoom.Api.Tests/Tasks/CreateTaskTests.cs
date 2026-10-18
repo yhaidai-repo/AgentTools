@@ -67,13 +67,26 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         Assert.False(data.TryGetProperty("path", out _));
     }
 
+    // The vault review is a task type (user decision 2026-10-18): it reviews the task's vault.
+    [Fact]
+    public async Task A_vault_review_task_reviews_its_vault_and_takes_no_PBI()
+    {
+        var withPbi = await PostAsync(Request("vault-review", pbi: AdoId.ToString()), 400);
+        var created = await host.Host.PostJson(Request("vault-review"), "/api/tasks").Receive<CreatedTask>();
+        var task = await LoadAsync(created!.Id);
+
+        Assert.Contains("A vault-review task takes no PBI.", withPbi);
+        Assert.StartsWith("VR-", task.Id);
+        Assert.Equal((ItemKind.VaultReview, "agent:*", PowerLoomHost.Vault, (int?)null), (task.Kind, task.Assignee, task.Vault, task.PbiId));
+    }
+
     [Fact]
     public async Task An_unknown_type_or_missing_acceptance_criteria_is_refused()
     {
         var unknownType = await PostAsync(Request("deploy"), 400);
         var noCriteria = await PostAsync(Request("research") with { AcceptanceCriteria = " " }, 400);
 
-        Assert.Contains("Unknown task type deploy; one of: refinement, research, design, docs.", unknownType);
+        Assert.Contains("Unknown task type deploy; one of: refinement, research, design, docs, vault-review.", unknownType);
         Assert.Contains("Acceptance criteria: 1 to 4000 characters required.", noCriteria);
     }
 
