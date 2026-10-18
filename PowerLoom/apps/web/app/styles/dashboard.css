@@ -247,13 +247,6 @@
 }
 
 /* Held tasks list their reasons under the row. */
-.held-reasons {
-  margin: -4px 0 6px 18px;
-  font-size: 12px;
-  color: var(--faint);
-  overflow-wrap: anywhere;
-}
-
 /* The sprint picker's label beside its dropdown. */
 .picker {
   display: flex;

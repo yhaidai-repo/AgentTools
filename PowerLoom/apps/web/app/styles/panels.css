@@ -197,8 +197,9 @@
 /* A row of a status panel: dot, name, value on the right. */
 .status-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
   padding: 9px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -215,6 +216,15 @@
   font: 12.5px var(--font-mono);
   color: var(--muted);
   text-align: right;
+}
+
+/* The detail line sits under the name, past the dot. */
+.status-row .detail {
+  flex-basis: 100%;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--faint);
+  overflow-wrap: anywhere;
 }
 
 .status-row.warn .value {

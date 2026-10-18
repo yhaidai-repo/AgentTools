@@ -20,10 +20,5 @@ export function HeldTasks({ tasks }: { tasks: HeldTask[] }) {
 }
 
 function HeldRow({ task }: { task: HeldTask }) {
-  return (
-    <>
-      <StatusRow name={<><Link href={itemPath(task)} className="id">{task.id}</Link> {task.kind}</>} value={<TimeAgo date={task.updatedAt} />} tone="warn" />
-      <p className="held-reasons">{[...new Set(task.heldBy)].join("; ")}</p>
-    </>
-  );
+  return <StatusRow name={<><Link href={itemPath(task)} className="id">{task.id}</Link> {task.kind}</>} value={<TimeAgo date={task.updatedAt} />} detail={[...new Set(task.heldBy)].join("; ")} tone="warn" />;
 }
