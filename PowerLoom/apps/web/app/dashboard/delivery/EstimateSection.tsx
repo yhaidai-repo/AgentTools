@@ -9,8 +9,8 @@ import type { PbiEstimate } from "@/models/PbiEstimate";
 const CHART_PBIS = 12;
 
 // The finished PBIs' Original Estimate and the agents' estimate against the effort the user gave at finish (user
-// requests 2026-10-16 and 2026-10-18): the totals over the PBIs that had an estimate, the latest ones as a chart, and
-// the estimates per PBI in the table.
+// requests 2026-10-16 and 2026-10-18): the totals over the PBIs that had an estimate, the latest ones as a chart (the
+// agents' estimate for a developer only, user request 2026-10-18), and the estimates per PBI in the table.
 export function EstimateSection({ estimates }: { estimates: PbiEstimate[] }) {
   if (estimates.length === 0) {
     return <Panel><p className="empty">No finished PBIs yet: finishing a PBI asks for your effort.</p></Panel>;
@@ -22,9 +22,8 @@ export function EstimateSection({ estimates }: { estimates: PbiEstimate[] }) {
   const ratio = originalTotal > 0 ? actualTotal / originalTotal : null;
   const shown = estimates.slice(0, CHART_PBIS).reverse();
   const series: ChartSeries[] = [
-    { key: "original", label: "Original estimate", color: "var(--accent)", values: shown.map((pbi) => pbi.originalHours ?? 0) },
-    { key: "human", label: "Agents' estimate, human", color: "var(--accent-2)", values: shown.map((pbi) => humanHours(pbi) ?? 0) },
-    { key: "agent", label: "Agents' estimate, with an agent", color: "var(--series-5)", values: shown.map((pbi) => pbi.designAgentHours ?? 0) },
+    { key: "original", label: "Original", color: "var(--accent)", values: shown.map((pbi) => pbi.originalHours ?? 0) },
+    { key: "human", label: "Agents", color: "var(--accent-2)", values: shown.map((pbi) => humanHours(pbi) ?? 0) },
     { key: "actual", label: "Your effort", color: "var(--text)", values: shown.map((pbi) => pbi.actualHours) },
   ];
 

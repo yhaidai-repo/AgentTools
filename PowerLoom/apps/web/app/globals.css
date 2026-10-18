@@ -323,10 +323,19 @@ label.inline {
 .link-button {
   padding: 0;
   border: none;
+  border-radius: 0;
   background: none;
+  box-shadow: none;
   color: var(--accent);
   font-size: 12px;
   cursor: pointer;
+}
+
+/* A button drawn as a link takes none of the button's glow, on hover either. */
+.link-button:hover {
+  filter: none;
+  box-shadow: none;
+  text-decoration: underline;
 }
 
 /* Settings: the repos the pull request check covers, in columns. */

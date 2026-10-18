@@ -163,6 +163,11 @@
   transition: filter var(--motion-fast);
 }
 
+/* A stacked column is one solid shape: its segments are square, the column's clip rounds its top. */
+.chart rect.chart-segment {
+  rx: 0;
+}
+
 .chart rect:hover {
   filter: brightness(1.25);
 }
@@ -367,6 +372,7 @@
   font-weight: 600;
   cursor: default;
   text-decoration: none;
+  opacity: 1;
 }
 
 .scheme-node rect {

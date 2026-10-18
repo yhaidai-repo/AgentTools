@@ -22,14 +22,15 @@
   margin-left: auto;
 }
 
-.tab-bar + .band,
-.band + .panel {
+/* Panels stacked straight in the page; panels side by side in a grid (the Dashboard) keep their tops aligned. */
+main > .tab-bar + .band {
   margin-bottom: 14px;
 }
 
-.band + .panel,
-.panel + .panel,
-.panel + .fold-panel {
+main > .band + .panel,
+main > .panel + .panel,
+main > .panel + .fold-panel,
+main > .fold-panel + .panel {
   margin-top: 14px;
 }
 
