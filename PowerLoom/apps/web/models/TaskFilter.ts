@@ -8,6 +8,8 @@ export interface TaskFilter {
   pbi: string;
   /** A period key of lib/ranges (by when the item was created), shared with Agents and Runs. */
   range: string;
+  /** What waits on you on top (the default), or simply the latest change first (user request 2026-10-18). */
+  youFirst: boolean;
   page: number;
   size: number;
 }

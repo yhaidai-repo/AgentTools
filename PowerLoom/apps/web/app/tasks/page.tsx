@@ -13,7 +13,7 @@ import { DAY_RANGES, DEFAULT_DAY_RANGE } from "@/lib/ranges";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { TASK_KINDS, TASK_PAGE_SIZES, bucketOf, countBy, loadTaskList, matchesTask, sortTasks, type TaskRow } from "@/lib/taskList";
 import { isHumanWork } from "@/lib/taskLooks";
-import { tasksUrl } from "@/lib/tasksUrl";
+import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 const TASKS_REFRESH_MS = 10_000;
 const STATUSES: TaskFilter["status"][] = ["you", "open", "held", "done", "cancelled", "all"];
 
-type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; page?: string; size?: string }>;
+type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; sort?: string; page?: string; size?: string }>;
 
 // All tasks, questions and findings of the vault, including those of no PBI (e.g. tech-writer tasks for drafts captured
 // in chat): what waits on you first, then the latest change (user decisions 2026-10-18); schedules below the list.
@@ -36,7 +36,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   }
 
   const filter = filterOf(await rememberedParams("/tasks", await searchParams));
-  const rows = sortTasks(await loadTaskList(filter, vault));
+  const loaded = await loadTaskList(filter, vault);
+  const rows = filter.youFirst ? sortTasks(loaded) : loaded;
   const ofKind = rows.filter((row) => filter.kind === "" || row.kind === filter.kind);
   const shown = rows.filter((row) => matchesTask(row, filter));
   const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
@@ -65,6 +66,7 @@ function filterOf(params: Record<string, string | undefined>): TaskFilter {
     status: STATUSES.find((status) => status === params.status) ?? "all",
     pbi: (params.pbi ?? "").trim(),
     range: params.range && DAY_RANGES.includes(params.range) ? params.range : DEFAULT_DAY_RANGE,
+    youFirst: params.sort !== UPDATED_FIRST,
     page: Math.max(Number(params.page) || 1, 1),
     size: TASK_PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : TASK_PAGE_SIZES[0],
   };
