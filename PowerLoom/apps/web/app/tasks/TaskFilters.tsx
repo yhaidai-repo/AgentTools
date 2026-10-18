@@ -34,7 +34,7 @@ export function TaskFilters({ filter, total, buckets, kinds }: TaskFiltersProps)
           {BUCKETS.filter((bucket) => buckets.has(bucket.key) || filter.status === bucket.key).map((bucket) => <Pill key={bucket.key} href={tasksUrl({ ...keep, status: bucket.key })} on={filter.status === bucket.key} label={bucket.label} count={buckets.get(bucket.key) ?? 0} />)}
         </nav>
         <span className="sync-line">
-          <SortToggle filter={filter} />
+          {filter.status === "all" && <SortToggle filter={filter} />}
           <PeriodPicker value={filter.range} path="/tasks" keep={{ status: filter.status, kind: filter.kind, pbi: filter.pbi, sort: filter.youFirst ? "" : UPDATED_FIRST }} />
         </span>
       </div>
@@ -49,7 +49,8 @@ export function TaskFilters({ filter, total, buckets, kinds }: TaskFiltersProps)
   );
 }
 
-// Waits on you first, or simply the latest change first (user request 2026-10-18); a click flips it.
+// Waits on you first, or simply the latest change first (user request 2026-10-18); a click flips it. Only under All:
+// a task that waits on you is always in For you, so any other status has nothing to put first.
 function SortToggle({ filter }: { filter: TaskFilter }) {
   return (
     <Link href={tasksUrl({ ...filter, page: 1, youFirst: !filter.youFirst })} className={`sort-toggle${filter.youFirst ? " on" : ""}`} role="switch" aria-checked={filter.youFirst} title={filter.youFirst ? "What waits on you is on top; click to sort by the latest change only" : "Sorted by the latest change; click to put what waits on you on top"}>
