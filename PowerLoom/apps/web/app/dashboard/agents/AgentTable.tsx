@@ -65,7 +65,7 @@ function AgentRow({ agent, slot, activity, spentToday, limit, range }: AgentRowP
   return (
     <tr className={agent.enabled ? undefined : "off"}>
       <td><span className="swatch" style={{ background: agentColor(slot) }} />{agent.label}{!agent.enabled && <span className="off-tag">off</span>}</td>
-      <td className="num"><Link href={`/runs?agent=${agent.id}&range=${range}`} title="Show runs">{activity?.runs ?? 0}</Link></td>
+      <td className="num"><Link href={`/agents?tab=runs&agent=${agent.id}&range=${range}`} title="Show runs">{activity?.runs ?? 0}</Link></td>
       <td className={`num${failures > 0 ? " text-error" : ""}`}>{failures}</td>
       <td className="num">{formatUsd(activity?.costUsd ?? 0)}</td>
       <td className="num">{formatUsd(average(activity?.costUsd ?? 0, finished))}</td>

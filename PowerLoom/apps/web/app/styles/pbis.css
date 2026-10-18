@@ -450,8 +450,15 @@ tr.focused td {
 
 .pager-pages {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin: 0 auto;
+}
+
+.pager-gap {
+  align-self: center;
+  padding: 0 4px;
+  color: var(--faint);
 }
 
 .pager-size {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AdoTag } from "@/components/AdoTag";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContinueChat } from "@/components/ContinueChat";
+import { HeroStat } from "@/components/HeroStat";
 import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatUsd } from "@/lib/format";
@@ -78,19 +79,10 @@ function Stats({ detail }: { detail: ReviewDetail }) {
 
   return (
     <div className="hero-stats item-stats">
-      <Stat label="Open comments" value={String(detail.comments.open)} tone={detail.comments.open > 0 ? "warn" : undefined} />
-      <Stat label="Comments" value={String(detail.comments.total)} note={fixed > 0 ? `${fixed} fixed` : undefined} />
-      <Stat label="Runs" value={String(detail.runs.length)} />
-      <Stat label="Cost" value={formatUsd(costUsd)} />
-    </div>
-  );
-}
-
-function Stat({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: "warn" }) {
-  return (
-    <div className={`hero-stat${tone ? ` ${tone}` : ""}`}>
-      <div className="hero-stat-label">{label}</div>
-      <div className="hero-stat-value">{value}{note && <small>{note}</small>}</div>
+      <HeroStat label="Open comments" value={String(detail.comments.open)} tone={detail.comments.open > 0 ? "warn" : undefined} />
+      <HeroStat label="Comments" value={String(detail.comments.total)} note={fixed > 0 ? `${fixed} fixed` : undefined} />
+      <HeroStat label="Runs" value={String(detail.runs.length)} />
+      <HeroStat label="Cost" value={formatUsd(costUsd)} />
     </div>
   );
 }

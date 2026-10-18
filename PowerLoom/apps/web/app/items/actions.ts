@@ -73,7 +73,7 @@ export async function rerunTaskAction(adoId: number | null, itemId: string): Pro
   }
 
   revalidateItemPages(adoId);
-  revalidatePath("/runs");
+  revalidatePath("/agents");
   revalidatePath("/agents/runs", "layout");
 
   return { ok: true, message: `${itemId} is open again: it runs on the agent's next schedule or "Run now".` };

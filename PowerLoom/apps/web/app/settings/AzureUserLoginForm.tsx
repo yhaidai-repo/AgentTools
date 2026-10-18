@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { AzureLoginStart } from "@/models/AzureLoginStart";
 import type { AzureUserAccount } from "@powerloom/core";
+import { TimeAgo } from "@/components/TimeAgo";
 import { azureLoginStatusAction, signOutAzureAction, startAzureLoginAction } from "./actions";
 
 // How often the page asks whether the user finished at the link.
@@ -58,15 +59,17 @@ export function AzureUserLoginForm({ account }: { account: AzureUserAccount | nu
   return (
     <div>
       {account ? (
-        <p>
-          Signed in as <strong>{account.username}</strong> (since {new Date(account.signedInAt).toLocaleString()}).{" "}
-          <button type="button" className="secondary" disabled={isPending} onClick={() => startTransition(() => signOutAzureAction())}>Sign out</button>
-        </p>
+        <div className="who-line">
+          <span className="who-avatar" aria-hidden="true">{account.username.slice(0, 2).toUpperCase()}</span>
+          <span className="who-name">{account.username}</span>
+          <span className="hint">since <TimeAgo date={account.signedInAt} /></span>
+          <button type="button" className="secondary small" disabled={isPending} onClick={() => startTransition(() => signOutAzureAction())}>Sign out</button>
+        </div>
       ) : (
-        <p>
-          Nobody is signed in for Azure.{" "}
-          <button type="button" disabled={isPending} onClick={start}>{isPending ? "Starting…" : "Sign in with my account"}</button>
-        </p>
+        <div className="who-line">
+          <span className="who-name hint">Nobody is signed in for Azure.</span>
+          <button type="button" className="small" disabled={isPending} onClick={start}>{isPending ? "Starting…" : "Sign in with my account"}</button>
+        </div>
       )}
       {error && <p className="result-error">{error}</p>}
     </div>

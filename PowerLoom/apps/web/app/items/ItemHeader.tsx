@@ -2,6 +2,7 @@ import { isDeletableItem, isHumanTaskData, isRerunnableTask } from "@powerloom/c
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Dropdown } from "@/components/Dropdown";
+import { HeroStat } from "@/components/HeroStat";
 import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
@@ -85,10 +86,10 @@ function Stats({ detail }: { detail: ItemDetail }) {
 
   return (
     <div className="hero-stats item-stats">
-      {steps !== null && <Stat label="Steps to report" value={String(steps)} tone={bucket === "you" ? "warn" : undefined} />}
-      <Stat label={isClosed(bucket) ? "Took" : "Open for"} value={formatAge(ageOf(item, isClosed(bucket)))} />
-      <Stat label="Runs" value={String(detail.runs.length)} />
-      <Stat label="Assigned" value={assigneeLabel(item.assignee)} />
+      {steps !== null && <HeroStat label="Steps to report" value={String(steps)} tone={bucket === "you" ? "warn" : undefined} />}
+      <HeroStat label={isClosed(bucket) ? "Took" : "Open for"} value={formatAge(ageOf(item, isClosed(bucket)))} />
+      <HeroStat label="Runs" value={String(detail.runs.length)} />
+      <HeroStat label="Assigned" value={assigneeLabel(item.assignee)} />
       {bucket === "held" && <p className="held-note">Held by the dispatcher: {[...new Set(item.heldBy)].join("; ")}</p>}
     </div>
   );
@@ -114,13 +115,4 @@ function ageOf(item: ItemDetail["item"], closed: boolean): number {
   const end = closed ? new Date(item.updatedAt).getTime() : Date.now();
 
   return end - new Date(item.createdAt).getTime();
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "warn" }) {
-  return (
-    <div className={`hero-stat${tone ? ` ${tone}` : ""}`}>
-      <div className="hero-stat-label">{label}</div>
-      <div className="hero-stat-value">{value}</div>
-    </div>
-  );
 }

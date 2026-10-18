@@ -10,7 +10,6 @@ const PAGES = [
   { href: "/reviews", label: "Reviews" },
   { href: "/vault", label: "Vault" },
   { href: "/agents", label: "Agents" },
-  { href: "/runs", label: "Runs" },
   { href: "/settings", label: "Settings" },
 ];
 

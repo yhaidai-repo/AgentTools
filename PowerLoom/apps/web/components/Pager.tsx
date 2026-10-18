@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+// Pages shown on each side of the current one; the first and last always show, the rest fold into "…".
+const NEAR = 2;
+
 interface PagerProps {
   page: number;
   size: number;
@@ -23,7 +26,7 @@ export function Pager({ page, size, sizes, pages, total, noun, hrefOf }: PagerPr
       <span className="pager-info">{from}–{to} of {total} {noun}</span>
       <span className="pager-pages">
         <PageLink href={hrefOf({ page: page - 1, size })} label="‹" disabled={page <= 1} />
-        {Array.from({ length: pages }, (_, index) => index + 1).map((number) => <PageLink key={number} href={hrefOf({ page: number, size })} label={String(number)} current={number === page} />)}
+        {shownPages(page, pages).map((number, index) => (number === null ? <span key={`gap-${index}`} className="pager-gap">…</span> : <PageLink key={number} href={hrefOf({ page: number, size })} label={String(number)} current={number === page} />))}
         <PageLink href={hrefOf({ page: page + 1, size })} label="›" disabled={page >= pages} />
       </span>
       <span className="pager-size">
@@ -32,6 +35,13 @@ export function Pager({ page, size, sizes, pages, total, noun, hrefOf }: PagerPr
       </span>
     </div>
   );
+}
+
+// The page numbers to show, null where pages fold: 1 … 4 5 [6] 7 8 … 43.
+function shownPages(page: number, pages: number): (number | null)[] {
+  const numbers = Array.from({ length: pages }, (_, index) => index + 1).filter((number) => number === 1 || number === pages || Math.abs(number - page) <= NEAR);
+
+  return numbers.flatMap((number, index) => (index > 0 && number - numbers[index - 1] > 1 ? [null, number] : [number]));
 }
 
 function PageLink({ href, label, current = false, disabled = false }: { href: string; label: string; current?: boolean; disabled?: boolean }) {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { ResultLine } from "@/components/ResultLine";
+import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
 import { saveAdoIntegration, testConnection } from "./actions";
@@ -10,41 +12,22 @@ import { saveAdoIntegration, testConnection } from "./actions";
 export function AdoIntegrationForm({ values }: { values: AdoIntegrationValues }) {
   const [saveResult, saveAction, isSaving] = useActionState<ActionResult | null, FormData>(saveAdoIntegration, null);
   const [testResult, testAction, isTesting] = useActionState<ActionResult | null, FormData>(testConnection, null);
-  const result = saveResult ?? testResult;
 
   return (
-    <form className="card">
-      <label className="inline">
-        <input type="checkbox" name="enabled" defaultChecked={values.enabled} />
-        Enabled: PowerLoom reads this vault&apos;s PBIs, mails and pull requests from Azure DevOps
-      </label>
-      <label>
-        Organization URL
-        <input name="orgUrl" defaultValue={values.orgUrl} placeholder="https://dev.azure.com/org" required />
-      </label>
-      <label>
-        Project
-        <input name="project" defaultValue={values.project} required />
-      </label>
-      <label>
-        Team (for sprints)
-        <input name="team" defaultValue={values.team} required />
-      </label>
-      <label>
-        Assigned to (only this user&apos;s PBIs are pulled, and the PRs this user reviews)
-        <input name="user" defaultValue={values.user} placeholder="name@company.com" required />
-      </label>
-      <label>
-        Personal access token (Work Items Read, Code Read){values.hasPat ? ": set; enter a new one to replace it" : ""}
-        <input name="pat" type="password" autoComplete="off" placeholder={values.hasPat ? "unchanged" : ""} required={!values.hasPat} />
-      </label>
-      <div className="actions">
-        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
-        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">
-          {isTesting ? "Testing…" : "Test connection"}
-        </button>
+    <form className="panel settings-card">
+      <SettingsHead title="Azure DevOps" description="PowerLoom reads this vault's PBIs, mails and pull requests from it." enabled={values.enabled} />
+      <div className="settings-body field-grid">
+        <label className="field"><span>Organization URL</span><input name="orgUrl" defaultValue={values.orgUrl} placeholder="https://dev.azure.com/org" required /></label>
+        <label className="field"><span>Project</span><input name="project" defaultValue={values.project} required /></label>
+        <label className="field"><span>Team<small>for sprints</small></span><input name="team" defaultValue={values.team} required /></label>
+        <label className="field"><span>Assigned to<small>only their PBIs, and the PRs they review</small></span><input name="user" defaultValue={values.user} placeholder="name@company.com" required /></label>
+        <label className="field"><span>Personal access token<small>Work Items Read, Code Read{values.hasPat ? " · set; type a new one to replace it" : ""}</small></span><input name="pat" type="password" autoComplete="off" placeholder={values.hasPat ? "•••••••• unchanged" : ""} required={!values.hasPat} /></label>
       </div>
-      {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
+      <div className="settings-foot">
+        <ResultLine result={saveResult ?? testResult} />
+        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test connection"}</button>
+        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+      </div>
     </form>
   );
 }

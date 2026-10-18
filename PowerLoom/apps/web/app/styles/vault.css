@@ -1,0 +1,328 @@
+/* The Vault page in the Ice theme, and the pieces Agents shares with it: the tab row with its filters, stacked bars,
+   agent dots, folding panels, the note and register tables. */
+
+/* Tabs on the left, the tab's filters on the right. */
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tab-bar .tabs {
+  margin-bottom: 0;
+}
+
+.tab-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.tab-bar + .band,
+.band + .panel {
+  margin-bottom: 14px;
+}
+
+.band + .panel,
+.panel + .panel,
+.panel + .fold-panel {
+  margin-top: 14px;
+}
+
+/* A thin bar of parts with its total. */
+.stacked {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.stacked-bar {
+  display: flex;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.stacked-bar b {
+  display: block;
+  height: 100%;
+}
+
+.stacked-total {
+  min-width: 32px;
+  font: 12.5px var(--font-mono);
+  text-align: right;
+  color: var(--muted);
+}
+
+.bar-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.bar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bar-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.use-read { background: var(--accent); }
+.use-search { background: var(--accent-2); }
+.use-shell { background: var(--state-todo); }
+.use-write { background: var(--series-8); }
+
+.agent-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.agent-dots i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.agent-dots span {
+  margin-left: 5px;
+}
+
+/* A panel that starts folded. */
+.fold-panel > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.fold-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold-panel > summary small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.fold-panel:not([open]) {
+  opacity: 0.8;
+}
+
+.fold-panel[open] .fold-mark {
+  transform: rotate(90deg);
+}
+
+.fold-count {
+  margin-left: auto;
+  font: 12px var(--font-mono);
+  color: var(--faint);
+}
+
+/* The note and register tables: columns that fit, the path or facts under the title. */
+.vault-table {
+  table-layout: fixed;
+}
+
+.vault-table td.title {
+  min-width: 0;
+  white-space: normal;
+}
+
+.vault-table td.title > a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.vault-table td.title > a:hover {
+  color: var(--accent);
+}
+
+.note-path {
+  display: block;
+  overflow: hidden;
+  font: 11.5px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.vault-table .col-change { width: 150px; }
+.vault-table .col-run { width: 100px; }
+.vault-table .col-when { width: 92px; }
+.vault-table .col-uses { width: 220px; }
+.vault-table .col-record { width: 160px; white-space: nowrap; }
+.vault-table .col-status { width: 120px; }
+
+/* A new note is filled teal with a plus, an update dashed violet with a pencil (user, 2026-10-18: they looked alike). */
+.note-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 9px;
+  font-size: 11.5px;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.note-change.created {
+  font-weight: 600;
+  color: #06201b;
+  background: var(--ok);
+  border-color: var(--ok);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ok) 30%, transparent);
+}
+
+.note-change.created::before {
+  content: "+";
+  font-weight: 700;
+}
+
+.note-change.updated {
+  color: var(--accent-2);
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent-2) 40%, transparent);
+}
+
+.note-change.updated::before {
+  content: "✎";
+  font-size: 11px;
+}
+
+.note-created-in {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* Registers. */
+.register-bar {
+  margin-top: 30px;
+}
+
+.register-bar .status-pills {
+  margin-left: auto;
+}
+
+.seg-count {
+  margin-left: 6px;
+  font: 500 11.5px var(--font-mono);
+  color: var(--faint);
+}
+
+.seg a.active .seg-count {
+  color: var(--accent);
+}
+
+.seg-count.warn,
+.seg a.active .seg-count.warn {
+  color: var(--warn);
+}
+
+.project-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--state-todo);
+  border: 1px solid color-mix(in srgb, var(--state-todo) 35%, transparent);
+  border-radius: 999px;
+}
+
+.register-title {
+  display: block;
+  color: var(--text);
+}
+
+.register-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.register-status.open {
+  color: var(--muted);
+  border-color: var(--border-hi);
+}
+
+.register-status.resolved {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+
+.register-status.attention {
+  --pulse: color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.register-status.attention::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.vault-table tr.settled td {
+  opacity: 0.55;
+}
+
+.vault-table tr.settled:hover td {
+  opacity: 0.9;
+}
+
+.fault-agent { color: var(--accent-2); }
+.fault-human { color: var(--human); }
+
+/* An empty section as one quiet line. */
+.quiet-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--faint);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+@media (max-width: 800px) {
+  .vault-table .col-uses { width: 140px; }
+  .vault-table .col-change { width: 110px; }
+}
