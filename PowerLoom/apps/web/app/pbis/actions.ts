@@ -154,12 +154,11 @@ export async function createPbiAction(_previous: ActionResult | null, form: Form
   // Repos and attachments like the PBI page saves them (user decision 2026-10-06); a refused one doesn't undo the PBI.
   const problems = [...await saveNewPbiRepos(created.value.adoId, form), ...await storeNewPbiFiles(created.value.adoId, form)];
 
-  if (problems.length > 0) {
-    return { ok: false, message: `PBI-${created.value.adoId} created, but: ${problems.join(" ")} Open it to fix this.` };
-  }
-
   revalidatePath("/pbis");
-  redirect(`/pbis/${created.value.adoId}`);
+
+  // The PBI exists either way: its page opens, and a refused repo or file shows there, so the form is never left with
+  // a Create button that would make a second PBI (user decision 2026-10-18).
+  redirect(problems.length > 0 ? `/pbis/${created.value.adoId}?problem=${encodeURIComponent(problems.join(" "))}` : `/pbis/${created.value.adoId}`);
 }
 
 async function saveNewPbiRepos(adoId: number, form: FormData): Promise<string[]> {

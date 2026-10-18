@@ -1,0 +1,406 @@
+/* Glowing panels and tiles (the dashboard first, other pages as they move to the Ice look), status dots and meters, and
+   the calm attention states: a problem breathes its outline, it never shouts (user decision 2026-10-18). */
+
+@property --light-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.panel,
+.tile {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--edge);
+  transition: border-color var(--motion-base) var(--motion-ease);
+}
+
+/* On hover a light travels around the border in the card's two colours; the resting outline fades meanwhile so the
+   two never overlap (user, 2026-10-18). */
+.panel::after,
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--light-angle), transparent 0 66%, var(--tone-2, var(--accent-2)) 80%, var(--tone, var(--accent)) 92%, transparent 100%);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: drop-shadow(0 0 3px var(--tone, var(--accent)));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.panel:hover,
+.tile:hover {
+  border-color: rgb(255 255 255 / 0.04);
+}
+
+.panel:hover::after,
+.tile:hover::after {
+  opacity: 0.55;
+  animation: travel-light var(--motion-ambient) linear infinite;
+}
+
+/* A table panel scrolls sideways when narrow; its light stays inside, or it would add a scrollbar. */
+.panel.scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.panel.scroll::after {
+  inset: 0;
+}
+
+.panel > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 16px 20px 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel > h3 small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.panel-body {
+  padding: 4px 20px 14px;
+}
+
+.panel .empty {
+  margin: 6px 0 4px;
+  color: var(--faint);
+}
+
+.tile {
+  padding: 18px 20px;
+}
+
+/* The tile's resting top line, in its two colours. */
+.tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 20px;
+  left: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--tone, var(--accent)), var(--tone-2, var(--accent-2)), transparent);
+  opacity: 0.8;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.tile:hover::before {
+  opacity: 0;
+}
+
+.tile-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tile-value {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-note {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.tile-note a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border-hi);
+}
+
+/* Two numbers side by side in one tile (e.g. your estimate and the agents'). */
+.tile-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.tile-pair > div + div {
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.tile-value-unit {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.tile-value.second {
+  color: color-mix(in srgb, var(--accent-2) 75%, var(--text));
+}
+
+.tone-good {
+  --tone: var(--ok);
+  --tone-2: var(--accent);
+}
+
+.tone-good .tile-value {
+  color: var(--ok);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--ok) 35%, transparent);
+}
+
+.tone-warn {
+  --tone: var(--warn);
+  --tone-2: color-mix(in srgb, var(--warn) 55%, var(--error));
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  animation: breathe-warn var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.tone-error {
+  --tone: var(--error);
+  --tone-2: color-mix(in srgb, var(--error) 55%, var(--accent-2));
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+  animation: breathe-error var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.tone-warn .tile-value {
+  color: var(--warn);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.tone-error .tile-value {
+  color: var(--error);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--error) 35%, transparent);
+}
+
+.text-warn {
+  color: var(--warn);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+.text-faint {
+  color: var(--faint);
+}
+
+/* A row of a status panel: dot, name, value on the right. */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row .name {
+  flex: 1;
+}
+
+.status-row .value {
+  font: 12.5px var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+}
+
+.status-row.warn .value {
+  color: var(--warn);
+}
+
+.status-row.error .value {
+  color: var(--error);
+}
+
+/* A status dot: OK glows still; warning and error pulse in the shared rhythm. */
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--faint);
+}
+
+.dot.ok {
+  background: var(--ok);
+  border: none;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ok) 70%, transparent);
+}
+
+.dot.warn,
+.dot.error {
+  --pulse: color-mix(in srgb, var(--dot-color) 55%, transparent);
+  background: var(--dot-color);
+  border: none;
+  animation: pulse-dot var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.dot.warn {
+  --dot-color: var(--warn);
+}
+
+/* A failure in the past: red, but still; only what needs attention now pulses. */
+.dot.past-error {
+  background: var(--error);
+  border: none;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--error) 60%, transparent);
+}
+
+.dot.inline {
+  display: inline-block;
+  margin-right: 10px;
+  vertical-align: 1px;
+}
+
+.dot.error {
+  --dot-color: var(--error);
+}
+
+/* A thin glowing meter (budget today, sprint done). */
+.meter {
+  display: block;
+  height: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.meter.good > span {
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+}
+
+.meter.near > span {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 50%, transparent), var(--warn));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.meter.over > span {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--error) 50%, transparent), var(--error));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--error) 60%, transparent);
+}
+
+/* A table inside a panel: numbers in mono, right-aligned columns, one-line titles. */
+.data-table {
+  width: 100%;
+  font-size: 13px;
+}
+
+.data-table th {
+  padding: 12px 20px 8px;
+}
+
+.data-table td {
+  padding: 10px 20px;
+}
+
+.data-table .num {
+  font: 12.5px var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+}
+
+.data-table th.num {
+  font: 500 12px var(--font-sans);
+  color: var(--faint);
+}
+
+.data-table td.clip {
+  overflow: hidden;
+  width: 100%;
+  max-width: 1px;
+  text-overflow: ellipsis;
+}
+
+.data-table a.id {
+  font: 12.5px var(--font-mono);
+}
+
+.data-table tr.off td {
+  color: var(--faint);
+}
+
+.swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.off-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+@keyframes travel-light {
+  to {
+    --light-angle: 360deg;
+  }
+}
+
+@keyframes breathe-warn {
+  0%, 100% { box-shadow: var(--edge), 0 0 0 0 transparent; }
+  50% { box-shadow: var(--edge), 0 0 26px -4px color-mix(in srgb, var(--warn) 35%, transparent); }
+}
+
+@keyframes breathe-error {
+  0%, 100% { box-shadow: var(--edge), 0 0 0 0 transparent; }
+  50% { box-shadow: var(--edge), 0 0 28px -4px color-mix(in srgb, var(--error) 40%, transparent); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 var(--pulse); }
+  50% { box-shadow: 0 0 10px 2px var(--pulse); }
+}
+
+@keyframes breathe-opacity {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}
+
+/* A small heading inside a panel, between groups of rows. */
+.panel-subhead {
+  margin: 14px 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

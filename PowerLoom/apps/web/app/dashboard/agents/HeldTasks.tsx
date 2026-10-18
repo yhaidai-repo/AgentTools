@@ -1,27 +1,29 @@
 import Link from "next/link";
+import { Panel } from "@/components/Panel";
+import { StatusRow } from "@/components/StatusRow";
 import { TimeAgo } from "@/components/TimeAgo";
 import { itemPath } from "@/lib/items";
 import type { HeldTask } from "@/models/HeldTask";
 
-const MAX_SHOWN = 8;
+const MAX_SHOWN = 6;
 
-// Open tasks the dispatcher didn't start, with their reasons (e.g. waiting for the user's answers).
+// The vault's open tasks the dispatcher didn't start, with their reasons (e.g. waiting for the user's answers): they wait
+// on the user, so the panel breathes amber while any is held.
 export function HeldTasks({ tasks }: { tasks: HeldTask[] }) {
-  if (tasks.length === 0) {
-    return <p className="muted">None.</p>;
-  }
+  return (
+    <Panel title="Held tasks" tone={tasks.length > 0 ? "warn" : "plain"}>
+      {tasks.length === 0 && <p className="empty">None.</p>}
+      {tasks.slice(0, MAX_SHOWN).map((task) => <HeldRow key={task.id} task={task} />)}
+      {tasks.length > MAX_SHOWN && <p className="empty">and {tasks.length - MAX_SHOWN} more · <Link href="/tasks?status=open">Tasks page</Link></p>}
+    </Panel>
+  );
+}
 
+function HeldRow({ task }: { task: HeldTask }) {
   return (
     <>
-      {tasks.slice(0, MAX_SHOWN).map((task) => (
-        <p key={task.id} className="dashboard-row">
-          <span className="state-dot state-degraded" />
-          <strong><Link href={itemPath(task)}>{task.id}</Link></strong> <span className="muted">{task.kind} · {task.vault} · <TimeAgo date={task.updatedAt} /></span>
-          <br />
-          <span className="muted held-reasons">{[...new Set(task.heldBy)].join("; ")}</span>
-        </p>
-      ))}
-      {tasks.length > MAX_SHOWN && <p className="muted">and {tasks.length - MAX_SHOWN} more · <Link href="/tasks?status=open">Tasks page</Link></p>}
+      <StatusRow name={<><Link href={itemPath(task)} className="id">{task.id}</Link> {task.kind}</>} value={<TimeAgo date={task.updatedAt} />} tone="warn" />
+      <p className="held-reasons">{[...new Set(task.heldBy)].join("; ")}</p>
     </>
   );
 }

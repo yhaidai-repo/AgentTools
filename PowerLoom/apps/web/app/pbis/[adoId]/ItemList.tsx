@@ -9,30 +9,48 @@ interface ItemListProps {
   results?: ItemRow[];
 }
 
-// Short list: open items first, each linking to its page with the full content (and the answer form).
+// Status rows, open items first, each linking to its page with the full content (and the answer form): what waits on
+// you pulses amber, an agent task in progress pulses cyan, what is done stays quiet (user decision 2026-10-18).
 export function ItemList({ items, empty, results = [] }: ItemListProps) {
   if (items.length === 0) {
-    return <p className="muted">{empty}</p>;
+    return <p className="empty">{empty}</p>;
   }
 
   const sorted = [...items].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)));
 
   return (
-    <ul className="item-list">
+    <div className="item-rows">
       {sorted.map((item) => (
-        <li key={item.id}>
-          <Link href={itemPath(item)}>{item.id}</Link>
-          {" · "}
-          <span className={isOpen(item) && item.assignee === "human" ? "result-error" : "muted"}>{item.status}</span>
-          {" · "}
-          {item.title}
-          {(item.data as { needsWeb?: boolean } | null)?.needsWeb && <span className="chip"> needs web</span>}
-          <ResultNote result={latestResult(item, results)} />
+        <div key={item.id} className="item-row">
+          <span className={dotClass(item)} />
+          <Link href={itemPath(item)} className="id">{item.id}</Link>
+          <span className="item-title" title={item.title}>{item.title}</span>
+          <span className="item-state">{stateText(item)}<ResultNote result={latestResult(item, results)} /></span>
           <HeldNote item={item} />
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
+}
+
+function dotClass(item: ItemRow): string {
+  if (!isOpen(item)) {
+    return "dot";
+  }
+
+  if (item.assignee === "human") {
+    return "dot warn";
+  }
+
+  return item.status === "in-progress" ? "dot running" : "dot ok";
+}
+
+function stateText(item: ItemRow): string {
+  if (isOpen(item) && item.assignee === "human") {
+    return "waits for you";
+  }
+
+  return (item.data as { needsWeb?: boolean } | null)?.needsWeb ? `${item.status} · needs web` : item.status;
 }
 
 // The task's current result: the final one, else the newest.
@@ -48,7 +66,7 @@ function HeldNote({ item }: { item: ItemRow }) {
     return null;
   }
 
-  return <span className="result-error"> · held: {item.heldBy.join("; ")}</span>;
+  return <span className="item-held">held: {item.heldBy.join("; ")}</span>;
 }
 
 function ResultNote({ result }: { result: ItemRow | null }) {
@@ -58,5 +76,5 @@ function ResultNote({ result }: { result: ItemRow | null }) {
 
   const confidence = (result.data as { confidence?: string } | null)?.confidence;
 
-  return <span className="muted"> · result{confidence ? `: ${confidence} confidence` : ""}</span>;
+  return <> · result{confidence ? `: ${confidence} confidence` : ""}</>;
 }

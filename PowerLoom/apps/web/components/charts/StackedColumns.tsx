@@ -1,15 +1,17 @@
+import type { ReactNode } from "react";
 import type { ChartSeries } from "@/models/ChartSeries";
-import { columnLayout, niceTicks } from "./chartScales";
+import { BAR_WIDTH, columnLayout, niceTicks } from "./chartScales";
 
 const WIDTH = 640;
 const HEIGHT = 220;
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 44 };
-const MAX_COLUMN_WIDTH = 24;
 const GAP = 2;
 const TICKS = 3;
 
 interface StackedColumnsProps {
   title: string;
+  /** Beside the title on the right, e.g. a switch of what the chart shows. */
+  aside?: ReactNode;
   labels: string[];
   series: ChartSeries[];
   format: (value: number) => string;
@@ -19,18 +21,18 @@ interface StackedColumnsProps {
 
 // Hand-rolled SVG (no chart library, user decision 2026-10-11): one column per label, the series stacked from the
 // baseline with a surface gap between segments; each segment tells its value on hover; the legend names the series.
-export function StackedColumns({ title, labels, series, format, axisLabel = (label) => label }: StackedColumnsProps) {
+export function StackedColumns({ title, aside, labels, series, format, axisLabel = (label) => label }: StackedColumnsProps) {
   const totals = labels.map((_, index) => series.reduce((sum, item) => sum + (item.values[index] ?? 0), 0));
   const ticks = niceTicks(Math.max(...totals, 0), TICKS);
   const plot = { x: MARGIN.left, y: MARGIN.top, width: WIDTH - MARGIN.left - MARGIN.right, height: HEIGHT - MARGIN.top - MARGIN.bottom };
-  const layout = columnLayout(labels.length, plot.width, MAX_COLUMN_WIDTH);
+  const layout = columnLayout(labels.length, plot.width, BAR_WIDTH);
   const scale = (value: number): number => plot.height * (ticks.max > 0 ? value / ticks.max : 0);
   const labelStep = Math.ceil(labels.length / 10);
   const peak = totals.indexOf(Math.max(...totals));
 
   return (
-    <figure className="chart">
-      <figcaption>{title}</figcaption>
+    <figure className="panel chart">
+      <figcaption>{title}{aside}</figcaption>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={title}>
         {ticks.values.map((tick) => (
           <g key={tick} className="chart-grid">

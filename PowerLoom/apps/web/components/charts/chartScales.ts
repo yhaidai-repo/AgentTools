@@ -1,5 +1,11 @@
 const TICK_STEPS = [1, 2, 2.5, 5, 10];
 
+// Every chart draws its columns this wide, whatever the number of days (user, 2026-10-18: bars look alike across tabs);
+// a crowded chart narrows them to fit.
+export const BAR_WIDTH = 14;
+
+export const BAR_GAP = 3;
+
 export interface Ticks {
   values: number[];
   max: number;

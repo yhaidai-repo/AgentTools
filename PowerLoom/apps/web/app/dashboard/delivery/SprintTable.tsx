@@ -1,34 +1,36 @@
+import { Panel } from "@/components/Panel";
+import { formatEffortHours, formatPercent } from "@/lib/format";
+import { sprintName } from "@/lib/sprintProgress";
 import type { SprintSummary } from "@/models/SprintSummary";
 
-// Every sprint with snapshots, newest first; the readable form of the sprint load charts.
+// Every sprint of the vault, newest first: how heavy each was (user request 2026-10-16), in place of the sprint load
+// charts (user decision 2026-10-18).
 export function SprintTable({ sprints }: { sprints: SprintSummary[] }) {
   return (
-    <div className="table-wrap">
-      <table>
+    <Panel title="Sprints" table>
+      <table className="data-table">
         <thead>
           <tr>
             <th>Sprint</th>
-            <th>Days</th>
-            <th>Items</th>
-            <th>Done</th>
-            <th title="Sum of your Tasks' Original Estimate, hours">Effort</th>
-            <th title="Effort per item, hours">Effort / item</th>
+            <th className="num">Items</th>
+            <th className="num">Done</th>
+            <th className="num" title="Sum of your Tasks' Original Estimate">Effort</th>
+            <th className="num" title="Effort per item">Per item</th>
           </tr>
         </thead>
         <tbody>
           {sprints.map((sprint) => (
             <tr key={sprint.iterationPath}>
-              <td>{sprint.iterationPath}</td>
-              <td>{sprint.days}</td>
-              <td>{sprint.items}</td>
-              <td>{sprint.done}{sprint.items > 0 ? ` (${Math.round((sprint.done / sprint.items) * 100)}%)` : ""}</td>
-              <td>{sprint.effort ?? "–"}</td>
-              <td>{effortPerItem(sprint)}</td>
+              <td title={sprint.iterationPath}>{sprintName(sprint.iterationPath)}</td>
+              <td className="num">{sprint.items}</td>
+              <td className="num">{sprint.done} <span className="text-faint">{sprint.items > 0 ? formatPercent(sprint.done / sprint.items) : ""}</span></td>
+              <td className="num">{sprint.effort === null ? "–" : `${formatEffortHours(sprint.effort)} h`}</td>
+              <td className="num">{effortPerItem(sprint)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </Panel>
   );
 }
 
@@ -37,5 +39,5 @@ function effortPerItem(sprint: SprintSummary): string {
     return "–";
   }
 
-  return (sprint.effort / sprint.items).toFixed(1);
+  return `${(sprint.effort / sprint.items).toFixed(1)} h`;
 }

@@ -1,0 +1,556 @@
+/* The Backlog, the PBI page and New PBI in the Ice theme: status pills, the selection bar, the PBI table with its child
+   tree, tags and pills, the pager. */
+
+.page-head .page-action {
+  margin-left: auto;
+}
+
+button.small,
+a.button.small {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+button.danger {
+  color: var(--error);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+  box-shadow: none;
+}
+
+.empty-note {
+  margin: 14px 4px;
+  color: var(--faint);
+}
+
+/* Status pills and the sync line above the table. */
+.backlog-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: color var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.status-pill b {
+  font: 500 12px var(--font-mono);
+  color: var(--faint);
+}
+
+.status-pill:hover {
+  color: var(--text);
+  border-color: var(--border-hi);
+}
+
+.status-pill.on {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.status-pill.on b {
+  color: var(--accent);
+}
+
+.sync-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sync-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The selection bar: there only while rows are ticked; it slides down and fades in, and folds away when cleared. */
+.selection-bar {
+  position: sticky;
+  top: 78px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-height: 0;
+  margin-bottom: 0;
+  padding: 0 10px 0 16px;
+  overflow: hidden;
+  background: rgb(14 16 21 / 0.92);
+  backdrop-filter: blur(12px);
+  border: 0 solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--motion-out), transform var(--motion-base) var(--motion-out), max-height var(--motion-base) var(--motion-out), margin var(--motion-base) var(--motion-out), padding var(--motion-base) var(--motion-out), border-width var(--motion-base) var(--motion-out);
+}
+
+.selection-bar.show {
+  max-height: 64px;
+  margin-bottom: 12px;
+  padding: 8px 10px 8px 16px;
+  border-width: 1px;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  animation: selection-glow 1.2s var(--motion-out) 1 forwards;
+}
+
+.selection-bar button {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.selection-count {
+  display: inline-block;
+  margin-right: 6px;
+  font-weight: 600;
+  animation: count-bump 0.3s var(--motion-out) 1;
+}
+
+.selection-clear {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.action-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 4px 12px;
+  font-size: 13px;
+}
+
+@keyframes selection-glow {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  40% { box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 35%, transparent); }
+  100% { box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 14%, transparent); }
+}
+
+@keyframes count-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); color: var(--accent); }
+  100% { transform: scale(1); }
+}
+
+/* The PBI table: fixed columns, the title takes the rest (user, 2026-10-18: no sideways scroll). */
+.pbi-table table {
+  table-layout: fixed;
+}
+
+.pbi-table td {
+  vertical-align: middle;
+}
+
+/* Each PBI group is a tbody: a line between groups, none under the last. */
+.pbi-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--border);
+}
+
+.pbi-table tbody:last-of-type tr:last-child td {
+  border-bottom: none;
+}
+
+.pbi-table .col-select {
+  width: 40px;
+  padding-right: 0;
+}
+
+.pbi-table .col-fold {
+  width: 46px;
+  padding: 0 0 0 4px;
+}
+
+.pbi-table .col-id {
+  width: 132px;
+  white-space: nowrap;
+}
+
+.pbi-table .col-stage {
+  width: 220px;
+  white-space: normal;
+}
+
+.pbi-table .col-updated {
+  width: 92px;
+}
+
+.pbi-table td.title {
+  min-width: 0;
+  white-space: normal;
+}
+
+.pbi-table input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.pbi-table tr:has(input[name="adoId"]:checked) td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.pbi-table tr:has(input[name="adoId"]:checked) td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.id {
+  font: 12.5px var(--font-mono);
+}
+
+.ado-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--state-ready);
+  border: 1px solid color-mix(in srgb, var(--state-ready) 35%, transparent);
+  border-radius: 999px;
+}
+
+.ado-tag:hover {
+  background: color-mix(in srgb, var(--state-ready) 10%, transparent);
+}
+
+.row-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.row-title:hover {
+  color: var(--accent);
+}
+
+.row-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.type-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 6px;
+}
+
+.type-tag.pbi {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.type-tag.bug {
+  color: #f9a8d4;
+  border-color: color-mix(in srgb, #f9a8d4 35%, transparent);
+  background: color-mix(in srgb, #f9a8d4 7%, transparent);
+}
+
+.type-tag.task {
+  color: var(--state-todo);
+  border-color: color-mix(in srgb, var(--state-todo) 30%, transparent);
+  background: color-mix(in srgb, var(--state-todo) 6%, transparent);
+}
+
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.stage-new { color: var(--state-todo); border-color: color-mix(in srgb, var(--state-todo) 30%, transparent); }
+.stage-refine { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.stage-human { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: color-mix(in srgb, var(--warn) 6%, transparent); }
+.stage-design { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); background: color-mix(in srgb, var(--accent-2) 6%, transparent); }
+.stage-dev { color: var(--state-ready); border-color: color-mix(in srgb, var(--state-ready) 35%, transparent); background: color-mix(in srgb, var(--state-ready) 6%, transparent); }
+.stage-done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 6%, transparent); }
+.stage-closed { color: var(--faint); border-color: var(--border); }
+.stage-stale { color: var(--muted); border-style: dashed; border-color: var(--border-hi); }
+
+/* What waits on you: an amber badge with a pulsing dot. */
+.for-you {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0 6px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border-radius: 999px;
+}
+
+.for-you::before {
+  --pulse: color-mix(in srgb, var(--warn) 55%, transparent);
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  animation: pulse-dot var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.findings-note {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* Child items: a fold button with the count, and a glowing tree line from the parent. */
+.fold-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  font: 11px var(--font-mono);
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.fold-button:hover {
+  filter: none;
+  color: var(--text);
+  border-color: var(--border-hi);
+  box-shadow: none;
+}
+
+.fold-button span {
+  display: inline-block;
+  transition: transform var(--motion-fast);
+}
+
+.fold-button.open span {
+  transform: rotate(90deg);
+}
+
+.pbi-table tr.child-row td {
+  background: rgb(0 0 0 / 0.18);
+}
+
+.pbi-table tr.child-row td.title {
+  position: relative;
+  padding-left: 34px;
+}
+
+.pbi-table tr.child-row td.title::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 50%;
+  left: 14px;
+  width: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-bottom-left-radius: 6px;
+}
+
+.pbi-table tr.child-row:not(.last) td.title::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  bottom: 0;
+  left: 14px;
+  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.pbi-table tr.settled td {
+  opacity: 0.55;
+}
+
+.pbi-table tr.settled:hover td {
+  opacity: 0.9;
+}
+
+.context-tag {
+  padding: 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px dashed var(--border-hi);
+  border-radius: 999px;
+}
+
+/* The row you came back to glows once. */
+.pbi-table tr.focused td {
+  animation: focus-glow 2.4s var(--motion-ease) 1;
+}
+
+@keyframes focus-glow {
+  0% {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 50%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+/* The pager under the table. */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pager-pages {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pager-button {
+  min-width: 30px;
+  padding: 3px 9px;
+  font: 12.5px var(--font-mono);
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.pager-button:hover {
+  color: var(--text);
+  border-color: var(--border-hi);
+}
+
+.pager-button.on {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.pager-button.disabled {
+  opacity: 0.35;
+}
+
+/* Sync and imports. */
+.sync-panel {
+  margin-bottom: 18px;
+}
+
+.sync-panel > h3 {
+  margin: 0;
+  padding: 16px 20px 6px;
+  font-size: 14px;
+}
+
+.sync-forms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subsection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 4px 10px;
+}
+
+.subsection-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.import-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.import-chip {
+  padding: 1px 8px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.import-chip.failed {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 35%, transparent);
+}
+
+.imports-table td {
+  white-space: normal;
+}
+
+.imports-table td.num {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .pbi-table .col-id {
+    display: none;
+  }
+
+  .pbi-table .col-stage {
+    width: 150px;
+  }
+}
