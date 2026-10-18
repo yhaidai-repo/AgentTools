@@ -1,0 +1,246 @@
+/* Tasks in the Ice theme: kind tags and state pills, the task table where human work stands out, the task page's
+   header and the human task's step cards. */
+
+/* Human work is warm (user request 2026-10-18); agent work keeps the cool colours of its pipeline stage. */
+:root {
+  --human: #fdba74;
+}
+
+.kind-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 6px;
+}
+
+.kind-human { color: var(--human); border-color: color-mix(in srgb, var(--human) 40%, transparent); background: color-mix(in srgb, var(--human) 8%, transparent); }
+.kind-refine { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.kind-design { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); }
+.kind-review { color: var(--state-ready); border-color: color-mix(in srgb, var(--state-ready) 35%, transparent); }
+.kind-docs { color: var(--state-todo); border-color: color-mix(in srgb, var(--state-todo) 35%, transparent); }
+.kind-meeting { color: var(--series-8); border-color: color-mix(in srgb, var(--series-8) 35%, transparent); }
+
+.task-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.task-open { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.task-held { color: var(--muted); border-style: dashed; border-color: var(--border-hi); }
+.task-done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+.task-off { color: var(--faint); border-color: var(--border); }
+
+.task-wait {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.task-run {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.task-wait::before,
+.task-run::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.task-wait::before {
+  --pulse: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.task-run::before {
+  --pulse: color-mix(in srgb, var(--accent) 55%, transparent);
+  animation-duration: calc(var(--motion-ambient) / 3);
+}
+
+/* The task table: four columns that fit. */
+.task-table table {
+  table-layout: fixed;
+}
+
+.task-table .col-id {
+  width: 150px;
+  white-space: nowrap;
+}
+
+.task-table .col-state {
+  width: 160px;
+}
+
+.task-table .col-updated {
+  width: 92px;
+}
+
+.task-table td.title {
+  min-width: 0;
+  white-space: normal;
+}
+
+.task-table tr.human td {
+  background: color-mix(in srgb, var(--human) 3%, transparent);
+}
+
+.task-table tr.human.waiting td {
+  background: color-mix(in srgb, var(--warn) 5%, transparent);
+}
+
+.task-table tr.human.waiting td:first-child {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+
+.task-table tr.settled td {
+  opacity: 0.55;
+}
+
+.task-table tr.settled:hover td {
+  opacity: 0.9;
+}
+
+/* A small person mark: "for you", "yours". */
+.for-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--human);
+}
+
+.for-who::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 36%, var(--human) 0 2.5px, transparent 3px),
+    radial-gradient(ellipse at 50% 100%, var(--human) 0 5px, transparent 5.5px);
+}
+
+.status-pill.for-you-pill {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.status-pill.for-you-pill b {
+  color: var(--warn);
+}
+
+.pbi-filter {
+  margin-left: auto;
+}
+
+.pbi-filter input {
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.schedule-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-row .item-title {
+  display: grid;
+  white-space: normal;
+}
+
+/* The task page. */
+.item-title-head {
+  font-size: 22px;
+}
+
+.item-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.held-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13px;
+  color: var(--warn);
+}
+
+.item-metro .metro-done {
+  background: linear-gradient(90deg, var(--accent), var(--human));
+}
+
+/* A human task's steps, one card each with its answer field inside. */
+.step-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgb(0 0 0 / 0.15);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  border-radius: 12px;
+}
+
+.step-number {
+  font: 500 12px var(--font-mono);
+  color: var(--warn);
+}
+
+.step-body {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.step-body p {
+  margin: 0;
+}
+
+.step-body textarea {
+  width: 100%;
+}
+
+/* Repository checkboxes as toggle chips. */
+.repo-check {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.repo-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.repo-check span {
+  padding: 3px 11px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+  transition: color var(--motion-fast), background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.repo-check input:checked + span {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.repo-check input:focus-visible + span {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.text-ok {
+  color: var(--ok);
+}

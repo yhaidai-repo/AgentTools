@@ -3,10 +3,12 @@ import { pipelineStatus, type PowerLoomDb } from "@powerloom/db";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
+import { Pager } from "@/components/Pager";
 import { RememberFilters } from "@/components/RememberFilters";
 import { TimeAgo } from "@/components/TimeAgo";
 import { groupBacklogRows } from "@/lib/backlogGroups";
-import { pageCount, pageOf, pageSizeOf, slicePage } from "@/lib/backlogPages";
+import { PAGE_SIZES, pageCount, pageOf, pageSizeOf, slicePage } from "@/lib/backlogPages";
+import { backlogUrl } from "@/lib/backlogUrl";
 import { loadBacklogRows, loadLastSyncedAt } from "@/lib/backlogRows";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -18,7 +20,6 @@ import type { BacklogView } from "@/models/BacklogView";
 import { BacklogForm } from "./BacklogForm";
 import { FocusRow } from "./FocusRow";
 import { ImportsPanel } from "./ImportsPanel";
-import { Pager } from "./Pager";
 import { PbiTable } from "./PbiTable";
 import { StatusPills } from "./StatusPills";
 import { SyncForm } from "./SyncForm";
@@ -72,7 +73,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
       <BacklogForm>
         <PbiTable groups={slicePage(groups, size, view.page)} ado={ado} focus={focus} />
       </BacklogForm>
-      {groups.length === 0 ? <p className="empty-note">No PBIs match. Check the status, or sync a sprint.</p> : <Pager view={view} total={groups.length} pages={pageCount(groups, size)} />}
+      {groups.length === 0 ? <p className="empty-note">No PBIs match. Check the status, or sync a sprint.</p> : <Pager page={view.page} size={size} sizes={PAGE_SIZES} pages={pageCount(groups, size)} total={groups.length} noun="PBIs" hrefOf={(change) => backlogUrl({ statuses, size: change.size ?? size, page: change.page })} />}
       {focus !== null && <FocusRow adoId={focus} />}
       <div className="section-label">Sync and imports</div>
       <SyncSection db={db} vault={vault} ado={ado} />

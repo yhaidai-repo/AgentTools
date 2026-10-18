@@ -1,113 +1,141 @@
-import { isFailedOutcome, listVaultTaskSchedules, workerLabel } from "@powerloom/core";
+import { isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
 import Link from "next/link";
-import { LocalTime } from "@/components/LocalTime";
-import { RememberFilters } from "@/components/RememberFilters";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
+import { Pager } from "@/components/Pager";
+import { RememberFilters } from "@/components/RememberFilters";
+import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
+import { TimeAgo } from "@/components/TimeAgo";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { itemPath } from "@/lib/items";
+import { DAY_RANGES, DEFAULT_DAY_RANGE } from "@/lib/ranges";
 import { rememberedParams } from "@/lib/rememberedFilters";
-import { isOpen, itemPath } from "@/lib/items";
-import { DEFAULT_RANGE, RANGES, rangeOptions } from "@/lib/ranges";
-import { TASK_KINDS, loadTaskList, type TaskRow } from "@/lib/taskList";
+import { TASK_KINDS, TASK_PAGE_SIZES, bucketOf, countBy, loadTaskList, matchesTask, sortTasks, type TaskRow } from "@/lib/taskList";
+import { isHumanWork } from "@/lib/taskLooks";
+import { tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; sort?: string; dir?: string }>;
+// Agents pick up and finish tasks all the time; the list follows without a reload, like the Backlog.
+const TASKS_REFRESH_MS = 10_000;
+const STATUSES: TaskFilter["status"][] = ["you", "open", "held", "done", "cancelled", "all"];
 
-const STATUS_FILTERS: TaskFilter["status"][] = ["open", "closed", "all"];
+type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; page?: string; size?: string }>;
 
-// All tasks, questions and findings, including those of no PBI (e.g. tech-writer tasks for drafts captured in chat).
+// All tasks, questions and findings of the vault, including those of no PBI (e.g. tech-writer tasks for drafts captured
+// in chat): what waits on you first, then the latest change (user decisions 2026-10-18); schedules below the list.
 export default async function TasksPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = await rememberedParams("/tasks", await searchParams);
-  const filter: TaskFilter = {
-    kind: params.kind ?? "",
-    status: STATUS_FILTERS.find((status) => status === params.status) ?? "all",
-    pbi: (params.pbi ?? "").trim(),
-    range: params.range && RANGES[params.range] ? params.range : DEFAULT_RANGE,
-    sort: params.sort === "updated" ? "updated" : "created",
-    dir: params.dir === "asc" ? "asc" : "desc",
-  };
   const vault = await currentVault();
 
   if (!vault) {
     return <NoVault title="Tasks" />;
   }
 
-  const rows = await loadTaskList(filter, vault);
+  const filter = filterOf(await rememberedParams("/tasks", await searchParams));
+  const rows = sortTasks(await loadTaskList(filter, vault));
+  const ofKind = rows.filter((row) => filter.kind === "" || row.kind === filter.kind);
+  const shown = rows.filter((row) => matchesTask(row, filter));
+  const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
+  const page = Math.min(filter.page, pages);
 
   return (
     <>
-      <h1>Tasks</h1>
-      <Link className="button" href="/tasks/new">New task</Link>
-      <h2>Scheduled tasks</h2>
-      <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
-      <h2>Tasks</h2>
+      <div className="page-head">
+        <h1>Tasks</h1>
+        <AutoRefresh active intervalMs={TASKS_REFRESH_MS} />
+        <Link className="button page-action" href="/tasks/new">New task</Link>
+      </div>
       <RememberFilters />
-      <TaskFilters key={JSON.stringify(filter)} filter={filter} kinds={TASK_KINDS} ranges={rangeOptions()} />
-      {rows.length === 0 ? <p className="muted">Nothing matches.</p> : <TaskTable rows={rows} filter={filter} />}
+      <TaskFilters filter={filter} total={ofKind.length} buckets={countBy(ofKind, bucketOf)} kinds={countBy(rows, (row) => row.kind)} />
+      {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} />}
+      {shown.length > 0 && <Pager page={page} size={filter.size} sizes={TASK_PAGE_SIZES} pages={pages} total={shown.length} noun="tasks" hrefOf={(change) => tasksUrl({ ...filter, page: change.page, size: change.size ?? filter.size })} />}
+      <div className="section-label">Scheduled tasks</div>
+      <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
     </>
   );
 }
 
-function TaskTable({ rows, filter }: { rows: TaskRow[]; filter: TaskFilter }) {
+function filterOf(params: Record<string, string | undefined>): TaskFilter {
+  return {
+    kind: TASK_KINDS.find((kind) => kind === params.kind) ?? "",
+    status: STATUSES.find((status) => status === params.status) ?? "all",
+    pbi: (params.pbi ?? "").trim(),
+    range: params.range && DAY_RANGES.includes(params.range) ? params.range : DEFAULT_DAY_RANGE,
+    page: Math.max(Number(params.page) || 1, 1),
+    size: TASK_PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : TASK_PAGE_SIZES[0],
+  };
+}
+
+// Four columns, like the Backlog: the facts of a task go on a quiet line under its title. Human work is warm, and while
+// it waits on you its row has an amber edge (user request 2026-10-18).
+function TaskTable({ rows }: { rows: TaskRow[] }) {
   return (
-    <div className="table-wrap">
-      <table>
+    <div className="panel task-table">
+      <table className="data-table">
         <thead>
-          <tr><th>Id</th><th>Kind</th><th>Status</th><th>For</th><th>PBI</th><th>Run</th><th>Title</th><SortHeader filter={filter} column="created" label="Created" /><SortHeader filter={filter} column="updated" label="Updated" /></tr>
+          <tr><th className="col-id">ID</th><th>Task</th><th className="col-state">Status</th><th className="col-updated num">Updated</th></tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td><Link href={itemPath(row)}>{row.id}</Link></td>
-              <td>{row.kind}</td>
-              <td className={isOpen(row) && row.assignee === "human" ? "result-error" : undefined}>{row.status}{row.heldBy.length > 0 && row.status === "open" ? " (held)" : ""}</td>
-              <td>{workerLabel(row.assignee, row.kind)}</td>
-              <td>{row.pbiId === null ? "–" : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}</td>
-              <td><TaskRuns runs={row.runs} /></td>
-              <td>{row.title}</td>
-              <td><LocalTime date={row.createdAt} /></td>
-              <td><LocalTime date={row.updatedAt} /></td>
-            </tr>
-          ))}
+          {rows.map((row) => <TaskRowView key={row.id} row={row} />)}
         </tbody>
       </table>
     </div>
   );
 }
 
-const SHOWN_RUNS = 3;
-
-// The task's runs, newest first; failures in red, so a failed run stays visible after a later success.
-function TaskRuns({ runs }: { runs: TaskRow["runs"] }) {
-  if (runs.length === 0) {
-    return <>–</>;
-  }
-
-  const hidden = runs.length - SHOWN_RUNS;
+function TaskRowView({ row }: { row: TaskRow }) {
+  const bucket = bucketOf(row);
+  const classes = [isHumanWork(row) ? "human" : "", bucket === "you" ? "waiting" : "", bucket === "done" || bucket === "cancelled" ? "settled" : ""].filter(Boolean).join(" ");
 
   return (
-    <>
-      {runs.slice(0, SHOWN_RUNS).map((run, index) => (
-        <span key={run.id}>
-          {index > 0 && ", "}
-          <Link href={`/agents/runs/${run.id}`} className={isFailedOutcome(run.outcome) ? "result-error" : undefined}>RUN-{run.id} · {run.outcome}</Link>
-        </span>
-      ))}
-      {hidden > 0 && <span className="muted"> +{hidden} more</span>}
-    </>
+    <tr className={classes || undefined}>
+      <td className="col-id"><Link href={itemPath(row)} className="id">{row.id}</Link></td>
+      <td className="title">
+        <Link href={itemPath(row)} className="row-title" title={row.title}>{row.title}</Link>
+        <div className="row-facts">
+          <TaskKindTag kind={row.kind} />
+          {isHumanWork(row) && <span className="for-who">{bucket === "you" ? "for you" : "yours"}</span>}
+          {row.pbiId === null ? <span>no PBI</span> : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}
+          {row.parentId && <span>from {row.parentId}</span>}
+          <TaskRuns runs={row.runs} />
+          {bucket === "held" && <span className="text-warn">held: {[...new Set(row.heldBy)].join("; ")}</span>}
+        </div>
+      </td>
+      <td className="col-state"><TaskStatePill task={row} /></td>
+      <td className="col-updated num"><TimeAgo date={row.updatedAt} /></td>
+    </tr>
   );
 }
 
-// Click to sort by this date, newest first; click again to flip the order. The filters stay as they are.
-function SortHeader({ filter, column, label }: { filter: TaskFilter; column: TaskFilter["sort"]; label: string }) {
-  const isActive = filter.sort === column;
-  const dir = isActive && filter.dir === "desc" ? "asc" : "desc";
-  const query = new URLSearchParams({ kind: filter.kind, status: filter.status, pbi: filter.pbi, range: filter.range, sort: column, dir });
-  const arrow = filter.dir === "desc" ? " ↓" : " ↑";
+const SHOWN_RUNS = 2;
 
-  return <th><Link href={`/tasks?${query}`}>{label}{isActive ? arrow : ""}</Link></th>;
+function runMark(outcome: string): string {
+  if (outcome === "running") {
+    return " …";
+  }
+
+  return isFailedOutcome(outcome) ? " ✗" : " ✓";
+}
+
+// The task's latest runs; a failed one in rose, so it stays visible after a later success.
+function TaskRuns({ runs }: { runs: TaskRow["runs"] }) {
+  if (runs.length === 0) {
+    return null;
+  }
+
+  return (
+    <span>
+      {runs.slice(0, SHOWN_RUNS).map((run, index) => (
+        <span key={run.id}>
+          {index > 0 && ", "}
+          <Link href={`/agents/runs/${run.id}`} className={isFailedOutcome(run.outcome) ? "text-error" : undefined}>RUN-{run.id}{runMark(run.outcome)}</Link>
+        </span>
+      ))}
+      {runs.length > SHOWN_RUNS && <> +{runs.length - SHOWN_RUNS}</>}
+    </span>
+  );
 }

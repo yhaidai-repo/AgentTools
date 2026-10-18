@@ -1,19 +1,16 @@
-import { attachmentRef, isDeletableItem, isHumanTaskData, type FindingData, isRerunnableTask } from "@powerloom/core";
+import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/core";
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
-import { NoteLink } from "@/components/NoteLink";
-import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
 import { DocLink } from "../vault/DocLink";
 import { CloseItemForm } from "./CloseItemForm";
-import { ContinueItem } from "./ContinueItem";
-import { DeleteItemButton } from "./DeleteItemButton";
+import { ItemHeader } from "./ItemHeader";
 import { FindingForm } from "./FindingForm";
+import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
-import { RerunTaskButton } from "./RerunTaskButton";
 import { TaskResults } from "./TaskResults";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
@@ -21,28 +18,10 @@ const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 // One item's page, under its PBI or (for items without one) under Tasks.
 export function ItemView({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
-  const adoId = item.pbiId;
-
   return (
     <>
-      <h1>{item.id} · <PbiLinkedText text={item.title} /></h1>
-      <p>{adoId === null ? <Link href="/tasks">← Tasks</Link> : <Link href={`/pbis/${adoId}`}>← PBI-{adoId}</Link>}{item.vaultPath && <> · <NoteLink vault={item.vault} path={item.vaultPath} label="open note" /></>}</p>
-      <div className="chips">
-        <span className="chip">{item.kind}</span>
-        <span className={`chip ${isOpen(item) && item.assignee === "human" ? "result-error" : ""}`}>status: {item.status}</span>
-        <span className="chip">for: {item.assignee}</span>
-        {adoId !== null && <Link className="chip" href={`/pbis/${adoId}`}>PBI-{adoId}</Link>}
-        {item.createdByRun && <Link className="chip" href={`/agents/runs/${item.createdByRun}`}>created by RUN-{item.createdByRun}</Link>}
-        {item.parentId && <Link className="chip" href={itemPath({ id: item.parentId, pbiId: adoId })}>from {item.parentId}</Link>}
-        {detail.runs.map((run) => <Link key={run.id} className="chip" href={`/agents/runs/${run.id}`}>RUN-{run.id} · {run.outcome}</Link>)}
-      </div>
-      <p className="actions">
-        {isRerunnableTask(item) && <RerunTaskButton adoId={adoId} itemId={item.id} />}
-        <ContinueItem item={item} />
-        {isDeletableItem(item) && <DeleteItemButton adoId={adoId} itemId={item.id} />}
-      </p>
+      <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
-      {item.status === "open" && item.heldBy.length > 0 && <p className="result-error">Held by the dispatcher: {item.heldBy.join("; ")}</p>}
       <ItemContent item={item} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
@@ -149,18 +128,20 @@ function Resolution({ detail }: { detail: ItemDetail }) {
 function OpenForms({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
 
+  const steps = isHumanTaskData(item.data) ? item.data.steps : [];
+
   if (item.kind !== "finding") {
     return (
       <>
-        <h2>{item.kind === "question" ? "Your answer" : "Close the task"}</h2>
-        <CloseItemForm adoId={item.pbiId} itemId={item.id} kind={item.kind} accept={ACCEPT} steps={isHumanTaskData(item.data) ? item.data.steps : []} />
+        <h2 id="answer">{item.kind === "question" ? "Your answer" : "Close the task"}</h2>
+        <CloseItemForm adoId={item.pbiId} itemId={item.id} kind={item.kind} accept={ACCEPT} steps={steps} stepViews={steps.map((step, index) => <StepView key={index} step={step} />)} />
       </>
     );
   }
 
   return (
     <>
-      <h2>Submit to vault</h2>
+      <h2 id="answer">Submit to vault</h2>
       <FindingForm adoId={item.pbiId} itemId={item.id} title={item.title} text={item.body ?? ""} data={item.data as FindingData} />
       <h2>Or close it here</h2>
       <CloseItemForm adoId={item.pbiId} itemId={item.id} kind={item.kind} accept={ACCEPT} />

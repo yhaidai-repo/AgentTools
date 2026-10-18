@@ -13,6 +13,7 @@ import "./styles/dashboard.css";
 import "./styles/pbis.css";
 import "./styles/pbi-page.css";
 import "./styles/forms.css";
+import "./styles/tasks.css";
 
 export const metadata: Metadata = {
   title: "PowerLoom",

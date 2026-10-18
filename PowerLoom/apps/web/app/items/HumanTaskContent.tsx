@@ -4,23 +4,26 @@ import { CopyButton } from "@/components/CopyButton";
 const QUERY_LANGUAGES: Record<string, string> = { kql: "KQL", "cosmos-sql": "Cosmos SQL", sql: "SQL" };
 
 // A structured human task (user decision 2026-10-05): why a person must do it and what it solves first, then each step
-// with its resource, the query ready to copy, and what to report back.
-export function HumanTaskContent({ data }: { data: HumanTaskData }) {
+// with its resource, the query ready to copy, and what to report back. While the task is open the steps live in the
+// answer form instead, one card per step with its answer field (user decision 2026-10-18), so they show once.
+export function HumanTaskContent({ data, withSteps }: { data: HumanTaskData; withSteps: boolean }) {
   return (
     <>
       <h2>Why</h2>
       <p>{data.why}</p>
       <h2>Solves</h2>
       <p>{data.solves}</p>
-      <h2>Steps</h2>
-      <ol className="human-steps">
-        {data.steps.map((step, index) => <li key={index}><StepView step={step} /></li>)}
-      </ol>
+      {withSteps && <h2>Steps</h2>}
+      {withSteps && (
+        <ol className="human-steps">
+          {data.steps.map((step, index) => <li key={index}><StepView step={step} /></li>)}
+        </ol>
+      )}
     </>
   );
 }
 
-function StepView({ step }: { step: HumanTaskStep }) {
+export function StepView({ step }: { step: HumanTaskStep }) {
   return (
     <>
       <p><strong>{step.action}</strong></p>

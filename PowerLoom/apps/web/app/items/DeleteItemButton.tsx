@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { deleteItemAction } from "./actions";
 
-// Asks first: a deleted item disappears from the pages and the Vault, and agents won't create it again.
-export function DeleteItemButton({ adoId, itemId }: { adoId: number | null; itemId: string }) {
+// Asks first: a deleted item disappears from the pages and the Vault, and agents won't create it again. In the header's
+// ⋯ menu it is a rose menu entry, and a refusal shows as an alert (the menu closes on the click).
+export function DeleteItemButton({ adoId, itemId, inMenu = false }: { adoId: number | null; itemId: string; inMenu?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -17,7 +18,15 @@ export function DeleteItemButton({ adoId, itemId }: { adoId: number | null; item
       const result = await deleteItemAction(adoId, itemId);
 
       setMessage(result.ok ? null : result.message);
+
+      if (inMenu && !result.ok) {
+        window.alert(result.message);
+      }
     });
+  }
+
+  if (inMenu) {
+    return <button type="button" className="menu-item danger-item" role="menuitem" onClick={onDelete} disabled={isPending}>Delete…</button>;
   }
 
   return (
