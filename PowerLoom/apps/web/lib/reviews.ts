@@ -9,29 +9,31 @@ export const REVIEW_LIST_STATUSES = ["active", "closed", "all"] as const;
 
 export type ReviewListStatus = (typeof REVIEW_LIST_STATUSES)[number];
 
+export const REVIEW_PAGE_SIZES = [25, 50, 100];
+
 const MAX_USAGE_RECORDS = 2000;
 
 const STATE_BY_TASK_STATUS: Record<string, ReviewState> = { open: "queued", "in-progress": "reviewing", done: "reviewed", blocked: "failed" };
 
-// Newest PRs first; active reviews by default (user decision 2026-10-02).
-export async function loadReviewRows(db: PowerLoomDb, status: ReviewListStatus, vault: string): Promise<ReviewRow[]> {
-  const byStatus = status === "all" ? undefined : eq(codeReview.status, status);
+// Every review of the vault, newest PRs first; the page filters them by status, so its pills can count each one.
+export async function loadReviewRows(db: PowerLoomDb, vault: string): Promise<ReviewRow[]> {
   const rows = await db
     .select({ pr: pullRequest, review: codeReview, ...countColumns(), taskStatus: latestTaskStatus() })
     .from(codeReview)
     .innerJoin(pullRequest, eq(pullRequest.id, codeReview.prId))
-    .where(and(byStatus, eq(pullRequest.vault, vault)))
+    .where(eq(pullRequest.vault, vault))
     .orderBy(desc(pullRequest.adoCreatedAt), desc(pullRequest.id));
 
   return rows.map(toReviewRow);
 }
 
-export async function loadReviewDetail(db: PowerLoomDb, prId: number): Promise<ReviewDetail | null> {
+// A review of another vault is not found: every page shows only the vault picked at the top (user decision 2026-10-18).
+export async function loadReviewDetail(db: PowerLoomDb, prId: number, vault: string): Promise<ReviewDetail | null> {
   const [row] = await db
     .select({ pr: pullRequest, review: codeReview, ...countColumns(), taskStatus: latestTaskStatus() })
     .from(codeReview)
     .innerJoin(pullRequest, eq(pullRequest.id, codeReview.prId))
-    .where(eq(codeReview.prId, prId));
+    .where(and(eq(codeReview.prId, prId), eq(pullRequest.vault, vault)));
 
   if (!row) {
     return null;

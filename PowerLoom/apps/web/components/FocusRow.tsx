@@ -2,17 +2,17 @@
 
 import { useEffect } from "react";
 
-// Coming back from a PBI (user request 2026-10-18): the row scrolls to the middle of the screen and glows once; the
-// group was already put on the right page and unfolded by the server. The focus then leaves the URL, so a refresh or
+// Coming back from a detail page (user request 2026-10-18): the row scrolls to the middle of the screen and glows once;
+// the server already put it on the right page (and unfolded its group). The focus then leaves the URL, so a refresh or
 // the remembered filters don't scroll again.
-export function FocusRow({ adoId }: { adoId: number }) {
+export function FocusRow({ rowId }: { rowId: string }) {
   useEffect(() => {
-    const row = document.getElementById(`pbi-${adoId}`);
+    const row = document.getElementById(rowId);
 
     row?.scrollIntoView({ block: "center" });
     row?.classList.add("focused");
     window.history.replaceState(null, "", withoutFocus(window.location.href));
-  }, [adoId]);
+  }, [rowId]);
 
   return null;
 }

@@ -420,8 +420,8 @@ button.danger {
   border-radius: 999px;
 }
 
-/* The row you came back to glows once. */
-.pbi-table tr.focused td {
+/* The row you came back to glows once (Backlog, Reviews). */
+tr.focused td {
   animation: focus-glow 2.4s var(--motion-ease) 1;
 }
 

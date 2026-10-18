@@ -4,6 +4,7 @@ import { AdoTag } from "@/components/AdoTag";
 import { ContinueChat } from "@/components/ContinueChat";
 import { NoteLink } from "@/components/NoteLink";
 import { PipelinePill } from "@/components/PipelinePill";
+import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TypeTag } from "@/components/TypeTag";
 import { getDb } from "@/lib/db";
@@ -18,7 +19,6 @@ import { FinishPbiButton } from "./FinishPbiButton";
 import { MoreActions } from "./MoreActions";
 import { PipelineMetro } from "./PipelineMetro";
 import { PreparePbiButton } from "./PreparePbiButton";
-import { RunningStrip } from "./RunningStrip";
 
 // Everything about the PBI at hand (user request 2026-10-18): what it is, one primary action, its facts, five numbers,
 // the agent running now, and its way through the pipeline.
@@ -43,7 +43,7 @@ export async function PbiHeader({ detail, stations, changedAt }: { detail: PbiDe
       </div>
       <Facts detail={detail} changedAt={changedAt} />
       <Stats detail={detail} />
-      {running && <RunningStrip run={running} adoId={pbi.adoId} />}
+      {running && <RunningStrip run={running} itemHref={`/pbis/${pbi.adoId}/items/${running.itemId}`} />}
       <PipelineMetro stations={stations} status={pbi.pipelineStatus} running={running !== null} />
     </section>
   );

@@ -14,6 +14,7 @@ import "./styles/pbis.css";
 import "./styles/pbi-page.css";
 import "./styles/forms.css";
 import "./styles/tasks.css";
+import "./styles/reviews.css";
 
 export const metadata: Metadata = {
   title: "PowerLoom",

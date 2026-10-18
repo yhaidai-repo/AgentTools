@@ -1,94 +1,106 @@
+import { isAdoActive, readAdoSettings } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { LocalTime } from "@/components/LocalTime";
+import { FocusRow } from "@/components/FocusRow";
+import { NoVault } from "@/components/NoVault";
+import { Pager } from "@/components/Pager";
 import { RememberFilters } from "@/components/RememberFilters";
 import { TimeAgo } from "@/components/TimeAgo";
+import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { rememberedParams } from "@/lib/rememberedFilters";
-import { NoVault } from "@/components/NoVault";
-import { isAdoActive, readAdoSettings } from "@powerloom/core";
-import { currentVault } from "@/lib/currentVault";
-import { REVIEW_LIST_STATUSES, loadReviewRows, type ReviewListStatus } from "@/lib/reviews";
+import { countReviewStatuses, matchesReviewStatus } from "@/lib/reviewLooks";
+import { REVIEW_LIST_STATUSES, REVIEW_PAGE_SIZES, loadReviewRows } from "@/lib/reviews";
+import { reviewsUrl } from "@/lib/reviewsUrl";
+import type { ReviewFilter } from "@/models/ReviewFilter";
 import type { ReviewRow } from "@/models/ReviewRow";
 import { CheckNowForm } from "./CheckNowForm";
-import { LinkedPbis } from "./LinkedPbis";
 import { ReviewsForm } from "./ReviewsForm";
-import { ReviewBadges } from "./ReviewBadges";
-import { ReviewStatusFilter } from "./ReviewStatusFilter";
+import { ReviewTable } from "./ReviewTable";
 
 export const dynamic = "force-dynamic";
 
 const REFRESH_MS = 15_000;
+const STATUS_LABELS: Record<ReviewFilter["status"], string> = { active: "Active", closed: "Closed", all: "All" };
 
-type SearchParams = Promise<{ status?: string }>;
+type SearchParams = Promise<{ status?: string; page?: string; size?: string; focus?: string }>;
 
 // Every review of a PR you review in Azure DevOps (user decision 2026-10-02), active ones by default. Nothing is reviewed
 // until you start it here.
 export default async function ReviewsPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = await rememberedParams("/reviews", await searchParams);
-  const status: ReviewListStatus = REVIEW_LIST_STATUSES.find((value) => value === params.status) ?? "active";
   const vault = await currentVault();
 
   if (!vault) {
     return <NoVault title="Reviews" />;
   }
 
-  const rows = await loadReviewRows(getDb(), status, vault);
-  const adoActive = isAdoActive(await readAdoSettings(getDb(), vault));
+  // Coming back from a review only adds `focus`: the remembered filters still apply.
+  const { focus, ...asked } = await searchParams;
+  const db = getDb();
+  const rows = await loadReviewRows(db, vault);
+  const filter = filterOf(await rememberedParams("/reviews", asked), Number(focus) || null);
+  const shown = rows.filter((row) => matchesReviewStatus(row, filter.status));
+  const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
+  const page = Math.min(pageOf(shown, filter), pages);
+  const adoActive = isAdoActive(await readAdoSettings(db, vault));
 
   return (
     <>
-      <h1>Reviews</h1>
-      <RememberFilters />
-      <div className="chips">
+      <div className="page-head">
+        <h1>Reviews</h1>
         <AutoRefresh active intervalMs={REFRESH_MS} />
       </div>
-      <div className="toolbar">
-        <ReviewStatusFilter key={status} status={status} statuses={REVIEW_LIST_STATUSES} />
-        {adoActive ? <CheckNowForm /> : <span className="muted">No Azure DevOps integration for <code>{vault}</code>: enable it in <Link href="/settings">Settings</Link> to list pull requests.</span>}
+      <RememberFilters />
+      <div className="backlog-bar">
+        <StatusPills rows={rows} filter={filter} />
+        {adoActive ? <CheckLine rows={rows} /> : <span className="sync-line">No Azure DevOps integration for {vault}: enable it in <Link href="/settings">Settings</Link> to list pull requests.</span>}
       </div>
-      {rows.length === 0 ? <p className="muted">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={rows} /></ReviewsForm>}
+      {shown.length === 0 ? <p className="empty-note">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}
+      {shown.length > 0 && <Pager page={page} size={filter.size} sizes={REVIEW_PAGE_SIZES} pages={pages} total={shown.length} noun="reviews" hrefOf={(change) => reviewsUrl({ status: filter.status, page: change.page, size: change.size ?? filter.size })} />}
+      {filter.focus !== null && <FocusRow rowId={`pr-${filter.focus}`} />}
     </>
   );
 }
 
-function ReviewTable({ rows }: { rows: ReviewRow[] }) {
+function filterOf(params: Record<string, string | undefined>, focus: number | null): ReviewFilter {
+  return {
+    status: REVIEW_LIST_STATUSES.find((value) => value === params.status) ?? "active",
+    page: Math.max(Number(params.page) || 1, 1),
+    size: REVIEW_PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : REVIEW_PAGE_SIZES[0],
+    focus,
+  };
+}
+
+// The page that holds the review you came back from, else the page asked for.
+function pageOf(shown: ReviewRow[], filter: ReviewFilter): number {
+  const index = shown.findIndex((row) => row.pr.id === filter.focus);
+
+  return index < 0 ? filter.page : Math.floor(index / filter.size) + 1;
+}
+
+function StatusPills({ rows, filter }: { rows: ReviewRow[]; filter: ReviewFilter }) {
+  const counts = countReviewStatuses(rows);
+
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th aria-label="Select" />
-            <th>Created</th>
-            <th>PR</th>
-            <th>Title</th>
-            <th>Repo</th>
-            <th>Author</th>
-            <th>Target</th>
-            <th>PBIs</th>
-            <th>Review</th>
-            <th>Comments</th>
-            <th>Reviewed</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.pr.id}>
-              <td><input type="checkbox" name="prId" value={row.pr.id} aria-label={`Select ${row.pr.id}`} /></td>
-              <td><TimeAgo date={row.pr.adoCreatedAt} /></td>
-              <td><a href={row.pr.url} target="_blank" rel="noreferrer">{row.pr.id}</a></td>
-              <td><Link href={`/reviews/${row.pr.id}`}>{row.pr.title}</Link>{row.pr.isDraft && <span className="muted"> · draft</span>}</td>
-              <td>{row.pr.repoName}</td>
-              <td>{row.pr.author ?? "–"}</td>
-              <td>{row.pr.targetRef.replace(/^refs\/heads\//, "")}</td>
-              <td><LinkedPbis ids={row.pr.workItemIds} /></td>
-              <td><ReviewBadges row={row} /></td>
-              <td title="open / total, answered">{row.comments.open} / {row.comments.total}{row.comments.answered > 0 && <span className="muted"> · {row.comments.answered} answered</span>}</td>
-              <td><LocalTime date={row.review.reviewedAt} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <nav className="status-pills" aria-label="Filter by status">
+      {REVIEW_LIST_STATUSES.map((status) => (
+        <Link key={status} href={reviewsUrl({ status, size: filter.size })} className={status === filter.status ? "status-pill on" : "status-pill"}>
+          {STATUS_LABELS[status]} <b>{counts[status]}</b>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+// When PowerLoom last listed your PRs in Azure DevOps, and the button to list them now.
+function CheckLine({ rows }: { rows: ReviewRow[] }) {
+  const lastChecked = rows.reduce<Date | null>((latest, row) => (latest && latest > row.pr.syncedAt ? latest : row.pr.syncedAt), null);
+
+  return (
+    <div className="sync-line">
+      <span className="dot ok" />
+      <span>PRs checked {lastChecked ? <TimeAgo date={lastChecked} /> : "never"}</span>
+      <CheckNowForm />
     </div>
   );
 }

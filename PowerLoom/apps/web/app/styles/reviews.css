@@ -1,0 +1,441 @@
+/* Reviews in the Ice theme: the review state pills, the review table where what needs you stands out, the review page's
+   header notes, its comments as folding cards with a thread, and its runs in the side column. */
+
+.review-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.review-none { color: var(--muted); border-style: dashed; border-color: var(--border-hi); }
+.review-queued { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.review-done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+.review-failed { color: var(--error); border-color: color-mix(in srgb, var(--error) 35%, transparent); }
+.review-closed { color: var(--faint); border-color: var(--border); }
+
+.review-running {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.review-running::before,
+.new-pushes::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.review-running::before {
+  --pulse: color-mix(in srgb, var(--accent) 55%, transparent);
+  animation-duration: calc(var(--motion-ambient) / 3);
+}
+
+.new-pushes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--warn);
+}
+
+.new-pushes::before {
+  --pulse: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.draft-tag {
+  padding: 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px dashed var(--border-hi);
+  border-radius: 999px;
+}
+
+/* The review table: five columns that fit. */
+.review-table table {
+  table-layout: fixed;
+}
+
+.review-table .col-select {
+  width: 40px;
+  padding-right: 0;
+}
+
+.review-table .col-id {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.review-table .col-state {
+  width: 150px;
+}
+
+.review-table td.col-state .new-pushes {
+  display: flex;
+  margin-top: 4px;
+}
+
+.review-table .col-comments {
+  width: 96px;
+}
+
+.review-table .col-updated {
+  width: 92px;
+}
+
+.review-table td.title {
+  min-width: 0;
+  white-space: normal;
+}
+
+.review-table .branch {
+  font: 11.5px var(--font-mono);
+}
+
+.review-table input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.review-table tr.needs-you td {
+  background: color-mix(in srgb, var(--warn) 4%, transparent);
+}
+
+.review-table tr.needs-you td:first-child {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+
+.review-table tr.settled td {
+  opacity: 0.55;
+}
+
+.review-table tr.settled:hover td {
+  opacity: 0.9;
+}
+
+.review-table tr:has(input[name="prId"]:checked) td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.review-table tr:has(input[name="prId"]:checked) td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* The review page's header notes: closed, and the PR that moved on, with the rerun in it. */
+.review-note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.new-pushes-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 6%, transparent);
+  animation: breathe-warn var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.new-pushes-banner .banner-what {
+  flex: 1;
+}
+
+.new-pushes-banner .mono {
+  font: 12.5px var(--font-mono);
+  color: var(--muted);
+}
+
+.close-review-form {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.close-review-form input[name="reason"] {
+  width: 220px;
+  padding: 5px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.review-columns {
+  margin-top: 18px;
+}
+
+/* The summary's markdown wraps inside its panel: no sideways scroll (user, 2026-10-18). */
+.review-summary .text-block.markdown table {
+  table-layout: auto;
+  width: 100%;
+}
+
+.review-summary .text-block.markdown th,
+.review-summary .text-block.markdown td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.review-summary .text-block.markdown code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* Comments: grouped by file, one folding card each. */
+.comment-file + .comment-file {
+  margin-top: 14px;
+}
+
+.comment-file-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  font: 12.5px var(--font-mono);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.comment-file-head span {
+  font: 11.5px var(--font-sans);
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.review-comment {
+  margin-bottom: 10px;
+  background: rgb(0 0 0 / 0.15);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.review-comment.to-answer {
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+}
+
+.review-comment > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.review-comment > summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-comment.settled:not([open]) > summary {
+  opacity: 0.6;
+}
+
+.fold-mark {
+  display: inline-block;
+  color: var(--muted);
+  transition: transform var(--motion-fast);
+}
+
+.review-comment[open] .fold-mark {
+  transform: rotate(90deg);
+}
+
+.severity {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--muted);
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+}
+
+.severity.serious {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 6%, transparent);
+  border-color: color-mix(in srgb, var(--error) 35%, transparent);
+}
+
+.comment-status {
+  padding: 1px 9px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.comment-status.status-open {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.comment-status.status-answered {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.comment-status.status-fixed {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+
+.comment-category {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.comment-gist {
+  flex: 1;
+  min-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.review-comment[open] .comment-gist {
+  white-space: normal;
+}
+
+.comment-where {
+  font: 11.5px var(--font-mono);
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.comment-body {
+  padding: 0 16px 14px;
+}
+
+.comment-body .code-snippet {
+  margin: 10px 0;
+  overflow-x: auto;
+  font: 12px/1.55 var(--font-mono);
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.comment-body .code-line.commented {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* The thread under a comment: the agent cool, you warm. */
+.comment-thread {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.say {
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+
+.say b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.say.agent {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.say.agent b {
+  color: var(--accent);
+}
+
+.say.you {
+  background: color-mix(in srgb, var(--human) 4%, transparent);
+  border-color: color-mix(in srgb, var(--human) 30%, transparent);
+}
+
+.say.you b {
+  color: var(--human);
+}
+
+.say .answer-form .actions {
+  justify-content: flex-end;
+}
+
+/* Runs and Better Review's rules in the side column. */
+.review-run {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  padding: 9px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-run:last-child {
+  border-bottom: none;
+}
+
+.review-run .mono {
+  font: 12.5px var(--font-mono);
+  color: var(--muted);
+}
+
+.review-run-facts,
+.review-run-error {
+  grid-column: 2 / 4;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.review-run-error {
+  color: var(--error);
+  overflow-wrap: anywhere;
+}
+
+.review-rule {
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-rule small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+@media (max-width: 1000px) {
+  .review-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

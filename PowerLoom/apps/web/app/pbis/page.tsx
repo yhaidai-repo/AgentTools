@@ -2,6 +2,7 @@ import { isAdoActive, readAdoSettings, readCurrentSprint, readRecentImports, rea
 import { pipelineStatus, type PowerLoomDb } from "@powerloom/db";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { FocusRow } from "@/components/FocusRow";
 import { NoVault } from "@/components/NoVault";
 import { Pager } from "@/components/Pager";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -18,7 +19,6 @@ import { loadSprintChoices } from "@/lib/sprints";
 import type { BacklogRow } from "@/models/BacklogRow";
 import type { BacklogView } from "@/models/BacklogView";
 import { BacklogForm } from "./BacklogForm";
-import { FocusRow } from "./FocusRow";
 import { ImportsPanel } from "./ImportsPanel";
 import { PbiTable } from "./PbiTable";
 import { StatusPills } from "./StatusPills";
@@ -74,7 +74,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
         <PbiTable groups={slicePage(groups, size, view.page)} ado={ado} focus={focus} />
       </BacklogForm>
       {groups.length === 0 ? <p className="empty-note">No PBIs match. Check the status, or sync a sprint.</p> : <Pager page={view.page} size={size} sizes={PAGE_SIZES} pages={pageCount(groups, size)} total={groups.length} noun="PBIs" hrefOf={(change) => backlogUrl({ statuses, size: change.size ?? size, page: change.page })} />}
-      {focus !== null && <FocusRow adoId={focus} />}
+      {focus !== null && <FocusRow rowId={`pbi-${focus}`} />}
       <div className="section-label">Sync and imports</div>
       <SyncSection db={db} vault={vault} ado={ado} />
     </>

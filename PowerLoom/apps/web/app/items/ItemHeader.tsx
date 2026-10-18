@@ -88,10 +88,21 @@ function Stats({ detail }: { detail: ItemDetail }) {
       {steps !== null && <Stat label="Steps to report" value={String(steps)} tone={bucket === "you" ? "warn" : undefined} />}
       <Stat label={isClosed(bucket) ? "Took" : "Open for"} value={formatAge(ageOf(item, isClosed(bucket)))} />
       <Stat label="Runs" value={String(detail.runs.length)} />
-      <Stat label="Assigned" value={item.assignee === "human" ? "You" : item.assignee.replace("agent:", "")} />
+      <Stat label="Assigned" value={assigneeLabel(item.assignee)} />
       {bucket === "held" && <p className="held-note">Held by the dispatcher: {[...new Set(item.heldBy)].join("; ")}</p>}
     </div>
   );
+}
+
+// "agent:*" is any agent that takes the task's kind.
+function assigneeLabel(assignee: string): string {
+  if (assignee === "human") {
+    return "You";
+  }
+
+  const agent = assignee.replace("agent:", "");
+
+  return agent === "*" ? "Any agent" : agent;
 }
 
 function isClosed(bucket: string): boolean {

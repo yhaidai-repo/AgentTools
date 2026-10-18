@@ -2,6 +2,7 @@ import { isSettledPbi, workItemUrl, type AdoSettings } from "@powerloom/core";
 import Link from "next/link";
 import { AdoTag } from "@/components/AdoTag";
 import { PipelinePill } from "@/components/PipelinePill";
+import { SelectAll } from "@/components/SelectAll";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TypeTag } from "@/components/TypeTag";
 import { groupChangedAt } from "@/lib/backlogGroups";
@@ -10,7 +11,6 @@ import { sprintName } from "@/lib/sprintProgress";
 import type { BacklogGroup } from "@/models/BacklogGroup";
 import type { BacklogRow } from "@/models/BacklogRow";
 import { ChildToggle, GroupBody } from "./GroupBody";
-import { SelectAll } from "./SelectAll";
 
 // Four data columns that always fit (user, 2026-10-18: no sideways scroll): the facts of a PBI go on one quiet line
 // under its title. Checkboxes post `adoId` values with the surrounding BacklogForm. Each PBI and its child items are one
@@ -22,7 +22,7 @@ export function PbiTable({ groups, ado, focus }: { groups: BacklogGroup[]; ado: 
       <table className="data-table">
         <thead>
           <tr>
-            <th className="col-select"><SelectAll /></th>
+            <th className="col-select"><SelectAll name="adoId" /></th>
             <th className="col-fold" aria-label="Child items" />
             <th className="col-id">ID</th>
             <th>PBI</th>
