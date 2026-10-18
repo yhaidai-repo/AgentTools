@@ -16,9 +16,9 @@ interface PanelProps {
 // breathes its outline.
 export function Panel({ title, aside, tone = "plain", table = false, children }: PanelProps) {
   return (
-    <section className={`panel${table ? " scroll" : ""}${toneClass(tone)}`}>
+    <section className={`panel${toneClass(tone)}`}>
       {title && <h3>{title}{aside}</h3>}
-      {table ? children : <div className="panel-body">{children}</div>}
+      {table ? <div className="panel-scroll">{children}</div> : <div className="panel-body">{children}</div>}
     </section>
   );
 }

@@ -45,14 +45,12 @@
   animation: travel-light var(--motion-ambient) linear infinite;
 }
 
-/* A table panel scrolls sideways when narrow; its light stays inside, or it would add a scrollbar. */
-.panel.scroll {
+/* A table panel scrolls sideways when narrow inside the panel, so the panel and its hover light stay put (a scrolling
+   panel moved its light along with the table). */
+.panel-scroll {
   overflow-x: auto;
   overflow-y: hidden;
-}
-
-.panel.scroll::after {
-  inset: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 .panel > h3 {
