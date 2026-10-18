@@ -81,6 +81,7 @@ export { buildPbiContext, hasPbiContext, pbiContextBlocks } from "./pbiContext/b
 export type { PbiContextBlock } from "./models/PbiContextBlock";
 export { readPbiReference } from "./pbiContext/readPbiReference";
 export { relatedBlock } from "./pbiContext/relatedBlock";
+export { estimateText, latestPbiEstimate, latestRunEstimate } from "./pbiEstimates";
 export type { PbiReadResult } from "./models/PbiReadResult";
 export type { PbiReference } from "./models/PbiReference";
 export { reportBugCommand } from "./commands/reportBugCommand";

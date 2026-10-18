@@ -8,7 +8,7 @@ import type { PbiEstimate } from "@/models/PbiEstimate";
 const CHART_PBIS = 12;
 
 // The finished PBIs' Original Estimate against the effort the user gave at finish (user request 2026-10-16): the totals
-// over the PBIs that had an estimate, the latest ones as a chart, and every estimate PowerLoom knows in the table.
+// over the PBIs that had an estimate, the latest ones as a chart, and the latest agent estimate (both values) in the table.
 export function EstimateSection({ estimates }: { estimates: PbiEstimate[] }) {
   if (estimates.length === 0) {
     return <p className="muted">No finished PBIs yet: finishing a PBI asks for your effort.</p>;
@@ -48,8 +48,8 @@ function EstimateTable({ estimates }: { estimates: PbiEstimate[] }) {
           <tr>
             <th>PBI</th>
             <th title="Your Tasks' Original Estimate in ADO, hours">Original</th>
-            <th title="The refinement agent's rough estimate, hours">Refinement</th>
-            <th title="The design agent's estimate for a developer without an agent, hours">Design</th>
+            <th title="The latest agent estimate for a developer without an agent, hours">Human est.</th>
+            <th title="The latest agent estimate for an agent implementing it, hours">Agent est.</th>
             <th title="Your effort, given when finishing the PBI, hours">Effort</th>
             <th title="Effort minus Original Estimate, hours">Off by</th>
           </tr>
@@ -59,8 +59,8 @@ function EstimateTable({ estimates }: { estimates: PbiEstimate[] }) {
             <tr key={pbi.pbiId}>
               <td><Link href={`/pbis/${pbi.pbiId}`} title={pbi.title}>PBI-{pbi.pbiId}</Link></td>
               <td>{formatOptional(pbi.originalHours)}</td>
-              <td>{formatOptional(pbi.refinementHours)}</td>
-              <td>{formatOptional(pbi.designHours)}</td>
+              <td title={pbi.estimatedBy ?? undefined}>{formatOptional(pbi.humanHours)}</td>
+              <td title={pbi.estimatedBy ?? undefined}>{formatOptional(pbi.agentHours)}</td>
               <td>{formatEffortHours(pbi.actualHours)}</td>
               <td>{hasOriginal(pbi) ? formatSigned(pbi.actualHours - (pbi.originalHours ?? 0)) : "–"}</td>
             </tr>

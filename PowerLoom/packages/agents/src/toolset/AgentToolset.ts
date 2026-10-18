@@ -7,6 +7,9 @@ import { createAzureTools } from "../azure/azureTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
+import { commitEstimate } from "../estimate/commitEstimate";
+import { createEstimateTools, offersEstimate } from "../estimate/estimateTool";
+import { RunEstimate } from "../estimate/RunEstimate";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
 import type { CaptureDraft } from "../models/CaptureDraft";
@@ -33,11 +36,13 @@ type ItemRow = typeof localItem.$inferSelect;
 
 // The tools every agent gets from its Config alone (user decision 2026-10-14: the user gives any agent any tool, no
 // runner decides on its own): docs, the repos it opened plus the vault's catalog, its PBI, every integration switched
-// on, the PBI's web pages, vault drafts, and create_task for the task types it may create. A runner adds only its own
-// result tools. Reads are recorded, so create_task's evidence can cite them in every agent.
+// on, the PBI's web pages, vault drafts, record_estimate when granted, and create_task for the task types it may create. A
+// runner adds only its own result tools. Reads are recorded, so create_task's evidence can cite them in every agent.
 export class AgentToolset {
   readonly tasks: CreatedTask[];
   readonly captures: CaptureDraft[];
+  /** What record_estimate recorded; committed with commit(). */
+  readonly estimate: RunEstimate;
   private log: ReadLog | null = null;
 
   private constructor(
@@ -51,6 +56,7 @@ export class AgentToolset {
   ) {
     this.tasks = input.tasks ?? [];
     this.captures = input.captures ?? [];
+    this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -88,7 +94,7 @@ export class AgentToolset {
   }
 
   /** Writes what the shared tools noted into arrays of its own (a runner that lent its draft's arrays commits those with
-   *  the draft): the tasks created, the drafts captured. Both are listed in the run's outputs. */
+   *  the draft): the tasks created, the drafts captured, both listed in the run's outputs; and the estimate. */
   async commit(runId: number): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
@@ -97,6 +103,7 @@ export class AgentToolset {
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
     await addRunOutputs(deps.db, runId, [...taskIds, ...captureIds]);
+    await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
   }
@@ -137,6 +144,7 @@ export class AgentToolset {
       ...(hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : []),
       ...createWebDocumentTools(deps.db, this.webDocuments),
       ...(deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : []),
+      ...createEstimateTools(this.estimate),
     ];
   }
 }

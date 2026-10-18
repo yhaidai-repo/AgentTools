@@ -2,15 +2,16 @@ import { attachment, design, localItem, refinement, testCase, vaultCapture, work
 import { desc, eq } from "drizzle-orm";
 import { attachmentRef } from "../attachmentIds";
 import type { Outcome } from "../models/Outcome";
+import { latestPbiEstimate } from "../pbiEstimates";
 import { buildPbiContext } from "./buildPbiContext";
 
 const PBI_REF = /^PBI-(\d+)$/i;
-const VERSIONED_REF = /^PBI-(\d+):(refinement|design)$/i;
+const VERSIONED_REF = /^PBI-(\d+):(refinement|design|estimate)$/i;
 const DRAFT_REF = /^DRAFT-(\d+)$/i;
 const ATTACHMENT_REF = /^ATT-(\d+)$/i;
 const TEST_CASE_REF = /^TC-(\d+)$/i;
 
-// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement or design, an item
+// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement, design or estimate, an item
 // (question, task, finding, result), a vault draft, an upload's text or an Azure DevOps test case.
 export async function readPbiReference(db: PowerLoomDb, backlogMount: string, ref: string): Promise<Outcome<string>> {
   const versioned = VERSIONED_REF.exec(ref);
@@ -49,11 +50,40 @@ async function readPbi(db: PowerLoomDb, backlogMount: string, adoId: number): Pr
 }
 
 async function readVersioned(db: PowerLoomDb, adoId: number, kind: string): Promise<Outcome<string>> {
-  const rows = kind === "design"
-    ? await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1)
-    : await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
+  const row = await VERSIONED_READERS[kind](db, adoId);
 
-  return rows.length > 0 ? asJson(rows[0]) : notFound(`PBI-${adoId}:${kind}`);
+  return row ? asJson(row) : notFound(`PBI-${adoId}:${kind}`);
+}
+
+const VERSIONED_READERS: Record<string, (db: PowerLoomDb, adoId: number) => Promise<object | null>> = {
+  refinement: latestRefinement,
+  design: latestDesign,
+  estimate: latestPbiEstimate,
+};
+
+// The estimate columns are history (pbi_estimate holds the estimates since 2026-10-18): left out, so nobody reads a stale one.
+async function latestRefinement(db: PowerLoomDb, adoId: number): Promise<object | null> {
+  const [row] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  const { estHours: _hours, estimateBasis: _basis, ...rest } = row;
+
+  return rest;
+}
+
+async function latestDesign(db: PowerLoomDb, adoId: number): Promise<object | null> {
+  const [row] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  const { estHumanH: _human, estAgentH: _agent, complexity: _complexity, confidence: _confidence, estimateBasis: _basis, ...rest } = row;
+
+  return rest;
 }
 
 async function readItem(db: PowerLoomDb, id: string): Promise<Outcome<string>> {

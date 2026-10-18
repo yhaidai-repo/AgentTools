@@ -1,4 +1,5 @@
 import { readChildItems } from "../bugs/childItems";
+import { estimateText, latestPbiEstimate } from "../pbiEstimates";
 import { pbiRepoEntries } from "../pbiRepos";
 import { design, localItem, refinement, testCase, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { and, desc, eq, ne, notInArray } from "drizzle-orm";
@@ -9,13 +10,14 @@ type WorkItemRow = typeof workItem.$inferSelect;
 
 const TITLE_CHARS = 160;
 
-// What the other blocks don't list: the parent and child items, the latest refinement and design, the findings, results
-// and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each by reference.
+// What the other blocks don't list: the parent and child items, the latest refinement, design and estimate, the findings,
+// results and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each by reference.
 export async function loadRelated(db: PowerLoomDb, row: WorkItemRow): Promise<PbiReference[]> {
   return [
     ...parentReference(row),
     ...(await childReferences(db, row.adoId)),
     ...(await versionedReferences(db, row.adoId)),
+    ...(await estimateReference(db, row.adoId)),
     ...(await itemReferences(db, row.adoId)),
     ...(await draftReferences(db, row.adoId)),
     ...(await testCaseReferences(db, row.adoId)),
@@ -60,6 +62,13 @@ async function versionedReferences(db: PowerLoomDb, adoId: number): Promise<PbiR
   }
 
   return references;
+}
+
+// The latest estimate from any agent (user decision 2026-10-18); the reference reads it with its basis.
+async function estimateReference(db: PowerLoomDb, adoId: number): Promise<PbiReference[]> {
+  const latest = await latestPbiEstimate(db, adoId);
+
+  return latest ? [{ ref: `PBI-${adoId}:estimate`, kind: "estimate", status: "latest", title: estimateText(latest) }] : [];
 }
 
 // Questions, human tasks and research tasks are in <existing-items> already; deleted items stay hidden.

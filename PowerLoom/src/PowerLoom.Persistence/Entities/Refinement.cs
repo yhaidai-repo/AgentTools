@@ -38,7 +38,7 @@ public partial class Refinement
     /// <summary>Better Refinement's full result (jsonb): sources, affected areas, test data, blockers, status; null for earlier refinements.</summary>
     public string? Details { get; set; }
 
-    /// <summary>Refinement's rough estimate in developer hours; null for refinements from before it gave one.</summary>
+    /// <summary>History: refinement's estimate in developer hours until record_estimate wrote pbi_estimate instead (2026-10-18).</summary>
     public decimal? EstHours { get; set; }
 
     public string? EstimateBasis { get; set; }

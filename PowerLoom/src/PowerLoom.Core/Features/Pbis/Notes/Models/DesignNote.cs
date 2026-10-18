@@ -2,7 +2,7 @@ using PowerLoom.Domain.Pbis.Models;
 
 namespace PowerLoom.Features.Pbis.Notes.Models;
 
-// The design note's data, parsed from the `design` row's JSON columns.
+// The design note's data, parsed from the `design` row's JSON columns, with the estimate its run recorded (design may skip it).
 public sealed record DesignNote(
     int AdoId,
     int Version,
@@ -14,8 +14,4 @@ public sealed record DesignNote(
     IReadOnlyList<DesignRisk> Risks,
     IReadOnlyList<DesignTest> Tests,
     IReadOnlyList<string> Assumptions,
-    decimal? EstHumanH,
-    decimal? EstAgentH,
-    short? Complexity,
-    string? Confidence,
-    string EstimateBasis);
+    EstimateNote? Estimate);

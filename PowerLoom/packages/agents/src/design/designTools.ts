@@ -35,13 +35,6 @@ function writeDesignTool(draft: DesignDraft) {
       })).min(1).describe("Ordered implementation steps"),
       risks: z.array(z.object({ risk: z.string().min(1), impact: z.enum(["low", "medium", "high"]), mitigation: z.string().min(1) })),
       tests: z.array(z.object({ kind: z.enum(["unit", "integration", "manual"]), case: z.string().min(1).describe("One line: given / when / then") })).min(1),
-      estimate: z.object({
-        human_hours: z.number().positive().describe("A developer implementing the plan without an agent"),
-        agent_hours: z.number().positive().describe("An agent implementing the plan"),
-        complexity: z.number().int().min(1).max(5),
-        confidence: z.enum(["high", "medium", "low"]),
-        basis: z.string().min(1).describe("What drives the numbers"),
-      }),
       assumptions: z.array(z.string()).describe("Every guess the design rests on"),
       relevant_pages: relevantPagesInput,
     },
@@ -59,13 +52,6 @@ function writeDesignTool(draft: DesignDraft) {
         plan: input.plan.map((step) => ({ step: step.step, repo: step.repo, locations: step.locations, change: step.change, agentDoable: step.agent_doable })),
         risks: input.risks,
         tests: input.tests,
-        estimate: {
-          humanHours: input.estimate.human_hours,
-          agentHours: input.estimate.agent_hours,
-          complexity: input.estimate.complexity,
-          confidence: input.estimate.confidence,
-          basis: input.estimate.basis,
-        },
         assumptions: input.assumptions,
       };
 
