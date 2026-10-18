@@ -139,6 +139,14 @@
   color: var(--warn);
 }
 
+/* Chosen, it lights up in amber like the other pills do in cyan; its warm outline alone looked the same both ways. */
+.status-pill.for-you-pill.on {
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 70%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--warn) 22%, transparent);
+}
+
 /* The order switch: what waits on you on top, or the latest change only. */
 .sort-toggle {
   display: inline-flex;
