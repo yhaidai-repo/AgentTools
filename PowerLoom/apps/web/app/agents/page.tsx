@@ -35,7 +35,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Searc
         <h1>Agents</h1>
         <PauseSwitch isPaused={isPaused(global)} />
       </div>
-      <RememberFilters />
+      <RememberFilters vault={vault} />
       <PauseBanner global={global} />
       {tab === "overview" && <OverviewTab vault={vault} params={params} tabs={tabs} paused={isPaused(global)} />}
       {tab === "runs" && <RunsTab vault={vault} params={params} tabs={tabs} />}

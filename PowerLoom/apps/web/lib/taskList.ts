@@ -1,8 +1,8 @@
 import { localItem } from "@powerloom/db";
 import { and, desc, eq, getTableColumns, gte, isNull, ne, sql, type SQL } from "drizzle-orm";
 import type { TaskFilter } from "@/models/TaskFilter";
-import { rangeStart } from "./ranges";
 import { getDb } from "./db";
+import { periodStart } from "./periodStart";
 import { taskBucket, type TaskBucket } from "./taskLooks";
 
 const LIST_LIMIT = 500;
@@ -15,10 +15,12 @@ export const TASK_PAGE_SIZES = [25, 50, 100];
 // Every task, question and finding of the vault in the period, across its PBIs plus those without one (e.g. a chat
 // draft's tech-writer task), latest change first. The kind and status pills count and filter these in the page.
 export async function loadTaskList(filter: Pick<TaskFilter, "pbi" | "range">, vault: string) {
+  const since = await periodStart(filter.range, vault);
+
   return getDb()
     .select({ ...getTableColumns(localItem), runs: taskRuns() })
     .from(localItem)
-    .where(and(eq(localItem.vault, vault), ...baseConditions(filter)))
+    .where(and(eq(localItem.vault, vault), ...baseConditions(filter.pbi, since)))
     .orderBy(desc(localItem.updatedAt), desc(localItem.id))
     .limit(LIST_LIMIT);
 }
@@ -54,9 +56,9 @@ function taskRuns(): SQL<{ id: number; outcome: string }[]> {
   return sql<{ id: number; outcome: string }[]>`(SELECT coalesce(json_agg(json_build_object('id', r.id, 'outcome', r.outcome) ORDER BY r.id DESC), '[]'::json) FROM agent_run r WHERE r.item_id = "local_item"."id")`;
 }
 
-function baseConditions(filter: Pick<TaskFilter, "pbi" | "range">): SQL[] {
-  const conditions: SQL[] = [ne(localItem.kind, "research-result"), ne(localItem.status, "deleted"), gte(localItem.createdAt, rangeStart(filter.range))];
-  const pbi = pbiCondition(filter.pbi);
+function baseConditions(pbiFilter: string, since: Date): SQL[] {
+  const conditions: SQL[] = [ne(localItem.kind, "research-result"), ne(localItem.status, "deleted"), gte(localItem.createdAt, since)];
+  const pbi = pbiCondition(pbiFilter);
 
   return pbi ? [...conditions, pbi] : conditions;
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { SegLinks } from "@/components/SegLinks";
-import { dayRangeOptions } from "@/lib/ranges";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { kindTag, type TaskBucket } from "@/lib/taskLooks";
 import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
@@ -30,13 +29,13 @@ export function TaskFilters({ filter, total, buckets, kinds }: TaskFiltersProps)
     <>
       <div className="backlog-bar">
         <nav className="status-pills" aria-label="Filter by status">
-          {buckets.has("you") && <Pill href={tasksUrl({ ...keep, status: "you" })} on={filter.status === "you"} label="For you" count={buckets.get("you")} warm />}
+          {(buckets.has("you") || filter.status === "you") && <Pill href={tasksUrl({ ...keep, status: "you" })} on={filter.status === "you"} label="For you" count={buckets.get("you") ?? 0} warm />}
           <Pill href={tasksUrl({ ...keep, status: "all" })} on={filter.status === "all"} label="All" count={total} />
-          {BUCKETS.filter((bucket) => buckets.has(bucket.key)).map((bucket) => <Pill key={bucket.key} href={tasksUrl({ ...keep, status: bucket.key })} on={filter.status === bucket.key} label={bucket.label} count={buckets.get(bucket.key) ?? 0} />)}
+          {BUCKETS.filter((bucket) => buckets.has(bucket.key) || filter.status === bucket.key).map((bucket) => <Pill key={bucket.key} href={tasksUrl({ ...keep, status: bucket.key })} on={filter.status === bucket.key} label={bucket.label} count={buckets.get(bucket.key) ?? 0} />)}
         </nav>
         <span className="sync-line">
           <SortToggle filter={filter} />
-          <SegLinks name="range" value={filter.range} options={dayRangeOptions()} path="/tasks" keep={{ status: filter.status, kind: filter.kind, pbi: filter.pbi, sort: filter.youFirst ? "" : UPDATED_FIRST }} />
+          <PeriodPicker value={filter.range} path="/tasks" keep={{ status: filter.status, kind: filter.kind, pbi: filter.pbi, sort: filter.youFirst ? "" : UPDATED_FIRST }} />
         </span>
       </div>
       <div className="backlog-bar">

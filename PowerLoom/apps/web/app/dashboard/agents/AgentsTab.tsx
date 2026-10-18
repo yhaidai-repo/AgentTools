@@ -1,11 +1,12 @@
-import { SegLinks } from "@/components/SegLinks";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { loadAgentActivity, loadDailyActivity } from "@/lib/agentActivity";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { agentMetricOf } from "@/lib/agentMetrics";
 import { loadFailureGroups } from "@/lib/failedRuns";
 import { loadHeldTasks } from "@/lib/heldTasks";
 import { loadCostliestPbis } from "@/lib/pbiCosts";
-import { DEFAULT_DAY_RANGE, DAY_RANGES, RANGES, dayRangeOptions, rangeStart } from "@/lib/ranges";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf, periodPhrase } from "@/lib/ranges";
 import { loadSystemStatus } from "@/lib/systemStatus";
 import { vaultRunsInProgress } from "@/lib/vaultRunsInProgress";
 import { ActivityCharts } from "./ActivityCharts";
@@ -30,8 +31,8 @@ interface AgentsTabProps {
 // tokens or run time and runs per day, each agent's period and today against its daily limit, what runs and what waits,
 // the costliest PBIs and the latest distinct failures.
 export async function AgentsTab({ vault, range, metric }: AgentsTabProps) {
-  const period = range && DAY_RANGES.includes(range) ? range : DEFAULT_DAY_RANGE;
-  const from = rangeStart(period);
+  const period = periodOf(range);
+  const from = await periodStart(period, vault);
   const chartMetric = agentMetricOf(metric);
   const [agents, days, byAgent, costliest, failures, held, status] = await Promise.all([
     getAgentConfig().list(),
@@ -44,18 +45,18 @@ export async function AgentsTab({ vault, range, metric }: AgentsTabProps) {
   ]);
   const running = await vaultRunsInProgress(status?.runs ?? [], vault);
   const today = days.at(-1) ?? null;
-  const periodLabel = RANGES[period].label.toLowerCase();
+  const periodLabel = periodPhrase(period);
 
   return (
     <>
       <div className="toolbar">
-        <SegLinks name="range" value={period} options={dayRangeOptions()} path="/dashboard" keep={{ tab: "agents", metric: chartMetric }} />
+        <PeriodPicker value={period} path="/dashboard" keep={{ tab: "agents", metric: chartMetric }} />
         <span className="text-faint hint">Cost is an API-price estimate; nothing is billed on the Max plan.</span>
       </div>
       <AgentsBand days={days} today={today} periodLabel={periodLabel} held={held.length} stuck={running.filter((run) => run.stuck).length} />
       <div className="section-label">Per day</div>
       <ActivityCharts days={days} agents={agents} metric={chartMetric} keep={{ tab: "agents", range: period }} />
-      <div className="section-label">Per agent, last {periodLabel}</div>
+      <div className="section-label">Per agent, {periodLabel}</div>
       <AgentTable agents={agents} byAgent={byAgent} today={today} budget={status?.budget ?? null} range={period} />
       <div className="grid three gap-top">
         <CostPerMinute agents={agents} byAgent={byAgent} />

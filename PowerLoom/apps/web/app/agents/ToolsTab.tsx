@@ -3,12 +3,13 @@ import { AgentDots } from "@/components/AgentDots";
 import { LinkPicker } from "@/components/LinkPicker";
 import { Pager } from "@/components/Pager";
 import { Panel } from "@/components/Panel";
-import { SegLinks } from "@/components/SegLinks";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { BarLegend, StackedBar } from "@/components/StackedBar";
 import { TimeAgo } from "@/components/TimeAgo";
 import { agentsUrl } from "@/lib/agentsUrl";
 import { getDb } from "@/lib/db";
-import { DEFAULT_RANGE, RANGES, rangeOptions, rangeStart } from "@/lib/ranges";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf } from "@/lib/ranges";
 import { ALL_AGENTS, agentChoices, configuredResources, isUsed, latestCalls, loadDataAccess, resourceUsage } from "@/lib/toolUsage";
 import type { BarPart } from "@/models/BarPart";
 import type { ResourceUsage } from "@/models/ResourceUsage";
@@ -33,10 +34,10 @@ type ToolsParams = { range?: string; agent?: string; page?: string; size?: strin
 // request (user decision 2026-10-18).
 export async function ToolsTab({ vault, params, tabs }: { vault: string; params: ToolsParams; tabs: ReactNode }) {
   const db = getDb();
-  const range = params.range && RANGES[params.range] ? params.range : DEFAULT_RANGE;
+  const range = periodOf(params.range);
   const agents = await agentChoices(db, vault);
   const agent = agents.find((choice) => choice === params.agent) ?? ALL_AGENTS;
-  const calls = await loadDataAccess(db, vault, rangeStart(range), agent);
+  const calls = await loadDataAccess(db, vault, await periodStart(range, vault), agent);
   const configured = await configuredResources(db, vault);
   const usage = resourceUsage(configured, calls, await latestCalls(db, vault));
   const used = usage.filter(isUsed).sort((a, b) => b.calls - a.calls).slice(0, MOST_USED);
@@ -52,7 +53,7 @@ export async function ToolsTab({ vault, params, tabs }: { vault: string; params:
       <div className="tab-bar">
         {tabs}
         <div className="tab-filters">
-          <SegLinks name="range" value={range} options={rangeOptions()} path="/agents" keep={{ tab: "tools", agent }} small />
+          <PeriodPicker value={range} path="/agents" keep={{ tab: "tools", agent }} />
           <LinkPicker label="Agent" value={agent} choices={agents.map((choice) => ({ key: choice, label: choice === ALL_AGENTS ? "All agents" : choice, href: agentsUrl({ ...keep, agent: choice }) }))} />
         </div>
       </div>

@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkPicker } from "@/components/LinkPicker";
 import { Pager } from "@/components/Pager";
-import { SegLinks } from "@/components/SegLinks";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { agentsUrl } from "@/lib/agentsUrl";
-import { DEFAULT_RANGE, RANGES, rangeOptions, rangeStart } from "@/lib/ranges";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf } from "@/lib/ranges";
 import { RUN_OUTCOME_GROUPS, outcomeGroupOf } from "@/lib/runOutcomes";
 import { loadRunList, type RunListRow } from "@/lib/runList";
 import { loadRunShares } from "@/lib/subscription";
@@ -19,11 +20,11 @@ type RunsParams = { agent?: string; range?: string; outcome?: string; page?: str
 // Every agent's runs (user decision 2026-10-18: a tab of Agents, no longer a page): the period, the agent and the
 // outcome as pills with counts, the runs in six columns, and Re-run for the selected ones' tasks.
 export async function RunsTab({ vault, params, tabs }: { vault: string; params: RunsParams; tabs: ReactNode }) {
-  const range = params.range && RANGES[params.range] ? params.range : DEFAULT_RANGE;
+  const range = periodOf(params.range);
   const agents = (await getAgentConfig().list()).map((agent) => agent.id);
   const agent = agents.find((choice) => choice === params.agent) ?? "";
   const outcome = RUN_OUTCOME_GROUPS.find((group) => group.key === params.outcome)?.key ?? "";
-  const rows = await loadRunList({ agent, range, outcome: "" }, rangeStart(range), vault);
+  const rows = await loadRunList({ agent, range, outcome: "" }, await periodStart(range, vault), vault);
   const shown = rows.filter((row) => outcome === "" || outcomeGroupOf(row.run.outcome) === outcome);
   const size = PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : PAGE_SIZES[0];
   const pages = Math.max(Math.ceil(shown.length / size), 1);
@@ -35,7 +36,7 @@ export async function RunsTab({ vault, params, tabs }: { vault: string; params: 
       <div className="tab-bar">
         {tabs}
         <div className="tab-filters">
-          <SegLinks name="range" value={range} options={rangeOptions()} path="/agents" keep={{ tab: "runs", agent, outcome }} small />
+          <PeriodPicker value={range} path="/agents" keep={{ tab: "runs", agent, outcome }} />
           <LinkPicker label="Agent" value={agent} choices={[{ key: "", label: "All agents", href: agentsUrl({ ...keep, agent: "" }) }, ...agents.map((id) => ({ key: id, label: id, href: agentsUrl({ ...keep, agent: id }) }))]} />
         </div>
       </div>

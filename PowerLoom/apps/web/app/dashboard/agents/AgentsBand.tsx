@@ -22,8 +22,8 @@ export function AgentsBand({ days, today, periodLabel, held, stuck }: AgentsBand
 
   return (
     <div className="band">
-      <StatTile label={`Spent, ${periodLabel}`} value={formatUsd(cost)} note={`${formatUsd(average(cost, days.length))} a day on average`} />
-      <StatTile label={`Runs, ${periodLabel}`} value={String(runs)} note={<RunsNote failures={failures} budgetStops={budgetStops} />} />
+      <StatTile label={`Spent ${periodLabel}`} value={formatUsd(cost)} note={`${formatUsd(average(cost, days.length))} a day on average`} />
+      <StatTile label={`Runs ${periodLabel}`} value={String(runs)} note={<RunsNote failures={failures} budgetStops={budgetStops} />} />
       <StatTile label="Spent today" value={formatUsd(today ? dayCost(today) : 0)} note={`${today?.runs ?? 0} runs so far`} />
       <StatTile label="Waiting on you" value={String(waiting)} note={`${held} held · ${stuck} stuck`} tone={waiting > 0 ? "warn" : "plain"} />
     </div>

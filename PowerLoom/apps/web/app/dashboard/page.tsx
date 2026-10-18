@@ -34,7 +34,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         <h1>Dashboard</h1>
         <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />
       </div>
-      <RememberFilters />
+      <RememberFilters vault={vault} />
       <DashboardTabs active={tab} />
       {tab === "application" && <ApplicationTab status={await loadSystemStatus()} vault={vault} focus={params.focus ?? null} mark={params.mark ?? null} />}
       {tab === "agents" && <AgentsTab vault={vault} range={params.range} metric={params.metric} />}

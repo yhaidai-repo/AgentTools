@@ -1,6 +1,5 @@
 import { LinkPicker } from "@/components/LinkPicker";
-import { SegLinks } from "@/components/SegLinks";
-import { rangeOptions } from "@/lib/ranges";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { ALL_AGENTS } from "@/lib/vaultUsage";
 import { vaultUrl } from "@/lib/vaultUrl";
 
@@ -11,7 +10,7 @@ export function UsageFilters({ range, agent, agents }: { range: string; agent: s
 
   return (
     <div className="tab-filters">
-      <SegLinks name="range" value={range} options={rangeOptions()} path="/vault" keep={{ tab: "usage", agent }} small />
+      <PeriodPicker value={range} path="/vault" keep={{ tab: "usage", agent }} />
       <LinkPicker label="Agent" value={agent} choices={choices} />
     </div>
   );

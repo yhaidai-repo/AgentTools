@@ -65,7 +65,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
         <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
         <Link className="button page-action" href="/pbis/new">New PBI</Link>
       </div>
-      <RememberFilters />
+      <RememberFilters vault={vault} />
       <div className="backlog-bar">
         <StatusPills rows={rows} statuses={STATUSES} view={view} />
         {isAdoActive(ado) && <SyncLine db={db} vault={vault} />}

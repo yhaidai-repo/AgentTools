@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { StatTile } from "@/components/StatTile";
 import { TimeAgo } from "@/components/TimeAgo";
 import { getDb } from "@/lib/db";
-import { DEFAULT_RANGE, RANGES, rangeStart } from "@/lib/ranges";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf } from "@/lib/ranges";
 import { withWriteActions } from "@/lib/vaultNoteWrites";
 import { listVaultNotes, notesWrittenByPowerLoom } from "@/lib/vaultNotes";
 import { ALL_AGENTS, agentChoices, isUsed, noteUsage, useCount } from "@/lib/vaultUsage";
@@ -21,14 +22,14 @@ type UsageParams = { range?: string; agent?: string; unused?: string; page?: str
 // (Claude Code and PowerLoom's agents); four numbers on top (user decision 2026-10-18).
 export async function UsageTab({ root, vault, params, tabs }: { root: string; vault: string; params: UsageParams; tabs: ReactNode }) {
   // The period is one choice across pages (Agents, Runs, Tasks, Vault): the same options, default and remembered value.
-  const range = params.range && RANGES[params.range] ? params.range : DEFAULT_RANGE;
+  const range = periodOf(params.range);
   const notes = await listVaultNotes(root);
   const events = await readUsageEvents(root);
   const agents = agentChoices(events);
   // The log is appended to (the backfill added older PowerLoom reads at its end), so its first line isn't the oldest.
   const loggedSince = events.reduce<Date | null>((oldest, event) => (oldest && oldest < event.at ? oldest : event.at), null);
   const agent = agents.find((choice) => choice === params.agent) ?? ALL_AGENTS;
-  const since = rangeStart(range);
+  const since = await periodStart(range, vault);
   const usage = noteUsage(notes, events, since, agent);
   const written = await withWriteActions(getDb(), vault, notesWrittenByPowerLoom(notes, since));
   const used = usage.filter(isUsed).sort((a, b) => useCount(b) - useCount(a)).slice(0, MOST_USED);

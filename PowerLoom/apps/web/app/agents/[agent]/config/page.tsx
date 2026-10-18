@@ -6,7 +6,7 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { loadAgentTotals } from "@/lib/agentTotals";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
-import { rangeStart } from "@/lib/ranges";
+import { fixedPeriodStart } from "@/lib/ranges";
 import { loadRunCounts } from "@/lib/runCounts";
 import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "./AgentForm";
@@ -34,7 +34,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
     notFound();
   }
 
-  const since = rangeStart(HEADER_RANGE);
+  const since = fixedPeriodStart(HEADER_RANGE, new Date());
   const agents = await store.list();
   const spent = await spentToday({ agent: agent.id });
 

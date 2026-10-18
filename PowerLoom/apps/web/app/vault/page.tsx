@@ -32,7 +32,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Search
   return (
     <>
       <div className="page-head"><h1>Vault</h1></div>
-      <RememberFilters />
+      <RememberFilters vault={vault} />
       {tab === "maintenance" ? <MaintenanceTab root={root} vault={vault} params={params} tabs={tabs} /> : <UsageTab root={root} vault={vault} params={params} tabs={tabs} />}
     </>
   );

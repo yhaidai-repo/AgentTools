@@ -50,7 +50,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
         <h1>Reviews</h1>
         <AutoRefresh active intervalMs={REFRESH_MS} />
       </div>
-      <RememberFilters />
+      <RememberFilters vault={vault} />
       <div className="backlog-bar">
         <StatusPills rows={rows} filter={filter} />
         {adoActive ? <CheckLine rows={rows} /> : <span className="sync-line">No Azure DevOps integration for {vault}: enable it in <Link href="/settings">Settings</Link> to list pull requests.</span>}

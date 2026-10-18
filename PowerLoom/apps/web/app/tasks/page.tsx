@@ -9,7 +9,7 @@ import { TimeAgo } from "@/components/TimeAgo";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { itemPath } from "@/lib/items";
-import { DAY_RANGES, DEFAULT_DAY_RANGE } from "@/lib/ranges";
+import { periodOf } from "@/lib/ranges";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { TASK_KINDS, TASK_PAGE_SIZES, bucketOf, countBy, loadTaskList, matchesTask, sortTasks, type TaskRow } from "@/lib/taskList";
 import { isHumanWork } from "@/lib/taskLooks";
@@ -39,6 +39,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   const loaded = await loadTaskList(filter, vault);
   const rows = filter.youFirst ? sortTasks(loaded) : loaded;
   const ofKind = rows.filter((row) => filter.kind === "" || row.kind === filter.kind);
+  const ofStatus = rows.filter((row) => filter.status === "all" || bucketOf(row) === filter.status);
   const shown = rows.filter((row) => matchesTask(row, filter));
   const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
   const page = Math.min(filter.page, pages);
@@ -50,8 +51,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
         <AutoRefresh active intervalMs={TASKS_REFRESH_MS} />
         <Link className="button page-action" href="/tasks/new">New task</Link>
       </div>
-      <RememberFilters />
-      <TaskFilters filter={filter} total={ofKind.length} buckets={countBy(ofKind, bucketOf)} kinds={countBy(rows, (row) => row.kind)} />
+      <RememberFilters vault={vault} />
+      <TaskFilters filter={filter} total={ofKind.length} buckets={countBy(ofKind, bucketOf)} kinds={withChosenKind(countBy(ofStatus, (row) => row.kind), filter.kind)} />
       {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} />}
       {shown.length > 0 && <Pager page={page} size={filter.size} sizes={TASK_PAGE_SIZES} pages={pages} total={shown.length} noun="tasks" hrefOf={(change) => tasksUrl({ ...filter, page: change.page, size: change.size ?? filter.size })} />}
       <div className="section-label">Scheduled tasks</div>
@@ -60,12 +61,18 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   );
 }
 
+// Each pill row counts within the other's choice (the kinds within the chosen status); the chosen kind keeps its pill
+// even when the status has none of it, so the choice stays visible.
+function withChosenKind(kinds: Map<string, number>, kind: string): Map<string, number> {
+  return kind === "" || kinds.has(kind) ? kinds : new Map([...kinds, [kind, 0]]);
+}
+
 function filterOf(params: Record<string, string | undefined>): TaskFilter {
   return {
     kind: TASK_KINDS.find((kind) => kind === params.kind) ?? "",
     status: STATUSES.find((status) => status === params.status) ?? "all",
     pbi: (params.pbi ?? "").trim(),
-    range: params.range && DAY_RANGES.includes(params.range) ? params.range : DEFAULT_DAY_RANGE,
+    range: periodOf(params.range),
     youFirst: params.sort !== UPDATED_FIRST,
     page: Math.max(Number(params.page) || 1, 1),
     size: TASK_PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : TASK_PAGE_SIZES[0],
