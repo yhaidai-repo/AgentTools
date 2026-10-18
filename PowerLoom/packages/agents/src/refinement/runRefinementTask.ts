@@ -18,6 +18,7 @@ import { confluencePagesReadInRun, docsReadInRun, skillsTrace } from "../stage";
 import { AgentToolset } from "../toolset/AgentToolset";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitRefinement } from "./commitRefinement";
+import { hasRefinementOutput } from "./hasRefinementOutput";
 import type { RefinementDraft } from "./models/RefinementDraft";
 import type { RefinementRun } from "./models/RefinementRun";
 import { userRequestBlock } from "../tasks/userTasks";
@@ -93,6 +94,6 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     observe: (event) => toolset.observe(event),
-    hasRequiredOutput: () => draft.refinement !== null,
+    hasRequiredOutput: () => hasRefinementOutput(draft.refinement, toolset.estimate),
   };
 }

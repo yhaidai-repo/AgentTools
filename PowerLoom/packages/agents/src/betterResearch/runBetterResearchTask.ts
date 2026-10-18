@@ -44,6 +44,7 @@ export async function runBetterResearchTask(context: TaskContext, task: ItemRow)
       const extra = { commits: run.repos.commits, docsRead: await docsReadInRun(deps, session.runId), docsVault: deps.docsVaultName };
 
       await commitBetterResearch(deps.db, task, run.research?.pbi ?? null, session.runId, { ...run.draft, result: run.draft.result! }, extra);
+      await run.toolset?.commit(session.runId);
     };
 
     // A run stopped by its budget keeps the result it saved (status partial), so the work so far isn't lost.

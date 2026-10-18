@@ -5,11 +5,13 @@ import { eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import { withBudgetNotes } from "../budget/budgetNotes";
 import { documentedRepos } from "../docsRepos";
+import { ESTIMATE_TOOL } from "../estimate/estimateTool";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
+import { hasRefinementOutput } from "../refinement/hasRefinementOutput";
 import { buildPbiMessage } from "../refinement/pbiMessage";
 import { withPagesRead } from "../relevantPages";
 import { pbiRepoSources } from "../repos/agentRepos";
@@ -31,8 +33,8 @@ const AGENT = "better-refinement";
 // Refinement starts a PBI's chain: the tasks it creates are depth 1.
 const DEPTH = 0;
 
-// One Better Refinement task (RT-…): one run on its PBI; the refinement, the tasks it created and its drafts are committed
-// on success, and also after a budget stop when a refinement was saved.
+// One Better Refinement task (RT-…): one run on its PBI; the refinement, the tasks it created, its drafts and its estimate
+// are committed on success, and also after a budget stop when a refinement was saved.
 export async function runBetterRefinementTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps } = context;
   const pbiId = requirePbiId(task);
@@ -55,6 +57,7 @@ export async function runBetterRefinementTask(context: TaskContext, task: ItemRo
       const extra = { docsRead: await docsReadInRun(deps, session.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName };
 
       await commitBetterRefinement(deps.db, { id: task.id, pbiId, vault: task.vault }, session.runId, { ...run.draft, refinement: run.draft.refinement!, pages }, extra);
+      await run.toolset?.commit(session.runId);
     };
 
     return await session.finish(ran, commit, run.draft.refinement !== null);
@@ -76,7 +79,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     ...toolset.tools(firstMessage),
     createListSkillsTool(deps.skillFolders, isRecommendableSkill),
     createRefinementTool(run.draft, toolset.readLog, recommendable),
-  ], () => session.spentUsd, agent.budgets.perRunUsd, REFINEMENT_TOOL);
+  ], () => session.spentUsd, agent.budgets.perRunUsd, resultTools(toolset));
 
   run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });
@@ -89,6 +92,11 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
     perRunBudgetUsd: agent.budgets.perRunUsd,
     observe: (event) => toolset.observe(event),
-    hasRequiredOutput: () => run.draft.refinement !== null,
+    hasRequiredOutput: () => hasRefinementOutput(run.draft.refinement, toolset.estimate),
   };
+}
+
+// Refinement must estimate when its Config grants it (user decision 2026-10-18), so the budget note asks for both.
+function resultTools(toolset: AgentToolset): string {
+  return toolset.estimate.isOffered ? `${REFINEMENT_TOOL} and ${ESTIMATE_TOOL}` : REFINEMENT_TOOL;
 }

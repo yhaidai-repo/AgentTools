@@ -30,6 +30,8 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<LocalItem> LocalItems { get; set; }
 
+    public virtual DbSet<PbiEstimate> PbiEstimates { get; set; }
+
     public virtual DbSet<PbiFeedback> PbiFeedbacks { get; set; }
 
     public virtual DbSet<PbiImport> PbiImports { get; set; }

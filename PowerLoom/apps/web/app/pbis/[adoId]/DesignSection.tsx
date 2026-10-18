@@ -4,7 +4,7 @@ import type { PbiDetail } from "@/lib/pbiDetail";
 
 type Design = NonNullable<PbiDetail["design"]>;
 
-// The latest design: estimates first (they feed the metrics), then approach, plan, alternatives, risks, tests.
+// The latest design: approach, plan, alternatives, risks, tests. Estimates are their own section (record_estimate).
 export function DesignSection({ design }: { design: PbiDetail["design"] }) {
   if (!design) {
     return <p className="muted">Not designed yet.</p>;
@@ -12,11 +12,7 @@ export function DesignSection({ design }: { design: PbiDetail["design"] }) {
 
   return (
     <>
-      <p>
-        <strong>{design.estHumanH ?? "?"} h human</strong> · <strong>{design.estAgentH ?? "?"} h agent</strong> · complexity {design.complexity ?? "?"}/5 · confidence {design.confidence ?? "?"}
-        {" "}<span className="muted">(v{design.version}{design.runId ? <>, <Link href={`/agents/runs/${design.runId}`}>RUN-{design.runId}</Link></> : null})</span>
-      </p>
-      {design.estimateBasis && <p className="muted">Basis: {design.estimateBasis}</p>}
+      <p className="muted">v{design.version}{design.runId ? <>, <Link href={`/agents/runs/${design.runId}`}>RUN-{design.runId}</Link></> : null}</p>
       <MarkdownBlock text={design.approach} />
       <h3>Plan</h3>
       <PlanTable design={design} />

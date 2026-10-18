@@ -38,9 +38,8 @@ export async function commitRefinement(db: PowerLoomDb, task: { id: string; pbiI
 export async function insertRefinement(db: PowerLoomDb, adoId: number, runId: number, output: RefinementOutput & { details?: object }, docsRead: string[]): Promise<number> {
   const [{ latest }] = await db.select({ latest: max(refinement.version) }).from(refinement).where(eq(refinement.pbiId, adoId));
   const version = (latest ?? 0) + 1;
-  const { estimate, ...columns } = output;
 
-  await db.insert(refinement).values({ pbiId: adoId, version, runId, ...columns, docsRead, estHours: String(estimate.hours), estimateBasis: estimate.basis });
+  await db.insert(refinement).values({ pbiId: adoId, version, runId, ...output, docsRead });
 
   return version;
 }

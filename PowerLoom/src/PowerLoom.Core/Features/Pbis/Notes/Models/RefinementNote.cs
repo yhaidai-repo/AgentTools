@@ -1,7 +1,7 @@
 namespace PowerLoom.Features.Pbis.Notes.Models;
 
-// The refinement note's data, parsed from the `refinement` row's JSON columns. No `EstHours`: a refinement from before
-// refinement estimated.
+// The refinement note's data, parsed from the `refinement` row's JSON columns, with the estimate its run recorded (none for a
+// refinement from before refinement estimated).
 public sealed record RefinementNote(
     int AdoId,
     int Version,
@@ -16,6 +16,5 @@ public sealed record RefinementNote(
     IReadOnlyList<string> Assumptions,
     IReadOnlyList<RelevantDoc> RelevantDocs,
     IReadOnlyList<string> DocsRead,
-    decimal? EstHours,
-    string? EstimateBasis,
+    EstimateNote? Estimate,
     RefinementDetails? Details = null);

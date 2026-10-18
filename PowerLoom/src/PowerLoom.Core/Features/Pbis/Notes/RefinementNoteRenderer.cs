@@ -31,7 +31,7 @@ public static class RefinementNoteRenderer
             $"PBI: {pbi}",
             "## Summary",
             note.Summary,
-            .. EstimateSection(note.EstHours, note.EstimateBasis),
+            .. EstimateSection(note.Estimate),
             "## Scope in",
             NoteText.Bullets(note.ScopeIn),
             "## Scope out",
@@ -53,20 +53,10 @@ public static class RefinementNoteRenderer
         ]);
     }
 
-    // A rough figure for planning; design estimates the plan it writes.
-    public static string? EstimateText(decimal? hours, string? basis)
+    // The estimate this refinement's run recorded; the PBI note shows the PBI's latest from any agent.
+    private static IEnumerable<string> EstimateSection(EstimateNote? estimate)
     {
-        if (hours is null)
-            return null;
-
-        return $"~{hours.Value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} h (developer): {basis}";
-    }
-
-    private static IEnumerable<string> EstimateSection(decimal? hours, string? basis)
-    {
-        var text = EstimateText(hours, basis);
-
-        return text is null ? [] : ["## Estimate", text];
+        return estimate is null ? [] : ["## Estimate", PbiEstimates.Text(estimate)];
     }
 
     // Better Refinement's details; an earlier refinement has none, so its note stays as it was.

@@ -17,7 +17,7 @@ docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- <command> '<j
    fields, the note (description, acceptance criteria), the user's own notes (`<user-notes>`), the parent, links,
    attachments, questions with the team's answers, and every related item as a reference (`<pbi-related>`).
 2. Read any reference it lists in full with `pbi.read '{"ref":"<ref>"}'`: `PBI-<id>:refinement`, `PBI-<id>:design`,
-   an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`, `RR-…`), `DRAFT-<n>`, an attachment `ATT-<n>`, a test case `TC-<id>`, or another `PBI-<id>`.
+   `PBI-<id>:estimate` (the latest estimate from any agent), an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`, `RR-…`), `DRAFT-<n>`, an attachment `ATT-<n>`, a test case `TC-<id>`, or another `PBI-<id>`.
 3. `pbi.get '{"link":"<ADO link, #id or id>"}'`: fields, statuses, parent, child items, repos, skills, note path.
 
 Answers in `<existing-items>` are the team's decisions; the user's notes are their own input on the PBI.

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace PowerLoom.Persistence.Entities;
 
+// The estimate columns (EstHumanH, EstAgentH, Complexity, Confidence, EstimateBasis) are history: record_estimate writes
+// pbi_estimate since 2026-10-18.
 public partial class Design
 {
     public int Id { get; set; }

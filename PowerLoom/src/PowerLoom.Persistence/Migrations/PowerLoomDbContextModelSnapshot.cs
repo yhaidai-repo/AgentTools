@@ -687,6 +687,66 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("local_item", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.PbiEstimate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Agent")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("agent");
+
+                    b.Property<decimal?>("AgentHours")
+                        .HasColumnType("numeric")
+                        .HasColumnName("agent_hours");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("basis");
+
+                    b.Property<short?>("Complexity")
+                        .HasColumnType("smallint")
+                        .HasColumnName("complexity");
+
+                    b.Property<string>("Confidence")
+                        .HasColumnType("text")
+                        .HasColumnName("confidence");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<decimal>("HumanHours")
+                        .HasColumnType("numeric")
+                        .HasColumnName("human_hours");
+
+                    b.Property<int>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<long?>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pbi_estimate_pkey");
+
+                    b.HasIndex(new[] { "PbiId", "CreatedAt" }, "pbi_estimate_pbi_idx");
+
+                    b.ToTable("pbi_estimate", null, t =>
+                        {
+                            t.HasCheckConstraint("pbi_estimate_complexity_ck", "complexity >= 1 AND complexity <= 5");
+                        });
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.PbiFeedback", b =>
                 {
                     b.Property<int>("Id")
@@ -2003,6 +2063,25 @@ namespace PowerLoom.Persistence.Migrations
                     b.Navigation("Pbi");
 
                     b.Navigation("VaultNavigation");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.PbiEstimate", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.WorkItem", "Pbi")
+                        .WithMany()
+                        .HasForeignKey("PbiId")
+                        .IsRequired()
+                        .HasConstraintName("pbi_estimate_pbi_id_work_item_ado_id_fk");
+
+                    b.HasOne("PowerLoom.Persistence.Entities.AgentRun", "Run")
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("pbi_estimate_run_id_agent_run_id_fk");
+
+                    b.Navigation("Pbi");
+
+                    b.Navigation("Run");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.PbiFeedback", b =>

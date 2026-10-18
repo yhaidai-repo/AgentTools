@@ -1,6 +1,6 @@
 ---
 name: powerloom-design-checklist
-description: How the PowerLoom design agent writes an implementation design: plan, alternatives, risks, tests and estimates. Use when starting a design task, before calling write_design.
+description: How the PowerLoom design agent writes an implementation design: plan, alternatives, risks, tests and estimates (record_estimate). Use when starting a design task, before calling write_design.
 ---
 
 # Design checklist
@@ -40,6 +40,7 @@ description: How the PowerLoom design agent writes an implementation design: pla
 - unit = one class/function; integration = DB, queue, API or several components; manual = UI or environment only.
 
 ## Estimates
+- Given with `record_estimate`, always both values; optional for design (skip it when the PBI's latest estimate still holds).
 - Human h: a developer who knows the stack, without an agent, incl. tests and review fixes.
 - Agent h: an agent implementing the plan, incl. running tests; excluding waiting for review.
 - Complexity: 1 trivial, 2 small and local, 3 several files or one contract, 4 several components or a migration, 5 cross-system or unclear.
