@@ -4528,11 +4528,13 @@
         "required": [
           "id",
           "name",
-          "agentId",
           "vault",
           "cron",
           "enabled",
-          "goal",
+          "taskType",
+          "description",
+          "acceptanceCriteria",
+          "pbi",
           "repos"
         ],
         "type": "object",
@@ -4547,9 +4549,6 @@
           "name": {
             "type": "string"
           },
-          "agentId": {
-            "type": "string"
-          },
           "vault": {
             "type": "string"
           },
@@ -4559,26 +4558,8 @@
           "enabled": {
             "type": "boolean"
           },
-          "goal": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "repos": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
           "taskType": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string"
           },
           "description": {
             "type": [
@@ -4597,6 +4578,15 @@
               "null",
               "string"
             ]
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

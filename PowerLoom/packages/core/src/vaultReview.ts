@@ -6,9 +6,6 @@ import type { VaultReviewOptions } from "./models/VaultReviewOptions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WAITING_TASK = ["open", "in-progress", "blocked"] as const;
-
-export const VAULT_REVIEW_AGENT = "vault-review";
-
 const DEFAULT_STALE_DAYS = 60;
 
 // From the agent's Config options, so the worker's count and the agent's lists use the same values.

@@ -477,8 +477,8 @@ export const dataAccess = pgTable("data_access", {
   index("data_access_run_idx").on(t.runId),
 ]);
 
-// Scheduled tasks (user decision 2026-10-03): each row is a pg-boss schedule (key `schedule-<id>`) on the one
-// `task-schedule` queue; a tick creates the agent's task through its task producer, only when one is needed.
+// Scheduled tasks (user decision 2026-10-03): PowerLoom ticks each row on its cron; a tick creates the task of its
+// `task_type` (all rows since 2026-10-18) unless the schedule's last task still waits.
 export const taskSchedule = pgTable("task_schedule", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -486,7 +486,7 @@ export const taskSchedule = pgTable("task_schedule", {
   vault: vaultName(), // the vault the schedule maintains (user decision 2026-10-05: configured inside the vault)
   cron: text("cron").notNull(),
   enabled: boolean("enabled").notNull().default(true),
-  params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the producer's params, e.g. { vaults: [...] }
+  params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the task the tick creates (PowerLoom's TaskParams)
   taskType: text("task_type"), // a schedule by task type (user decision 2026-10-14): its agent id is "*", params hold the task
   lastRunAt: ts("last_run_at"),
   lastResult: text("last_result"), // what the last tick did: the task it created, or why none

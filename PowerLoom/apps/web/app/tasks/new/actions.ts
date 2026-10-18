@@ -38,7 +38,7 @@ async function saveSchedule(form: FormData): Promise<ActionResult> {
   const previous = id === null ? null : await readTaskSchedule(getDb(), id);
   const task = readTask(form);
   const saved = await powerloom.PUT("/api/task-schedules", {
-    body: { id, name: task.title, agentId: "", vault: previous?.vault ?? (await requireVault()), cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", goal: null, repos: task.repos, taskType: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi },
+    body: { id, name: task.title, vault: previous?.vault ?? (await requireVault()), cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", taskType: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi, repos: task.repos },
   });
 
   if (!saved.response.ok) {

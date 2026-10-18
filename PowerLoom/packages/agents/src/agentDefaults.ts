@@ -221,7 +221,7 @@ const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
   {
     key: "maxFailures",
     label: "Failures before blocking a review task",
-    description: "After this many failed runs, the review task is set to blocked; the vault-review job creates no new one while it waits.",
+    description: "After this many failed runs, the review task is set to blocked; its schedule creates no new one while it waits.",
     min: 1,
     max: 10,
   },
@@ -450,7 +450,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     handles: ["review"],
     waitFor: [],
   },
-  // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
+  // Picks up vault-review tasks: a schedule's (one waits at a time) or one the user creates (task type since 2026-10-18).
   {
     id: "vault-review",
     label: "Vault review",
