@@ -60,15 +60,18 @@
 }
 
 /* A one-of choice as pills (type, priority). */
+/* More choices than the column is wide (e.g. five task types) wrap onto a second row instead of widening the page. */
 .pill-switch {
   display: inline-flex;
+  flex-wrap: wrap;
   justify-self: start;
+  max-width: 100%;
   gap: 2px;
   margin-bottom: 10px;
   padding: 3px;
   background: rgb(0 0 0 / 0.15);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 16px;
 }
 
 .pill-switch button {
