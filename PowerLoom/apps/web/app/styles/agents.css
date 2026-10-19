@@ -253,7 +253,7 @@ tr:hover .row-action,
 .runs-table .col-run { width: 190px; }
 .runs-table .col-cost { width: 110px; }
 .runs-table .col-took { width: 84px; }
-.runs-table .col-outcome { width: 130px; }
+.runs-table .col-outcome { width: 150px; }
 
 .runs-table input[type="checkbox"] {
   width: 15px;
@@ -265,11 +265,18 @@ tr:hover .row-action,
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
+/* The longest outcome (budget-exceeded) fits the column; a longer one wraps instead of leaving the table. */
 .run-outcome {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  max-width: 100%;
   font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.run-outcome .dot {
+  flex: none;
 }
 
 .run-error {
