@@ -15,7 +15,7 @@ export function HorizontalBars({ title, bars, format, empty }: HorizontalBarsPro
   const max = Math.max(...sorted.map((bar) => bar.value), 0);
 
   return (
-    <figure className="chart">
+    <figure className="panel chart">
       <figcaption>{title}</figcaption>
       {sorted.length === 0 && <p className="muted">{empty}</p>}
       <div className="bars" role="img" aria-label={title}>

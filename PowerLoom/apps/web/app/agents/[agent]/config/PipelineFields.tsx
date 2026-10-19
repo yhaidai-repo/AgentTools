@@ -1,34 +1,38 @@
 import type { BlockerKind } from "@powerloom/core";
 import type { AgentDefinition } from "@agenttools/config";
+import { SwitchField } from "@/components/SwitchField";
 import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
 
-// Where the agent sits in the pipeline: the task types it takes and may create, and what it waits for. There are task
-// types, not agent types, and agents decide what comes next (user decisions 2026-10-13).
+// Where the agent sits in the pipeline: the task types it takes and may create (toggle chips), and what it waits for
+// (switches). There are task types, not agent types, and agents decide what comes next (user decisions 2026-10-13).
 export function PipelineFields({ agent, blockerKinds, taskTypes }: { agent: AgentDefinition; blockerKinds: BlockerKind[]; taskTypes: TaskTypeChoices }) {
   return (
-    <fieldset className="field-group">
-      <legend>Pipeline</legend>
-      <span className="muted">Takes tasks of type (besides the tasks pinned to it; when several agents take a type, whichever runs first takes a task):</span>
-      {taskTypes.agent.map((type) => (
-        <label key={`handles-${type}`} className="inline choice">
-          <input type="checkbox" name="handles" value={type} defaultChecked={agent.handles.includes(type)} />
+    <section className="panel config-section">
+      <h3>Pipeline</h3>
+      <div className="field">
+        <span>Takes tasks of type<small>besides the tasks pinned to it; when several agents take a type, the first free one does</small></span>
+        <TypeChips name="handles" types={taskTypes.agent} checked={agent.handles} />
+      </div>
+      <div className="field">
+        <span>Can create tasks of type<small>gives it create_task, so it decides what comes next; you can always get one</small></span>
+        <TypeChips name="canAssign" types={taskTypes.creatable} checked={agent.canAssign} />
+      </div>
+      <span className="field-label">Waits until<small>the worker starts it on a PBI only when each switched-on check passes</small></span>
+      {blockerKinds.map((kind) => <SwitchField key={kind.key} name="waitFor" value={kind.key} label={kind.label} hint={kind.description} defaultChecked={agent.waitFor.includes(kind.key)} />)}
+    </section>
+  );
+}
+
+// Each type is a checkbox drawn as a chip that lights up when chosen (as the repositories on New task).
+function TypeChips({ name, types, checked }: { name: string; types: string[]; checked: string[] }) {
+  return (
+    <div className="repo-chips">
+      {types.map((type) => (
+        <label key={type} className="repo-check">
+          <input type="checkbox" name={name} value={type} defaultChecked={checked.includes(type)} />
           <span>{type}</span>
         </label>
       ))}
-      <span className="muted">Can create tasks of type (ticked types give the agent the create_task tool, so it decides what comes next; the user always can get one):</span>
-      {taskTypes.creatable.map((type) => (
-        <label key={`assign-${type}`} className="inline choice">
-          <input type="checkbox" name="canAssign" value={type} defaultChecked={agent.canAssign.includes(type)} />
-          <span>{type}</span>
-        </label>
-      ))}
-      <span className="muted">Wait for (the worker doesn&apos;t start this agent on a PBI until each ticked check passes):</span>
-      {blockerKinds.map((kind) => (
-        <label key={kind.key} className="inline choice">
-          <input type="checkbox" name="waitFor" value={kind.key} defaultChecked={agent.waitFor.includes(kind.key)} />
-          <span><strong>{kind.label}</strong> <span className="muted">{kind.description}</span></span>
-        </label>
-      ))}
-    </fieldset>
+    </div>
   );
 }

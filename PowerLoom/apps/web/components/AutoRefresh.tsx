@@ -17,5 +17,6 @@ export function AutoRefresh({ active, intervalMs = 3000 }: { active: boolean; in
     return () => clearInterval(timer);
   }, [active, intervalMs, router]);
 
-  return active ? <span className="chip">live: updates every {Math.round(intervalMs / 1000)} s</span> : null;
+  // A refresh time would only tick like a clock (user, 2026-10-18): the mark says "Live", the period is in its tooltip.
+  return active ? <span className="live" title={`Refreshes every ${Math.round(intervalMs / 1000)} s`}>Live</span> : null;
 }

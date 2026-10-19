@@ -1,30 +1,35 @@
 import type { ImportRunStatus, ImportSourceActivity, ImportSourceStatus } from "@powerloom/core";
-import { LocalTime } from "@/components/LocalTime";
+import { TimeAgo } from "@/components/TimeAgo";
 
-// Each source as the import job last saw it, and when it last imported something (a quiet source may be broken).
+// Each source as the import job last saw it, and when it last imported something; a quiet source (it may be broken)
+// gets an amber dot, never red text (user decision 2026-10-18).
 export function ImportStatus({ status, activity }: { status: ImportRunStatus | null; activity: ImportSourceActivity[] }) {
   if (!status) {
-    return <p className="muted">Import: not run yet (Backlog → Import now, or wait for the import schedule).</p>;
+    return <p className="hint">Not run yet (Backlog → Import now, or wait for the schedule).</p>;
   }
 
   if (!status.configured) {
-    return <p className="result-error">Import: the import inbox (Import:InboxRoot) isn&apos;t set for PowerLoom.</p>;
+    return <p className="text-warn">The import inbox (Import:InboxRoot) isn&apos;t set for PowerLoom.</p>;
   }
 
   return (
-    <>
-      <p className="muted">Import inbox <code>{process.env.IMPORT_INBOX_PATH ?? "IMPORT_INBOX_PATH"}</code>, last run <LocalTime date={status.checkedAt} />.</p>
-      {status.sources.map((source) => <SourceLine key={source.source} source={source} activity={activity.find((entry) => entry.source === source.source)} />)}
-    </>
+    <div className="source-rows">
+      <p className="hint">Last run <TimeAgo date={status.checkedAt} />.</p>
+      {status.sources.map((source) => <SourceRow key={source.source} source={source} activity={activity.find((entry) => entry.source === source.source)} />)}
+    </div>
   );
 }
 
-function SourceLine({ source, activity }: { source: ImportSourceStatus; activity: ImportSourceActivity | undefined }) {
-  const lastImport = activity ? <>last import <LocalTime date={activity.lastImportAt} /></> : <>nothing imported yet</>;
-
+function SourceRow({ source, activity }: { source: ImportSourceStatus; activity: ImportSourceActivity | undefined }) {
   return (
-    <p className={activity?.isQuiet ? "result-error" : "muted"}>
-      {source.source}: {source.waiting} waiting, {source.failed} in failed/, {lastImport}{activity?.isQuiet && " (nothing for over a day: is the source still running?)"}
-    </p>
+    <div className="source-row">
+      <span className={activity?.isQuiet ? "dot warn" : "dot ok"} />
+      <span>{source.source}</span>
+      <span className="hint">{source.waiting} waiting · {source.failed} failed</span>
+      <small className={activity?.isQuiet ? "text-warn" : undefined}>
+        {activity ? <>last import <TimeAgo date={activity.lastImportAt} /></> : "nothing imported yet"}
+        {activity?.isQuiet && ": nothing for over a day, is the source still running?"}
+      </small>
+    </div>
   );
 }

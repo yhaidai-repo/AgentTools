@@ -1,5 +1,6 @@
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import { enabledRepos } from "@powerloom/core";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { NoVault } from "@/components/NoVault";
 import { getDb } from "@/lib/db";
 import { currentVault } from "@/lib/currentVault";
@@ -18,8 +19,9 @@ export default async function NewPbiPage() {
 
   return (
     <>
-      <h1>New PBI in {vault}</h1>
-      <NewPbiForm repos={(await enabledRepos(getDb(), vault)).map((row) => row.name)} accept={ACCEPTED_EXTENSIONS.join(",")} />
+      <Breadcrumbs crumbs={[{ label: "Backlog", href: "/pbis" }, { label: "New PBI" }]} />
+      <h1>New PBI</h1>
+      <NewPbiForm vault={vault} repos={(await enabledRepos(getDb(), vault)).map((row) => row.name)} accept={ACCEPTED_EXTENSIONS.join(",")} />
     </>
   );
 }

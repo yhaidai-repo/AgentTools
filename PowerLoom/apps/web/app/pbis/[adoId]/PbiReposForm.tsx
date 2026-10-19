@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Dropdown } from "@/components/Dropdown";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiRepoEntry } from "@/models/PbiRepoEntry";
 import { saveRepos } from "./actions";
@@ -14,8 +15,9 @@ const SOURCES: Record<string, string> = {
   refinement: "refinement's list, not saved yet",
 };
 
-// The repos research and design clone for this PBI (user decision 2026-10-02): Remove and "Add a repo" change the list,
-// nothing is stored until "Save repos"; saving confirms every repo on it and answers refinement's repo question.
+// The repos research and design clone for this PBI (user decision 2026-10-02): × and "+ Add repo" change the chips,
+// nothing is stored until "Save repos"; saving confirms every repo on it and answers refinement's repo question. A
+// refinement guess not confirmed yet is an amber chip.
 export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: PbiRepoEntry[]; catalog: string[] }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveRepos, null);
   const [rows, setRows] = useState<PbiRepoEntry[]>(repos);
@@ -24,22 +26,22 @@ export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: 
   return (
     <form action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId} />
-      {rows.length === 0 && <p className="muted">No repos: research and design clone none for this PBI.</p>}
-      <ul>
+      {rows.length === 0 && <p className="empty">No repos: research and design clone none for this PBI.</p>}
+      <div className="chip-list">
         {rows.map((row) => (
-          <li key={row.name} className={row.source === "agent-assumed" ? "result-error" : undefined}>
+          <span key={row.name} className={row.source === "agent-assumed" ? "pick-chip guess" : "pick-chip"} title={SOURCES[row.source] ?? row.source}>
             <input type="hidden" name="repo" value={row.name} />
-            {row.name} · <span className="muted">{SOURCES[row.source] ?? row.source}</span>{" "}
-            <button type="button" className="secondary" onClick={() => setRows(rows.filter((other) => other.name !== row.name))}>Remove</button>
-          </li>
+            {row.name}
+            <button type="button" className="chip-remove" aria-label={`Remove ${row.name}`} onClick={() => setRows(rows.filter((other) => other.name !== row.name))}>×</button>
+          </span>
         ))}
-      </ul>
-      {remaining.length > 0 && (
-        <select value="" onChange={(event) => setRows([...rows, { name: event.target.value, source: "added", questionId: null }])} aria-label="Add a repo">
-          <option value="">Add a repo… ({remaining.length} in the catalog)</option>
-          {remaining.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-      )}
+        {remaining.length > 0 && (
+          <Dropdown label="Add a repo" pill trigger={<span>+ Add repo</span>}>
+            <div className="menu-title">{remaining.length} in the catalog</div>
+            {remaining.map((name) => <button key={name} type="button" className="menu-item" role="menuitem" onClick={() => setRows([...rows, { name, source: "added", questionId: null }])}>{name}</button>)}
+          </Dropdown>
+        )}
+      </div>
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save repos"}</button>
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}

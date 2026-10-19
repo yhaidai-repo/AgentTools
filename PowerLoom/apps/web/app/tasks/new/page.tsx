@@ -1,4 +1,5 @@
 import { USER_TASK_TYPES, enabledRepos } from "@powerloom/core";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { NoVault } from "@/components/NoVault";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -19,7 +20,8 @@ export default async function NewTaskPage() {
 
   return (
     <>
-      <h1>New task for {vault}</h1>
+      <Breadcrumbs crumbs={[{ label: "Tasks", href: "/tasks" }, { label: "New task" }]} />
+      <h1>New task</h1>
       <TaskForm values={NEW_TASK_VALUES} types={USER_TASK_TYPES} repos={repos} />
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { LocalTime } from "@/components/LocalTime";
+import { TimeAgo } from "@/components/TimeAgo";
 import type { TrashRow } from "@/models/TrashRow";
 import { trashAction } from "./actions";
 
@@ -24,8 +24,8 @@ export function TrashTable({ rows }: { rows: TrashRow[] }) {
 
   return (
     <>
-      <div className="table-wrap">
-        <table>
+      <div className="panel">
+        <table className="data-table vault-table">
           <thead>
             <tr><th>Note</th><th>Size</th><th>Removed</th><th></th></tr>
           </thead>
@@ -34,10 +34,10 @@ export function TrashTable({ rows }: { rows: TrashRow[] }) {
               <tr key={row.path}>
                 <td>{row.path}</td>
                 <td>{formatSize(row.sizeBytes)}</td>
-                <td><LocalTime date={row.modifiedAt} /></td>
+                <td><TimeAgo date={row.modifiedAt} /></td>
                 <td className="actions">
                   <button type="button" className="secondary" disabled={isPending} onClick={() => act(row.path, "restore")}>Restore</button>
-                  <button type="button" className="secondary" disabled={isPending} onClick={() => act(row.path, "delete")}>Delete</button>
+                  <button type="button" className="danger" disabled={isPending} onClick={() => act(row.path, "delete")}>Delete</button>
                 </td>
               </tr>
             ))}

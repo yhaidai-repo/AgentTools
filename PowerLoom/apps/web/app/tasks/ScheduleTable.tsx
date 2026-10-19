@@ -1,34 +1,35 @@
 import { ANY_AGENT, workerLabel, type TaskSchedule } from "@powerloom/core";
 import Link from "next/link";
-import { LocalTime } from "@/components/LocalTime";
+import { Panel } from "@/components/Panel";
+import { StatusRow } from "@/components/StatusRow";
+import { TimeAgo } from "@/components/TimeAgo";
+import { cronText } from "@/lib/cronText";
 import { ScheduleActions } from "./ScheduleActions";
 
-// The task schedules (user decision 2026-10-03): each tick creates its task unless the last one still waits.
+// The task schedules (user decision 2026-10-03): each tick creates its task unless the last one still waits. Below
+// the task list (user decision 2026-10-18), the cron as people say it and the last tick as "2d ago".
 export function ScheduleTable({ schedules }: { schedules: TaskSchedule[] }) {
   if (schedules.length === 0) {
-    return <p className="muted">No scheduled tasks. New task with a schedule (cron) adds one.</p>;
+    return <Panel><p className="empty">No scheduled tasks. New task with a schedule (cron) adds one.</p></Panel>;
   }
 
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Name</th><th>Agent</th><th>Cron</th><th>Task</th><th>Last tick</th><th></th></tr>
-        </thead>
-        <tbody>
-          {schedules.map((schedule) => (
-            <tr key={schedule.id}>
-              <td><Link href={`/tasks/schedules/${schedule.id}`}>{schedule.name}</Link>{schedule.enabled ? "" : " (off)"}</td>
-              <td>{schedule.taskType ? workerLabel(ANY_AGENT, schedule.taskType) : schedule.agentId}</td>
-              <td><code>{schedule.cron}</code></td>
-              <td>{paramsText(schedule.params)}</td>
-              <td className="title">{schedule.lastRunAt ? <><LocalTime date={schedule.lastRunAt} />: {schedule.lastResult}</> : "–"}</td>
-              <td><ScheduleActions id={schedule.id} name={schedule.name} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Panel>
+      <div className="item-rows">
+        {schedules.map((schedule) => (
+          <div key={schedule.id} className="item-row schedule-row">
+            <span className={schedule.enabled ? "dot ok" : "dot"} />
+            <Link href={`/tasks/schedules/${schedule.id}`} className="schedule-name">{schedule.name}</Link>
+            <span className="item-title" title={schedule.cron}>
+              {schedule.taskType ? workerLabel(ANY_AGENT, schedule.taskType) : schedule.agentId} · {cronText(schedule.cron)}{schedule.enabled ? "" : " · off"}
+              <span className="file-meta">{paramsText(schedule.params)}</span>
+            </span>
+            <span className="item-state">{schedule.lastRunAt ? <>last tick <TimeAgo date={schedule.lastRunAt} />{schedule.lastResult ? `: ${schedule.lastResult}` : ""}</> : "no tick yet"}</span>
+            <ScheduleActions id={schedule.id} name={schedule.name} />
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }
 

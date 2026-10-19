@@ -2,10 +2,10 @@ import { sql } from "drizzle-orm";
 import type { PbiEstimate } from "@/models/PbiEstimate";
 import { getDb } from "./db";
 
-// The finished PBIs, newest finish first, with the Original Estimate and the latest agent estimate (user request 2026-10-16:
-// original estimate against the effort given at finish; user decision 2026-10-18: the latest estimate from any agent). A PBI
-// finished twice counts its latest finish.
-export async function loadPbiEstimates(limit: number): Promise<PbiEstimate[]> {
+// The vault's finished PBIs, newest finish first, with the Original Estimate and the latest agent estimate (user request
+// 2026-10-16: original estimate against the effort given at finish; user decision 2026-10-18: the latest estimate from
+// any agent). A PBI finished twice counts its latest finish.
+export async function loadPbiEstimates(limit: number, vault: string): Promise<PbiEstimate[]> {
   const result = await getDb().execute<Omit<PbiEstimate, "finishedAt"> & { finishedAt: string }>(sql`
     with finish as (
       select distinct on (pbi_id) pbi_id, effort_hours, created_at from pbi_feedback order by pbi_id, created_at desc, id desc
@@ -20,6 +20,7 @@ export async function loadPbiEstimates(limit: number): Promise<PbiEstimate[]> {
     join work_item w on w.ado_id = f.pbi_id
     left join original o on o.ado_id = f.pbi_id
     left join estimated e on e.pbi_id = f.pbi_id
+    where w.vault = ${vault}
     order by f.created_at desc
     limit ${limit}`);
 

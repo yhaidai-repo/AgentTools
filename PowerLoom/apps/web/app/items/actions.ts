@@ -73,7 +73,7 @@ export async function rerunTaskAction(adoId: number | null, itemId: string, star
   }
 
   revalidateItemPages(adoId);
-  revalidatePath("/runs");
+  revalidatePath("/agents");
   revalidatePath("/agents/runs", "layout");
 
   const start = startOver ? "starts over" : "runs";

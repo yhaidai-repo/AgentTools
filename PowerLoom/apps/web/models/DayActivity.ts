@@ -1,4 +1,5 @@
-// One budget day (00:00 UTC) of the agents' work: the runs started that day and the finished runs' cost per agent.
+// One budget day (00:00 UTC) of the agents' work: the runs started that day and the finished runs' cost, tokens and run
+// time per agent.
 export interface DayActivity {
   /** YYYY-MM-DD, UTC. */
   day: string;
@@ -7,4 +8,6 @@ export interface DayActivity {
   /** Runs stopped by their budget: not failures (user decision 2026-10-13). */
   budgetStops: number;
   costByAgent: Record<string, number>;
+  tokensByAgent: Record<string, number>;
+  durationMsByAgent: Record<string, number>;
 }

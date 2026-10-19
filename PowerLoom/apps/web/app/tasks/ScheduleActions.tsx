@@ -14,7 +14,7 @@ export function ScheduleActions({ id, name }: { id: number; name: string }) {
       </form>
       <form action={deleteScheduleAction} onSubmit={(event) => confirmDelete(event, name)}>
         <input type="hidden" name="id" value={id} />
-        <button type="submit" className="secondary">Delete</button>
+        <button type="submit" className="danger small">Delete</button>
       </form>
     </div>
   );
@@ -23,7 +23,7 @@ export function ScheduleActions({ id, name }: { id: number; name: string }) {
 function CreateNowButton() {
   const { pending } = useFormStatus();
 
-  return <button type="submit" className="secondary" disabled={pending}>{pending ? "Creating…" : "Create now"}</button>;
+  return <button type="submit" className="secondary small" disabled={pending}>{pending ? "Creating…" : "Create now"}</button>;
 }
 
 function confirmDelete(event: FormEvent<HTMLFormElement>, name: string): void {

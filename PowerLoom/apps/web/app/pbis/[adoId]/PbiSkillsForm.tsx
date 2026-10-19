@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Dropdown } from "@/components/Dropdown";
 import type { PbiSkill } from "@powerloom/db";
 import type { SkillSummary } from "@agenttools/runtime/skills";
 import type { ActionResult } from "@/models/ActionResult";
@@ -34,10 +35,10 @@ export function PbiSkillsForm({ adoId, skills, catalog }: { adoId: number; skill
       {rows.length === 0 && <p className="muted">No skills: later agents use only their configured ones.</p>}
       {rows.map((row) => <SkillOption key={row.name} row={row} onRemove={() => setRows(rows.filter((other) => other.name !== row.name))} />)}
       {remaining.length > 0 && (
-        <select value="" onChange={(event) => add(event.target.value)} aria-label="Add a skill">
-          <option value="">Add a skill… ({remaining.length} available)</option>
-          {remaining.map((entry) => <option key={entry.name} value={entry.name} title={entry.description}>{entry.name}</option>)}
-        </select>
+        <Dropdown label="Add a skill" pill trigger={<span>+ Add skill</span>}>
+          <div className="menu-title">{remaining.length} available</div>
+          {remaining.map((entry) => <button key={entry.name} type="button" className="menu-item" role="menuitem" title={entry.description} onClick={() => add(entry.name)}>{entry.name}</button>)}
+        </Dropdown>
       )}
       <div className="actions">
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save skills"}</button>
@@ -55,7 +56,7 @@ function SkillOption({ row, onRemove }: { row: SkillRow; onRemove: () => void })
         <span>
           <strong>{row.name}</strong>
           {row.chosen && <span className="muted"> ({row.chosen.by === "user" ? "you" : "refinement"})</span>}
-          {" "}<button type="button" className="secondary" onClick={onRemove}>Remove</button>
+          {" "}<button type="button" className="chip-remove" aria-label={`Remove ${row.name}`} onClick={onRemove}>×</button>
         </span>
         <span className="muted clamp" title={row.description}>{row.description}</span>
         <input name={`reason:${row.name}`} placeholder="Why it helps on this PBI" defaultValue={row.chosen?.reason ?? ""} />

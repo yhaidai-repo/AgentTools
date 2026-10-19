@@ -6,9 +6,14 @@ export function formatTokens(count: number): string {
   return count >= 1_000 ? `${(count / 1_000).toFixed(1)}k` : String(count);
 }
 
-// Four decimals for cents-level amounts (a cheap run), two otherwise; zero is plain.
+// Two decimals everywhere (user, 2026-10-18: $0.6916 next to $15.27 read unevenly); a cheap run under a cent says so
+// instead of showing $0.00.
 export function formatUsd(amount: number): string {
-  return `$${amount.toFixed(amount > 0 && amount < 1 ? 4 : 2)}`;
+  if (amount > 0 && amount < 0.01) {
+    return "<$0.01";
+  }
+
+  return `$${amount.toFixed(2)}`;
 }
 
 export function formatDuration(ms: number): string {
@@ -56,6 +61,18 @@ export function formatAge(ms: number): string {
 // The day of a YYYY-MM-DD date, for a chart's x axis: 2026-10-05 → 5.
 export function formatDayOfMonth(day: string): string {
   return String(Number(day.slice(8, 10)));
+}
+
+// Two YYYY-MM-DD dates as a short span: "Oct 5 – 16", or "Sep 22 – Oct 3" across months.
+export function formatDaySpan(first: string, last: string): string {
+  const start = shortDay(first);
+  const end = shortDay(last);
+
+  return first.slice(0, 7) === last.slice(0, 7) ? `${start} – ${end.split(" ")[1]}` : `${start} – ${end}`;
+}
+
+function shortDay(day: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 export function average(total: number, count: number): number {

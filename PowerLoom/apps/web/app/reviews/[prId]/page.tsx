@@ -1,18 +1,16 @@
 import type { reviewComment } from "@powerloom/db";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { ContinueChat } from "@/components/ContinueChat";
-import { LocalTime } from "@/components/LocalTime";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
+import { NoVault } from "@/components/NoVault";
+import { Panel } from "@/components/Panel";
+import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { loadReviewDetail } from "@/lib/reviews";
 import type { ReviewDetail } from "@/models/ReviewDetail";
-import { LinkedPbis } from "../LinkedPbis";
-import { ReviewBadges } from "../ReviewBadges";
 import { BetterReviewInfo } from "./BetterReviewInfo";
 import { CommentCard } from "./CommentCard";
-import { ReviewActions } from "./ReviewActions";
+import { ReviewHeader } from "./ReviewHeader";
 import { ReviewRuns } from "./ReviewRuns";
 
 export const dynamic = "force-dynamic";
@@ -22,58 +20,55 @@ const REFRESH_MS = 5_000;
 type CommentRow = typeof reviewComment.$inferSelect;
 
 export default async function ReviewPage({ params }: { params: Promise<{ prId: string }> }) {
-  const detail = await loadReviewDetail(getDb(), Number((await params).prId));
+  const vault = await currentVault();
+
+  if (!vault) {
+    return <NoVault title="Reviews" />;
+  }
+
+  const detail = await loadReviewDetail(getDb(), Number((await params).prId), vault);
 
   if (!detail) {
     notFound();
   }
 
-  const { pr, review } = detail;
   const isBusy = detail.state === "queued" || detail.state === "reviewing";
 
   return (
     <>
-      <p><Link href="/reviews">← Reviews</Link></p>
-      <h1>PR {pr.id} · {pr.title}</h1>
-      <div className="chips">
-        <AutoRefresh active={isBusy} intervalMs={REFRESH_MS} />
-        <ReviewBadges row={detail} />
-        <a className="chip" href={pr.url} target="_blank" rel="noreferrer">Open in Azure DevOps</a>
+      <AutoRefresh active={isBusy} intervalMs={REFRESH_MS} />
+      <ReviewHeader detail={detail} />
+      <div className="pbi-columns review-columns">
+        <div>
+          <Panel title="Summary">
+            {detail.review.summaryMd ? <div className="review-summary"><MarkdownBlock text={detail.review.summaryMd} /></div> : <p className="hint">Not reviewed yet.</p>}
+          </Panel>
+          <Comments detail={detail} />
+        </div>
+        <div>
+          <ReviewRuns detail={detail} />
+          <BetterReviewInfo details={detail.review.details ?? null} />
+        </div>
       </div>
-      <p className="muted">
-        {pr.repoName} · {pr.sourceRef.replace(/^refs\/heads\//, "")} → {pr.targetRef.replace(/^refs\/heads\//, "")} · by {pr.author ?? "–"} · PBIs <LinkedPbis ids={pr.workItemIds} />
-      </p>
-      <ReviewActions prId={pr.id} isClosed={review.status === "closed"} state={detail.state} hasBeenReviewed={review.reviewedAt !== null} />
-      {review.status === "active" && <p><ContinueChat target={{ kind: "review", prId: pr.id }} /></p>}
-      <NewCommitsNotice detail={detail} />
-      {review.status === "closed" && <p className="muted">Closed{review.closedReason ? `: ${review.closedReason}` : ""}. Starting a review reopens it.</p>}
-      <h2>Summary</h2>
-      {review.summaryMd ? <MarkdownBlock text={review.summaryMd} /> : <p className="muted">Not reviewed yet.</p>}
-      <BetterReviewInfo details={review.details ?? null} />
-      <p className="muted">Reviewed commit {review.reviewedCommit?.slice(0, 8) ?? "–"}, <LocalTime date={review.reviewedAt} />.</p>
-      <h2>Runs</h2>
-      <ReviewRuns detail={detail} />
-      <h2>Comments ({detail.comments.open} open / {detail.comments.total})</h2>
-      {detail.allComments.length === 0 ? <p className="muted">No comments.</p> : groupByFile(detail.allComments).map(([file, comments]) => <FileComments key={file} file={file} comments={comments} />)}
     </>
   );
 }
 
-// The PR moved past the reviewed commit: nothing re-reviews it on its own (user decision 2026-10-02).
-function NewCommitsNotice({ detail }: { detail: ReviewDetail }) {
-  if (!detail.hasNewCommits) {
-    return null;
-  }
+function Comments({ detail }: { detail: ReviewDetail }) {
+  const { open, total } = detail.comments;
 
-  const pushes = detail.newPushes ? `${detail.newPushes} push${detail.newPushes === 1 ? "" : "es"}` : "New commits";
-
-  return <p className="result-error">{pushes} since this review (latest commit {detail.pr.sourceCommit.slice(0, 8)}, seen <LocalTime date={detail.pr.syncedAt} />). Rerun review to review them.</p>;
+  return (
+    <Panel title="Comments" aside={<small>{open} open · {total} in all</small>}>
+      {detail.allComments.length === 0 && <p className="hint">No comments.</p>}
+      {groupByFile(detail.allComments).map(([file, comments]) => <FileComments key={file} file={file} comments={comments} />)}
+    </Panel>
+  );
 }
 
 function FileComments({ file, comments }: { file: string; comments: CommentRow[] }) {
   return (
-    <section>
-      <h3><code>{file}</code></h3>
+    <section className="comment-file">
+      <div className="comment-file-head">{file}<span>{comments.length} comment{comments.length === 1 ? "" : "s"}</span></div>
       {comments.map((comment) => <CommentCard key={comment.id} comment={comment} />)}
     </section>
   );

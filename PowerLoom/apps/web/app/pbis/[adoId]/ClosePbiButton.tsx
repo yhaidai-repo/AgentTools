@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { closePbiAction, reopenPbiAction } from "../actions";
 
 // Close keeps the PBI for the agents to read (unlike Delete); Reopen brings back one the user closed. A PBI closed in
-// ADO shows neither: it follows ADO.
-export function ClosePbiButton({ adoId, closedByUser, isClosed }: { adoId: number; closedByUser: boolean; isClosed: boolean }) {
+// ADO shows neither: it follows ADO. In the header's ⋯ menu it is a menu entry, and a refusal shows as an alert (the
+// menu closes on the click).
+export function ClosePbiButton({ adoId, closedByUser, isClosed, inMenu = false }: { adoId: number; closedByUser: boolean; isClosed: boolean; inMenu?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -18,11 +19,23 @@ export function ClosePbiButton({ adoId, closedByUser, isClosed }: { adoId: numbe
       return;
     }
 
-    startTransition(async () => setMessage(messageOf(await closePbiAction(adoId))));
+    startTransition(async () => report(messageOf(await closePbiAction(adoId))));
   }
 
   function onReopen() {
-    startTransition(async () => setMessage(messageOf(await reopenPbiAction(adoId))));
+    startTransition(async () => report(messageOf(await reopenPbiAction(adoId))));
+  }
+
+  function report(problem: string | null) {
+    if (inMenu && problem) {
+      window.alert(problem);
+    }
+
+    setMessage(problem);
+  }
+
+  if (inMenu) {
+    return closedByUser ? <button type="button" className="menu-item" role="menuitem" onClick={onReopen} disabled={isPending}>Reopen</button> : <button type="button" className="menu-item" role="menuitem" onClick={onClose} disabled={isPending}>Close…</button>;
   }
 
   return (

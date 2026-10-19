@@ -1,5 +1,6 @@
 import { isHumanTaskData } from "@powerloom/core";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
+import { isOpen } from "@/lib/items";
 import type { ItemRow } from "@/lib/pbiDetail";
 import { HumanTaskContent } from "./HumanTaskContent";
 
@@ -71,7 +72,7 @@ function QuestionContent(item: ItemRow, data: ItemData) {
 
 // Agents' tasks are structured since 2026-10-05; older ones and the app's own document tasks are free text.
 function HumanContent(item: ItemRow) {
-  return isHumanTaskData(item.data) ? <HumanTaskContent data={item.data} /> : <Section title="Task" text={item.body} />;
+  return isHumanTaskData(item.data) ? <HumanTaskContent data={item.data} withSteps={!isOpen(item)} /> : <Section title="Task" text={item.body} />;
 }
 
 function ResearchTaskContent(item: ItemRow, data: ItemData) {

@@ -9,15 +9,15 @@ export function AzureResourceRowForm({ resource }: { resource: AzureResourceRow 
   const [isPending, startTransition] = useTransition();
 
   return (
-    <tr className={resource.enabled ? undefined : "muted"}>
-      <td>
-        <input type="checkbox" checked={resource.enabled} disabled={isPending} onChange={(event) => startTransition(() => setAzureResourceEnabledAction(resource.name, event.target.checked))} />
-      </td>
-      <td>{resource.name}</td>
-      <td><code>{resource.display}</code></td>
-      <td>
-        <button type="button" disabled={isPending} onClick={() => startTransition(() => removeAzureResourceAction(resource.name))}>Remove</button>
-      </td>
-    </tr>
+    <div className={`resource-row${resource.enabled ? "" : " off"}`}>
+      <label className="row-switch">
+        <input type="checkbox" checked={resource.enabled} disabled={isPending} onChange={(event) => startTransition(() => setAzureResourceEnabledAction(resource.name, event.target.checked))} aria-label={`${resource.name} enabled`} />
+        <span className="switch-knob" aria-hidden="true" />
+      </label>
+      <span className="resource-name-text">{resource.name}</span>
+      <span className="resource-target">{resource.display}</span>
+      <span />
+      <span className="resource-actions"><button type="button" className="danger small" disabled={isPending} onClick={() => startTransition(() => removeAzureResourceAction(resource.name))}>Remove</button></span>
+    </div>
   );
 }

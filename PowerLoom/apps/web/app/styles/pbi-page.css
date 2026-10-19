@@ -1,0 +1,586 @@
+/* The PBI page in the Ice theme: breadcrumbs, the header card with its numbers, the running strip, the metro line,
+   the two-column Agents tab and the status rows; New PBI's form. */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.crumbs a {
+  color: var(--muted);
+}
+
+.crumbs a:hover {
+  color: var(--accent);
+}
+
+.crumb-here {
+  font: 12.5px var(--font-mono);
+  color: var(--text);
+}
+
+.dropdown-menu {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.menu-item.danger-item {
+  color: var(--error);
+}
+
+.tab-count {
+  margin-left: 6px;
+  font: 500 11px var(--font-mono);
+  color: var(--warn);
+}
+
+/* The header card. */
+.pbi-hero {
+  position: relative;
+  margin-bottom: 4px;
+  padding: 20px 24px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--edge);
+}
+
+.pbi-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 24px;
+  left: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  opacity: 0.8;
+}
+
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.hero-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-title h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.25;
+}
+
+.hero-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hero-id .ado-tag {
+  margin-left: 0;
+}
+
+/* The actions take at most half the header, so a long result message never squeezes the title. */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 50%;
+}
+
+.hero-actions .actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* An action's answer ("1 PBI queued…") goes on its own line under the buttons. */
+.hero-actions .actions > .muted,
+.hero-actions .actions > .result-ok,
+.hero-actions .actions > .result-error,
+.hero-actions > .result-error {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 22px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.fact b {
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.fact-link a,
+.hero-facts .context-size > summary {
+  color: var(--muted);
+  border-bottom: 1px dotted var(--border-hi);
+}
+
+.hero-facts .context-size > summary {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  cursor: pointer;
+}
+
+.hero-facts .context-size > table {
+  position: absolute;
+  z-index: 15;
+  margin-top: 6px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.hero-stat {
+  padding: 10px 14px;
+  background: rgb(0 0 0 / 0.15);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.hero-stat-label {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.hero-stat-value {
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stat-value small {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.hero-stat.good .hero-stat-value {
+  color: var(--ok);
+}
+
+.hero-stat.warn {
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  animation: breathe-warn var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.hero-stat.warn .hero-stat-value {
+  color: var(--warn);
+}
+
+/* An agent at work: a spinning ring, a timer, a light sweeping the strip. */
+.running-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  overflow: hidden;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 12px;
+}
+
+.running-strip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 12%, transparent) 50%, transparent 70%);
+  background-size: 250% 100%;
+  pointer-events: none;
+  animation: sweep var(--motion-ambient) linear infinite;
+}
+
+.running-orbit {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.running-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 4px var(--accent));
+  animation: spin 1.5s linear infinite;
+}
+
+.running-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.running-what {
+  flex: 1;
+}
+
+.running-time {
+  font: 12.5px var(--font-mono);
+  color: var(--accent);
+}
+
+@keyframes sweep {
+  from { background-position: 150% 0; }
+  to { background-position: -100% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The metro line. */
+.metro {
+  position: relative;
+  display: grid;
+  margin-top: 22px;
+}
+
+.metro-track,
+.metro-done {
+  position: absolute;
+  top: 13px;
+  left: calc(100% / 14);
+  height: 3px;
+  border-radius: 2px;
+}
+
+.metro-track {
+  right: calc(100% / 14);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.metro-done {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.station {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.station-dot {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  background: var(--bg);
+  border: 2px solid rgb(255 255 255 / 0.18);
+  border-radius: 50%;
+}
+
+.station.passed .station-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.station.skipped .station-dot {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+.station.current .station-dot {
+  width: 22px;
+  height: 22px;
+  margin-top: 0;
+  border: 3px solid var(--accent-2);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-2) 70%, transparent);
+}
+
+.station.current .station-dot::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 60%, transparent);
+  border-radius: 50%;
+  animation: station-ring var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.metro.running .station.current .station-dot::after {
+  animation-duration: calc(var(--motion-ambient) / 3);
+}
+
+.station.current.paused .station-dot {
+  border-color: var(--warn);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--warn) 70%, transparent);
+}
+
+.station.current.paused .station-dot::after {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.station-name {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.station.passed .station-name {
+  color: var(--text);
+}
+
+.station.current .station-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.station-time {
+  min-height: 1em;
+  font: 11.5px var(--font-mono);
+  color: var(--faint);
+}
+
+.station.current .station-time {
+  color: var(--accent-2);
+}
+
+.station-pause {
+  font-size: 11px;
+  color: var(--warn);
+}
+
+@keyframes station-ring {
+  0% { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* The Agents tab: main column and side column. */
+.pbi-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  align-items: start;
+}
+
+.pbi-columns .panel,
+.pbi-page-panels .panel {
+  margin-bottom: 14px;
+}
+
+.estimate-box {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  background: rgb(0 0 0 / 0.18);
+  border-radius: 10px;
+}
+
+.estimate-box b {
+  flex: none;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+/* Status rows: questions, tasks, runs, linked documents, files. The column may shrink below a row's one-line title,
+   which then ends in an ellipsis instead of widening the panel. */
+.item-rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.item-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-state {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.item-held {
+  flex-basis: 100%;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--warn);
+}
+
+.dot.running {
+  --pulse: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent);
+  border: none;
+  animation: pulse-dot calc(var(--motion-ambient) / 3) var(--motion-ease) infinite;
+}
+
+.file-row .item-title {
+  display: grid;
+  white-space: normal;
+}
+
+.file-meta {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.drafts p {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-hi);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.attachment-forms {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.child-table .col-id {
+  width: 130px;
+  white-space: nowrap;
+}
+
+.child-table .col-stage {
+  width: 200px;
+}
+
+.child-table td.title {
+  white-space: normal;
+}
+
+/* Repos and skills as chips. */
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.pick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 2px 10px;
+  font-size: 12.5px;
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+}
+
+.pick-chip.guess {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.chip-remove {
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--faint);
+  background: transparent;
+  box-shadow: none;
+}
+
+.chip-remove:hover {
+  filter: none;
+  color: var(--error);
+  box-shadow: none;
+}
+
+@media (max-width: 1100px) {
+  .hero-top {
+    flex-direction: column;
+  }
+
+  .hero-actions {
+    justify-content: flex-start;
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pbi-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
