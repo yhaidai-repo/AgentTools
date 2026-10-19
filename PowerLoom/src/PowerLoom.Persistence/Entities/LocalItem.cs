@@ -39,6 +39,8 @@ public partial class LocalItem
 
     public DateTime? HandedOnAt { get; set; }
 
+    public bool StartOver { get; set; }
+
     public string Vault { get; set; } = null!;
 
     public ItemKind Kind { get; set; }

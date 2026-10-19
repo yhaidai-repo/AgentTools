@@ -65,8 +65,8 @@ export async function deleteItemAction(adoId: number | null, itemId: string): Pr
   redirect(adoId === null ? "/tasks" : `/pbis/${adoId}`);
 }
 
-export async function rerunTaskAction(adoId: number | null, itemId: string): Promise<ActionResult> {
-  const reopened = await runWebCommand(rerunTaskCommand, { adoId, itemId });
+export async function rerunTaskAction(adoId: number | null, itemId: string, startOver: boolean): Promise<ActionResult> {
+  const reopened = await runWebCommand(rerunTaskCommand, { adoId, itemId, startOver });
 
   if (!reopened.ok) {
     return { ok: false, message: reopened.error };
@@ -76,7 +76,9 @@ export async function rerunTaskAction(adoId: number | null, itemId: string): Pro
   revalidatePath("/runs");
   revalidatePath("/agents/runs", "layout");
 
-  return { ok: true, message: `${itemId} is open again: it runs on the agent's next schedule or "Run now".` };
+  const start = startOver ? "starts over" : "runs";
+
+  return { ok: true, message: `${itemId} is open again: it ${start} on the agent's next schedule or "Run now".` };
 }
 
 // Uploads belong to a PBI, so an item without one takes a text answer only.

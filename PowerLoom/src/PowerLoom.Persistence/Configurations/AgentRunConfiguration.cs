@@ -17,7 +17,11 @@ public partial class AgentRunConfiguration : IEntityTypeConfiguration<AgentRun>
 
         entity.HasIndex(e => e.PbiId, "agent_run_pbi_idx");
 
+        entity.HasIndex(e => e.ItemId, "agent_run_item_idx");
+
         entity.Property(e => e.Id).HasColumnName("id");
+        entity.Property(e => e.ContinuesRunId).HasColumnName("continues_run_id");
+        entity.Property(e => e.ConversationId).HasColumnName("conversation_id");
         entity.Property(e => e.EndedAt).HasColumnName("ended_at");
         entity.Property(e => e.Error).HasColumnName("error");
         entity.Property(e => e.Input).HasColumnName("input");
@@ -35,6 +39,10 @@ public partial class AgentRunConfiguration : IEntityTypeConfiguration<AgentRun>
         entity.HasOne(d => d.Item).WithMany(p => p.AgentRuns)
             .HasForeignKey(d => d.ItemId)
             .HasConstraintName("agent_run_item_id_local_item_id_fk");
+
+        entity.HasOne(d => d.ContinuesRun).WithMany(p => p.ContinuedBy)
+            .HasForeignKey(d => d.ContinuesRunId)
+            .HasConstraintName("agent_run_continues_run_id_agent_run_id_fk");
 
         entity.HasOne(d => d.Pbi).WithMany(p => p.AgentRuns)
             .HasForeignKey(d => d.PbiId)

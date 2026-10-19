@@ -8,6 +8,7 @@ const MESSAGE_SOURCE = "S0";
 // claim can only point at something the run actually opened.
 export class ReadLog {
   private readonly sources = new Map<string, ReadSource>();
+  private nextNumber = 1;
 
   readonly web = new WebReads();
 
@@ -16,11 +17,18 @@ export class ReadLog {
   }
 
   add(text: string): string {
-    const id = `S${this.sources.size}`;
+    const id = `S${this.nextNumber}`;
 
-    this.sources.set(id, { id, text });
+    this.restore(id, text);
 
     return id;
+  }
+
+  /** A source read earlier in a continued conversation, under the id the agent saw then; later reads number on after
+   *  the highest, since a read cut off by a restart can leave a gap. */
+  restore(id: string, text: string): void {
+    this.sources.set(id, { id, text });
+    this.nextNumber = Math.max(this.nextNumber, Number(id.slice(1)) + 1);
   }
 
   find(id: string): ReadSource | undefined {

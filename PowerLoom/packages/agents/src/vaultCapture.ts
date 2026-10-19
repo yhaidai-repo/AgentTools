@@ -50,6 +50,7 @@ export function createVaultCaptureTool(captures: CaptureDraft[], rules: CaptureR
 
       return { text: `Capture "${draft.name}" noted; saved to draft/ if the run succeeds.` };
     },
+    replayOnResume: true,
   });
 }
 

@@ -119,7 +119,7 @@ function mapUser(message: UserMessage): EventBody[] {
     }));
 }
 
-function toolResultText(content: unknown): string {
+export function toolResultText(content: unknown): string {
   if (typeof content === "string") {
     return content;
   }

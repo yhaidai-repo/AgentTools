@@ -59,6 +59,7 @@ export function createTaskTool(canAssign: string[], tasks: CreatedTask[], guard:
 
       return { text: `Noted as new:${tasks.length} for ${task.assignee}; it is created when your run succeeds.` };
     },
+    replayOnResume: true,
   });
 }
 

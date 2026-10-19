@@ -1,5 +1,5 @@
 import { agentRun } from "@powerloom/db";
-import type { AgentRuntime } from "@agenttools/runtime";
+import type { AgentRuntime, ConversationStore } from "@agenttools/runtime";
 import { BudgetGuard, TraceRecorder, UsageTracker, toOutcome, type RunOutcome } from "@agenttools/usage";
 import { eq } from "drizzle-orm";
 import type { AgentDeps } from "./models/AgentDeps";
@@ -7,6 +7,12 @@ import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
 import { withPbiContext } from "./pbiContext/withPbiContext";
+import { continuationMessage, loadPreviousLimits } from "./resume/continuationMessage";
+import type { ConversationPlan } from "./resume/models/ConversationPlan";
+import type { PreviousRun } from "./resume/models/PreviousRun";
+import type { RunOpening } from "./resume/models/RunOpening";
+import { clearStartOver, planConversation } from "./resume/planConversation";
+import { replayDraft } from "./resume/replayDraft";
 import { RunObserver } from "./RunObserver";
 import { ToolCallLogger } from "./ToolCallLogger";
 
@@ -17,6 +23,7 @@ type Commit = () => Promise<void>;
 
 // One agent run from its first step: the run row exists before preparation, every phase and agent event
 // is traced live, and any failure (preparation, agent, commit) ends the run as `failed` with the reason.
+// A task run after one that didn't succeed continues that run's conversation (planConversation).
 export class AgentRunSession {
   private seq = 0;
   private currentPhase = "start";
@@ -28,19 +35,22 @@ export class AgentRunSession {
     private readonly deps: AgentDeps,
     readonly runId: number,
     info: AgentRunInfo,
+    private readonly plan: ConversationPlan,
   ) {
     this.tracker = new UsageTracker(String(runId), { ...info.labels, run: String(runId) }, deps.prices);
     this.trace = new TraceRecorder(deps.usageStore, undefined, LIVE_TRACE_BATCH);
   }
 
   static async begin(deps: AgentDeps, info: AgentRunInfo): Promise<AgentRunSession> {
+    const plan = await planConversation(deps, info);
     const [row] = await deps.db
       .insert(agentRun)
-      .values({ stage: info.stage, pbiId: info.pbiId, itemId: info.itemId, promptVersion: info.promptVersion, model: info.model.model })
+      .values({ stage: info.stage, pbiId: info.pbiId, itemId: info.itemId, promptVersion: info.promptVersion, model: info.model.model, conversationId: plan.id, continuesRunId: plan.continues?.id ?? null })
       .returning({ id: agentRun.id });
-    const session = new AgentRunSession(deps, row.id, info);
+    const session = new AgentRunSession(deps, row.id, info, plan);
 
-    await session.phase("start", { stage: info.stage, pbi: info.pbiId, item: info.itemId ?? null, model: `${info.model.provider}/${info.model.model}` });
+    await clearStartOver(deps.db, info.itemId);
+    await session.phase("start", { stage: info.stage, pbi: info.pbiId, item: info.itemId ?? null, model: `${info.model.provider}/${info.model.model}`, continues: plan.continues?.id ?? null, freshBecause: plan.skipped });
 
     return session;
   }
@@ -91,15 +101,15 @@ export class AgentRunSession {
     const tools = new ToolCallLogger(this.deps.accessLog, { vault: this.deps.docsVaultName, agentId: String(info.labels.agent ?? info.stage), runId: this.runId, taskId: info.itemId ?? null, pbiId: info.pbiId });
     const observer = new RunObserver(this.tracker, guard, (event) => this.record(event), tools);
 
-    this.observer = observer;
-    await this.deps.db.update(agentRun).set({ input: input.firstMessage }).where(eq(agentRun.id, this.runId));
-    await this.phase("agent", { turnsLimit: input.limits.maxTurns, timeoutMs: input.limits.timeoutMs });
-
     const runtime = this.deps.runtimes.get(info.model.provider);
+    const opening = await this.opening(runtime.conversations, input);
 
+    this.observer = observer;
+    await this.deps.db.update(agentRun).set({ input: opening.firstMessage }).where(eq(agentRun.id, this.runId));
+    await this.phase("agent", { turnsLimit: input.limits.maxTurns, timeoutMs: input.limits.timeoutMs, budgetUsd: input.perRunBudgetUsd, conversation: opening.conversation ?? null });
     await this.sampleSubscription(runtime);
 
-    for await (const event of runtime.run({ runId: String(this.runId), model: info.model, ...input, signal: observer.abort.signal })) {
+    for await (const event of runtime.run({ runId: String(this.runId), model: info.model, ...input, ...opening, signal: observer.abort.signal })) {
       await observer.observe(event);
       input.observe?.(event);
     }
@@ -108,6 +118,38 @@ export class AgentRunSession {
     await this.sampleSubscription(runtime);
 
     return this.agentResult(observer, input);
+  }
+
+  // A continued run first rebuilds its draft from the earlier conversation, then opens with the continuation note. If the
+  // earlier conversation can't be read, the run starts fresh after all and no longer counts as continuing it.
+  private async opening(conversations: ConversationStore | null, input: AgentRunInput): Promise<RunOpening> {
+    const fresh = { firstMessage: input.firstMessage, conversation: this.plan.id ? { id: this.plan.id, continues: null } : undefined };
+    const previous = this.plan.continues;
+
+    if (!previous || !conversations || !this.plan.id) {
+      return fresh;
+    }
+
+    try {
+      return await this.continuation(conversations, input, previous, this.plan.id);
+    } catch (error) {
+      await this.phase("resume", { from: previous.id, freshBecause: errorMessage(error) });
+      await this.deps.db.update(agentRun).set({ continuesRunId: null }).where(eq(agentRun.id, this.runId));
+
+      return fresh;
+    }
+  }
+
+  private async continuation(conversations: ConversationStore, input: AgentRunInput, previous: PreviousRun, id: string): Promise<RunOpening> {
+    const before = await loadPreviousLimits(this.deps.usageStore, previous);
+    const replay = await replayDraft(conversations, previous.conversationId, input.tools, input.observe);
+
+    await this.phase("resume", { from: previous.id, conversation: previous.conversationId, replayed: replay.replayed, restoredReads: replay.restored, failed: replay.failed });
+
+    return {
+      firstMessage: continuationMessage(previous, before, input.limits, input.perRunBudgetUsd, replay),
+      conversation: { id, continues: previous.conversationId },
+    };
   }
 
   private agentResult(observer: RunObserver, input: AgentRunInput): AgentRunResult {

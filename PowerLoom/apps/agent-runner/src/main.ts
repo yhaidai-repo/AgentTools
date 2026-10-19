@@ -71,11 +71,15 @@ const azureLogin = new AzureUserLogin({
   saveAccount: (vault, account) => saveValue(db, vaultSettingKey(vault, AZURE_USER_KEY), account),
 });
 
+// Claude's transcripts are kept only where CLAUDE_CONFIG_DIR is set to a volume (compose), so a task's next run can
+// continue a run that didn't finish, even after a restart (user decision 2026-10-19).
+const keepConversations = Boolean(process.env.CLAUDE_CONFIG_DIR);
+
 // What every run shares; the vault-bound parts come from depsFor.
 const shared = {
   db,
   config,
-  runtimes: new RuntimeRegistry().register(new ClaudeAgentSdkRuntime()),
+  runtimes: new RuntimeRegistry().register(new ClaudeAgentSdkRuntime(keepConversations)),
   usageStore,
   prices: new PriceBook(),
   docsExclude: docsExclude(),

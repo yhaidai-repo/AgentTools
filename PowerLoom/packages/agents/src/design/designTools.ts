@@ -57,6 +57,7 @@ function writeDesignTool(draft: DesignDraft) {
 
       return { text: "Design saved." };
     },
+    replayOnResume: true,
   });
 }
 
@@ -66,15 +67,19 @@ function questionTool(draft: DesignDraft, guard: DuplicateGuard) {
     description: "Ask the user something the design depends on that only a person can answer: a business rule, trade-off, missing spec, or a fact outside the code and docs.",
     input: { question: z.string().min(1), why: z.string().min(1), options: z.array(z.string()).default([]) },
     handler: async (input) => noteGap(draft, guard, { kind: "question", title: input.question, text: input.question, why: input.why, options: input.options, humanTask: null }),
+    replayOnResume: true,
   });
 }
 
 function taskTool(draft: DesignDraft, guard: DuplicateGuard) {
-  return createHumanTaskTool(
-    "create_task",
-    "Create a task for the user that the design needs done: access, an action, a decision, or finding out something outside the code and docs.",
-    (spec) => noteGap(draft, guard, { kind: "task", title: spec.title, text: renderHumanTaskBody(spec.data), why: spec.data.why, options: [], humanTask: spec.data }),
-  );
+  return defineTool({
+    ...createHumanTaskTool(
+      "create_task",
+      "Create a task for the user that the design needs done: access, an action, a decision, or finding out something outside the code and docs.",
+      (spec) => noteGap(draft, guard, { kind: "task", title: spec.title, text: renderHumanTaskBody(spec.data), why: spec.data.why, options: [], humanTask: spec.data }),
+    ),
+    replayOnResume: true,
+  });
 }
 
 function noteGap(draft: DesignDraft, guard: DuplicateGuard, item: GapItem): { text: string; isError?: boolean } {

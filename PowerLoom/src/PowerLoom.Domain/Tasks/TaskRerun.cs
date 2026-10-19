@@ -9,13 +9,15 @@ namespace PowerLoom.Domain.Tasks;
 
 // "Re-run" on a finished agent task (user decision 2026-10-02): back to open with a fresh start (attempts, held
 // reasons, hand-on reset); the dispatcher runs it on the agent's next dispatch or "Run now", after the usual checks.
+// Its next run continues the last run's conversation when that run didn't succeed, unless `startOver` is asked
+// (user decision 2026-10-19).
 public static class TaskRerun
 {
     private const string Actor = "human";
 
     public static bool IsRerunnable(LocalItem item) => AgentStages.AgentIdOf(item.Assignee) is not null && item.Kind != ItemKind.ResearchResult && item.Status is ItemStatus.Done or ItemStatus.Blocked;
 
-    public static async Task<Outcome<string>> RerunAsync(PowerLoomDbContext db, int? adoId, string itemId, CancellationToken cancellation)
+    public static async Task<Outcome<string>> RerunAsync(PowerLoomDbContext db, int? adoId, string itemId, bool startOver, CancellationToken cancellation)
     {
         var task = await ItemScope.FindAsync(db, adoId, itemId, cancellation);
 
@@ -25,6 +27,7 @@ public static class TaskRerun
         task.Attempts = 0;
         task.HeldBy = "[]";
         task.HandedOnAt = null;
+        task.StartOver = startOver;
 
         await ItemStatusChange.SetAsync(db, task, ItemStatus.Open, Actor, null, cancellation);
 

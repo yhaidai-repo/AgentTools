@@ -3,9 +3,11 @@ import { EventSequence } from "../../EventSequence";
 import type { AgentEvent } from "../../models/AgentEvent";
 import type { AgentRequest } from "../../models/AgentRequest";
 import type { AgentRuntime } from "../../models/AgentRuntime";
+import type { Conversation } from "../../models/Conversation";
 import type { SubscriptionQuery } from "../../models/SubscriptionQuery";
 import type { SubscriptionReport } from "../../models/SubscriptionReport";
 import { RunAbort } from "../../RunAbort";
+import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
 import { TOOL_SERVER_NAME, createToolServer, sdkToolNames } from "./toSdkTools";
@@ -15,10 +17,17 @@ const WEB_TOOLS = ["WebSearch", "WebFetch"];
 
 // Claude via the Claude Agent SDK, with every Claude Code built-in tool and setting source disabled:
 // the agent sees only the request's tools, so it behaves the same as on any other adapter.
+// `keepConversations`: runs with a conversation write their transcript under CLAUDE_CONFIG_DIR and can be continued.
 export class ClaudeAgentSdkRuntime implements AgentRuntime {
   readonly provider = "anthropic";
   readonly reportsSubscriptionInRuns = true;
+  readonly conversations: ClaudeConversations | null;
   private lastSeen: SubscriptionReport | null = null;
+  private readonly projectDir = process.cwd();
+
+  constructor(keepConversations = false) {
+    this.conversations = keepConversations ? new ClaudeConversations(this.projectDir) : null;
+  }
 
   async *run(request: AgentRequest): AsyncIterable<AgentEvent> {
     const events = new EventSequence(request.runId);
@@ -26,7 +35,7 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     const mapper = new MessageMapper();
 
     try {
-      for await (const event of streamEvents(request, abort, mapper, events)) {
+      for await (const event of streamEvents(this.buildOptions(request, abort), request, mapper, events)) {
         this.remember(event);
         yield event;
       }
@@ -67,6 +76,12 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     }
   }
 
+  private buildOptions(request: AgentRequest, abort: RunAbort): Options {
+    const conversation = this.conversations ? request.conversation : undefined;
+
+    return { ...baseOptions(request, abort), cwd: this.projectDir, ...conversationOptions(conversation) };
+  }
+
   private remember(event: AgentEvent): void {
     if (event.type === "rate_limit" && event.windows.length > 0) {
       this.lastSeen = report(null, event.windows, null, event.at);
@@ -74,8 +89,8 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   }
 }
 
-async function* streamEvents(request: AgentRequest, abort: RunAbort, mapper: MessageMapper, events: EventSequence): AsyncIterable<AgentEvent> {
-  for await (const message of query({ prompt: request.firstMessage, options: buildOptions(request, abort) })) {
+async function* streamEvents(options: Options, request: AgentRequest, mapper: MessageMapper, events: EventSequence): AsyncIterable<AgentEvent> {
+  for await (const message of query({ prompt: request.firstMessage, options })) {
     yield* mapper.map(message).map((body) => events.next(body));
   }
 }
@@ -85,7 +100,20 @@ function builtInTools(request: AgentRequest): string[] {
   return request.capabilities?.webAccess ? WEB_TOOLS : [];
 }
 
-function buildOptions(request: AgentRequest, abort: RunAbort): Options {
+// A continued conversation is forked into the run's own id, so the earlier run's transcript stays as it was.
+function conversationOptions(conversation: Conversation | undefined): Partial<Options> {
+  if (!conversation) {
+    return { persistSession: false };
+  }
+
+  if (!conversation.continues) {
+    return { persistSession: true, sessionId: conversation.id };
+  }
+
+  return { persistSession: true, resume: conversation.continues, forkSession: true, sessionId: conversation.id };
+}
+
+function baseOptions(request: AgentRequest, abort: RunAbort): Options {
   return {
     model: request.model.model,
     effort: request.model.effort,
@@ -97,7 +125,6 @@ function buildOptions(request: AgentRequest, abort: RunAbort): Options {
     allowedTools: [...sdkToolNames(request.tools), ...builtInTools(request)],
     permissionMode: "dontAsk",
     settingSources: [],
-    persistSession: false,
     env: { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: CLIENT_APP },
   };
 }

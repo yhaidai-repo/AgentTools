@@ -37,6 +37,7 @@ function keepRecordTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Rev
     description: "Keep an open record open: no note of the vault records its fix, answer or decision, and no other record repeats it. It isn't offered again for a while unless its Updated date moves.",
     input: { ...recordInput, reasons: z.string().min(1).describe("What you searched the vault for, in 1-2 lines") },
     handler: async (input) => stage(scope, draft, limits, { vault: input.vault, path: input.path, recordId: input.id, action: "keep", reasons: input.reasons, closing: null }),
+    replayOnResume: true,
   });
 }
 
@@ -60,6 +61,7 @@ function closeRecordTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Re
 
       return stage(scope, draft, limits, { vault: input.vault, path: input.path, recordId: input.id, action: "close", reasons: input.decision, closing });
     },
+    replayOnResume: true,
   });
 }
 

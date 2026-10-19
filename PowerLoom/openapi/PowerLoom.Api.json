@@ -4935,6 +4935,10 @@
           },
           "itemId": {
             "type": "string"
+          },
+          "startOver": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

@@ -39,6 +39,9 @@ public partial class LocalItemConfiguration : IEntityTypeConfiguration<LocalItem
         entity.Property(e => e.ParentId).HasColumnName("parent_id");
         entity.Property(e => e.PbiId).HasColumnName("pbi_id");
         entity.Property(e => e.Resolution).HasColumnName("resolution");
+        entity.Property(e => e.StartOver)
+            .HasDefaultValue(false)
+            .HasColumnName("start_over");
         entity.Property(e => e.Title).HasColumnName("title");
         entity.Property(e => e.UpdatedAt)
             .HasDefaultValueSql("now()")

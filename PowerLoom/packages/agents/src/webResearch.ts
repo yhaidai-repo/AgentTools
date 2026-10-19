@@ -28,6 +28,7 @@ export function createWebResearchTool(requests: WebResearchDraft[], guard: Dupli
 
       return { text: `Web research ${requests.length} noted: it becomes a research task that needs the web.` };
     },
+    replayOnResume: true,
   });
 }
 

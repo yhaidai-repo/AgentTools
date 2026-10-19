@@ -95,6 +95,7 @@ function writeResultTool(draft: GoalDraft) {
 
       return { text: "Result recorded." };
     },
+    replayOnResume: true,
   });
 }
 

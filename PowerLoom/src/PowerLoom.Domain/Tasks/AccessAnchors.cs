@@ -53,7 +53,7 @@ public static class AccessAnchors
 
         foreach (var task in anchored.Where(TaskRerun.IsRerunnable))
         {
-            var result = await TaskRerun.RerunAsync(db, task.PbiId, task.Id, cancellation);
+            var result = await TaskRerun.RerunAsync(db, task.PbiId, task.Id, startOver: false, cancellation);
 
             if (result.Ok)
                 reopened.Add(result.Value!);

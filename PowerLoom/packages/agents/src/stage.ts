@@ -6,6 +6,7 @@ import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { StageSkills } from "./models/StageSkills";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
+import { conversationTrace } from "./resume/conversationTrace";
 
 const RATE_LIMIT_PAUSE_MS = 60 * 60 * 1000;
 
@@ -62,7 +63,7 @@ export function createAgentDocTools(deps: AgentDeps, agentId: string, runId: num
 
 // Every doc a run opened with read_doc, from its trace: the automatic part of the handoff to the next stage.
 export async function docsReadInRun(deps: AgentDeps, runId: number): Promise<string[]> {
-  const events = await deps.usageStore.trace(String(runId));
+  const events = await conversationTrace(deps, runId);
   const paths = events
     .filter((event) => event.type === "tool_call" && event.payload.name === "read_doc")
     .map((event) => String((event.payload.input as { path?: string } | undefined)?.path ?? ""))
@@ -78,7 +79,7 @@ export function outsideAccessContext(agentId: string, runId: number, task: { id:
 
 // Confluence pages the agent read successfully in this run (read_confluence_page calls whose result wasn't an error).
 export async function confluencePagesReadInRun(deps: AgentDeps, runId: number): Promise<string[]> {
-  const events = await deps.usageStore.trace(String(runId));
+  const events = await conversationTrace(deps, runId);
   const failed = new Set(events.filter((event) => event.type === "tool_result" && event.payload.isError === true).map((event) => String(event.payload.callId)));
   const urls = events
     .filter((event) => event.type === "tool_call" && event.payload.name === "read_confluence_page" && !failed.has(String(event.payload.callId)))

@@ -12,6 +12,7 @@ import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
 import { getUsageStore } from "@/lib/usage";
 import { RunRerun } from "@/app/runs/RunRerun";
+import { ConversationChips } from "./ConversationChips";
 import { TraceView } from "./TraceView";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
       <Outputs run={run} />
       <Captures runId={run.id} />
       {isFailedOutcome(run.outcome) && <Failure run={run} trace={trace} />}
-      <h2>Input (first message)</h2>
+      <h2>{run.continuesRunId ? "Input (continuation note)" : "Input (first message)"}</h2>
       <details>
         <summary>Show</summary>
         <pre>{run.input ?? "–"}</pre>
@@ -63,6 +64,7 @@ function RunSummary({ run, usage }: { run: RunRow; usage?: UsageRecord }) {
       <span className="chip">model: {run.model}</span>
       <span className="chip">prompt: {run.promptVersion}</span>
       <span className="chip">started: <LocalTime date={run.startedAt} /></span>
+      <ConversationChips run={run} />
       {usage && (
         <>
           <span className="chip">turns: {usage.turns}</span>

@@ -71,7 +71,7 @@ function RunRowView({ row, shares }: { row: RunListRow; shares: RunSubscriptionS
   return (
     <tr>
       <td><RunSelect run={run} task={task} /></td>
-      <td><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link></td>
+      <td><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link>{run.continuesRunId && <span className="muted" title={`Continues RUN-${run.continuesRunId}'s conversation`}> ↻</span>}</td>
       <td>{run.stage}</td>
       <td><LocalTime date={run.startedAt} /></td>
       <td>{task ? <Link href={itemPath(task)}>{task.id}</Link> : "–"}{run.pbiId ? <> · <Link href={`/pbis/${run.pbiId}`}>PBI-{run.pbiId}</Link></> : null}</td>

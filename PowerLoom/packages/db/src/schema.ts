@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, pgSequence, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision,
+  pgTable, pgEnum, pgSequence, text, integer, smallint, boolean, numeric, jsonb, date, doublePrecision, uuid,
   timestamp, bigserial, bigint, serial, primaryKey, index, uniqueIndex, check, customType,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -174,9 +174,13 @@ export const agentRun = pgTable("agent_run", {
   // Tokens, cost and trace live in AgentUsage (schema agent_usage), keyed by this id.
   input: text("input"),
   outputs: jsonb("outputs").$type<string[]>(),
+  // The provider conversation this run wrote (kept so the task's next run can continue it) and the run it continued.
+  conversationId: uuid("conversation_id"),
+  continuesRunId: bigint("continues_run_id", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
 }, (t) => [
   index("agent_run_stage_started_idx").on(t.stage, t.startedAt),
   index("agent_run_pbi_idx").on(t.pbiId),
+  index("agent_run_item_idx").on(t.itemId),
 ]);
 
 // Tasks, questions, results. Ids: RT-/AT-/DT-/HT-/Q-/RR-<adoId>-<nnn>. Items assigned to `agent:<id>` are agent tasks the worker dispatches.
@@ -195,6 +199,7 @@ export const localItem = pgTable("local_item", {
   heldBy: jsonb("held_by").$type<string[]>().notNull().default([]), // why the dispatcher didn't start this agent task (validator reasons)
   handedOnAt: ts("handed_on_at"), // when the worker created the next agent's task after this one succeeded
   attempts: integer("attempts").notNull().default(0),
+  startOver: boolean("start_over").notNull().default(false), // the next run starts a fresh conversation instead of continuing the last one
   createdByRun: bigint("created_by_run", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
   vaultPath: text("vault_path"),
   vault: vaultName(), // the PBI's vault (a database trigger copies it on insert); for an item without a PBI, the vault it is about

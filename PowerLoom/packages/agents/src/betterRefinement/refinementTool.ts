@@ -73,6 +73,7 @@ export function createRefinementTool(draft: BetterRefinementDraft, readLog: Read
 
       return { text: `Refinement saved (${input.status}).` };
     },
+    replayOnResume: true,
   });
 }
 
