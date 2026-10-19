@@ -1,11 +1,9 @@
 import type { ChartSeries } from "@/models/ChartSeries";
-import { columnLayout, niceTicks } from "./chartScales";
+import { BAR_GAP, BAR_WIDTH, columnLayout, niceTicks } from "./chartScales";
 
 const WIDTH = 640;
 const HEIGHT = 220;
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 44 };
-const MAX_GROUP_WIDTH = 40;
-const GAP = 2;
 const TICKS = 3;
 
 interface GroupedColumnsProps {
@@ -22,13 +20,13 @@ interface GroupedColumnsProps {
 export function GroupedColumns({ title, labels, series, format, axisLabel = (label) => label }: GroupedColumnsProps) {
   const ticks = niceTicks(Math.max(...series.flatMap((item) => item.values), 0), TICKS);
   const plot = { x: MARGIN.left, y: MARGIN.top, width: WIDTH - MARGIN.left - MARGIN.right, height: HEIGHT - MARGIN.top - MARGIN.bottom };
-  const group = columnLayout(labels.length, plot.width, MAX_GROUP_WIDTH);
-  const columnWidth = Math.max(group.width / Math.max(series.length, 1) - GAP, 1);
+  const group = columnLayout(labels.length, plot.width, series.length * BAR_WIDTH + (series.length - 1) * BAR_GAP);
+  const columnWidth = Math.max((group.width - (series.length - 1) * BAR_GAP) / Math.max(series.length, 1), 1);
   const scale = (value: number): number => plot.height * (ticks.max > 0 ? value / ticks.max : 0);
   const labelStep = Math.ceil(labels.length / 10);
 
   return (
-    <figure className="chart">
+    <figure className="panel chart">
       <figcaption>{title}</figcaption>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={title}>
         {ticks.values.map((tick) => (
@@ -42,7 +40,7 @@ export function GroupedColumns({ title, labels, series, format, axisLabel = (lab
             {series.map((item, position) => (
               <rect
                 key={item.key}
-                x={plot.x + group.offset(index) + position * (columnWidth + GAP)}
+                x={plot.x + group.offset(index) + position * (columnWidth + BAR_GAP)}
                 y={plot.y + plot.height - scale(item.values[index] ?? 0)}
                 width={columnWidth}
                 height={scale(item.values[index] ?? 0)}

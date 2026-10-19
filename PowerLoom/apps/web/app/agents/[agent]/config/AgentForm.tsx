@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { BlockerKind } from "@powerloom/core";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
 import type { SkillCatalog } from "@agenttools/runtime/skills";
+import { CronField } from "@/components/CronField";
 import { DailyBudgetStatus } from "@/components/DailyBudgetStatus";
+import { FormPicker } from "@/components/FormPicker";
+import { SwitchField } from "@/components/SwitchField";
 import type { ActionResult } from "@/models/ActionResult";
 import type { SkillFolder } from "@/models/SkillFolder";
 import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
@@ -12,6 +15,8 @@ import { saveAgentAction } from "../../configActions";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
 import { SkillsField } from "./SkillsField";
+
+const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
 interface AgentFormProps {
   agent: AgentDefinition;
@@ -24,68 +29,85 @@ interface AgentFormProps {
   spentTodayUsd: number;
 }
 
-// Generic: renders any agent definition (its declared options included), so new agents need no UI changes.
+// Generic: renders any agent definition (its declared options included), so new agents need no UI changes. Laid out
+// like New PBI (user decision 2026-10-18): how it runs, its limits and access on the left; its place in the pipeline,
+// skills and options on the right; Save in a bar that stays on screen.
 export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
-    <form action={action} className="card">
+    <form action={action} className="new-pbi agent-form">
       <input type="hidden" name="id" value={agent.id} />
-      <p className="muted">{agent.description}</p>
-      <label className="inline">
-        <input name="enabled" type="checkbox" defaultChecked={agent.enabled} />
-        Enabled
-      </label>
-      <label>
-        Schedule (cron, empty = run on demand only)
-        <input name="schedule" defaultValue={agent.schedule ?? ""} />
-      </label>
-      <label>
-        Model: provider / model id / effort
-        <span className="actions">
-          <input name="provider" defaultValue={agent.model.provider} required />
-          <select name="model" defaultValue={agent.model.model} required>
-            {modelChoices(catalog, agent).map((entry) => <option key={`${entry.provider}/${entry.model}`} value={entry.model} title={entry.model}>{entry.label}</option>)}
-          </select>
-          <select name="effort" defaultValue={agent.model.effort ?? ""}>
-            <option value="">default</option>
-            {["low", "medium", "high", "xhigh", "max"].map((level) => <option key={level} value={level}>{level}</option>)}
-          </select>
-        </span>
-      </label>
-      <label>
-        Max turns · timeout (minutes)
-        <span className="actions">
-          <input name="maxTurns" type="number" min={1} defaultValue={agent.limits.maxTurns} required />
-          <input name="timeoutMinutes" type="number" min={1} defaultValue={agent.limits.timeoutMinutes} required />
-        </span>
-      </label>
-      <label>
-        Budget per run · per day ($, API-price estimate)
-        <span className="actions">
-          <input name="perRunUsd" type="number" step="0.1" min={0} defaultValue={agent.budgets.perRunUsd} required />
-          <input name="dailyUsd" type="number" step="0.5" min={0} defaultValue={agent.budgets.dailyUsd} required />
-        </span>
-        <DailyBudgetStatus spentUsd={spentTodayUsd} limitUsd={agent.budgets.dailyUsd} />
-      </label>
-      <label className="inline">
-        <input name="webAccess" type="checkbox" defaultChecked={agent.capabilities.webAccess} />
-        Web access (search and fetch)
-      </label>
-      {(agent.integrationSpecs ?? []).map((spec) => (
-        <label key={spec.key} className="inline" title={spec.description}>
-          <input name={`integration:${spec.key}`} type="checkbox" defaultChecked={agent.capabilities.integrations?.[spec.key] === true} />
-          {spec.label} <span className="muted">· {spec.description}</span>
-        </label>
-      ))}
-      <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
-      <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
-      <OptionsFields agent={agent} />
-      <div className="actions">
-        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : `Save ${agent.label}`}</button>
+      <div className="config-columns">
+        <div>
+          <RunSection agent={agent} catalog={catalog} />
+          <LimitsSection agent={agent} spentTodayUsd={spentTodayUsd} />
+          <AccessSection agent={agent} />
+        </div>
+        <div>
+          <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
+          <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
+          <OptionsFields agent={agent} />
+        </div>
       </div>
-      {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
+      <div className="form-footer">
+        <span className="form-footer-note">{result ? <span className={result.ok ? "text-ok" : "text-error"}>{result.message}</span> : "Changes apply to the next run"}</span>
+        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+      </div>
     </form>
+  );
+}
+
+// On or off, when it runs (the cron also in words), which model and how hard it thinks.
+function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog: CatalogModel[] }) {
+  const [effort, setEffort] = useState(agent.model.effort ?? "");
+
+  return (
+    <section className="panel config-section">
+      <h3>Run</h3>
+      <SwitchField name="enabled" label="Enabled" hint="off = it takes no task and its schedule doesn't fire" defaultChecked={agent.enabled} />
+      <CronField label="Schedule" name="schedule" value={agent.schedule ?? ""} hint="cron; empty = on demand only" required={false} />
+      <div className="field">
+        <span>Model<small>provider and model</small></span>
+        <div className="field-row">
+          <input name="provider" defaultValue={agent.model.provider} required aria-label="Provider" />
+          <FormPicker name="model" label="Model" value={agent.model.model} options={modelChoices(catalog, agent).map((entry) => ({ value: entry.model, label: entry.label, note: entry.model }))} />
+        </div>
+      </div>
+      <div className="field">
+        <span>Effort</span>
+        <input type="hidden" name="effort" value={effort} />
+        <div className="pill-switch">
+          {EFFORTS.map((level) => <button key={level} type="button" className={level === effort ? "on" : undefined} onClick={() => setEffort(level)}>{level || "default"}</button>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spentTodayUsd: number }) {
+  return (
+    <section className="panel config-section">
+      <h3>Limits and budget <small>API-price estimate</small></h3>
+      <div className="field-grid">
+        <label className="field"><span>Max turns</span><input name="maxTurns" type="number" min={1} defaultValue={agent.limits.maxTurns} required /></label>
+        <label className="field"><span>Timeout, minutes</span><input name="timeoutMinutes" type="number" min={1} defaultValue={agent.limits.timeoutMinutes} required /></label>
+        <label className="field"><span>Budget per run, $</span><input name="perRunUsd" type="number" step="0.1" min={0} defaultValue={agent.budgets.perRunUsd} required /></label>
+        <label className="field"><span>Budget per day, $</span><input name="dailyUsd" type="number" step="0.5" min={0} defaultValue={agent.budgets.dailyUsd} required /></label>
+      </div>
+      <DailyBudgetStatus spentUsd={spentTodayUsd} limitUsd={agent.budgets.dailyUsd} />
+    </section>
+  );
+}
+
+// What the agent may read or run: one switch each, its description as the hint (user decision 2026-10-18).
+function AccessSection({ agent }: { agent: AgentDefinition }) {
+  return (
+    <section className="panel config-section">
+      <h3>Access <small>what it may read or run</small></h3>
+      <SwitchField name="webAccess" label="Web" hint="search and fetch" defaultChecked={agent.capabilities.webAccess} />
+      {(agent.integrationSpecs ?? []).map((spec) => <SwitchField key={spec.key} name={`integration:${spec.key}`} label={spec.label} hint={spec.description} defaultChecked={agent.capabilities.integrations?.[spec.key] === true} />)}
+    </section>
   );
 }
 

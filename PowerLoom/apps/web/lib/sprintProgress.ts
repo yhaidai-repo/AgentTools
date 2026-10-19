@@ -1,5 +1,5 @@
-import { sprintSnapshot } from "@powerloom/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { sprintSnapshot, workItem } from "@powerloom/db";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { SprintDay } from "@/models/SprintDay";
 import type { SprintSummary } from "@/models/SprintSummary";
 import { getDb } from "./db";
@@ -11,24 +11,23 @@ export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready 
 const DONE_STATES = ["Ready for Release", "Done", "Closed"];
 
 // Each state has its own fixed color, so it looks the same in every sprint (user, 2026-10-16: Code Review took Done's
-// green when colors went by position). Green is the done states: Ready for Release, Done and Closed (user, 2026-10-16).
-// The usual run New → To Do → Ready for Dev → In Progress → Rework Required → Code Review → Testing → done passes the
-// palette's adjacent colorblind and contrast checks in both modes. A state ADO adds later is "Other".
-const STATE_SLOTS: Record<string, number> = {
-  New: 1,
-  Approved: 12,
-  Committed: 10,
-  "To Do": 2,
-  "Ready for Dev": 3,
-  "In Progress": 11,
-  Active: 9,
-  "Rework Required": 4,
-  "Code Review": 5,
-  Testing: 7,
-  "Ready for Release": 6,
-  Resolved: 8,
-  Done: 6,
-  Closed: 6,
+// green when colors went by position). The done states share the OK colour: Ready for Release, Resolved, Done and
+// Closed (user, 2026-10-16 and 2026-10-18). A state ADO adds later is "Other".
+const STATE_COLORS: Record<string, string> = {
+  New: "var(--state-new)",
+  Approved: "var(--state-todo)",
+  Committed: "var(--state-todo)",
+  "To Do": "var(--state-todo)",
+  "Ready for Dev": "var(--state-ready)",
+  "In Progress": "var(--state-progress)",
+  Active: "var(--state-progress)",
+  "Rework Required": "var(--state-rework)",
+  "Code Review": "var(--state-review)",
+  Testing: "var(--state-testing)",
+  "Ready for Release": "var(--state-done)",
+  Resolved: "var(--state-done)",
+  Done: "var(--state-done)",
+  Closed: "var(--state-done)",
 };
 
 export const OTHER_STATE_COLOR = "var(--muted)";
@@ -40,8 +39,8 @@ interface StateCount {
   effort: string | null;
 }
 
-// Every sprint with snapshots, newest first.
-export async function loadSprintSummaries(): Promise<SprintSummary[]> {
+// Every sprint with snapshots of the vault's PBIs, newest first.
+export async function loadSprintSummaries(vault: string): Promise<SprintSummary[]> {
   const rows = await getDb()
     .select({
       iterationPath: sprintSnapshot.iterationPath,
@@ -50,17 +49,19 @@ export async function loadSprintSummaries(): Promise<SprintSummary[]> {
       days: sql<number>`count(distinct ${sprintSnapshot.takenOn})::int`,
     })
     .from(sprintSnapshot)
+    .innerJoin(workItem, eq(workItem.adoId, sprintSnapshot.adoId))
+    .where(eq(workItem.vault, vault))
     .groupBy(sprintSnapshot.iterationPath)
     .orderBy(desc(sql`max(${sprintSnapshot.takenOn})`));
 
-  return Promise.all(rows.map((row) => summaryOf(row)));
+  return Promise.all(rows.map((row) => summaryOf(row, vault)));
 }
 
-// The sprint's snapshot days, oldest first.
-export async function loadSprintDays(iterationPath: string): Promise<SprintDay[]> {
+// The sprint's snapshot days of the vault's PBIs, oldest first.
+export async function loadSprintDays(iterationPath: string, vault: string): Promise<SprintDay[]> {
   const days = new Map<string, SprintDay>();
 
-  for (const row of await stateCounts(iterationPath)) {
+  for (const row of await stateCounts(iterationPath, vault)) {
     days.set(row.day, addStateCount(days.get(row.day) ?? { day: row.day, itemsByState: {}, effortByState: {}, effort: null }, row));
   }
 
@@ -81,11 +82,16 @@ export function isDoneState(state: string): boolean {
 }
 
 export function hasStateColor(state: string): boolean {
-  return state in STATE_SLOTS;
+  return state in STATE_COLORS;
 }
 
 export function stateColor(state: string): string {
-  return hasStateColor(state) ? `var(--series-${STATE_SLOTS[state]})` : OTHER_STATE_COLOR;
+  return STATE_COLORS[state] ?? OTHER_STATE_COLOR;
+}
+
+// The last segment of the iteration path: AA6.4.1 → 26.4.1.
+export function sprintName(iterationPath: string): string {
+  return iterationPath.split("\\").at(-1) ?? iterationPath;
 }
 
 export function itemsOn(day: SprintDay): number {
@@ -116,8 +122,8 @@ function addStateCount(day: SprintDay, row: StateCount): SprintDay {
   return day;
 }
 
-async function summaryOf(row: { iterationPath: string; firstDay: string; lastDay: string; days: number }): Promise<SprintSummary> {
-  const lastDay = (await loadSprintDays(row.iterationPath)).at(-1);
+async function summaryOf(row: { iterationPath: string; firstDay: string; lastDay: string; days: number }, vault: string): Promise<SprintSummary> {
+  const lastDay = (await loadSprintDays(row.iterationPath, vault)).at(-1);
 
   return {
     ...row,
@@ -128,7 +134,7 @@ async function summaryOf(row: { iterationPath: string; firstDay: string; lastDay
   };
 }
 
-function stateCounts(iterationPath: string): Promise<StateCount[]> {
+function stateCounts(iterationPath: string, vault: string): Promise<StateCount[]> {
   return getDb()
     .select({
       day: sql<string>`${sprintSnapshot.takenOn}::text`,
@@ -137,7 +143,8 @@ function stateCounts(iterationPath: string): Promise<StateCount[]> {
       effort: sql<string | null>`sum(${sprintSnapshot.effort})::text`,
     })
     .from(sprintSnapshot)
-    .where(eq(sprintSnapshot.iterationPath, iterationPath))
+    .innerJoin(workItem, eq(workItem.adoId, sprintSnapshot.adoId))
+    .where(and(eq(sprintSnapshot.iterationPath, iterationPath), eq(workItem.vault, vault)))
     .groupBy(sprintSnapshot.takenOn, sprintSnapshot.adoState);
 }
 

@@ -1,135 +1,73 @@
 import { isFailedOutcome } from "@powerloom/core";
-import { agentRun, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
-import type { StoredTraceEvent, UsageRecord } from "@agenttools/usage";
-import { and, eq, inArray } from "drizzle-orm";
-import Link from "next/link";
+import { agentRun, localItem, workItem } from "@powerloom/db";
+import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { getDb } from "@/lib/db";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { LocalTime } from "@/components/LocalTime";
-import { NoteLink } from "@/components/NoteLink";
-import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
-import { itemPath } from "@/lib/items";
+import { NoVault } from "@/components/NoVault";
+import { Panel } from "@/components/Panel";
+import { getAgentConfig } from "@/lib/agentConfig";
+import { currentVault } from "@/lib/currentVault";
+import { getDb } from "@/lib/db";
 import { getUsageStore } from "@/lib/usage";
-import { RunRerun } from "@/app/runs/RunRerun";
+import { runInVault } from "@/lib/vaultRuns";
+import { RunHeader } from "./RunHeader";
+import { RunCaptures, RunOutputs } from "./RunOutputs";
 import { TraceView } from "./TraceView";
 
 export const dynamic = "force-dynamic";
 
-const FAILURE_CONTEXT_EVENTS = 5;
-
-type RunRow = typeof agentRun.$inferSelect;
-
+// One run, like the other detail pages (user decision 2026-10-18): its header, the trace in the main column, and its
+// outputs, failure and first message beside it. A run of another vault is not found: every page shows only the vault
+// picked at the top.
 export default async function RunPage({ params }: { params: Promise<{ id: string }> }) {
-  const runId = Number((await params).id);
-  const [run] = Number.isInteger(runId) ? await getDb().select().from(agentRun).where(eq(agentRun.id, runId)) : [];
+  const vault = await currentVault();
 
-  if (!run) {
+  if (!vault) {
+    return <NoVault title="Agents" />;
+  }
+
+  const runId = Number((await params).id);
+  const found = Number.isInteger(runId) ? await loadRun(runId, vault) : null;
+
+  if (!found) {
     notFound();
   }
 
+  const { run, task } = found;
   const store = getUsageStore();
   const [usage] = await store.records({ from: new Date(0), match: { run: String(run.id) } }, 1);
   const trace = await store.trace(String(run.id));
-  const [task] = run.itemId ? await getDb().select().from(localItem).where(eq(localItem.id, run.itemId)) : [];
+  const palette = (await getAgentConfig().list()).map((agent) => agent.id);
 
   return (
     <>
-      <h1>RUN-{run.id} · {run.stage}</h1>
-      <p><Link href={`/runs?agent=${run.stage}`}>← {run.stage} runs</Link></p>
-      <RunSummary run={run} usage={usage} />
-      <p className="actions"><RunRerun task={task ?? null} /></p>
-      <h2>Outputs</h2>
-      <Outputs run={run} />
-      <Captures runId={run.id} />
-      {isFailedOutcome(run.outcome) && <Failure run={run} trace={trace} />}
-      <h2>Input (first message)</h2>
-      <details>
-        <summary>Show</summary>
-        <pre>{run.input ?? "–"}</pre>
-      </details>
-      <h2>Trace ({trace.length} events)</h2>
-      <TraceView events={trace} />
-    </>
-  );
-}
-
-function RunSummary({ run, usage }: { run: RunRow; usage?: UsageRecord }) {
-  return (
-    <div className="chips">
-      <span className="chip">outcome: {run.outcome}</span>
       <AutoRefresh active={run.outcome === "running"} />
-      {run.pbiId && <Link className="chip" href={`/pbis/${run.pbiId}`}>PBI-{run.pbiId}</Link>}
-      <span className="chip">model: {run.model}</span>
-      <span className="chip">prompt: {run.promptVersion}</span>
-      <span className="chip">started: <LocalTime date={run.startedAt} /></span>
-      {usage && (
-        <>
-          <span className="chip">turns: {usage.turns}</span>
-          <span className="chip">duration: {formatDuration(usage.durationMs)}</span>
-          <span className="chip">in {formatTokens(usage.inputTokens)} · out {formatTokens(usage.outputTokens)} · cache r {formatTokens(usage.cacheReadTokens)} / w {formatTokens(usage.cacheWriteTokens)}</span>
-          <span className="chip">cost {formatUsd(usage.costUsd)}{usage.providerCostUsd !== null ? ` (provider ${formatUsd(usage.providerCostUsd)})` : ""}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
-async function Outputs({ run }: { run: RunRow }) {
-  const ids = (run.outputs ?? []).filter((output) => !output.includes("refinement"));
-  const db = getDb();
-  const items = ids.length > 0 ? await db.select().from(localItem).where(inArray(localItem.id, ids)) : [];
-  const [pbi] = run.pbiId ? await db.select().from(workItem).where(eq(workItem.adoId, run.pbiId)) : [];
-  const [version] = run.pbiId ? await db.select().from(refinement).where(and(eq(refinement.pbiId, run.pbiId), eq(refinement.runId, run.id))) : [];
-
-  // The tech-writer's outputs are also the notes it wrote and the draft it removed.
-  const notes = ids.filter((output) => !items.some((item) => item.id === output));
-
-  if (!version && items.length === 0 && notes.length === 0) {
-    return <p className="muted">None.</p>;
-  }
-
-  return (
-    <ul>
-      {pbi?.vaultPath && <li><NoteLink vault={pbi.vault} path={pbi.vaultPath} label={`PBI-${pbi.adoId} note`} /></li>}
-      {version && pbi?.vaultPath && <li><NoteLink vault={pbi.vault} path={pbi.vaultPath.replace(/[^/]+$/, `PBI-${pbi.adoId}-refinement.md`)} label={`Refinement v${version.version}`} /></li>}
-      {items.map((item) => (
-        <li key={item.id}><Link href={itemPath(item)}>{item.id}</Link>{item.vaultPath && <> (<NoteLink vault={item.vault} path={item.vaultPath} label="note" />)</>} · {item.kind} · {item.status} · {item.title}</li>
-      ))}
-      {notes.map((note) => <li key={note}><code>{note}</code></li>)}
-    </ul>
-  );
-}
-
-// VaultCapture results: created / appended drafts, or the module's reasons for rejecting.
-async function Captures({ runId }: { runId: number }) {
-  const captures = await getDb().select().from(vaultCapture).where(eq(vaultCapture.runId, runId));
-
-  if (captures.length === 0) {
-    return null;
-  }
-
-  return (
-    <>
-      <h2>Vault captures</h2>
-      <ul>
-        {captures.map((capture) => (
-          <li key={capture.id} className={capture.status === "rejected" ? "result-error" : undefined}>
-            {capture.name} · {capture.status}{capture.filePath ? ` · ${capture.filePath}` : ""}{capture.errors.length > 0 ? ` · ${capture.errors.join("; ")}` : ""}
-          </li>
-        ))}
-      </ul>
+      <RunHeader run={run} task={task} usage={usage} palette={palette} />
+      <div className="pbi-columns run-columns">
+        <Panel title={<span>Trace <small>{trace.length} events</small></span>}>
+          <TraceView events={trace} />
+        </Panel>
+        <div>
+          {isFailedOutcome(run.outcome) && <section className="panel tone-error failure-panel"><h3>Failure <small>{run.outcome}</small></h3><p className="panel-body">{run.error ?? "no message"}</p></section>}
+          <Panel title="Outputs"><RunOutputs run={run} /></Panel>
+          <RunCaptures runId={run.id} />
+          <details className="panel fold-panel">
+            <summary><span className="fold-mark" aria-hidden="true">›</span>Input <small>first message</small></summary>
+            <pre className="run-input">{run.input ?? "–"}</pre>
+          </details>
+        </div>
+      </div>
     </>
   );
 }
 
-function Failure({ run, trace }: { run: RunRow; trace: StoredTraceEvent[] }) {
-  return (
-    <>
-      <h2>Failure</h2>
-      <p className="result-error">{run.outcome}: {run.error ?? "no message"}</p>
-      <p className="muted">Last events before the end:</p>
-      <TraceView events={trace.slice(-FAILURE_CONTEXT_EVENTS)} />
-    </>
-  );
+async function loadRun(runId: number, vault: string) {
+  const [row] = await getDb()
+    .select({ run: agentRun, task: localItem })
+    .from(agentRun)
+    .leftJoin(localItem, eq(localItem.id, agentRun.itemId))
+    .leftJoin(workItem, eq(workItem.adoId, agentRun.pbiId))
+    .where(and(eq(agentRun.id, runId), runInVault(vault)));
+
+  return row ?? null;
 }

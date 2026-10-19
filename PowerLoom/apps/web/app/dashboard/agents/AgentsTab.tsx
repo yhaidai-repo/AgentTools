@@ -1,90 +1,72 @@
-import type { AgentDefinition } from "@agenttools/config";
-import { LocalTime } from "@/components/LocalTime";
+import { PeriodPicker } from "@/components/PeriodPicker";
+import { loadAgentActivity, loadDailyActivity } from "@/lib/agentActivity";
 import { getAgentConfig } from "@/lib/agentConfig";
-import { loadAgentActivity, loadAgentDays, loadDailyActivity } from "@/lib/agentActivity";
-import { agentColor } from "@/lib/agentColors";
-import { AGENT_METRICS, agentMetricOf, agentMetricOptions } from "@/lib/agentMetrics";
-import { loadRecentFailures } from "@/lib/failedRuns";
+import { agentMetricOf } from "@/lib/agentMetrics";
+import { loadFailureGroups } from "@/lib/failedRuns";
 import { loadHeldTasks } from "@/lib/heldTasks";
 import { loadCostliestPbis } from "@/lib/pbiCosts";
-import { DEFAULT_DAY_RANGE, DAY_RANGES, RANGES, dayRangeOptions, rangeStart } from "@/lib/ranges";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf, periodPhrase } from "@/lib/ranges";
 import { loadSystemStatus } from "@/lib/systemStatus";
-import { RangeFilter } from "../../agents/RangeFilter";
+import { vaultRunsInProgress } from "@/lib/vaultRunsInProgress";
 import { ActivityCharts } from "./ActivityCharts";
-import { AgentChartFilters } from "./AgentChartFilters";
+import { AgentsBand } from "./AgentsBand";
 import { AgentTable } from "./AgentTable";
-import { AgentTrend } from "./AgentTrend";
 import { CostliestPbis } from "./CostliestPbis";
 import { CostPerMinute } from "./CostPerMinute";
 import { HeldTasks } from "./HeldTasks";
 import { RecentFailures } from "./RecentFailures";
-import { StuckRuns } from "./StuckRuns";
-import { Summary } from "./Summary";
+import { RunsInProgress } from "./RunsInProgress";
 
 const RECENT_FAILURES = 8;
 const COSTLIEST_PBIS = 10;
-const ALL_AGENTS_COLOR = "var(--series-1)";
 
 interface AgentsTabProps {
+  vault: string;
   range?: string;
-  agent?: string;
   metric?: string;
 }
 
-// Costs, runs and failures per day and per agent over the period, today's budgets, the costliest PBIs, and what blocks
-// the agents: stuck runs, held tasks, the last failures. All vaults: the budgets count every vault.
-export async function AgentsTab({ range, agent, metric }: AgentsTabProps) {
-  const period = range && DAY_RANGES.includes(range) ? range : DEFAULT_DAY_RANGE;
-  const from = rangeStart(period);
-  const now = new Date();
-  const agents = await getAgentConfig().list();
-  const chartSlot = agents.findIndex((definition) => definition.id === agent);
-  const chartAgent = chartSlot >= 0 ? agents[chartSlot] : null;
+// The vault's agents (user decision 2026-10-18: the dashboard shows the selected vault): the period's totals, cost,
+// tokens or run time and runs per day, each agent's period and today against its daily limit, what runs and what waits,
+// the costliest PBIs and the latest distinct failures.
+export async function AgentsTab({ vault, range, metric }: AgentsTabProps) {
+  const period = periodOf(range);
+  const from = await periodStart(period, vault);
   const chartMetric = agentMetricOf(metric);
-  const chartChoice = { agent: chartAgent?.id ?? "", metric: chartMetric };
-  const [days, byAgent, agentDays, costliest, failures, held, status] = await Promise.all([
-    loadDailyActivity(from, now),
-    loadAgentActivity(from),
-    loadAgentDays(from, now, chartAgent?.id ?? null),
-    loadCostliestPbis(from, COSTLIEST_PBIS),
-    loadRecentFailures(from, RECENT_FAILURES),
-    loadHeldTasks(),
+  const [agents, days, byAgent, costliest, failures, held, status] = await Promise.all([
+    getAgentConfig().list(),
+    loadDailyActivity(from, new Date(), vault),
+    loadAgentActivity(from, vault),
+    loadCostliestPbis(from, COSTLIEST_PBIS, vault),
+    loadFailureGroups(from, RECENT_FAILURES, vault),
+    loadHeldTasks(vault),
     loadSystemStatus(),
   ]);
-  const stuck = status?.runs.filter((run) => run.stuck) ?? [];
+  const running = await vaultRunsInProgress(status?.runs ?? [], vault);
+  const today = days.at(-1) ?? null;
+  const periodLabel = periodPhrase(period);
 
   return (
     <>
-      <p className="muted">Every vault&apos;s agents, per budget day (00:00 UTC). Cost is an API-price estimate; on the Max token nothing is billed.</p>
-      <RangeFilter key={period} range={period} ranges={dayRangeOptions()} keep={{ tab: "agents", ...chartChoice }} />
-      <Summary days={days} budget={status?.budget ?? null} stuck={stuck.length} held={held.length} periodLabel={RANGES[period].label} />
-      <ActivityCharts days={days} agents={agents} />
-      <h2>Per agent</h2>
-      <AgentChartFilters key={`${chartChoice.agent}-${chartMetric}`} {...chartChoice} agents={agentOptions(agents)} metrics={agentMetricOptions()} keep={{ tab: "agents", range: period }} />
-      <div className="dashboard-charts">
-        <AgentTrend days={agentDays} metric={AGENT_METRICS[chartMetric]} label={chartAgent?.label ?? "All agents"} color={chartAgent ? agentColor(chartSlot) : ALL_AGENTS_COLOR} />
+      <div className="toolbar">
+        <PeriodPicker value={period} path="/dashboard" keep={{ tab: "agents", metric: chartMetric }} />
+        <span className="text-faint hint">Cost is an API-price estimate; nothing is billed on the Max plan.</span>
+      </div>
+      <AgentsBand days={days} today={today} periodLabel={periodLabel} held={held.length} stuck={running.filter((run) => run.stuck).length} />
+      <div className="section-label">Per day</div>
+      <ActivityCharts days={days} agents={agents} metric={chartMetric} keep={{ tab: "agents", range: period }} />
+      <div className="section-label">Per agent, {periodLabel}</div>
+      <AgentTable agents={agents} byAgent={byAgent} today={today} budget={status?.budget ?? null} range={period} />
+      <div className="grid three gap-top">
         <CostPerMinute agents={agents} byAgent={byAgent} />
+        <RunsInProgress runs={running} />
+        <HeldTasks tasks={held} />
       </div>
-      <AgentTable agents={agents} byAgent={byAgent} budget={status?.budget ?? null} range={period} />
-      <h2>Most expensive PBIs</h2>
+      <div className="section-label">Most expensive PBIs</div>
       <CostliestPbis pbis={costliest} />
-      <div className="dashboard-cards dashboard-blockers">
-        <section className="card dashboard-card">
-          <h3>Stuck runs</h3>
-          {status ? <StuckRuns runs={stuck} /> : <p className="result-error">PowerLoom doesn&apos;t answer: unknown.</p>}
-        </section>
-        <section className="card dashboard-card">
-          <h3>Held tasks</h3>
-          <HeldTasks tasks={held} />
-        </section>
-      </div>
-      <h2>Last failures</h2>
-      <RecentFailures runs={failures} />
-      {status && <p className="muted">Budgets checked <LocalTime date={new Date(status.checkedAt)} />.</p>}
+      <div className="section-label">Last failures</div>
+      <RecentFailures groups={failures} />
     </>
   );
-}
-
-function agentOptions(agents: AgentDefinition[]): { key: string; label: string }[] {
-  return agents.map((definition) => ({ key: definition.id, label: definition.label }));
 }

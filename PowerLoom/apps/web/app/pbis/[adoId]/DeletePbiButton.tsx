@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { deletePbiAction } from "../actions";
 
 // Asks first: the PBI and everything PowerLoom made for it go, and sync won't bring it back (ADO stays untouched).
-export function DeletePbiButton({ adoId }: { adoId: number }) {
+// In the header's ⋯ menu it is a rose menu entry, and a refusal shows as an alert (the menu closes on the click).
+export function DeletePbiButton({ adoId, inMenu = false }: { adoId: number; inMenu?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -19,7 +20,15 @@ export function DeletePbiButton({ adoId }: { adoId: number }) {
       const result = await deletePbiAction(adoId);
 
       setMessage(result.ok ? null : result.message);
+
+      if (inMenu && !result.ok) {
+        window.alert(result.message);
+      }
     });
+  }
+
+  if (inMenu) {
+    return <button type="button" className="menu-item danger-item" role="menuitem" onClick={onDelete} disabled={isPending}>Delete from PowerLoom…</button>;
   }
 
   return (

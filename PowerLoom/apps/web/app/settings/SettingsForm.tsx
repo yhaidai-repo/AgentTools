@@ -2,8 +2,11 @@
 
 import { useActionState } from "react";
 import type { SyncSettings } from "@powerloom/core";
-import type { ActionResult } from "@/models/ActionResult";
+import { CronField } from "@/components/CronField";
+import { ResultLine } from "@/components/ResultLine";
+import { SettingsHead } from "@/components/SettingsHead";
 import { SprintField } from "@/components/SprintField";
+import type { ActionResult } from "@/models/ActionResult";
 import type { SprintOption } from "@/models/SprintOption";
 import { saveSettings } from "./actions";
 
@@ -19,27 +22,17 @@ export function SettingsForm({ enabled, sync, sprintOptions, currentSprint }: Se
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveSettings, null);
 
   return (
-    <form action={action} className="card">
-      <label className="inline">
-        <input type="checkbox" name="enabled" defaultChecked={enabled} />
-        Enabled: pull the sprint&apos;s PBIs on the sync schedule
-      </label>
-      <label>
-        Sprint to sync
-        <SprintField value={sync.sprint} options={sprintOptions} current={currentSprint} />
-      </label>
-      <label>
-        Sync schedule (cron)
-        <input name="cron" defaultValue={sync.cron} required />
-      </label>
-      <label>
-        Max PBIs fetched per sync
-        <input name="maxItemsPerRun" type="number" min={1} defaultValue={sync.maxItemsPerRun} required />
-      </label>
-      <div className="actions">
+    <form action={action} className="panel settings-card">
+      <SettingsHead title="PBI sync" description="Pulls the sprint's PBIs on the schedule." enabled={enabled} />
+      <div className="settings-body field-grid">
+        <div className="field"><span>Sprint</span><SprintField value={sync.sprint} options={sprintOptions} current={currentSprint} /></div>
+        <CronField label="Schedule" value={sync.cron} />
+        <label className="field"><span>Max PBIs per sync</span><input name="maxItemsPerRun" type="number" min={1} defaultValue={sync.maxItemsPerRun} required /></label>
+      </div>
+      <div className="settings-foot">
+        <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-      {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
     </form>
   );
 }

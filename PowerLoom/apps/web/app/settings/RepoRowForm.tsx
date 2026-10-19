@@ -9,14 +9,15 @@ export function RepoRowForm({ repo }: { repo: RepoRow }) {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <tr className={repo.excluded ? "muted" : undefined}>
-      <td>
-        <input type="checkbox" checked={!repo.excluded} disabled={isPending} onChange={(event) => startTransition(() => setRepoEnabledAction(repo.id, event.target.checked))} />
-      </td>
-      <td>{repo.name}</td>
-      <td>{repo.kind === "local" ? "local" : `ADO: ${repo.adoProject}`}</td>
-      <td>{repo.defaultBranch?.replace(/^refs\/heads\//, "") ?? "–"}</td>
-      <td>{repo.kind === "local" && <button type="button" disabled={isPending} onClick={() => startTransition(() => removeLocalRepoAction(repo.id))}>Remove</button>}</td>
-    </tr>
+    <div className={`resource-row${repo.excluded ? " off" : ""}`}>
+      <label className="row-switch" title={repo.excluded ? "Off" : "On"}>
+        <input type="checkbox" checked={!repo.excluded} disabled={isPending} onChange={(event) => startTransition(() => setRepoEnabledAction(repo.id, event.target.checked))} aria-label={`${repo.name} enabled`} />
+        <span className="switch-knob" aria-hidden="true" />
+      </label>
+      <span className="resource-name-text">{repo.name}</span>
+      <span className={repo.kind === "local" ? "source-tag" : "source-tag ado"}>{repo.kind === "local" ? "local" : `ADO · ${repo.adoProject}`}</span>
+      <span className="resource-target">{repo.defaultBranch?.replace(/^refs\/heads\//, "") ?? "–"}</span>
+      <span className="resource-actions">{repo.kind === "local" && <button type="button" className="danger small" disabled={isPending} onClick={() => startTransition(() => removeLocalRepoAction(repo.id))}>Remove</button>}</span>
+    </div>
   );
 }

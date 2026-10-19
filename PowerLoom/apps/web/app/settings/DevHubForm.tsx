@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
+import { ResultLine } from "@/components/ResultLine";
+import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import type { DevHubValues } from "@/models/DevHubValues";
 import { saveDevHubAction, testDevHubAction } from "./actions";
@@ -12,37 +13,23 @@ import { saveDevHubAction, testDevHubAction } from "./actions";
 export function DevHubForm({ values }: { values: DevHubValues }) {
   const [saveResult, saveAction, isSaving] = useActionState<ActionResult | null, FormData>(saveDevHubAction, null);
   const [testResult, testAction, isTesting] = useActionState<ActionResult | null, FormData>(testDevHubAction, null);
-  const result = saveResult ?? testResult;
 
   return (
-    <form className="card">
-      <label className="inline">
-        <input type="checkbox" name="enabled" defaultChecked={values.enabled} />
-        Enabled: agents with DevHub switched on may start, inspect and stop this vault&apos;s services on this PC
-      </label>
-      <p className="muted">
-        DevHub runs on Windows: <code>D:/Projects/AgentTools/DevSecrets/Start-DevHub.ps1</code>. One stack at a time; a run&apos;s stack stops when the run ends. Each agent needs its own DevHub switch on its Config page (<Link href="/agents">Agents</Link>). Service logs go to the model provider.
-      </p>
-      <label>
-        DevHub URL (as the agent-runner reaches it)
-        <input name="url" defaultValue={values.url} placeholder="http://host.docker.internal:47811" />
-      </label>
-      <label>
-        Token (the dev-secrets value <code>dev-hub-token</code>){values.hasToken ? ": set; enter a new one to replace it" : ""}
-        <input name="token" type="password" autoComplete="off" placeholder={values.hasToken ? "unchanged" : ""} />
-      </label>
-      <div className="actions">
-        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
-        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">
-          {isTesting ? "Testing…" : "Test DevHub"}
-        </button>
-        {values.hasToken && (
-          <a className="button secondary" href={browserUrl(values.url)} target="_blank" rel="noreferrer" title="Sign in there with the same token">
-            Open DevHub
-          </a>
-        )}
+    <form className="panel settings-card">
+      <SettingsHead title="DevHub" description="Agents with DevHub switched on may start, inspect and stop this vault's services on this PC. One stack at a time; a run's stack stops when the run ends. Service logs go to the model provider." enabled={values.enabled} />
+      <div className="settings-body">
+        <p className="hint">Runs on Windows: <code>D:/Projects/AgentTools/DevSecrets/Start-DevHub.ps1</code></p>
+        <div className="field-grid">
+          <label className="field"><span>DevHub URL<small>as the agent-runner reaches it</small></span><input name="url" defaultValue={values.url} placeholder="http://host.docker.internal:47811" /></label>
+          <label className="field"><span>Token<small>the dev-secrets value dev-hub-token{values.hasToken ? " · set; type a new one to replace it" : ""}</small></span><input name="token" type="password" autoComplete="off" placeholder={values.hasToken ? "•••••••• unchanged" : ""} /></label>
+        </div>
       </div>
-      {result && <p className={result.ok ? "result-ok" : "result-error"}>{result.message}</p>}
+      <div className="settings-foot">
+        <ResultLine result={saveResult ?? testResult} />
+        {values.hasToken && <a className="button secondary" href={browserUrl(values.url)} target="_blank" rel="noreferrer" title="Sign in there with the same token">Open DevHub ↗</a>}
+        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test DevHub"}</button>
+        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+      </div>
     </form>
   );
 }

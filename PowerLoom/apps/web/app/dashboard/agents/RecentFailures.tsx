@@ -1,38 +1,37 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
-import type { FailedRun } from "@/models/FailedRun";
+import { Panel } from "@/components/Panel";
+import type { FailureGroup } from "@/models/FailureGroup";
 
-export function RecentFailures({ runs }: { runs: FailedRun[] }) {
-  if (runs.length === 0) {
-    return <p className="muted">None in this period.</p>;
+// The vault's latest distinct failures: the error on one line (all of it on hover), how many times it happened, and
+// the latest run.
+export function RecentFailures({ groups }: { groups: FailureGroup[] }) {
+  if (groups.length === 0) {
+    return <Panel><p className="empty">None in this period.</p></Panel>;
   }
 
   return (
-    <div className="table-wrap">
-      <table>
+    <Panel table>
+      <table className="data-table">
         <thead>
           <tr>
-            <th>Run</th>
-            <th>Agent</th>
-            <th>Task</th>
-            <th>Started</th>
-            <th>Outcome</th>
             <th>Error</th>
+            <th>Agent</th>
+            <th className="num">Times</th>
+            <th>Last run</th>
           </tr>
         </thead>
         <tbody>
-          {runs.map((run) => (
-            <tr key={run.id}>
-              <td><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link></td>
-              <td>{run.agentId}</td>
-              <td>{run.itemId ?? (run.pbiId ? <Link href={`/pbis/${run.pbiId}`}>PBI-{run.pbiId}</Link> : "–")}</td>
-              <td><LocalTime date={run.startedAt} /></td>
-              <td className="result-error">{run.outcome}</td>
-              <td className="title result-error">{run.error}</td>
+          {groups.map((group) => (
+            <tr key={`${group.agentId}-${group.latest.id}`}>
+              <td className="clip text-faint" title={group.error}><span className="dot past-error inline" />{group.error}</td>
+              <td>{group.agentId}</td>
+              <td className="num">{group.times}</td>
+              <td><Link href={`/agents/runs/${group.latest.id}`} className="id">RUN-{group.latest.id}</Link> <span className="text-faint"><LocalTime date={group.latest.startedAt} /></span></td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </Panel>
   );
 }

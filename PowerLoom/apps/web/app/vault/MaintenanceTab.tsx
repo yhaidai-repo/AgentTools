@@ -1,109 +1,59 @@
-import { listVaultTaskSchedules, type TaskSchedule } from "@powerloom/core";
-import { listTrash, type WwwRecord } from "@powerloom/vault";
+import { listVaultTaskSchedules } from "@powerloom/core";
+import { listTrash } from "@powerloom/vault";
+import type { ReactNode } from "react";
+import { Pager } from "@/components/Pager";
 import { getDb } from "@/lib/db";
-import { WWW_LOG_PATH, isOpenWww, readVaultRegisters } from "@/lib/vaultRegisters";
-import type { ProjectRegisterRecord } from "@/models/ProjectRegisterRecord";
+import { REGISTERS, registerRows, wwwRows, type RegisterKey } from "@/lib/registerRows";
+import { readVaultRegisters } from "@/lib/vaultRegisters";
+import { vaultUrl } from "@/lib/vaultUrl";
+import type { RegisterRow } from "@/models/RegisterRow";
 import { ScheduleTable } from "../tasks/ScheduleTable";
+import { RegisterFilters } from "./RegisterFilters";
+import { RegisterTable } from "./RegisterTable";
 import { TrashTable } from "./TrashTable";
-import { DocLink } from "./DocLink";
 
-// The vault's maintenance (user decision 2026-10-05): the jobs that keep it current, and its What-went-wrong records,
-// known issues and open questions, read from the vault's own notes (open records first).
-export async function MaintenanceTab({ root, vault }: { root: string; vault: string }) {
+const PAGE_SIZES = [25, 50, 100];
+
+type MaintenanceParams = { register?: string; show?: string; page?: string; size?: string };
+
+// The vault's maintenance (user decision 2026-10-05): the jobs that keep it current, then one register at a time (user
+// decision 2026-10-18: a switch instead of three long tables), open records first, and the trash.
+export async function MaintenanceTab({ root, vault, params, tabs }: { root: string; vault: string; params: MaintenanceParams; tabs: ReactNode }) {
   const registers = await readVaultRegisters(root);
   const trash = await listTrash(root);
   const schedules = await listVaultTaskSchedules(getDb(), vault);
+  const rowsByRegister: Record<RegisterKey, RegisterRow[]> = { www: wwwRows(registers.www), issues: registerRows(registers.issues), questions: registerRows(registers.questions) };
+  const register = REGISTERS.find((choice) => choice.key === params.register)?.key ?? "www";
+  const onlyOpen = params.show !== "all";
+  const rows = rowsByRegister[register].filter((row) => !onlyOpen || row.isOpen);
+  const size = PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : PAGE_SIZES[0];
+  const pages = Math.max(Math.ceil(rows.length / size), 1);
+  const page = Math.min(Math.max(Number(params.page) || 1, 1), pages);
 
   return (
     <>
-      <h2>Maintenance jobs</h2>
-      <p className="muted">The scheduled tasks of <code>{vault}</code>; Tasks → New task (type vault-review, with a cron) schedules the vault review. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
-      <VaultSchedules schedules={schedules} />
-      <h2>What went wrong ({openCount(registers.www.filter(isOpenWww).length, registers.www.length)})</h2>
-      <WwwRecords vault={vault} records={registers.www} />
-      <h2>Known issues ({openCount(unresolved(registers.issues), registers.issues.length)})</h2>
-      <RegisterRecords vault={vault} records={registers.issues} empty="No known issue is recorded in the vault's projects." />
-      <h2>Open questions ({openCount(unresolved(registers.questions), registers.questions.length)})</h2>
-      <RegisterRecords vault={vault} records={registers.questions} empty="No open question is recorded in the vault's projects." />
-      <h2>Trash ({trash.length})</h2>
-      <p className="muted">Notes the vault review removed (<code>.trash/</code>): put one back, or delete it for good.</p>
-      {trash.length === 0 ? <p className="muted">The trash is empty.</p> : <TrashTable rows={trash.map((entry) => ({ path: entry.path, sizeBytes: entry.sizeBytes, modifiedAt: entry.modifiedAt.toISOString() }))} />}
+      <div className="tab-bar">{tabs}</div>
+      <div className="section-label">Maintenance jobs</div>
+      <ScheduleTable schedules={schedules} />
+      <p className="hint">Tasks → New task (type vault-review, with a cron) schedules the vault review. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
+      <RegisterFilters register={register} onlyOpen={onlyOpen} rowsByRegister={rowsByRegister} />
+      <RegisterTable vault={vault} rows={rows.slice((page - 1) * size, page * size)} onlyOpen={onlyOpen} />
+      {rows.length > size && <Pager page={page} size={size} sizes={PAGE_SIZES} pages={pages} total={rows.length} noun="records" hrefOf={(change) => vaultUrl({ tab: "maintenance", register, show: onlyOpen ? "open" : "all", page: change.page, size: change.size ?? size })} />}
+      <Trash entries={trash} />
     </>
   );
 }
 
-function unresolved(records: ProjectRegisterRecord[]): number {
-  return records.filter((record) => !record.resolved).length;
-}
-
-function openCount(open: number, total: number): string {
-  return `${open} open of ${total}`;
-}
-
-function VaultSchedules({ schedules }: { schedules: TaskSchedule[] }) {
-  if (schedules.length === 0) {
-    return <p className="muted">No scheduled task for this vault yet.</p>;
-  }
-
-  return <ScheduleTable schedules={schedules} />;
-}
-
-function WwwRecords({ vault, records }: { vault: string; records: WwwRecord[] }) {
-  if (records.length === 0) {
-    return <p className="muted">The vault&apos;s {WWW_LOG_PATH} has no record.</p>;
+// Notes the vault review removed (.trash/): a quiet line while it's empty.
+function Trash({ entries }: { entries: Awaited<ReturnType<typeof listTrash>> }) {
+  if (entries.length === 0) {
+    return <p className="quiet-line">The trash is empty: notes the vault review removes land here, to restore or delete for good.</p>;
   }
 
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Record</th><th>Title</th><th>Kind</th><th>Project</th><th>Fault</th><th>Status</th><th>Created</th></tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={record.id}>
-              <td><DocLink vault={vault} path={WWW_LOG_PATH}>{record.id}</DocLink></td>
-              <td className="title">{record.title}</td>
-              <td>{record.kind}</td>
-              <td>{record.project}</td>
-              <td>{record.fault}</td>
-              <td><StatusChip open={isOpenWww(record)} status={record.status} /></td>
-              <td>{record.created}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="section-label">Trash</div>
+      <TrashTable rows={entries.map((entry) => ({ path: entry.path, sizeBytes: entry.sizeBytes, modifiedAt: entry.modifiedAt.toISOString() }))} />
+    </>
   );
-}
-
-function RegisterRecords({ vault, records, empty }: { vault: string; records: ProjectRegisterRecord[]; empty: string }) {
-  if (records.length === 0) {
-    return <p className="muted">{empty}</p>;
-  }
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Record</th><th>Title</th><th>Project</th><th>Status</th><th>Updated</th></tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={`${record.project}-${record.id}`}>
-              <td><DocLink vault={vault} path={record.path}>{record.id}</DocLink></td>
-              <td className="title">{record.title}</td>
-              <td>{record.project}</td>
-              <td><StatusChip open={!record.resolved} status={record.status || (record.resolved ? "Resolved" : "Open")} /></td>
-              <td>{record.updated ?? "–"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function StatusChip({ open, status }: { open: boolean; status: string }) {
-  return <span className={open ? "chip" : "chip result-ok"}>{status}</span>;
 }

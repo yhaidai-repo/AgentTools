@@ -1,42 +1,67 @@
-"use client";
-
+import Link from "next/link";
+import { PeriodPicker } from "@/components/PeriodPicker";
+import { kindTag, type TaskBucket } from "@/lib/taskLooks";
+import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
+import { PbiFilterField } from "./PbiFilterField";
 
-// Applies on change (the PBI field on Enter): the filters live in the URL, no Filter button.
-export function TaskFilters({ filter, kinds, ranges }: { filter: TaskFilter; kinds: readonly string[]; ranges: { key: string; label: string }[] }) {
+// "For you" leads the row, before All: it is what the page is for.
+const BUCKETS: { key: TaskBucket; label: string }[] = [
+  { key: "open", label: "Open" },
+  { key: "held", label: "Held" },
+  { key: "done", label: "Done" },
+  { key: "cancelled", label: "Cancelled" },
+];
+
+interface TaskFiltersProps {
+  filter: TaskFilter;
+  total: number;
+  buckets: Map<string, number>;
+  kinds: Map<string, number>;
+}
+
+// The filters as pills with counts (user decision 2026-10-18): what the task waits for (For you first), its kind, the
+// period, and the PBI. Everything lives in the URL; a change goes back to page 1.
+export function TaskFilters({ filter, total, buckets, kinds }: TaskFiltersProps) {
+  const keep = { kind: filter.kind, pbi: filter.pbi, range: filter.range, youFirst: filter.youFirst, size: filter.size };
+
   return (
-    <form method="get" className="toolbar filters">
-      <input type="hidden" name="sort" value={filter.sort} />
-      <input type="hidden" name="dir" value={filter.dir} />
-      <label>
-        Kind
-        <select name="kind" defaultValue={filter.kind} onChange={submitForm}>
-          <option value="">All</option>
-          {kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}
-        </select>
-      </label>
-      <label>
-        Status
-        <select name="status" defaultValue={filter.status} onChange={submitForm}>
-          <option value="all">All</option>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-        </select>
-      </label>
-      <label>
-        Period
-        <select name="range" defaultValue={filter.range} onChange={submitForm}>
-          {ranges.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
-        </select>
-      </label>
-      <label>
-        PBI
-        <input name="pbi" defaultValue={filter.pbi} placeholder="any, none or an id (Enter)" size={22} />
-      </label>
-    </form>
+    <>
+      <div className="backlog-bar">
+        <nav className="status-pills" aria-label="Filter by status">
+          {(buckets.has("you") || filter.status === "you") && <Pill href={tasksUrl({ ...keep, status: "you" })} on={filter.status === "you"} label="For you" count={buckets.get("you") ?? 0} warm />}
+          <Pill href={tasksUrl({ ...keep, status: "all" })} on={filter.status === "all"} label="All" count={total} />
+          {BUCKETS.filter((bucket) => buckets.has(bucket.key) || filter.status === bucket.key).map((bucket) => <Pill key={bucket.key} href={tasksUrl({ ...keep, status: bucket.key })} on={filter.status === bucket.key} label={bucket.label} count={buckets.get(bucket.key) ?? 0} />)}
+        </nav>
+        <span className="sync-line">
+          {filter.status === "all" && <SortToggle filter={filter} />}
+          <PeriodPicker value={filter.range} path="/tasks" keep={{ status: filter.status, kind: filter.kind, pbi: filter.pbi, sort: filter.youFirst ? "" : UPDATED_FIRST }} />
+        </span>
+      </div>
+      <div className="backlog-bar">
+        <nav className="status-pills" aria-label="Filter by kind">
+          <Pill href={tasksUrl({ ...keep, status: filter.status, kind: "" })} on={filter.kind === ""} label="All kinds" />
+          {[...kinds.keys()].map((kind) => <Pill key={kind} href={tasksUrl({ ...keep, status: filter.status, kind })} on={filter.kind === kind} label={kindTag(kind).label} count={kinds.get(kind)} />)}
+        </nav>
+        <PbiFilterField filter={filter} />
+      </div>
+    </>
   );
 }
 
-function submitForm(event: React.ChangeEvent<HTMLSelectElement>) {
-  event.currentTarget.form?.requestSubmit();
+// Waits on you first, or simply the latest change first (user request 2026-10-18); a click flips it. Only under All:
+// a task that waits on you is always in For you, so any other status has nothing to put first.
+function SortToggle({ filter }: { filter: TaskFilter }) {
+  return (
+    <Link href={tasksUrl({ ...filter, page: 1, youFirst: !filter.youFirst })} className={`sort-toggle${filter.youFirst ? " on" : ""}`} role="switch" aria-checked={filter.youFirst} title={filter.youFirst ? "What waits on you is on top; click to sort by the latest change only" : "Sorted by the latest change; click to put what waits on you on top"}>
+      <span className="switch-knob" aria-hidden="true" />
+      Waits on you first
+    </Link>
+  );
+}
+
+function Pill({ href, on, label, count, warm = false }: { href: string; on: boolean; label: string; count?: number; warm?: boolean }) {
+  const classes = ["status-pill", on ? "on" : "", warm ? "for-you-pill" : ""].filter(Boolean).join(" ");
+
+  return <Link href={href} className={classes}>{label}{count !== undefined && <b>{count}</b>}</Link>;
 }

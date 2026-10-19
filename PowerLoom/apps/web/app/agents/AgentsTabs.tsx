@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+// Runs is a tab of Agents (user decision 2026-10-18), no longer a page of its own.
 export const AGENTS_TABS = [
   { key: "overview", label: "Overview" },
+  { key: "runs", label: "Runs" },
   { key: "tools", label: "Tools" },
 ] as const;
 

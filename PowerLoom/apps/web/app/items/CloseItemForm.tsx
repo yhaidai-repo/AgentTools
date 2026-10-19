@@ -1,7 +1,7 @@
 "use client";
 
 import type { HumanTaskStep } from "@powerloom/core";
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { FileInput } from "@/components/FileInput";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeItem } from "./actions";
@@ -13,8 +13,10 @@ const BUTTONS: Record<string, { decision: string; label: string; secondary?: boo
 };
 
 // One open question, human task or finding: a text answer and/or files (items of a PBI only), then the decision button.
-// A structured human task gets one answer box per step (user decision 2026-10-05), the free box becomes a note.
-export function CloseItemForm({ adoId, itemId, kind, accept, steps = [] }: { adoId: number | null; itemId: string; kind: string; accept: string; steps?: HumanTaskStep[] }) {
+// A structured human task gets one card per step with its answer box inside (user decisions 2026-10-05, 2026-10-18), the
+// free box becomes a note. The step views come rendered from the server (they read @powerloom/core, which a client
+// component can't import).
+export function CloseItemForm({ adoId, itemId, kind, accept, steps = [], stepViews = [] }: { adoId: number | null; itemId: string; kind: string; accept: string; steps?: HumanTaskStep[]; stepViews?: ReactNode[] }) {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(closeItem, null);
 
   return (
@@ -22,10 +24,13 @@ export function CloseItemForm({ adoId, itemId, kind, accept, steps = [] }: { ado
       <input type="hidden" name="adoId" value={adoId ?? ""} />
       <input type="hidden" name="itemId" value={itemId} />
       {steps.map((step, index) => (
-        <label key={index}>
-          <span>{index + 1}. {step.action} <span className="muted">· {step.reportBack}</span></span>
-          <textarea name={`answer:${index}`} rows={4} />
-        </label>
+        <div key={index} className="step-card">
+          <span className="step-number">{index + 1}</span>
+          <div className="step-body">
+            {stepViews[index]}
+            <textarea name={`answer:${index}`} rows={3} aria-label={`Answer to step ${index + 1}`} placeholder={step.reportBack} />
+          </div>
+        </div>
       ))}
       <textarea name="resolution" rows={3} placeholder={resolutionPlaceholder(kind, steps.length > 0)} />
       {adoId !== null && <FileInput name="file" accept={accept} />}

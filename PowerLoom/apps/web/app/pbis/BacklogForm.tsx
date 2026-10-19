@@ -6,10 +6,12 @@ import type { ActionResult } from "@/models/ActionResult";
 import type { PbiToFinish } from "@/models/PbiToFinish";
 import { closeSelected, deleteSelected, prepareSelected, reopenSelected } from "./actions";
 
-// Wraps the server-rendered table so its row checkboxes submit with this form: Prepare the selected PBIs, or Finish them
-// through the Finish dialog, one PBI at a time.
+// Wraps the server-rendered table so its row checkboxes submit with this form. The actions live in a bar that shows
+// only while rows are ticked (user decision 2026-10-18), sliding in; each button explains itself in its tooltip. Start
+// prepares the selected PBIs; Finish goes through the Finish dialog, one PBI at a time.
 export function BacklogForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
+  const [selected, setSelected] = useState(0);
   const [prepared, prepareAction, isPreparing] = useActionState<ActionResult | null, FormData>(prepareSelected, null);
   const [deleted, deleteAction, isDeleting] = useActionState<ActionResult | null, FormData>(deleteSelected, null);
   const [closed, closeAction, isClosing] = useActionState<ActionResult | null, FormData>(closeSelected, null);
@@ -18,10 +20,10 @@ export function BacklogForm({ children }: { children: ReactNode }) {
   const [finished, setFinished] = useState<string | null>(null);
 
   function onFinish() {
-    const selected = selectedPbis(form.current);
+    const pbis = selectedPbis(form.current);
 
-    setFinished(selected.length === 0 ? "Select at least one PBI." : null);
-    setToFinish(selected.length > 0 ? selected : null);
+    setFinished(null);
+    setToFinish(pbis.length > 0 ? pbis : null);
   }
 
   function onFinishDone(messages: string[]) {
@@ -29,23 +31,25 @@ export function BacklogForm({ children }: { children: ReactNode }) {
     setFinished(messages.join(" ") || null);
   }
 
+  function onClear() {
+    form.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(untick);
+    setSelected(0);
+  }
+
   // The dialog has its own form, so it stays outside this one (forms can't nest).
   return (
     <>
-      <form ref={form} action={prepareAction}>
-        <div className="toolbar">
-          <button type="submit" disabled={isPreparing}>{isPreparing ? "Queuing…" : "Prepare for refinement"}</button>
-          <button type="button" className="secondary" onClick={onFinish}>Finish</button>
-          <button type="submit" className="secondary" formAction={closeAction} disabled={isClosing} onClick={confirmClose}>{isClosing ? "Closing…" : "Close"}</button>
-          <button type="submit" className="secondary" formAction={reopenAction} disabled={isReopening}>{isReopening ? "Reopening…" : "Reopen"}</button>
-          <button type="submit" className="secondary" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete}>{isDeleting ? "Deleting…" : "Delete"}</button>
-          <span className="muted">Prepare writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined). Finish marks the PBIs done in PowerLoom. Close keeps them for the agents to read but stops all work on them (Reopen brings them back as new). Delete removes them from PowerLoom only.</span>
-          {prepared && <span className={prepared.ok ? "result-ok" : "result-error"}>{prepared.message}</span>}
-          {deleted && <span className={deleted.ok ? "result-ok" : "result-error"}>{deleted.message}</span>}
-          {closed && <span className={closed.ok ? "result-ok" : "result-error"}>{closed.message}</span>}
-          {reopened && <span className={reopened.ok ? "result-ok" : "result-error"}>{reopened.message}</span>}
-          {finished && <span className="muted">{finished}</span>}
+      <form ref={form} action={prepareAction} onChange={() => setSelected(selectedPbis(form.current).length)}>
+        <div className={`selection-bar${selected > 0 ? " show" : ""}`} aria-hidden={selected === 0}>
+          <span key={selected} className="selection-count">{selected} selected</span>
+          <button type="submit" disabled={isPreparing} title="Writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined)">{isPreparing ? "Starting…" : "Start"}</button>
+          <button type="button" className="secondary" onClick={onFinish} title="Marks the PBIs done in PowerLoom; asks for your effort">Finish</button>
+          <button type="submit" className="secondary" formAction={closeAction} disabled={isClosing} onClick={confirmClose} title="Keeps them for the agents to read but stops all work on them">{isClosing ? "Closing…" : "Close"}</button>
+          <button type="submit" className="secondary" formAction={reopenAction} disabled={isReopening} title="Brings closed PBIs back as new">{isReopening ? "Reopening…" : "Reopen"}</button>
+          <button type="submit" className="danger" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete} title="Removes them from PowerLoom only; Azure DevOps is not changed">{isDeleting ? "Deleting…" : "Delete"}</button>
+          <button type="button" className="link-button selection-clear" onClick={onClear}>Clear</button>
         </div>
+        <ActionResults results={[prepared, deleted, closed, reopened]} finished={finished} />
         {children}
       </form>
       {toFinish && <FinishDialog pbis={toFinish} onDone={onFinishDone} />}
@@ -53,8 +57,24 @@ export function BacklogForm({ children }: { children: ReactNode }) {
   );
 }
 
+// The last answer of each action, kept in view after the bar folds away.
+function ActionResults({ results, finished }: { results: (ActionResult | null)[]; finished: string | null }) {
+  const shown = results.filter((result): result is ActionResult => result !== null);
+
+  if (shown.length === 0 && !finished) {
+    return null;
+  }
+
+  return (
+    <p className="action-results">
+      {shown.map((result) => <span key={result.message} className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>)}
+      {finished && <span className="muted">{finished}</span>}
+    </p>
+  );
+}
+
 // Asks first: the selected PBIs and everything PowerLoom made for them go; sync won't bring them back (ADO stays untouched).
-function confirmDelete(event: React.MouseEvent<HTMLButtonElement>): void {
+function confirmDelete(event: MouseEvent<HTMLButtonElement>): void {
   const count = selectedPbis(event.currentTarget.form).length;
 
   if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from PowerLoom? Their child items, tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
@@ -76,4 +96,8 @@ function selectedPbis(form: HTMLFormElement | null): PbiToFinish[] {
   const checked = form ? [...form.querySelectorAll<HTMLInputElement>('input[name="adoId"]:checked')] : [];
 
   return checked.map((input) => ({ adoId: Number(input.value), title: input.dataset.title ?? "" }));
+}
+
+function untick(box: HTMLInputElement): void {
+  box.checked = false;
 }

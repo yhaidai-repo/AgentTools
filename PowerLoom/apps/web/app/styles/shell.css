@@ -1,0 +1,321 @@
+/* The app's frame and shared building blocks in the Ice theme: the floating top menu with the vault switcher, dropdown
+   menus, the Live mark, glowing panels and tiles, segmented links and the calm attention states. */
+
+/* The top menu: a see-through pill that floats over the page (user decision 2026-10-18). */
+.bar-wrap {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 0;
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px;
+  background: rgb(16 18 24 / 0.55);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--edge), 0 10px 40px rgb(0 0 0 / 0.45);
+}
+
+/* The pill's edge glows from cyan to violet and fades out at both ends. */
+.bar::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 10%, color-mix(in srgb, var(--accent) 35%, transparent), color-mix(in srgb, var(--accent-2) 35%, transparent), transparent 90%);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.brand {
+  padding: 0 12px 0 14px;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.bar-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border-hi);
+}
+
+.bar-nav {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bar-nav a {
+  padding: 6px 13px;
+  border-radius: 999px;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color var(--motion-fast), background var(--motion-fast);
+}
+
+.bar-nav a:hover {
+  color: var(--text);
+  background: var(--surface-hi);
+}
+
+.bar-nav a.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Dropdowns: the vault switcher, the sprint picker; one look, an opaque menu under a button. */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  box-shadow: none;
+  transition: background var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.dropdown-trigger:hover,
+.dropdown-trigger[aria-expanded="true"] {
+  filter: none;
+  background: var(--surface-hi);
+  box-shadow: none;
+}
+
+.dropdown-trigger.pill {
+  padding: 6px 12px 6px 16px;
+  font-size: 13px;
+  font-weight: 400;
+  background: var(--surface);
+  border-color: var(--border-hi);
+}
+
+.dropdown-trigger.pill:hover,
+.dropdown-trigger.pill[aria-expanded="true"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.dropdown-chevron {
+  color: var(--muted);
+  font-size: 11px;
+  transition: transform var(--motion-fast);
+}
+
+.dropdown-trigger[aria-expanded="true"] .dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  z-index: 30;
+  min-width: 240px;
+  padding: 6px;
+  background: rgb(14 16 21 / 0.97);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-hi);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.6);
+}
+
+.dropdown-menu.align-right {
+  right: 0;
+}
+
+.dropdown-menu.align-left {
+  left: 0;
+}
+
+.menu-title {
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 400;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.menu-item:hover {
+  filter: none;
+  background: var(--surface-hi);
+  box-shadow: none;
+}
+
+.menu-item.current {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.menu-item.plain {
+  color: var(--muted);
+}
+
+.menu-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.menu-text small {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.menu-check {
+  color: var(--accent);
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--border);
+}
+
+/* A vault's round tile with its initials. */
+.vault-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* A page title with its Live mark beside it. */
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.page-head h1 {
+  margin: 0;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  animation: breathe-opacity var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+/* Segmented links: a one-of choice that lives in the URL (period, chart metric). */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.seg a {
+  padding: 4px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  border-radius: 999px;
+}
+
+.seg a.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.seg.small a {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+/* A section label with a fading line after it. */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 34px 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 65%, var(--faint));
+}
+
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent), transparent);
+}
+
+.vault-name {
+  white-space: nowrap;
+}
+
+/* A narrow window keeps the menu on one line: the vault shows as its tile only. */
+@media (max-width: 1000px) {
+  .vault-name {
+    display: none;
+  }
+
+  .bar-nav a {
+    padding: 6px 10px;
+  }
+}

@@ -1,58 +1,52 @@
 import { isFailedOutcome, type ReviewTaskData } from "@powerloom/core";
 import Link from "next/link";
-import { LocalTime } from "@/components/LocalTime";
+import { Panel } from "@/components/Panel";
+import { TimeAgo } from "@/components/TimeAgo";
 import { formatDuration, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
 import type { ReviewDetail } from "@/models/ReviewDetail";
 
 const MAX_ERROR_CHARS = 300;
 
-// Every run of the PR's review tasks, whichever review agent took them (user request 2026-10-16): what started it, how
-// long it took, what it cost and how it ended.
-export function ReviewRuns({ detail }: { detail: ReviewDetail }) {
-  if (detail.runs.length === 0) {
-    return <p className="muted">No runs yet.</p>;
-  }
+type RunRow = ReviewDetail["runs"][number];
+type TaskRow = ReviewDetail["tasks"][number];
 
+// Every run of the PR's review tasks, whichever review agent took them (user request 2026-10-16), as rows in the side
+// column (user decision 2026-10-18): what started it, how long it took, what it cost and how it ended.
+export function ReviewRuns({ detail }: { detail: ReviewDetail }) {
   const tasks = new Map(detail.tasks.map((task) => [task.id, task]));
   const costUsd = detail.runs.reduce((sum, row) => sum + (row.usage?.costUsd ?? 0), 0);
 
   return (
-    <>
-      <div className="chips">
-        <span className="chip">{detail.runs.length} run{detail.runs.length === 1 ? "" : "s"}</span>
-        <span className="chip">cost {formatUsd(costUsd)}</span>
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Run</th><th>Agent</th><th>Started</th><th>Task</th><th>Started by</th><th>Duration</th><th>Cost</th><th>Outcome</th></tr>
-          </thead>
-          <tbody>
-            {detail.runs.map(({ run, usage }) => {
-              const task = run.itemId ? tasks.get(run.itemId) ?? null : null;
-
-              return (
-                <tr key={run.id}>
-                  <td><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link></td>
-                  <td>{run.stage}</td>
-                  <td><LocalTime date={run.startedAt} /></td>
-                  <td>{task ? <Link href={itemPath(task)}>{task.id}</Link> : run.itemId ?? "–"}</td>
-                  <td>{task ? trigger(task.data as ReviewTaskData | null) : "–"}</td>
-                  <td>{usage ? formatDuration(usage.durationMs) : "–"}</td>
-                  <td>{usage ? formatUsd(usage.costUsd) : "–"}</td>
-                  <td className={isFailedOutcome(run.outcome) ? "result-error" : undefined}>
-                    {run.outcome}
-                    {run.error ? <div className="muted">{clip(run.error)}</div> : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
+    <Panel title="Runs" aside={<small>{detail.runs.length} · {formatUsd(costUsd)}</small>}>
+      {detail.runs.length === 0 && <p className="hint">No runs yet.</p>}
+      {detail.runs.map((row) => <RunLine key={row.run.id} row={row} task={row.run.itemId ? tasks.get(row.run.itemId) ?? null : null} />)}
+    </Panel>
   );
+}
+
+function RunLine({ row, task }: { row: RunRow; task: TaskRow | null }) {
+  const { run, usage } = row;
+
+  return (
+    <div className="review-run">
+      <span className={`dot ${dotClass(run.outcome)}`} />
+      <span><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link> {run.stage}</span>
+      <span className="mono">{usage ? formatUsd(usage.costUsd) : "–"}</span>
+      <span className="review-run-facts">
+        {task ? <Link href={itemPath(task)}>{task.id}</Link> : run.itemId ?? "–"} · {task ? trigger(task.data as ReviewTaskData | null) : "–"}{usage && <> · {formatDuration(usage.durationMs)}</>} · <TimeAgo date={run.startedAt} />
+      </span>
+      {run.error && <span className="review-run-error">{clip(run.error)}</span>}
+    </div>
+  );
+}
+
+function dotClass(outcome: string): string {
+  if (outcome === "running") {
+    return "running";
+  }
+
+  return isFailedOutcome(outcome) ? "error" : "ok";
 }
 
 function trigger(data: ReviewTaskData | null): string {

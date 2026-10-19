@@ -1,10 +1,7 @@
-import { JOB_STAGES } from "@powerloom/core";
-import { agentRun, localItem, workItem } from "@powerloom/db";
 import type { UsageRecord } from "@agenttools/usage";
-import { and, gte, notInArray, sql } from "drizzle-orm";
 import type { AgentTotals } from "@/models/AgentTotals";
-import { getDb } from "./db";
 import { getUsageStore } from "./usage";
+import { inVaultRuns, vaultRunIds } from "./vaultRuns";
 
 const MAX_RECORDS = 5_000;
 
@@ -14,7 +11,7 @@ const NO_USAGE: AgentTotals = { runs: 0, tokens: 0, costUsd: 0, durationMs: 0 };
 // vault): usage records are keyed by run, so the vault's run ids pick them.
 export async function loadAgentTotals(from: Date, vault: string): Promise<Map<string, AgentTotals>> {
   const runIds = await vaultRunIds(from, vault);
-  const records = (await getUsageStore().records({ from }, MAX_RECORDS)).filter((record) => runIds.has(record.runId));
+  const records = inVaultRuns(await getUsageStore().records({ from }, MAX_RECORDS), runIds);
   const totals = new Map<string, AgentTotals>();
 
   for (const record of records) {
@@ -38,18 +35,6 @@ export async function loadRunTotals(runs: { id: number; startedAt: Date }[]): Pr
   const records = (await getUsageStore().records({ from }, MAX_RECORDS)).filter((record) => runIds.has(record.runId));
 
   return records.reduce(add, NO_USAGE);
-}
-
-// A run belongs to the vault of its task, or of its PBI when it has no task.
-async function vaultRunIds(from: Date, vault: string): Promise<Set<string>> {
-  const rows = await getDb()
-    .select({ id: agentRun.id })
-    .from(agentRun)
-    .leftJoin(localItem, sql`${localItem.id} = ${agentRun.itemId}`)
-    .leftJoin(workItem, sql`${workItem.adoId} = ${agentRun.pbiId}`)
-    .where(and(sql`coalesce(${localItem.vault}, ${workItem.vault}) = ${vault}`, gte(agentRun.startedAt, from), notInArray(agentRun.stage, JOB_STAGES)));
-
-  return new Set(rows.map((row) => String(row.id)));
 }
 
 function add(totals: AgentTotals | undefined, record: UsageRecord): AgentTotals {

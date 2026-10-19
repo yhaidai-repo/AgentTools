@@ -1,29 +1,34 @@
 import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
-import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
-import type { AzureResourceRow } from "@/models/AzureResourceRow";
-import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
-import { AdoIntegrationForm } from "./AdoIntegrationForm";
-import { RepositoriesPanel } from "./RepositoriesPanel";
-import Link from "next/link";
+import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { spentToday } from "@/lib/budgetUsage";
-import { getDb } from "@/lib/db";
 import { currentVault } from "@/lib/currentVault";
-import { NoVault } from "@/components/NoVault";
+import { getDb } from "@/lib/db";
 import { loadSprintChoices } from "@/lib/sprints";
+import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import type { AzureResourceRow } from "@/models/AzureResourceRow";
+import type { SettingsTabMark } from "@/models/SettingsTabMark";
+import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
+import { AdoIntegrationForm } from "./AdoIntegrationForm";
+import { DevHubForm } from "./DevHubForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
 import { PullRequestSettingsForm } from "./PullRequestSettingsForm";
-import { DevHubForm } from "./DevHubForm";
 import { ReadAzurePanel } from "./ReadAzurePanel";
 import { ReadSqlPanel } from "./ReadSqlPanel";
+import { RepositoriesPanel } from "./RepositoriesPanel";
 import { SettingsForm } from "./SettingsForm";
+import { SETTINGS_TABS, SettingsTabs, type SettingsTab } from "./SettingsTabs";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+type SearchParams = Promise<{ tab?: string; show?: string }>;
+
+// The settings of the vault picked at the top, one tab per area (user decision 2026-10-18); each card has its feature's
+// switch in its head and its Save at its foot.
+export default async function SettingsPage({ searchParams }: { searchParams: SearchParams }) {
   const db = getDb();
   const current = await currentVault();
 
@@ -31,56 +36,74 @@ export default async function SettingsPage() {
     return <NoVault title="Settings" />;
   }
 
-  const vault = (await readVault(db, current))!;
+  const params = await searchParams;
+  const tab = SETTINGS_TABS.find((choice) => choice.key === params.tab)?.key ?? "ado";
   const ado = await readAdoSettings(db, current);
-  const adoActive = isAdoActive(ado);
   const repos = await listVaultRepos(db, current);
   const readSql = await readReadSqlSettings(db, current);
   const readAzure = await readReadAzureSettings(db, current);
   const devHub = await readDevHubSettings(db, current);
+  const marks = await tabMarks(db, current, { adoActive: isAdoActive(ado), repos, readSql, readAzure, devHubOn: devHub.enabled });
 
   return (
     <>
-      <h1>Settings</h1>
-      <p className="muted">The settings of <code>{current}</code>; each feature has its switch. The Vault menu in the top bar switches, adds and configures vaults.</p>
-      <h2>Azure DevOps integration</h2>
-      <AdoIntegrationForm key={current} values={integrationValues(ado)} />
-      {adoActive ? <AdoSections db={db} current={current} vault={vault} ado={ado} repos={repos} /> : <p className="muted">PBI sync, mail sync and pull request sync need the Azure DevOps integration: enable and save it above.</p>}
-      <h2>Repositories</h2>
-      <p className="muted">What agents clone and the PBI page offers: the integration&apos;s repositories (listed by the PBI sync) and local checkouts, each on or off.</p>
-      <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={adoActive} />
-      <h2>Read SQL</h2>
-      <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
-      <h2>Read Azure</h2>
-      <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
-      <h2>DevHub</h2>
-      <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />
-      <h2>Agents</h2>
-      <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />
-      <p className="muted">Per-agent settings (model, schedule, limits, budgets) are on the <Link href="/agents">Agents</Link> page: the Config button in each agent's row.</p>
-      <h2>From .env (restart to change)</h2>
-      <p className="muted">
-        Backlog vault: <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence: <ConfluenceAccess status={await readConfluenceStatus(db)} />
-      </p>
+      <div className="page-head"><h1>Settings</h1><span className="hint">of <code>{current}</code></span></div>
+      <SettingsTabs active={tab} marks={marks} />
+      {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
+      {tab === "sync" && (isAdoActive(ado) ? <SyncTab db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and pull requests need the Azure DevOps integration: switch it on in the Azure DevOps tab.</p>)}
+      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
+      {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} />}
+      {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
+      {tab === "agents" && <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />}
+      <p className="env-line">From .env, restart to change: backlog vault <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence <ConfluenceAccess status={await readConfluenceStatus(db)} /></p>
     </>
   );
 }
 
+interface MarkInputs {
+  adoActive: boolean;
+  repos: RepoRow[];
+  readSql: ReadSqlSettings;
+  readAzure: ReadAzureSettings;
+  devHubOn: boolean;
+}
+
+// Each tab's dot and count; Sync pulses amber while a mail source has been quiet for over a day.
+async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): Promise<Partial<Record<SettingsTab, SettingsTabMark>>> {
+  const isQuiet = inputs.adoActive && (await readImportSourceActivity(db, current)).some((activity) => activity.isQuiet);
+  const dataOn = inputs.readSql.enabled || Object.values(inputs.readAzure.enabledKinds).some(Boolean);
+
+  return {
+    ado: { dot: inputs.adoActive ? "ok" : "off" },
+    sync: { dot: !inputs.adoActive ? "off" : isQuiet ? "warn" : "ok" },
+    repos: { count: `${inputs.repos.filter((row) => !row.excluded).length}/${inputs.repos.length}` },
+    data: { dot: dataOn ? "ok" : "off" },
+    devhub: { dot: inputs.devHubOn ? "ok" : "off" },
+  };
+}
+
 // The three syncs of an active integration (user decision 2026-10-06: not offered without one).
-async function AdoSections({ db, current, vault, ado, repos }: { db: PowerLoomDb; current: string; vault: NonNullable<Awaited<ReturnType<typeof readVault>>>; ado: AdoSettings; repos: RepoRow[] }) {
+async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {
+  const vault = (await readVault(db, current))!;
   const sync = await readSyncSettings(db, current);
+  const importStatus = <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />;
 
   return (
     <>
-      <h2>PBI sync</h2>
       <SettingsForm key={current} enabled={vault.features.adoSync} sync={sync} sprintOptions={await loadSprintChoices(ado)} currentSprint={await readCurrentSprint(db, current)} />
-      <h2>Mail sync (PBI import)</h2>
-      <p className="muted">The import job reads every source (Outlook mails from the exporter, JSON requests in the import inbox); each PBI is synced and, if new, prepared for refinement. Results are on the Backlog.</p>
-      <ImportSettingsForm key={current} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} />
-      <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />
-      <h2>Pull request sync (code review)</h2>
-      <p className="muted">Lists the active Azure DevOps PRs where you&apos;re a reviewer or the author; a new PR gets a review on the <Link href="/reviews">Reviews</Link> page. The code-review agent itself is configured on the Agents page.</p>
-      <PullRequestSettingsForm key={current} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
+      <ImportSettingsForm key={`import-${current}`} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} status={importStatus} />
+      <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
+    </>
+  );
+}
+
+// Read SQL and the Azure kinds, under one note on where the data goes (user decision 2026-10-18: said once, not five times).
+async function DataTab({ db, current, readSql, readAzure }: { db: PowerLoomDb; current: string; readSql: ReadSqlSettings; readAzure: ReadAzureSettings }) {
+  return (
+    <>
+      <p className="leak-note">Whatever an agent reads here goes to the model provider. Connect only data that may leave this PC, with read-only access. Each agent also needs its own switch on its config page.</p>
+      <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
+      <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
     </>
   );
 }
@@ -106,5 +129,5 @@ function ConfluenceAccess({ status }: { status: ConfluenceStatus | null }) {
     return <>unknown (restart the worker)</>;
   }
 
-  return status.email ? <>set ({status.email})</> : <span className="result-error">missing (CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN)</span>;
+  return status.email ? <>set ({status.email})</> : <span className="text-warn">missing (CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN)</span>;
 }
