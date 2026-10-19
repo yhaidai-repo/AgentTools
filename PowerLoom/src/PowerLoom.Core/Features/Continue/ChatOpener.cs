@@ -16,7 +16,8 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
         if (!launcher.Ok)
             return Outcome<ChatLink>.Failure(launcher.Problem);
 
-        var brief = await targets.Single(target => target.Kind == kind).BriefAsync(id, launcher.Value, cancellation);
+        var target = targets.Single(target => target.Kind == kind);
+        var brief = await target.BriefAsync(id, launcher.Value, cancellation);
 
         if (!brief.Ok)
             return Outcome<ChatLink>.Failure(brief.Problem);
@@ -24,7 +25,12 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
         var notePath = await WriteNoteAsync(brief.Value, kind, id, launcher.Value.Label, cancellation);
         var launch = launcher.Value.Open(RequestFor(brief.Value, notePath));
 
-        return launch.Ok ? Outcome<ChatLink>.Success(new ChatLink(launch.Value.Url)) : Outcome<ChatLink>.Failure(launch.Problem);
+        if (!launch.Ok)
+            return Outcome<ChatLink>.Failure(launch.Problem);
+
+        await target.OpenedAsync(id, cancellation);
+
+        return Outcome<ChatLink>.Success(new ChatLink(launch.Value.Url));
     }
 
     private async Task<string> WriteNoteAsync(ChatBrief brief, ChatKind kind, string id, string label, CancellationToken cancellation)
