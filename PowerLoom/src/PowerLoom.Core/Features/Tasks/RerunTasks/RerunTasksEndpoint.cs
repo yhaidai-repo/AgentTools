@@ -26,7 +26,7 @@ public static class RerunTasksEndpoint
 
     private static async Task RerunOneAsync(TaskRef task, PowerLoomDbContext db, IMessageBus bus, RerunResult result, CancellationToken cancellation)
     {
-        var reopened = await TaskRerun.RerunAsync(db, task.AdoId, task.ItemId, cancellation);
+        var reopened = await TaskRerun.RerunAsync(db, task.AdoId, task.ItemId, task.StartOver, cancellation);
 
         if (!reopened.Ok)
         {

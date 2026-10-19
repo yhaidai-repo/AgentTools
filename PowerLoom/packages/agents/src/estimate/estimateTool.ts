@@ -39,6 +39,7 @@ function estimateTool(estimate: RunEstimate) {
 
       return { text: `Estimate recorded: ${draft.humanHours} h human, ${draft.agentHours} h agent.` };
     },
+    replayOnResume: true,
   });
 }
 

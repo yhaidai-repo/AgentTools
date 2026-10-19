@@ -34,5 +34,6 @@ function writeNoteTool(draft: TechWriterDraft) {
 
       return { text: `${path} noted (${draft.edits.length} note(s) in this run).` };
     },
+    replayOnResume: true,
   });
 }

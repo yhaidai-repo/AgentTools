@@ -25,6 +25,7 @@ function recordFindingTool(findings: FindingDraft[]) {
 
       return { text: `Finding ${findings.length} noted for the user's review.` };
     },
+    replayOnResume: true,
   });
 }
 

@@ -52,7 +52,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           <Panel title="Outputs"><RunOutputs run={run} /></Panel>
           <RunCaptures runId={run.id} />
           <details className="panel fold-panel">
-            <summary><span className="fold-mark" aria-hidden="true">›</span>Input <small>first message</small></summary>
+            <summary><span className="fold-mark" aria-hidden="true">›</span>Input <small>{run.continuesRunId ? "continuation note" : "first message"}</small></summary>
             <pre className="run-input">{run.input ?? "–"}</pre>
           </details>
         </div>

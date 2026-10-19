@@ -31,6 +31,14 @@ public partial class AgentRun
 
     public Stage Stage { get; set; }
 
+    public Guid? ConversationId { get; set; }
+
+    public long? ContinuesRunId { get; set; }
+
+    public virtual AgentRun? ContinuesRun { get; set; }
+
+    public virtual ICollection<AgentRun> ContinuedBy { get; set; } = new List<AgentRun>();
+
     public virtual ICollection<Design> Designs { get; set; } = new List<Design>();
 
     public virtual LocalItem? Item { get; set; }

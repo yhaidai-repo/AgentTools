@@ -80,6 +80,14 @@ namespace PowerLoom.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("ContinuesRunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("continues_run_id");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
                     b.Property<DateTime?>("EndedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ended_at");
@@ -130,6 +138,8 @@ namespace PowerLoom.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("agent_run_pkey");
+
+                    b.HasIndex(new[] { "ItemId" }, "agent_run_item_idx");
 
                     b.HasIndex(new[] { "PbiId" }, "agent_run_pbi_idx");
 
@@ -652,6 +662,12 @@ namespace PowerLoom.Persistence.Migrations
                     b.Property<string>("Resolution")
                         .HasColumnType("text")
                         .HasColumnName("resolution");
+
+                    b.Property<bool>("StartOver")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("start_over");
 
                     b.Property<ItemStatus>("Status")
                         .HasColumnType("item_status")
@@ -1941,6 +1957,11 @@ namespace PowerLoom.Persistence.Migrations
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.AgentRun", b =>
                 {
+                    b.HasOne("PowerLoom.Persistence.Entities.AgentRun", "ContinuesRun")
+                        .WithMany("ContinuedBy")
+                        .HasForeignKey("ContinuesRunId")
+                        .HasConstraintName("agent_run_continues_run_id_agent_run_id_fk");
+
                     b.HasOne("PowerLoom.Persistence.Entities.LocalItem", "Item")
                         .WithMany("AgentRuns")
                         .HasForeignKey("ItemId")
@@ -1950,6 +1971,8 @@ namespace PowerLoom.Persistence.Migrations
                         .WithMany("AgentRuns")
                         .HasForeignKey("PbiId")
                         .HasConstraintName("agent_run_pbi_id_work_item_ado_id_fk");
+
+                    b.Navigation("ContinuesRun");
 
                     b.Navigation("Item");
 
@@ -2286,6 +2309,8 @@ namespace PowerLoom.Persistence.Migrations
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.AgentRun", b =>
                 {
+                    b.Navigation("ContinuedBy");
+
                     b.Navigation("Designs");
 
                     b.Navigation("LocalItems");

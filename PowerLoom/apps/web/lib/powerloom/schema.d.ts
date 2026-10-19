@@ -1816,6 +1816,8 @@ export interface components {
             /** Format: int32 */
             adoId: null | number;
             itemId: string;
+            /** @default false */
+            startOver: boolean;
         };
         TestConnectionRequest: {
             orgUrl: string;

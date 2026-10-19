@@ -42,7 +42,7 @@ function RunRowView({ row, shares, palette }: { row: RunListRow; shares: RunSubs
   return (
     <tr>
       <td className="col-select"><RunSelect run={run} task={task} /></td>
-      <td className="col-run"><Link href={`/agents/runs/${run.id}`} className="id">RUN-{run.id}</Link><div className="row-facts"><AgentTag agent={run.stage} palette={palette} /></div></td>
+      <td className="col-run"><Link href={`/agents/runs/${run.id}`} className="id">RUN-{run.id}</Link>{run.continuesRunId && <span className="muted" title={`Continues RUN-${run.continuesRunId}'s conversation`}> ↻</span>}<div className="row-facts"><AgentTag agent={run.stage} palette={palette} /></div></td>
       <td className="title">
         {task ? <Link href={itemPath(task)} className="row-title" title={task.title}>{task.title}</Link> : <span className="muted">No task</span>}
         <div className="row-facts">

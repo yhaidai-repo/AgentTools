@@ -10,6 +10,7 @@ import { formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { itemPath } from "@/lib/items";
 import { outcomeDot } from "@/lib/runOutcomes";
 import { RunRerun } from "@/app/runs/RunRerun";
+import { ConversationFacts } from "./ConversationFacts";
 
 type RunRow = typeof agentRun.$inferSelect;
 type TaskRow = typeof localItem.$inferSelect;
@@ -34,6 +35,7 @@ export function RunHeader({ run, task, usage, palette }: { run: RunRow; task: Ta
           <span className="fact"><b>Model</b><span className="mono">{run.model ?? "–"}</span></span>
           <span className="fact"><b>Prompt</b><span className="mono">{run.promptVersion ?? "–"}</span></span>
           <span className="fact"><b>Started</b><span className="mono"><TimeAgo date={run.startedAt} /></span></span>
+          <ConversationFacts run={run} />
         </div>
         <RunStats usage={usage} />
       </section>

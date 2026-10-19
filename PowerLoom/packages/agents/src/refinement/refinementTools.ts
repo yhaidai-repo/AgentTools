@@ -74,6 +74,7 @@ function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) 
 
       return { text: "Refinement saved." };
     },
+    replayOnResume: true,
   });
 }
 
@@ -98,6 +99,7 @@ function createResearchTaskTool(draft: RefinementDraft, guard: DuplicateGuard) {
 
       return { text: `Research task ${draft.researchTasks.length} noted.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -122,5 +124,6 @@ function createQuestionTool(draft: RefinementDraft, guard: DuplicateGuard) {
 
       return { text: `Question ${draft.questions.length} noted.` };
     },
+    replayOnResume: true,
   });
 }

@@ -37,6 +37,9 @@ services:
     environment:
       DATABASE_URL: *db-url
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      # Claude's own folder on a volume: the runs' transcripts outlive a restart, so a task's next run continues a run
+      # that didn't finish (user decision 2026-10-19). Auth stays the token above.
+      CLAUDE_CONFIG_DIR: /agent-sessions
       # ADO tokens are per vault, in Settings (user decision 2026-10-06): the runner reads them from the DB for its clones.
       # Agents with the Confluence integration on in their Config read and search pages with this account.
       CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
@@ -60,6 +63,7 @@ services:
       - ./skills:/app/PowerLoom/skills:ro  # from the repo, so skill edits apply without a rebuild
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
       - repo-cache:/repo-cache
+      - agent-sessions:/agent-sessions
       # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
       - ${REPOS_ROOT:?set in .env}:/repos:ro
     healthcheck:
@@ -190,6 +194,9 @@ volumes:
     name: adoa_repo-cache
   otel-data:
     name: adoa_otel-data
+  # Agent run transcripts (CLAUDE_CONFIG_DIR of the agent-runner); a task's are deleted when it succeeds.
+  agent-sessions:
+    name: powerloom_agent-sessions
   # external: `docker compose down -v` cannot delete it. First run: docker volume create adoa_pgdata
   pgdata:
     external: true

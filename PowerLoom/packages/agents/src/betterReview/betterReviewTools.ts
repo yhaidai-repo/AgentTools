@@ -94,6 +94,7 @@ function addCommentTool(run: BetterReviewRun) {
 
       return { text: `Comment new:${run.draft.comments.length} noted on ${input.path}:${input.start_line}-${input.end_line}.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -132,6 +133,7 @@ function updateCommentTool(run: BetterReviewRun) {
 
       return { text: `${input.id}: ${input.action} noted${rule ? ", with a decision rule" : ""}.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -222,6 +224,7 @@ function assessTool(run: BetterReviewRun) {
 
       return { text: `Thread ${input.thread_id}: ${input.verdict} noted${rule ? `, with a ${rule.kind} rule` : ""}.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -297,6 +300,7 @@ function summaryTool(run: BetterReviewRun, readLog: ReadLog) {
 
       return { text: `Review summary saved (${input.verdict}, ${input.status}).` };
     },
+    replayOnResume: true,
   });
 }
 

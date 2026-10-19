@@ -47,5 +47,6 @@ export async function createOpenRepoTool(context: TaskContext, session: AgentRun
 
       return { text: `Opened ${repo.name} @ ${commits[repo.name].slice(0, 10)} (branch ${repo.defaultBranch}); its paths start with '${repo.name}/'.` };
     },
+    replayOnResume: true,
   });
 }

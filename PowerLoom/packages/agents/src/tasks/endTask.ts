@@ -4,6 +4,7 @@ import type { AgentDefinition } from "@agenttools/config";
 import { eq } from "drizzle-orm";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { AgentRunResult } from "../models/AgentRunResult";
+import { forgetConversations } from "../resume/forgetConversations";
 import { numberOption, pauseForRateLimit } from "../stage";
 import { askUserAboutBlockedDraft } from "../techWriter/blockedDraft";
 
@@ -16,6 +17,10 @@ const ACTOR = "agent-runner";
 // after raising the budget); any other failure → one more attempt counted, back to open or, after `maxFailures`,
 // blocked. A blocked draft-merge task also gives the user a task for its draft.
 export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: ItemRow, result: AgentRunResult): Promise<void> {
+  if (result.outcome === "success") {
+    await forgetConversations(deps, agent.model.provider, task.id);
+  }
+
   const [current] = await deps.db.select({ status: localItem.status }).from(localItem).where(eq(localItem.id, task.id));
 
   if (current?.status !== "in-progress") {

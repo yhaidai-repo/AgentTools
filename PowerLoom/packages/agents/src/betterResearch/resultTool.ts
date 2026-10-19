@@ -59,6 +59,7 @@ export function createResultTool(draft: BetterResearchDraft, readLog: ReadLog) {
 
       return { text: `Research result saved (${input.status}).` };
     },
+    replayOnResume: true,
   });
 }
 

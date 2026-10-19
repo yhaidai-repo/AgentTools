@@ -1,5 +1,6 @@
 import type { AgentEvent } from "./AgentEvent";
 import type { AgentRequest } from "./AgentRequest";
+import type { ConversationStore } from "./ConversationStore";
 import type { SubscriptionQuery } from "./SubscriptionQuery";
 import type { SubscriptionReport } from "./SubscriptionReport";
 
@@ -11,6 +12,8 @@ export interface AgentRuntime {
    * run's share asks subscriptionUsage() before and after the run.
    */
   readonly reportsSubscriptionInRuns: boolean;
+  /** The kept conversations, or null when this runtime starts every run fresh. */
+  readonly conversations: ConversationStore | null;
   run(request: AgentRequest): AsyncIterable<AgentEvent>;
   subscriptionUsage(query?: SubscriptionQuery): Promise<SubscriptionReport>;
 }

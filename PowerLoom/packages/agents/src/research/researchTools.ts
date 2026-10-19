@@ -43,6 +43,7 @@ function writeResultTool(draft: ResearchDraft) {
 
       return { text: "Research result saved." };
     },
+    replayOnResume: true,
   });
 }
 
@@ -71,22 +72,26 @@ function followUpTool(draft: ResearchDraft, depth: number, maxDepth: number, gua
 
       return { text: `Follow-up research task ${draft.followUps.length} noted.` };
     },
+    replayOnResume: true,
   });
 }
 
 function humanTaskTool(draft: ResearchDraft, guard: DuplicateGuard) {
-  return createHumanTaskTool("create_human_task", "Create a task for a person: something that needs access, an action or a decision you can't make.", (spec) => {
-    const text = renderHumanTaskBody(spec.data);
-    const duplicate = guard.check("human", text);
+  return defineTool({
+    ...createHumanTaskTool("create_human_task", "Create a task for a person: something that needs access, an action or a decision you can't make.", (spec) => {
+      const text = renderHumanTaskBody(spec.data);
+      const duplicate = guard.check("human", text);
 
-    if (duplicate) {
-      return { text: duplicate, isError: true };
-    }
+      if (duplicate) {
+        return { text: duplicate, isError: true };
+      }
 
-    draft.humanTasks.push(spec);
-    guard.remember("human", `human task ${draft.humanTasks.length}`, text);
+      draft.humanTasks.push(spec);
+      guard.remember("human", `human task ${draft.humanTasks.length}`, text);
 
-    return { text: `Human task ${draft.humanTasks.length} noted.` };
+      return { text: `Human task ${draft.humanTasks.length} noted.` };
+    }),
+    replayOnResume: true,
   });
 }
 
@@ -111,5 +116,6 @@ function questionTool(draft: ResearchDraft, guard: DuplicateGuard) {
 
       return { text: `Question ${draft.questions.length} noted.` };
     },
+    replayOnResume: true,
   });
 }

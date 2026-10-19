@@ -57,6 +57,7 @@ function addCommentTool(run: ReviewRun) {
 
       return { text: `Comment ${run.draft.comments.length} noted on ${input.path}:${input.start_line}-${input.end_line}.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -85,6 +86,7 @@ function updateCommentTool(run: ReviewRun) {
 
       return { text: `${input.id}: ${input.action} noted.` };
     },
+    replayOnResume: true,
   });
 }
 
@@ -98,6 +100,7 @@ function summaryTool(run: ReviewRun) {
 
       return { text: "Summary saved." };
     },
+    replayOnResume: true,
   });
 }
 

@@ -62,8 +62,8 @@ const powerloomPort: PowerLoomPort = {
 
     return data ? { ok: true, value: { status: data.status as ItemStatus } } : failure(error, response);
   },
-  async rerunTask(adoId, itemId) {
-    const { data, error, response } = await powerloom.POST("/api/tasks/rerun", { body: { tasks: [{ adoId, itemId }] } });
+  async rerunTask(adoId, itemId, startOver) {
+    const { data, error, response } = await powerloom.POST("/api/tasks/rerun", { body: { tasks: [{ adoId, itemId, startOver }] } });
 
     if (!data) {
       return failure(error, response);

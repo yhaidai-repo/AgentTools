@@ -38,6 +38,7 @@ export function writeMeetingNotesTool(draft: MeetingNotesDraft): ToolDefinition<
 
       return { text: "Notes recorded; they are written to the vault when the run succeeds." };
     },
+    replayOnResume: true,
   });
 }
 
@@ -102,6 +103,7 @@ export function createFollowUpTool(db: PowerLoomDb, vault: string, canAssign: st
 
       return { text: `Noted as follow-up ${followUps.length}; it is created when your run succeeds.` };
     },
+    replayOnResume: true,
   });
 }
 

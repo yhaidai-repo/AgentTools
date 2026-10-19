@@ -32,6 +32,7 @@ function decisionTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Revie
     description,
     input: { vault: vaultInput, path: pathInput, reasons: reasonsInput },
     handler: async (input) => decide(scope, draft, limits, { ...input, action, suspectFacts: [] }),
+    replayOnResume: true,
   });
 }
 
@@ -46,6 +47,7 @@ function actualizeTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Revi
       suspectFacts: z.array(z.string()).default([]).describe("The facts that look wrong, with what you found instead"),
     },
     handler: async (input) => decide(scope, draft, limits, { ...input, action: "actualize" }),
+    replayOnResume: true,
   });
 }
 
@@ -61,6 +63,7 @@ function fixLinkTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Review
       reason: z.string().min(1),
     },
     handler: async (input) => inNote(scope, input.vault, input.path, (index) => stageLinkFix(index, draft, limits, input)),
+    replayOnResume: true,
   });
 }
 
@@ -80,6 +83,7 @@ function summaryTool(scope: ReviewScope, draft: VaultReviewDraft) {
 
       return { text: "Summary saved. Stop now; the actions are applied when the run ends." };
     },
+    replayOnResume: true,
   });
 }
 
