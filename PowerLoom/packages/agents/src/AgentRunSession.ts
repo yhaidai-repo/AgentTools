@@ -7,7 +7,7 @@ import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
 import { withPbiContext } from "./pbiContext/withPbiContext";
-import { continuationMessage, loadPreviousLimits } from "./resume/continuationMessage";
+import { continuationMessage, loadPreviousRunFacts } from "./resume/continuationMessage";
 import type { ConversationPlan } from "./resume/models/ConversationPlan";
 import type { PreviousRun } from "./resume/models/PreviousRun";
 import type { RunOpening } from "./resume/models/RunOpening";
@@ -141,10 +141,10 @@ export class AgentRunSession {
   }
 
   private async continuation(conversations: ConversationStore, input: AgentRunInput, previous: PreviousRun, id: string): Promise<RunOpening> {
-    const before = await loadPreviousLimits(this.deps.usageStore, previous);
-    const replay = await replayDraft(conversations, previous.conversationId, input.tools, input.observe);
+    const before = await loadPreviousRunFacts(this.deps.usageStore, previous);
+    const replay = await replayDraft(conversations, previous.conversationId, input.tools, { observe: input.observe, withDrafts: !before.committed });
 
-    await this.phase("resume", { from: previous.id, conversation: previous.conversationId, replayed: replay.replayed, restoredReads: replay.restored, failed: replay.failed });
+    await this.phase("resume", { from: previous.id, conversation: previous.conversationId, draftSaved: before.committed, replayed: replay.replayed, restoredReads: replay.restored, failed: replay.failed });
 
     return {
       firstMessage: continuationMessage(previous, before, input.limits, input.perRunBudgetUsd, replay),
