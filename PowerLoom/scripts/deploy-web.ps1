@@ -1,7 +1,10 @@
 # Deploys a web change: rebuilds the shared app image and recreates only the web container. The agent-runner is
 # recreated only with -WithRunner, and only while no agent run is in progress: recreating it kills a running run
 # (WWW-010, 2026-10-19: a vault review was lost that way). -Force recreates it anyway.
+# -WithApi also rebuilds and recreates PowerLoom's API (it migrates the database at start), under the same guard, since
+# a run in progress reports its end to it; it goes first, so a new web and runner find the migrated schema.
 param(
+    [switch]$WithApi,
     [switch]$WithRunner,
     [switch]$Force
 )
@@ -38,6 +41,16 @@ function Invoke-Compose([string[]]$arguments) {
     }
 }
 
+function Update-Api([string[]]$runs) {
+    if ($runs.Count -gt 0 -and -not $Force) {
+        throw "PowerLoom's API was NOT recreated: the runs above report their end to it. Wait for them, or pass -Force."
+    }
+
+    Invoke-Compose @("build", "powerloom")
+    Invoke-Compose @("up", "-d", "--no-deps", "--wait", "powerloom")
+    Write-Host "PowerLoom API recreated (database migrated)."
+}
+
 function Update-Runner([string[]]$runs) {
     if ($runs.Count -gt 0 -and -not $Force) {
         Write-Host "The agent-runner was NOT recreated: it would kill the runs above. Wait for them, or pass -Force."
@@ -52,6 +65,10 @@ function Update-Runner([string[]]$runs) {
 Set-Location (Join-Path $PSScriptRoot "..")
 $running = Get-RunningRuns
 Show-RunningRuns $running
+
+if ($WithApi) {
+    Update-Api $running
+}
 
 # The agent-runner service builds the image the web runs too; building doesn't touch a running container.
 Invoke-Compose @("build", "agent-runner")
