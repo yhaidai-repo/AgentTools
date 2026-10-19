@@ -1,4 +1,5 @@
 import type { RunSubscriptionShare } from "@agenttools/usage";
+import { isFailedOutcome } from "@powerloom/core";
 import Link from "next/link";
 import { AgentTag } from "@/components/AgentTag";
 import { SelectAll } from "@/components/SelectAll";
@@ -49,7 +50,7 @@ function RunRowView({ row, shares, palette }: { row: RunListRow; shares: RunSubs
           {run.pbiId && <Link href={`/pbis/${run.pbiId}`}>PBI-{run.pbiId}</Link>}
           {run.model && <span>{run.model}{run.promptVersion ? ` · ${run.promptVersion}` : ""}</span>}
           {shares.length > 0 && <span>{shares.map((share) => `${share.label} ${formatSharePercent(share.share)}`).join(" · ")}</span>}
-          {run.error && <span className="text-error run-error" title={run.error}>{run.error}</span>}
+          {run.error && isFailedOutcome(run.outcome) && <span className="text-error run-error" title={run.error}>{run.error}</span>}
         </div>
       </td>
       <td className="col-cost num">{usage ? formatUsd(usage.costUsd) : "–"}{usage && <small className="cost-per-run">{formatTokens(tokens)} tokens</small>}</td>
