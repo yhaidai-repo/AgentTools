@@ -1,4 +1,5 @@
 using Alba;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Continue.Models;
 using PowerLoom.Persistence;
@@ -44,7 +45,38 @@ public sealed class PbiChatTests(PowerLoomHost host)
         Assert.DoesNotContain("## Tests", note);
     }
 
-    private async Task StorePbiAsync(int adoId, string title, bool withDesign)
+    [Fact]
+    public async Task Opening_the_chat_moves_the_pbi_to_development()
+    {
+        await StorePbiAsync(31003, "Start it", withDesign: false);
+
+        await host.Host.PostJson(new OpenChatRequest(ChatKind.Pbi, "31003"), "/api/chats").Receive<ChatLink>();
+
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var pbi = await db.WorkItems.AsNoTracking().SingleAsync(row => row.AdoId == 31003);
+        var history = await db.StatusHistories.AsNoTracking().SingleAsync(row => row.EntityKind == EntityKind.Pbi && row.EntityId == "31003");
+
+        Assert.Equal(PipelineStatus.Development, pbi.PipelineStatus);
+        Assert.Equal(("ready-for-dev", "development", "human"), (history.FromStatus, history.ToStatus, history.Actor));
+    }
+
+    [Fact]
+    public async Task A_finished_pbi_keeps_its_status_when_its_chat_opens()
+    {
+        await StorePbiAsync(31004, "Old work", withDesign: false, PipelineStatus.Done);
+
+        await host.Host.PostJson(new OpenChatRequest(ChatKind.Pbi, "31004"), "/api/chats").Receive<ChatLink>();
+
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var pbi = await db.WorkItems.AsNoTracking().SingleAsync(row => row.AdoId == 31004);
+
+        Assert.Equal(PipelineStatus.Done, pbi.PipelineStatus);
+        Assert.False(await db.StatusHistories.AnyAsync(row => row.EntityKind == EntityKind.Pbi && row.EntityId == "31004"));
+    }
+
+    private async Task StorePbiAsync(int adoId, string title, bool withDesign, PipelineStatus status = PipelineStatus.ReadyForDev)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
@@ -61,7 +93,7 @@ public sealed class PbiChatTests(PowerLoomHost host)
             ConfluencePages = "[]",
             Vault = PowerLoomHost.Vault,
             VaultPath = $"pbi/PBI-{adoId}-{slug}/PBI-{adoId}.md",
-            PipelineStatus = PipelineStatus.ReadyForDev,
+            PipelineStatus = status,
         });
 
         if (withDesign)

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Pbis.Models;
 using PowerLoom.Features.Continue.Models;
 using PowerLoom.Infrastructure.Backlog;
@@ -13,9 +14,12 @@ using PbiSkill = PowerLoom.Features.Continue.Models.PbiSkill;
 namespace PowerLoom.Features.Continue.Targets;
 
 // The chat that implements a PBI: with a design, its plan and tests as checklists; without one, the PBI note and the
-// refinement are the spec (user decision 2026-10-10: no readiness checks, no status change).
+// refinement are the spec (user decision 2026-10-10: no readiness checks). Opening it moves the PBI to development
+// (user decision 2026-10-19).
 public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, PbiRepos pbiRepos) : IChatTarget
 {
+    private const string Actor = "human";
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     // What the chat reads besides the PBI, refinement and design: final research results, the user's answers, and the
@@ -64,6 +68,8 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
 
         return Outcome<ChatBrief>.Success(brief);
     }
+
+    public Task OpenedAsync(string id, CancellationToken cancellation) => PbiDevelopmentStart.StartAsync(db, int.Parse(id), Actor, cancellation);
 
     private async Task<IReadOnlyList<ReadFirstLink>> ReadFirstAsync(WorkItem pbi, bool hasDesign, CancellationToken cancellation)
     {
