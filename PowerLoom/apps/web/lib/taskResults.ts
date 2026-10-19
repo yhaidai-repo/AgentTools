@@ -1,3 +1,4 @@
+import { latestRunEstimate } from "@powerloom/core";
 import { codeReview, design, refinement, reviewComment, type localItem } from "@powerloom/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { ReviewResult } from "@/models/ReviewResult";
@@ -7,11 +8,12 @@ type Db = ReturnType<typeof getDb>;
 type ItemRow = typeof localItem.$inferSelect;
 
 // What a task's own runs produced where it isn't the task's resolution (user, 2026-10-15: every task shows its result):
-// the refinement or design version a run wrote, or the review of a code-review task's pull request.
+// the refinement or design version a run wrote, the estimate it recorded, or the review of a code-review task's pull request.
 export async function loadTaskResults(db: Db, item: ItemRow, runIds: number[]) {
   return {
     refinement: item.kind === "refinement" ? await latestOf(db, refinement, runIds) : null,
     design: item.kind === "design" ? await latestOf(db, design, runIds) : null,
+    estimate: await latestRunEstimate(db, runIds),
     review: item.kind === "review" ? await reviewOf(db, item, runIds) : null,
   };
 }

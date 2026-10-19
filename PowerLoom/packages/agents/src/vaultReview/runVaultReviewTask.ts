@@ -16,6 +16,7 @@ import type { VaultsAccess } from "../models/VaultsAccess";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { numberOption } from "../stage";
+import { userRequestBlock } from "../tasks/userTasks";
 import { AgentToolset } from "../toolset/AgentToolset";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitVaultReview } from "./commitVaultReview";
@@ -64,12 +65,11 @@ export async function runVaultReviewTask(context: TaskContext, task: ItemRow): P
   }
 }
 
-// The vaults its schedule chose, stored on the task by the producer (user decision 2026-10-03); a vault gone since is skipped.
+// The task's own vault (a task type since 2026-10-18); a vault gone since is skipped.
 async function taskVaults(task: ItemRow, vaults: VaultsAccess): Promise<string[]> {
   const available = await listVaults(vaults.root, vaultsExclude());
-  const chosen = (task.data as { vaults?: string[] } | null)?.vaults ?? [];
 
-  return chosen.filter((vault) => available.includes(vault));
+  return available.includes(task.vault) ? [task.vault] : [];
 }
 
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, scope: ReviewScope, run: VaultReviewRun): Promise<AgentRunInput> {
@@ -157,6 +157,7 @@ async function buildFirstMessage(context: TaskContext, task: ItemRow, scope: Rev
     `<task>\nId: ${task.id}\nVaults: ${scope.vaults.join(", ")}\nReview period: ${scope.options.staleDays} days (unused this long = stale)\n${caps.join("\n")}\n</task>`,
     `<candidates>\n${counts.join("\n")}\n</candidates>`,
     `<findings>\n${docsVault ? `Findings go to the registers of the ${docsVault} vault only; for notes of other vaults, put open points in the summary.` : "No register is available: put open points in the summary."}\n</findings>`,
+    userRequestBlock(task),
     reposBlock(repos),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }

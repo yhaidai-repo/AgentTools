@@ -33,7 +33,7 @@ public static class DesignNoteRenderer
             "## Approach",
             note.Approach,
             "## Estimate",
-            EstimateTable(note),
+            EstimateTable(note.Estimate),
             "## Alternatives",
             NoteText.Bullets(note.Alternatives.Select(item => $"**{item.Option}**: pros {JoinOrNone(item.Pros)}; cons {JoinOrNone(item.Cons)}. _Not chosen:_ {item.WhyNot}")),
             "## Plan",
@@ -48,15 +48,19 @@ public static class DesignNoteRenderer
         ]);
     }
 
-    private static string EstimateTable(DesignNote note)
+    // The estimate this design's run recorded; the PBI note shows the PBI's latest from any agent.
+    private static string EstimateTable(EstimateNote? estimate)
     {
+        if (estimate is null)
+            return "Not estimated in this run: the PBI note shows the PBI's latest estimate.";
+
         return string.Join("\n",
         [
             "| Human h | Agent h | Complexity | Confidence |",
             "|---|---|---|---|",
-            $"| {Number(note.EstHumanH)} | {Number(note.EstAgentH)} | {note.Complexity?.ToString() ?? NoteText.Empty}/5 | {note.Confidence ?? NoteText.Empty} |",
+            $"| {PbiEstimates.Number(estimate.HumanHours)} | {Number(estimate.AgentHours)} | {estimate.Complexity?.ToString() ?? NoteText.Empty}/5 | {estimate.Confidence ?? NoteText.Empty} |",
             "",
-            $"Basis: {(string.IsNullOrEmpty(note.EstimateBasis) ? NoteText.Empty : note.EstimateBasis)}",
+            $"Basis: {(string.IsNullOrEmpty(estimate.Basis) ? NoteText.Empty : estimate.Basis)}",
         ]);
     }
 

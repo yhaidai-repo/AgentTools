@@ -1,4 +1,4 @@
-import { VAULT_REVIEW_AGENT, listVaultTaskSchedules } from "@powerloom/core";
+import { listVaultTaskSchedules } from "@powerloom/core";
 import { listTrash } from "@powerloom/vault";
 import type { ReactNode } from "react";
 import { Pager } from "@/components/Pager";
@@ -8,7 +8,6 @@ import { readVaultRegisters } from "@/lib/vaultRegisters";
 import { vaultUrl } from "@/lib/vaultUrl";
 import type { RegisterRow } from "@/models/RegisterRow";
 import { ScheduleTable } from "../tasks/ScheduleTable";
-import { AddVaultReviewButton } from "./AddVaultReviewButton";
 import { RegisterFilters } from "./RegisterFilters";
 import { RegisterTable } from "./RegisterTable";
 import { TrashTable } from "./TrashTable";
@@ -36,8 +35,7 @@ export async function MaintenanceTab({ root, vault, params, tabs }: { root: stri
       <div className="tab-bar">{tabs}</div>
       <div className="section-label">Maintenance jobs</div>
       <ScheduleTable schedules={schedules} />
-      {!schedules.some((schedule) => schedule.agentId === VAULT_REVIEW_AGENT) && <AddVaultReviewButton />}
-      <p className="hint">The drafts job (every 10 min) gives each draft a tech-writer task.</p>
+      <p className="hint">Tasks → New task (type vault-review, with a cron) schedules the vault review. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
       <RegisterFilters register={register} onlyOpen={onlyOpen} rowsByRegister={rowsByRegister} />
       <RegisterTable vault={vault} rows={rows.slice((page - 1) * size, page * size)} onlyOpen={onlyOpen} />
       {rows.length > size && <Pager page={page} size={size} sizes={PAGE_SIZES} pages={pages} total={rows.length} noun="records" hrefOf={(change) => vaultUrl({ tab: "maintenance", register, show: onlyOpen ? "open" : "all", page: change.page, size: change.size ?? size })} />}

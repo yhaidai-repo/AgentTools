@@ -45,7 +45,7 @@ public static class PbiDeletion
         return Outcome<string>.Success(title);
     }
 
-    // One work item with its bug record, tasks, questions, runs, attachments, repos, refinements and drafts.
+    // One work item with its bug record, tasks, questions, runs, attachments, repos, refinements, estimates and drafts.
     private static async Task DeleteWorkItemAsync(PowerLoomDbContext db, int adoId, CancellationToken cancellation)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellation);
@@ -61,6 +61,7 @@ public static class PbiDeletion
         await db.VaultCaptures.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.Refinements.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.Designs.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
+        await db.PbiEstimates.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         // Its WWW records stay: they are in the vault log.
         await db.PbiFeedbacks.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await ReleaseRunsAsync(db, adoId, itemIds, cancellation);

@@ -19,19 +19,19 @@ public sealed class TaskCreation(PowerLoomDbContext db)
 {
     private const int TitleMax = 120;
     private const int TextMax = 4_000;
-    private const string GoalPrefix = "GT";
-    private const string DocsPrefix = "WT";
     private const string CreatedBy = "user";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    // Refinement and design run once per PBI at a time, as the pipeline creates them; research comes in numbers.
+    // Refinement and design run once per PBI at a time, as the pipeline creates them; research comes in numbers. Research
+    // without a PBI is a goal (GT). The vault review works on the task's vault (user decision 2026-10-18).
     public static readonly IReadOnlyList<UserTaskType> Types =
     [
-        new("refinement", ItemKind.Refinement, PbiUse.Required, OnePerPbi: true),
-        new("research", ItemKind.Research, PbiUse.Optional, OnePerPbi: false),
-        new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true),
-        new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false),
+        new("refinement", ItemKind.Refinement, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
+        new("research", ItemKind.Research, PbiUse.Optional, OnePerPbi: false, NoPbiPrefix: "GT"),
+        new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
+        new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "WT"),
+        new("vault-review", ItemKind.VaultReview, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "VR"),
     ];
 
     public async Task<Outcome<CreatedTask>> CreateAsync(NewTask task, CancellationToken cancellation)
@@ -116,14 +116,11 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         return open is null ? null : Problem.Conflict($"{open} is still open on PBI-{task.PbiId}.");
     }
 
-    // PBI tasks are numbered per PBI like the pipeline's; research without a PBI is a goal (GT), docs tasks are global.
+    // PBI tasks are numbered per PBI like the pipeline's; a type that needs a PBI always has one here.
     private Task<string> NextIdAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
-        if (type.Kind == ItemKind.Docs)
-            return ItemIds.NextGlobalAsync(db, DocsPrefix, cancellation);
-
         if (task.PbiId is null)
-            return ItemIds.NextGlobalAsync(db, GoalPrefix, cancellation);
+            return ItemIds.NextGlobalAsync(db, type.NoPbiPrefix!, cancellation);
 
         return ItemIds.NextAsync(db, AgentStages.StageOfKind(type.Kind)!.Prefix, task.PbiId.Value, cancellation);
     }

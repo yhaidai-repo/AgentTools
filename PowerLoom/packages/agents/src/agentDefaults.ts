@@ -5,6 +5,7 @@ import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
+import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -220,7 +221,7 @@ const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
   {
     key: "maxFailures",
     label: "Failures before blocking a review task",
-    description: "After this many failed runs, the review task is set to blocked; the vault-review job creates no new one while it waits.",
+    description: "After this many failed runs, the review task is set to blocked; its schedule creates no new one while it waits.",
     min: 1,
     max: 10,
   },
@@ -261,7 +262,8 @@ const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
-// Outside systems PowerLoom can give an agent tools for; each one is switched on per agent in its Config (user decision 2026-10-02).
+// Outside systems PowerLoom can give an agent tools for, and PowerLoom's own grants; each one is switched on per agent in
+// its Config (user decision 2026-10-02).
 const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: READ_REPOS_INTEGRATION,
@@ -289,6 +291,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Azure DevOps (read)",
     description: "The agent may read Azure DevOps with the vault's PAT (Settings → Azure DevOps): any work item with its links and comments, WIQL queries, pull requests with their reviewers, changed files and comment threads, and its PBI's Test Cases (Tested By), which are saved to the PBI as TC-<id> for later agents and chats. Pull requests need the PAT's Code (Read) scope.",
   },
+  // Refinement must estimate, design may (user decision 2026-10-18).
+  {
+    key: ESTIMATE_INTEGRATION,
+    label: "Give estimates",
+    description: "The agent may record an estimate of its PBI with record_estimate: hours for a developer without an agent and hours for an agent implementing it. The PBI shows the latest estimate from any agent. Refinement agents must give one when this is on.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -301,7 +309,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 10 },
     budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3 },
     optionSpecs: withToolsetOptions(REFINEMENT_OPTIONS),
@@ -319,7 +327,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REFINEMENT_OPTIONS),
@@ -338,7 +346,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(RESEARCH_OPTIONS),
@@ -356,7 +364,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),
@@ -376,7 +384,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(DESIGN_OPTIONS),
@@ -394,7 +402,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-tech-writer", "powerloom-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(TECH_WRITER_OPTIONS),
@@ -413,7 +421,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 15 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(CODE_REVIEW_OPTIONS),
@@ -433,7 +441,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 4, dailyUsd: 20 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-better-review", "powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, maxDepth: 2, maxTasksPerRun: 3, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REVIEW_OPTIONS),
@@ -442,7 +450,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     handles: ["review"],
     waitFor: [],
   },
-  // Picks up the one review task the vault-review job creates when the vaults have candidates (user decision 2026-10-03).
+  // Picks up vault-review tasks: a schedule's (one waits at a time) or one the user creates (task type since 2026-10-18).
   {
     id: "vault-review",
     label: "Vault review",
@@ -452,7 +460,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(VAULT_REVIEW_OPTIONS),
@@ -472,7 +480,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 30, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
     skills: [],
     options: { batchSize: 2, maxFailures: 2, maxTasksPerRun: 8 },
     optionSpecs: MEETING_NOTES_OPTIONS,

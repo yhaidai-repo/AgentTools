@@ -33,7 +33,6 @@ function input(overrides: Record<string, unknown> = {}): Input {
     relevant_docs: [],
     skills: [],
     relevant_pages: [],
-    estimate: { hours: 6, basis: "one report column; the premise check may add a data fix" },
     status: "complete",
     next_reason: "The premise must be checked before a fix is planned.",
     ...overrides,
@@ -53,7 +52,13 @@ describe("write_refinement (Better Refinement)", () => {
     assert.deepEqual(draft.refinement?.repos.map((repo) => repo.reason), ["the report SP lives there (code: PBI-36756 description)", "provider keys come from it (unverified)"]);
     assert.deepEqual(draft.refinement?.dependencies, ["Blocker: Is the null provider id real on QA2? (resolved by new:1)"]);
     assert.equal(draft.refinement?.details.testData.missing.length, 1);
-    assert.deepEqual(draft.refinement?.estimate, { hours: 6, basis: "one report column; the premise check may add a data fix" });
+  });
+
+  it("leaves the estimate to record_estimate", () => {
+    const tool = createRefinementTool(emptyDraft(), new ReadLog("PBI-36756"), []);
+
+    assert.equal("estimate" in tool.input, false);
+    assert.match(tool.description, /record_estimate: the run isn't complete without it/);
   });
 
   it("refuses a blocker whose task wasn't created and evidence the run never read", async () => {
@@ -102,8 +107,15 @@ describe("better-refinement prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
     const prompt = await loadPrompt("better-refinement", { team: "Signals" });
 
-    assert.equal(prompt.version, "v5+framework.v2");
+    assert.equal(prompt.version, "v6+framework.v2");
     assert.match(prompt.text, /^## How you work/);
     assert.match(prompt.text, /You are Better Refinement for one PBI of the Signals team/);
+  });
+
+  it("asks for both estimate values with record_estimate", async () => {
+    const prompt = await loadPrompt("better-refinement", { team: "Signals" });
+
+    assert.match(prompt.text, /`record_estimate`, required/);
+    assert.match(prompt.text, /without an agent .*hours for an agent implementing it/);
   });
 });

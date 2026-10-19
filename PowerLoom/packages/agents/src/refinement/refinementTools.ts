@@ -4,7 +4,6 @@ import type { PowerLoomDb } from "@powerloom/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
 import type { DuplicateGuard } from "../DuplicateGuard";
-import { estimateInput } from "./estimateInput";
 import type { RefinementDraft } from "./models/RefinementDraft";
 
 // Pipeline tools of the refinement agent. They only fill the draft; nothing is written until the run succeeds.
@@ -40,7 +39,7 @@ export function listReposTool(db: PowerLoomDb, vault: string) {
 function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) {
   return defineTool({
     name: "write_refinement",
-    description: "Save the refinement of the PBI. Call exactly once; a second call replaces the first.",
+    description: "Save the refinement of the PBI. Call exactly once; a second call replaces the first. The estimate goes to record_estimate: the run isn't complete without it.",
     input: {
       summary: z.string().min(1).describe("2-4 plain sentences: what the PBI asks for and why"),
       scope_in: z.array(z.string()).describe("What is in scope"),
@@ -52,7 +51,6 @@ function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) 
       relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).describe("Docs (paths as the docs tools show them) research and design should read, and why"),
       skills: z.array(z.object({ name: z.string(), reason: z.string() })).default([]).describe(`Up to ${MAX_PBI_SKILLS} skills from list_skills that help the later agents on this PBI, each with why; none is fine`),
       relevant_pages: relevantPagesInput,
-      estimate: estimateInput,
     },
     handler: async (input) => {
       const problems = [...pbiSkillProblems(input.skills.map((skill) => skill.name), availableSkills), ...relevantPageProblems(input.relevant_pages)];
@@ -71,7 +69,6 @@ function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) 
         assumptions: input.assumptions,
         relevantDocs: input.relevant_docs,
         skills: input.skills,
-        estimate: input.estimate,
       };
       draft.pages = input.relevant_pages;
 

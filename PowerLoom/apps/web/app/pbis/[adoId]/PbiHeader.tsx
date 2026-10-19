@@ -107,12 +107,11 @@ function Stat({ label, value, note, tone }: { label: string; value: string; note
   );
 }
 
-// The agents' estimate, split (user request 2026-10-18): human time from the design, else the refinement (design is
-// later and finer); agent time from the design only.
+// The agents' latest estimate (record_estimate, any agent), split into human and agent time (user request 2026-10-18).
 function estimateOf(detail: PbiDetail): { hours: number; agentHours: number | null } | null {
-  if (detail.design?.estHumanH) {
-    return { hours: Number(detail.design.estHumanH), agentHours: detail.design.estAgentH ? Number(detail.design.estAgentH) : null };
+  if (!detail.estimate) {
+    return null;
   }
 
-  return detail.refinement?.estHours ? { hours: Number(detail.refinement.estHours), agentHours: null } : null;
+  return { hours: Number(detail.estimate.humanHours), agentHours: detail.estimate.agentHours === null ? null : Number(detail.estimate.agentHours) };
 }

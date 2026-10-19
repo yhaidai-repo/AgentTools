@@ -37,11 +37,11 @@ public static class PipelineRegions
             return "Pending.";
 
         var parts = new List<string> { $"{latest.Summary}\n\nDetails: [[{BacklogPaths.RefinementNoteName(adoId)}]] (v{latest.Version})" };
-        var estimate = RefinementNoteRenderer.EstimateText(latest.EstHours, latest.EstimateBasis);
+        var estimate = await PbiEstimates.LatestAsync(db, adoId, cancellation);
         var design = await DesignLineAsync(db, adoId, cancellation);
 
         if (estimate is not null)
-            parts.Add($"Estimate: {estimate}");
+            parts.Add($"Estimate: {PbiEstimates.Text(estimate)}");
 
         if (design is not null)
             parts.Add(design);
@@ -57,7 +57,7 @@ public static class PipelineRegions
         if (latest is null)
             return null;
 
-        return $"Design: [[{BacklogPaths.DesignNoteName(adoId)}]] (v{latest.Version}): {Number(latest.EstHumanH)} h human, {Number(latest.EstAgentH)} h agent, complexity {latest.Complexity?.ToString() ?? "?"}/5, confidence {latest.Confidence ?? "?"}.";
+        return $"Design: [[{BacklogPaths.DesignNoteName(adoId)}]] (v{latest.Version}).";
     }
 
     // The items table, then the user's uploads and the agents' vault drafts (kept in this region so the user's PBI
@@ -115,6 +115,4 @@ public static class PipelineRegions
     }
 
     private static string Label<T>(T value) where T : struct, Enum => Labels.TranslateMemberName(value.ToString());
-
-    private static string Number(decimal? value) => value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "?";
 }

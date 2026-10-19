@@ -41,10 +41,6 @@ async function insertDesign(db: PowerLoomDb, adoId: number, runId: number, outpu
   await db.insert(design).values({
     pbiId: adoId,
     version,
-    estHumanH: String(output.estimate.humanHours),
-    estAgentH: String(output.estimate.agentHours),
-    complexity: output.estimate.complexity,
-    confidence: output.estimate.confidence,
     riskCount: output.risks.length,
     testCount: output.tests.length,
     approach: output.approach,
@@ -53,7 +49,6 @@ async function insertDesign(db: PowerLoomDb, adoId: number, runId: number, outpu
     risks: output.risks,
     tests: output.tests,
     assumptions: output.assumptions,
-    estimateBasis: output.estimate.basis,
     runId,
   });
 

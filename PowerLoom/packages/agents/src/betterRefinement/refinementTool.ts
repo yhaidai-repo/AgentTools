@@ -6,7 +6,6 @@ import { evidenceProblems } from "../evidence/evidenceProblems";
 import type { ReadLog } from "../evidence/ReadLog";
 import type { Evidence } from "../models/Evidence";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
-import { estimateInput } from "../refinement/estimateInput";
 import type { RefinementOutput } from "../refinement/models/RefinementOutput";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
 import type { RefinementDetails } from "./models/RefinementDetails";
@@ -52,7 +51,6 @@ const INPUT = {
   relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).describe("Docs research and design should read, and why"),
   skills: z.array(z.object({ name: z.string(), reason: z.string() })).default([]).describe(`Up to ${MAX_PBI_SKILLS} skills from list_skills that help the later agents on this PBI, each with why`),
   relevant_pages: relevantPagesInput,
-  estimate: estimateInput,
   status: z.enum(["complete", "partial", "blocked"]).describe("complete: developable or every gap has a task; partial: what you have so far; blocked: something stops you, named in blockers"),
   next_reason: z.string().min(1).describe("Why the tasks you created are needed, or why none is"),
 };
@@ -61,7 +59,7 @@ const INPUT = {
 export function createRefinementTool(draft: BetterRefinementDraft, readLog: ReadLog, availableSkills: string[]) {
   return defineTool({
     name: REFINEMENT_TOOL,
-    description: "Save the refinement. Write it once you know enough (status partial is fine) and call again to replace it. Every statement cites its sources; create the tasks your blockers point at before you name them here.",
+    description: "Save the refinement. Write it once you know enough (status partial is fine) and call again to replace it. Every statement cites its sources; create the tasks your blockers point at before you name them here. The estimate goes to record_estimate: the run isn't complete without it.",
     input: INPUT,
     handler: async (input: Input) => {
       const problems = refinementProblems(input, draft, readLog, availableSkills);
@@ -112,7 +110,6 @@ function readableRefinement(input: Input): RefinementOutput {
     assumptions: input.assumptions,
     relevantDocs: input.relevant_docs,
     skills: input.skills,
-    estimate: input.estimate,
   };
 }
 

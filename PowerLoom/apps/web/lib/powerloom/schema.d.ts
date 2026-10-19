@@ -1726,16 +1726,14 @@ export interface components {
             /** Format: int32 */
             id: null | number;
             name: string;
-            agentId: string;
             vault: string;
             cron: string;
             enabled: boolean;
-            goal: null | string;
+            taskType: string;
+            description: null | string;
+            acceptanceCriteria: null | string;
+            pbi: null | string;
             repos: null | string[];
-            taskType?: null | string;
-            description?: null | string;
-            acceptanceCriteria?: null | string;
-            pbi?: null | string;
         };
         ScheduleStatus: {
             key: string;

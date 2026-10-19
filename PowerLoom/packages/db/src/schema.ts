@@ -243,7 +243,7 @@ export const refinement = pgTable("refinement", {
   skills: jsonb("skills").$type<{ name: string; reason: string }[]>().notNull().default([]), // what this version recommended
   // Better Refinement's full result (sources, affected areas, test data, blockers, status); null for earlier refinements.
   details: jsonb("details").$type<object | null>(),
-  // Refinement's rough estimate in developer hours; null for refinements from before it gave one.
+  // History: refinement's estimate in developer hours until record_estimate (2026-10-18) wrote pbi_estimate instead.
   estHours: numeric("est_hours"),
   estimateBasis: text("estimate_basis"),
   createdAt: createdAt(),
@@ -272,7 +272,7 @@ export const vaultCapture = pgTable("vault_capture", {
 }, (t) => [index("vault_capture_pbi_idx").on(t.pbiId)]);
 
 // One design per run of the design agent; the latest version counts. Rendered into the Vault like the refinement.
-// Estimates: human h = a developer without an agent; agent h = an agent implementing the plan (user decision 2026-10-02).
+// The est_* columns, complexity, confidence and estimate_basis are history: record_estimate writes pbi_estimate since 2026-10-18.
 
 export const design = pgTable("design", {
   id: serial("id").primaryKey(),
@@ -296,6 +296,25 @@ export const design = pgTable("design", {
 }, (t) => [
   uniqueIndex("design_pbi_version_uq").on(t.pbiId, t.version),
   check("design_complexity_ck", sql`${t.complexity} between 1 and 5`),
+]);
+
+// Every estimate an agent recorded with record_estimate, one per run (user decision 2026-10-18); pages show a PBI's latest,
+// from any agent. Human h = a developer without an agent; agent h = an agent implementing it (user decision 2026-10-02).
+// Backfilled from design (both values) and refinement (human only, agent_hours null).
+export const pbiEstimate = pgTable("pbi_estimate", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id, { onDelete: "set null" }),
+  agent: text("agent").notNull(), // the agent id, e.g. better-refinement
+  humanHours: numeric("human_hours").notNull(),
+  agentHours: numeric("agent_hours"),
+  complexity: smallint("complexity"),
+  confidence: text("confidence"), // high | medium | low
+  basis: text("basis").notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  index("pbi_estimate_pbi_idx").on(t.pbiId, t.createdAt),
+  check("pbi_estimate_complexity_ck", sql`${t.complexity} between 1 and 5`),
 ]);
 
 // Daily sprint snapshot for burndown.
@@ -458,8 +477,8 @@ export const dataAccess = pgTable("data_access", {
   index("data_access_run_idx").on(t.runId),
 ]);
 
-// Scheduled tasks (user decision 2026-10-03): each row is a pg-boss schedule (key `schedule-<id>`) on the one
-// `task-schedule` queue; a tick creates the agent's task through its task producer, only when one is needed.
+// Scheduled tasks (user decision 2026-10-03): PowerLoom ticks each row on its cron; a tick creates the task of its
+// `task_type` (all rows since 2026-10-18) unless the schedule's last task still waits.
 export const taskSchedule = pgTable("task_schedule", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -467,7 +486,7 @@ export const taskSchedule = pgTable("task_schedule", {
   vault: vaultName(), // the vault the schedule maintains (user decision 2026-10-05: configured inside the vault)
   cron: text("cron").notNull(),
   enabled: boolean("enabled").notNull().default(true),
-  params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the producer's params, e.g. { vaults: [...] }
+  params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}), // the task the tick creates (PowerLoom's TaskParams)
   taskType: text("task_type"), // a schedule by task type (user decision 2026-10-14): its agent id is "*", params hold the task
   lastRunAt: ts("last_run_at"),
   lastResult: text("last_result"), // what the last tick did: the task it created, or why none

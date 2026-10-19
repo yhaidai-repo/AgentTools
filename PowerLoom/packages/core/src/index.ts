@@ -1,8 +1,6 @@
 export * from "./settings";
 export * from "./vaults";
 export * from "./repos";
-export * from "./goalSchedules";
-export type { GoalParams } from "./models/GoalParams";
 export type { GoalTaskData } from "./models/GoalTaskData";
 export type { RepoRow } from "./models/RepoRow";
 export type { Vault } from "./models/Vault";
@@ -81,6 +79,7 @@ export { buildPbiContext, hasPbiContext, pbiContextBlocks } from "./pbiContext/b
 export type { PbiContextBlock } from "./models/PbiContextBlock";
 export { readPbiReference } from "./pbiContext/readPbiReference";
 export { relatedBlock } from "./pbiContext/relatedBlock";
+export { estimateText, latestPbiEstimate, latestRunEstimate } from "./pbiEstimates";
 export type { PbiReadResult } from "./models/PbiReadResult";
 export type { PbiReference } from "./models/PbiReference";
 export { reportBugCommand } from "./commands/reportBugCommand";
@@ -108,11 +107,7 @@ export * from "./codeReviews";
 export type { PullRequestSettings } from "./models/PullRequestSettings";
 export * from "./vaultReview";
 export * from "./taskSchedules";
-export { TASK_PRODUCERS, producerFor } from "./taskProducers/taskProducers";
 export type { TaskSchedule } from "./models/TaskSchedule";
-export type { TaskScheduleInput } from "./models/TaskScheduleInput";
-export type { TaskProducer } from "./models/TaskProducer";
-export type { ProducerParamSpec } from "./models/ProducerParamSpec";
 export type { VaultReviewOptions } from "./models/VaultReviewOptions";
 export type { VaultReviewCandidates } from "./models/VaultReviewCandidates";
 export type { ReviewTaskData } from "./models/ReviewTaskData";

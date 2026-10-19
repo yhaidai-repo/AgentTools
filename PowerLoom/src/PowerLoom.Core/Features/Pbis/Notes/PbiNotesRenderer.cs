@@ -46,7 +46,7 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
         var note = new RefinementNote(adoId, latest.Version, latest.RunId, latest.CreatedAt, latest.Summary,
             NoteJson.List<string>(latest.ScopeIn), NoteJson.List<string>(latest.ScopeOut), NoteJson.List<AcceptanceGap>(latest.AcGaps), NoteJson.List<string>(latest.Dependencies),
             NoteJson.List<RepoReason>(latest.Repos), NoteJson.List<string>(latest.Assumptions), NoteJson.List<RelevantDoc>(latest.RelevantDocs), NoteJson.List<string>(latest.DocsRead),
-            latest.EstHours, latest.EstimateBasis,
+            await PbiEstimates.OfRunAsync(db, latest.RunId, cancellation),
             NoteJson.Object<RefinementDetails>(latest.Details));
 
         await files.WriteNoteAsync(vault, BacklogPaths.RefinementNotePath(pbiPath, adoId), notesSection => RefinementNoteRenderer.Render(note, notesSection), cancellation);
@@ -61,7 +61,7 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
 
         var note = new DesignNote(adoId, latest.Version, latest.RunId, latest.CreatedAt, latest.Approach,
             NoteJson.List<DesignAlternative>(latest.Alternatives), NoteJson.List<Domain.Pbis.Models.DesignPlanStep>(latest.Plan), NoteJson.List<DesignRisk>(latest.Risks), NoteJson.List<Domain.Pbis.Models.DesignTest>(latest.Tests),
-            NoteJson.List<string>(latest.Assumptions), latest.EstHumanH, latest.EstAgentH, latest.Complexity, latest.Confidence, latest.EstimateBasis);
+            NoteJson.List<string>(latest.Assumptions), await PbiEstimates.OfRunAsync(db, latest.RunId, cancellation));
 
         await files.WriteNoteAsync(vault, BacklogPaths.DesignNotePath(pbiPath, adoId), notesSection => DesignNoteRenderer.Render(note, notesSection), cancellation);
     }

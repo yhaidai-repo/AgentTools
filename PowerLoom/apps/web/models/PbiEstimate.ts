@@ -5,12 +5,12 @@ export interface PbiEstimate {
   title: string;
   /** The user's Tasks' Original Estimate in ADO, from the PBI's latest sprint snapshot. */
   originalHours: number | null;
-  /** The latest refinement's rough estimate (for a developer). */
-  refinementHours: number | null;
-  /** The latest design's estimate for a developer without an agent. */
-  designHours: number | null;
-  /** The latest design's estimate with an agent doing the work. */
-  designAgentHours: number | null;
+  /** The latest agent estimate (any agent): a developer without an agent. */
+  humanHours: number | null;
+  /** The same estimate: an agent implementing it; null also for a refinement estimate from before it gave one. */
+  agentHours: number | null;
+  /** The agent that gave the latest estimate. */
+  estimatedBy: string | null;
   /** The user's own time on the PBI, from its latest finish. */
   actualHours: number;
   finishedAt: Date;

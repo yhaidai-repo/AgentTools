@@ -8,6 +8,7 @@ import { obsidianDocsLink } from "@/lib/obsidian";
 import type { PbiDetail } from "@/lib/pbiDetail";
 import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { DesignSection } from "./DesignSection";
+import { EstimateLine } from "./EstimateLine";
 import { ItemList } from "./ItemList";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
@@ -29,6 +30,7 @@ export function AgentsTab({ detail }: { detail: PbiDetail }) {
   return (
     <div className="pbi-columns">
       <div>
+        <Panel title="Estimate" aside={detail.estimate && <small>{detail.estimate.agent}</small>}>{detail.estimate ? <EstimateLine estimate={detail.estimate} /> : <p className="empty">No agent has estimated it yet.</p>}</Panel>
         <Panel title="Refinement" aside={detail.refinement && <small>v{detail.refinement.version}</small>}><Refinement detail={detail} /></Panel>
         <Panel title="Design" aside={detail.design && <small>v{detail.design.version}</small>}><DesignSection design={detail.design} /></Panel>
         <QuestionsAndTasks detail={detail} />
@@ -50,7 +52,6 @@ function Refinement({ detail }: { detail: PbiDetail }) {
   return (
     <>
       <p>{detail.refinement.summary}</p>
-      {detail.refinement.estHours && <p className="estimate-box"><b>~{Number(detail.refinement.estHours)} h</b><span>{detail.refinement.estimateBasis}</span></p>}
       <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
     </>
   );

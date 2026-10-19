@@ -21,10 +21,11 @@ const REQUIRED_FIELDS = [
 
 // A task for any agent that takes its type (user decision 2026-10-14): what to do, when it is done, and what it works
 // on. Refinement and design need a PBI; research may have one; docs names no note, the tech-writer finds the notes
-// (user decision 2026-10-15). With a cron the form saves a schedule that creates this task on each tick instead. A
-// refused save shows what was typed again: React resets a form after its action, to the defaults rendered then. Laid
-// out like New PBI (user decision 2026-10-18): what the task says on the left, its type, PBI, repos and schedule on the
-// right, Create in a bar that stays on screen; an empty field is told inline.
+// (user decision 2026-10-15); the vault review works on the vault (user decision 2026-10-18). With a cron the form saves
+// a schedule that creates this task on each tick instead. A refused save shows what was typed again: React resets a form
+// after its action, to the defaults rendered then. Laid out like New PBI (user decision 2026-10-18): what the task says
+// on the left, its type, PBI, repos and schedule on the right, Create in a bar that stays on screen; an empty field is
+// told inline.
 export function TaskForm({ values, types, repos }: { values: TaskFormValues; types: string[]; repos: string[] }) {
   const [result, action, isSaving] = useActionState<TaskActionResult | null, FormData>(saveTaskAction, null);
   const shown = result?.values ?? values;
@@ -32,7 +33,7 @@ export function TaskForm({ values, types, repos }: { values: TaskFormValues; typ
   const [pbi, setPbi] = useState(values.pbi);
   const [cron, setCron] = useState(values.cron);
   const [problems, setProblems] = useState<Record<string, string>>({});
-  const isDocs = type === "docs";
+  const pbiHint = PBI_HINTS[type];
   const readsRepos = type === "research" && pbi.trim() === "";
   const isEditing = values.scheduleId !== null;
   const isScheduled = isEditing || cron.trim() !== "";
@@ -63,7 +64,7 @@ export function TaskForm({ values, types, repos }: { values: TaskFormValues; typ
             <div className="pill-switch">
               {types.map((name) => <button key={name} type="button" className={name === type ? "on" : undefined} onClick={() => setType(name)}>{name}</button>)}
             </div>
-            {!isDocs && <Field label="PBI" hint={PBI_HINTS[type]}><input name="pbi" value={pbi} onChange={(event) => setPbi(event.target.value)} placeholder="id or Azure DevOps link" /></Field>}
+            {pbiHint && <Field label="PBI" hint={pbiHint}><input name="pbi" value={pbi} onChange={(event) => setPbi(event.target.value)} placeholder="id or Azure DevOps link" /></Field>}
           </div>
           {readsRepos && <RepoChoices repos={repos} checked={shown.repos} />}
           <div className="panel new-pbi-side">
