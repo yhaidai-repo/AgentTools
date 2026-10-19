@@ -89,16 +89,30 @@
   margin-left: 0;
 }
 
+/* The actions take at most half the header, so a long result message never squeezes the title. */
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  max-width: 50%;
 }
 
 .hero-actions .actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+/* An action's answer ("1 PBI queued…") goes on its own line under the buttons. */
+.hero-actions .actions > .muted,
+.hero-actions .actions > .result-ok,
+.hero-actions .actions > .result-error,
+.hero-actions > .result-error {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  text-align: right;
 }
 
 .hero-facts {
