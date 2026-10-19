@@ -1,5 +1,6 @@
 import type { AgentEvent, ConversationStore, PastToolCall, ToolDefinition } from "@agenttools/runtime";
 import type { ReplayCall } from "./models/ReplayCall";
+import type { ReplayOptions } from "./models/ReplayOptions";
 import type { ReplayReport } from "./models/ReplayReport";
 
 type Observe = (event: AgentEvent) => void;
@@ -10,14 +11,15 @@ const REPLAY_RUN = "replay";
 // continued conversation starts with neither. The earlier successful calls are taken again in order, since a draft call
 // may cite an earlier read: tools that only fill the draft are called again, tools that can restore their state (the
 // recorded reads) do so from the earlier result, and the SDK's own tools (web) are shown to the run's observer. Other
-// tools, which read or write at once, are never called again.
-export async function replayDraft(conversations: ConversationStore, conversationId: string, tools: ToolDefinition<any>[], observe?: Observe): Promise<ReplayReport> {
-  const past = (await conversations.toolCalls(conversationId)).filter((call) => !call.isError);
+// tools, which read or write at once, are never called again; nor are the draft calls when the draft was saved already.
+export async function replayDraft(conversations: ConversationStore, conversationId: string, tools: ToolDefinition<any>[], options: ReplayOptions): Promise<ReplayReport> {
+  const saved = new Set(options.withDrafts ? [] : tools.filter((tool) => tool.replayOnResume).map((tool) => tool.name));
+  const past = (await conversations.toolCalls(conversationId)).filter((call) => !call.isError && !saved.has(call.name));
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
   const report: ReplayReport = { replayed: {}, restored: 0, failed: [] };
 
   for (const call of past) {
-    await takeAgain(call, toolsByName.get(call.name), report, observe);
+    await takeAgain(call, toolsByName.get(call.name), report, options.observe);
   }
 
   return report;

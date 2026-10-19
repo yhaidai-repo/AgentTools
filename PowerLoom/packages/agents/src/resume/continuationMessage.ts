@@ -1,7 +1,7 @@
 import type { RunLimits } from "@agenttools/runtime";
 import type { UsageStore } from "@agenttools/usage";
-import type { PreviousLimits } from "./models/PreviousLimits";
 import type { PreviousRun } from "./models/PreviousRun";
+import type { PreviousRunFacts } from "./models/PreviousRunFacts";
 import type { ReplayReport } from "./models/ReplayReport";
 
 const CLOCK_SLACK_MS = 60_000;
@@ -15,10 +15,12 @@ const STOPS: Record<string, string> = {
   failed: "it failed",
 };
 
-// The limits the continued run had (its `agent` phase) and what it spent (its usage record).
-export async function loadPreviousLimits(usageStore: UsageStore, previous: PreviousRun): Promise<PreviousLimits> {
+// The limits the continued run had (its `agent` phase), what it spent (its usage record), and whether it reached its
+// `commit` phase.
+export async function loadPreviousRunFacts(usageStore: UsageStore, previous: PreviousRun): Promise<PreviousRunFacts> {
   const trace = await usageStore.trace(String(previous.id));
-  const agentPhase = trace.find((entry) => entry.type === "phase" && entry.payload.name === "agent")?.payload ?? {};
+  const phases = trace.filter((entry) => entry.type === "phase");
+  const agentPhase = phases.find((entry) => entry.payload.name === "agent")?.payload ?? {};
   const from = new Date(previous.startedAt.getTime() - CLOCK_SLACK_MS);
   const [record] = await usageStore.records({ from, match: { run: String(previous.id) } }, 1);
 
@@ -27,25 +29,26 @@ export async function loadPreviousLimits(usageStore: UsageStore, previous: Previ
     timeoutMs: numberOrNull(agentPhase.timeoutMs),
     budgetUsd: numberOrNull(agentPhase.budgetUsd),
     spentUsd: record?.costUsd ?? null,
+    committed: phases.some((entry) => entry.payload.name === "commit"),
   };
 }
 
 // The first message of a continued run, in place of the task's: why the last run stopped, this run's limits, what was
-// restored, and to carry on rather than start over.
-export function continuationMessage(previous: PreviousRun, before: PreviousLimits, limits: RunLimits, budgetUsd: number, replay: ReplayReport): string {
+// restored or already saved, and to carry on rather than start over.
+export function continuationMessage(previous: PreviousRun, before: PreviousRunFacts, limits: RunLimits, budgetUsd: number, replay: ReplayReport): string {
   return [
     "<continuation>",
     `Your previous run (RUN-${previous.id}) stopped before it finished: ${stopReason(previous, before)}.`,
     "If your last tool call has no result, it did not finish.",
     `This run continues the same conversation with fresh limits: ${limitsText(limits, budgetUsd, before)}.`,
-    restoredText(replay),
+    before.committed ? savedText(previous) : restoredText(replay),
     failedReplaysText(replay),
     "Continue where you stopped: don't redo finished work or re-read what you already have, and end with your required output.",
     "</continuation>",
   ].filter(Boolean).join("\n");
 }
 
-function stopReason(previous: PreviousRun, before: PreviousLimits): string {
+function stopReason(previous: PreviousRun, before: PreviousRunFacts): string {
   const stop = STOPS[previous.outcome] ?? `it ended ${previous.outcome}`;
   const spent = previous.outcome === "budget-exceeded" && before.spentUsd !== null ? ` (${usd(before.spentUsd)} spent)` : "";
   const error = previous.error && previous.error !== previous.outcome ? `: ${previous.error}` : "";
@@ -53,11 +56,22 @@ function stopReason(previous: PreviousRun, before: PreviousLimits): string {
   return `${stop}${spent}${error}`;
 }
 
-function limitsText(limits: RunLimits, budgetUsd: number, before: PreviousLimits): string {
+function limitsText(limits: RunLimits, budgetUsd: number, before: PreviousRunFacts): string {
   const minutes = Math.round(limits.timeoutMs / 60_000);
   const raised = before.budgetUsd !== null && before.budgetUsd !== budgetUsd ? ` (the last run had ${usd(before.budgetUsd)})` : "";
 
   return `up to ${limits.maxTurns} turns, ${minutes} minutes and ${usd(budgetUsd)}${raised}`;
+}
+
+// The earlier run already saved its output (a partial result at its budget stop, or part of it before a commit
+// failed), so its draft calls are not made again: they would save it twice.
+function savedText(previous: PreviousRun): string {
+  const outputs = previous.outputs?.length ? ` (${previous.outputs.join(", ")})` : "";
+
+  return [
+    `Your output so far was saved when that run stopped${outputs}; use those ids rather than creating the items again.`,
+    "This run starts with an empty draft: call your result tool again with the complete result, including what you keep from before. Tasks, comments, findings and drafts you create now are added to the saved ones.",
+  ].join("\n");
 }
 
 function restoredText(replay: ReplayReport): string {
