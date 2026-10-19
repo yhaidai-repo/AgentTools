@@ -310,6 +310,11 @@ main > .fold-panel + .panel {
 .fault-agent { color: var(--accent-2); }
 .fault-human { color: var(--human); }
 
+/* Something that follows a panel, e.g. a button, keeps the gap panels keep between them. */
+.below-panel {
+  margin-top: 12px;
+}
+
 /* An empty section as one quiet line. */
 .quiet-line {
   display: flex;

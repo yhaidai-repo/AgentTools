@@ -16,9 +16,9 @@ export function AddVaultReviewButton() {
   }
 
   return (
-    <span className="actions">
+    <div className="actions below-panel">
       <button type="button" onClick={add} disabled={isPending}>{isPending ? "Scheduling…" : "Add vault review"}</button>
       {message && <span className="muted">{message}</span>}
-    </span>
+    </div>
   );
 }

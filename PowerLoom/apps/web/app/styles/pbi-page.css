@@ -424,9 +424,11 @@
   color: var(--accent-2);
 }
 
-/* Status rows: questions, tasks, runs, linked documents, files. */
+/* Status rows: questions, tasks, runs, linked documents, files. The column may shrink below a row's one-line title,
+   which then ends in an ellipsis instead of widening the panel. */
 .item-rows {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .item-row {
