@@ -70,9 +70,10 @@ function DocsResult({ detail }: { detail: ItemDetail }) {
   );
 }
 
-// A research task shows its results inside it (newest last; a re-run supersedes the earlier one).
+// A research task shows its results and a test task its reports inside it (newest last; a re-run supersedes the
+// earlier one).
 function Results({ detail }: { detail: ItemDetail }) {
-  if (detail.item.kind !== "research") {
+  if (detail.item.kind !== "research" && detail.item.kind !== "test") {
     return null;
   }
 
@@ -84,7 +85,7 @@ function Results({ detail }: { detail: ItemDetail }) {
     <>
       {detail.results.map((result) => (
         <section key={result.id} className="card result-section">
-          <h2>Result {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
+          <h2>{result.kind === "test-report" ? "Report" : "Result"} {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
           <ItemContent item={result} />
         </section>
       ))}
