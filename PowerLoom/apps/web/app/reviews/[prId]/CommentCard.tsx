@@ -46,7 +46,7 @@ function Thread({ comment, isAnswerable }: { comment: CommentRow; isAnswerable: 
 }
 
 // The comment's first line without its markdown marks, short enough for one line.
-function gistOf(markdown: string): string {
+export function gistOf(markdown: string): string {
   const firstLine = markdown.split("\n").find((line) => line.trim() !== "") ?? "";
   const plain = firstLine.replace(/[*_`#>]/g, "").trim();
 

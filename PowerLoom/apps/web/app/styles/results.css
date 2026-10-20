@@ -1,0 +1,94 @@
+/* Agent results (user decision 2026-10-21): one version shown, the others behind a picker, long content folded, and a
+   full page per version. */
+
+.result-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.result-version {
+  color: var(--text);
+}
+
+.result-status {
+  color: var(--warn);
+}
+
+.result-open {
+  margin-left: auto;
+  font-family: var(--font-sans);
+}
+
+.version-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-picker .pill-switch {
+  margin-bottom: 0;
+}
+
+/* Matches FOLDED_HEIGHT_PX in Folded; the fade is a mask, so it works on any card. */
+.folded-body {
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.folded.long:not(.open) .folded-body {
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.folded.open .folded-body {
+  max-height: none;
+}
+
+.folded-toggle {
+  margin-top: 6px;
+}
+
+/* A design's plan wraps like markdown tables do: a step's change can be paragraphs long. */
+.plan-table td {
+  min-width: 8ch;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+/* A review run's comments, one line each; the review page holds their cards. */
+.run-comments {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.run-comments li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+
+.result-page-bar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.result-page {
+  padding: 20px 24px;
+}

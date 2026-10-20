@@ -1,7 +1,7 @@
 import { setItemStatus } from "@powerloom/core";
 import { agentRun, codeReview, type localItem } from "@powerloom/db";
 import { eq, sql } from "drizzle-orm";
-import { applyUpdates, insertComments, markOutdated } from "../codeReview/commitReview";
+import { applyUpdates, insertComments, markOutdated, recordReviewVersion } from "../codeReview/commitReview";
 import type { AgentDeps } from "../models/AgentDeps";
 import { addRunOutputs } from "../tasks/runOutputs";
 import type { AgentToolset } from "../toolset/AgentToolset";
@@ -21,7 +21,7 @@ const NEW_COMMENT = /^new:(\d+)$/;
 // comments whose code changed and that it didn't decide on are outdated, its new comments are added, the research tasks
 // it created are written, and the review records the reviewed commit (the next follow-up's anchor), the summary, the
 // details (the threads' verdicts, carried ones included, and the newest comment it saw in each) and the comments it saw,
-// so the PR sync doesn't queue a follow-up for them. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
+// so the PR sync doesn't queue a follow-up for them; the commit, summary and details are also this run's version. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
 // here, so a run its budget stopped after the summary keeps its review.
 export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: BetterReviewRun, runId: number, toolset: AgentToolset): Promise<string[]> {
   const { pr } = run.context!;
@@ -56,16 +56,18 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
     rulesSaved: rules.saved,
     researchTaskIds: taskIds,
   };
+  const summaryMd = renderSummary(result, notes);
 
   await deps.db.update(codeReview).set({
     reviewedCommit: checkout.sourceCommit,
     reviewedIteration,
-    summaryMd: renderSummary(result, notes),
+    summaryMd,
     details,
     ...(threads ? { seenComments: sql`(select coalesce(jsonb_agg(distinct key), '[]'::jsonb) from jsonb_array_elements_text(coalesce(${codeReview.seenComments}, '[]'::jsonb) || ${JSON.stringify(commentKeys(threads))}::jsonb) as key)` } : {}),
     reviewedAt: new Date(),
     updatedAt: new Date(),
   }).where(eq(codeReview.prId, pr.id));
+  await recordReviewVersion(deps.db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd, details });
 
   await addRunOutputs(deps.db, runId, rules.ids);
   await setItemStatus(deps.db, task.id, "in-progress", "done", ACTOR, runId);

@@ -74,7 +74,8 @@
   border-radius: 16px;
 }
 
-.pill-switch button {
+.pill-switch button,
+.pill-switch a {
   padding: 4px 14px;
   font-size: 13px;
   font-weight: 400;
@@ -85,17 +86,20 @@
   box-shadow: none;
 }
 
-.pill-switch.mono button {
+.pill-switch.mono button,
+.pill-switch.mono a {
   font-family: var(--font-mono);
 }
 
-.pill-switch button:hover {
+.pill-switch button:hover,
+.pill-switch a:hover {
   filter: none;
   color: var(--text);
   box-shadow: none;
 }
 
-.pill-switch button.on {
+.pill-switch button.on,
+.pill-switch a.on {
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);

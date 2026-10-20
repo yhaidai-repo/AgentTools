@@ -1,4 +1,4 @@
-import { agentRun, codeReview, reviewComment, type PowerLoomDb } from "@powerloom/db";
+import { agentRun, codeReview, codeReviewVersion, reviewComment, type PowerLoomDb } from "@powerloom/db";
 import { eq, inArray, like } from "drizzle-orm";
 import type { CommentUpdateDraft } from "./models/CommentUpdateDraft";
 import type { NewCommentDraft } from "./models/NewCommentDraft";
@@ -7,7 +7,8 @@ import type { ReviewRun } from "./models/ReviewRun";
 const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open" | "fixed"> = { withdraw: "withdrawn", keep: "open", refine: "open", fixed: "fixed" };
 
 // A successful run: earlier comments whose code changed are outdated, the agent's decisions on earlier comments apply, its
-// new comments are added, and the review records the reviewed commit and summary. Returns the run's outputs.
+// new comments are added, and the review records the reviewed commit and summary, also as this run's version. Returns
+// the run's outputs.
 export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: number): Promise<string[]> {
   const { pr } = run.context!;
   const checkout = run.checkout!;
@@ -26,12 +27,19 @@ export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: numbe
     reviewedAt: new Date(),
     updatedAt: new Date(),
   }).where(eq(codeReview.prId, pr.id));
+  await recordReviewVersion(db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd: run.draft.summary, details: null });
 
   const outputs = [...added, ...run.draft.updates.map((update) => `${update.id} ${update.action}`), ...run.outdatedIds.map((id) => `${id} outdated`)];
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
 
   return outputs;
+}
+
+// What the run concluded, kept as its version of the review (user decision 2026-10-21): code_review keeps only the
+// latest. A run records one version; committing it again changes nothing.
+export async function recordReviewVersion(db: PowerLoomDb, version: typeof codeReviewVersion.$inferInsert): Promise<void> {
+  await db.insert(codeReviewVersion).values(version).onConflictDoNothing({ target: codeReviewVersion.runId });
 }
 
 export async function markOutdated(db: PowerLoomDb, ids: string[]): Promise<void> {

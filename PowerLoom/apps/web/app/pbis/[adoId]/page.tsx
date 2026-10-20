@@ -17,13 +17,13 @@ import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 export const dynamic = "force-dynamic";
 
 // `problem`: what New PBI couldn't save with the PBI it created (a repo, a file).
-type SearchParams = Promise<{ tab?: string; problem?: string }>;
+type SearchParams = Promise<{ tab?: string; problem?: string; v?: string }>;
 
 // The header with everything at hand, then three tabs (user decision 2026-10-13; Agents first since 2026-10-18): what
 // the agents made of the PBI, the PBI as Azure DevOps has it, the user's own notes.
 export default async function PbiPage({ params, searchParams }: { params: Promise<{ adoId: string }>; searchParams: SearchParams }) {
   const adoId = Number((await params).adoId);
-  const { tab: requestedTab, problem } = await searchParams;
+  const { tab: requestedTab, problem, v } = await searchParams;
   const tab = PBI_TABS.find((choice) => choice.key === requestedTab)?.key ?? DEFAULT_PBI_TAB;
   const detail = Number.isInteger(adoId) ? await loadPbiDetail(adoId) : null;
 
@@ -43,7 +43,7 @@ export default async function PbiPage({ params, searchParams }: { params: Promis
       {problem && <p className="create-problem">PBI-{adoId} was created, but: {problem} Fix it below.</p>}
       <PbiHeader detail={detail} stations={stations} changedAt={changedAt} />
       <PbiTabs adoId={adoId} active={tab} waiting={waiting} />
-      {tab === "agents" && <AgentsTab detail={detail} />}
+      {tab === "agents" && <AgentsTab detail={detail} chosen={v} />}
       {tab === "ado" && <AdoTab detail={detail} />}
       {tab === "notes" && <NotesTab adoId={adoId} />}
     </>

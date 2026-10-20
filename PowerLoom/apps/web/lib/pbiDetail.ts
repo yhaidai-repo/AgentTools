@@ -1,10 +1,8 @@
 import { agentRun, attachment, design, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
 import { latestPbiEstimate, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
-import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
-import { RESULT_KINDS } from "./items";
-import { loadTaskResults } from "./taskResults";
 
 // Uploads without their bytes (downloads read those on their own).
 const ATTACHMENT_SUMMARY = {
@@ -52,8 +50,8 @@ async function loadRelations(adoId: number, parentId: number | null) {
   return { parent: parent ?? null, bug: await readBug(db, adoId), children: await readChildItems(db, adoId) };
 }
 
-// One item with its uploads, for a task its results (shown inside the task), and the findings it raised. The route
-// checks the item belongs to its URL (a PBI's page, or Tasks for items without one).
+// One item with its uploads, its runs and the findings it raised; its versioned results load where they are shown. The
+// route checks the item belongs to its URL (a PBI's page, or Tasks for items without one).
 export async function loadItemDetail(itemId: string) {
   const db = getDb();
   const [item] = await db.select().from(localItem).where(eq(localItem.id, itemId));
@@ -63,14 +61,11 @@ export async function loadItemDetail(itemId: string) {
   }
 
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.itemId, itemId)).orderBy(attachment.id);
-  const results = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), inArray(localItem.kind, RESULT_KINDS))).orderBy(localItem.id);
   const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
   const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
 
-  const taskResults = await loadTaskResults(db, item, runs.map((run) => run.id));
-
-  return { item, attachments, results, findings, runs, taskResults };
+  return { item, attachments, findings, runs };
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;

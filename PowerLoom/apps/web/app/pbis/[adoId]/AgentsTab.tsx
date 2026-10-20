@@ -3,19 +3,18 @@ import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { Panel } from "@/components/Panel";
 import { getDb } from "@/lib/db";
-import { ResultTabs } from "@/components/ResultTabs";
 import { isResultKind, itemPath } from "@/lib/items";
-import { ItemContent } from "@/app/items/ItemContent";
 import { formatDuration, formatUsd } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import type { PbiDetail } from "@/lib/pbiDetail";
-import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
-import { DesignSection } from "./DesignSection";
-import { EstimateLine } from "./EstimateLine";
+import { versionKey } from "@/lib/resultLinks";
+import { loadPbiResultSets } from "@/lib/resultVersions";
+import type { ResultSet } from "@/models/ResultSet";
+import type { ResultVersion } from "@/models/ResultVersion";
+import { ResultBlock } from "../../results/ResultBlock";
 import { ItemList } from "./ItemList";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
-import { RefinementDetailsLine } from "./RefinementDetailsLine";
 
 type DraftRow = PbiDetail["drafts"][number];
 
@@ -27,16 +26,17 @@ const DRAFT_STATES: Record<string, string> = {
   merged: "merged into the docs vault",
 };
 
-// What the agents made of the PBI (user decision 2026-10-18: the first tab, in two columns): the refinement, the
-// design and every question and task in the main column; the runs, repos and skills beside them.
-export function AgentsTab({ detail }: { detail: PbiDetail }) {
+// What the agents made of the PBI (user decision 2026-10-18: the first tab, in two columns): each result under its task
+// with its versions behind a picker (user decision 2026-10-21) and every question and task in the main column; the
+// runs, repos and skills beside them. `chosen` is the result version in the URL.
+export async function AgentsTab({ detail, chosen }: { detail: PbiDetail; chosen: string | undefined }) {
+  const sets = await loadPbiResultSets(detail.pbi.adoId);
+  const hrefOf = (version: ResultVersion) => `/pbis/${detail.pbi.adoId}?tab=agents&v=${encodeURIComponent(versionKey(version))}`;
+
   return (
     <div className="pbi-columns">
       <div>
-        <Panel title="Estimate" aside={detail.estimate && <small>{detail.estimate.agent}</small>}>{detail.estimate ? <EstimateLine estimate={detail.estimate} /> : <p className="empty">No agent has estimated it yet.</p>}</Panel>
-        <Panel title="Refinement" aside={detail.refinement && <small>v{detail.refinement.version}</small>}><Refinement detail={detail} /></Panel>
-        <Panel title="Design" aside={detail.design && <small>v{detail.design.version}</small>}><DesignSection design={detail.design} /></Panel>
-        <AgentResults detail={detail} />
+        {sets.map((set) => <Panel key={set.key} title={<SetTitle set={set} />} aside={<VersionCount set={set} />}><ResultBlock set={set} chosen={chosen} hrefOf={hrefOf} /></Panel>)}
         <QuestionsAndTasks detail={detail} />
       </div>
       <div>
@@ -48,44 +48,13 @@ export function AgentsTab({ detail }: { detail: PbiDetail }) {
   );
 }
 
-function Refinement({ detail }: { detail: PbiDetail }) {
-  if (!detail.refinement) {
-    return <p className="empty">Not refined yet.</p>;
-  }
-
-  return (
-    <>
-      <p>{detail.refinement.summary}</p>
-      <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
-    </>
-  );
+// A research or test task's results name the task they answer.
+function SetTitle({ set }: { set: ResultSet }) {
+  return set.task ? <>{set.title} · <Link href={itemPath(set.task)}>{set.task.id}</Link></> : <>{set.title}</>;
 }
 
-// Every result an agent wrote for the PBI (research results, test reports) as tabs, the newest open (user request
-// 2026-10-20); each names the task it answers.
-function AgentResults({ detail }: { detail: PbiDetail }) {
-  const results = detail.items.filter((item) => isResultKind(item.kind) && item.status !== "superseded");
-
-  if (results.length === 0) {
-    return null;
-  }
-
-  const tabs = results.map((result) => ({
-    key: result.id,
-    label: `${result.id}${result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}`,
-    content: (
-      <div className="result-section">
-        <p className="hint">{result.kind === "test-report" ? "Test report" : "Research result"} of {result.parentId ? <Link href={itemPath({ id: result.parentId, pbiId: result.pbiId })}>{result.parentId}</Link> : "–"} · {result.status}</p>
-        <ItemContent item={result} />
-      </div>
-    ),
-  }));
-
-  return (
-    <Panel title="Agent results" aside={<small>{results.length}</small>}>
-      <ResultTabs tabs={tabs} />
-    </Panel>
-  );
+function VersionCount({ set }: { set: ResultSet }) {
+  return set.versions.length > 1 ? <small>{set.versions.length} versions</small> : null;
 }
 
 // Questions, human tasks, findings and agent tasks in one list; findings wait for your review without holding the
