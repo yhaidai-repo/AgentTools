@@ -40,6 +40,10 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - One bug per distinct failure; cite an existing open bug instead of a duplicate; several cases failing for one cause share one bug.
 - A failure caused by the plan, the data or the environment: a finding or a question, not a bug; the case is `blocked` or `not_run` with why.
 
+## Continuing from a previous report
+- The `<previous-report>` block is the plan: run the cases without a `pass`; keep the passed verdicts with the earlier report as their evidence unless the branch changed.
+- A blocked case runs when its item closed; one whose item was cancelled stays blocked with that id in `observed`, without a new task.
+
 ## Before writing
 - Every criterion appears exactly once in the cases (planned or blocked) and, after a run, once in the results.
 - Every finding has a resolution; every failed result names its bug.
