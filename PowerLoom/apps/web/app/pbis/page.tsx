@@ -25,11 +25,10 @@ import { StatusPills } from "./StatusPills";
 import { SyncForm } from "./SyncForm";
 import { SyncNowButton } from "./SyncNowButton";
 import { SyncPbiForm } from "./SyncPbiForm";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
 
-// Agents move PBIs between statuses all the time; the grid follows without a reload (user decision 2026-10-02).
-const BACKLOG_REFRESH_MS = 10_000;
 const IMPORTS_SHOWN = 20;
 
 type SearchParams = Promise<{ status?: string; page?: string; size?: string; focus?: string }>;
@@ -62,7 +61,7 @@ export default async function PbisPage({ searchParams }: { searchParams: SearchP
     <>
       <div className="page-head">
         <h1>Backlog</h1>
-        <AutoRefresh active intervalMs={BACKLOG_REFRESH_MS} />
+        <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
         <Link className="button page-action" href="/pbis/new">New PBI</Link>
       </div>
       <RememberFilters vault={vault} />

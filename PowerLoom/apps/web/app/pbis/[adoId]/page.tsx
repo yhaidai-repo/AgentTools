@@ -12,11 +12,9 @@ import { AgentsTab } from "./AgentsTab";
 import { NotesTab } from "./NotesTab";
 import { PbiHeader } from "./PbiHeader";
 import { DEFAULT_PBI_TAB, PBI_TABS, PbiTabs } from "./PbiTabs";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
-
-// While an agent runs on the PBI the page follows it, like the Backlog.
-const RUNNING_REFRESH_MS = 10_000;
 
 // `problem`: what New PBI couldn't save with the PBI it created (a repo, a file).
 type SearchParams = Promise<{ tab?: string; problem?: string }>;
@@ -35,12 +33,13 @@ export default async function PbiPage({ params, searchParams }: { params: Promis
 
   const [stations, changedAt] = await Promise.all([loadMetroLine(adoId, detail.pbi.pipelineStatus), loadChangedAt(getDb(), adoId)]);
   const waiting = detail.items.filter((item) => isOpen(item) && item.assignee === "human" && item.kind !== "finding").length;
-  const running = detail.runs.some((run) => run.outcome === "running");
+  // The Notes tab has no grid and is where the user types, so it isn't re-rendered under them.
+  const isRefreshed = tab !== "notes";
 
   return (
     <>
       <Breadcrumbs crumbs={crumbsOf(adoId, detail.parent)} />
-      <AutoRefresh active={running} intervalMs={RUNNING_REFRESH_MS} />
+      <AutoRefresh active={isRefreshed} intervalMs={GRID_REFRESH_MS} />
       {problem && <p className="create-problem">PBI-{adoId} was created, but: {problem} Fix it below.</p>}
       <PbiHeader detail={detail} stations={stations} changedAt={changedAt} />
       <PbiTabs adoId={adoId} active={tab} waiting={waiting} />
