@@ -116,6 +116,7 @@ h2 {
 /* Tabs of one page (e.g. Vault: Usage, Maintenance); the tab lives in the URL. A pill group, like the top menu. */
 .tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
   margin-bottom: 24px;
   padding: 3px;
@@ -131,6 +132,7 @@ h2 {
   background: transparent;
   font: inherit;
   cursor: pointer;
+  white-space: nowrap;
   border-radius: 999px;
   color: var(--muted);
   transition: color var(--motion-fast), background var(--motion-fast);
