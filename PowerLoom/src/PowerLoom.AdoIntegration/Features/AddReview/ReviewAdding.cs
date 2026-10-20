@@ -7,6 +7,8 @@ using PowerLoom.AdoIntegration.Features.AddReview.Models;
 using PowerLoom.AdoIntegration.Features.SyncPullRequests;
 using PowerLoom.AdoIntegration.Settings;
 using PowerLoom.Contracts;
+using PowerLoom.Infrastructure.LocalBranches;
+using PowerLoom.Infrastructure.LocalBranches.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
@@ -16,9 +18,9 @@ namespace PowerLoom.AdoIntegration.Features.AddReview;
 
 // Reviews → Add review (user decision 2026-10-21): the active ADO pull request from the branch, kept in Reviews while
 // it is active whoever's it is; without one, a branch review: no PR, the branch diffed against a target branch, its
-// linked PBI named or read from the branch name (feature/30474-…). Only ADO catalog repos: a branch review's head comes
-// from ADO.
-public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients)
+// linked PBI named or read from the branch name (feature/30474-…). A branch that isn't pushed is looked up on the PC
+// through DevHub (user, 2026-10-21): that branch review can be tested, not code-reviewed, until it is pushed.
+public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILocalBranches localBranches)
 {
     private const string BranchPrefix = BranchRefs.Prefix;
     private const string FallbackTarget = "main";
@@ -79,15 +81,16 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
 
     private async Task<Outcome<AddedReview>> AddBranchReviewAsync(AddReviewRequest request, IAdoClient client, Repo repo, string branch, CancellationToken cancellation)
     {
-        var existing = await db.PullRequests.AsNoTracking().Where(row => row.Origin == PullRequestOrigin.Local && row.IsListed && row.RepoId == repo.Id && row.SourceRef == BranchPrefix + branch).Select(row => (int?)row.Id).FirstOrDefaultAsync(cancellation);
+        var existing = await db.PullRequests.AsNoTracking().Where(row => (row.Origin == PullRequestOrigin.Local || row.Origin == PullRequestOrigin.Pc) && row.IsListed && row.RepoId == repo.Id && row.SourceRef == BranchPrefix + branch).Select(row => (int?)row.Id).FirstOrDefaultAsync(cancellation);
 
         if (existing is not null)
             return Outcome<AddedReview>.Failure(Problem.Conflict($"Branch review {existing} of {branch} is in Reviews already."));
 
         var head = await client.GetBranchHeadAsync(repo.Id, branch, cancellation);
+        var onPc = head is null ? await localBranches.FindAsync(request.Vault, repo.Name, branch, cancellation) : null;
 
-        if (head is null)
-            return Outcome<AddedReview>.Failure(Problem.NotFound($"{repo.Name} has no branch {branch} and no active pull request from it."));
+        if (head is null && onPc!.Head is null)
+            return Outcome<AddedReview>.Failure(Problem.NotFound(MissingMessage(repo.Name, branch, onPc)));
 
         var pbis = await LinkedPbisAsync(request.Vault, request.Pbi, branch, cancellation);
 
@@ -97,22 +100,33 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
         var id = await db.Database.SqlQueryRaw<int>("select nextval('local_pr_id')::int as \"Value\"").SingleAsync(cancellation);
         var target = BranchOf(request.TargetBranch ?? "") is { Length: > 0 } named ? named : BranchOf(repo.DefaultBranch ?? FallbackTarget);
 
-        db.PullRequests.Add(BranchReviewRow(id, request.Vault, repo, branch, target, head, pbis.Value!));
+        var origin = head is null ? PullRequestOrigin.Pc : PullRequestOrigin.Local;
+
+        db.PullRequests.Add(BranchReviewRow(id, request.Vault, repo, branch, target, head ?? onPc!.Head!, pbis.Value!, origin));
         db.CodeReviews.Add(new CodeReview { PrId = id });
         await db.SaveChangesAsync(cancellation);
 
         var linked = pbis.Value!.Count > 0 ? $", linked to PBI-{pbis.Value[0]}" : ", no linked PBI (Start test needs one)";
 
-        return Outcome<AddedReview>.Success(new AddedReview(id, "branch", $"Branch review {id} added: {branch} against {target}{linked}."));
+        var where = origin == PullRequestOrigin.Pc ? " It's only on this PC: Start test works, code review needs the branch pushed." : "";
+
+        return Outcome<AddedReview>.Success(new AddedReview(id, "branch", $"Branch review {id} added: {branch} against {target}{linked}.{where}"));
     }
 
-    private static PullRequest BranchReviewRow(int id, string vault, Repo repo, string branch, string target, string head, List<int> pbis)
+    private static string MissingMessage(string repo, string branch, LocalBranchLookup onPc)
+    {
+        var pcNote = onPc.Reachable ? "or on this PC" : $"(the PC wasn't checked: {onPc.Problem})";
+
+        return $"{repo} has no branch {branch} in Azure DevOps {pcNote}, and no active pull request from it.";
+    }
+
+    private static PullRequest BranchReviewRow(int id, string vault, Repo repo, string branch, string target, string head, List<int> pbis, string origin)
     {
         return new PullRequest
         {
-            Id = id, Vault = vault, Origin = PullRequestOrigin.Local, RepoId = repo.Id, RepoName = repo.Name, Title = $"Branch {branch}",
+            Id = id, Vault = vault, Origin = origin, RepoId = repo.Id, RepoName = repo.Name, Title = origin == PullRequestOrigin.Pc ? $"Branch {branch} (this PC)" : $"Branch {branch}",
             SourceRef = BranchPrefix + branch, TargetRef = BranchPrefix + target, SourceCommit = head, Iteration = 1, IsDraft = false,
-            WorkItemIds = JsonSerializer.Serialize(pbis), Url = BranchUrl(repo.RemoteUrl, branch), IsListed = true, SyncedAt = DateTime.UtcNow,
+            WorkItemIds = JsonSerializer.Serialize(pbis), Url = origin == PullRequestOrigin.Pc ? "" : BranchRefs.WebUrl(repo.RemoteUrl, branch), IsListed = true, SyncedAt = DateTime.UtcNow,
         };
     }
 
@@ -138,12 +152,7 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
 
     private static string BranchOf(string name) => BranchRefs.NameOf(name);
 
-    // The branch in the ADO web UI (the repo's remote without the user part).
-    private static string BranchUrl(string remoteUrl, string branch) => $"{UserPart().Replace(remoteUrl, "//")}?version=GB{Uri.EscapeDataString(branch)}";
-
     [GeneratedRegex(@"(?:^|/)(\d{4,7})(?:[-_/.]|$)")]
     private static partial Regex BranchPbi();
 
-    [GeneratedRegex(@"//[^/@]+@")]
-    private static partial Regex UserPart();
 }

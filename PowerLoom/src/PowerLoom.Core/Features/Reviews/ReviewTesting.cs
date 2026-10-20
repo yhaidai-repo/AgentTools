@@ -76,7 +76,7 @@ public sealed class ReviewTesting(PowerLoomDbContext db, TaskCreation creation)
     private static NewTask TaskOf(PullRequest pr, int pbiId, string branch)
     {
         var title = $"Test PBI-{pbiId} on {branch}";
-        var isBranchReview = pr.Origin == PullRequestOrigin.Local;
+        var isBranchReview = PullRequestOrigin.IsBranchReview(pr.Origin);
         var source = isBranchReview ? $"branch review {pr.Id}" : $"PR {pr.Id}: {pr.Title}";
         var description = $"Test PBI-{pbiId} on branch {branch} of {pr.RepoName} ({source}).";
         var criteria = $"Every acceptance criterion of PBI-{pbiId} has a verdict on branch {branch}: pass, fail with a bug, or blocked with why.";

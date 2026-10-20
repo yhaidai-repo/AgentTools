@@ -1,6 +1,6 @@
 "use server";
 
-import { closeItemCommand, linkedUrlOf, rerunTaskCommand, startFindingSubmit, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
+import { closeItemCommand, linkedUrlOf, rerunTaskCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { UploadedFile } from "@powerloom/attachments";
@@ -10,7 +10,7 @@ import { afterItemChange } from "@/lib/afterItemChange";
 import { runWebCommand, uploadAttachments, webCommandContext } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
-import { resolutionFromForm } from "@/lib/humanTaskAnswers";
+import { answersFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 
@@ -32,23 +32,22 @@ export async function closeItem(_previous: ActionResult | null, form: FormData):
     return { ok: false, message: uploadProblem };
   }
 
-  const closed = await runWebCommand(closeItemCommand, { ...request, resolution: resolutionFromForm(item, form, request.resolution) });
+  const closed = await runWebCommand(closeItemCommand, { ...request, answers: answersFromForm(item, form) });
 
   revalidateItemPages(request.adoId);
 
   return closed.ok ? { ok: true, message: `${request.itemId} ${closed.value.status}.` } : { ok: false, message: closed.error };
 }
 
-// "Submit to vault": the worker's register job adds the record to the project's register and closes the finding.
+// "Submit to vault": PowerLoom adds the record to the project's register and closes the finding.
 export async function submitFindingAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const request = readSubmitRequest(form);
-  const started = await startFindingSubmit(getDb(), request);
+  const submitted = await runWebCommand(submitFindingCommand, request);
 
-  if (!started.ok) {
-    return { ok: false, message: started.error };
+  if (!submitted.ok) {
+    return { ok: false, message: submitted.error };
   }
 
-  await webCommandContext().powerloom.addRecord(request.type === "issue" ? "known-issue" : "open-question", request.itemId);
   await afterItemChange(request.adoId);
 
   return { ok: true, message: `${request.itemId} is on its way to the ${request.project} register; reload in a moment for its id.` };

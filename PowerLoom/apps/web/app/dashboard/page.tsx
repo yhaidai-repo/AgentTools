@@ -8,10 +8,9 @@ import { AgentsTab } from "./agents/AgentsTab";
 import { ApplicationTab } from "./application/ApplicationTab";
 import { DeliveryTab } from "./delivery/DeliveryTab";
 import { DASHBOARD_TABS, DEFAULT_DASHBOARD_TAB, DashboardTabs } from "./DashboardTabs";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_REFRESH_MS = 30_000;
 
 type SearchParams = Promise<{ tab?: string; focus?: string; mark?: string; range?: string; sprint?: string; metric?: string }>;
 
@@ -32,7 +31,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     <>
       <div className="page-head">
         <h1>Dashboard</h1>
-        <AutoRefresh active intervalMs={STATUS_REFRESH_MS} />
+        <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
       </div>
       <RememberFilters vault={vault} />
       <DashboardTabs active={tab} />

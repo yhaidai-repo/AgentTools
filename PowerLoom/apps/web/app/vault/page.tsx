@@ -1,3 +1,4 @@
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
 import { RememberFilters } from "@/components/RememberFilters";
 import { currentVault, vaultRootOf } from "@/lib/currentVault";
@@ -5,6 +6,7 @@ import { rememberedParams } from "@/lib/rememberedFilters";
 import { MaintenanceTab } from "./MaintenanceTab";
 import { UsageTab } from "./UsageTab";
 import { DEFAULT_VAULT_TAB, VAULT_TABS, VaultTabs } from "./VaultTabs";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Search
 
   return (
     <>
-      <div className="page-head"><h1>Vault</h1></div>
+      <div className="page-head"><h1>Vault</h1><AutoRefresh active intervalMs={GRID_REFRESH_MS} /></div>
       <RememberFilters vault={vault} />
       {tab === "maintenance" ? <MaintenanceTab root={root} vault={vault} params={params} tabs={tabs} /> : <UsageTab root={root} vault={vault} params={params} tabs={tabs} />}
     </>

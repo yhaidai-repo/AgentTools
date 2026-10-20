@@ -536,7 +536,7 @@ export const pullRequest = pgTable("pull_request", {
   url: text("url").notNull(),
   vault: vaultName(),
   isListed: boolean("is_listed").notNull().default(true), // false once it left the user's active PRs (completed, abandoned, not a reviewer)
-  origin: text("origin").notNull().default("sync"), // sync | user (an ADO PR added by its branch) | local (a branch review, no PR; 2026-10-21)
+  origin: text("origin").notNull().default("sync"), // sync | user (an ADO PR added by its branch) | local (a branch review, no PR) | pc (a branch only on the PC; 2026-10-21)
   adoCreatedAt: ts("ado_created_at"),
   syncedAt: ts("synced_at").notNull().defaultNow(),
 });

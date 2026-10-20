@@ -17,11 +17,10 @@ import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
 
-// Agents pick up and finish tasks all the time; the list follows without a reload, like the Backlog.
-const TASKS_REFRESH_MS = 10_000;
 const STATUSES: TaskFilter["status"][] = ["you", "open", "held", "done", "cancelled", "all"];
 
 type SearchParams = Promise<{ kind?: string; status?: string; pbi?: string; range?: string; sort?: string; page?: string; size?: string }>;
@@ -48,7 +47,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
     <>
       <div className="page-head">
         <h1>Tasks</h1>
-        <AutoRefresh active intervalMs={TASKS_REFRESH_MS} />
+        <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
         <Link className="button page-action" href="/tasks/new">New task</Link>
       </div>
       <RememberFilters vault={vault} />
