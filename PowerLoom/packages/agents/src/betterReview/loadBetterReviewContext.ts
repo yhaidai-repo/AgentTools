@@ -60,6 +60,10 @@ export async function loadReviewRules(deps: AgentDeps, repoName: string): Promis
 async function loadOtherReviews(context: TaskContext, pr: PullRequestRow, access: OutsideAccessContext): Promise<OtherReviews> {
   const { deps, agent } = context;
 
+  if (pr.origin === "local") {
+    return { unavailable: "a branch review has no pull request, so there are no other reviewers' comments" };
+  }
+
   if (agent.capabilities.integrations?.[ADO_INTEGRATION] !== true) {
     return { unavailable: "Azure DevOps (read) is off in this agent's Config, so the other reviewers' comments weren't read" };
   }

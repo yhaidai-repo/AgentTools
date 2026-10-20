@@ -42,6 +42,9 @@ namespace PowerLoom.Persistence.Migrations
             modelBuilder.HasSequence("local_pbi_id")
                 .StartsAt(9000001L);
 
+            modelBuilder.HasSequence("local_pr_id")
+                .StartsAt(9000001L);
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.AdoStateChange", b =>
                 {
                     b.Property<int>("AdoId")
@@ -925,6 +928,13 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1)
                         .HasColumnName("iteration");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("sync")
+                        .HasColumnName("origin");
 
                     b.Property<string>("RepoId")
                         .IsRequired()

@@ -397,7 +397,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /**
+         * POST_api_reviews
+         * @description POST_api_reviews
+         */
+        post: operations["POST_api_reviews"];
         /**
          * DELETE_api_reviews
          * @description DELETE_api_reviews
@@ -1361,12 +1365,25 @@ export interface components {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
         };
+        AddReviewRequest: {
+            vault: string;
+            repo: string;
+            branch: string;
+            targetBranch: null | string;
+            pbi: null | string;
+        };
         AddSqlConnectionRequest: {
             name: string;
             connectionString: string;
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedReview: {
+            /** Format: int32 */
+            prId: number;
+            kind: string;
+            message: string;
         };
         AddedVault: {
             vault: string;
@@ -2439,6 +2456,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
+    POST_api_reviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedReview"];
                 };
             };
         };

@@ -776,6 +776,36 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
+        ],
+        "summary": "POST_api_reviews",
+        "description": "POST_api_reviews",
+        "operationId": "POST_api_reviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedReview"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/review-comments/{id}/answer": {
@@ -2969,6 +2999,39 @@
           }
         }
       },
+      "AddReviewRequest": {
+        "required": [
+          "vault",
+          "repo",
+          "branch",
+          "targetBranch",
+          "pbi"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "targetBranch": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AddSqlConnectionRequest": {
         "required": [
           "name",
@@ -2991,6 +3054,26 @@
         "type": "object",
         "properties": {
           "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedReview": {
+        "required": [
+          "prId",
+          "kind",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "message": {
             "type": "string"
           }
         }
@@ -5275,6 +5358,9 @@
     },
     {
       "name": "PowerLoom.Features.Reviews.ReviewsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
     },
     {
       "name": "PowerLoom.Features.Repos.CatalogEndpoints"

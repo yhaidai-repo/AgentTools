@@ -18,6 +18,9 @@ public sealed class FakeAdoClient : IAdoClient
 
     public List<AdoPullRequest> PullRequests { get; set; } = [];
 
+    // "<repoId>:<branch>" → head commit.
+    public Dictionary<string, string> BranchHeads { get; } = [];
+
     public Dictionary<int, AdoPullRequestDetails> Details { get; } = [];
 
     // PR id → people's comments on its threads.
@@ -66,6 +69,8 @@ public sealed class FakeAdoClient : IAdoClient
     {
         return Task.FromResult<IReadOnlyList<AdoThreadComment>>(Threads.GetValueOrDefault(pullRequestId, []));
     }
+
+    public Task<string?> GetBranchHeadAsync(string repoId, string branch, CancellationToken cancellation) => Task.FromResult(BranchHeads.GetValueOrDefault($"{repoId}:{branch}"));
 
     public Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation)
     {

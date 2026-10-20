@@ -87,6 +87,17 @@ async function startAgentsTaking(taskType: string): Promise<number> {
   return agents.length;
 }
 
+// Add review (user decision 2026-10-21): the active PR of the branch, or a branch review without one.
+export async function addReview(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const vault = await requireVault();
+  const body = { vault, repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", targetBranch: formText(form, "targetBranch") || null, pbi: formText(form, "pbi") || null };
+  const added = await powerloom.POST("/api/reviews", { body });
+
+  revalidatePath("/reviews");
+
+  return powerloomResult(added, added.data?.message ?? "Review added.");
+}
+
 export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   return forSelected(form, "closed", closeReview);
 }

@@ -14,8 +14,8 @@ namespace PowerLoom.Api.Tests.Reviews;
 [Collection(PowerLoomCollection.Name)]
 public sealed class ReviewTestingTests(PowerLoomHost host)
 {
-    private const int LinkedPr = 7401;
-    private const int UnlinkedPr = 7402;
+    private const int LinkedPr = 7611;
+    private const int UnlinkedPr = 7612;
     private const int FirstPbi = 74011;
     private const int SecondPbi = 74012;
     private const int OtherVaultPbi = 74013;

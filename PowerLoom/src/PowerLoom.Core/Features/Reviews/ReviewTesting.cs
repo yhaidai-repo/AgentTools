@@ -8,6 +8,7 @@ using PowerLoom.Features.Tasks.CreateTask.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Features.Reviews;
 
@@ -16,7 +17,6 @@ namespace PowerLoom.Features.Reviews;
 // task gets no second one.
 public sealed class ReviewTesting(PowerLoomDbContext db, TaskCreation creation)
 {
-    private const string BranchPrefix = "refs/heads/";
     private const int TitleMax = 120;
 
     public async Task<ReviewsResult> StartAsync(IReadOnlyList<int> prIds, CancellationToken cancellation)
@@ -76,9 +76,11 @@ public sealed class ReviewTesting(PowerLoomDbContext db, TaskCreation creation)
     private static NewTask TaskOf(PullRequest pr, int pbiId, string branch)
     {
         var title = $"Test PBI-{pbiId} on {branch}";
-        var description = $"Test PBI-{pbiId} on branch {branch} of {pr.RepoName} (PR {pr.Id}: {pr.Title}).";
+        var isBranchReview = pr.Origin == PullRequestOrigin.Local;
+        var source = isBranchReview ? $"branch review {pr.Id}" : $"PR {pr.Id}: {pr.Title}";
+        var description = $"Test PBI-{pbiId} on branch {branch} of {pr.RepoName} ({source}).";
         var criteria = $"Every acceptance criterion of PBI-{pbiId} has a verdict on branch {branch}: pass, fail with a bug, or blocked with why.";
-        var extra = new Dictionary<string, object?> { ["branch"] = branch, ["pullRequestId"] = pr.Id, ["repo"] = pr.RepoName };
+        var extra = new Dictionary<string, object?> { ["branch"] = branch, ["pullRequestId"] = isBranchReview ? null : pr.Id, ["repo"] = pr.RepoName };
 
         return new NewTask(pr.Vault, "test", title.Length > TitleMax ? title[..TitleMax] : title, description, criteria, pbiId, [], Extra: extra);
     }
@@ -93,7 +95,7 @@ public sealed class ReviewTesting(PowerLoomDbContext db, TaskCreation creation)
         return open.FirstOrDefault(item => ItemData.StringOf(item.Data, "branch") == branch)?.Id;
     }
 
-    private static string BranchOf(string sourceRef) => sourceRef.StartsWith(BranchPrefix, StringComparison.Ordinal) ? sourceRef[BranchPrefix.Length..] : sourceRef;
+    private static string BranchOf(string sourceRef) => BranchRefs.NameOf(sourceRef);
 
     private static void Collect(ReviewsResult result, int prId, Outcome<string> outcome)
     {

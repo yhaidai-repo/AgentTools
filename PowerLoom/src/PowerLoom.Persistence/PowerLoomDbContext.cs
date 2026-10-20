@@ -75,6 +75,7 @@ public partial class PowerLoomDbContext : DbContext
         // The PostgreSQL enums come from MapPowerLoomEnums (Npgsql registers them with the model).
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PowerLoomDbContext).Assembly);
         modelBuilder.HasSequence("local_pbi_id").StartsAt(9000001L);
+        modelBuilder.HasSequence("local_pr_id").StartsAt(9000001L);
 
         OnModelCreatingPartial(modelBuilder);
     }

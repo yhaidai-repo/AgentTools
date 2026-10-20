@@ -87,6 +87,11 @@ button.danger {
 }
 
 /* The selection bar: there only while rows are ticked; it slides down and fades in, and folds away when cleared. */
+/* Reviews → Add review: one line of fields that wraps on narrow screens. */
+.add-review-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.add-review-form input { min-width: 0; flex: 1 1 160px; }
+.add-review-form input[name="branch"] { flex-basis: 260px; }
+
 .selection-bar {
   position: sticky;
   top: 78px;

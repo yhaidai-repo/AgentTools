@@ -27,6 +27,7 @@ public static class AdoIntegrationSetup
         builder.Services.AddScoped<ImportSync>();
         builder.Services.AddScoped<DiscussionSync>();
         builder.Services.AddScoped<PullRequestSync>();
+        builder.Services.AddScoped<Features.AddReview.ReviewAdding>();
         builder.Services.AddScoped<LinkedDocumentCollector>();
         builder.Services.AddSingleton<ICronSource, AdoCronSource>();
         // PBI notes link to the work item's page in Azure DevOps.

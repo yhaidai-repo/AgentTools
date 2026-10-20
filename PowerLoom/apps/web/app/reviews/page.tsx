@@ -1,4 +1,4 @@
-import { isAdoActive, readAdoSettings } from "@powerloom/core";
+import { enabledRepos, isAdoActive, readAdoSettings } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { FocusRow } from "@/components/FocusRow";
@@ -14,6 +14,7 @@ import { REVIEW_LIST_STATUSES, REVIEW_PAGE_SIZES, loadReviewRows } from "@/lib/r
 import { reviewsUrl } from "@/lib/reviewsUrl";
 import type { ReviewFilter } from "@/models/ReviewFilter";
 import type { ReviewRow } from "@/models/ReviewRow";
+import { AddReviewForm } from "./AddReviewForm";
 import { CheckNowForm } from "./CheckNowForm";
 import { ReviewsForm } from "./ReviewsForm";
 import { ReviewTable } from "./ReviewTable";
@@ -53,6 +54,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
       <RememberFilters vault={vault} />
       <div className="backlog-bar">
         <StatusPills rows={rows} filter={filter} />
+        {adoActive && <AddReviewForm repos={(await enabledRepos(db, vault)).filter((entry) => entry.kind === "ado").map((entry) => ({ name: entry.name, defaultBranch: entry.defaultBranch }))} />}
         {adoActive ? <CheckLine rows={rows} /> : <span className="sync-line">No Azure DevOps integration for {vault}: enable it in <Link href="/settings">Settings</Link> to list pull requests.</span>}
       </div>
       {shown.length === 0 ? <p className="empty-note">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}

@@ -16,7 +16,7 @@ namespace PowerLoom.Api.Tests.Tasks;
 public sealed class CreateTaskTests(PowerLoomHost host)
 {
     private const int AdoId = 64714;
-    private const int NotesAdoId = 64715;
+    private const int NotesAdoId = 64771;
     private const string Criteria = "Names the cause, with evidence";
 
     [Fact]
