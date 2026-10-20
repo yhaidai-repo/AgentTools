@@ -35,7 +35,7 @@ describe("createDevHubTools", () => {
   it("gives the stack tools, the case tools and the Playwright MCP tools when both are on", () => {
     const names = createDevHubTools(depsWith({}).deps, agentWith(true), context).map((tool) => tool.name);
 
-    assert.deepEqual(names.slice(0, 8), ["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack", "browser_open", "browser_close", "browser_type_secret"]);
+    assert.deepEqual(names.slice(0, 10), ["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack", "list_secret_names", "http_request", "browser_open", "browser_close", "browser_type_secret"]);
     assert.ok(names.includes("browser_navigate") && names.includes("browser_snapshot") && names.includes("browser_take_screenshot"));
     assert.ok(!names.includes("browser_run_code_unsafe") && !names.includes("browser_start_video"));
   });

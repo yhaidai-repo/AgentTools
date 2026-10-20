@@ -151,7 +151,10 @@
     ],
     "run": {
       "project": "pvs/PVS/PVS.Clients.WebClient.Core/PVS.Clients.WebClient.Core.csproj",
-      "launchProfile": "PVS.Clients.WebClient.Core.Development"
+      "launchProfile": "PVS.Clients.WebClient.Core.Development",
+      "npmPackages": [
+        "pvs/PVS/PVS.Clients.WebClient.Core"
+      ]
     }
   },
   "rabbitmq": {

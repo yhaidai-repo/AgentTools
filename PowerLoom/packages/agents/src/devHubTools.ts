@@ -4,6 +4,7 @@ import { waitForStack, type DevHubAnswer, type StackStatus, type StackWait } fro
 import { toMarkdownTable } from "@powerloom/sql";
 import { z } from "zod";
 import { createBrowserTools } from "./browser/browserTools";
+import { createSecretTools } from "./browser/secretTools";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { DevHubAccess } from "./models/DevHubAccess";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
@@ -48,6 +49,7 @@ export function createDevHubTools(deps: AgentDeps, agent: AgentDefinition, conte
     stackStatusTool(deps, context, access, owner),
     stackLogsTool(deps, context, access),
     stopStackTool(deps, context, access, owner),
+    ...createSecretTools(deps, context, access),
     ...createBrowserTools(deps, context, access, owner, isHeadless(agent)),
   ];
 }

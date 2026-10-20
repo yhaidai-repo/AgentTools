@@ -16,5 +16,7 @@ export type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
 export type { TypeSecretRequest } from "./models/TypeSecretRequest";
 export type { McpToolAnswer } from "./models/McpToolAnswer";
 export type { McpEndpoint } from "./models/McpEndpoint";
+export type { SecretHttpRequest } from "./models/SecretHttpRequest";
+export type { SecretHttpResponse } from "./models/SecretHttpResponse";
 export type { BrowserStatus } from "./models/BrowserStatus";
 export type { BrowserClosed } from "./models/BrowserClosed";

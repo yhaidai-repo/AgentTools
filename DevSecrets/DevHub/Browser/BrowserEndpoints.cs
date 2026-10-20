@@ -14,6 +14,8 @@ public static class BrowserEndpoints
         app.MapPost($"{BrowserPath}/type-secret", TypeSecretAsync);
         app.MapDelete(BrowserPath, CloseAsync);
         app.MapGet($"{BrowserPath}/artifacts", (string owner, BrowserService browsers) => TypedResults.Ok(new { owner, artifacts = browsers.ListArtifacts(owner) }));
+        app.MapGet($"{BrowserPath}/secret-names", (SecretsFile secrets) => TypedResults.Ok(new { names = secrets.Names() }));
+        app.MapPost($"{BrowserPath}/http-request", HttpRequestAsync);
 
         return app;
     }
@@ -23,6 +25,9 @@ public static class BrowserEndpoints
 
     private static async Task<IResult> TypeSecretAsync(TypeSecretRequest request, BrowserService browsers, CancellationToken cancellationToken) =>
         ToResult(await browsers.TypeSecretAsync(request, cancellationToken));
+
+    private static async Task<IResult> HttpRequestAsync(SecretHttpRequest request, SecretHttpClient http, CancellationToken cancellationToken) =>
+        ToResult(await http.SendAsync(request, cancellationToken));
 
     // Not the request's token: a client that gives up must not leave a half-closed recording.
     private static async Task<IResult> CloseAsync(BrowserService browsers, string? owner = null) =>

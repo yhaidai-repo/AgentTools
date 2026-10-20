@@ -31,8 +31,11 @@ public sealed partial class SecretsFile(DevSecretsFiles files)
         return values.TryGetValue(valueName, out var value) ? value : null;
     }
 
+    // The names an agent may use (never the values): for type-secret and http-request placeholders.
+    public string[] Names() => AllValues().Keys.Order(StringComparer.Ordinal).ToArray();
+
     // Local values first (they extend dev), then dev.
-    private Dictionary<string, string> AllValues()
+    public Dictionary<string, string> AllValues()
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
 

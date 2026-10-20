@@ -4,6 +4,8 @@ import type { DevHubAnswer } from "./models/DevHubAnswer";
 import type { McpEndpoint } from "./models/McpEndpoint";
 import type { McpToolAnswer } from "./models/McpToolAnswer";
 import type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
+import type { SecretHttpRequest } from "./models/SecretHttpRequest";
+import type { SecretHttpResponse } from "./models/SecretHttpResponse";
 import type { TypeSecretRequest } from "./models/TypeSecretRequest";
 import type { StackLog } from "./models/StackLog";
 import type { StackServiceInfo } from "./models/StackServiceInfo";
@@ -63,6 +65,14 @@ export class DevHubClient {
 
   typeSecret(request: TypeSecretRequest): Promise<DevHubAnswer<McpToolAnswer>> {
     return this.call("POST", "/browser/type-secret", request);
+  }
+
+  secretNames(): Promise<DevHubAnswer<{ names: string[] }>> {
+    return this.call("GET", "/browser/secret-names");
+  }
+
+  httpRequest(request: SecretHttpRequest): Promise<DevHubAnswer<SecretHttpResponse>> {
+    return this.call("POST", "/browser/http-request", request);
   }
 
   closeBrowser(owner: string): Promise<DevHubAnswer<BrowserClosed>> {

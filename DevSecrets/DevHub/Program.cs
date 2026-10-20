@@ -31,6 +31,7 @@ builder.Services.AddSingleton<ScriptCheck>();
 builder.Services.AddSingleton<ConfigEditor>();
 builder.Services.AddHostedService<StackExpiryService>();
 builder.Services.AddSingleton<SecretsFile>();
+builder.Services.AddSingleton<SecretHttpClient>();
 builder.Services.AddSingleton<BrowserService>();
 builder.Services.AddHostedService<BrowserExpiryService>();
 builder.Services.AddProblemDetails();

@@ -86,6 +86,27 @@ function Invoke-LocalPatches([string[]] $Roots) {
     }
 }
 
+function Initialize-NpmPackages([string] $PackageDir) {
+    # The portal serves its node_modules (git-ignored), so a fresh branch worktree needs them installed.
+    if (Test-Path -LiteralPath (Join-Path $PackageDir "node_modules")) {
+        return
+    }
+
+    Write-Host "node_modules missing in $PackageDir, installing"
+    Push-Location $PackageDir
+
+    try {
+        npm ci --no-audit --no-fund --loglevel error
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm ci failed in $PackageDir"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Initialize-DenoCache([string] $ScriptsDir) {
     # The runner starts Deno with --cached-only, so the vendor folder (git-ignored) must be complete.
     if (Test-Path -LiteralPath (Join-Path $ScriptsDir "vendor/jsr.io/@std/log")) {

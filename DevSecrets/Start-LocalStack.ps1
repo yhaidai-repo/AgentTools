@@ -183,6 +183,10 @@ function Initialize-Signals([string[]] $Names, [hashtable] $Roots) {
     $Names | Where-Object { $Catalog[$_].run.denoScripts } | ForEach-Object { Initialize-DenoCache (Resolve-ProjectPath $Roots $Catalog[$_].run.denoScripts) }
 }
 
+function Initialize-NpmProjects([string[]] $Names, [hashtable] $Roots) {
+    $Names | Where-Object { $Catalog[$_].run.npmPackages } | ForEach-Object { $name = $_; $Catalog[$name].run.npmPackages | ForEach-Object { Initialize-NpmPackages (Resolve-ProjectPath $Roots $_) } }
+}
+
 function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $State) {
     foreach ($name in $Names) {
         $projectPath = Resolve-ProjectPath $Roots $Catalog[$name].run.project
@@ -232,6 +236,7 @@ if (-not $NoPatches) {
 }
 
 Initialize-Signals $names $roots
+Initialize-NpmProjects $names $roots
 
 New-Item -ItemType Directory -Force -Path $StackDir | Out-Null
 Get-ChildItem -LiteralPath $StackDir -Filter "*.log" | Remove-Item -Force

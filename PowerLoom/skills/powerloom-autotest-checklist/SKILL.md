@@ -27,7 +27,8 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 
 ## Browser
 - One `browser_open` … `browser_close` per case: the recording belongs to the case.
-- Sign in with `browser_type_secret` (the dev test account's value names are in the task or DevHub); never type a secret with `browser_type`.
+- Sign in with `browser_type_secret` (`list_secret_names` shows the value names, e.g. `pvs-dev-user-yhaidai`); never type a secret with `browser_type`.
+- API cases: `http_request` from the host with `{{secret:pvs-web-api-key|basic}}` as the Authorization header; the body comes back redacted.
 - Act on the snapshot's refs; after each action read the new snapshot before the next step.
 - Take a screenshot at the step where the criterion is visible; it is evidence for the verdict and the bug.
 - A step that fails once: take a snapshot, retry once; then decide the verdict.
