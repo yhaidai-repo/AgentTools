@@ -8,7 +8,8 @@ type ReportResult = (result: ActionResult) => void;
 
 const RunNowReport = createContext<ReportResult | null>(null);
 
-// The table's Run now buttons answer on one line under the table: a row's action cell is too narrow for the answer.
+// The table's Run now buttons answer on one line under the table: a row's action cell is too narrow for the answer, so
+// the button only marks it.
 export function RunNowResults({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<ActionResult | null>(null);
 

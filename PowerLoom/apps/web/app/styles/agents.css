@@ -133,7 +133,7 @@
 .agents-table .col-runs { width: 84px; }
 .agents-table .col-cost { width: 130px; }
 .agents-table .col-last { width: 104px; }
-.agents-table .col-act { width: 110px; }
+.agents-table .col-act { width: 130px; }
 
 .agent-name {
   display: inline-flex;
@@ -209,14 +209,15 @@
   gap: 7px;
 }
 
-/* Run now shows on the row's hover (user decision 2026-10-18), and stays while it has focus. */
+/* Run now shows on the row's hover (user decision 2026-10-18), and stays while it has focus or shows its answer. */
 .row-action {
   opacity: 0;
   transition: opacity var(--motion-fast);
 }
 
 tr:hover .row-action,
-.row-action:focus-within {
+.row-action:focus-within,
+.row-action:has(.result-ok, .result-error) {
   opacity: 1;
 }
 

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ResultLine } from "@/components/ResultLine";
+import { ResultMark } from "@/components/ResultMark";
 import type { ActionResult } from "@/models/ActionResult";
 import { runAgentNow, setAgentsPaused } from "./actions";
 import { useRunNowReport } from "./RunNowResults";
@@ -44,8 +45,8 @@ export function RunNowButton({ agentId, disabled }: { agentId: string; disabled:
 
   return (
     <form action={action} className="actions">
-      <button type="submit" className="secondary small" disabled={disabled || isPending}>Run now</button>
-      {!report && <ResultLine result={result} />}
+      <button type="submit" className="secondary small" disabled={disabled || isPending}>{isPending ? "Starting…" : "Run now"}</button>
+      {report ? <ResultMark result={result} /> : <ResultLine result={result} />}
     </form>
   );
 }
