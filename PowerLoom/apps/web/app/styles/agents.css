@@ -427,6 +427,11 @@ tr:hover .row-action,
   padding: 16px 0 0;
 }
 
+.cron-control {
+  display: grid;
+  gap: 6px;
+}
+
 .cron-words {
   font-size: 12px;
   color: var(--accent);
@@ -443,6 +448,14 @@ tr:hover .row-action,
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 12px;
   align-items: start;
+}
+
+/* A label and its control share the row's tracks with the neighbouring field, so a hint that wraps onto a second line
+   doesn't push its control below the one beside it. */
+.field-grid > .field:has(> :nth-child(2):last-child) {
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 6px;
 }
 
 .form-picker .dropdown,
