@@ -49,18 +49,32 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/DevSecrets.Resolve.ps1"
 . "$PSScriptRoot/LocalStack.Worktree.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
+. "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 function Add-BusWhenConsumed([string[]] $Names) {
-    $consumes = @($Names | Where-Object { $Catalog[$_].consumesBus })
+    # A publisher (the portal, the API) needs the bus as much as a consumer: a login or a request publishes an event.
+    $consumes = @($Names | Where-Object { $Catalog[$_].consumesBus -or $Catalog[$_].usesBus })
 
     if ($consumes.Count -eq 0 -or $Names -contains "rabbitmq") {
         return $Names
     }
 
-    Write-Host "Adding rabbitmq: $($consumes -join ', ') consume the bus"
+    Write-Host "Adding rabbitmq: $($consumes -join ', ') use the bus"
 
     return @("rabbitmq") + $Names
+}
+
+function Add-CacheWhenUsed([string[]] $Names) {
+    $uses = @($Names | Where-Object { $Catalog[$_].usesCache })
+
+    if ($uses.Count -eq 0 -or $Names -contains "redis") {
+        return $Names
+    }
+
+    Write-Host "Adding redis: $($uses -join ', ') cache there"
+
+    return @("redis") + $Names
 }
 
 function Assert-Runnable([string[]] $Names) {
@@ -183,6 +197,10 @@ function Initialize-Signals([string[]] $Names, [hashtable] $Roots) {
     $Names | Where-Object { $Catalog[$_].run.denoScripts } | ForEach-Object { Initialize-DenoCache (Resolve-ProjectPath $Roots $Catalog[$_].run.denoScripts) }
 }
 
+function Initialize-NpmProjects([string[]] $Names, [hashtable] $Roots) {
+    $Names | Where-Object { $Catalog[$_].run.npmPackages } | ForEach-Object { $name = $_; $Catalog[$name].run.npmPackages | ForEach-Object { Initialize-NpmPackages (Resolve-ProjectPath $Roots $_) } }
+}
+
 function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $State) {
     foreach ($name in $Names) {
         $projectPath = Resolve-ProjectPath $Roots $Catalog[$name].run.project
@@ -213,6 +231,7 @@ $names = Get-ServiceNames $Services
 Assert-KnownServices $Catalog $names
 
 $names = Add-BusWhenConsumed $names
+$names = Add-CacheWhenUsed $names
 $LocalServices = $names
 $appServices = Get-AppServices $names
 
@@ -232,6 +251,7 @@ if (-not $NoPatches) {
 }
 
 Initialize-Signals $names $roots
+Initialize-NpmProjects $names $roots
 
 New-Item -ItemType Directory -Force -Path $StackDir | Out-Null
 Get-ChildItem -LiteralPath $StackDir -Filter "*.log" | Remove-Item -Force
@@ -244,6 +264,11 @@ $state = @{ branch = $Branch; environment = $Values; roots = $roots; services = 
 
 if ($names -contains "rabbitmq") {
     $state.services += Start-LocalRabbitMq $named $Catalog["rabbitmq"]
+    Save-StackState $state
+}
+
+if ($names -contains "redis") {
+    $state.services += Start-LocalRedis $Catalog["redis"]
     Save-StackState $state
 }
 

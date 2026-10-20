@@ -88,6 +88,14 @@ public sealed class AdoClient(HttpClient http, AdoConnection connection) : IAdoC
         return new AdoPullRequestDetails(Math.Max(1, iterations.Value.Select(iteration => iteration.Id).DefaultIfEmpty(1).Max()), ids);
     }
 
+    // The refs API filters by prefix, so the exact name is picked.
+    public async Task<string?> GetBranchHeadAsync(string repoId, string branch, CancellationToken cancellation)
+    {
+        var refs = await RequestAsync<ValueList<AdoRefDto>>($"{ProjectUrl()}/_apis/git/repositories/{repoId}/refs?filter={Uri.EscapeDataString("heads/" + branch)}&{ApiVersion}", null, cancellation);
+
+        return refs.Value.FirstOrDefault(entry => entry.Name == $"refs/heads/{branch}")?.ObjectId;
+    }
+
     public async Task<IReadOnlyList<AdoThreadComment>> GetPullRequestCommentsAsync(string repoId, int pullRequestId, CancellationToken cancellation)
     {
         var threads = await RequestAsync<ValueList<ThreadDto>>($"{ProjectUrl()}/_apis/git/repositories/{repoId}/pullRequests/{pullRequestId}/threads?{ApiVersion}", null, cancellation);

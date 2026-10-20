@@ -39,6 +39,9 @@ public partial class PullRequestConfiguration : IEntityTypeConfiguration<PullReq
         entity.Property(e => e.Title).HasColumnName("title");
         entity.Property(e => e.Url).HasColumnName("url");
         entity.Property(e => e.Vault).HasColumnName("vault");
+        entity.Property(e => e.Origin)
+            .HasDefaultValue("sync")
+            .HasColumnName("origin");
         entity.Property(e => e.WorkItemIds)
             .HasDefaultValueSql("'[]'::jsonb")
             .HasColumnType("jsonb")

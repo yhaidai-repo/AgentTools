@@ -10,6 +10,8 @@ public static class TasksFeature
     {
         services.AddScoped<TaskScheduling>();
         services.AddScoped<TaskCreation>();
+        services.AddScoped<TaskNotes.TaskNotes>();
+        services.AddScoped<Reviews.ReviewTesting>();
         services.AddSingleton<ICronSource, TaskScheduleCronSource>();
 
         return services;

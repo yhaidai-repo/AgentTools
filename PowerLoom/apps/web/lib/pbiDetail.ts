@@ -1,8 +1,9 @@
 import { agentRun, attachment, design, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
 import { latestPbiEstimate, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
+import { RESULT_KINDS } from "./items";
 import { loadTaskResults } from "./taskResults";
 
 // Uploads without their bytes (downloads read those on their own).
@@ -62,7 +63,7 @@ export async function loadItemDetail(itemId: string) {
   }
 
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.itemId, itemId)).orderBy(attachment.id);
-  const results = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "research-result"))).orderBy(localItem.id);
+  const results = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), inArray(localItem.kind, RESULT_KINDS))).orderBy(localItem.id);
   const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
   const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));

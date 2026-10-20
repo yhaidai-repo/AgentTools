@@ -87,6 +87,11 @@ button.danger {
 }
 
 /* The selection bar: there only while rows are ticked; it slides down and fades in, and folds away when cleared. */
+/* Reviews → Add review: one line of fields that wraps on narrow screens. */
+.add-review-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.add-review-form input { min-width: 0; flex: 1 1 160px; }
+.add-review-form input[name="branch"] { flex-basis: 260px; }
+
 .selection-bar {
   position: sticky;
   top: 78px;
@@ -308,6 +313,7 @@ button.danger {
 .stage-human { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: color-mix(in srgb, var(--warn) 6%, transparent); }
 .stage-design { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); background: color-mix(in srgb, var(--accent-2) 6%, transparent); }
 .stage-dev { color: var(--state-ready); border-color: color-mix(in srgb, var(--state-ready) 35%, transparent); background: color-mix(in srgb, var(--state-ready) 6%, transparent); }
+.stage-test { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .stage-done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 6%, transparent); }
 .stage-closed { color: var(--faint); border-color: var(--border); }
 .stage-stale { color: var(--muted); border-style: dashed; border-color: var(--border-hi); }

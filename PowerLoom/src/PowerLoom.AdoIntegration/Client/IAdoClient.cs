@@ -26,6 +26,9 @@ public interface IAdoClient
     // People's comments on the pull request's threads that weren't deleted (system comments left out).
     Task<IReadOnlyList<AdoThreadComment>> GetPullRequestCommentsAsync(string repoId, int pullRequestId, CancellationToken cancellation);
 
+    // A branch's head commit; null when the repo has no such branch (a branch review follows it).
+    Task<string?> GetBranchHeadAsync(string repoId, string branch, CancellationToken cancellation);
+
     // A work item attachment (an `_apis/wit/attachments` link in a PBI), fetched with the vault's token.
     Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation);
 }

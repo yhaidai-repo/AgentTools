@@ -37,4 +37,13 @@ describe("loadPrompt", () => {
     assert.equal(prompt.version, "v13");
     assert.doesNotMatch(prompt.text, /How you work/);
   });
+
+  it("gives the autotest prompt the continue and create_task rules", async () => {
+    const prompt = await loadPrompt("autotest", { team: "Signals" });
+
+    assert.match(prompt.version, /^v5\+framework\./);
+    assert.match(prompt.text, /## Continuing from a previous report/);
+    assert.match(prompt.text, /An API criterion is proven with `http_request` alone/);
+    assert.match(prompt.text, /a cancelled one is the user's decision not to do it/);
+  });
 });

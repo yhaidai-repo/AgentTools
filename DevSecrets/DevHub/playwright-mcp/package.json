@@ -1,0 +1,8 @@
+{
+  "name": "devhub-playwright-mcp",
+  "private": true,
+  "description": "The Playwright MCP DevHub starts per browser case (pinned; Start-DevHub.ps1 installs it).",
+  "dependencies": {
+    "@playwright/mcp": "0.0.83"
+  }
+}

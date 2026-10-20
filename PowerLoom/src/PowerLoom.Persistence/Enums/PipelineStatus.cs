@@ -13,6 +13,11 @@ public enum PipelineStatus
     Designing,
     ReadyForDev,
     Development,
+    // The test stage (user decision 2026-10-21): a test task waits, runs, and its report had no failed case, or one.
+    ReadyForTest,
+    Testing,
+    Tested,
+    TestFailed,
     Done,
     Stale,
     Closed,

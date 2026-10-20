@@ -3,6 +3,8 @@ import type { ToolDefinition } from "@agenttools/runtime";
 import { waitForStack, type DevHubAnswer, type StackStatus, type StackWait } from "@powerloom/devhub";
 import { toMarkdownTable } from "@powerloom/sql";
 import { z } from "zod";
+import { createBrowserTools } from "./browser/browserTools";
+import { createSecretTools } from "./browser/secretTools";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { DevHubAccess } from "./models/DevHubAccess";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
@@ -28,8 +30,9 @@ const MAX_ANSWER_CHARS = 60_000;
 
 // The DevHub tools (user decision 2026-10-13), for an agent with the integration switched on in its Config while
 // its vault's DevHub is on: start a chain of the vault's services on the Windows host (DevHub),
-// pointed at each other, read their logs, stop them. A stack belongs to the run that started it; the runner stops it
-// when the run ends. Every call goes to the data access log.
+// pointed at each other, read their logs, stop them, and drive a recorded browser against them (2026-10-20). A stack
+// and a browser case belong to the run that started them; the runner stops them when the run ends. Every call goes
+// to the data access log.
 export function createDevHubTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
   const isOn = agent.capabilities.integrations?.[DEVHUB_INTEGRATION] === true;
 
@@ -46,7 +49,14 @@ export function createDevHubTools(deps: AgentDeps, agent: AgentDefinition, conte
     stackStatusTool(deps, context, access, owner),
     stackLogsTool(deps, context, access),
     stopStackTool(deps, context, access, owner),
+    ...createSecretTools(deps, context, access),
+    ...createBrowserTools(deps, context, access, owner, isHeadless(agent)),
   ];
+}
+
+// The agent's "Headless browser" option: 0 shows a browser window on the host (user request 2026-10-20); default hidden.
+export function isHeadless(agent: AgentDefinition): boolean {
+  return (agent.options as { headless?: number } | undefined)?.headless !== 0;
 }
 
 // The runner stops the run's stack by this name when the run ends.

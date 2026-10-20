@@ -24,22 +24,25 @@ namespace PowerLoom.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "attachment_origin", new[] { "upload", "ado", "confluence", "agent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bug_source", new[] { "ado", "internal" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "entity_kind", new[] { "pbi", "item" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal", "meeting" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal", "meeting", "test", "test-report" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_status", new[] { "open", "in-progress", "done", "blocked", "cancelled", "answered", "dismissed", "draft", "final", "superseded", "deleted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "note_write_action", new[] { "created", "updated" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "ready-for-test", "testing", "tested", "test-failed", "done", "stale", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_kind", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_source", new[] { "agent-assumed", "user-confirmed", "vault-documented" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_comment_status", new[] { "open", "answered", "withdrawn", "outdated", "fixed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_severity", new[] { "blocker", "major", "minor", "nit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_status", new[] { "active", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "run_outcome", new[] { "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited", "timeout", "aborted", "max-turns" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "stage", new[] { "sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "vault_review_action", new[] { "keep", "remove", "actualize", "close" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "work_item_source", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.UseSerialColumns(modelBuilder);
 
             modelBuilder.HasSequence("local_pbi_id")
+                .StartsAt(9000001L);
+
+            modelBuilder.HasSequence("local_pr_id")
                 .StartsAt(9000001L);
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.AdoStateChange", b =>
@@ -925,6 +928,13 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1)
                         .HasColumnName("iteration");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("sync")
+                        .HasColumnName("origin");
 
                     b.Property<string>("RepoId")
                         .IsRequired()

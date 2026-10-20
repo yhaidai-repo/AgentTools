@@ -41,6 +41,8 @@ public partial class PullRequest
 
     public string Vault { get; set; } = null!;
 
+    public string Origin { get; set; } = null!;
+
     public virtual CodeReview? CodeReview { get; set; }
 
     public virtual ICollection<ReviewComment> ReviewComments { get; set; } = new List<ReviewComment>();

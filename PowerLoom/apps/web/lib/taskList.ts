@@ -1,14 +1,15 @@
 import { localItem } from "@powerloom/db";
-import { and, desc, eq, getTableColumns, gte, isNull, ne, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, isNull, ne, notInArray, sql, type SQL } from "drizzle-orm";
 import type { TaskFilter } from "@/models/TaskFilter";
 import { getDb } from "./db";
 import { periodStart } from "./periodStart";
 import { taskBucket, type TaskBucket } from "./taskLooks";
+import { RESULT_KINDS } from "./items";
 
 const LIST_LIMIT = 500;
 
 // The kinds the page lists; research results show inside their task.
-export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review", "goal", "meeting"] as const;
+export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review", "goal", "meeting", "test"] as const;
 
 export const TASK_PAGE_SIZES = [25, 50, 100];
 
@@ -57,7 +58,7 @@ function taskRuns(): SQL<{ id: number; outcome: string }[]> {
 }
 
 function baseConditions(pbiFilter: string, since: Date): SQL[] {
-  const conditions: SQL[] = [ne(localItem.kind, "research-result"), ne(localItem.status, "deleted"), gte(localItem.createdAt, since)];
+  const conditions: SQL[] = [notInArray(localItem.kind, RESULT_KINDS), ne(localItem.status, "deleted"), gte(localItem.createdAt, since)];
   const pbi = pbiCondition(pbiFilter);
 
   return pbi ? [...conditions, pbi] : conditions;

@@ -8,7 +8,7 @@
 
 $Placeholder = "<fill-me>"
 $LocalValuesName = "local"
-$ReferencePattern = '^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user)(?<instance>-[0-9]+)?$'
+$ReferencePattern = '^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user|connection)(?<instance>-[0-9]+)?$'
 $MaxExtendsDepth = 5
 
 function Get-ValuesChain([string] $Name) {

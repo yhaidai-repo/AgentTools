@@ -16,4 +16,20 @@ public sealed class DevHubOptions
     public int DefaultTtlMinutes { get; set; } = 60;
 
     public int MaxTtlMinutes { get; set; } = 240;
+    // Where browser cases leave their video and trace: <owner>/<case>/ under it (Start-DevHub.ps1 passes <stack>/browser).
+    public string BrowserArtifactsDir { get; set; } = "";
+
+    // A browser case nobody calls for this long is closed, its recording written.
+    public int BrowserIdleMinutes { get; set; } = 30;
+
+    // Empty: Playwright's own Chromium ("chromium"). "msedge" or "chrome": the browser installed on this PC.
+    public string BrowserChannel { get; set; } = "";
+
+    // The folder whose node_modules holds the pinned @playwright/mcp (DevHub/playwright-mcp; Start-DevHub.ps1 installs it).
+    public string McpDir { get; set; } = "";
+
+    // The Playwright MCP listens here on 127.0.0.1; agents reach it through /browser/mcp.
+    public int McpPort { get; set; } = 47812;
+
+    public string NodePath { get; set; } = "node";
 }

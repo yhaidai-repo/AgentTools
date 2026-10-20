@@ -8,7 +8,7 @@ This folder (in the AgentTools repo) holds no secrets. The values live outside g
 |---|---|
 | `services.json` | Runnable services: their projects, how to run them (`run`), whether they consume the bus (`consumesBus`). No links: those are values. |
 | `map.json` | Repos, and per project: config key → value name, or a call to an app (`@patients.url`). |
-| `D:/Projects/dev-secrets/values.<environment>.json` | One file per **environment** (user decision 2026-10-14): `values.dev.json` (Azure dev: connection strings, keys, every app's links `<app>-url`, `-key`, `-user`), `values.local.json` (`"$extends": "dev"`; every app's local links, e.g. `patients-url = https://localhost:7058`, plus local infrastructure overrides). `values.stage.json` later. |
+| `D:/Projects/dev-secrets/values.<environment>.json` | One file per **environment** (user decision 2026-10-14): `values.dev.json` (Azure dev: connection strings, keys, every app's links `<app>-url`, `-key`, `-user`, `-connection`), `values.local.json` (`"$extends": "dev"`; every app's local links, e.g. `patients-url = https://localhost:7058`, plus local infrastructure overrides). `values.stage.json` later. |
 | `Use-DevSecrets.ps1` | Writes the secrets and routing of the services you run locally into their .NET user secrets. |
 | `Use-LocalPatches.ps1` + `patches/` | Local-only code fixes, applied and hidden from git. |
 | `Start-LocalStack.ps1`, `Get-LocalStack.ps1`, `Stop-LocalStack.ps1` | Start a chain of local services pointed at each other (config as environment variables), show it, stop it. |
@@ -46,8 +46,9 @@ Then restart the AppHosts / services.
 1. Checkouts: the main ones, or with `-Branch` the branch's worktree per repo (`<repo>-wt/<branch>`, reused or created; `-Repo pvs=<path>` overrides one).
 2. Applies `patches/` to the used checkouts and installs the Deno cache when it is missing.
 3. Resolves each service's configuration like `Use-DevSecrets.ps1` and passes it as **environment variables**: user secrets and other worktrees stay untouched.
-4. A `consumesBus` service adds `rabbitmq`: a local container (`localhost:5673`, management `15673`, vhost `pvs-local`, guest/guest) instead of the dev broker, so local consumers never take dev messages. Its shovel forwards `cloud-events.fw.service-bus` to the Service Bus topic `<local-instance>-signals-integration-events`.
-5. Builds the run projects one after another, starts each with `dotnet run --no-build --launch-profile <run.launchProfile>` in a hidden console, and waits (`-TimeoutSeconds`, default 300) until its local URL (`<app>-url` of `values.local.json`) answers, the log shows `run.readyLog`, or `run.readyProcess` runs. A service that exits or times out stops the whole stack and prints its last log lines.
+4. A `usesCache` service adds `redis`: a local container (`localhost:6380`) that the stack's services cache in through `@redis.connection` (`redis-connection` of `values.local.json`), so a stack never shares cached settings and sessions with another environment (2026-10-20: a shared Redis served a settings dictionary without the password-expiry key, and the dev Azure Redis is unreachable from this PC). Services not in the stack keep the environment's `redis-connection`.
+5. A `consumesBus` or `usesBus` service (consumers; the portal and the API publish) adds `rabbitmq`: a local container (`localhost:5673`, management `15673`, vhost `pvs-local`, guest/guest) instead of the dev broker, so local consumers never take dev messages. Its shovel forwards `cloud-events.fw.service-bus` to the Service Bus topic `<local-instance>-signals-integration-events`.
+6. Builds the run projects one after another, starts each with `dotnet run --no-build --launch-profile <run.launchProfile>` in a hidden console, and waits (`-TimeoutSeconds`, default 300) until its local URL (`<app>-url` of `values.local.json`) answers, the log shows `run.readyLog`, or `run.readyProcess` runs. A service that exits or times out stops the whole stack and prints its last log lines.
 
 - One stack per machine: ports are fixed; start refuses while one runs or a port is taken.
 - Logs (`<service>.log`, `.err.log`) and `stack.json` (PIDs) go to `D:/Projects/dev-secrets/stack` (`LOCAL_STACK_DIR`). Logs can hold secrets: don't paste them.
@@ -89,6 +90,12 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 | `GET /stack` | `phase` (idle, starting, ready, failed, stopping), services, last 200 lines of script output |
 | `GET /stack/logs/{service}?lines=200&error=false` | tail of the service's log |
 | `DELETE /stack` | runs `Stop-LocalStack.ps1` (also kills a start in progress) |
+| `POST /browser {owner, case, headless?}` | starts one Playwright MCP (`@playwright/mcp`, pinned in `DevHub/playwright-mcp`) for the case, headless or in a window, recording into `<stack>/browser/<owner>/<case>/`; 409 while a case is open |
+| `GET /browser` | the open case: owner, case, headless, when it closes by itself |
+| `/browser/mcp` | the case's MCP (streamable HTTP) behind DevHub's token: the agent's MCP client talks to it directly; DevHub keeps the session for its own calls |
+| `POST /browser/type-secret {element, target, valueName, submit?}` | DevHub types a dev-secrets value into the snapshot element `target`, so an agent never sees it; the answer is redacted |
+| `DELETE /browser?owner=` | stops the video and the trace, closes the browser, zips the trace to `trace.zip`, kills the MCP; answers with the files |
+| `GET /browser/artifacts?owner=` | an owner's recordings |
 
 - Listens on `127.0.0.1:47811` only; containers call `http://host.docker.internal:47811`.
 - `Authorization: Bearer <token>`: the dev-secrets value `dev-hub-token`, created on the first run.
@@ -96,6 +103,7 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 - Logs and start output can hold secrets; whoever holds the token can read them.
 - `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
 - PowerLoom: Settings → DevHub (URL, token, Test DevHub, Open DevHub) per vault, and the agent switch "DevHub (run services)"; the runner stops a run's stack when the run ends.
+- Browser cases: one at a time, like the stack; the owner's `DELETE /browser` closes it, a person's (no owner) closes any; an idle case closes after `DevHub:BrowserIdleMinutes` (30) and when DevHub stops. The MCP gets every dev-secrets value as its `--secrets` file, so a value that shows up in a page or a typed field is redacted in the tool answers. `Start-DevHub.ps1 -Browser msedge|chrome|chromium` picks the browser (default: the installed Edge); the script installs the MCP (`npm install`) and Playwright's ffmpeg (video) on the first start. The runner's `browser_*` tools come with the DevHub switch; the runner closes a run's case when the run ends.
 
 ## Routing references (map.json)
 

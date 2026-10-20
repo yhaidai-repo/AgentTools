@@ -24,7 +24,7 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () =>
 
 export const pipelineStatus = pgEnum("pipeline_status", [
   "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human",
-  "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed",
+  "ready-for-design", "designing", "ready-for-dev", "development", "ready-for-test", "testing", "tested", "test-failed", "done", "stale", "closed",
 ]);
 
 export const itemKind = pgEnum("item_kind", [
@@ -34,6 +34,8 @@ export const itemKind = pgEnum("item_kind", [
   "vault-review", // one review pass over the selected vaults: stale notes, invalid links
   "goal", // a scheduled task of any agent: a goal on chosen repositories, no PBI (user decision 2026-10-06)
   "meeting", // a recorded meeting to turn into notes and follow-ups (tools/audio-capture, 2026-10-14)
+  "test", // Autotest task: prove a PBI's acceptance criteria end to end (design 2026-10-20)
+  "test-report", // what an Autotest run found and planned (TR)
 ]);
 
 // Allowed statuses per kind are enforced in core, not here.
@@ -46,7 +48,7 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest"]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -534,6 +536,7 @@ export const pullRequest = pgTable("pull_request", {
   url: text("url").notNull(),
   vault: vaultName(),
   isListed: boolean("is_listed").notNull().default(true), // false once it left the user's active PRs (completed, abandoned, not a reviewer)
+  origin: text("origin").notNull().default("sync"), // sync | user (an ADO PR added by its branch) | local (a branch review, no PR; 2026-10-21)
   adoCreatedAt: ts("ado_created_at"),
   syncedAt: ts("synced_at").notNull().defaultNow(),
 });

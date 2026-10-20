@@ -57,7 +57,7 @@ export function defineOutsideTool<TInput extends z.ZodRawShape>(services: Outsid
       });
 
       if (outcome.outcome !== "denied") {
-        return { text: result.text, isError: result.isError };
+        return { text: result.text, isError: result.isError, ...(result.images ? { images: result.images } : {}) };
       }
 
       return { text: await withAccessRequest(services, context, resource, tool.name, result.text), isError: true };

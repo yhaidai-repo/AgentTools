@@ -219,6 +219,48 @@
         }
       }
     },
+    "/api/items/{id}/user-notes": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+        ],
+        "summary": "PUT_api_items_id_user_notes",
+        "description": "PUT_api_items_id_user_notes",
+        "operationId": "PUT_api_items_id_user_notes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTaskNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskUserNotes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/task-schedules": {
       "put": {
         "tags": [
@@ -640,6 +682,38 @@
         }
       }
     },
+    "/api/reviews/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_reviews_test",
+        "description": "POST_api_reviews_test",
+        "operationId": "POST_api_reviews_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reviews/close": {
       "post": {
         "tags": [
@@ -697,6 +771,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
+        ],
+        "summary": "POST_api_reviews",
+        "description": "POST_api_reviews",
+        "operationId": "POST_api_reviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedReview"
                 }
               }
             }
@@ -2895,6 +2999,39 @@
           }
         }
       },
+      "AddReviewRequest": {
+        "required": [
+          "vault",
+          "repo",
+          "branch",
+          "targetBranch",
+          "pbi"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "targetBranch": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AddSqlConnectionRequest": {
         "required": [
           "name",
@@ -2917,6 +3054,26 @@
         "type": "object",
         "properties": {
           "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedReview": {
+        "required": [
+          "prId",
+          "kind",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "message": {
             "type": "string"
           }
         }
@@ -4383,6 +4540,24 @@
           }
         }
       },
+      "SaveTaskNotesRequest": {
+        "required": [
+          "text",
+          "loadedText"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "loadedText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SaveUserNotesRequest": {
         "required": [
           "text",
@@ -4710,7 +4885,8 @@
           "better-research",
           "better-refinement",
           "meeting-notes",
-          "better-review"
+          "better-review",
+          "autotest"
         ]
       },
       "StateLevel": {
@@ -4942,6 +5118,21 @@
           }
         }
       },
+      "TaskUserNotes": {
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "TestConnectionRequest": {
         "required": [
           "orgUrl",
@@ -5139,6 +5330,9 @@
       "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
     },
     {
+      "name": "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+    },
+    {
       "name": "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
     },
     {
@@ -5164,6 +5358,9 @@
     },
     {
       "name": "PowerLoom.Features.Reviews.ReviewsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
     },
     {
       "name": "PowerLoom.Features.Repos.CatalogEndpoints"

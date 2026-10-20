@@ -1,4 +1,12 @@
+import type { BrowserClosed } from "./models/BrowserClosed";
+import type { BrowserStatus } from "./models/BrowserStatus";
 import type { DevHubAnswer } from "./models/DevHubAnswer";
+import type { McpEndpoint } from "./models/McpEndpoint";
+import type { McpToolAnswer } from "./models/McpToolAnswer";
+import type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
+import type { SecretHttpRequest } from "./models/SecretHttpRequest";
+import type { SecretHttpResponse } from "./models/SecretHttpResponse";
+import type { TypeSecretRequest } from "./models/TypeSecretRequest";
 import type { StackLog } from "./models/StackLog";
 import type { StackServiceInfo } from "./models/StackServiceInfo";
 import type { StackStatus } from "./models/StackStatus";
@@ -40,6 +48,35 @@ export class DevHubClient {
 
   stop(owner: string): Promise<DevHubAnswer<StackStopped>> {
     return this.call("DELETE", `/stack?owner=${encodeURIComponent(owner)}`);
+  }
+
+  openBrowser(request: OpenBrowserRequest): Promise<DevHubAnswer<BrowserStatus>> {
+    return this.call("POST", "/browser", request);
+  }
+
+  browserStatus(): Promise<DevHubAnswer<BrowserStatus>> {
+    return this.call("GET", "/browser");
+  }
+
+  // The open case's Playwright MCP, behind DevHub's token (the MCP itself accepts only localhost).
+  mcpEndpoint(): McpEndpoint {
+    return { url: `${this.url}/browser/mcp`, headers: { Authorization: `Bearer ${this.token}` } };
+  }
+
+  typeSecret(request: TypeSecretRequest): Promise<DevHubAnswer<McpToolAnswer>> {
+    return this.call("POST", "/browser/type-secret", request);
+  }
+
+  secretNames(): Promise<DevHubAnswer<{ names: string[] }>> {
+    return this.call("GET", "/browser/secret-names");
+  }
+
+  httpRequest(request: SecretHttpRequest): Promise<DevHubAnswer<SecretHttpResponse>> {
+    return this.call("POST", "/browser/http-request", request);
+  }
+
+  closeBrowser(owner: string): Promise<DevHubAnswer<BrowserClosed>> {
+    return this.call("DELETE", `/browser?owner=${encodeURIComponent(owner)}`);
   }
 
   private async call<T>(method: string, path: string, body?: unknown): Promise<DevHubAnswer<T>> {

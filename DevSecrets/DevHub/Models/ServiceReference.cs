@@ -19,6 +19,6 @@ public sealed partial record ServiceReference(string Service, string Part, strin
         return new ServiceReference(match.Groups["service"].Value, match.Groups["part"].Value, match.Groups["instance"].Value);
     }
 
-    [GeneratedRegex(@"^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user)(?<instance>-[0-9]+)?$")]
+    [GeneratedRegex(@"^@(?<service>[a-z0-9-]+)\.(?<part>url|key|user|connection)(?<instance>-[0-9]+)?$")]
     private static partial Regex Pattern();
 }

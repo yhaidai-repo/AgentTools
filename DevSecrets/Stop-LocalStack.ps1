@@ -13,6 +13,7 @@ $ErrorActionPreference = "Stop"
 
 . "$PSScriptRoot/DevSecrets.Common.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
+. "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 $state = Read-StackState
@@ -22,6 +23,10 @@ if ($state) {
 }
 
 # A start killed before it saved its state (e.g. DevHub's DELETE while starting) can leave the container behind.
+if (Test-LocalRedisRunning) {
+    Stop-LocalRedis
+}
+
 if (Test-LocalRabbitMqRunning) {
     Stop-LocalRabbitMq
 }

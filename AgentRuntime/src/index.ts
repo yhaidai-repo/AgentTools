@@ -15,6 +15,7 @@ export type { AgentEvent } from "./models/AgentEvent";
 export type { TextEvent } from "./models/TextEvent";
 export type { ToolCallEvent } from "./models/ToolCallEvent";
 export type { ToolResultEvent } from "./models/ToolResultEvent";
+export type { ToolImage } from "./models/ToolImage";
 export type { TurnUsageEvent } from "./models/TurnUsageEvent";
 export type { RateLimitEvent } from "./models/RateLimitEvent";
 export type { SubscriptionWindow } from "./models/SubscriptionWindow";

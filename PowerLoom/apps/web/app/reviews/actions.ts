@@ -10,8 +10,9 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
-// The task type review agents take (an agent's `handles`).
+// The task types review and test agents take (an agent's `handles`).
 const REVIEW_TASK_TYPE = "review";
+const TEST_TASK_TYPE = "test";
 
 // PowerLoom checks the vault's pull requests; one vault's checks run one after the other.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
@@ -51,6 +52,50 @@ export async function closeReviewAction(_previous: ActionResult | null, form: Fo
 // The grid's bulk actions (user decision 2026-10-06): each selected review in turn; refusals are reported together.
 export async function queueSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   return forSelected(form, "queued", queueReview);
+}
+
+// Start test (user decision 2026-10-21): a test task per linked PBI on each PR's branch, then the test agents start.
+export async function testSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const prIds = form.getAll("prId").map(Number).filter(Number.isInteger);
+
+  if (prIds.length === 0) {
+    return { ok: false, message: "Select at least one review." };
+  }
+
+  const started = await powerloom.POST("/api/reviews/test", { body: { prIds } });
+
+  if (!started.response.ok || !started.data) {
+    return powerloomResult(started, "");
+  }
+
+  const testers = started.data.done.length > 0 ? await startAgentsTaking(TEST_TASK_TYPE) : 0;
+  const created = started.data.done.map((done) => done.value).join(", ");
+  const createdText = created ? `${created} created; ${testers > 0 ? "testing starts now" : "no enabled agent takes test tasks yet (Agents page)"}.` : "No test task created.";
+
+  revalidatePath("/reviews");
+
+  return { ok: started.data.refused.length === 0, message: [createdText, ...started.data.refused].join(" ") };
+}
+
+async function startAgentsTaking(taskType: string): Promise<number> {
+  const agents = (await getAgentConfig().list()).filter((agent) => agent.enabled && agent.handles.includes(taskType));
+
+  for (const agent of agents) {
+    await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: agent.id } } });
+  }
+
+  return agents.length;
+}
+
+// Add review (user decision 2026-10-21): the active PR of the branch, or a branch review without one.
+export async function addReview(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const vault = await requireVault();
+  const body = { vault, repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", targetBranch: formText(form, "targetBranch") || null, pbi: formText(form, "pbi") || null };
+  const added = await powerloom.POST("/api/reviews", { body });
+
+  revalidatePath("/reviews");
+
+  return powerloomResult(added, added.data?.message ?? "Review added.");
 }
 
 export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

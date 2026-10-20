@@ -14,6 +14,7 @@ const STATIONS: { key: string; name: string; statuses: PipelineStatus[] }[] = [
   { key: "design", name: "Design", statuses: ["ready-for-design", "designing"] },
   { key: "ready", name: "Ready for dev", statuses: ["ready-for-dev"] },
   { key: "development", name: "Development", statuses: ["development"] },
+  { key: "test", name: "Test", statuses: ["ready-for-test", "testing", "tested", "test-failed"] },
   { key: "done", name: "Done", statuses: ["done"] },
 ];
 

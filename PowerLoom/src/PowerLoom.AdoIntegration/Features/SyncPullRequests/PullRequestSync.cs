@@ -21,15 +21,17 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     // An agent's "Azure DevOps (read)" integration (the agents' ADO_INTEGRATION key), and the task type reviews are.
     private const string ReadsAdo = "adoTestCases";
     private const string ReviewTaskType = "review";
+    private const string BranchGoneReason = "The branch was deleted in Azure DevOps.";
     private const string RepoNotSelectedReason = "Its repo isn't selected for code review in Settings, or is disabled there.";
 
     public async Task<string> RunAsync(string vault, AdoSettings ado, PullRequestSettings settings, IAdoClient client, CancellationToken cancellation)
     {
         // A review deleted in PowerLoom stays deleted (user decision 2026-10-06).
         var deleted = (await db.DeletedPullRequests.Select(row => row.Id).ToListAsync(cancellation)).ToHashSet();
-        var mine = (await client.ListActivePullRequestsAsync(cancellation)).Where(pr => PullRequestFilter.IsMine(pr, ado.User) && !deleted.Contains(pr.Id)).ToList();
+        var active = (await client.ListActivePullRequestsAsync(cancellation)).Where(pr => !deleted.Contains(pr.Id)).ToList();
+        var mine = active.Where(pr => PullRequestFilter.IsMine(pr, ado.User)).ToList();
         var disabled = await RepoCatalog.DisabledIdsAsync(db, vault, cancellation);
-        var listed = mine.Where(pr => PullRequestFilter.IsSelectedRepo(pr, settings.Repos) && !disabled.Contains(pr.RepoId)).ToList();
+        var listed = mine.Where(pr => PullRequestFilter.IsSelectedRepo(pr, settings.Repos) && !disabled.Contains(pr.RepoId)).Concat(await UserAddedAsync(vault, active, cancellation)).DistinctBy(pr => pr.Id).ToList();
         var changed = await ChangedAsync(listed, cancellation);
         var updated = changed.Take(settings.MaxPullRequestsPerRun).ToList();
 
@@ -40,9 +42,12 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
 
         var added = await AddNewReviewsAsync(listed, cancellation);
         var closed = await CloseUnlistedAsync(listed, mine, cancellation);
+        var branches = await RefreshBranchReviewsAsync(vault, client, cancellation);
         var followUps = await QueueForReviewerCommentsAsync(listed, ado, client, cancellation);
 
-        return Summary(listed.Count, mine.Count - listed.Count, updated.Count, changed.Count - updated.Count, added, closed, followUps);
+        var branchNote = branches > 0 ? $", {branches} branch review(s) moved or closed" : "";
+
+        return Summary(listed.Count, mine.Count - listed.Count, updated.Count, changed.Count - updated.Count, added, closed, followUps) + branchNote;
     }
 
     private static string Summary(int listed, int notSelected, int updated, int waiting, int added, int closed, FollowUps? followUps)
@@ -76,29 +81,60 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         if (row is null)
             db.PullRequests.Add(row = new PullRequest { Id = pr.Id, Vault = vault });
 
-        Mirror(row, pr, details);
+        PullRequestMirror.Mirror(row, pr, details);
 
         await db.SaveChangesAsync(cancellation);
     }
 
-    private static void Mirror(PullRequest row, AdoPullRequest pr, AdoPullRequestDetails details)
+
+    // PRs the user added by their branch (user decision 2026-10-21) stay listed while they are active, whoever's they are.
+    private async Task<List<AdoPullRequest>> UserAddedAsync(string vault, List<AdoPullRequest> active, CancellationToken cancellation)
     {
-        row.RepoId = pr.RepoId;
-        row.RepoName = pr.RepoName;
-        row.Title = pr.Title;
-        row.DescriptionMd = pr.Description;
-        row.Author = pr.Author;
-        row.SourceRef = pr.SourceRef;
-        row.TargetRef = pr.TargetRef;
-        row.SourceCommit = pr.SourceCommit!;
-        row.TargetCommit = pr.TargetCommit;
-        row.Iteration = details.Iteration;
-        row.IsDraft = pr.IsDraft;
-        row.WorkItemIds = JsonSerializer.Serialize(details.WorkItemIds);
-        row.Url = pr.Url;
-        row.IsListed = true;
-        row.AdoCreatedAt = pr.CreatedAt is null ? null : DateTime.Parse(pr.CreatedAt, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
+        var ids = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.User).Select(row => row.Id).ToListAsync(cancellation);
+
+        return active.Where(pr => ids.Contains(pr.Id) && pr.SourceCommit is not null).ToList();
+    }
+
+    // A branch review follows its branch: a push moves its head (the list shows new commits), a deleted branch closes it.
+    private async Task<int> RefreshBranchReviewsAsync(string vault, IAdoClient client, CancellationToken cancellation)
+    {
+        var rows = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.Local && row.IsListed).ToListAsync(cancellation);
+        var changed = 0;
+
+        foreach (var row in rows)
+            changed += await RefreshBranchReviewAsync(row, client, cancellation) ? 1 : 0;
+
+        return changed;
+    }
+
+    private async Task<bool> RefreshBranchReviewAsync(PullRequest row, IAdoClient client, CancellationToken cancellation)
+    {
+        string? head;
+
+        try
+        {
+            head = await client.GetBranchHeadAsync(row.RepoId, BranchRefs.NameOf(row.SourceRef), cancellation);
+        }
+        catch (AdoRequestException)
+        {
+            return false;
+        }
+
+        if (head is null)
+        {
+            await UnlistAsync(row, BranchGoneReason, cancellation);
+
+            return true;
+        }
+
+        if (head == row.SourceCommit)
+            return false;
+
+        row.SourceCommit = head;
         row.SyncedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellation);
+
+        return true;
     }
 
     // A PR that comes back to the list (e.g. you were added as a reviewer again) is listed again; its review stays as
@@ -130,7 +166,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();
         var mineIds = mine.Select(pr => pr.Id).ToHashSet();
-        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id)).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && row.Origin != PullRequestOrigin.Local).ToListAsync(cancellation);
 
         foreach (var pr in gone)
             await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation);

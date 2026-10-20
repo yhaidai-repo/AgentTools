@@ -88,6 +88,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/items/{id}/user-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_items_id_user_notes
+         * @description PUT_api_items_id_user_notes
+         */
+        put: operations["PUT_api_items_id_user_notes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/task-schedules": {
         parameters: {
             query?: never;
@@ -328,6 +348,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_reviews_test
+         * @description POST_api_reviews_test
+         */
+        post: operations["POST_api_reviews_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reviews/close": {
         parameters: {
             query?: never;
@@ -357,7 +397,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /**
+         * POST_api_reviews
+         * @description POST_api_reviews
+         */
+        post: operations["POST_api_reviews"];
         /**
          * DELETE_api_reviews
          * @description DELETE_api_reviews
@@ -1321,12 +1365,25 @@ export interface components {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
         };
+        AddReviewRequest: {
+            vault: string;
+            repo: string;
+            branch: string;
+            targetBranch: null | string;
+            pbi: null | string;
+        };
         AddSqlConnectionRequest: {
             name: string;
             connectionString: string;
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedReview: {
+            /** Format: int32 */
+            prId: number;
+            kind: string;
+            message: string;
         };
         AddedVault: {
             vault: string;
@@ -1684,6 +1741,10 @@ export interface components {
         SaveSkillsRequest: {
             skills: components["schemas"]["SkillChoice"][];
         };
+        SaveTaskNotesRequest: {
+            text: string;
+            loadedText: null | string;
+        };
         SaveUserNotesRequest: {
             text: string;
             loadedText: string;
@@ -1764,7 +1825,7 @@ export interface components {
             enabled: boolean;
         };
         /** @enum {unknown} */
-        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement" | "meeting-notes" | "better-review";
+        Stage: "sync" | "refinement" | "research" | "design" | "tech-writer" | "pull-requests" | "code-review" | "vault-review" | "better-research" | "better-refinement" | "meeting-notes" | "better-review" | "autotest";
         /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {
@@ -1818,6 +1879,10 @@ export interface components {
             itemId: string;
             /** @default false */
             startOver: boolean;
+        };
+        TaskUserNotes: {
+            id: string;
+            text: string;
         };
         TestConnectionRequest: {
             orgUrl: string;
@@ -2023,6 +2088,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddedVault"];
+                };
+            };
+        };
+    };
+    PUT_api_items_id_user_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTaskNotesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskUserNotes"];
                 };
             };
         };
@@ -2321,6 +2412,30 @@ export interface operations {
             };
         };
     };
+    POST_api_reviews_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIds"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
     POST_api_reviews_close: {
         parameters: {
             query?: never;
@@ -2341,6 +2456,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewsResult"];
+                };
+            };
+        };
+    };
+    POST_api_reviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedReview"];
                 };
             };
         };

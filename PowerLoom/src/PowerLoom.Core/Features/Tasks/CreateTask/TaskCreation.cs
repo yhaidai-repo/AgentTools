@@ -32,6 +32,7 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
         new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "WT"),
         new("vault-review", ItemKind.VaultReview, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "VR"),
+        new("test", ItemKind.Test, PbiUse.Required, OnePerPbi: false, NoPbiPrefix: null),
     ];
 
     public async Task<Outcome<CreatedTask>> CreateAsync(NewTask task, CancellationToken cancellation)
@@ -122,7 +123,7 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         if (task.PbiId is null)
             return ItemIds.NextGlobalAsync(db, type.NoPbiPrefix!, cancellation);
 
-        return ItemIds.NextAsync(db, AgentStages.StageOfKind(type.Kind)!.Prefix, task.PbiId.Value, cancellation);
+        return ItemIds.NextAsync(db, AgentStages.PbiPrefixOf(type.Kind)!, task.PbiId.Value, cancellation);
     }
 
     // A schedule's task carries the schedule, so its next tick sees it still waiting.
@@ -132,6 +133,9 @@ public sealed class TaskCreation(PowerLoomDbContext db)
 
         data["createdBy"] = CreatedBy;
         data["doneWhen"] = task.AcceptanceCriteria.Trim();
+
+        foreach (var (key, value) in task.Extra ?? new Dictionary<string, object?>())
+            data[key] = value;
 
         if (task.ScheduleId is not null)
         {

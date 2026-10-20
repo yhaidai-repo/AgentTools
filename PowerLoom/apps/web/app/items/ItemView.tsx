@@ -2,6 +2,7 @@ import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/cor
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
+import { ResultTabs } from "@/components/ResultTabs";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
@@ -11,6 +12,7 @@ import { ItemHeader } from "./ItemHeader";
 import { FindingForm } from "./FindingForm";
 import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
+import { TaskNotesForm } from "./TaskNotesForm";
 import { TaskResults } from "./TaskResults";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
@@ -23,12 +25,30 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       <ItemContent item={item} />
+      <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
       <TaskResults detail={detail} />
       <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
+    </>
+  );
+}
+
+// A test task's own notes (user decision 2026-10-21): editable at any time, read by the agent on every run.
+function TaskNotes({ detail }: { detail: ItemDetail }) {
+  const { item } = detail;
+
+  if (item.kind !== "test") {
+    return null;
+  }
+
+  return (
+    <>
+      <h2>My notes</h2>
+      <p className="hint">The test agent reads these on every run: test data, the environment, cases to check first.</p>
+      <TaskNotesForm itemId={item.id} path={itemPath(item)} text={((item.data ?? {}) as { userNotes?: string }).userNotes ?? ""} />
     </>
   );
 }
@@ -70,9 +90,10 @@ function DocsResult({ detail }: { detail: ItemDetail }) {
   );
 }
 
-// A research task shows its results inside it (newest last; a re-run supersedes the earlier one).
+// A research task shows its results and a test task its reports inside it (newest last; a re-run supersedes the
+// earlier one).
 function Results({ detail }: { detail: ItemDetail }) {
-  if (detail.item.kind !== "research") {
+  if (detail.item.kind !== "research" && detail.item.kind !== "test") {
     return null;
   }
 
@@ -80,16 +101,18 @@ function Results({ detail }: { detail: ItemDetail }) {
     return detail.item.resolution ? null : <p className="muted">No result yet.</p>;
   }
 
-  return (
-    <>
-      {detail.results.map((result) => (
-        <section key={result.id} className="card result-section">
-          <h2>Result {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
-          <ItemContent item={result} />
-        </section>
-      ))}
-    </>
-  );
+  const tabs = detail.results.map((result) => ({
+    key: result.id,
+    label: `${result.id}${result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}`,
+    content: (
+      <section className="card result-section">
+        <h2>{result.kind === "test-report" ? "Report" : "Result"} {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
+        <ItemContent item={result} />
+      </section>
+    ),
+  }));
+
+  return <ResultTabs tabs={tabs} />;
 }
 
 // Open questions and known issues the tech-writer raised while merging this task's draft.

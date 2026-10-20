@@ -3,6 +3,7 @@ import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen } from "@/lib/items";
 import type { ItemRow } from "@/lib/pbiDetail";
 import { HumanTaskContent } from "./HumanTaskContent";
+import { MarkdownBlock } from "@/components/MarkdownBlock";
 
 type ItemData = {
   why?: string;
@@ -35,6 +36,7 @@ const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode
   human: HumanContent,
   research: ResearchTaskContent,
   "research-result": ResearchResultContent,
+  "test-report": TestReportContent,
   finding: FindingContent,
   docs: DocsTaskContent,
 };
@@ -85,6 +87,11 @@ function ResearchTaskContent(item: ItemRow, data: ItemData) {
       <p className="muted">Depth {data.depth ?? 1} · attempts {item.attempts}</p>
     </>
   );
+}
+
+// The Autotest agent's report (TR): analysis, plan and, later, verdicts, written as markdown by renderTestReport.
+function TestReportContent(item: ItemRow) {
+  return item.body ? <MarkdownBlock text={item.body} /> : <p className="muted">–</p>;
 }
 
 function ResearchResultContent(item: ItemRow, data: ItemData) {
