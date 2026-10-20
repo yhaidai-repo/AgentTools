@@ -11,13 +11,18 @@ using PowerLoom.Persistence.Enums;
 namespace PowerLoom.Features.Continue.Targets;
 
 // A review's chat (user decision 2026-10-05): review only, no fixes. The note holds the PR, PowerLoom's summary and the
-// comments with their answers; the chat answers the open comments after the user's yes.
+// comments with their answers; after the user's yes the chat answers the open comments in PowerLoom, one command per
+// comment (user decision 2026-10-21).
 public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
 {
     // Four backticks, so a snippet that holds a fence of its own doesn't end the block.
     private const string CodeFence = "````";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    // One command per answered comment; an empty answer takes an answer back. The next review run reads the answers.
+    private static readonly string AtTheEnd = "Show the user every answer first and run the commands only after their yes. The input goes on stdin (a heredoc), so the text needs no shell quoting.\n"
+        + $"- Answer a comment: `{ChatNote.PowerLoomCli} review.answerComment` with `{{\"commentId\":\"<id from Comments>\",\"answer\":\"<the answer, markdown>\"}}`, once per comment.";
 
     private static readonly IReadOnlyList<string> Briefing =
     [
@@ -52,15 +57,16 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
                 "Read the Summary and Comments below, and the code around them.",
             ],
             Briefing = Briefing,
-            Ending = "End the briefing by asking: \"Write the answers?\" After a yes: one answer per open comment, by its id, as plain text to paste into PowerLoom's review page.",
+            Ending = "End the briefing by asking: \"Write the answers?\" After a yes: show one answer per open comment, by its id, and once the user agrees to them, send each with the command under At the end.",
             Repos = [pr.RepoName],
             Sections =
             [
                 new ChatSection("Pull request", PullRequestMarkdown(pr, review, source, target)),
                 new ChatSection("Summary", review.SummaryMd ?? "Not reviewed yet."),
                 new ChatSection("Comments", comments.Count > 0 ? string.Join("\n\n", comments.Select(CommentMarkdown)) : "None."),
+                new ChatSection(ItemChatEndings.Heading, AtTheEnd),
             ],
-            Rules = ["Review only: change no file."],
+            Rules = ["Review only: change no file. PowerLoom is written only through the command under At the end, after the user's yes; nothing is pasted."],
         };
 
         return Outcome<ChatBrief>.Success(brief);

@@ -17,6 +17,7 @@ import { savePbiReposCommand } from "./savePbiReposCommand";
 import { savePbiSkillsCommand } from "./savePbiSkillsCommand";
 import { sqlDescribeCommand } from "./sqlDescribeCommand";
 import { sqlQueryCommand } from "./sqlQueryCommand";
+import { submitFindingCommand } from "./submitFindingCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -34,6 +35,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   savePbiReposCommand,
   savePbiSkillsCommand,
   closeItemCommand,
+  submitFindingCommand,
   rerunTaskCommand,
   answerReviewCommentCommand,
   createWwwRecordCommand,

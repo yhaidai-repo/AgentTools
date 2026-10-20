@@ -51,6 +51,9 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("the finding's full text", note);
         Assert.Contains($"{PowerLoomHost.HostRoot}/test-vault/adoa/adoa-open-questions.md", note);
         Assert.Contains("**Recommendation**", note);
+        Assert.Contains("## At the end", note);
+        Assert.Contains("finding.submit` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"type\":\"question\",\"project\":\"adoa\"", note);
+        Assert.Contains("item.close` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"decision\":\"dismiss\"", note);
         Assert.DoesNotContain("pbi.read", note);
         Assert.EndsWith("## Notes\nMy own remark.\n", note);
         Assert.DoesNotContain("stale", note);
@@ -68,6 +71,20 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("# Help me follow up on agent task GT-7002: Map the payers", note);
         Assert.Contains("**What the agent did**", note);
         Assert.Contains("Result:\n\nThree payers map to one code.", note);
+        Assert.Contains("task.rerun` with `{\"itemId\":\"GT-7002\",\"adoId\":null,\"startOver\":false}`", note);
+    }
+
+    [Fact]
+    public async Task A_human_task_with_steps_closes_with_one_answer_per_step()
+    {
+        await StoreHumanTaskAsync("HT-7003");
+
+        await host.Host.PostJson(new OpenChatRequest(ChatKind.Item, "HT-7003"), "/api/chats").Receive<ChatLink>();
+        var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "item-HT-7003.md"));
+
+        Assert.Contains("# Help me with human task HT-7003: Check the queue", note);
+        Assert.Contains("\"decision\":\"done\",\"answers\":[\"<result of step 1>\",\"<result of step 2>\"]", note);
+        Assert.Contains("\"decision\":\"cancel\"", note);
     }
 
     [Fact]
@@ -95,6 +112,25 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Status = ItemStatus.Open,
             Body = "the finding's full text",
             Data = """{"type":"question","project":"adoa","default":[],"options":[]}""",
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private async Task StoreHumanTaskAsync(string id)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.LocalItems.Add(new LocalItem
+        {
+            Id = id,
+            Title = "Check the queue",
+            Assignee = "human",
+            Vault = PowerLoomHost.Vault,
+            Kind = ItemKind.Human,
+            Status = ItemStatus.Open,
+            Body = "Two steps.",
+            Data = """{"why":"w","solves":"s","steps":[{"action":"Count","source":"sql","resource":"db","reportBack":"n"},{"action":"Clear","source":"sql","resource":"db","reportBack":"ok"}]}""",
         });
         await db.SaveChangesAsync();
     }
