@@ -69,6 +69,8 @@ export type { NewPbi } from "./models/NewPbi";
 export { savePbiReposCommand } from "./commands/savePbiReposCommand";
 export { savePbiSkillsCommand } from "./commands/savePbiSkillsCommand";
 export { closeItemCommand } from "./commands/closeItemCommand";
+export { submitFindingCommand } from "./commands/submitFindingCommand";
+export type { CloseItemInput } from "./models/CloseItemInput";
 export { rerunTaskCommand } from "./commands/rerunTaskCommand";
 export { answerReviewCommentCommand } from "./commands/answerReviewCommentCommand";
 export { createWwwRecordCommand } from "./commands/createWwwRecordCommand";

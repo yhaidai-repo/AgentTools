@@ -28,7 +28,7 @@ public sealed class ItemChatTarget(PowerLoomDbContext db, HostPaths hostPaths, P
             Briefing = outline.Briefing,
             Ending = outline.Ending,
             Rules = [outline.Rule],
-            Sections = [new ChatSection("The item", ItemMarkdown(item))],
+            Sections = [new ChatSection("The item", ItemMarkdown(item)), new ChatSection(ItemChatEndings.Heading, ItemChatEndings.Markdown(item))],
         };
 
         return Outcome<ChatBrief>.Success(item.PbiId is { } adoId ? await WithPbiAsync(brief, item, adoId, cancellation) : WithProject(brief, item));

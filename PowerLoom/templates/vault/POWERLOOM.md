@@ -38,7 +38,8 @@ JSON
 ## Commands that change PowerLoom (ask first)
 | Command | Does |
 |---|---|
-| `item.close` | answers a question or closes a human task |
+| `item.close` | answers or dismisses a question or finding, finishes (`answers`: one per step) or cancels a human task |
+| `finding.submit` | records a finding in a project's register (open question or known issue) and closes it |
 | `review.answerComment` | answers a code-review comment |
 | `pbi.create`, `pbi.delete`, `pbi.finish` | creates, deletes or finishes a PBI |
 | `pbi.close`, `pbi.reopen` | closes a PBI in PowerLoom (kept for the agents, work on it stops) or reopens it |

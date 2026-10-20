@@ -29,6 +29,7 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         Assert.Contains("`Cache.cs:10-12`", note);
         Assert.DoesNotContain("RC-501-2", note);
         Assert.Contains("- Review only: change no file.", note);
+        Assert.Contains("review.answerComment` with `{\"commentId\":\"<id from Comments>\"", note);
     }
 
     private async Task StoreReviewAsync(int prId)
