@@ -86,8 +86,37 @@ public sealed class AddReviewTests(PowerLoomHost host)
 
         var refused = await PostAsync(Request("feature/nope"), 404);
 
-        Assert.Contains($"{RepoName} has no branch feature/nope and no active pull request from it.", refused);
+        Assert.Contains($"{RepoName} has no branch feature/nope in Azure DevOps or on this PC, and no active pull request from it.", refused);
     }
+
+    // A branch that isn't pushed (user, 2026-10-21): found on the PC through DevHub, tested, not code-reviewed; once
+    // pushed, the sync turns it into an Azure DevOps branch review.
+    [Fact]
+    public async Task A_branch_only_on_this_PC_becomes_a_branch_review_that_turns_into_an_ADO_one_once_pushed()
+    {
+        await SeedAsync();
+        var ado = Ado();
+        var pc = host.Host.Services.GetRequiredService<FakeLocalBranches>();
+        ado.PullRequests = [];
+        pc.Heads[$"{RepoName}:feature/74501-pc"] = "p1";
+
+        var added = await host.Host.PostJson(Request("feature/74501-pc"), "/api/reviews").Receive<AddedReview>();
+        var row = await RowAsync(added!.PrId);
+        var review = await QueueAsync(added.PrId);
+        var tested = await host.Host.PostJson(new ReviewIds([added.PrId]), "/api/reviews/test").Receive<ReviewsResult>();
+        ado.BranchHeads[$"{RepoId}:feature/74501-pc"] = "p2";
+        await Sync();
+        var pushed = await RowAsync(added.PrId);
+
+        Assert.Contains("only on this PC", added.Message);
+        Assert.Equal((PullRequestOrigin.Pc, "p1", "", $"Branch feature/74501-pc (this PC)"), (row.Origin, row.SourceCommit, row.Url, row.Title));
+        Assert.Contains("the branch is only on this PC: push it", review!.Refused.Single());
+        Assert.Single(tested!.Done);
+        Assert.Equal((PullRequestOrigin.Local, "p2", true), (pushed.Origin, pushed.SourceCommit, pushed.IsListed));
+        Assert.Equal($"https://dev.azure.com/org/proj/_git/{RepoName}?version=GBfeature%2F74501-pc", pushed.Url);
+    }
+
+    private async Task<ReviewsResult?> QueueAsync(int prId) => await host.Host.PostJson(new ReviewIds([prId]), "/api/reviews/queue").Receive<ReviewsResult>();
 
     private static AddReviewRequest Request(string branch) => new(PowerLoomHost.Vault, RepoName, branch, null, null);
 

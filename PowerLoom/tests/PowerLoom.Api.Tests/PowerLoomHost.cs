@@ -1,3 +1,4 @@
+using PowerLoom.Infrastructure.LocalBranches;
 using Alba;
 using JasperFx.CodeGeneration;
 using JasperFx.CommandLine;
@@ -87,6 +88,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<ProbeLog>();
         services.AddSingleton<FakeVaultCapture>();
         services.AddSingleton<FakeAdoClientFactory>();
+        services.AddSingleton<FakeLocalBranches>();
+        services.AddSingleton<ILocalBranches>(provider => provider.GetRequiredService<FakeLocalBranches>());
         services.AddSingleton<IAdoClientFactory>(provider => provider.GetRequiredService<FakeAdoClientFactory>());
         services.AddSingleton<FakeConfluenceClientFactory>();
         services.AddSingleton<IConfluenceClientFactory>(provider => provider.GetRequiredService<FakeConfluenceClientFactory>());

@@ -1,3 +1,4 @@
+using PowerLoom.Infrastructure.LocalBranches;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Client;
@@ -14,7 +15,7 @@ using PowerLoom.Persistence.Reviews;
 namespace PowerLoom.AdoIntegration.Features.SyncPullRequests;
 
 // One check of the vault's pull requests; the database only (the review's notes come from the review runs).
-public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader agents)
+public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader agents, ILocalBranches localBranches)
 {
     private const string Actor = "pull-requests";
     private const string UnlistedReason = "The PR was completed or abandoned in Azure DevOps, or you're no longer a reviewer.";
@@ -22,6 +23,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     private const string ReadsAdo = "adoTestCases";
     private const string ReviewTaskType = "review";
     private const string BranchGoneReason = "The branch was deleted in Azure DevOps.";
+    private const string PcBranchGoneReason = "The branch is gone from this PC and isn't in Azure DevOps.";
     private const string RepoNotSelectedReason = "Its repo isn't selected for code review in Settings, or is disabled there.";
 
     public async Task<string> RunAsync(string vault, AdoSettings ado, PullRequestSettings settings, IAdoClient client, CancellationToken cancellation)
@@ -95,10 +97,11 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         return active.Where(pr => ids.Contains(pr.Id) && pr.SourceCommit is not null).ToList();
     }
 
-    // A branch review follows its branch: a push moves its head (the list shows new commits), a deleted branch closes it.
+    // A branch review follows its branch: in Azure DevOps (a push moves its head, the list shows new commits), else on the
+    // PC through DevHub (a branch pushed since becomes an ADO branch review); gone from both, it closes.
     private async Task<int> RefreshBranchReviewsAsync(string vault, IAdoClient client, CancellationToken cancellation)
     {
-        var rows = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.Local && row.IsListed).ToListAsync(cancellation);
+        var rows = await db.PullRequests.Where(row => row.Vault == vault && (row.Origin == PullRequestOrigin.Local || row.Origin == PullRequestOrigin.Pc) && row.IsListed).ToListAsync(cancellation);
         var changed = 0;
 
         foreach (var row in rows)
@@ -109,28 +112,52 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
 
     private async Task<bool> RefreshBranchReviewAsync(PullRequest row, IAdoClient client, CancellationToken cancellation)
     {
-        string? head;
+        var branch = BranchRefs.NameOf(row.SourceRef);
+        var ado = await AdoHeadAsync(row, branch, client, cancellation);
 
+        if (!ado.Known)
+            return false;
+
+        if (ado.Head is not null)
+            return await MoveAsync(row, ado.Head, PullRequestOrigin.Local, cancellation);
+
+        var onPc = await localBranches.FindAsync(row.Vault, row.RepoName, branch, cancellation);
+
+        if (onPc.Head is not null)
+            return await MoveAsync(row, onPc.Head, PullRequestOrigin.Pc, cancellation);
+
+        // DevHub off: a PC branch is unknown, so it stays; an ADO branch that is gone closes as before.
+        if (!onPc.Reachable && row.Origin == PullRequestOrigin.Pc)
+            return false;
+
+        await UnlistAsync(row, row.Origin == PullRequestOrigin.Pc ? PcBranchGoneReason : BranchGoneReason, cancellation);
+
+        return true;
+    }
+
+    private static async Task<(bool Known, string? Head)> AdoHeadAsync(PullRequest row, string branch, IAdoClient client, CancellationToken cancellation)
+    {
         try
         {
-            head = await client.GetBranchHeadAsync(row.RepoId, BranchRefs.NameOf(row.SourceRef), cancellation);
+            return (true, await client.GetBranchHeadAsync(row.RepoId, branch, cancellation));
         }
         catch (AdoRequestException)
         {
-            return false;
+            return (false, null);
         }
+    }
 
-        if (head is null)
-        {
-            await UnlistAsync(row, BranchGoneReason, cancellation);
-
-            return true;
-        }
-
-        if (head == row.SourceCommit)
+    // A PC branch that got pushed gets its ADO page.
+    private async Task<bool> MoveAsync(PullRequest row, string head, string origin, CancellationToken cancellation)
+    {
+        if (head == row.SourceCommit && origin == row.Origin)
             return false;
+
+        if (origin == PullRequestOrigin.Local && row.Origin == PullRequestOrigin.Pc)
+            row.Url = BranchRefs.WebUrl(await db.Repos.Where(repo => repo.Id == row.RepoId).Select(repo => repo.RemoteUrl).FirstOrDefaultAsync(cancellation) ?? "", BranchRefs.NameOf(row.SourceRef));
 
         row.SourceCommit = head;
+        row.Origin = origin;
         row.SyncedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellation);
 
@@ -166,7 +193,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();
         var mineIds = mine.Select(pr => pr.Id).ToHashSet();
-        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && row.Origin != PullRequestOrigin.Local).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && row.Origin != PullRequestOrigin.Local && row.Origin != PullRequestOrigin.Pc).ToListAsync(cancellation);
 
         foreach (var pr in gone)
             await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation);

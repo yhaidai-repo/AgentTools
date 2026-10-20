@@ -1,3 +1,4 @@
+using PowerLoom.Persistence.Reviews;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
@@ -34,10 +35,14 @@ public static class ReviewQueueing
 
     private static async Task<Outcome<string>> QueueAsync(PowerLoomDbContext db, int prId, object subject, CancellationToken cancellation)
     {
-        var pr = await db.PullRequests.AsNoTracking().Where(row => row.Id == prId).Select(row => new { row.Vault, row.SourceCommit, row.Title }).SingleOrDefaultAsync(cancellation);
+        var pr = await db.PullRequests.AsNoTracking().Where(row => row.Id == prId).Select(row => new { row.Vault, row.SourceCommit, row.Title, row.Origin }).SingleOrDefaultAsync(cancellation);
 
         if (pr is null)
             return Outcome<string>.Failure(Problem.NotFound("Unknown pull request."));
+
+        // The review agent reads the branch from Azure DevOps; a branch only on the PC can be tested, not reviewed.
+        if (pr.Origin == PullRequestOrigin.Pc)
+            return Outcome<string>.Failure(Problem.Conflict("the branch is only on this PC: push it, code review reads it from Azure DevOps."));
 
         var open = await ReviewTasks.OpenTaskIdAsync(db, prId, cancellation);
 
