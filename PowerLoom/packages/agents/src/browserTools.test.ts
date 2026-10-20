@@ -16,7 +16,7 @@ function toolsWith(client: Partial<DevHubClient>) {
   const db = { select: () => ({ from: () => ({ where: async () => [{ outputs: [] }] }) }), update: () => ({ set: (row: { outputs: string[] }) => ({ where: async () => { outputs.push(row.outputs); } }) }) };
   const deps = { outside: { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } }, db } as unknown as AgentDeps;
   const access = { client: client as DevHubClient, url: "http://host.docker.internal:47811" };
-  const tools = createBrowserTools(deps, context, access, "powerloom-run-7");
+  const tools = createBrowserTools(deps, context, access, "powerloom-run-7", true);
 
   return { tool: (name: string) => tools.find((tool) => tool.name === name)!, entries, outputs };
 }
@@ -33,7 +33,7 @@ describe("createBrowserTools", () => {
 
     const result = await tool("browser_open").handler({ case: "TC-1234", url: "https://localhost:5001/login" });
 
-    assert.deepEqual(request, { owner: "powerloom-run-7", case: "TC-1234", url: "https://localhost:5001/login" });
+    assert.deepEqual(request, { owner: "powerloom-run-7", case: "TC-1234", url: "https://localhost:5001/login", headless: true });
     assert.match(result.text, /^Sign in — https:\/\/localhost:5001\/login\n\n- textbox "User name"/);
     assert.equal(entries[0].resource, "browser:TC-1234");
     assert.equal(entries[0].outcome, "ok");

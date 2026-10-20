@@ -14,26 +14,26 @@ const ACTIONS = ["navigate", "click", "fill", "press", "select", "check", "unche
 // The browser tools (user decision 2026-10-20: the browser runs on the host through DevHub, the existing bridge):
 // one recorded case at a time, owned by the run like its stack; every call goes to the data access log under the
 // DevHub kind. A closed case's recording is listed among the run's outputs.
-export function createBrowserTools(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string): ToolDefinition<any>[] {
+export function createBrowserTools(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string, headless: boolean): ToolDefinition<any>[] {
   return [
-    browserOpenTool(deps, context, access, owner),
+    browserOpenTool(deps, context, access, owner, headless),
     browserSnapshotTool(deps, context, access),
     browserActTool(deps, context, access),
     browserCloseTool(deps, context, access, owner),
   ];
 }
 
-function browserOpenTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string) {
+function browserOpenTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string, headless: boolean) {
   return defineOutsideTool(deps.outside, context, {
     name: "browser_open",
-    description: "Open a recorded browser case on the host (Chromium, headless; video + trace saved under the case's name) and show the page. One case at a time: close it with browser_close before the next. Local services are at their URLs from list_services.",
+    description: `Open a recorded browser case on the host (Chromium, ${headless ? "headless" : "visible on the host's screen"}; video + trace saved under the case's name) and show the page. One case at a time: close it with browser_close before the next. Local services are at their URLs from list_services.`,
     input: {
       case: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/).describe("A short name for the recording, e.g. TC-1234 or login-happy-path"),
       url: z.string().url().optional().describe("The page to open first"),
     },
     resource: (input) => resourceOf(access, `browser:${input.case}`),
     request: (input) => `open ${input.case}${input.url ? ` at ${input.url}` : ""}`,
-    handler: async (input) => viewResult(await access.client.openBrowser({ owner, case: input.case, url: input.url })),
+    handler: async (input) => viewResult(await access.client.openBrowser({ owner, case: input.case, url: input.url, headless })),
   });
 }
 

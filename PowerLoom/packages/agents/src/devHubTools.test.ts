@@ -32,10 +32,10 @@ describe("createDevHubTools", () => {
     assert.equal(createDevHubTools(depsWith(null).deps, agentWith(true), context).length, 0);
   });
 
-  it("gives the five stack tools when both are on", () => {
+  it("gives the five stack tools and the four browser tools when both are on", () => {
     const names = createDevHubTools(depsWith({}).deps, agentWith(true), context).map((tool) => tool.name);
 
-    assert.deepEqual(names, ["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack"]);
+    assert.deepEqual(names, ["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack", "browser_open", "browser_snapshot", "browser_act", "browser_close"]);
   });
 
   it("lists the services as a table and logs the call as a local stack read", async () => {

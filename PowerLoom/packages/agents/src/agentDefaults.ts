@@ -119,6 +119,15 @@ function withToolsetOptions(specs: AgentOptionSpec[]): AgentOptionSpec[] {
   return [...specs, ...TOOLSET_OPTIONS.filter((spec) => !declared.has(spec.key))];
 }
 
+// The browser DevHub drives for a test: hidden (1), or a window on the host to watch (0) (user request 2026-10-20).
+const HEADLESS_OPTION: AgentOptionSpec = {
+  key: "headless",
+  label: "Headless browser",
+  description: "1: the test browser runs hidden on the host. 0: a browser window opens on the host, so you can watch the test; recordings are made either way.",
+  min: 0,
+  max: 1,
+};
+
 const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("Tasks"),
   {
@@ -483,8 +492,8 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     // DevHub (the stack and the browser) and the ADO test cases are its job (user decisions 2026-10-20).
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
     skills: ["powerloom-autotest-checklist"],
-    options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30 },
-    optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),
+    options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30, headless: 1 },
+    optionSpecs: withToolsetOptions([...BETTER_RESEARCH_OPTIONS, HEADLESS_OPTION]),
     integrationSpecs: INTEGRATIONS,
     canAssign: ["research"],
     handles: ["test"],
