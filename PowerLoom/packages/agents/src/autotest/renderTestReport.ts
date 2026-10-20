@@ -2,9 +2,14 @@ import type { PlannedCase } from "./models/PlannedCase";
 import type { TestFinding } from "./models/TestFinding";
 import type { TestReport } from "./models/TestReport";
 
-// The report as the item page and the next run read it: findings and cases with their ids resolved.
+// The report as the item page and the next run read it: findings and cases with their ids resolved. The agent names
+// tasks it created as new:<n> anywhere (a blocked_by list, a step's data), so the whole text is resolved at the end.
 export function renderTestReport(report: TestReport, taskIds: string[]): string {
-  const resolve = (ref: string) => resolveNewId(ref, taskIds);
+  return resolveNewIds(renderUnresolved(report), taskIds);
+}
+
+function renderUnresolved(report: TestReport): string {
+  const resolve = (ref: string) => ref;
 
   return [
     `**Goal:** ${report.goal}`,
@@ -19,15 +24,9 @@ export function renderTestReport(report: TestReport, taskIds: string[]): string 
   ].join("\n\n");
 }
 
-// `new:<n>` names the n-th task created in the run; after the commit it has an id.
-export function resolveNewId(ref: string, taskIds: string[]): string {
-  const match = /^new:(\d+)$/.exec(ref);
-
-  if (!match) {
-    return ref;
-  }
-
-  return taskIds[Number(match[1]) - 1] ?? ref;
+// `new:<n>` names the n-th task created in the run; after the commit it has an id. Unknown numbers stay as written.
+export function resolveNewIds(text: string, taskIds: string[]): string {
+  return text.replace(/\bnew:(\d+)\b/g, (whole, number: string) => taskIds[Number(number) - 1] ?? whole);
 }
 
 function findingLine(finding: TestFinding, resolve: (ref: string) => string): string {

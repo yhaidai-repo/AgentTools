@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ReadLog } from "../evidence/ReadLog";
 import type { AutotestDraft } from "./models/AutotestDraft";
-import { renderTestReport } from "./renderTestReport";
+import { renderTestReport, resolveNewIds } from "./renderTestReport";
 import { createReportTool } from "./reportTool";
 
 const evidence = [{ source: "S0", ref: "PBI-1 acceptance criteria", note: "AC 2 expects a warning" }];
@@ -75,5 +75,9 @@ describe("renderTestReport", () => {
     assert.match(text, /### 2\. Warning shown \(agent\) — blocked by HT-1-003/);
     assert.match(text, /1\. Open Transactions\n2\. Filter archived\nData: facility 42\nExpected: Rows greyed/);
     assert.match(text, /## Services\n\n- pvs-web: owns the grid/);
+  });
+
+  it("resolves new:<n> inside free text too and leaves unknown numbers alone", () => {
+    assert.equal(resolveNewIds("env from new:1; see new:2, then new:12", ["HT-1-003", "Q-1-004"]), "env from HT-1-003; see Q-1-004, then new:12");
   });
 });

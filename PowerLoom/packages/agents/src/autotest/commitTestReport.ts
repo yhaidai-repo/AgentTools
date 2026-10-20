@@ -5,7 +5,7 @@ import { commitCreatedTasks, nextId } from "../taskCreation/commitCreatedTasks";
 import { commitCaptures } from "../vaultCapture";
 import type { AutotestDraft } from "./models/AutotestDraft";
 import type { TestReport } from "./models/TestReport";
-import { renderTestReport, resolveNewId } from "./renderTestReport";
+import { renderTestReport, resolveNewIds } from "./renderTestReport";
 
 const ACTOR = "agent:autotest";
 const REPORT_VERSION = 1;
@@ -70,7 +70,8 @@ function blockingIds(draft: AutotestDraft, taskIds: string[]): string[] {
 function withResolvedIds(report: TestReport, taskIds: string[]): TestReport {
   return {
     ...report,
-    analysis: report.analysis.map((finding) => ({ ...finding, resolution: resolveNewId(finding.resolution, taskIds) })),
-    cases: report.cases.map((planned) => ({ ...planned, blockedBy: planned.blockedBy === null ? null : resolveNewId(planned.blockedBy, taskIds) })),
+    summary: resolveNewIds(report.summary, taskIds),
+    analysis: report.analysis.map((finding) => ({ ...finding, detail: resolveNewIds(finding.detail, taskIds), resolution: resolveNewIds(finding.resolution, taskIds) })),
+    cases: report.cases.map((planned) => ({ ...planned, data: resolveNewIds(planned.data, taskIds), expected: resolveNewIds(planned.expected, taskIds), blockedBy: planned.blockedBy === null ? null : resolveNewIds(planned.blockedBy, taskIds) })),
   };
 }
