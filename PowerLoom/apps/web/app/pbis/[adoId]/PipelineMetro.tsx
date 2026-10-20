@@ -1,4 +1,5 @@
 import type { PipelineStatus } from "@powerloom/core";
+import type { CSSProperties } from "react";
 import { formatHours } from "@/lib/format";
 import type { MetroStation } from "@/models/MetroStation";
 
@@ -19,7 +20,7 @@ export function PipelineMetro({ stations, status, running }: PipelineMetroProps)
   const pause = PAUSES[status] ?? null;
 
   return (
-    <div className={`metro${running ? " running" : ""}`} style={{ gridTemplateColumns: `repeat(${stations.length}, 1fr)` }}>
+    <div className={`metro${running ? " running" : ""}`} style={{ gridTemplateColumns: `repeat(${stations.length}, 1fr)`, "--stations": stations.length } as CSSProperties}>
       <span className="metro-track" />
       <span className="metro-done" style={{ width: `calc(100% / ${stations.length} * ${here})` }} />
       {stations.map((station) => <Station key={station.key} station={station} pause={station.state === "current" ? pause : null} />)}
