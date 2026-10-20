@@ -45,7 +45,7 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
         </div>
         <Facts detail={detail} />
         <Stats detail={detail} />
-        <ItemProgress item={item} />
+        <ItemProgress item={item} running={detail.runs.some((run) => run.outcome === "running")} />
       </section>
     </>
   );
