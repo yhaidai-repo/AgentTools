@@ -3,7 +3,9 @@ import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { Panel } from "@/components/Panel";
 import { getDb } from "@/lib/db";
-import { isResultKind } from "@/lib/items";
+import { ResultTabs } from "@/components/ResultTabs";
+import { isResultKind, itemPath } from "@/lib/items";
+import { ItemContent } from "@/app/items/ItemContent";
 import { formatDuration, formatUsd } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import type { PbiDetail } from "@/lib/pbiDetail";
@@ -34,6 +36,7 @@ export function AgentsTab({ detail }: { detail: PbiDetail }) {
         <Panel title="Estimate" aside={detail.estimate && <small>{detail.estimate.agent}</small>}>{detail.estimate ? <EstimateLine estimate={detail.estimate} /> : <p className="empty">No agent has estimated it yet.</p>}</Panel>
         <Panel title="Refinement" aside={detail.refinement && <small>v{detail.refinement.version}</small>}><Refinement detail={detail} /></Panel>
         <Panel title="Design" aside={detail.design && <small>v{detail.design.version}</small>}><DesignSection design={detail.design} /></Panel>
+        <AgentResults detail={detail} />
         <QuestionsAndTasks detail={detail} />
       </div>
       <div>
@@ -55,6 +58,33 @@ function Refinement({ detail }: { detail: PbiDetail }) {
       <p>{detail.refinement.summary}</p>
       <RefinementDetailsLine adoId={detail.pbi.adoId} details={detail.refinement.details as RefinementDetailsView | null} />
     </>
+  );
+}
+
+// Every result an agent wrote for the PBI (research results, test reports) as tabs, the newest open (user request
+// 2026-10-20); each names the task it answers.
+function AgentResults({ detail }: { detail: PbiDetail }) {
+  const results = detail.items.filter((item) => isResultKind(item.kind) && item.status !== "superseded");
+
+  if (results.length === 0) {
+    return null;
+  }
+
+  const tabs = results.map((result) => ({
+    key: result.id,
+    label: `${result.id}${result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}`,
+    content: (
+      <div className="result-section">
+        <p className="hint">{result.kind === "test-report" ? "Test report" : "Research result"} of {result.parentId ? <Link href={itemPath({ id: result.parentId, pbiId: result.pbiId })}>{result.parentId}</Link> : "–"} · {result.status}</p>
+        <ItemContent item={result} />
+      </div>
+    ),
+  }));
+
+  return (
+    <Panel title="Agent results" aside={<small>{results.length}</small>}>
+      <ResultTabs tabs={tabs} />
+    </Panel>
   );
 }
 

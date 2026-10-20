@@ -2,6 +2,7 @@ import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/cor
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
+import { ResultTabs } from "@/components/ResultTabs";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
@@ -81,16 +82,18 @@ function Results({ detail }: { detail: ItemDetail }) {
     return detail.item.resolution ? null : <p className="muted">No result yet.</p>;
   }
 
-  return (
-    <>
-      {detail.results.map((result) => (
-        <section key={result.id} className="card result-section">
-          <h2>{result.kind === "test-report" ? "Report" : "Result"} {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
-          <ItemContent item={result} />
-        </section>
-      ))}
-    </>
-  );
+  const tabs = detail.results.map((result) => ({
+    key: result.id,
+    label: `${result.id}${result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}`,
+    content: (
+      <section className="card result-section">
+        <h2>{result.kind === "test-report" ? "Report" : "Result"} {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
+        <ItemContent item={result} />
+      </section>
+    ),
+  }));
+
+  return <ResultTabs tabs={tabs} />;
 }
 
 // Open questions and known issues the tech-writer raised while merging this task's draft.
