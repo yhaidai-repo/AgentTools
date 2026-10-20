@@ -12,7 +12,7 @@ interface PipelineMetroProps {
 }
 
 // The PBI's way through the pipeline as metro stations (user request 2026-10-18): passed stations glow, a skipped one
-// is dashed, the current one rings; under each, how long the PBI stayed. A pause (waiting on you, stale, closed) shows
+// is dashed, the current one rings; under each, how long the PBI stayed, or its runs when only a task of it ran. A pause (waiting on you, stale, closed) shows
 // at the station where the PBI stopped.
 export function PipelineMetro({ stations, status, running }: PipelineMetroProps) {
   const here = stations.findIndex((station) => station.state === "current");
@@ -43,5 +43,13 @@ function stationTime(station: MetroStation): string {
     return "skipped";
   }
 
-  return station.hours === null ? "" : formatHours(station.hours);
+  if (station.hours !== null) {
+    return formatHours(station.hours);
+  }
+
+  return station.runs > 0 ? runsText(station.runs) : "";
+}
+
+function runsText(runs: number): string {
+  return runs === 1 ? "1 run" : `${runs} runs`;
 }
