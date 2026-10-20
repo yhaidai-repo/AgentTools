@@ -12,7 +12,6 @@ import { FindingForm } from "./FindingForm";
 import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
 import { TaskNotesForm } from "./TaskNotesForm";
-import { TaskResults } from "./TaskResults";
 import { TaskResultSets } from "./TaskResultSets";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
@@ -29,7 +28,6 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
       <TaskResultSets detail={detail} chosen={chosen} />
-      <TaskResults detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
     </>

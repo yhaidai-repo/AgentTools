@@ -6,6 +6,7 @@ import { ItemContent } from "../items/ItemContent";
 import { DesignSection } from "../pbis/[adoId]/DesignSection";
 import { EstimateLine } from "../pbis/[adoId]/EstimateLine";
 import { RefinementDetailsLine } from "../pbis/[adoId]/RefinementDetailsLine";
+import { ReviewBody } from "./ReviewBody";
 
 type RefinementRow = typeof refinement.$inferSelect;
 
@@ -21,6 +22,10 @@ export function ResultBody({ result }: { result: AgentResult }) {
 
   if (result.kind === "estimate") {
     return <EstimateLine estimate={result.row} />;
+  }
+
+  if (result.kind === "review") {
+    return <ReviewBody review={result.row} />;
   }
 
   return <ItemContent item={result.row} />;

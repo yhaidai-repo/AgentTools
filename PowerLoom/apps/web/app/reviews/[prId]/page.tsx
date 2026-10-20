@@ -1,13 +1,16 @@
 import type { reviewComment } from "@powerloom/db";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { MarkdownBlock } from "@/components/MarkdownBlock";
 import { NoVault } from "@/components/NoVault";
 import { Panel } from "@/components/Panel";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { versionKey } from "@/lib/resultLinks";
+import { loadReviewResultSet } from "@/lib/resultVersions";
 import { loadReviewDetail } from "@/lib/reviews";
+import type { ResultVersion } from "@/models/ResultVersion";
 import type { ReviewDetail } from "@/models/ReviewDetail";
+import { ResultBlock } from "../../results/ResultBlock";
 import { BetterReviewInfo } from "./BetterReviewInfo";
 import { CommentCard } from "./CommentCard";
 import { ReviewHeader } from "./ReviewHeader";
@@ -19,7 +22,8 @@ const REFRESH_MS = 5_000;
 
 type CommentRow = typeof reviewComment.$inferSelect;
 
-export default async function ReviewPage({ params }: { params: Promise<{ prId: string }> }) {
+// The review's summary is the chosen review version (user decision 2026-10-21: every run kept, the latest shown).
+export default async function ReviewPage({ params, searchParams }: { params: Promise<{ prId: string }>; searchParams: Promise<{ v?: string }> }) {
   const vault = await currentVault();
 
   if (!vault) {
@@ -33,6 +37,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ prId: s
   }
 
   const isBusy = detail.state === "queued" || detail.state === "reviewing";
+  const reviews = await loadReviewResultSet(detail.pr.id);
+  const hrefOf = (version: ResultVersion) => `/reviews/${detail.pr.id}?v=${encodeURIComponent(versionKey(version))}`;
 
   return (
     <>
@@ -40,8 +46,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ prId: s
       <ReviewHeader detail={detail} />
       <div className="pbi-columns review-columns">
         <div>
-          <Panel title="Summary">
-            {detail.review.summaryMd ? <div className="review-summary"><MarkdownBlock text={detail.review.summaryMd} /></div> : <p className="hint">Not reviewed yet.</p>}
+          <Panel title="Summary" aside={reviews.versions.length > 1 ? <small>{reviews.versions.length} versions</small> : null}>
+            <ResultBlock set={reviews} chosen={(await searchParams).v} hrefOf={hrefOf} />
           </Panel>
           <Comments detail={detail} />
         </div>

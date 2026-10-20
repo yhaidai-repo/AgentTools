@@ -1,10 +1,12 @@
-import { agentRun, design, localItem, pbiEstimate, refinement } from "@powerloom/db";
+import { agentRun, codeReviewVersion, design, localItem, pbiEstimate, refinement } from "@powerloom/db";
 import { and, asc, eq, inArray, type SQL } from "drizzle-orm";
-import type { ResultKind } from "@/models/ResultKind";
+import type { AgentResult } from "@/models/AgentResult";
 import type { ResultSet } from "@/models/ResultSet";
 import type { ResultVersion } from "@/models/ResultVersion";
 import { getDb } from "./db";
 import { RESULT_KINDS } from "./items";
+import { versionKey } from "./resultLinks";
+import { reviewTaskPrId, reviewTasksOf } from "./reviews";
 
 type ItemResultRow = Awaited<ReturnType<typeof itemRows>>[number];
 
@@ -28,16 +30,29 @@ export async function loadPbiResultSets(adoId: number): Promise<ResultSet[]> {
   ];
 }
 
-// What one task's runs wrote: the refinement, design or estimate versions of its runs, or the result items answering it.
-// Estimates keep the numbers they have on the PBI page, so they are counted over the whole PBI first.
-export async function loadTaskResultSets(task: { id: string; pbiId: number | null }, runIds: number[]): Promise<ResultSet[]> {
-  const [items, refinements, designs, estimates] = await Promise.all([
+// A pull request's reviews (user decision 2026-10-21): one version per successful review run, each rerun being a new
+// review task. A review task's page opens on its own newest version (`ownRunIds`), the review page on the latest.
+export async function loadReviewResultSet(prId: number, ownRunIds: number[] = []): Promise<ResultSet> {
+  const versions = await reviewVersions(prId);
+  const own = versions.filter((version) => version.runId !== null && ownRunIds.includes(version.runId)).at(-1);
+
+  return { key: "review", title: "Review", task: null, versions, empty: "Not reviewed yet.", preferred: own ? versionKey(own) : undefined };
+}
+
+// What one task's runs wrote: the refinement, design or estimate versions of its runs, the result items answering it,
+// or, for a review task, its pull request's reviews (opening on its own run). Estimates keep the numbers they have on
+// the PBI page, so they are counted over the whole PBI first.
+export async function loadTaskResultSets(task: { id: string; pbiId: number | null; kind: string; data: unknown }, runIds: number[]): Promise<ResultSet[]> {
+  const prId = task.kind === "review" ? reviewTaskPrId(task.data) : null;
+  const [reviews, items, refinements, designs, estimates] = await Promise.all([
+    prId === null ? null : loadReviewResultSet(prId, runIds),
     itemRows(eq(localItem.parentId, task.id)),
     runIds.length === 0 ? [] : refinementVersions(inArray(refinement.runId, runIds)),
     runIds.length === 0 ? [] : designVersions(inArray(design.runId, runIds)),
     runIds.length === 0 || task.pbiId === null ? [] : estimatesOfRuns(task.pbiId, runIds),
   ]);
   const sets: ResultSet[] = [
+    ...(reviews ? [reviews] : []),
     { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "" },
     { key: "design", title: "Design", task: null, versions: designs, empty: "" },
     { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "" },
@@ -47,11 +62,18 @@ export async function loadTaskResultSets(task: { id: string; pbiId: number | nul
   return sets.filter((set) => set.versions.length > 0);
 }
 
-// The versions beside one result on its full page: the PBI's for a refinement, design or estimate, the task's for an item.
-export async function loadSiblingVersions(kind: ResultKind, pbiId: number | null, taskId: string | null): Promise<ResultVersion[]> {
-  if (kind === "item") {
-    return taskId === null ? [] : itemSets(await itemRows(eq(localItem.parentId, taskId)))[0]?.versions ?? [];
+// The versions beside one result on its full page: the PBI's for a refinement, design or estimate, the task's for an
+// item, the pull request's for a review run.
+export async function loadSiblingVersions(result: AgentResult, owner: { pbiId: number | null; taskId: string | null }): Promise<ResultVersion[]> {
+  if (result.kind === "review") {
+    return reviewVersions(result.row.prId);
   }
+
+  if (result.kind === "item") {
+    return owner.taskId === null ? [] : itemSets(await itemRows(eq(localItem.parentId, owner.taskId)))[0]?.versions ?? [];
+  }
+
+  const pbiId = owner.pbiId;
 
   if (pbiId === null) {
     return [];
@@ -59,7 +81,20 @@ export async function loadSiblingVersions(kind: ResultKind, pbiId: number | null
 
   const loaders = { refinement: () => refinementVersions(eq(refinement.pbiId, pbiId)), design: () => designVersions(eq(design.pbiId, pbiId)), estimate: () => estimateVersions(eq(pbiEstimate.pbiId, pbiId)) };
 
-  return loaders[kind]();
+  return loaders[result.kind]();
+}
+
+// Every successful review run of the pull request, with when its version was kept (its start for runs from before).
+async function reviewVersions(prId: number): Promise<ResultVersion[]> {
+  const rows = await getDb()
+    .select({ runId: agentRun.id, agent: agentRun.stage, startedAt: agentRun.startedAt, keptAt: codeReviewVersion.createdAt })
+    .from(agentRun)
+    .innerJoin(localItem, eq(localItem.id, agentRun.itemId))
+    .leftJoin(codeReviewVersion, eq(codeReviewVersion.runId, agentRun.id))
+    .where(and(reviewTasksOf(prId), eq(agentRun.outcome, "success")))
+    .orderBy(asc(agentRun.id));
+
+  return rows.map((row, index) => ({ kind: "review", id: String(row.runId), label: `v${index + 1}`, runId: row.runId, agent: row.agent, at: row.keptAt ?? row.startedAt, status: null }));
 }
 
 async function refinementVersions(where: SQL): Promise<ResultVersion[]> {

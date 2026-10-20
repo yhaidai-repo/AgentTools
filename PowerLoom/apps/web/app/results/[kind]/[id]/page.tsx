@@ -13,7 +13,7 @@ import { ResultVersionPicker } from "../../ResultVersionPicker";
 export const dynamic = "force-dynamic";
 
 const ITEM_TITLES: Record<string, string> = { "research-result": "Research result", "test-report": "Test report" };
-const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", design: "Design", estimate: "Estimate" };
+const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", design: "Design", estimate: "Estimate", review: "Review" };
 
 // One agent result version on a page of its own (user decision 2026-10-21): the whole width, so its tables get room,
 // unfolded, with its other versions one click away.
@@ -27,7 +27,7 @@ export default async function ResultPage({ params }: { params: Promise<{ kind: s
   }
 
   const owner = await resultOwner(result);
-  const versions = await loadSiblingVersions(result.kind, owner.pbiId, owner.taskId);
+  const versions = await loadSiblingVersions(result, owner);
   const version = versions.find((candidate) => versionKey(candidate) === versionKey({ kind: result.kind, id: String(result.row.id) })) ?? null;
   const title = `${titleOf(result)}${version ? ` ${version.label}` : ""}`;
 

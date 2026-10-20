@@ -555,6 +555,22 @@ export const codeReview = pgTable("code_review", {
   updatedAt: updatedAt(),
 });
 
+// What one review run concluded, kept per run so a review's versions stay readable (user decision 2026-10-21);
+// code_review holds the latest. Written by Code review and Better Review (recordReviewVersion).
+export const codeReviewVersion = pgTable("code_review_version", {
+  id: serial("id").primaryKey(),
+  prId: integer("pr_id").notNull().references(() => pullRequest.id),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id, { onDelete: "set null" }),
+  reviewedCommit: text("reviewed_commit").notNull(),
+  reviewedIteration: integer("reviewed_iteration"),
+  summaryMd: text("summary_md"), // null when the run gave no summary
+  details: jsonb("details").$type<object | null>(), // Better Review's result after this run; null for Code review
+  createdAt: createdAt(),
+}, (t) => [
+  index("code_review_version_pr_idx").on(t.prId, t.createdAt),
+  uniqueIndex("code_review_version_run_uq").on(t.runId),
+]);
+
 export const reviewComment = pgTable("review_comment", {
   id: text("id").primaryKey(), // RC-<prId>-<nnn>
   prId: integer("pr_id").notNull().references(() => pullRequest.id),

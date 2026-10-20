@@ -74,8 +74,15 @@ function latestTaskStatus(): SQL<string | null> {
   return sql<string | null>`(SELECT i.status FROM local_item i WHERE i.kind = 'review' AND (i.data->>'prId')::int = ${pullRequest.id} ORDER BY i.created_at DESC LIMIT 1)`;
 }
 
-function reviewTasksOf(prId: number): SQL {
+export function reviewTasksOf(prId: number): SQL {
   return sql`${localItem.kind} = 'review' AND (${localItem.data}->>'prId')::int = ${prId}`;
+}
+
+// The pull request a review task reviews; null for any other item.
+export function reviewTaskPrId(data: unknown): number | null {
+  const prId = (data as { prId?: unknown } | null)?.prId;
+
+  return typeof prId === "number" ? prId : null;
 }
 
 function toReviewRow(row: { pr: ReviewRow["pr"]; review: ReviewRow["review"]; open: number; answered: number; total: number; taskStatus: string | null }): ReviewRow {

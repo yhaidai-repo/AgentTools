@@ -1,7 +1,7 @@
 import type { ResultKind } from "@/models/ResultKind";
 import type { ResultVersion } from "@/models/ResultVersion";
 
-const KINDS: ResultKind[] = ["refinement", "design", "estimate", "item"];
+const KINDS: ResultKind[] = ["refinement", "design", "estimate", "item", "review"];
 
 // A version's key in the `v` query parameter of the page that shows it, e.g. design-7 or item-TR-30474-012.
 export function versionKey(version: Pick<ResultVersion, "kind" | "id">): string {

@@ -19,7 +19,7 @@ interface ResultBlockProps {
 // One result under its task (user decision 2026-10-21): the chosen version (the latest by default) and who wrote it,
 // the other versions one click away, long content folded, and the version's full page.
 export async function ResultBlock({ set, chosen, hrefOf }: ResultBlockProps) {
-  const version = chosenVersion(set.versions, chosen);
+  const version = chosenVersion(set.versions, chosen ?? set.preferred);
 
   if (!version) {
     return set.empty ? <p className="empty">{set.empty}</p> : null;

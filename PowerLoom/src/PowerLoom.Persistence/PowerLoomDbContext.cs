@@ -20,6 +20,8 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<CodeReview> CodeReviews { get; set; }
 
+    public virtual DbSet<CodeReviewVersion> CodeReviewVersions { get; set; }
+
     public virtual DbSet<Config> Configs { get; set; }
 
     public virtual DbSet<DeletedPbi> DeletedPbis { get; set; }

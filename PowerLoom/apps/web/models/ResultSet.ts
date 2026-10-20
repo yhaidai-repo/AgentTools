@@ -11,4 +11,6 @@ export interface ResultSet {
   versions: ResultVersion[];
   /** Shown while there is no version yet. */
   empty: string;
+  /** The version shown when the URL names none; the latest when unset (a review task opens on its own run). */
+  preferred?: string;
 }

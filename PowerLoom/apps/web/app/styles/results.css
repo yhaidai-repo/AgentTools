@@ -68,6 +68,21 @@
   vertical-align: top;
 }
 
+/* A review run's comments, one line each; the review page holds their cards. */
+.run-comments {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.run-comments li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+
 .result-page-bar {
   display: grid;
   gap: 10px;

@@ -318,6 +318,57 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("code_review", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.CodeReviewVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<int>("PrId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pr_id");
+
+                    b.Property<string>("ReviewedCommit")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reviewed_commit");
+
+                    b.Property<int?>("ReviewedIteration")
+                        .HasColumnType("integer")
+                        .HasColumnName("reviewed_iteration");
+
+                    b.Property<long?>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("SummaryMd")
+                        .HasColumnType("text")
+                        .HasColumnName("summary_md");
+
+                    b.HasKey("Id")
+                        .HasName("code_review_version_pkey");
+
+                    b.HasIndex(new[] { "PrId", "CreatedAt" }, "code_review_version_pr_idx");
+
+                    b.HasIndex(new[] { "RunId" }, "code_review_version_run_uq")
+                        .IsUnique();
+
+                    b.ToTable("code_review_version", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.Config", b =>
                 {
                     b.Property<string>("Key")
@@ -2035,6 +2086,25 @@ namespace PowerLoom.Persistence.Migrations
                         .HasConstraintName("code_review_pr_id_pull_request_id_fk");
 
                     b.Navigation("Pr");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.CodeReviewVersion", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.PullRequest", "Pr")
+                        .WithMany()
+                        .HasForeignKey("PrId")
+                        .IsRequired()
+                        .HasConstraintName("code_review_version_pr_id_pull_request_id_fk");
+
+                    b.HasOne("PowerLoom.Persistence.Entities.AgentRun", "Run")
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("code_review_version_run_id_agent_run_id_fk");
+
+                    b.Navigation("Pr");
+
+                    b.Navigation("Run");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.DataAccess", b =>

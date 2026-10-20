@@ -3,7 +3,6 @@ import { latestPbiEstimate, pbiRepoEntries, readBug, readChildItems } from "@pow
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
-import { loadTaskResults } from "./taskResults";
 
 // Uploads without their bytes (downloads read those on their own).
 const ATTACHMENT_SUMMARY = {
@@ -66,9 +65,7 @@ export async function loadItemDetail(itemId: string) {
 
   const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
 
-  const taskResults = await loadTaskResults(db, item, runs.map((run) => run.id));
-
-  return { item, attachments, findings, runs, taskResults };
+  return { item, attachments, findings, runs };
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;
