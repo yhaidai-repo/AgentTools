@@ -17,10 +17,10 @@ import type { ReviewRow } from "@/models/ReviewRow";
 import { CheckNowForm } from "./CheckNowForm";
 import { ReviewsForm } from "./ReviewsForm";
 import { ReviewTable } from "./ReviewTable";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
 
-const REFRESH_MS = 15_000;
 const STATUS_LABELS: Record<ReviewFilter["status"], string> = { active: "Active", closed: "Closed", all: "All" };
 
 type SearchParams = Promise<{ status?: string; page?: string; size?: string; focus?: string }>;
@@ -48,7 +48,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
     <>
       <div className="page-head">
         <h1>Reviews</h1>
-        <AutoRefresh active intervalMs={REFRESH_MS} />
+        <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
       </div>
       <RememberFilters vault={vault} />
       <div className="backlog-bar">

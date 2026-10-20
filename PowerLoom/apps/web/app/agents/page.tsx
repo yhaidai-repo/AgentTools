@@ -11,11 +11,9 @@ import { AGENTS_TABS, AgentsTabs, DEFAULT_AGENTS_TAB } from "./AgentsTabs";
 import { OverviewTab } from "./OverviewTab";
 import { RunsTab } from "./RunsTab";
 import { ToolsTab } from "./ToolsTab";
+import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
-
-// Runs start and end all the time; the Overview and Runs tabs follow without a reload, like Tasks. Tools shows no runs.
-const RUNS_REFRESH_MS = 10_000;
 
 type SearchParams = Promise<Record<string, string | undefined>>;
 
@@ -37,7 +35,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Searc
     <>
       <div className="page-head">
         <h1>Agents</h1>
-        <AutoRefresh active={tab !== "tools"} intervalMs={RUNS_REFRESH_MS} />
+        <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
         <PauseSwitch isPaused={isPaused(global)} />
       </div>
       <RememberFilters vault={vault} />
