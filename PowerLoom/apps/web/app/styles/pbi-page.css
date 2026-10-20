@@ -49,6 +49,11 @@
   box-shadow: var(--edge);
 }
 
+/* Tabs under the card sit as far from it as from the panels below them (the tabs' own 24px). */
+.pbi-hero + .tabs {
+  margin-top: 20px;
+}
+
 .pbi-hero::before {
   content: "";
   position: absolute;
