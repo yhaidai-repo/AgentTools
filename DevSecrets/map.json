@@ -65,7 +65,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis"
+      "Redis:ConnectionString": "@redis.connection"
     },
     "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj": {
       "AuthorizationModuleJwtConfig:Secret": "pvs-web-secret",
@@ -76,9 +76,10 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
-      "VapiSettings:Urls:1": "@vapi.url-2"
+      "VapiSettings:Urls:1": "@vapi.url-2",
+      "yhaidai-api-key": "yaroslav-haidai-pvs-api-key"
     },
     "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj": {
       "AppSettings:IpInfoToken": "verifications-ip-info-token",
@@ -93,7 +94,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },
@@ -111,11 +112,13 @@
       "PatientConfig:ApiKey": "@patients.key",
       "PatientConfig:Url": "@patients.url-2",
       "PccIntegrationConfig:ApiKey": "pvs-web-api-key-3",
+      "pvs-dev-password-yhaidai": "pvs-dev-password-yhaidai",
+      "pvs-dev-user-yhaidai": "pvs-dev-user-yhaidai",
       "pvs-sql-for-azure": "pvs-sql-default",
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "Services:bff-aggregators-api:ApiKey": "@bff.key",
       "Services:bff-aggregators-api:https:0": "@bff.url",
       "Services:signals-api:ApiKey": "@signals.key",
@@ -130,7 +133,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },
@@ -141,7 +144,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },
@@ -157,7 +160,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url-2",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },
@@ -176,7 +179,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },
@@ -187,7 +190,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "SocrApiClientConfig:ApiKey": "pvs-background-api-key",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
@@ -199,7 +202,7 @@
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",
-      "Redis:ConnectionString": "verifications-redis",
+      "Redis:ConnectionString": "@redis.connection",
       "VapiSettings:Urls:0": "@vapi.url",
       "VapiSettings:Urls:1": "@vapi.url-2"
     },

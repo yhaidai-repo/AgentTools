@@ -62,8 +62,26 @@ public sealed partial class SecretHttpClient(SecretsFile secrets) : IDisposable
     private static string Fill(string text, IReadOnlyDictionary<string, string> values) =>
         Placeholder().Replace(text, match => values.TryGetValue(match.Groups[1].Value, out var value) ? Transform(value, match.Groups[2].Value) : match.Value);
 
-    private static string Transform(string value, string form) =>
-        form == "basic" ? "Basic " + Convert.ToBase64String(Encoding.GetEncoding("iso-8859-1").GetBytes(":" + value)) : value;
+    private static string Transform(string value, string form) => form == "basic" ? "Basic " + BasicToken(value) : value;
+
+    // A value that already is a Basic token (base64 of user:password, as some keys are stored) goes as it is; a raw
+    // key becomes the password of an empty user (how the PVS API reads it).
+    private static string BasicToken(string value) =>
+        IsBasicToken(value) ? value : Convert.ToBase64String(Latin1.GetBytes(":" + value));
+
+    private static bool IsBasicToken(string value)
+    {
+        try
+        {
+            return Latin1.GetString(Convert.FromBase64String(value)).Contains(':');
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    private static readonly Encoding Latin1 = Encoding.GetEncoding("iso-8859-1");
 
     // Every known value of 4+ characters: a page or an API echoing a key must not reach the agent.
     private static string Redact(string text, IReadOnlyDictionary<string, string> values)

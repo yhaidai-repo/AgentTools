@@ -151,9 +151,19 @@ function Write-FailureLog([hashtable] $Entry) {
         ForEach-Object { Write-Host "  $_" }
 }
 
+function Stop-ComposeEntry([string] $Name) {
+    if ($Name -eq "redis") {
+        Stop-LocalRedis
+
+        return
+    }
+
+    Stop-LocalRabbitMq
+}
+
 function Stop-Entry([hashtable] $Entry) {
     if ($Entry.kind -eq "compose") {
-        Stop-LocalRabbitMq
+        Stop-ComposeEntry $Entry.name
 
         return
     }

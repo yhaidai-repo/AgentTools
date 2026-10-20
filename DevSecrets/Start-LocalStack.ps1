@@ -49,6 +49,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/DevSecrets.Resolve.ps1"
 . "$PSScriptRoot/LocalStack.Worktree.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
+. "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 function Add-BusWhenConsumed([string[]] $Names) {
@@ -61,6 +62,18 @@ function Add-BusWhenConsumed([string[]] $Names) {
     Write-Host "Adding rabbitmq: $($consumes -join ', ') consume the bus"
 
     return @("rabbitmq") + $Names
+}
+
+function Add-CacheWhenUsed([string[]] $Names) {
+    $uses = @($Names | Where-Object { $Catalog[$_].usesCache })
+
+    if ($uses.Count -eq 0 -or $Names -contains "redis") {
+        return $Names
+    }
+
+    Write-Host "Adding redis: $($uses -join ', ') cache there"
+
+    return @("redis") + $Names
 }
 
 function Assert-Runnable([string[]] $Names) {
@@ -217,6 +230,7 @@ $names = Get-ServiceNames $Services
 Assert-KnownServices $Catalog $names
 
 $names = Add-BusWhenConsumed $names
+$names = Add-CacheWhenUsed $names
 $LocalServices = $names
 $appServices = Get-AppServices $names
 
@@ -249,6 +263,11 @@ $state = @{ branch = $Branch; environment = $Values; roots = $roots; services = 
 
 if ($names -contains "rabbitmq") {
     $state.services += Start-LocalRabbitMq $named $Catalog["rabbitmq"]
+    Save-StackState $state
+}
+
+if ($names -contains "redis") {
+    $state.services += Start-LocalRedis $Catalog["redis"]
     Save-StackState $state
 }
 

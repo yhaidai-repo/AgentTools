@@ -17,6 +17,7 @@ $ErrorActionPreference = "Stop"
 
 . "$PSScriptRoot/DevSecrets.Common.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
+. "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 function Get-EntryStatus([hashtable] $Entry) {

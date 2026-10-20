@@ -48,7 +48,8 @@
     "run": {
       "project": "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj",
       "launchProfile": "PVS.API.Core.Development"
-    }
+    },
+    "usesCache": true
   },
   "pvs-background": {
     "consumesBus": true,
@@ -60,7 +61,8 @@
       "project": "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj",
       "launchProfile": "Development",
       "readyLog": "Application started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-failed-transaction-consumer": {
     "consumesBus": true,
@@ -72,7 +74,8 @@
       "project": "pvs/PVS/PVS.FailedTransactionConsumer/PVS.FailedTransactionConsumer.csproj",
       "launchProfile": "Development",
       "readyLog": "Bus started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-failed-verification-delta-consumer": {
     "consumesBus": true,
@@ -84,7 +87,8 @@
       "project": "pvs/PVS/PVS.FailedVerificationDeltaConsumer/PVS.FailedVerificationDeltaConsumer.csproj",
       "launchProfile": "Development",
       "readyLog": "Bus started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-internal-api": {
     "note": "PVS.Internal.API.Core",
@@ -94,7 +98,8 @@
     "run": {
       "project": "pvs/PVS/PVS.Internal.API.Core/PVS.Internal.API.Core.csproj",
       "launchProfile": "PVS.Internal.API.Core.Development"
-    }
+    },
+    "usesCache": true
   },
   "pvs-patient-processing-consumer": {
     "consumesBus": true,
@@ -106,7 +111,8 @@
       "project": "pvs/PVS/PVS.PatientProcessingConsumer/PVS.PatientProcessingConsumer.csproj",
       "launchProfile": "Development",
       "readyLog": "Bus started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-scheduler": {
     "consumesBus": true,
@@ -130,7 +136,8 @@
       "project": "pvs/PVS/PVS.TransactionConsumer/PVS.TransactionConsumer.csproj",
       "launchProfile": "Development",
       "readyLog": "Bus started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-verification-delta-consumer": {
     "consumesBus": true,
@@ -142,7 +149,8 @@
       "project": "pvs/PVS/PVS.VerificationDeltaConsumer/PVS.VerificationDeltaConsumer.csproj",
       "launchProfile": "Development",
       "readyLog": "Bus started"
-    }
+    },
+    "usesCache": true
   },
   "pvs-web": {
     "note": "PVS.Clients.WebClient.Core (portal); Program.cs hard-codes the port",
@@ -155,7 +163,8 @@
       "npmPackages": [
         "pvs/PVS/PVS.Clients.WebClient.Core"
       ]
-    }
+    },
+    "usesCache": true
   },
   "rabbitmq": {
     "note": "Local RabbitMQ container (ports 5673/15673, so a Signals shared-resources RabbitMQ can run too) with a shovel of cloud-events to Service Bus; added automatically when a consumesBus service runs locally",
@@ -201,6 +210,15 @@
     "run": {
       "project": "pvs-internal/Verifications/src/PVS.Verifications.ApiService/PVS.Verifications.ApiService.csproj",
       "launchProfile": "https"
+    },
+    "usesCache": true
+  },
+  "redis": {
+    "note": "Local Redis container (port 6380) for the cache of the services run locally; added automatically when a usesCache service runs locally",
+    "projects": [],
+    "run": {
+      "kind": "redis-compose",
+      "url": "localhost:6380"
     }
   }
 }
