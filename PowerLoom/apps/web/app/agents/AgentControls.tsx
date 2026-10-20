@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { ResultLine } from "@/components/ResultLine";
 import type { ActionResult } from "@/models/ActionResult";
 import { runAgentNow, setAgentsPaused } from "./actions";
+import { useRunNowReport } from "./RunNowResults";
 
 // Pauses or resumes every agent from the page head (user decision 2026-10-18): a switch that shows the state.
 export function PauseSwitch({ isPaused }: { isPaused: boolean }) {
@@ -31,12 +33,19 @@ export function ResumeButton() {
 }
 
 export function RunNowButton({ agentId, disabled }: { agentId: string; disabled: boolean }) {
-  const [result, action, isPending] = useActionState<ActionResult | null>(() => runAgentNow(agentId), null);
+  const report = useRunNowReport();
+  const [result, action, isPending] = useActionState<ActionResult | null>(async () => {
+    const answer = await runAgentNow(agentId);
+
+    report?.(answer);
+
+    return answer;
+  }, null);
 
   return (
     <form action={action} className="actions">
       <button type="submit" className="secondary small" disabled={disabled || isPending}>Run now</button>
-      {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
+      {!report && <ResultLine result={result} />}
     </form>
   );
 }

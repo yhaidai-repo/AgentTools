@@ -9,6 +9,7 @@ import { outcomeDot } from "@/lib/runOutcomes";
 import type { AgentTotals } from "@/models/AgentTotals";
 import type { RunCounts } from "@/models/RunCounts";
 import { RunNowButton } from "./AgentControls";
+import { RunNowResults } from "./RunNowResults";
 
 interface AgentsTableProps {
   agents: AgentDefinition[];
@@ -32,14 +33,16 @@ export function AgentsTable({ agents, totals, counts, range, paused }: AgentsTab
 
   return (
     <div className="panel">
-      <table className="data-table vault-table agents-table">
-        <thead>
-          <tr><th>Agent</th><th className="col-runs num">Runs</th><th className="col-cost num">Cost</th><th className="col-last num">Last run</th><th className="col-act" aria-label="Actions" /></tr>
-        </thead>
-        <tbody>
-          {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} maxCost={maxCost} range={range} paused={paused} />)}
-        </tbody>
-      </table>
+      <RunNowResults>
+        <table className="data-table vault-table agents-table">
+          <thead>
+            <tr><th>Agent</th><th className="col-runs num">Runs</th><th className="col-cost num">Cost</th><th className="col-last num">Last run</th><th className="col-act" aria-label="Actions" /></tr>
+          </thead>
+          <tbody>
+            {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} maxCost={maxCost} range={range} paused={paused} />)}
+          </tbody>
+        </table>
+      </RunNowResults>
       <p className="panel-body hint">Tokens = input + output + cache read + cache write. Cost is an API-price estimate; on the Max token nothing is billed.</p>
     </div>
   );
