@@ -14,6 +14,7 @@ builder.Services.AddOptions<DevHubOptions>()
     .Validate(o => File.Exists(Path.Combine(o.ScriptsDir, "Start-LocalStack.ps1")), "DevHub:ScriptsDir must be the DevSecrets folder.")
     .Validate(o => File.Exists(Path.Combine(o.ValuesDir, "values.dev.json")), "DevHub:ValuesDir must hold values.dev.json.")
     .Validate(o => o.BrowserArtifactsDir.Length > 0, "DevHub:BrowserArtifactsDir must be set (start DevHub with Start-DevHub.ps1).")
+    .Validate(o => o.McpDir.Length > 0, "DevHub:McpDir must be set (start DevHub with Start-DevHub.ps1).")
     .ValidateOnStart();
 
 builder.Services.AddSingleton(TimeProvider.System);
@@ -29,6 +30,7 @@ builder.Services.AddSingleton<SecretEditor>();
 builder.Services.AddSingleton<ScriptCheck>();
 builder.Services.AddSingleton<ConfigEditor>();
 builder.Services.AddHostedService<StackExpiryService>();
+builder.Services.AddSingleton<SecretsFile>();
 builder.Services.AddSingleton<BrowserService>();
 builder.Services.AddHostedService<BrowserExpiryService>();
 builder.Services.AddProblemDetails();

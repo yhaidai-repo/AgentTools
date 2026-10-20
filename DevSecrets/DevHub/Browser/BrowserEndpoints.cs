@@ -10,8 +10,8 @@ public static class BrowserEndpoints
     {
         app.MapPost(BrowserPath, OpenAsync);
         app.MapGet(BrowserPath, (BrowserService browsers, CancellationToken cancellationToken) => browsers.GetStatusAsync(cancellationToken));
-        app.MapPost($"{BrowserPath}/act", ActAsync);
-        app.MapGet($"{BrowserPath}/snapshot", SnapshotAsync);
+        app.Map($"{BrowserPath}/mcp", (HttpContext context, BrowserService browsers) => browsers.ProxyAsync(context));
+        app.MapPost($"{BrowserPath}/type-secret", TypeSecretAsync);
         app.MapDelete(BrowserPath, CloseAsync);
         app.MapGet($"{BrowserPath}/artifacts", (string owner, BrowserService browsers) => TypedResults.Ok(new { owner, artifacts = browsers.ListArtifacts(owner) }));
 
@@ -21,11 +21,8 @@ public static class BrowserEndpoints
     private static async Task<IResult> OpenAsync(OpenBrowserRequest request, BrowserService browsers, CancellationToken cancellationToken) =>
         ToResult(await browsers.OpenAsync(request, cancellationToken));
 
-    private static async Task<IResult> ActAsync(BrowserAction action, BrowserService browsers, CancellationToken cancellationToken) =>
-        ToResult(await browsers.ActAsync(action, cancellationToken));
-
-    private static async Task<IResult> SnapshotAsync(BrowserService browsers, CancellationToken cancellationToken) =>
-        ToResult(await browsers.SnapshotAsync(cancellationToken));
+    private static async Task<IResult> TypeSecretAsync(TypeSecretRequest request, BrowserService browsers, CancellationToken cancellationToken) =>
+        ToResult(await browsers.TypeSecretAsync(request, cancellationToken));
 
     // Not the request's token: a client that gives up must not leave a half-closed recording.
     private static async Task<IResult> CloseAsync(BrowserService browsers, string? owner = null) =>

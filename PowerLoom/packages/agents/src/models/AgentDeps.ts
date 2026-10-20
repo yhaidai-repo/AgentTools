@@ -53,6 +53,8 @@ export interface AgentDeps {
   sql: SqlAccess | null;
   /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */
   azure: AzureAccess | null;
+  /** PowerLoom's API (POWERLOOM_URL): the one place an agent's commit may write through, e.g. a bug it found. */
+  powerloomUrl: string;
   /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
   devHub: DevHubAccess | null;
   /** The vault's Azure DevOps while its integration is on (the ADO tools). */

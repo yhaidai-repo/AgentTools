@@ -199,6 +199,7 @@ async function depsFor(vault: string): Promise<AgentDeps> {
     docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
     sql: await sqlAccessOf(vault),
     azure: await azureAccessOf(vault),
+    powerloomUrl: requireEnv("POWERLOOM_URL").replace(/\/+$/, ""),
     devHub: await devHubAccessOf(vault),
     ado: await adoAccessOf(vault),
   };

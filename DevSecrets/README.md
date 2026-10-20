@@ -89,11 +89,11 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 | `GET /stack` | `phase` (idle, starting, ready, failed, stopping), services, last 200 lines of script output |
 | `GET /stack/logs/{service}?lines=200&error=false` | tail of the service's log |
 | `DELETE /stack` | runs `Stop-LocalStack.ps1` (also kills a start in progress) |
-| `POST /browser {owner, case, url?, headless?}` | opens one recorded browser case (Chromium, headless by default): video + trace go to `<stack>/browser/<owner>/<case>/`; 409 while a case is open |
-| `GET /browser` | the open case: owner, case, address, title, when it closes by itself |
-| `POST /browser/act {action, …}` | `navigate` (url), `click`, `fill` (value or `valueName`), `press` (key), `select`, `check`, `uncheck`, `hover` on a target: `role` + `name`, `label`, `text`, `placeholder` or `selector`; answers with the page's accessibility snapshot |
-| `GET /browser/snapshot` | the page again |
-| `DELETE /browser?owner=` | closes the case and writes `trace.zip` and `video.webm`; answers with the files |
+| `POST /browser {owner, case, headless?}` | starts one Playwright MCP (`@playwright/mcp`, pinned in `DevHub/playwright-mcp`) for the case, headless or in a window, recording into `<stack>/browser/<owner>/<case>/`; 409 while a case is open |
+| `GET /browser` | the open case: owner, case, headless, when it closes by itself |
+| `/browser/mcp` | the case's MCP (streamable HTTP) behind DevHub's token: the agent's MCP client talks to it directly; DevHub keeps the session for its own calls |
+| `POST /browser/type-secret {element, target, valueName, submit?}` | DevHub types a dev-secrets value into the snapshot element `target`, so an agent never sees it; the answer is redacted |
+| `DELETE /browser?owner=` | stops the video and the trace, closes the browser, zips the trace to `trace.zip`, kills the MCP; answers with the files |
 | `GET /browser/artifacts?owner=` | an owner's recordings |
 
 - Listens on `127.0.0.1:47811` only; containers call `http://host.docker.internal:47811`.
@@ -102,7 +102,7 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 - Logs and start output can hold secrets; whoever holds the token can read them.
 - `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
 - PowerLoom: Settings → DevHub (URL, token, Test DevHub, Open DevHub) per vault, and the agent switch "DevHub (run services)"; the runner stops a run's stack when the run ends.
-- Browser cases: one at a time, like the stack; the owner's `DELETE /browser` closes it, a person's (no owner) closes any; an idle case closes after `DevHub:BrowserIdleMinutes` (30) and when DevHub stops. `fill` with `valueName` types a dev-secrets value (`values.local.json`, then `values.dev.json`) so a password never passes through an agent; the recording still shows the typed field. `Start-DevHub.ps1` installs Playwright's Chromium on the first start. The runner's `browser_*` tools come with the DevHub switch; the runner closes a run's case when the run ends.
+- Browser cases: one at a time, like the stack; the owner's `DELETE /browser` closes it, a person's (no owner) closes any; an idle case closes after `DevHub:BrowserIdleMinutes` (30) and when DevHub stops. The MCP gets every dev-secrets value as its `--secrets` file, so a value that shows up in a page or a typed field is redacted in the tool answers. `Start-DevHub.ps1 -Browser msedge|chrome|chromium` picks the browser (default: the installed Edge); the script installs the MCP (`npm install`) and Playwright's ffmpeg (video) on the first start. The runner's `browser_*` tools come with the DevHub switch; the runner closes a run's case when the run ends.
 
 ## Routing references (map.json)
 

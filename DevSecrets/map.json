@@ -111,6 +111,7 @@
       "PatientConfig:ApiKey": "@patients.key",
       "PatientConfig:Url": "@patients.url-2",
       "PccIntegrationConfig:ApiKey": "pvs-web-api-key-3",
+      "pvs-sql-for-azure": "pvs-sql-default",
       "RabbitMq:Password": "@rabbitmq.key",
       "RabbitMq:Url": "@rabbitmq.url",
       "RabbitMq:Username": "@rabbitmq.user",

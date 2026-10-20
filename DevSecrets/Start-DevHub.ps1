@@ -27,9 +27,10 @@
 [CmdletBinding()]
 param(
     [int] $Port = 47811,
-    # The browser DevHub drives: Playwright's own Chromium (downloaded once), or the installed "msedge" / "chrome".
-    [ValidateSet("chromium", "msedge", "chrome")]
-    [string] $Browser = "chromium"
+    # The browser the Playwright MCP drives: the installed "msedge" (default; no download) or "chrome", or Playwright's
+    # own "chromium" (needs `npx playwright install chromium` once; its downloader stalls on some networks).
+    [ValidateSet("msedge", "chrome", "chromium")]
+    [string] $Browser = "msedge"
 )
 
 $ErrorActionPreference = "Stop"
@@ -75,32 +76,21 @@ $project = Join-Path $PSScriptRoot "DevHub/DevHub.csproj"
 dotnet build $project -c Release --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { throw "DevHub build failed" }
 
-$playwright = Join-Path $PSScriptRoot "DevHub/bin/Release/net10.0/playwright.ps1"
+# The Playwright MCP (pinned in DevHub/playwright-mcp/package.json) drives the browser for the agents; installed once.
+$mcpDir = Join-Path $PSScriptRoot "DevHub/playwright-mcp"
 
-# Playwright's downloads (once; a no-op afterwards): cdn.playwright.dev first, Microsoft's mirror when that is blocked.
-function Install-PlaywrightPart([string] $Part) {
-    & $playwright install $Part
+if (-not (Test-Path (Join-Path $mcpDir "node_modules/@playwright/mcp/cli.js"))) {
+    Write-Host "Installing the Playwright MCP into $mcpDir"
+    npm install --prefix $mcpDir --no-audit --no-fund --loglevel error
 
-    if ($LASTEXITCODE -eq 0) {
-        return $true
-    }
-
-    # The mirror serves the builds under this prefix; Playwright appends /builds/<part>/<version>/<file>.
-    $env:PLAYWRIGHT_DOWNLOAD_HOST = "https://playwright.download.prss.microsoft.com/dbazure/download/playwright"
-    & $playwright install $Part
-
-    return $LASTEXITCODE -eq 0
+    if ($LASTEXITCODE -ne 0) { throw "npm install of the Playwright MCP failed" }
 }
 
-if ($Browser -eq "chromium" -and -not (Install-PlaywrightPart "chromium")) {
-    Write-Warning "Playwright's Chromium could not be downloaded: using the installed Edge (-Browser msedge)."
-    $Browser = "msedge"
-}
-
-# Playwright's own downloader stalls on some networks (seen 2026-10-20: curl fetches in a second, Node times out):
-# the small parts are fetched by hand from the mirror into Playwright's cache, laid out as its installer would.
+# The video recorder (ffmpeg) of the MCP's Playwright: its own downloader stalls on some networks (seen 2026-10-20:
+# curl fetches in a second, Node times out), so it is fetched by hand from the mirror into Playwright's cache.
 function Install-FfmpegByHand() {
-    $revision = ((Get-Content (Join-Path (Split-Path $playwright) ".playwright/package/browsers.json") -Raw | ConvertFrom-Json).browsers | Where-Object name -eq "ffmpeg").revision
+    $browsers = Get-Content (Join-Path $mcpDir "node_modules/playwright-core/browsers.json") -Raw | ConvertFrom-Json
+    $revision = ($browsers.browsers | Where-Object name -eq "ffmpeg").revision
     $folder = Join-Path $env:LOCALAPPDATA "ms-playwright/ffmpeg-$revision"
     $zip = Join-Path $env:TEMP "playwright-ffmpeg-$revision.zip"
 
@@ -124,10 +114,10 @@ function Install-FfmpegByHand() {
     }
 }
 
-# The video recorder, needed with every browser.
-if (-not (Install-PlaywrightPart "ffmpeg") -and -not (Install-FfmpegByHand)) {
+if (-not (Install-FfmpegByHand)) {
     Write-Warning "Playwright's ffmpeg could not be downloaded: browser cases record no video."
 }
 
-$env:DevHub__BrowserChannel = if ($Browser -eq "chromium") { "" } else { $Browser }
+$env:DevHub__McpDir = $mcpDir
+$env:DevHub__BrowserChannel = $Browser
 dotnet run --project $project -c Release --no-build

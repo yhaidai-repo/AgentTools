@@ -1,49 +1,48 @@
+using System.IO.Compression;
 using System.Text.RegularExpressions;
-using DevSecrets.DevHub.Config;
 using DevSecrets.DevHub.Models;
 using Microsoft.Extensions.Options;
-using Microsoft.Playwright;
 
 namespace DevSecrets.DevHub.Browser;
 
-// One browser case at a time, like one stack: it belongs to its owner, closes when idle too long, and leaves its
-// video and trace on the host. Calls are serialized: the page is one thing.
-public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHubOptions> options, TimeProvider time, ILogger<BrowserService> logger) : IAsyncDisposable
+// One browser case at a time, like one stack: a Playwright MCP process the agent drives through `/browser/mcp`. The
+// case belongs to its owner, closes when idle too long, and leaves its video, trace and screenshots on the host.
+public sealed partial class BrowserService(SecretsFile secrets, IOptions<DevHubOptions> options, TimeProvider time, ILogger<BrowserService> logger) : IAsyncDisposable
 {
-    private const string LocalValuesFile = "local";
-    private const string RemoteValuesFile = "dev";
+    private const string TracesFolder = "traces";
+    private const string TraceZip = "trace.zip";
+    private const string SecretsFileName = "mcp-secrets.env";
+    private static readonly TimeSpan GracefulClose = TimeSpan.FromSeconds(20);
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private IPlaywright? _playwright;
-    private IBrowser? _browser;
-    private BrowserSession? _session;
-    private DateTimeOffset _lastCallAt;
+    private readonly HttpClient _http = new();
+    private OpenCase? _case;
 
-    public async Task<HubResult<BrowserView>> OpenAsync(OpenBrowserRequest request, CancellationToken cancellationToken)
+    public bool IsOpen => _case is not null;
+
+    public int McpPort => options.Value.McpPort;
+
+    public async Task<HubResult<BrowserStatus>> OpenAsync(OpenBrowserRequest request, CancellationToken cancellationToken)
     {
         var invalid = Validate(request);
 
         if (invalid is not null)
-            return HubResult<BrowserView>.From(invalid);
+            return HubResult<BrowserStatus>.From(invalid);
 
         await _gate.WaitAsync(cancellationToken);
 
         try
         {
-            if (_session is not null)
-                return HubResult<BrowserView>.From(HubResult.Conflict($"A browser case is open ({_session.Case}, {Whose(_session)}). Close it first (DELETE /browser)."));
+            if (_case is not null)
+                return HubResult<BrowserStatus>.From(HubResult.Conflict($"A browser case is open ({_case.Case}, opened by {_case.Owner}). Close it first (DELETE /browser)."));
 
-            _session = await BrowserSession.OpenAsync(await BrowserAsync(request.Headless ?? true), request, CaseFolder(request), Touch());
+            _case = await StartCaseAsync(request, cancellationToken);
 
-            if (request.Url is not null)
-                await _session.Page.GotoAsync(request.Url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-
-            return HubResult<BrowserView>.Ok(await _session.ViewAsync());
+            return HubResult<BrowserStatus>.Ok(Status());
         }
-        catch (Exception e) when (IsBrowserFailure(e))
+        catch (Exception e) when (e is InvalidOperationException or IOException or OperationCanceledException)
         {
-            // A missing browser (Start-DevHub.ps1 installs it) or a page that never loads is an answer, not a crash.
-            return HubResult<BrowserView>.From(HubResult.Failed(Summary(e)));
+            return HubResult<BrowserStatus>.From(HubResult.Failed($"The browser case didn't start: {e.Message}"));
         }
         finally
         {
@@ -51,52 +50,42 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
         }
     }
 
-    public async Task<HubResult<BrowserView>> ActAsync(BrowserAction action, CancellationToken cancellationToken)
+    public async Task ProxyAsync(HttpContext context)
     {
-        var typed = TypedValue(action);
-        var invalid = BrowserActions.Validate(action, typed);
+        var open = _case;
 
-        if (invalid is not null && !invalid.IsSuccess)
-            return HubResult<BrowserView>.From(invalid);
-
-        if (action.ValueName is not null && typed is null)
-            return HubResult<BrowserView>.From(HubResult.NotFound($"No dev-secrets value {action.ValueName} in values.{LocalValuesFile}.json or values.{RemoteValuesFile}.json."));
-
-        await _gate.WaitAsync(cancellationToken);
-
-        try
+        if (open is null)
         {
-            if (_session is null)
-                return HubResult<BrowserView>.From(NoCase());
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync("No browser case is open (POST /browser opens one).");
 
-            Touch();
-            await BrowserActions.PerformAsync(_session.Page, action, typed);
+            return;
+        }
 
-            return HubResult<BrowserView>.Ok(await _session.ViewAsync());
-        }
-        catch (Exception e) when (IsBrowserFailure(e))
-        {
-            // An element that never appears, an unknown role: the agent reads why and picks another target.
-            return HubResult<BrowserView>.From(HubResult.Invalid(Summary(e)));
-        }
-        finally
-        {
-            _gate.Release();
-        }
+        Touch(open);
+        await McpProxy.ForwardAsync(context, _http, open.Process.Port, session => open.Session.SessionId = session);
     }
 
-    public async Task<HubResult<BrowserView>> SnapshotAsync(CancellationToken cancellationToken)
+    public async Task<HubResult<McpToolAnswer>> TypeSecretAsync(TypeSecretRequest request, CancellationToken cancellationToken)
     {
+        var value = secrets.Resolve(request.ValueName);
+
+        if (value is null)
+            return HubResult<McpToolAnswer>.From(HubResult.NotFound($"No dev-secrets value {request.ValueName}."));
+
         await _gate.WaitAsync(cancellationToken);
 
         try
         {
-            if (_session is null)
-                return HubResult<BrowserView>.From(NoCase());
+            if (_case is null)
+                return HubResult<McpToolAnswer>.From(NoCase());
 
-            Touch();
+            Touch(_case);
 
-            return HubResult<BrowserView>.Ok(await _session.ViewAsync());
+            var answer = await _case.Session.CallToolAsync("browser_type", new { element = request.Element, target = request.Target, text = value, submit = request.Submit ?? false }, cancellationToken);
+
+            // The MCP redacts known secrets itself; this is the belt to its braces.
+            return HubResult<McpToolAnswer>.Ok(answer with { Text = answer.Text.Replace(value, "<secret>") });
         }
         finally
         {
@@ -110,10 +99,7 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
 
         try
         {
-            if (_session is null)
-                return BrowserStatus.Closed;
-
-            return new BrowserStatus(true, _session.Owner, _session.Case, _session.Page.Url, await _session.Page.TitleAsync(), ExpiresAt());
+            return Status();
         }
         finally
         {
@@ -128,13 +114,13 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
 
         try
         {
-            if (_session is null)
+            if (_case is null)
                 return HubResult<BrowserClosed>.From(NoCase());
 
-            if (owner is not null && _session.Owner != owner)
-                return HubResult<BrowserClosed>.From(HubResult.Conflict($"The browser case belongs to {_session.Owner}; only its owner closes it."));
+            if (owner is not null && _case.Owner != owner)
+                return HubResult<BrowserClosed>.From(HubResult.Conflict($"The browser case belongs to {_case.Owner}; only its owner closes it."));
 
-            return HubResult<BrowserClosed>.Ok(await CloseSessionAsync());
+            return HubResult<BrowserClosed>.Ok(await CloseCaseAsync());
         }
         finally
         {
@@ -148,11 +134,11 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
 
         try
         {
-            if (_session is null || ExpiresAt() > time.GetUtcNow())
+            if (_case is null || ExpiresAt(_case) > time.GetUtcNow())
                 return;
 
-            logger.LogInformation("Browser case {Case} of {Owner} was idle too long: closing it", _session.Case, _session.Owner);
-            await CloseSessionAsync();
+            logger.LogInformation("Browser case {Case} of {Owner} was idle too long: closing it", _case.Case, _case.Owner);
+            await CloseCaseAsync();
         }
         finally
         {
@@ -167,47 +153,85 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
         if (!OwnerName().IsMatch(owner) || !Directory.Exists(folder))
             return [];
 
-        return Directory.GetFiles(folder, "*", SearchOption.AllDirectories).Select(path => path.Replace('\\', '/')).Order(StringComparer.Ordinal).ToArray();
+        return ArtifactFiles(folder);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_session is not null)
-            await CloseSessionAsync();
+        if (_case is not null)
+            await CloseCaseAsync();
 
-        if (_browser is not null)
-            await _browser.DisposeAsync();
-
-        _playwright?.Dispose();
+        _http.Dispose();
     }
 
-    private async Task<BrowserClosed> CloseSessionAsync()
+    private async Task<OpenCase> StartCaseAsync(OpenBrowserRequest request, CancellationToken cancellationToken)
     {
-        var closed = await _session!.CloseAsync();
+        var folder = Path.Combine(options.Value.BrowserArtifactsDir, request.Owner, request.Case);
 
-        _session = null;
+        Directory.CreateDirectory(folder);
 
-        return closed;
+        var secretsPath = secrets.Write(folder);
+        var headless = request.Headless ?? true;
+        var process = await McpProcess.StartAsync(options.Value, folder, secretsPath, headless, cancellationToken);
+
+        return new OpenCase(request.Owner, request.Case, headless, folder, process, new McpSession(_http, process.Port), time.GetUtcNow()) { LastCallAt = time.GetUtcNow() };
     }
 
-    private async Task<IBrowser> BrowserAsync(bool headless)
+    // The recordings are written when the MCP stops them and closes the browser, so that comes before the kill; a
+    // case the agent never drove (no session) has nothing to stop. The trace folder becomes trace.zip for the viewer.
+    private async Task<BrowserClosed> CloseCaseAsync()
     {
-        if (_browser is not null && _browser.IsConnected && _browserHeadless == headless)
-            return _browser;
+        var open = _case!;
 
-        if (_browser is not null)
-            await _browser.DisposeAsync();
+        await StopRecordingsAsync(open);
+        open.Process.Dispose();
+        ZipTrace(open.Folder);
+        File.Delete(Path.Combine(open.Folder, SecretsFileName));
+        _case = null;
 
-        _playwright ??= await Playwright.CreateAsync();
-        _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = headless, Channel = ChannelOrNull() });
-        _browserHeadless = headless;
-
-        return _browser;
+        return new BrowserClosed(open.Case, ArtifactFiles(open.Folder));
     }
 
-    private bool _browserHeadless = true;
+    private async Task StopRecordingsAsync(OpenCase open)
+    {
+        if (open.Session.SessionId is null || open.Process.HasExited)
+            return;
 
-    private string? ChannelOrNull() => string.IsNullOrWhiteSpace(options.Value.BrowserChannel) ? null : options.Value.BrowserChannel;
+        using var timeout = new CancellationTokenSource(GracefulClose);
+
+        foreach (var tool in new[] { "browser_stop_video", "browser_stop_tracing", "browser_close" })
+        {
+            try
+            {
+                await open.Session.CallToolAsync(tool, new { }, timeout.Token);
+            }
+            catch (Exception e) when (e is HttpRequestException or OperationCanceledException)
+            {
+                logger.LogWarning("{Tool} on close failed: {Message}", tool, e.Message);
+            }
+        }
+    }
+
+    private static void ZipTrace(string folder)
+    {
+        var traces = Path.Combine(folder, TracesFolder);
+
+        if (!Directory.Exists(traces))
+            return;
+
+        ZipFile.CreateFromDirectory(traces, Path.Combine(folder, TraceZip));
+        Directory.Delete(traces, recursive: true);
+    }
+
+    private static string[] ArtifactFiles(string folder) =>
+        Directory.GetFiles(folder, "*", SearchOption.AllDirectories)
+            .Where(path => Path.GetFileName(path) != SecretsFileName)
+            .Select(path => path.Replace('\\', '/'))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    private BrowserStatus Status() =>
+        _case is null ? BrowserStatus.Closed : new BrowserStatus(true, _case.Owner, _case.Case, _case.Headless, _case.StartedAt, ExpiresAt(_case), _case.Session.SessionId is not null);
 
     private HubResult? Validate(OpenBrowserRequest request)
     {
@@ -217,37 +241,17 @@ public sealed partial class BrowserService(ConfigCatalog catalog, IOptions<DevHu
         if (string.IsNullOrWhiteSpace(request.Case) || !CaseName().IsMatch(request.Case))
             return HubResult.Invalid("Pass a case name (letters, digits, . - and _; it names the recording's folder).");
 
+        if (!File.Exists(Path.Combine(options.Value.McpDir, "node_modules", "@playwright", "mcp", "cli.js")))
+            return HubResult.Failed($"The Playwright MCP isn't installed under {options.Value.McpDir} (Start-DevHub.ps1 installs it).");
+
         return null;
     }
 
-    private string? TypedValue(BrowserAction action)
-    {
-        if (action.ValueName is null)
-            return action.Value;
+    private void Touch(OpenCase open) => open.LastCallAt = time.GetUtcNow();
 
-        return (catalog.GetSecret(LocalValuesFile, action.ValueName) ?? catalog.GetSecret(RemoteValuesFile, action.ValueName))?.Value;
-    }
-
-    private string CaseFolder(OpenBrowserRequest request) => Path.Combine(options.Value.BrowserArtifactsDir, request.Owner, request.Case);
-
-    private DateTimeOffset Touch() => _lastCallAt = time.GetUtcNow();
-
-    private DateTimeOffset ExpiresAt() => _lastCallAt.AddMinutes(options.Value.BrowserIdleMinutes);
-
-    private static string Whose(BrowserSession session) => $"opened by {session.Owner}";
+    private DateTimeOffset ExpiresAt(OpenCase open) => open.LastCallAt.AddMinutes(options.Value.BrowserIdleMinutes);
 
     private static HubResult NoCase() => HubResult.NotFound("No browser case is open (POST /browser opens one).");
-
-    // Playwright 1.63 throws System.TimeoutException for an element that never appears, not its own exception type.
-    private static bool IsBrowserFailure(Exception e) => e is PlaywrightException or TimeoutException or ArgumentException;
-
-    // The first line names the failure; Playwright's call log adds what it waited for.
-    private static string Summary(Exception e)
-    {
-        var lines = e.Message.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0 && line != "Call log:").Take(3);
-
-        return string.Join(" ", lines);
-    }
 
     [GeneratedRegex(@"^[A-Za-z0-9_-]+$")]
     private static partial Regex OwnerName();

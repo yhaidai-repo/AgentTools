@@ -28,11 +28,12 @@ describe("DevHubClient", () => {
 
   it("opens a browser case and closes it as its owner", async () => {
     const seen: { url?: string; init?: RequestInit } = {};
-    const client = clientAnswering(200, JSON.stringify({ url: "http://127.0.0.1:47811/ui/", title: "DevHub", snapshot: "- heading \"DevHub\"", snapshotCut: false }), seen);
+    const client = clientAnswering(200, JSON.stringify({ open: true, owner: "powerloom-run-7", case: "login", headless: true, startedAt: null, expiresAt: null, mcpSessionKnown: false }), seen);
 
-    const opened = await client.openBrowser({ owner: "powerloom-run-7", case: "login", url: "http://127.0.0.1:47811/ui/" });
+    const opened = await client.openBrowser({ owner: "powerloom-run-7", case: "login", headless: true });
 
-    assert.equal(opened.ok && opened.value.title, "DevHub");
+    assert.equal(opened.ok && opened.value.case, "login");
+    assert.deepEqual(client.mcpEndpoint(), { url: "http://devhub:1/browser/mcp", headers: { Authorization: "Bearer secret" } });
     assert.equal(seen.url, "http://devhub:1/browser");
 
     await client.closeBrowser("powerloom-run-7");

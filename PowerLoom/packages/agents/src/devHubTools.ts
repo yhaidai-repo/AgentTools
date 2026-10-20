@@ -3,7 +3,7 @@ import type { ToolDefinition } from "@agenttools/runtime";
 import { waitForStack, type DevHubAnswer, type StackStatus, type StackWait } from "@powerloom/devhub";
 import { toMarkdownTable } from "@powerloom/sql";
 import { z } from "zod";
-import { createBrowserTools } from "./browserTools";
+import { createBrowserTools } from "./browser/browserTools";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { DevHubAccess } from "./models/DevHubAccess";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";

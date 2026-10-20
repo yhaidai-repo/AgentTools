@@ -1,3 +1,4 @@
+import type { CaseResult } from "./CaseResult";
 import type { PlannedCase } from "./PlannedCase";
 import type { TestFinding } from "./TestFinding";
 
@@ -11,7 +12,11 @@ export interface TestReport {
   summary: string;
   analysis: TestFinding[];
   cases: PlannedCase[];
-  /** The services the test needs on the stack, each with why (stage 3 starts them). */
+  /** The services the test needs on the stack, each with why. */
   services: { name: string; why: string }[];
+  /** What running the cases showed; empty while nothing ran. */
+  results: CaseResult[];
+  /** Azure DevOps test cases to update by hand, one line each (the agent never writes ADO). */
+  adoEdits: string[];
   nextReason: string;
 }

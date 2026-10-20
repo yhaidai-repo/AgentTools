@@ -1,9 +1,10 @@
-import type { BrowserAction } from "./models/BrowserAction";
 import type { BrowserClosed } from "./models/BrowserClosed";
 import type { BrowserStatus } from "./models/BrowserStatus";
-import type { BrowserView } from "./models/BrowserView";
 import type { DevHubAnswer } from "./models/DevHubAnswer";
+import type { McpEndpoint } from "./models/McpEndpoint";
+import type { McpToolAnswer } from "./models/McpToolAnswer";
 import type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
+import type { TypeSecretRequest } from "./models/TypeSecretRequest";
 import type { StackLog } from "./models/StackLog";
 import type { StackServiceInfo } from "./models/StackServiceInfo";
 import type { StackStatus } from "./models/StackStatus";
@@ -47,7 +48,7 @@ export class DevHubClient {
     return this.call("DELETE", `/stack?owner=${encodeURIComponent(owner)}`);
   }
 
-  openBrowser(request: OpenBrowserRequest): Promise<DevHubAnswer<BrowserView>> {
+  openBrowser(request: OpenBrowserRequest): Promise<DevHubAnswer<BrowserStatus>> {
     return this.call("POST", "/browser", request);
   }
 
@@ -55,12 +56,13 @@ export class DevHubClient {
     return this.call("GET", "/browser");
   }
 
-  browserAct(action: BrowserAction): Promise<DevHubAnswer<BrowserView>> {
-    return this.call("POST", "/browser/act", action);
+  // The open case's Playwright MCP, behind DevHub's token (the MCP itself accepts only localhost).
+  mcpEndpoint(): McpEndpoint {
+    return { url: `${this.url}/browser/mcp`, headers: { Authorization: `Bearer ${this.token}` } };
   }
 
-  browserSnapshot(): Promise<DevHubAnswer<BrowserView>> {
-    return this.call("GET", "/browser/snapshot");
+  typeSecret(request: TypeSecretRequest): Promise<DevHubAnswer<McpToolAnswer>> {
+    return this.call("POST", "/browser/type-secret", request);
   }
 
   closeBrowser(owner: string): Promise<DevHubAnswer<BrowserClosed>> {

@@ -1,7 +1,7 @@
-// POST /browser: one recorded browser case; the owner (a run) is the only one whose close DevHub accepts.
+// POST /browser: one recorded browser case served by its own Playwright MCP; the owner (a run) is the only one whose
+// close DevHub accepts.
 export interface OpenBrowserRequest {
   owner: string;
   case: string;
-  url?: string;
   headless?: boolean;
 }

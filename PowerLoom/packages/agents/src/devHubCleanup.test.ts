@@ -65,7 +65,7 @@ function browserWith(owner: string | null) {
   const closes: string[] = [];
 
   const client = {
-    browserStatus: async () => ({ ok: true as const, value: { open: owner !== null, owner, case: owner ? "login" : null, url: null, title: null, expiresAt: null } }),
+    browserStatus: async () => ({ ok: true as const, value: { open: owner !== null, owner, case: owner ? "login" : null, headless: true, startedAt: null, expiresAt: null, mcpSessionKnown: owner !== null } }),
     closeBrowser: async (name: string) => {
       closes.push(name);
 

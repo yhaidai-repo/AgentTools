@@ -1,4 +1,5 @@
 import type { CaptureDraft } from "../../models/CaptureDraft";
+import type { BugDraft } from "./BugDraft";
 import type { CreatedTask } from "../../taskCreation/models/CreatedTask";
 import type { TestReport } from "./TestReport";
 
@@ -7,4 +8,5 @@ export interface AutotestDraft {
   report: TestReport | null;
   tasks: CreatedTask[];
   captures: CaptureDraft[];
+  bugs: BugDraft[];
 }

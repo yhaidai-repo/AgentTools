@@ -14,6 +14,7 @@ import { depthOf } from "../toolset/taskLimits";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import { commitTestReport } from "./commitTestReport";
 import type { AutotestRun } from "./models/AutotestRun";
+import { createBugTool } from "./bugTool";
 import { REPORT_TOOL, createReportTool } from "./reportTool";
 import { buildTestMessage } from "./testMessage";
 
@@ -33,7 +34,7 @@ export async function runAutotestTask(context: TaskContext, task: ItemRow): Prom
     model: context.agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: AutotestRun = { pbi: null, repos: noRepos(), toolset: null, draft: { report: null, tasks: [], captures: [] } };
+  const run: AutotestRun = { pbi: null, repos: noRepos(), toolset: null, draft: { report: null, tasks: [], captures: [], bugs: [] } };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -41,7 +42,7 @@ export async function runAutotestTask(context: TaskContext, task: ItemRow): Prom
     const commit = async () => {
       const extra = { commits: run.repos.commits, docsRead: await docsReadInRun(deps, session.runId), docsVault: deps.docsVaultName };
 
-      await commitTestReport(deps.db, task, run.pbi!, session.runId, { ...run.draft, report: run.draft.report! }, extra);
+      await commitTestReport(deps, task, run.pbi!, session.runId, { ...run.draft, report: run.draft.report! }, extra);
       await run.toolset?.commit(session.runId);
     };
 
@@ -61,7 +62,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, depth, createTask: true, tasks: run.draft.tasks, captures: run.draft.captures });
   const firstMessage = [await buildTestMessage(deps.db, deps.vaultRoot, task, run.pbi, run.repos), toolset.webDocumentsBlock()].filter(Boolean).join("\n\n");
-  const tools = withBudgetNotes([...toolset.tools(firstMessage), createReportTool(run.draft, toolset.readLog)], () => session.spentUsd, agent.budgets.perRunUsd, REPORT_TOOL);
+  const tools = withBudgetNotes([...toolset.tools(firstMessage), createReportTool(run.draft, toolset.readLog), createBugTool(run.draft, toolset.readLog)], () => session.spentUsd, agent.budgets.perRunUsd, REPORT_TOOL);
 
   run.toolset = toolset;
   await session.phase("first-message", { chars: firstMessage.length });

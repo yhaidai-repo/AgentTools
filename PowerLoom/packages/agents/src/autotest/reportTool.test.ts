@@ -23,6 +23,8 @@ function reportInput(overrides: object = {}) {
       { ref: "agent", title: "Warning shown", criterion: "AC 2: a warning appears", steps: ["Archive a row"], data: "none", expected: "Warning banner", state: "blocked" as const, blocked_by: "new:1" },
     ],
     services: [{ name: "pvs-web", why: "owns the grid" }],
+    results: [] as never[],
+    ado_edits: [] as string[],
     next_reason: "The user must add the missing test case.",
     ...overrides,
   };
@@ -30,17 +32,17 @@ function reportInput(overrides: object = {}) {
 
 describe("write_test_report", () => {
   it("saves a report whose evidence the run read", async () => {
-    const draft: AutotestDraft = { report: null, tasks: [], captures: [] };
+    const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
     const tool = createReportTool(draft, readLogWith("AC 2 expects a warning"));
 
     const result = await tool.handler(reportInput());
 
-    assert.match(result.text, /saved \(partial; 2 cases, 1 findings\)/);
+    assert.match(result.text, /saved \(partial; 2 cases, 1 findings, 0 results\)/);
     assert.equal(draft.report?.cases[1].blockedBy, "new:1");
   });
 
   it("refuses a blocked case without the task that unblocks it", async () => {
-    const draft: AutotestDraft = { report: null, tasks: [], captures: [] };
+    const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
     const tool = createReportTool(draft, readLogWith("AC 2 expects a warning"));
     const cases = reportInput().cases.map((planned) => ({ ...planned, blocked_by: undefined }));
 
@@ -52,7 +54,7 @@ describe("write_test_report", () => {
   });
 
   it("refuses evidence from a source the run never read", async () => {
-    const draft: AutotestDraft = { report: null, tasks: [], captures: [] };
+    const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
     const tool = createReportTool(draft, readLogWith("AC 2 expects a warning"));
     const analysis = reportInput().analysis.map((finding) => ({ ...finding, evidence: [{ ...evidence[0], source: "S5" }] }));
 
@@ -65,7 +67,7 @@ describe("write_test_report", () => {
 
 describe("renderTestReport", () => {
   it("resolves new:<n> to the created task ids and lays out findings and cases", async () => {
-    const draft: AutotestDraft = { report: null, tasks: [], captures: [] };
+    const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
 
     await createReportTool(draft, readLogWith("AC 2 expects a warning")).handler(reportInput());
 

@@ -1,5 +1,6 @@
 import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolDefinition } from "../../models/ToolDefinition";
+import type { ToolImage } from "../../models/ToolImage";
 
 export const TOOL_SERVER_NAME = "agent";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
@@ -22,12 +23,17 @@ function toSdkTool(definition: ToolDefinition<any>) {
     try {
       const result = await definition.handler(input);
 
-      return { content: [{ type: "text" as const, text: result.text }], isError: result.isError ?? false };
+      return { content: [{ type: "text" as const, text: result.text }, ...imageBlocks(result.images)], isError: result.isError ?? false };
     } catch (error) {
       // A failing tool is reported to the model, not thrown: the run continues and the trace shows it.
       return { content: [{ type: "text" as const, text: `Error: ${errorText(error)}` }], isError: true };
     }
   });
+}
+
+// Images go to the model in the MCP content format; the SDK's in-process server passes them through.
+function imageBlocks(images: ToolImage[] | undefined) {
+  return (images ?? []).map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType }));
 }
 
 function errorText(error: unknown): string {
