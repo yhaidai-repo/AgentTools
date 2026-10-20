@@ -2,6 +2,7 @@ import { agentRun, codeReviewVersion, design, localItem, pbiEstimate, refinement
 import { and, asc, eq } from "drizzle-orm";
 import type { AgentResult } from "@/models/AgentResult";
 import type { ResultKind } from "@/models/ResultKind";
+import type { ResultQuestion } from "@/models/ResultQuestion";
 import { getDb } from "./db";
 import { isResultKind } from "./items";
 import { reviewTaskPrId } from "./reviews";
@@ -36,7 +37,23 @@ export async function resultOwner(result: AgentResult): Promise<{ pbiId: number 
 async function loadResultItem(id: string): Promise<AgentResult | null> {
   const [row] = await getDb().select().from(localItem).where(eq(localItem.id, id));
 
-  return row && isResultKind(row.kind) ? { kind: "item", row } : null;
+  if (!row || !isResultKind(row.kind)) {
+    return null;
+  }
+
+  return { kind: "item", row, question: row.kind === "research-result" ? await questionOf(row.parentId) : null };
+}
+
+// The research task's question and goal, which its result answers (user, 2026-10-21: the goal belongs with the result).
+async function questionOf(taskId: string | null): Promise<ResultQuestion | null> {
+  if (taskId === null) {
+    return null;
+  }
+
+  const [task] = await getDb().select({ title: localItem.title, data: localItem.data }).from(localItem).where(eq(localItem.id, taskId));
+  const data = (task?.data ?? {}) as { goal?: string; why?: string };
+
+  return task ? { taskId, question: task.title, goal: data.goal ?? data.why ?? null } : null;
 }
 
 // A review run of a pull request: its kept version (none before 2026-10-21) and the comments it left.

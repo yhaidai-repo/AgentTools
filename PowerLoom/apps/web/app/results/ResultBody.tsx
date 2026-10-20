@@ -1,6 +1,7 @@
 import type { refinement } from "@powerloom/db";
 import { TitledList } from "@/components/TitledList";
 import type { AgentResult } from "@/models/AgentResult";
+import type { ResultQuestion } from "@/models/ResultQuestion";
 import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ItemContent } from "../items/ItemContent";
 import { DesignSection } from "../pbis/[adoId]/DesignSection";
@@ -10,8 +11,9 @@ import { ReviewBody } from "./ReviewBody";
 
 type RefinementRow = typeof refinement.$inferSelect;
 
-// One result version's content, laid out per kind; the result block folds it, the full page shows it whole.
-export function ResultBody({ result }: { result: AgentResult }) {
+// One result version's content, laid out per kind; the result block folds it, the full page shows it whole. A research
+// result starts with the question it answers, unless its own task's page already shows it (withQuestion false).
+export function ResultBody({ result, withQuestion = true }: { result: AgentResult; withQuestion?: boolean }) {
   if (result.kind === "refinement") {
     return <RefinementBody row={result.row} />;
   }
@@ -28,7 +30,21 @@ export function ResultBody({ result }: { result: AgentResult }) {
     return <ReviewBody review={result.row} />;
   }
 
-  return <ItemContent item={result.row} />;
+  return (
+    <>
+      {withQuestion && result.question && <QuestionLine question={result.question} />}
+      <ItemContent item={result.row} />
+    </>
+  );
+}
+
+function QuestionLine({ question }: { question: ResultQuestion }) {
+  return (
+    <div className="result-question">
+      <p><strong>Question:</strong> {question.question}</p>
+      {question.goal && <p><strong>Goal:</strong> {question.goal}</p>}
+    </div>
+  );
 }
 
 function RefinementBody({ row }: { row: RefinementRow }) {

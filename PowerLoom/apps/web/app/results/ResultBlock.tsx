@@ -14,11 +14,13 @@ interface ResultBlockProps {
   chosen: string | undefined;
   /** Where picking a version goes: this page with its `v`. */
   hrefOf: (version: ResultVersion) => string;
+  /** False on the task's own page, which shows the research question already. */
+  withQuestion?: boolean;
 }
 
 // One result under its task (user decision 2026-10-21): the chosen version (the latest by default) and who wrote it,
 // the other versions one click away, long content folded, and the version's full page.
-export async function ResultBlock({ set, chosen, hrefOf }: ResultBlockProps) {
+export async function ResultBlock({ set, chosen, hrefOf, withQuestion = true }: ResultBlockProps) {
   const version = chosenVersion(set.versions, chosen ?? set.preferred);
 
   if (!version) {
@@ -31,7 +33,7 @@ export async function ResultBlock({ set, chosen, hrefOf }: ResultBlockProps) {
     <div className="result-block">
       <ResultMeta version={version} />
       <ResultVersionPicker versions={set.versions} chosen={version} hrefOf={hrefOf} />
-      {result ? <Folded><ResultBody result={result} /></Folded> : <p className="muted">This version is no longer stored.</p>}
+      {result ? <Folded><ResultBody result={result} withQuestion={withQuestion} /></Folded> : <p className="muted">This version is no longer stored.</p>}
     </div>
   );
 }

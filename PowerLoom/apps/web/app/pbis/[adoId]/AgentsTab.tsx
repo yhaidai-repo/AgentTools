@@ -48,9 +48,9 @@ export async function AgentsTab({ detail, chosen }: { detail: PbiDetail; chosen:
   );
 }
 
-// A research or test task's results name the task they answer.
+// A research or test task's results name the task they answer; one span, so the panel's title row keeps it together.
 function SetTitle({ set }: { set: ResultSet }) {
-  return set.task ? <>{set.title} · <Link href={itemPath(set.task)}>{set.task.id}</Link></> : <>{set.title}</>;
+  return set.task ? <span>{set.title} · <Link href={itemPath(set.task)}>{set.task.id}</Link></span> : <span>{set.title}</span>;
 }
 
 function VersionCount({ set }: { set: ResultSet }) {

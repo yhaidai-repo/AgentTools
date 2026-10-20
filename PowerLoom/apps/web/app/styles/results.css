@@ -83,6 +83,22 @@
   align-items: baseline;
 }
 
+/* What a research result answers, above its conclusion. */
+.result-question {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-left: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.result-question p {
+  margin: 0;
+}
+
+.result-question p + p {
+  margin-top: 6px;
+}
+
 .result-page-bar {
   display: grid;
   gap: 10px;

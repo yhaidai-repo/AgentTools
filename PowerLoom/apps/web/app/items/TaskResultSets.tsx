@@ -22,7 +22,7 @@ export async function TaskResultSets({ detail, chosen }: { detail: ItemDetail; c
       {sets.map((set) => (
         <section key={set.key} className="card result-section">
           <h2>{set.title}</h2>
-          <ResultBlock set={set} chosen={chosen} hrefOf={hrefOf} />
+          <ResultBlock set={set} chosen={chosen} hrefOf={hrefOf} withQuestion={false} />
         </section>
       ))}
     </>
