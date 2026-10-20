@@ -12,3 +12,8 @@ export type { StackStatus } from "./models/StackStatus";
 export type { StackStopped } from "./models/StackStopped";
 export type { StackWait } from "./models/StackWait";
 export type { StartStackRequest } from "./models/StartStackRequest";
+export type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
+export type { BrowserAction, BrowserActionKind } from "./models/BrowserAction";
+export type { BrowserView } from "./models/BrowserView";
+export type { BrowserStatus } from "./models/BrowserStatus";
+export type { BrowserClosed } from "./models/BrowserClosed";

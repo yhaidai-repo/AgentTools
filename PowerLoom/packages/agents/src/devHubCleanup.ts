@@ -2,6 +2,7 @@ import type { DevHubClient } from "@powerloom/devhub";
 import { RUN_OWNER_PREFIX, stackOwner } from "./devHubTools";
 
 type DevHubCalls = Pick<DevHubClient, "status" | "stop">;
+type BrowserCalls = Pick<DevHubClient, "browserStatus" | "closeBrowser">;
 
 // The end of a run (user decision 2026-10-13): the stack the run started stops with it. A stack someone else started
 // (a person at the console, another run) is left alone. Returns what happened for the runner's log; never throws.
@@ -25,4 +26,26 @@ async function stopStackOwnedBy(client: DevHubCalls, isOurs: (owner: string) => 
   const stopped = await client.stop(owner);
 
   return stopped.ok ? `stopped the local stack of ${owner}` : `stopping the local stack of ${owner} failed: ${stopped.message}`;
+}
+
+// The browser case a run opened closes with the run, so its recording is written; one opened by hand is left alone.
+export async function closeRunBrowser(client: BrowserCalls, runId: number): Promise<string | null> {
+  return closeBrowserOwnedBy(client, (owner) => owner === stackOwner(runId));
+}
+
+export async function closeOrphanedBrowser(client: BrowserCalls): Promise<string | null> {
+  return closeBrowserOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX));
+}
+
+async function closeBrowserOwnedBy(client: BrowserCalls, isOurs: (owner: string) => boolean): Promise<string | null> {
+  const status = await client.browserStatus();
+
+  if (!status.ok || !status.value.open || status.value.owner === null || !isOurs(status.value.owner)) {
+    return null;
+  }
+
+  const owner = status.value.owner;
+  const closed = await client.closeBrowser(owner);
+
+  return closed.ok ? `closed the browser case of ${owner}` : `closing the browser case of ${owner} failed: ${closed.message}`;
 }

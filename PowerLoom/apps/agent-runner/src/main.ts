@@ -1,7 +1,7 @@
 // First import: it patches dns.lookup, and imports run in order, so no client is created before it.
 import "./preferIpv4";
 import { AdoClient } from "@powerloom/ado";
-import { AGENT_DEFAULTS, AZURE_ACCESS_NAMESPACES, AccessRequests, COSMOS_NAMESPACE, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AZURE_ACCESS_NAMESPACES, AccessRequests, COSMOS_NAMESPACE, DataAccessLog, DocUsageLog, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, loadCaptureRules, recoverInterruptedRuns, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
 import { AZURE_USER_KEY, AZURE_USER_TOKEN_CACHE_KEY, isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, readValue, readVaults, saveValue, vaultBacklogRoot, vaultSettingKey, type AgentRunJob } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
@@ -137,6 +137,7 @@ async function stopStackOfRun(access: AgentDeps["devHub"], runId: number | null)
     return;
   }
 
+  logStackNote(await closeRunBrowser(access.client, runId));
   logStackNote(await stopRunStack(access.client, runId));
 }
 
@@ -144,6 +145,7 @@ async function stopStackOfRun(access: AgentDeps["devHub"], runId: number | null)
 // vault points at.
 async function stopOrphanedStacks(): Promise<void> {
   for (const client of await devHubsOfVaults()) {
+    logStackNote(await closeOrphanedBrowser(client));
     logStackNote(await stopOrphanedStack(client));
   }
 }

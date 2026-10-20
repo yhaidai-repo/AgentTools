@@ -14,13 +14,22 @@
     GET    /stack                       phase, services, start output
     GET    /stack/logs/{service}?lines=200&error=false
     DELETE /stack                       stop
+    POST   /browser {owner, case, url?, headless?}   open a recorded browser case (video + trace under <stack>/browser/<owner>/<case>/)
+    GET    /browser                     the open case
+    POST   /browser/act {action, ...}   navigate, click, fill, press, select, check, uncheck, hover; answers with the page's snapshot
+    GET    /browser/snapshot            the page's accessibility snapshot
+    DELETE /browser?owner=              close the case; answers with its files
+    GET    /browser/artifacts?owner=    the owner's recordings
 
 .EXAMPLE
     ./Start-DevHub.ps1
 #>
 [CmdletBinding()]
 param(
-    [int] $Port = 47811
+    [int] $Port = 47811,
+    # The browser DevHub drives: Playwright's own Chromium (downloaded once), or the installed "msedge" / "chrome".
+    [ValidateSet("chromium", "msedge", "chrome")]
+    [string] $Browser = "chromium"
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,7 +66,68 @@ function Get-HubToken() {
 $env:DevHub__Token = Get-HubToken
 $env:DevHub__ScriptsDir = $PSScriptRoot
 $env:DevHub__ValuesDir = $ValuesDir
+$env:DevHub__BrowserArtifactsDir = Join-Path $StackDir "browser"
 $env:ASPNETCORE_URLS = "http://127.0.0.1:$Port"
 
 Write-Host "DevHub on http://127.0.0.1:$Port (containers: http://host.docker.internal:$Port). Ctrl+C stops it and its stack."
-dotnet run --project (Join-Path $PSScriptRoot "DevHub/DevHub.csproj") -c Release
+$project = Join-Path $PSScriptRoot "DevHub/DevHub.csproj"
+
+dotnet build $project -c Release --nologo -v quiet
+if ($LASTEXITCODE -ne 0) { throw "DevHub build failed" }
+
+$playwright = Join-Path $PSScriptRoot "DevHub/bin/Release/net10.0/playwright.ps1"
+
+# Playwright's downloads (once; a no-op afterwards): cdn.playwright.dev first, Microsoft's mirror when that is blocked.
+function Install-PlaywrightPart([string] $Part) {
+    & $playwright install $Part
+
+    if ($LASTEXITCODE -eq 0) {
+        return $true
+    }
+
+    # The mirror serves the builds under this prefix; Playwright appends /builds/<part>/<version>/<file>.
+    $env:PLAYWRIGHT_DOWNLOAD_HOST = "https://playwright.download.prss.microsoft.com/dbazure/download/playwright"
+    & $playwright install $Part
+
+    return $LASTEXITCODE -eq 0
+}
+
+if ($Browser -eq "chromium" -and -not (Install-PlaywrightPart "chromium")) {
+    Write-Warning "Playwright's Chromium could not be downloaded: using the installed Edge (-Browser msedge)."
+    $Browser = "msedge"
+}
+
+# Playwright's own downloader stalls on some networks (seen 2026-10-20: curl fetches in a second, Node times out):
+# the small parts are fetched by hand from the mirror into Playwright's cache, laid out as its installer would.
+function Install-FfmpegByHand() {
+    $revision = ((Get-Content (Join-Path (Split-Path $playwright) ".playwright/package/browsers.json") -Raw | ConvertFrom-Json).browsers | Where-Object name -eq "ffmpeg").revision
+    $folder = Join-Path $env:LOCALAPPDATA "ms-playwright/ffmpeg-$revision"
+    $zip = Join-Path $env:TEMP "playwright-ffmpeg-$revision.zip"
+
+    if (Test-Path (Join-Path $folder "INSTALLATION_COMPLETE")) {
+        return $true
+    }
+
+    try {
+        Invoke-WebRequest -UseBasicParsing -TimeoutSec 120 -OutFile $zip "https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/ffmpeg/$revision/ffmpeg-win64.zip"
+        New-Item -ItemType Directory -Force -Path $folder | Out-Null
+        Expand-Archive -Force -LiteralPath $zip -DestinationPath $folder
+        New-Item -ItemType File -Force -Path (Join-Path $folder "INSTALLATION_COMPLETE") | Out-Null
+
+        return $true
+    } catch {
+        Write-Warning "ffmpeg by hand failed: $($_.Exception.Message)"
+
+        return $false
+    } finally {
+        Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# The video recorder, needed with every browser.
+if (-not (Install-PlaywrightPart "ffmpeg") -and -not (Install-FfmpegByHand)) {
+    Write-Warning "Playwright's ffmpeg could not be downloaded: browser cases record no video."
+}
+
+$env:DevHub__BrowserChannel = if ($Browser -eq "chromium") { "" } else { $Browser }
+dotnet run --project $project -c Release --no-build

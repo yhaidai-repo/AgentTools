@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { StackPhase, StackStatus } from "@powerloom/devhub";
-import { stopOrphanedStack, stopRunStack } from "./devHubCleanup";
+import { closeOrphanedBrowser, closeRunBrowser, stopOrphanedStack, stopRunStack } from "./devHubCleanup";
 
 function devHubWith(phase: StackPhase, owner: string | null) {
   const stops: string[] = [];
@@ -58,5 +58,48 @@ describe("stopOrphanedStack", () => {
 
     assert.deepEqual(run.stops, ["powerloom-run-3"]);
     assert.deepEqual(person.stops, []);
+  });
+});
+
+function browserWith(owner: string | null) {
+  const closes: string[] = [];
+
+  const client = {
+    browserStatus: async () => ({ ok: true as const, value: { open: owner !== null, owner, case: owner ? "login" : null, url: null, title: null, expiresAt: null } }),
+    closeBrowser: async (name: string) => {
+      closes.push(name);
+
+      return { ok: true as const, value: { case: "login", artifacts: [] } };
+    },
+  };
+
+  return { client, closes };
+}
+
+describe("closeRunBrowser", () => {
+  it("closes the case the run opened and leaves others alone", async () => {
+    const own = browserWith("powerloom-run-7");
+    const other = browserWith("powerloom-run-8");
+    const none = browserWith(null);
+
+    const note = await closeRunBrowser(own.client, 7);
+    await closeRunBrowser(other.client, 7);
+    await closeRunBrowser(none.client, 7);
+
+    assert.equal(note, "closed the browser case of powerloom-run-7");
+    assert.deepEqual([...own.closes, ...other.closes, ...none.closes], ["powerloom-run-7"]);
+  });
+});
+
+describe("closeOrphanedBrowser", () => {
+  it("closes any run's case but not a person's", async () => {
+    const run = browserWith("powerloom-run-3");
+    const person = browserWith("someone");
+
+    await closeOrphanedBrowser(run.client);
+    await closeOrphanedBrowser(person.client);
+
+    assert.deepEqual(run.closes, ["powerloom-run-3"]);
+    assert.deepEqual(person.closes, []);
   });
 });

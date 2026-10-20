@@ -7,7 +7,7 @@ export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { READ_SQL_INTEGRATION } from "./sqlTools";
 export { DEVHUB_INTEGRATION, stackOwner } from "./devHubTools";
 export { ADO_INTEGRATION } from "./ado/adoTools";
-export { stopOrphanedStack, stopRunStack } from "./devHubCleanup";
+export { closeOrphanedBrowser, closeRunBrowser, stopOrphanedStack, stopRunStack } from "./devHubCleanup";
 export { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
 export { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "./azure/azureTools";
 export { loadCaptureRules } from "./vaultCapture";

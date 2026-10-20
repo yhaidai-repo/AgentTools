@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevSecrets.DevHub;
+using DevSecrets.DevHub.Browser;
 using DevSecrets.DevHub.Config;
 using DevSecrets.DevHub.Models;
 
@@ -12,6 +13,7 @@ builder.Services.AddOptions<DevHubOptions>()
     .Validate(o => o.Token.Length >= 32, "DevHub:Token must have at least 32 characters (start DevHub with Start-DevHub.ps1).")
     .Validate(o => File.Exists(Path.Combine(o.ScriptsDir, "Start-LocalStack.ps1")), "DevHub:ScriptsDir must be the DevSecrets folder.")
     .Validate(o => File.Exists(Path.Combine(o.ValuesDir, "values.dev.json")), "DevHub:ValuesDir must hold values.dev.json.")
+    .Validate(o => o.BrowserArtifactsDir.Length > 0, "DevHub:BrowserArtifactsDir must be set (start DevHub with Start-DevHub.ps1).")
     .ValidateOnStart();
 
 builder.Services.AddSingleton(TimeProvider.System);
@@ -27,6 +29,8 @@ builder.Services.AddSingleton<SecretEditor>();
 builder.Services.AddSingleton<ScriptCheck>();
 builder.Services.AddSingleton<ConfigEditor>();
 builder.Services.AddHostedService<StackExpiryService>();
+builder.Services.AddSingleton<BrowserService>();
+builder.Services.AddHostedService<BrowserExpiryService>();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 
@@ -39,4 +43,5 @@ app.UseHubToken();
 app.MapGet("/", () => Results.Redirect("/ui/"));
 app.MapStackEndpoints();
 app.MapConfigEndpoints();
+app.MapBrowserEndpoints();
 app.Run();

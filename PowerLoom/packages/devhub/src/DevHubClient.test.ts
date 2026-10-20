@@ -26,6 +26,21 @@ describe("DevHubClient", () => {
     assert.equal(seen.init?.body, JSON.stringify({ services: ["signals"], owner: "powerloom-run-7" }));
   });
 
+  it("opens a browser case and closes it as its owner", async () => {
+    const seen: { url?: string; init?: RequestInit } = {};
+    const client = clientAnswering(200, JSON.stringify({ url: "http://127.0.0.1:47811/ui/", title: "DevHub", snapshot: "- heading \"DevHub\"", snapshotCut: false }), seen);
+
+    const opened = await client.openBrowser({ owner: "powerloom-run-7", case: "login", url: "http://127.0.0.1:47811/ui/" });
+
+    assert.equal(opened.ok && opened.value.title, "DevHub");
+    assert.equal(seen.url, "http://devhub:1/browser");
+
+    await client.closeBrowser("powerloom-run-7");
+
+    assert.equal(seen.url, "http://devhub:1/browser?owner=powerloom-run-7");
+    assert.equal(seen.init?.method, "DELETE");
+  });
+
   it("marks a refused token as denied", async () => {
     const answer = await clientAnswering(401, "").status();
 

@@ -14,4 +14,6 @@ public sealed record HubResult(int StatusCode, string? Error)
     public static HubResult Conflict(string error) => new(StatusCodes.Status409Conflict, error);
 
     public static HubResult NotFound(string error) => new(StatusCodes.Status404NotFound, error);
+
+    public static HubResult Failed(string error) => new(StatusCodes.Status500InternalServerError, error);
 }

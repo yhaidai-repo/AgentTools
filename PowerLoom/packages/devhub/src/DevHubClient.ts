@@ -1,4 +1,9 @@
+import type { BrowserAction } from "./models/BrowserAction";
+import type { BrowserClosed } from "./models/BrowserClosed";
+import type { BrowserStatus } from "./models/BrowserStatus";
+import type { BrowserView } from "./models/BrowserView";
 import type { DevHubAnswer } from "./models/DevHubAnswer";
+import type { OpenBrowserRequest } from "./models/OpenBrowserRequest";
 import type { StackLog } from "./models/StackLog";
 import type { StackServiceInfo } from "./models/StackServiceInfo";
 import type { StackStatus } from "./models/StackStatus";
@@ -40,6 +45,26 @@ export class DevHubClient {
 
   stop(owner: string): Promise<DevHubAnswer<StackStopped>> {
     return this.call("DELETE", `/stack?owner=${encodeURIComponent(owner)}`);
+  }
+
+  openBrowser(request: OpenBrowserRequest): Promise<DevHubAnswer<BrowserView>> {
+    return this.call("POST", "/browser", request);
+  }
+
+  browserStatus(): Promise<DevHubAnswer<BrowserStatus>> {
+    return this.call("GET", "/browser");
+  }
+
+  browserAct(action: BrowserAction): Promise<DevHubAnswer<BrowserView>> {
+    return this.call("POST", "/browser/act", action);
+  }
+
+  browserSnapshot(): Promise<DevHubAnswer<BrowserView>> {
+    return this.call("GET", "/browser/snapshot");
+  }
+
+  closeBrowser(owner: string): Promise<DevHubAnswer<BrowserClosed>> {
+    return this.call("DELETE", `/browser?owner=${encodeURIComponent(owner)}`);
   }
 
   private async call<T>(method: string, path: string, body?: unknown): Promise<DevHubAnswer<T>> {
