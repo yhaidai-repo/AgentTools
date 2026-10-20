@@ -23,6 +23,16 @@ public static class ItemData
         };
     }
 
+    public static string? StringOf(string? data, string property)
+    {
+        if (data is null)
+            return null;
+
+        using var document = JsonDocument.Parse(data);
+
+        return document.RootElement.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    }
+
     public static List<string> StringsOf(string? data, string property)
     {
         if (data is null)
