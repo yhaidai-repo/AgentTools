@@ -11,6 +11,7 @@ import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
 import { TOOL_SERVER_NAME, createToolServer, sdkToolNames } from "./toSdkTools";
+import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
 
 const CLIENT_APP = "agenttools-runtime/1.0";
 const WEB_TOOLS = ["WebSearch", "WebFetch"];
@@ -89,8 +90,15 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   }
 }
 
+// The first message waits for the tool server (toolServerGate), so the model's first calls find every tool.
 async function* streamEvents(options: Options, request: AgentRequest, mapper: MessageMapper, events: EventSequence): AsyncIterable<AgentEvent> {
-  for await (const message of query({ prompt: request.firstMessage, options })) {
+  let serverReady: (status: string) => void = () => undefined;
+  const ready = new Promise<string>((resolve) => { serverReady = resolve; });
+  const session = query({ prompt: firstMessageAfter(ready, request.firstMessage), options });
+
+  void waitForToolServer(session, TOOL_SERVER_NAME).then(serverReady);
+
+  for await (const message of session) {
     yield* mapper.map(message).map((body) => events.next(body));
   }
 }
