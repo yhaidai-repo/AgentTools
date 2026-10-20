@@ -278,17 +278,20 @@
   margin-top: 22px;
 }
 
+/* The line runs through the dots' centres: 11px down (a dot's 4px margin and half its 14px), and from the first
+   station's centre to the last's, half a column in from each side (--stations comes from PipelineMetro). */
 .metro-track,
 .metro-done {
   position: absolute;
-  top: 13px;
-  left: calc(100% / 14);
+  top: 11px;
+  left: calc(100% / var(--stations) / 2);
   height: 3px;
   border-radius: 2px;
+  translate: 0 -50%;
 }
 
 .metro-track {
-  right: calc(100% / 14);
+  right: calc(100% / var(--stations) / 2);
   background: rgb(255 255 255 / 0.08);
 }
 
