@@ -32,7 +32,15 @@ export async function loadMetroLine(adoId: number, current: PipelineStatus): Pro
   const [stays, tasks] = await Promise.all([loadStays(adoId), loadStageTasks(adoId)]);
   const here = currentStation(current, stays);
 
-  return STATIONS.map((station, index) => toStation(station, index, here, stays, tasks));
+  return skipPassedOver(STATIONS.map((station, index) => toStation(station, index, here, stays, tasks)));
+}
+
+// A station ahead of the current one that a later passed station went past (e.g. development, when tests already ran)
+// was skipped, not still ahead.
+function skipPassedOver(stations: MetroStation[]): MetroStation[] {
+  const lastPassed = stations.findLastIndex((station) => station.state === "passed");
+
+  return stations.map((station, index) => (station.state === "ahead" && index < lastPassed ? { ...station, state: "skipped" } : station));
 }
 
 function toStation(station: (typeof STATIONS)[number], index: number, here: number, stays: Stay[], tasks: StageTask[]): MetroStation {
