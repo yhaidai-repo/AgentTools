@@ -86,7 +86,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         var unknownType = await PostAsync(Request("deploy"), 400);
         var noCriteria = await PostAsync(Request("research") with { AcceptanceCriteria = " " }, 400);
 
-        Assert.Contains("Unknown task type deploy; one of: refinement, research, design, docs, vault-review.", unknownType);
+        Assert.Contains("Unknown task type deploy; one of: refinement, research, design, docs, vault-review, test.", unknownType);
         Assert.Contains("Acceptance criteria: 1 to 4000 characters required.", noCriteria);
     }
 

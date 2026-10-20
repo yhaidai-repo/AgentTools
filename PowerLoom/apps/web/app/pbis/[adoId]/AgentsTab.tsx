@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { Panel } from "@/components/Panel";
 import { getDb } from "@/lib/db";
+import { isResultKind } from "@/lib/items";
 import { formatDuration, formatUsd } from "@/lib/format";
 import { obsidianDocsLink } from "@/lib/obsidian";
 import type { PbiDetail } from "@/lib/pbiDetail";
@@ -61,11 +62,11 @@ function Refinement({ detail }: { detail: PbiDetail }) {
 // agents. Vault drafts follow as a quiet line, or as rows while one is unmerged.
 function QuestionsAndTasks({ detail }: { detail: PbiDetail }) {
   const { items } = detail;
-  const listed = items.filter((item) => item.kind !== "research-result");
+  const listed = items.filter((item) => !isResultKind(item.kind));
 
   return (
     <Panel title="Questions and tasks" aside={<small>{listed.length} · {listed.filter((item) => ["open", "in-progress"].includes(item.status)).length} open</small>}>
-      <ItemList items={listed} results={items.filter((item) => item.kind === "research-result")} empty="None yet." />
+      <ItemList items={listed} results={items.filter((item) => isResultKind(item.kind))} empty="None yet." />
       <Drafts detail={detail} />
     </Panel>
   );

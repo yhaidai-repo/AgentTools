@@ -16,4 +16,8 @@ public enum ItemKind
     Goal,
     // A recorded meeting to turn into notes and tasks (tools/audio-capture; design 2026-10-14).
     Meeting,
+    // An Autotest task: prove a PBI's acceptance criteria end to end (design 2026-10-20).
+    Test,
+    // What an Autotest run found and planned.
+    TestReport,
 }

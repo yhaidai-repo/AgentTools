@@ -32,6 +32,7 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
         new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "WT"),
         new("vault-review", ItemKind.VaultReview, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "VR"),
+        new("test", ItemKind.Test, PbiUse.Required, OnePerPbi: false, NoPbiPrefix: null),
     ];
 
     public async Task<Outcome<CreatedTask>> CreateAsync(NewTask task, CancellationToken cancellation)

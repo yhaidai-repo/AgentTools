@@ -472,6 +472,25 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
   // Turns each recorded meeting (MT-…, from tools/audio-capture) into notes in its vault and the follow-ups it asked for;
   // off until the user turns it on (user decision 2026-10-14, stage 4 of the audio capture design).
   {
+    id: "autotest",
+    label: "Autotest",
+    description: "Proves a PBI's acceptance criteria end to end: analyses them against the test cases, plans the cases, runs them on a local stack with a recorded browser, reports verdicts and bugs.",
+    enabled: false,
+    schedule: "15 * * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 120, timeoutMinutes: 45 },
+    budgets: { perRunUsd: 10, dailyUsd: 20 },
+    // DevHub (the stack and the browser) and the ADO test cases are its job (user decisions 2026-10-20).
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    skills: ["powerloom-autotest-checklist"],
+    options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30 },
+    optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["research"],
+    handles: ["test"],
+    waitFor: ["linkedDocuments"],
+  },
+  {
     id: "meeting-notes",
     label: "Meeting notes",
     description: "Reads a recorded meeting's transcript and writes its notes into the vault: summary, decisions, action items, work items discussed, open questions. Creates tasks for your action items, questions left to you, and research or design on the work items discussed.",

@@ -4710,7 +4710,8 @@
           "better-research",
           "better-refinement",
           "meeting-notes",
-          "better-review"
+          "better-review",
+          "autotest"
         ]
       },
       "StateLevel": {
