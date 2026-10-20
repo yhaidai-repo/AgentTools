@@ -286,6 +286,7 @@ label.inline {
 /* Rendered markdown (MarkdownBlock): normal text flow instead of the plain block's pre-wrap. */
 .markdown-block {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
 
@@ -294,6 +295,24 @@ label.inline {
 }
 
 .text-block.markdown {
+  white-space: normal;
+}
+
+/* Markdown wraps inside its panel: no sideways scroll (user, 2026-10-18), so its tables and inline code break lines. */
+.text-block.markdown table {
+  table-layout: auto;
+  width: 100%;
+}
+
+.text-block.markdown th,
+.text-block.markdown td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.text-block.markdown :not(pre) > code {
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
