@@ -16,6 +16,7 @@ public static class StackEndpoints
         app.MapPost(StackPath, StartAsync);
         app.MapDelete(StackPath, StopAsync);
         app.MapGet($"{StackPath}/logs/{{service}}", ReadLogAsync);
+        app.MapGet("/repos/branch", FindBranchAsync);
 
         return app;
     }
@@ -40,6 +41,17 @@ public static class StackEndpoints
             return TypedResults.Problem(result.Error, statusCode: result.StatusCode);
 
         return TypedResults.Ok(new { output = tracker.Output });
+    }
+
+    // A branch of a repo's checkout on this PC (PowerLoom's branch reviews of branches that aren't pushed).
+    private static async Task<IResult> FindBranchAsync(string repo, string branch, LocalRepoBranches branches, CancellationToken cancellationToken)
+    {
+        var found = await branches.FindAsync(repo, branch, cancellationToken);
+
+        if (!found.IsSuccess)
+            return TypedResults.Problem(found.Error, statusCode: found.StatusCode);
+
+        return TypedResults.Ok(found.Value);
     }
 
     private static async Task<IResult> ReadLogAsync(

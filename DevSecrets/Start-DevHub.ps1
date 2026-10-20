@@ -20,6 +20,7 @@
     GET    /browser/snapshot            the page's accessibility snapshot
     DELETE /browser?owner=              close the case; answers with its files
     GET    /browser/artifacts?owner=    the owner's recordings
+    GET    /repos/branch?repo=&branch=  a branch of a repo's checkout on this PC (map.json repos) and its commit
 
 .EXAMPLE
     ./Start-DevHub.ps1

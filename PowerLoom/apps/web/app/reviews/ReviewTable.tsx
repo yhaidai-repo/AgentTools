@@ -38,7 +38,7 @@ function ReviewRowView({ row }: { row: ReviewRow }) {
   return (
     <tr id={`pr-${pr.id}`} className={classes || undefined}>
       <td className="col-select"><input type="checkbox" name="prId" value={pr.id} aria-label={`Select ${pr.id}`} /></td>
-      <td className="col-id"><Link href={`/reviews/${pr.id}`} className="id" title={pr.origin === "local" ? "A branch review: no pull request" : undefined}>{pr.origin === "local" ? "branch" : pr.id}</Link><AdoTag url={pr.url} /></td>
+      <td className="col-id"><Link href={`/reviews/${pr.id}`} className="id" title={pr.origin === "pc" ? "A branch only on this PC: tested, not code-reviewed until pushed" : pr.origin === "local" ? "A branch review: no pull request" : undefined}>{pr.origin === "local" || pr.origin === "pc" ? "branch" : pr.id}</Link><AdoTag url={pr.url} /></td>
       <td className="title">
         <Link href={`/reviews/${pr.id}`} className="row-title" title={pr.title}>{pr.title}</Link>
         <div className="row-facts">
