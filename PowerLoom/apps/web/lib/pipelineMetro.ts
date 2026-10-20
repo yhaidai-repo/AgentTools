@@ -1,7 +1,8 @@
 import type { PipelineStatus } from "@powerloom/core";
-import { statusHistory } from "@powerloom/db";
-import { and, asc, eq } from "drizzle-orm";
+import { agentRun, localItem, statusHistory } from "@powerloom/db";
+import { and, asc, count, eq, like } from "drizzle-orm";
 import type { MetroStation } from "@/models/MetroStation";
+import type { StageTask } from "@/models/StageTask";
 import { getDb } from "./db";
 
 // The metro line's stations and the statuses each covers. Waiting on you, stale and closed aren't stations: the PBI
@@ -16,17 +17,42 @@ const STATIONS: { key: string; name: string; statuses: PipelineStatus[] }[] = [
   { key: "done", name: "Done", statuses: ["done"] },
 ];
 
+// A finished task of these kinds passes its station even when the PBI's status never went there (user decision
+// 2026-10-21): e.g. a design task created as non-blocking, or tests that ran before the test stage existed.
+const STATION_TASK_KINDS: Record<string, string[]> = { refinement: ["refinement"], research: ["research"], design: ["design"], test: ["test"] };
+
 interface Stay {
   status: string;
   hours: number;
 }
 
-// The PBI's stations: where it has been and for how long (from its status history), where it is now.
+// The PBI's stations: where it has been and for how long (from its status history), what its agent tasks did there,
+// where it is now.
 export async function loadMetroLine(adoId: number, current: PipelineStatus): Promise<MetroStation[]> {
-  const stays = await loadStays(adoId);
+  const [stays, tasks] = await Promise.all([loadStays(adoId), loadStageTasks(adoId)]);
   const here = currentStation(current, stays);
 
-  return STATIONS.map((station, index) => ({ key: station.key, name: station.name, state: stateOf(index, here, hoursAt(station.statuses, stays)), hours: hoursAt(station.statuses, stays) }));
+  return STATIONS.map((station, index) => toStation(station, index, here, stays, tasks));
+}
+
+function toStation(station: (typeof STATIONS)[number], index: number, here: number, stays: Stay[], tasks: StageTask[]): MetroStation {
+  const hours = hoursAt(station.statuses, stays);
+  const own = tasks.filter((task) => (STATION_TASK_KINDS[station.key] ?? []).includes(task.kind));
+  const isWorkDone = own.some((task) => task.isDone);
+
+  return { key: station.key, name: station.name, state: stateOf(index, here, hours, isWorkDone), hours, runs: own.reduce((sum, task) => sum + task.runs, 0) };
+}
+
+// The PBI's agent tasks with their runs.
+async function loadStageTasks(adoId: number): Promise<StageTask[]> {
+  const rows = await getDb()
+    .select({ kind: localItem.kind, status: localItem.status, runs: count(agentRun.id) })
+    .from(localItem)
+    .leftJoin(agentRun, eq(agentRun.itemId, localItem.id))
+    .where(and(eq(localItem.pbiId, adoId), like(localItem.assignee, "agent:%")))
+    .groupBy(localItem.id);
+
+  return rows.map((row) => ({ kind: row.kind, isDone: row.status === "done", runs: row.runs }));
 }
 
 // Each status the PBI left, with how long it stayed; the stay at the current status runs until now.
@@ -54,9 +80,13 @@ function currentStation(current: PipelineStatus, stays: Stay[]): number {
 }
 
 // Every PBI starts at New, so New counts as passed even without a history entry for it.
-function stateOf(index: number, here: number, hours: number | null): MetroStation["state"] {
+function stateOf(index: number, here: number, hours: number | null, isWorkDone: boolean): MetroStation["state"] {
   if (index === here) {
     return "current";
+  }
+
+  if (isWorkDone) {
+    return "passed";
   }
 
   if (index > here) {
