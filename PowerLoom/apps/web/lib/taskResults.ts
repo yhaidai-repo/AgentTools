@@ -1,31 +1,17 @@
-import { latestRunEstimate } from "@powerloom/core";
-import { codeReview, design, refinement, reviewComment, type localItem } from "@powerloom/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { codeReview, reviewComment, type localItem } from "@powerloom/db";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ReviewResult } from "@/models/ReviewResult";
 import { getDb } from "./db";
 
 type Db = ReturnType<typeof getDb>;
 type ItemRow = typeof localItem.$inferSelect;
 
-// What a task's own runs produced where it isn't the task's resolution (user, 2026-10-15: every task shows its result):
-// the refinement or design version a run wrote, the estimate it recorded, or the review of a code-review task's pull request.
+// What a task's own runs produced that has no versions (user, 2026-10-15: every task shows its result): the review of a
+// code-review task's pull request. Versioned results (refinement, design, estimate, result items) are resultVersions.
 export async function loadTaskResults(db: Db, item: ItemRow, runIds: number[]) {
   return {
-    refinement: item.kind === "refinement" ? await latestOf(db, refinement, runIds) : null,
-    design: item.kind === "design" ? await latestOf(db, design, runIds) : null,
-    estimate: await latestRunEstimate(db, runIds),
     review: item.kind === "review" ? await reviewOf(db, item, runIds) : null,
   };
-}
-
-async function latestOf<T extends typeof refinement | typeof design>(db: Db, table: T, runIds: number[]) {
-  if (runIds.length === 0) {
-    return null;
-  }
-
-  const [row] = await db.select().from(table as typeof refinement).where(inArray(table.runId, runIds)).orderBy(desc(table.version)).limit(1);
-
-  return (row ?? null) as T["$inferSelect"] | null;
 }
 
 async function reviewOf(db: Db, item: ItemRow, runIds: number[]): Promise<ReviewResult | null> {

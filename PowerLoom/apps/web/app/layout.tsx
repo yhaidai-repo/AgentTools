@@ -18,6 +18,7 @@ import "./styles/reviews.css";
 import "./styles/vault.css";
 import "./styles/agents.css";
 import "./styles/settings.css";
+import "./styles/results.css";
 
 export const metadata: Metadata = {
   title: "PowerLoom",

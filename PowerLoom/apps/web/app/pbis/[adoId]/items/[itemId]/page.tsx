@@ -4,7 +4,7 @@ import { ItemView } from "@/app/items/ItemView";
 
 export const dynamic = "force-dynamic";
 
-export default async function PbiItemPage({ params }: { params: Promise<{ adoId: string; itemId: string }> }) {
+export default async function PbiItemPage({ params, searchParams }: { params: Promise<{ adoId: string; itemId: string }>; searchParams: Promise<{ v?: string }> }) {
   const { adoId, itemId } = await params;
   const detail = await loadItemDetail(decodeURIComponent(itemId));
 
@@ -12,5 +12,5 @@ export default async function PbiItemPage({ params }: { params: Promise<{ adoId:
     notFound();
   }
 
-  return <ItemView detail={detail} />;
+  return <ItemView detail={detail} chosen={(await searchParams).v} />;
 }

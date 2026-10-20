@@ -2,7 +2,6 @@ import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/cor
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
-import { ResultTabs } from "@/components/ResultTabs";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
@@ -14,11 +13,12 @@ import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
 import { TaskNotesForm } from "./TaskNotesForm";
 import { TaskResults } from "./TaskResults";
+import { TaskResultSets } from "./TaskResultSets";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 
-// One item's page, under its PBI or (for items without one) under Tasks.
-export function ItemView({ detail }: { detail: ItemDetail }) {
+// One item's page, under its PBI or (for items without one) under Tasks; `chosen` is the result version in its URL.
+export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: string | undefined }) {
   const { item } = detail;
   return (
     <>
@@ -28,8 +28,8 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
+      <TaskResultSets detail={detail} chosen={chosen} />
       <TaskResults detail={detail} />
-      <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
     </>
@@ -88,31 +88,6 @@ function DocsResult({ detail }: { detail: ItemDetail }) {
       {notes.length > 0 && <ul className="item-list">{notes.map((path) => <li key={path}><DocLink vault={item.vault} path={path} /></li>)}</ul>}
     </section>
   );
-}
-
-// A research task shows its results and a test task its reports inside it (newest last; a re-run supersedes the
-// earlier one).
-function Results({ detail }: { detail: ItemDetail }) {
-  if (detail.item.kind !== "research" && detail.item.kind !== "test") {
-    return null;
-  }
-
-  if (detail.results.length === 0) {
-    return detail.item.resolution ? null : <p className="muted">No result yet.</p>;
-  }
-
-  const tabs = detail.results.map((result) => ({
-    key: result.id,
-    label: `${result.id}${result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}`,
-    content: (
-      <section className="card result-section">
-        <h2>{result.kind === "test-report" ? "Report" : "Result"} {result.id} · {result.status}{result.createdByRun ? ` · RUN-${result.createdByRun}` : ""}</h2>
-        <ItemContent item={result} />
-      </section>
-    ),
-  }));
-
-  return <ResultTabs tabs={tabs} />;
 }
 
 // Open questions and known issues the tech-writer raised while merging this task's draft.

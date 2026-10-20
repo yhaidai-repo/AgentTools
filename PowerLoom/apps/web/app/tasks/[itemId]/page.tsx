@@ -6,7 +6,7 @@ import { ItemView } from "@/app/items/ItemView";
 export const dynamic = "force-dynamic";
 
 // Items without a PBI live here; an item of a PBI opens under its PBI.
-export default async function TaskItemPage({ params }: { params: Promise<{ itemId: string }> }) {
+export default async function TaskItemPage({ params, searchParams }: { params: Promise<{ itemId: string }>; searchParams: Promise<{ v?: string }> }) {
   const detail = await loadItemDetail(decodeURIComponent((await params).itemId));
 
   if (!detail) {
@@ -17,5 +17,5 @@ export default async function TaskItemPage({ params }: { params: Promise<{ itemI
     redirect(itemPath(detail.item));
   }
 
-  return <ItemView detail={detail} />;
+  return <ItemView detail={detail} chosen={(await searchParams).v} />;
 }
