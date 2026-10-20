@@ -27,7 +27,7 @@ namespace PowerLoom.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_kind", new[] { "research", "design", "human", "question", "research-result", "refinement", "docs", "finding", "review", "vault-review", "goal", "meeting", "test", "test-report" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_status", new[] { "open", "in-progress", "done", "blocked", "cancelled", "answered", "dismissed", "draft", "final", "superseded", "deleted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "note_write_action", new[] { "created", "updated" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "pipeline_status", new[] { "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human", "ready-for-design", "designing", "ready-for-dev", "development", "ready-for-test", "testing", "tested", "test-failed", "done", "stale", "closed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_kind", new[] { "ado", "local" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "repo_source", new[] { "agent-assumed", "user-confirmed", "vault-documented" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "review_comment_status", new[] { "open", "answered", "withdrawn", "outdated", "fixed" });

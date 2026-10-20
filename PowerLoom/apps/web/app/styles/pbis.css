@@ -308,6 +308,7 @@ button.danger {
 .stage-human { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); background: color-mix(in srgb, var(--warn) 6%, transparent); }
 .stage-design { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); background: color-mix(in srgb, var(--accent-2) 6%, transparent); }
 .stage-dev { color: var(--state-ready); border-color: color-mix(in srgb, var(--state-ready) 35%, transparent); background: color-mix(in srgb, var(--state-ready) 6%, transparent); }
+.stage-test { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .stage-done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 6%, transparent); }
 .stage-closed { color: var(--faint); border-color: var(--border); }
 .stage-stale { color: var(--muted); border-style: dashed; border-color: var(--border-hi); }

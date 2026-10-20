@@ -37,5 +37,27 @@ public sealed class PipelineStatusDerivationTests
         Assert.Equal(PipelineStatus.ReadyForRefinement, PipelineStatusDerivation.Derive([Item(ItemKind.Refinement, "agent:refinement", ItemStatus.Open)]));
     }
 
+    // The test stage (user decision 2026-10-21): a test task moves a PBI in development; its report decides the outcome.
+    [Fact]
+    public void A_test_task_shows_as_testing_then_its_report_decides_tested_or_test_failed()
+    {
+        var open = Item(ItemKind.Test, "agent:*", ItemStatus.Open);
+        var running = Item(ItemKind.Test, "agent:*", ItemStatus.InProgress);
+        var done = Item(ItemKind.Test, "agent:*", ItemStatus.Done);
+        var passed = Report(done, """{"report":{"results":[{"case":"AC 1","verdict":"pass"},{"case":"AC 2","verdict":"blocked"}]}}""");
+        var failed = Report(done, """{"report":{"results":[{"case":"AC 1","verdict":"fail","bug":"PBI-40001"}]}}""");
+        var design = Item(ItemKind.Design, "agent:design", ItemStatus.Done);
+
+        Assert.Equal(PipelineStatus.ReadyForTest, PipelineStatusDerivation.DeriveTestStage([open]));
+        Assert.Equal(PipelineStatus.Testing, PipelineStatusDerivation.DeriveTestStage([open, running]));
+        Assert.Equal(PipelineStatus.Tested, PipelineStatusDerivation.DeriveTestStage([done, passed]));
+        Assert.Equal(PipelineStatus.TestFailed, PipelineStatusDerivation.DeriveTestStage([done, failed]));
+        Assert.Null(PipelineStatusDerivation.DeriveTestStage([design]));
+        Assert.Equal(PipelineStatus.Testing, PipelineStatusDerivation.Derive([design, running]));
+        Assert.Equal(PipelineStatus.Tested, PipelineStatusDerivation.Derive([design, done, passed]));
+    }
+
+    private static LocalItem Report(LocalItem test, string data) => new() { Id = test.Id + "-report", Kind = ItemKind.TestReport, ParentId = test.Id, Assignee = "agent:autotest", Status = ItemStatus.Final, Title = "r", Vault = "v", HeldBy = "[]", Data = data };
+
     private static LocalItem Item(ItemKind kind, string assignee, ItemStatus status, string? data = null) => new() { Id = Guid.NewGuid().ToString("N"), Kind = kind, Assignee = assignee, Status = status, Title = "t", Vault = "v", HeldBy = "[]", Data = data };
 }

@@ -22,6 +22,7 @@ public static class AgentStages
         new(ItemKind.Refinement, "RT", PipelineStatus.Refining, PipelineStatus.ReadyForRefinement, "Refine the PBI"),
         new(ItemKind.Research, "AT", PipelineStatus.Researching, PipelineStatus.NeedsResearch, "Research the PBI"),
         new(ItemKind.Design, "DT", PipelineStatus.Designing, PipelineStatus.ReadyForDesign, "Design the implementation"),
+        new(ItemKind.Test, "TT", PipelineStatus.Testing, PipelineStatus.ReadyForTest, "Test the PBI"),
     ];
 
     public static string AssigneeOf(string agentId) => $"{AgentPrefix}{agentId}";
@@ -33,11 +34,8 @@ public static class AgentStages
     /// <summary>The pipeline stage of a task type; null for types without one.</summary>
     public static AgentStage? StageOfKind(ItemKind kind) => Pipeline.FirstOrDefault(stage => stage.Kind == kind);
 
-    // PBI task types outside the pipeline (they derive no PBI status): the id prefix of their tasks, numbered per PBI.
-    private static readonly IReadOnlyDictionary<ItemKind, string> OffPipelinePrefixes = new Dictionary<ItemKind, string> { [ItemKind.Test] = "TT" };
-
     /// <summary>The id prefix of a PBI task of this type; null for types that take no PBI.</summary>
-    public static string? PbiPrefixOf(ItemKind kind) => StageOfKind(kind)?.Prefix ?? OffPipelinePrefixes.GetValueOrDefault(kind);
+    public static string? PbiPrefixOf(ItemKind kind) => StageOfKind(kind)?.Prefix;
 
     /// <summary>Who works on an agent task, for messages: the pinned agent, or any agent taking its type.</summary>
     public static string WorkerOf(LocalItem task) => task.Assignee == AnyAgent ? $"any agent taking {TaskKinds.Label(task.Kind)} tasks" : AgentIdOf(task.Assignee) ?? task.Assignee;

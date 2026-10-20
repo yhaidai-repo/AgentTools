@@ -24,7 +24,7 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () =>
 
 export const pipelineStatus = pgEnum("pipeline_status", [
   "new", "ready-for-refinement", "refining", "needs-research", "researching", "waiting-human",
-  "ready-for-design", "designing", "ready-for-dev", "development", "done", "stale", "closed",
+  "ready-for-design", "designing", "ready-for-dev", "development", "ready-for-test", "testing", "tested", "test-failed", "done", "stale", "closed",
 ]);
 
 export const itemKind = pgEnum("item_kind", [

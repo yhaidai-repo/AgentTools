@@ -34,7 +34,38 @@ public static class PipelineStatusDerivation
         if (agentTasks.Any(task => task.Status == ItemStatus.Blocked))
             return null;
 
-        return agentTasks.Any(IsFinishedPlanStage) ? PipelineStatus.ReadyForDev : null;
+        return TestOutcome(items, agentTasks) ?? (agentTasks.Any(IsFinishedPlanStage) ? PipelineStatus.ReadyForDev : null);
+    }
+
+    // A PBI in development (a fixed status) still shows its test (user decision 2026-10-21): the test task waiting,
+    // running, or its outcome; nothing else moves it.
+    public static PipelineStatus? DeriveTestStage(IReadOnlyList<LocalItem> items)
+    {
+        var tests = items.Where(item => item.Kind == ItemKind.Test && AgentStages.IsAgentTask(item.Assignee)).ToList();
+
+        if (tests.Any(task => task.Status == ItemStatus.InProgress))
+            return PipelineStatus.Testing;
+
+        if (tests.Any(task => task.Status == ItemStatus.Open))
+            return PipelineStatus.ReadyForTest;
+
+        return TestOutcome(items, tests);
+    }
+
+    // The latest finished test task's report: a failed case makes the PBI test-failed, none makes it tested.
+    private static PipelineStatus? TestOutcome(IReadOnlyList<LocalItem> items, IReadOnlyList<LocalItem> agentTasks)
+    {
+        var test = agentTasks.Where(task => task.Kind == ItemKind.Test && task.Status == ItemStatus.Done).MaxBy(task => task.Id, StringComparer.Ordinal);
+
+        if (test is null)
+            return null;
+
+        var report = items.Where(item => item.Kind == ItemKind.TestReport && item.ParentId == test.Id).MaxBy(item => item.Id, StringComparer.Ordinal);
+
+        if (report is null)
+            return null;
+
+        return TestReportData.HasFailedCase(report.Data) ? PipelineStatus.TestFailed : PipelineStatus.Tested;
     }
 
     public static bool IsOpen(LocalItem item) => item.Status is ItemStatus.Open or ItemStatus.InProgress;
