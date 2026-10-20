@@ -58,7 +58,7 @@ export async function runAgentTask(deps: AgentDeps, job: AgentRunJob): Promise<A
   try {
     return await runChecked(deps, job.agentId, task);
   } catch (error) {
-    await failAfterError(deps.db, task, await maxFailuresFor(deps, job.agentId));
+    await failAfterError(deps.db, task, await maxFailuresFor(deps, job.agentId), error);
     throw error;
   }
 }

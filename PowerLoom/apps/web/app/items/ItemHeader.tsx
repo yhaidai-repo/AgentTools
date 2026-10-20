@@ -78,7 +78,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   return <span className="fact"><b>{label}</b>{children}</span>;
 }
 
-// Steps to report breathes amber while the task waits for you; held shows why the dispatcher hasn't started it.
+// Steps to report breathes amber while the task waits for you; held shows why the dispatcher hasn't started it, blocked
+// why the agents stopped trying.
 function Stats({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
   const steps = isHumanTaskData(item.data) ? item.data.steps.length : null;
@@ -91,8 +92,21 @@ function Stats({ detail }: { detail: ItemDetail }) {
       <HeroStat label="Runs" value={String(detail.runs.length)} />
       <HeroStat label="Assigned" value={assigneeLabel(item.assignee)} />
       {bucket === "held" && <p className="held-note">Held by the dispatcher: {[...new Set(item.heldBy)].join("; ")}</p>}
+      {item.status === "blocked" && <p className="held-note">Blocked: {blockReason(detail)}</p>}
     </div>
   );
+}
+
+// Older blocks (budget stops and repeated failures before 2026-10-21) kept no reason: the last run and how it ended say it.
+function blockReason(detail: ItemDetail): string {
+  const { item } = detail;
+  const last = detail.runs[0];
+
+  if (item.heldBy.length > 0) {
+    return [...new Set(item.heldBy)].join("; ");
+  }
+
+  return last ? `its last run, RUN-${last.id}, ended ${last.outcome.replaceAll("-", " ")}. Re-run when the cause is fixed.` : "no reason was kept. Re-run when the cause is fixed.";
 }
 
 // "agent:*" is any agent that takes the task's kind.
