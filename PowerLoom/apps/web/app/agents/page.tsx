@@ -1,4 +1,5 @@
 import { isPaused, type AgentsGlobal } from "@agenttools/config";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
 import { RememberFilters } from "@/components/RememberFilters";
 import { TimeUntil } from "@/components/TimeUntil";
@@ -12,6 +13,9 @@ import { RunsTab } from "./RunsTab";
 import { ToolsTab } from "./ToolsTab";
 
 export const dynamic = "force-dynamic";
+
+// Runs start and end all the time; the Overview and Runs tabs follow without a reload, like Tasks. Tools shows no runs.
+const RUNS_REFRESH_MS = 10_000;
 
 type SearchParams = Promise<Record<string, string | undefined>>;
 
@@ -33,6 +37,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Searc
     <>
       <div className="page-head">
         <h1>Agents</h1>
+        <AutoRefresh active={tab !== "tools"} intervalMs={RUNS_REFRESH_MS} />
         <PauseSwitch isPaused={isPaused(global)} />
       </div>
       <RememberFilters vault={vault} />

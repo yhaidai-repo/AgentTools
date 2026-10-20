@@ -183,24 +183,6 @@
   margin-top: 18px;
 }
 
-/* The summary's markdown wraps inside its panel: no sideways scroll (user, 2026-10-18). */
-.review-summary .text-block.markdown table {
-  table-layout: auto;
-  width: 100%;
-}
-
-.review-summary .text-block.markdown th,
-.review-summary .text-block.markdown td {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  vertical-align: top;
-}
-
-.review-summary .text-block.markdown code {
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
 /* Comments: grouped by file, one folding card each. */
 .comment-file + .comment-file {
   margin-top: 14px;
