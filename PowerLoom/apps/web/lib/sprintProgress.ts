@@ -4,11 +4,16 @@ import type { SprintDay } from "@/models/SprintDay";
 import type { SprintSummary } from "@/models/SprintSummary";
 import { getDb } from "./db";
 
+// Ready for Release and Done are one series of the sprint chart (user decision 2026-10-21): both mean the item's sprint
+// work is over.
+const RELEASE_OR_DONE = "Ready for release / Done";
+const MERGED_STATES: Record<string, string> = { "Ready for Release": RELEASE_OR_DONE, Done: RELEASE_OR_DONE };
+
 // ADO states in the order a sprint item moves through them; states ADO adds later go after, as they come.
-export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Testing", "Ready for Release", "Resolved", "Done", "Closed"];
+export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Testing", "Ready for Release", RELEASE_OR_DONE, "Resolved", "Done", "Closed"];
 
 // Ready for Release counts as done: the sprint's work is over by then (user decision 2026-10-13).
-const DONE_STATES = ["Ready for Release", "Done", "Closed"];
+const DONE_STATES = ["Ready for Release", RELEASE_OR_DONE, "Done", "Closed"];
 
 // Each state has its own fixed color, so it looks the same in every sprint (user, 2026-10-16: Code Review took Done's
 // green when colors went by position). The done states share the OK colour: Ready for Release, Resolved, Done and
@@ -25,6 +30,7 @@ const STATE_COLORS: Record<string, string> = {
   "Code Review": "var(--state-review)",
   Testing: "var(--state-testing)",
   "Ready for Release": "var(--state-done)",
+  [RELEASE_OR_DONE]: "var(--state-done)",
   Resolved: "var(--state-done)",
   Done: "var(--state-done)",
   Closed: "var(--state-done)",
@@ -111,12 +117,15 @@ function sumDone(byState: Record<string, number>): number {
   return Object.entries(byState).filter(([state]) => isDoneState(state)).reduce((sum, [, value]) => sum + value, 0);
 }
 
+// Merged states add up into their one series.
 function addStateCount(day: SprintDay, row: StateCount): SprintDay {
-  day.itemsByState[row.state] = row.items;
+  const state = MERGED_STATES[row.state] ?? row.state;
+
+  day.itemsByState[state] = (day.itemsByState[state] ?? 0) + row.items;
   day.effort = addNullable(day.effort, row.effort);
 
   if (row.effort !== null) {
-    day.effortByState[row.state] = Number(row.effort);
+    day.effortByState[state] = (day.effortByState[state] ?? 0) + Number(row.effort);
   }
 
   return day;
