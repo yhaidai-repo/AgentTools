@@ -123,7 +123,7 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         if (task.PbiId is null)
             return ItemIds.NextGlobalAsync(db, type.NoPbiPrefix!, cancellation);
 
-        return ItemIds.NextAsync(db, AgentStages.StageOfKind(type.Kind)!.Prefix, task.PbiId.Value, cancellation);
+        return ItemIds.NextAsync(db, AgentStages.PbiPrefixOf(type.Kind)!, task.PbiId.Value, cancellation);
     }
 
     // A schedule's task carries the schedule, so its next tick sees it still waiting.

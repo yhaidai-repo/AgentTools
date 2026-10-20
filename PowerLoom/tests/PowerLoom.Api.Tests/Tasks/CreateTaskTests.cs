@@ -67,6 +67,19 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         Assert.False(data.TryGetProperty("path", out _));
     }
 
+    // A test task (Autotest, design 2026-10-20) needs a PBI but has no pipeline stage: numbered per PBI as TT.
+    [Fact]
+    public async Task A_test_task_needs_a_PBI_and_is_numbered_per_PBI()
+    {
+        var withoutPbi = await PostAsync(Request("test"), 400);
+        var created = await host.Host.PostJson(Request("test", pbi: AdoId.ToString()), "/api/tasks").Receive<CreatedTask>();
+        var task = await LoadAsync(created!.Id);
+
+        Assert.Contains("A test task needs a PBI.", withoutPbi);
+        Assert.Equal($"TT-{AdoId}-001", task.Id);
+        Assert.Equal((ItemKind.Test, "agent:*", AdoId), (task.Kind, task.Assignee, task.PbiId));
+    }
+
     // The vault review is a task type (user decision 2026-10-18): it reviews the task's vault.
     [Fact]
     public async Task A_vault_review_task_reviews_its_vault_and_takes_no_PBI()
