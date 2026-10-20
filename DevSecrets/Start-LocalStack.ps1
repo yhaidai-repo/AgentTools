@@ -53,13 +53,14 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 function Add-BusWhenConsumed([string[]] $Names) {
-    $consumes = @($Names | Where-Object { $Catalog[$_].consumesBus })
+    # A publisher (the portal, the API) needs the bus as much as a consumer: a login or a request publishes an event.
+    $consumes = @($Names | Where-Object { $Catalog[$_].consumesBus -or $Catalog[$_].usesBus })
 
     if ($consumes.Count -eq 0 -or $Names -contains "rabbitmq") {
         return $Names
     }
 
-    Write-Host "Adding rabbitmq: $($consumes -join ', ') consume the bus"
+    Write-Host "Adding rabbitmq: $($consumes -join ', ') use the bus"
 
     return @("rabbitmq") + $Names
 }

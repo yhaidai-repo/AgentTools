@@ -17,7 +17,8 @@ public sealed partial class SecretsFile(DevSecretsFiles files)
     public string Write(string folder)
     {
         var path = Path.Combine(folder, "mcp-secrets.env");
-        var lines = AllValues().Where(pair => pair.Value.Length >= MinRedactedLength).Select(pair => $"{EnvName(pair.Key)}={pair.Value}");
+        // Not the URLs (<app>-url, -url-2): an agent must see where a page is, and an address is no secret.
+        var lines = AllValues().Where(pair => pair.Value.Length >= MinRedactedLength && !IsUrlValue(pair.Key)).Select(pair => $"{EnvName(pair.Key)}={pair.Value}");
 
         File.WriteAllText(path, string.Join("\n", lines) + "\n", new UTF8Encoding(false));
 
@@ -59,6 +60,11 @@ public sealed partial class SecretsFile(DevSecretsFiles files)
 
     private static string EnvName(string key) => NonEnvCharacters().Replace(key, "_").ToUpperInvariant();
 
+    private static bool IsUrlValue(string key) => UrlValueName().IsMatch(key);
+
     [GeneratedRegex("[^A-Za-z0-9_]")]
     private static partial Regex NonEnvCharacters();
+
+    [GeneratedRegex("-url(-[0-9]+)?$")]
+    private static partial Regex UrlValueName();
 }

@@ -108,6 +108,11 @@ function Test-UrlResponds([string] $Url) {
 }
 
 function Test-EntryReady([hashtable] $Entry) {
+    # A compose entry (rabbitmq, redis) was waited for by `docker compose up --wait`: healthy when it is in the state.
+    if ($Entry.kind -eq "compose") {
+        return $true
+    }
+
     if ($Entry.readyLog) {
         return (Read-SharedText $Entry.log).Contains($Entry.readyLog)
     }

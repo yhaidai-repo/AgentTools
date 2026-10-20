@@ -49,7 +49,8 @@
       "project": "pvs/PVS/PVS.API.Core/PVS.API.Core.csproj",
       "launchProfile": "PVS.API.Core.Development"
     },
-    "usesCache": true
+    "usesCache": true,
+    "usesBus": true
   },
   "pvs-background": {
     "consumesBus": true,
@@ -164,7 +165,8 @@
         "pvs/PVS/PVS.Clients.WebClient.Core"
       ]
     },
-    "usesCache": true
+    "usesCache": true,
+    "usesBus": true
   },
   "rabbitmq": {
     "note": "Local RabbitMQ container (ports 5673/15673, so a Signals shared-resources RabbitMQ can run too) with a shovel of cloud-events to Service Bus; added automatically when a consumesBus service runs locally",
