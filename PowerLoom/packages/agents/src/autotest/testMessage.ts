@@ -10,7 +10,7 @@ import { previousReportBlock } from "./renderPreviousReport";
 type ItemRow = typeof localItem.$inferSelect;
 type WorkItemRow = typeof workItem.$inferSelect;
 
-type TaskData = { goal?: string; depth?: number; reason?: string; outOfScope?: string | null; pullRequestId?: number; branch?: string; dependsOn?: string[] };
+type TaskData = { goal?: string; depth?: number; reason?: string; outOfScope?: string | null; pullRequestId?: number; branch?: string; dependsOn?: string[]; userNotes?: string };
 
 // The first message: the test task, the PBI with everything attached to it, the task's latest report when it has
 // one, and the repos. The refinement (test data), the design (its tests) and the test cases are one read_pbi /
@@ -29,6 +29,7 @@ export function composeTestMessage(task: ItemRow, pbiId: number, pbiMessage: str
   return [
     opening,
     taskBlock(task),
+    taskNotesBlock(task),
     pbiMessage,
     ...(previous ? [previousReportBlock(previous)] : []),
     whereToLook(pbiId),
@@ -53,6 +54,13 @@ function taskBlock(task: ItemRow): string {
     `Depth: ${data.depth ?? 1}`,
     "</task>",
   ].join("\n");
+}
+
+// The user's own notes on this test task (user decision 2026-10-21): data, environment or cases to check first.
+function taskNotesBlock(task: ItemRow): string {
+  const notes = ((task.data ?? {}) as TaskData).userNotes?.trim();
+
+  return notes ? `<task-notes>\nThe user's notes on this test task; follow them where they apply:\n${notes}\n</task-notes>` : "<task-notes>none</task-notes>";
 }
 
 function whereToLook(pbiId: number): string {

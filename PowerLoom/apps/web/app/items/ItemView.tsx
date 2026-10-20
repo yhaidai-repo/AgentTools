@@ -12,6 +12,7 @@ import { ItemHeader } from "./ItemHeader";
 import { FindingForm } from "./FindingForm";
 import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
+import { TaskNotesForm } from "./TaskNotesForm";
 import { TaskResults } from "./TaskResults";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
@@ -24,12 +25,30 @@ export function ItemView({ detail }: { detail: ItemDetail }) {
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       <ItemContent item={item} />
+      <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
       <TaskResults detail={detail} />
       <Results detail={detail} />
       <Findings detail={detail} />
       <Resolution detail={detail} />
+    </>
+  );
+}
+
+// A test task's own notes (user decision 2026-10-21): editable at any time, read by the agent on every run.
+function TaskNotes({ detail }: { detail: ItemDetail }) {
+  const { item } = detail;
+
+  if (item.kind !== "test") {
+    return null;
+  }
+
+  return (
+    <>
+      <h2>My notes</h2>
+      <p className="hint">The test agent reads these on every run: test data, the environment, cases to check first.</p>
+      <TaskNotesForm itemId={item.id} path={itemPath(item)} text={((item.data ?? {}) as { userNotes?: string }).userNotes ?? ""} />
     </>
   );
 }

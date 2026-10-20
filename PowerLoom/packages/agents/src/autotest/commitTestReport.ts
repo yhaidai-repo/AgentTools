@@ -60,7 +60,9 @@ async function settleTask(db: PowerLoomDb, task: ItemRow, runId: number, report:
     return;
   }
 
-  const data = (task.data ?? {}) as { dependsOn?: string[] };
+  // Read again: the user may have saved notes on the task while the run worked (user decision 2026-10-21).
+  const [current] = await db.select({ data: localItem.data }).from(localItem).where(eq(localItem.id, task.id));
+  const data = (current?.data ?? {}) as { dependsOn?: string[] };
   const dependsOn = [...new Set([...(data.dependsOn ?? []), ...blocking])];
 
   await db.update(localItem).set({ data: { ...data, dependsOn } }).where(eq(localItem.id, task.id));

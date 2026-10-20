@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PowerLoom.Features.Tasks.TaskNotes.Models;
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ namespace PowerLoom.Api.Tests.Tasks;
 public sealed class CreateTaskTests(PowerLoomHost host)
 {
     private const int AdoId = 64714;
+    private const int NotesAdoId = 64715;
     private const string Criteria = "Names the cause, with evidence";
 
     [Fact]
@@ -80,6 +82,26 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         Assert.Equal((ItemKind.Test, "agent:*", AdoId), (task.Kind, task.Assignee, task.PbiId));
     }
 
+    // A test task's own notes (user decision 2026-10-21): kept in its data, refused when they changed meanwhile.
+    [Fact]
+    public async Task A_test_task_keeps_the_users_notes_and_refuses_a_stale_save()
+    {
+        await SeedPbiAsync(NotesAdoId);
+
+        var created = await host.Host.PostJson(Request("test", pbi: NotesAdoId.ToString()), "/api/tasks").Receive<CreatedTask>();
+        var path = $"/api/items/{created!.Id}/user-notes";
+
+        var saved = await host.Host.PutJson(new SaveTaskNotesRequest(" Use request 1190908. ", ""), path).Receive<TaskUserNotes>();
+        var stale = await PutAsync(path, new SaveTaskNotesRequest("Something else", ""), 409);
+        var task = await LoadAsync(created.Id);
+        var data = JsonDocument.Parse(task.Data!).RootElement;
+
+        Assert.Equal("Use request 1190908.", saved!.Text);
+        Assert.Contains("The notes changed since this page loaded", stale);
+        Assert.Equal("Use request 1190908.", data.GetProperty("userNotes").GetString());
+        Assert.Equal(Criteria, data.GetProperty("doneWhen").GetString());
+    }
+
     // The vault review is a task type (user decision 2026-10-18): it reviews the task's vault.
     [Fact]
     public async Task A_vault_review_task_reviews_its_vault_and_takes_no_PBI()
@@ -108,6 +130,17 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         return new CreateTaskRequest(PowerLoomHost.Vault, type, "Why it fails", "Find out why", Criteria, pbi, repos, null);
     }
 
+    private async Task<string> PutAsync(string path, SaveTaskNotesRequest request, int status)
+    {
+        var result = await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(request).ToUrl(path);
+            scenario.StatusCodeShouldBe(status);
+        });
+
+        return await result.ReadAsTextAsync();
+    }
+
     private async Task<string> PostAsync(CreateTaskRequest request, int status)
     {
         var result = await host.Host.Scenario(scenario =>
@@ -128,12 +161,12 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedPbiAsync()
+    private async Task SeedPbiAsync(int adoId = AdoId)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Create task PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
+        db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Create task PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
     }
 

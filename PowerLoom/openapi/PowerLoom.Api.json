@@ -219,6 +219,48 @@
         }
       }
     },
+    "/api/items/{id}/user-notes": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+        ],
+        "summary": "PUT_api_items_id_user_notes",
+        "description": "PUT_api_items_id_user_notes",
+        "operationId": "PUT_api_items_id_user_notes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTaskNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskUserNotes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/task-schedules": {
       "put": {
         "tags": [
@@ -4383,6 +4425,24 @@
           }
         }
       },
+      "SaveTaskNotesRequest": {
+        "required": [
+          "text",
+          "loadedText"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "loadedText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SaveUserNotesRequest": {
         "required": [
           "text",
@@ -4943,6 +5003,21 @@
           }
         }
       },
+      "TaskUserNotes": {
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "TestConnectionRequest": {
         "required": [
           "orgUrl",
@@ -5138,6 +5213,9 @@
     },
     {
       "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
     },
     {
       "name": "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"

@@ -35,9 +35,18 @@ const report: TestReport = {
 const previous: PreviousReport = { id: "TR-30474-012", report };
 
 describe("composeTestMessage", () => {
+  it("passes the user's notes on the task to the agent", () => {
+    const noted = { ...task, data: { ...(task.data as object), userNotes: "Use request 1190908." } } as unknown as ItemRow;
+
+    const message = composeTestMessage(noted, 30474, pbiMessage, null, noRepos());
+
+    assert.match(message, /<task-notes>\nThe user's notes on this test task; follow them where they apply:\nUse request 1190908\.\n<\/task-notes>/);
+  });
+
   it("asks for the analysis and the plan when the task has no report yet", () => {
     const message = composeTestMessage(task, 30474, pbiMessage, null, noRepos());
 
+    assert.match(message, /<task-notes>none<\/task-notes>/);
     assert.match(message, /^Test this PBI: analyse its acceptance criteria/);
     assert.doesNotMatch(message, /<previous-report>/);
     assert.match(message, /Waited for: Q-30474-004/);

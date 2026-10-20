@@ -12,6 +12,7 @@ import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
 import { resolutionFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 
 // Answer / dismiss a question or finding, finish / cancel a human task. Attached files (several, chosen, pasted or dropped)
 // are stored first, and only if the item can be closed (PowerLoom's dry run).
@@ -118,4 +119,15 @@ function readSubmitRequest(form: FormData): SubmitFindingRequest {
 // The commands went through PowerLoom; the pages only need to show the change.
 function revalidateItemPages(adoId: number | null): void {
   revalidatePath(adoId === null ? "/tasks" : `/pbis/${adoId}`, "layout");
+}
+
+// A test task's own notes (user decision 2026-10-21): the Autotest agent reads them on every run. `loaded` is what the
+// page showed, so a save never overwrites notes changed meanwhile.
+export async function saveTaskNotes(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const id = String(form.get("itemId") ?? "");
+  const result = powerloomResult(await powerloom.PUT("/api/items/{id}/user-notes", { params: { path: { id } }, body: { text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") } }), "Notes saved; the next run reads them.");
+
+  revalidatePath(String(form.get("path") ?? "/tasks"));
+
+  return result;
 }
