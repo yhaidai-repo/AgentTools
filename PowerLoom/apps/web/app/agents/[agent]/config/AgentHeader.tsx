@@ -2,11 +2,13 @@ import type { AgentDefinition } from "@agenttools/config";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { HeroStat } from "@/components/HeroStat";
+import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { agentColor } from "@/lib/agentColors";
 import { agentsUrl } from "@/lib/agentsUrl";
 import { isNearBudget } from "@/lib/budget";
 import { cronText } from "@/lib/cronText";
+import { itemPath } from "@/lib/items";
 import { average, formatUsd } from "@/lib/format";
 import { outcomeDot } from "@/lib/runOutcomes";
 import type { AgentTotals } from "@/models/AgentTotals";
@@ -20,11 +22,14 @@ interface AgentHeaderProps {
   counts?: RunCounts;
   spentTodayUsd: number;
   paused: boolean;
+  /** Its runs in progress, oldest first. */
+  running: { id: number; stage: string; itemId: string | null; pbiId: number | null; startedAt: Date }[];
 }
 
 // An agent's header, like the PBI page's (user decision 2026-10-18): where it sits, its colour, name and state, what it
-// does, Run now, its facts, and four numbers of the last 30 days with today's spend against its daily budget.
-export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused }: AgentHeaderProps) {
+// does, Run now, its facts, and four numbers of the last 30 days with today's spend against its daily budget. While it
+// works, the PBI and task pages' running strip, one per run in progress (user, 2026-10-21).
+export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused, running }: AgentHeaderProps) {
   return (
     <>
       <Breadcrumbs crumbs={[{ label: "Agents", href: agentsUrl({ tab: "overview" }) }, { label: agent.label }]} />
@@ -39,6 +44,7 @@ export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused
         </div>
         <Facts agent={agent} counts={counts} />
         <Stats agent={agent} totals={totals} counts={counts} spentTodayUsd={spentTodayUsd} />
+        {running.map((run) => <RunningStrip key={run.id} run={run} itemHref={run.itemId ? itemPath({ id: run.itemId, pbiId: run.pbiId }) : null} />)}
       </section>
     </>
   );
