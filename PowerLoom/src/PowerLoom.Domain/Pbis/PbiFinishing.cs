@@ -7,9 +7,9 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Pbis;
 
-// Finishes the PBI in PowerLoom only (ADO untouched). Its open agent tasks are cancelled so no agent works on it again; the
-// user's questions, human tasks and findings stay as they are (user decision 2026-10-05). Its child items are finished
-// with it (user decision 2026-10-13): a finished PBI leaves no open child behind for the agents.
+// Finishes the PBI in PowerLoom only (ADO untouched). Its open items are cancelled (PbiOpenItems; user decision 2026-10-21,
+// until then only its agent tasks were). Its child items are finished with it (user decision 2026-10-13): a finished PBI
+// leaves no open child behind for the agents.
 public static class PbiFinishing
 {
     // Already finished, or closed in ADO. A PBI that was never prepared can be finished too (user decision 2026-10-13:
@@ -60,31 +60,21 @@ public static class PbiFinishing
         return running is null ? null : $"RUN-{running.Id} is working on PBI-{running.PbiId}; finish it when the run has ended.";
     }
 
-    // Done, and its open agent tasks cancelled; returns how many tasks were cancelled.
+    // Done, and its open items cancelled; returns how many items were cancelled.
     private static async Task<int> FinishOneAsync(PowerLoomDbContext db, WorkItem item, string actor, CancellationToken cancellation)
     {
-        var cancelled = await CancelAgentTasksAsync(db, item.AdoId, actor, cancellation);
+        var cancelled = await PbiOpenItems.CancelAsync(db, item.AdoId, actor, null, cancellation);
 
         PbiStatusChange.Set(db, item, item.PipelineStatus, PipelineStatus.Done, actor, null);
 
         return cancelled;
     }
 
-    private static async Task<int> CancelAgentTasksAsync(PowerLoomDbContext db, int adoId, string actor, CancellationToken cancellation)
-    {
-        var open = await db.LocalItems.Where(item => item.PbiId == adoId && item.Assignee.StartsWith("agent:") && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress)).ToListAsync(cancellation);
-
-        foreach (var task in open)
-            await ItemStatusChange.SetAsync(db, task, ItemStatus.Cancelled, actor, null, cancellation);
-
-        return open.Count;
-    }
-
     private static string Summary(int adoId, int children, int cancelled)
     {
         var childPart = children > 0 ? $"; {children} child item(s) done" : "";
-        var taskPart = cancelled > 0 ? $"; {cancelled} agent task(s) cancelled" : "";
+        var itemPart = cancelled > 0 ? $"; {cancelled} open item(s) cancelled" : "";
 
-        return $"PBI-{adoId} done{childPart}{taskPart}.";
+        return $"PBI-{adoId} done{childPart}{itemPart}.";
     }
 }

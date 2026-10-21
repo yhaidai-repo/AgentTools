@@ -57,8 +57,10 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         Assert.Contains("\"by\": \"user\"", pbi.Skills);
         Assert.NotNull(pbi.SkillsEditedAt);
         Assert.Equal(["ATT-" + uploaded.Value!.Ids[0]], uploaded.Value.Refs);
-        Assert.Equal((PipelineStatus.Done, ItemStatus.Cancelled), (pbi.PipelineStatus, items[$"AT-{adoId}-001"].Status));
-        Assert.Contains("1 child item(s) done; 1 agent task(s) cancelled", finished.Value!.Message);
+        Assert.Equal((PipelineStatus.Done, ItemStatus.Cancelled, ItemStatus.Cancelled), (pbi.PipelineStatus, items[$"AT-{adoId}-001"].Status, items[$"HT-{adoId}-001"].Status));
+        // A finding still goes to the vault's registers.
+        Assert.Equal(ItemStatus.Open, items[$"F-{adoId}"].Status);
+        Assert.Contains("1 child item(s) done; 2 open item(s) cancelled", finished.Value!.Message);
         Assert.Equal(PipelineStatus.Done, (await LoadAsync(child.AdoId)).PipelineStatus);
         Assert.NotNull(finished.Value.WwwRecordId);
         Assert.Equal(finished.Value.WwwRecordId.ToString(), finished.Session.Executed.SingleMessage<AddRecord>().SourceId);
@@ -88,11 +90,12 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         var reopened = await Tracked(() => host.Host.PostJson(new PbiIdsRequest([adoId], "cli"), "/api/pbis/reopen").Receive<ClosedPbis>());
         var reopenedPbi = await LoadAsync(adoId);
 
-        Assert.Equal([$"PBI-{adoId} closed; 1 child item(s) closed; 2 open item(s) cancelled."], closed.Value!.Done);
+        Assert.Equal([$"PBI-{adoId} closed; 1 child item(s) closed; 3 open item(s) cancelled."], closed.Value!.Done);
         Assert.Equal(["PBI-61998: PBI-61998 isn't in PowerLoom."], closed.Value.Refused);
         Assert.Equal((PipelineStatus.Closed, true), (closedPbi.PipelineStatus, closedPbi.ClosedByUser));
         Assert.Equal(PipelineStatus.Closed, (await LoadAsync(child!.AdoId)).PipelineStatus);
-        Assert.Equal((ItemStatus.Cancelled, ItemStatus.Cancelled), (items[$"Q-{adoId}-001"].Status, items[$"AT-{adoId}-001"].Status));
+        Assert.Equal((ItemStatus.Cancelled, ItemStatus.Cancelled, ItemStatus.Cancelled), (items[$"Q-{adoId}-001"].Status, items[$"AT-{adoId}-001"].Status, items[$"HT-{adoId}-001"].Status));
+        Assert.Equal(ItemStatus.Open, items[$"F-{adoId}"].Status);
         Assert.Equal([$"PBI-{adoId}: PBI-{adoId} is closed already."], again!.Refused);
         Assert.Equal([adoId], (await prepared.ReadAsJsonAsync<PreparedPbis>())!.Closed);
         Assert.Equal([$"PBI-{adoId} reopened as new."], reopened.Value!.Done);
@@ -144,6 +147,8 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         await db.WorkItems.Where(row => row.AdoId == adoId).ExecuteUpdateAsync(set => set.SetProperty(row => row.PipelineStatus, PipelineStatus.Refining));
         db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Repos?", Status = ItemStatus.Open, Assignee = "human", Data = """{"key":"repos:ActRepo"}""", HeldBy = "[]" });
         db.LocalItems.Add(new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKind.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Open, Assignee = "agent:research", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"HT-{adoId}-001", Kind = ItemKind.Human, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Attach it", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKind.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }
