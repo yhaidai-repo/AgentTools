@@ -75,5 +75,11 @@ function Write-WorkerConfigs([string] $ProjectPath, [string] $LaunchProfile, [ha
     Set-Content -LiteralPath $path -Value ($document | ConvertTo-Json -Depth 4) -Encoding utf8
     Write-Host "Workers in $environment`: $(if ($Workers.Count -gt 0) { ($Workers.Keys | Sort-Object) -join ', ' } else { 'none' }) ($path)"
 
-    return @{ file = $path; workers = @($Workers.Keys | Sort-Object) }
+    return @{ file = $path; workers = @($Workers.Keys | Sort-Object); environment = Get-ContentRootEnvironment $outputDir }
+}
+
+# The host reads its workerConfigs files from the content root, which is the working directory of `dotnet run`: the
+# project's source folder. Pointing it at the build output makes the host read the file written there.
+function Get-ContentRootEnvironment([string] $OutputDir) {
+    return @{ DOTNET_CONTENTROOT = $OutputDir }
 }

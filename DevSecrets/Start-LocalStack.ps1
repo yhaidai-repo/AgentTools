@@ -225,10 +225,19 @@ function Initialize-NpmProjects([string[]] $Names, [hashtable] $Roots) {
     $Names | Where-Object { $Catalog[$_].run.npmPackages } | ForEach-Object { $name = $_; $Catalog[$name].run.npmPackages | ForEach-Object { Initialize-NpmPackages (Resolve-ProjectPath $Roots $_) } }
 }
 
+function Get-StartEnvironment([string] $Name, [hashtable] $Named, [hashtable] $Config) {
+    $environment = Get-ServiceEnvironment $Name $Named
+    $configEnvironment = $Config.environment ?? @{}
+
+    $configEnvironment.GetEnumerator() | ForEach-Object { $environment[$_.Key] = $_.Value }
+
+    return $environment
+}
+
 function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $Configs, [hashtable] $State) {
     foreach ($name in $Names) {
         $projectPath = Resolve-ProjectPath $Roots $Catalog[$name].run.project
-        $entry = Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-ServiceEnvironment $name $Named)
+        $entry = Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-StartEnvironment $name $Named $Configs[$name])
         $entry.config = $Configs[$name]
         $State.services += $entry
         Save-StackState $State
