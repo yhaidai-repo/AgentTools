@@ -282,14 +282,15 @@ Initialize-NpmProjects $names $roots
 New-Item -ItemType Directory -Force -Path $StackDir | Out-Null
 Get-ChildItem -LiteralPath $StackDir -Filter "*.log" | Remove-Item -Force
 
-$config = Read-StackConfig $Config $names
+# PowerShell names ignore case: $config would be the [string] parameter $Config and turn the table into text.
+$stackConfig = Read-StackConfig $Config $names
 
 if (-not $SkipBuild) {
     $appServices | ForEach-Object { Build-Project (Resolve-ProjectPath $roots $Catalog[$_].run.project) }
 }
 
 $configs = @{}
-Write-ServiceConfigs $appServices $roots $config $configs
+Write-ServiceConfigs $appServices $roots $stackConfig $configs
 
 $state = @{ branch = $Branch; environment = $Values; roots = $roots; services = @() }
 
