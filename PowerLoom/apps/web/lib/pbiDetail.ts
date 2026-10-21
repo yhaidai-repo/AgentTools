@@ -63,7 +63,7 @@ export async function loadItemDetail(itemId: string) {
   const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.itemId, itemId)).orderBy(attachment.id);
   const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
 
-  const runs = await db.select({ id: agentRun.id, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
+  const runs = await db.select({ id: agentRun.id, stage: agentRun.stage, itemId: agentRun.itemId, startedAt: agentRun.startedAt, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
 
   return { item, attachments, findings, runs };
 }
