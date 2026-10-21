@@ -1,3 +1,5 @@
+using PowerLoom.Features.Cleanup.Models;
+
 namespace PowerLoom.Features.Status.Models;
 
 // Everything the dashboard's Application tab shows about the running system, from PowerLoom's own data.
@@ -14,4 +16,5 @@ public sealed record SystemStatus(
     List<SyncRun> RecentSyncs,
     BudgetStatus Budget,
     List<OutsideComponentState> Outside,
+    List<CleanupStatus> Cleanups,
     List<Attention> Attention);

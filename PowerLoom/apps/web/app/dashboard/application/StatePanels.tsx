@@ -5,6 +5,7 @@ import { TimeAgo } from "@/components/TimeAgo";
 import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
 import { toneOfState } from "@/lib/tone";
 import type { Tone } from "@/models/Tone";
+import { CleanupPanel } from "./CleanupPanel";
 import { nodeById } from "./schemeLayout";
 
 type VaultStatus = SystemStatus["vaults"][number];
@@ -17,15 +18,17 @@ interface StatePanelsProps {
 }
 
 // The state of each part, one panel per kind: PowerLoom's services, its messaging, and the selected vault's
-// integrations (user decision 2026-10-18: no other vault's rows).
+// integrations (user decision 2026-10-18: no other vault's rows), and the vault's artefact cleanup.
 export function StatePanels({ status, vault, prometheusAnswers }: StatePanelsProps) {
   const vaultStatus = status.vaults.find((entry) => entry.name === vault) ?? null;
+  const cleanup = status.cleanups.find((entry) => entry.vault === vault) ?? null;
 
   return (
     <div className="grid three">
       <ServicesPanel status={status} prometheusAnswers={prometheusAnswers} />
       <MessagingPanel messaging={status.messaging} />
       <IntegrationsPanel status={status} vault={vaultStatus} />
+      <CleanupPanel cleanup={cleanup} />
     </div>
   );
 }

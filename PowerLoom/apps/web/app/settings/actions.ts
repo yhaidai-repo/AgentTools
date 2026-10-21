@@ -51,6 +51,36 @@ export async function saveImportSettingsAction(_previous: ActionResult | null, f
   return result;
 }
 
+export async function saveCleanupSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const vault = await requireVault();
+  const dryRun = form.get("dryRun") === "on";
+  const saved = await powerloom.PUT("/api/vaults/{vault}/cleanup", {
+    params: { path: { vault } },
+    body: {
+      dryRun,
+      closedPbiDays: Number(field(form, "closedPbiDays")),
+      trashDays: Number(field(form, "trashDays")),
+      failedImportDays: Number(field(form, "failedImportDays")),
+      runEventDays: Number(field(form, "runEventDays")),
+      browserArtefactDays: Number(field(form, "browserArtefactDays")),
+      failedRunBrowserArtefactDays: Number(field(form, "failedRunBrowserArtefactDays")),
+    },
+  });
+  const result = powerloomResult(saved, dryRun ? "Saved. The next cleanup only reports what would go." : "Saved. The next cleanup deletes what is past its buffer.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// Starts the vault's cleanup now (with the saved settings); the report lands on the dashboard's Application tab.
+export async function runCleanupAction(_previous: ActionResult | null, _form: FormData): Promise<ActionResult> {
+  const vault = await requireVault();
+  const started = await powerloom.POST("/api/vaults/{vault}/cleanup/run", { params: { path: { vault } } });
+
+  return powerloomResult(started, "Cleanup started; see the dashboard's Application tab for its report.");
+}
+
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const vault = await requireVault();
   const enabled = isEnabled(form);

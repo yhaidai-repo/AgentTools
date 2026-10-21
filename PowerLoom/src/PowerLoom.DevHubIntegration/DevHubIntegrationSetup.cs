@@ -1,4 +1,6 @@
+using PowerLoom.DevHubIntegration.Features.BrowserArtefacts;
 using PowerLoom.DevHubIntegration.Features.LocalBranches;
+using PowerLoom.Features.Cleanup;
 using PowerLoom.Infrastructure.LocalBranches;
 using PowerLoom.DevHubIntegration.Features.DevHub;
 using PowerLoom.DevHubIntegration.Settings;
@@ -13,6 +15,9 @@ public static class DevHubIntegrationSetup
         builder.Services.AddScoped<DevHubConnection>();
         builder.Services.AddSingleton<IDevHubTester, RunnerDevHubTester>();
         builder.Services.AddScoped<ILocalBranches, DevHubLocalBranches>();
+        builder.Services.AddHttpClient(HttpDevHubBrowserArtefacts.HttpClientName);
+        builder.Services.AddSingleton<IDevHubBrowserArtefacts, HttpDevHubBrowserArtefacts>();
+        builder.Services.AddScoped<IArtefactCleaner, BrowserArtefactsCleaner>();
 
         return builder;
     }

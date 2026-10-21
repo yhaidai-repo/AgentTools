@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
 using PowerLoom.Domain.Tasks;
@@ -8,6 +7,7 @@ using PowerLoom.Features.Tasks.CreateTask.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.PullRequests;
 using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Features.Reviews;
@@ -55,7 +55,7 @@ public sealed class ReviewTesting(PowerLoomDbContext db, TaskCreation creation)
 
     private async Task<List<int>> LinkedPbisAsync(PullRequest pr, CancellationToken cancellation)
     {
-        var linked = JsonSerializer.Deserialize<List<int>>(pr.WorkItemIds) ?? [];
+        var linked = PullRequestWorkItems.Parse(pr.WorkItemIds);
 
         return await db.WorkItems.AsNoTracking().Where(item => linked.Contains(item.AdoId) && item.Vault == pr.Vault).Select(item => item.AdoId).OrderBy(id => id).ToListAsync(cancellation);
     }

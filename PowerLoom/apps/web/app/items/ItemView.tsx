@@ -1,9 +1,7 @@
 import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/core";
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
-import { AutoRefresh } from "@/components/AutoRefresh";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
-import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 import { isOpen, itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
@@ -18,15 +16,12 @@ import { TaskResultSets } from "./TaskResultSets";
 
 const ACCEPT = ACCEPTED_EXTENSIONS.join(",");
 
-// One item's page, under its PBI or (for items without one) under Tasks; `chosen` is the result version in its URL. It
-// follows a run working on the task, like the PBI page, and holds still otherwise, so its forms aren't re-rendered.
+// One item's page, under its PBI or (for items without one) under Tasks; `chosen` is the result version in its URL.
 export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: string | undefined }) {
   const { item } = detail;
-  const isRunning = detail.runs.some((run) => run.outcome === "running");
 
   return (
     <>
-      <AutoRefresh active={isRunning} intervalMs={GRID_REFRESH_MS} />
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       <ItemContent item={item} />

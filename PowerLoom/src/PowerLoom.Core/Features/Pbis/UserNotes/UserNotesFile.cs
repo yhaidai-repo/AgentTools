@@ -19,7 +19,15 @@ public sealed class UserNotesFile(PowerLoomDbContext db, BacklogFiles files)
 
         var note = await files.ReadTextAsync(location.Value.Vault, location.Value.Path, cancellation);
 
-        return Outcome<PbiUserNotes>.Success(new PbiUserNotes(NotesSection.BodyOf(note)));
+        return Outcome<PbiUserNotes>.Success(new PbiUserNotes(note is null ? await SavedNotesAsync(adoId, cancellation) : NotesSection.BodyOf(note)));
+    }
+
+    // A closed PBI whose folder the cleanup trashed: the notes it saved into work_item first.
+    private async Task<string> SavedNotesAsync(int adoId, CancellationToken cancellation)
+    {
+        var saved = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => row.UserNotesMd).SingleOrDefaultAsync(cancellation);
+
+        return saved ?? "";
     }
 
     public async Task<Outcome<PbiUserNotes>> SaveAsync(int adoId, SaveUserNotesRequest request, CancellationToken cancellation)

@@ -1,4 +1,4 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -11,6 +11,7 @@ import type { AzureResourceRow } from "@/models/AzureResourceRow";
 import type { SettingsTabMark } from "@/models/SettingsTabMark";
 import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
+import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
@@ -82,7 +83,7 @@ async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): P
   };
 }
 
-// The three syncs of an active integration (user decision 2026-10-06: not offered without one).
+// The three syncs of an active integration (user decision 2026-10-06: not offered without one), and the artefact cleanup.
 async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {
   const vault = (await readVault(db, current))!;
   const sync = await readSyncSettings(db, current);
@@ -93,6 +94,7 @@ async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: 
       <SettingsForm key={current} enabled={vault.features.adoSync} sync={sync} sprintOptions={await loadSprintChoices(ado)} currentSprint={await readCurrentSprint(db, current)} />
       <ImportSettingsForm key={`import-${current}`} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} status={importStatus} />
       <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
+      <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
     </>
   );
 }

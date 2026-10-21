@@ -168,6 +168,7 @@ services:
       - "127.0.0.1:${GRAFANA_PORT:-3200}:3000"  # Grafana: admin / admin
     volumes:
       - otel-data:/data
+      - ./tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro  # the image's config plus a 7-day trace retention
     restart: unless-stopped
 
   backup:

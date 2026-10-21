@@ -14,6 +14,8 @@ public static class BrowserEndpoints
         app.MapPost($"{BrowserPath}/type-secret", TypeSecretAsync);
         app.MapDelete(BrowserPath, CloseAsync);
         app.MapGet($"{BrowserPath}/artifacts", (string owner, BrowserService browsers) => TypedResults.Ok(new { owner, artifacts = browsers.ListArtifacts(owner) }));
+        app.MapGet($"{BrowserPath}/artifacts/owners", (BrowserService browsers) => TypedResults.Ok(browsers.ListOwners()));
+        app.MapDelete($"{BrowserPath}/artifacts/{{owner}}", (string owner, BrowserService browsers, bool dryRun = false) => ToResult(browsers.DeleteArtifacts(owner, dryRun)));
         app.MapGet($"{BrowserPath}/secret-names", (SecretsFile secrets) => TypedResults.Ok(new { names = secrets.Names() }));
         app.MapPost($"{BrowserPath}/http-request", HttpRequestAsync);
 
