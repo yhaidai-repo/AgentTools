@@ -34,9 +34,15 @@ public sealed class ServiceCatalog(IOptions<DevHubOptions> options, DevSecretsFi
             service.Name,
             ReadString(service.Value, "note"),
             local[$"{service.Name}-url"]?.ToString(),
-            service.Value.TryGetProperty("consumesBus", out var consumesBus) && consumesBus.GetBoolean()
+            service.Value.TryGetProperty("consumesBus", out var consumesBus) && consumesBus.GetBoolean(),
+            ReadStrings(service.Value, "configurable")
         );
 
     private static string? ReadString(JsonElement element, string property) =>
         element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static string[] ReadStrings(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
+            ? value.EnumerateArray().Select(entry => entry.GetString()).OfType<string>().ToArray()
+            : [];
 }

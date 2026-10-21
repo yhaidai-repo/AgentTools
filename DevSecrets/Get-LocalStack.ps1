@@ -27,6 +27,7 @@ function Get-EntryStatus([hashtable] $Entry) {
         url = $Entry.url
         log = $Entry.log
         errorLog = $Entry.errorLog
+        workers = $Entry.config?.workers
     }
 }
 

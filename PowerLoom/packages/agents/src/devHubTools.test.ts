@@ -41,14 +41,36 @@ describe("createDevHubTools", () => {
   });
 
   it("lists the services as a table and logs the call as a local stack read", async () => {
-    const services = async () => ({ ok: true as const, value: [{ name: "signals", note: "Signals AppHost", localUrl: "https://localhost:7456", consumesBus: false }] });
+    const signals = { name: "signals", note: "Signals AppHost", localUrl: "https://localhost:7456", consumesBus: false, configurable: [] };
+    const background = { name: "pvs-background", note: "jobs host", localUrl: null, consumesBus: true, configurable: ["workers"] };
+    const services = async () => ({ ok: true as const, value: [signals, background] });
     const { deps, entries } = depsWith({ services });
 
     const result = await toolNamed(deps, "list_services").handler({});
 
-    assert.match(result.text, /\| signals \| Signals AppHost \| https:\/\/localhost:7456 \| no \|/);
+    assert.match(result.text, /\| signals \| Signals AppHost \| https:\/\/localhost:7456 \| no \| - \|/);
+    assert.match(result.text, /\| pvs-background \| jobs host \| \(no URL\) \| yes \| workers \|/);
     assert.equal(entries[0].kind, "localStack");
     assert.equal(entries[0].outcome, "ok");
+  });
+
+  it("passes the workers of a start to DevHub and names them in the access log", async () => {
+    let sent: unknown = null;
+    const start = async (request: unknown) => {
+      sent = request;
+
+      return { ok: true as const, value: null };
+    };
+    const ready = { phase: "ready", running: true, requestedServices: ["pvs-background"], branch: null, startedAt: null, expiresAt: null, exitCode: null, owner: stackOwner(7), services: [{ name: "pvs-background", running: true, url: null, log: null, errorLog: null, workers: ["ApiBatchProcessQueueWorker"] }], output: [] };
+    const status = async () => ({ ok: true as const, value: ready as never });
+    const { deps, entries } = depsWith({ start, status });
+    const config = { "pvs-background": { workers: { ApiBatchProcessQueueWorker: { RunAtStart: true, Cron: "15" } } } };
+
+    const result = await toolNamed(deps, "start_stack").handler({ services: ["pvs-background"], config });
+
+    assert.deepEqual(sent, { services: ["pvs-background"], branch: undefined, ttlMinutes: 30, owner: stackOwner(7), config });
+    assert.match(result.text, /\| pvs-background \| running \| \(no URL\) \| ApiBatchProcessQueueWorker \|/);
+    assert.match(entries[0].request ?? "", /start pvs-background with workers ApiBatchProcessQueueWorker/);
   });
 
   it("stops only as the run's owner", async () => {

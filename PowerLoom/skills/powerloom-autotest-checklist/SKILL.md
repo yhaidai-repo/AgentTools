@@ -24,6 +24,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Start from the repos and areas the refinement and the design name; the service that owns the screen comes first, then what it calls, then the consumers an action triggers.
 - Name only services `list_services` offers; the rest stays on Azure dev.
 - `start_stack` with the branch under test; a service that doesn't come up is a `not_run` for its cases with the `stack_logs` lines, not a bug.
+- `pvs-background` runs no worker by default. A case that waits on a job names its worker in `start_stack` `config` (`{"pvs-background": {"workers": {"<Worker>": {"RunAtStart": true, "Cron": "15"}}}}`); `stack_status` shows the workers in effect. Email, survey, report and FTP workers stay off unless the criterion is about them.
 
 ## Browser
 - One `browser_open` … `browser_close` per case: the recording belongs to the case.
