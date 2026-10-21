@@ -20,7 +20,27 @@ type RateKey = (typeof RATES)[number]["key"];
 
 export type Rates = Record<RateKey, MetricSeries | null>;
 
+// The day's rates move in 30-minute steps and Prometheus can take seconds to answer, so one answer serves every render
+// for a while (user, 2026-10-21: the dashboard, re-rendered every 10 s, lagged and held navigation); a failed answer is
+// kept shorter, so a recovered Prometheus shows soon.
+const RATES_FRESH_MS = 5 * 60_000;
+const FAILED_RATES_FRESH_MS = 60_000;
+
+let cachedRates: { rates: Rates; until: number } | null = null;
+
 export async function loadRates(now: Date): Promise<Rates> {
+  if (cachedRates && cachedRates.until > now.getTime()) {
+    return cachedRates.rates;
+  }
+
+  const rates = await queryRates(now);
+
+  cachedRates = { rates, until: now.getTime() + (hasRates(rates) ? RATES_FRESH_MS : FAILED_RATES_FRESH_MS) };
+
+  return rates;
+}
+
+async function queryRates(now: Date): Promise<Rates> {
   const from = new Date(now.getTime() - HOURS * 60 * 60 * 1000);
   const answers = await Promise.all(RATES.map((rate) => queryRange(rate.query, from, now, STEP_SECONDS)));
 
