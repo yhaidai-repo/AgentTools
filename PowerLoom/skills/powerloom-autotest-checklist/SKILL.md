@@ -20,6 +20,15 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - A blocked case keeps its steps so it runs as soon as its task closes.
 - Blocking tasks: the plan approval and whatever every case needs (test data, environment, user). One-case tasks are not blocking.
 
+## PVS dev test data (user, 2026-10-21)
+- SQL for test data: the connection `PVS-SQL-for-azure` (10.9.81.97, the database the local stack runs on). `PVS-dev-on-prem` is another server: its ids don't exist in the stack's database.
+- Facility: any facility of the tenant **Langate** whose name starts with `!`; find one with SQL, never invent one. Facilities of other tenants are not test data.
+- Accounts, signed in with `browser_type_secret`:
+  - the System (admin) area of the PVS web client: `pvs-dev-admin-user` / `pvs-dev-admin-password`;
+  - the client side: `pvs-dev-user-yhaidai` / `pvs-dev-password-yhaidai`.
+- Verifications: take any existing dev verification and submit or resubmit it. Every submit calls a payer and costs money: one verification per action, never a bulk submit, batch or census upload, and only as many as the cases need (at most 5 per run).
+- A facility, user or verification within these rules is not `missing_test_data`: pick one yourself instead of asking the user.
+
 ## Services and stack
 - Start from the repos and areas the refinement and the design name; the service that owns the screen comes first, then what it calls, then the consumers an action triggers.
 - Name only services `list_services` offers; the rest stays on Azure dev.
