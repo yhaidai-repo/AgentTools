@@ -30,7 +30,7 @@ storage:
     local:
       path: /data/tempo/blocks
 
-compactor:
+backend_worker:
   compaction:
     block_retention: 168h  # 7 days of traces (user decision 2026-10-21)
 
