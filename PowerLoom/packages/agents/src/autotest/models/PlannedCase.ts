@@ -1,6 +1,6 @@
 // One case of the test plan: an acceptance criterion proven by a test case's steps, or by steps the agent wrote.
 export interface PlannedCase {
-  /** TC-<id> when it comes from an ADO test case; "agent" when the agent wrote it. */
+  /** TC-<id> when it comes from an ADO test case; "agent" when the agent wrote it; PBI-<id> when it retests that bug. */
   ref: string;
   title: string;
   criterion: string;

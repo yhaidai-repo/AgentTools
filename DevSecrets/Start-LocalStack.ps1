@@ -38,6 +38,10 @@ param(
 
     [int] $TimeoutSeconds = 300,
 
+    # JSON per service: {"pvs-background": {"workers": {"ApiBatchProcessQueueWorker": {"RunAtStart": true, "Cron": "15"}}}}.
+    # Only services with "configurable" in services.json take one; a background host without "workers" runs none.
+    [string] $Config,
+
     [switch] $SkipBuild,
 
     [switch] $NoPatches
@@ -50,7 +54,27 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/LocalStack.Worktree.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
 . "$PSScriptRoot/LocalStack.Redis.ps1"
+. "$PSScriptRoot/LocalStack.WorkerConfig.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
+
+function Read-StackConfig([string] $Json, [string[]] $Names) {
+    $config = if ($Json) { $Json | ConvertFrom-Json -AsHashtable } else { @{} }
+    $unknown = @($config.Keys | Where-Object { $Names -notcontains $_ -or -not $Catalog[$_].configurable })
+
+    if ($unknown.Count -gt 0) {
+        throw "Config for service(s) that are not in the stack or take none: $($unknown -join ', ')"
+    }
+
+    return $config
+}
+
+function Write-ServiceConfigs([string[]] $Names, [hashtable] $Roots, [hashtable] $Config, [hashtable] $Configs) {
+    foreach ($name in ($Names | Where-Object { $Catalog[$_].configurable -contains "workers" })) {
+        $run = $Catalog[$name].run
+        $workers = $Config[$name]?.workers ?? @{}
+        $Configs[$name] = Write-WorkerConfigs (Resolve-ProjectPath $Roots $run.project) $run.launchProfile $workers
+    }
+}
 
 function Add-BusWhenConsumed([string[]] $Names) {
     # A publisher (the portal, the API) needs the bus as much as a consumer: a login or a request publishes an event.
@@ -201,10 +225,12 @@ function Initialize-NpmProjects([string[]] $Names, [hashtable] $Roots) {
     $Names | Where-Object { $Catalog[$_].run.npmPackages } | ForEach-Object { $name = $_; $Catalog[$name].run.npmPackages | ForEach-Object { Initialize-NpmPackages (Resolve-ProjectPath $Roots $_) } }
 }
 
-function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $State) {
+function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $Configs, [hashtable] $State) {
     foreach ($name in $Names) {
         $projectPath = Resolve-ProjectPath $Roots $Catalog[$name].run.project
-        $State.services += Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-ServiceEnvironment $name $Named)
+        $entry = Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-ServiceEnvironment $name $Named)
+        $entry.config = $Configs[$name]
+        $State.services += $entry
         Save-StackState $State
     }
 }
@@ -256,9 +282,14 @@ Initialize-NpmProjects $names $roots
 New-Item -ItemType Directory -Force -Path $StackDir | Out-Null
 Get-ChildItem -LiteralPath $StackDir -Filter "*.log" | Remove-Item -Force
 
+$config = Read-StackConfig $Config $names
+
 if (-not $SkipBuild) {
     $appServices | ForEach-Object { Build-Project (Resolve-ProjectPath $roots $Catalog[$_].run.project) }
 }
+
+$configs = @{}
+Write-ServiceConfigs $appServices $roots $config $configs
 
 $state = @{ branch = $Branch; environment = $Values; roots = $roots; services = @() }
 
@@ -272,7 +303,7 @@ if ($names -contains "redis") {
     Save-StackState $state
 }
 
-Start-AppServices $appServices $roots $named $state
+Start-AppServices $appServices $roots $named $configs $state
 Wait-StackReady $state
 
 Write-Host "Local stack ready. Logs: $StackDir. Stop with Stop-LocalStack.ps1."

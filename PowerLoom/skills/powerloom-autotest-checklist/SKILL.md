@@ -9,7 +9,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Number the acceptance criteria as the PBI lists them (AC 1, AC 2, …); every finding, case and result names one.
 - Map each test case to the criteria it proves; a test case that proves none is a finding, not a case.
 - A contradiction is when the criterion and the test case's expected result can't both be true; quote both sides.
-- Test data: a step that needs a record, an id, a user, a payer, a facility or an environment nobody named is `missing_test_data`; the refinement's test data block and the answers may already hold it.
+- Test data: a step that needs a record, an id, a user, a payer, a facility or an environment nobody named is `missing_test_data`; the refinement's test data block and the answers may already hold it, and the database often does: search for a successful earlier call of the same kind on any facility and date before asking, and reuse its inputs by record id.
 - Ambiguous expectations ("works correctly", "is shown") become a question with the readings as options.
 - An answered question is the decision; a test case that still contradicts it goes into `ado_edits`, with the decision it follows. Never a task for ADO edits.
 
@@ -33,6 +33,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Start from the repos and areas the refinement and the design name; the service that owns the screen comes first, then what it calls, then the consumers an action triggers.
 - Name only services `list_services` offers; the rest stays on Azure dev.
 - `start_stack` with the branch under test; a service that doesn't come up is a `not_run` for its cases with the `stack_logs` lines, not a bug.
+- `pvs-background` runs no worker by default. A case that waits on a job names its worker in `start_stack` `config` (`{"pvs-background": {"workers": {"<Worker>": {"RunAtStart": true, "Cron": "15"}}}}`); `stack_status` shows the workers in effect. Email, survey, report and FTP workers stay off unless the criterion is about them.
 
 ## Browser
 - One `browser_open` … `browser_close` per case: the recording belongs to the case.
@@ -48,6 +49,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - `fail` needs: the plan, data and environment were right, and the page or API showed something else. Then `report_bug` with steps as run, expected vs actual, the screenshot, log lines, the code location when known (inferred).
 - One bug per distinct failure; cite an existing open bug instead of a duplicate; several cases failing for one cause share one bug.
 - A failure caused by the plan, the data or the environment: a finding or a question, not a bug; the case is `blocked` or `not_run` with why.
+- Bug retests: every bug in `<bugs-to-retest>` gets a case (ref `PBI-<id>`) or rides on the planned case that proves it; its result's `bug` is `PBI-<id>` whatever the verdict. A done bug that fails again is "still failing", not a new bug; never change a bug's state.
 
 ## Continuing from a previous report
 - The `<previous-report>` block is the plan: run the cases without a `pass`; keep the passed verdicts with the earlier report as their evidence unless the branch changed.

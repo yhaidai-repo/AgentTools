@@ -118,7 +118,22 @@ public sealed partial class StackService(
         if (request.Branch is not null && !BranchName().IsMatch(request.Branch))
             return HubResult.Invalid($"Invalid branch name: {request.Branch}");
 
-        return EnvironmentRefusal(request.Environment);
+        return EnvironmentRefusal(request.Environment) ?? ConfigRefusal(request);
+    }
+
+    // Config is keyed by a service in the stack that takes one; what it holds is the script's to check.
+    private HubResult? ConfigRefusal(StartStackRequest request)
+    {
+        if (request.Config is null || request.Config.Count == 0)
+            return null;
+
+        var configurable = catalog.GetServices().Where(service => service.Configurable.Length > 0).Select(service => service.Name).ToHashSet(StringComparer.Ordinal);
+        var refused = request.Config.Keys.Where(name => !request.Services.Contains(name) || !configurable.Contains(name)).ToArray();
+
+        if (refused.Length > 0)
+            return HubResult.Invalid($"Config for service(s) not in the stack or not configurable: {string.Join(", ", refused)}. GET /services shows what each takes.");
+
+        return null;
     }
 
     // An environment is a values file; the name also goes to pwsh as an argument.
@@ -142,6 +157,9 @@ public sealed partial class StackService(
 
         if (!string.IsNullOrEmpty(request.Environment))
             arguments.AddRange(["-Values", request.Environment]);
+
+        if (request.Config is { Count: > 0 })
+            arguments.AddRange(["-Config", JsonSerializer.Serialize(request.Config)]);
 
         return arguments;
     }

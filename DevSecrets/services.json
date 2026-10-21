@@ -53,8 +53,11 @@
     "usesBus": true
   },
   "pvs-background": {
+    "configurable": [
+      "workers"
+    ],
     "consumesBus": true,
-    "note": "PVS.BackgroundServiceHostCore (jobs, verification saga, integration-event consumers)",
+    "note": "PVS.BackgroundServiceHostCore (jobs, verification saga, integration-event consumers); runs only the workers a stack's config names",
     "projects": [
       "pvs/PVS/PVS.BackgroundServiceHostCore/PVS.BackgroundServiceHostCore.csproj"
     ],

@@ -24,7 +24,7 @@ const INPUT = {
     resolution: z.string().min(1).describe("The task that resolves it: 'new:1' for the first task you created in this run, an existing item id, or why none is needed"),
   })).describe("Every gap between the acceptance criteria, the test cases and the test data; empty when they match"),
   cases: z.array(z.object({
-    ref: z.string().min(1).describe("'TC-<id>' when the steps come from that test case; 'agent' when you wrote them because no test case covers the criterion"),
+    ref: z.string().min(1).describe("'TC-<id>' when the steps come from that test case; 'agent' when you wrote them because no test case covers the criterion; 'PBI-<id>' when it retests that bug of the PBI"),
     title: z.string().min(1),
     criterion: z.string().min(1).describe("The acceptance criterion this case proves, quoted"),
     steps: z.array(z.string().min(1)).min(1).describe("Concrete steps a person or a browser can follow: screen, action, value"),
@@ -40,7 +40,7 @@ const INPUT = {
     verdict: z.enum(["pass", "fail", "blocked", "not_run"]),
     observed: z.string().min(1).describe("What was seen against the expected result; for blocked / not_run: why"),
     artifacts: z.array(z.string()).default([]).describe("The case's recording files (from browser_close)"),
-    bug: z.string().optional().describe("For a failed case: 'bug:<n>' from report_bug, or an existing bug id"),
+    bug: z.string().optional().describe("For a failed case: 'bug:<n>' from report_bug, or an existing bug id. For a case that retests a PBI bug: that bug's 'PBI-<id>', whatever the verdict (pass = fixed)"),
   })).default([]).describe("One entry per case you ran or could not run; empty while nothing ran yet"),
   ado_edits: z.array(z.string()).default([]).describe("Azure DevOps test cases to update by hand, one line each with the decision it follows; never a task"),
   next_reason: z.string().min(1).describe("Why the tasks you created with create_task are needed, or why no next step is"),

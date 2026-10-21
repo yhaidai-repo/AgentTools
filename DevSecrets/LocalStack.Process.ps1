@@ -173,6 +173,8 @@ function Stop-Entry([hashtable] $Entry) {
         return
     }
 
+    Remove-EntryConfig $Entry
+
     if (-not (Test-EntryAlive $Entry)) {
         return
     }
@@ -180,6 +182,13 @@ function Stop-Entry([hashtable] $Entry) {
     # dotnet run starts the app (or an Aspire AppHost and its children) as child processes; kill the whole tree.
     taskkill /PID $Entry.pid /T /F 2>&1 | Out-Null
     Write-Host "Stopped $($Entry.name)"
+}
+
+# The per-stack configuration file written into the build output (LocalStack.WorkerConfig.ps1) goes with the stack.
+function Remove-EntryConfig([hashtable] $Entry) {
+    if ($Entry.config.file) {
+        Remove-Item -LiteralPath $Entry.config.file -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Stop-Stack([hashtable] $State) {

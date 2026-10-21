@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { checkDevHub } from "./checkDevHub";
 import type { StackStatus } from "./models/StackStatus";
 
-const service = { name: "signals", note: null, localUrl: "https://localhost:7456", consumesBus: false };
+const service = { name: "signals", note: null, localUrl: "https://localhost:7456", consumesBus: false, configurable: [] };
 const idle: StackStatus = { phase: "idle", running: false, requestedServices: [], branch: null, startedAt: null, expiresAt: null, exitCode: null, owner: null, services: [], output: [] };
 
 describe("checkDevHub", () => {

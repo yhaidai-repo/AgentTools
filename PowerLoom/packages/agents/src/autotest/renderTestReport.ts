@@ -1,3 +1,4 @@
+import { bugRetestLines } from "./bugRetests";
 import type { CaseResult } from "./models/CaseResult";
 import type { PlannedCase } from "./models/PlannedCase";
 import type { TestFinding } from "./models/TestFinding";
@@ -22,6 +23,7 @@ function renderUnresolved(report: TestReport): string {
     report.cases.length === 0 ? "No case planned." : report.cases.map((planned, index) => caseBlock(planned, index + 1, resolve)).join("\n\n"),
     ...(report.services.length > 0 ? ["## Services", report.services.map((service) => `- ${service.name}: ${service.why}`).join("\n")] : []),
     ...(report.results.length > 0 ? ["## Results", resultsTable(report.results)] : []),
+    ...bugsRetestedSection(report),
     ...(report.adoEdits.length > 0 ? ["## ADO test cases to update", report.adoEdits.map((line) => `- ${line}`).join("\n")] : []),
     `**Next:** ${report.nextReason}`,
   ].join("\n\n");
@@ -39,6 +41,12 @@ function resultsTable(results: CaseResult[]): string {
   const rows = results.map((result) => `| ${result.case} | ${result.verdict} | ${result.observed.replaceAll("|", "/")} | ${result.bug ?? ""} | ${result.artifacts.map((path) => path.split("/").pop()).join(", ")} |`);
 
   return ["| Case | Verdict | Observed | Bug | Recording |", "|---|---|---|---|---|", ...rows].join("\n");
+}
+
+function bugsRetestedSection(report: TestReport): string[] {
+  const lines = bugRetestLines(report);
+
+  return lines.length > 0 ? ["## Bugs retested", lines.join("\n")] : [];
 }
 
 function findingLine(finding: TestFinding, resolve: (ref: string) => string): string {
