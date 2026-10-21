@@ -474,6 +474,12 @@
   color: var(--faint);
 }
 
+/* A child item's title on its own line under its id, type and pipeline (ChildItemRows). */
+.child-row-title {
+  flex-basis: 100%;
+  color: var(--text);
+}
+
 .item-held {
   flex-basis: 100%;
   padding-left: 18px;

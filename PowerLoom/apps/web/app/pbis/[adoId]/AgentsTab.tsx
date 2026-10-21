@@ -12,7 +12,7 @@ import { loadPbiResultSets } from "@/lib/resultVersions";
 import type { ResultSet } from "@/models/ResultSet";
 import type { ResultVersion } from "@/models/ResultVersion";
 import { ResultBlock } from "../../results/ResultBlock";
-import { ChildItems } from "./ChildItems";
+import { ChildItemRows } from "./ChildItemRows";
 import { ItemList } from "./ItemList";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
@@ -38,13 +38,13 @@ export async function AgentsTab({ detail, chosen }: { detail: PbiDetail; chosen:
     <div className="pbi-columns">
       <div>
         {sets.map((set) => <Panel key={set.key} title={<SetTitle set={set} />} aside={<VersionCount set={set} />}><ResultBlock set={set} chosen={chosen} hrefOf={hrefOf} /></Panel>)}
-        <InternalChildren detail={detail} />
         <QuestionsAndTasks detail={detail} />
       </div>
       <div>
         <Runs detail={detail} />
         <Panel title="Repos" aside={<small>what research and design clone</small>}><Repos detail={detail} /></Panel>
         <Panel title="Skills" aside={<small>for later agents</small>}><PbiSkills adoId={detail.pbi.adoId} skills={detail.pbi.skills} editedAt={detail.pbi.skillsEditedAt} /></Panel>
+        <InternalChildren detail={detail} />
       </div>
     </div>
   );
@@ -60,7 +60,7 @@ function VersionCount({ set }: { set: ResultSet }) {
 }
 
 // Child items created in PowerLoom, e.g. the bugs an agent reported (user, 2026-10-21: internal bugs belong with the
-// agents' work, not on the Azure DevOps tab); none, no panel.
+// agents' work, not on the Azure DevOps tab), in the side column; none, no panel.
 function InternalChildren({ detail }: { detail: PbiDetail }) {
   const internal = detail.children.filter((child) => child.source !== "ado");
 
@@ -68,7 +68,7 @@ function InternalChildren({ detail }: { detail: PbiDetail }) {
     return null;
   }
 
-  return <Panel title="Child items" aside={<small>reported in PowerLoom</small>} table><ChildItems items={internal} ado={null} /></Panel>;
+  return <Panel title="Child items" aside={<small>reported in PowerLoom</small>}><ChildItemRows items={internal} /></Panel>;
 }
 
 // Questions, human tasks, findings and agent tasks in one list; findings wait for your review without holding the
