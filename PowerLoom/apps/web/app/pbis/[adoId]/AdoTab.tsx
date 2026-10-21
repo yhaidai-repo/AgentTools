@@ -21,16 +21,18 @@ const ORIGINS: Record<string, string> = { upload: "you", ado: "ADO (linked)", co
 
 const LINK_ADDED_BY: Record<string, string> = { user: "you", refinement: "refinement", research: "research", design: "design" };
 
-// The PBI as Azure DevOps has it, with what the agents read on top: child items, linked documents, attachments.
+// The PBI as Azure DevOps has it, with what the agents read on top: its Azure DevOps child items, linked documents,
+// attachments. Children created in PowerLoom (reported bugs) are on the Agents tab.
 export async function AdoTab({ detail }: { detail: PbiDetail }) {
   const { pbi } = detail;
+  const adoChildren = detail.children.filter((child) => child.source === "ado");
 
   return (
     <div className="pbi-page-panels">
       <Panel title="Description"><TextBlock text={pbi.descriptionMd} /></Panel>
       <Panel title="Acceptance criteria"><TextBlock text={pbi.acceptanceCriteriaMd} /></Panel>
       {pbi.extraFieldsMd && <Panel title="More from Azure DevOps"><MarkdownBlock text={pbi.extraFieldsMd} /></Panel>}
-      <Panel title="Child items" table={detail.children.length > 0}><ChildItems items={detail.children} ado={await readAdoSettings(getDb(), pbi.vault)} /></Panel>
+      <Panel title="Child items" table={adoChildren.length > 0}><ChildItems items={adoChildren} ado={await readAdoSettings(getDb(), pbi.vault)} /></Panel>
       <Panel title="Linked documents"><LinkedDocuments detail={detail} /></Panel>
       <Panel title="Attachments"><Attachments detail={detail} /></Panel>
     </div>

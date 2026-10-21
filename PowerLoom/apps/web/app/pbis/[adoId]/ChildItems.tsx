@@ -4,8 +4,8 @@ import { AdoTag } from "@/components/AdoTag";
 import { PipelinePill } from "@/components/PipelinePill";
 import { TypeTag } from "@/components/TypeTag";
 
-// The PBI's child items (user decision 2026-10-09): QA's [BUG] Tasks, reported bugs and children created in PowerLoom,
-// each with its own pipeline, in the Backlog's row style. New bugs are prepared on their own; report one with the
+// A PBI's child items (user decision 2026-10-09): QA's [BUG] Tasks from Azure DevOps on its Azure DevOps tab, reported
+// bugs and children created in PowerLoom on its Agents tab, each with its own pipeline, in the Backlog's row style. New bugs are prepared on their own; report one with the
 // bug.report command.
 export function ChildItems({ items, ado }: { items: ChildItem[]; ado: AdoSettings | null }) {
   if (items.length === 0) {
