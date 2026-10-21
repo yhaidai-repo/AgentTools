@@ -18,7 +18,7 @@ export interface PowerLoomPort {
   openChat(target: ChatTarget): Promise<Outcome<ChatLaunch>>;
   // Deletes the PBI in PowerLoom (data now, its notes right after); refused while an agent runs on it.
   deletePbi(adoId: number): Promise<Outcome<string>>;
-  // Closes the PBI in PowerLoom (kept for the agents, open items cancelled, open children closed); what was done.
+  // Closes the PBI in PowerLoom (kept for the agents, open items but findings cancelled, open children closed); what was done.
   closePbi(adoId: number, actor: string): Promise<Outcome<string>>;
   // Reopens a PBI the user closed, as new; what was done.
   reopenPbi(adoId: number, actor: string): Promise<Outcome<string>>;

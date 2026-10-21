@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
+using PowerLoom.AdoIntegration.Settings;
 using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -10,7 +11,7 @@ using PowerLoom.Persistence.Items;
 namespace PowerLoom.AdoIntegration.Features.SyncPbis;
 
 // Mirrors work items into `work_item`; their notes follow from DiscussionSync, after the sync.
-public sealed class WorkItemStore(PowerLoomDbContext db)
+public sealed class WorkItemStore(PowerLoomDbContext db, AdoSettingsStore settings)
 {
     private const string Actor = "sync";
 
@@ -66,6 +67,8 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
         var parentId = await ParentInPowerLoomAsync(vault, item, cancellation);
         var previousParentId = existing.ParentId;
         var status = PipelineStatusRule.Next(existing.PipelineStatus, item.AdoState, existing.ClosedByUser);
+        var closedInAdo = status == PipelineStatus.Closed && existing.PipelineStatus != PipelineStatus.Closed;
+        var reassigned = await IsReassignedAsync(existing, item, status, cancellation);
 
         Mirror(existing, item);
         existing.ParentId = parentId;
@@ -75,6 +78,29 @@ public sealed class WorkItemStore(PowerLoomDbContext db)
 
         await db.SaveChangesAsync(cancellation);
         await LinkChildAsync(item, previousParentId, parentId, cancellation);
+        await CloseWhenOverAsync(existing, closedInAdo, reassigned, runId, cancellation);
+    }
+
+    // The settings are read only when the assignee changed, which few syncs see.
+    private async Task<bool> IsReassignedAsync(WorkItem existing, MappedWorkItem item, PipelineStatus status, CancellationToken cancellation)
+    {
+        if (string.Equals(existing.AssignedTo, item.AssignedTo, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var ado = await settings.ReadAdoAsync(existing.Vault, cancellation);
+
+        return ado is not null && ReassignmentRule.ClosesPbi(status, existing.AssignedTo, item.AssignedTo, ado.User);
+    }
+
+    // Closed in ADO (Done/Removed) or gone to another team member: nothing on the PBI waits on anyone any more (user
+    // decision 2026-10-21).
+    private async Task CloseWhenOverAsync(WorkItem pbi, bool closedInAdo, bool reassigned, long runId, CancellationToken cancellation)
+    {
+        if (closedInAdo)
+            await PbiOpenItems.CancelAsync(db, pbi.AdoId, Actor, runId, cancellation);
+
+        if (reassigned)
+            await PbiClosing.CloseReassignedAsync(db, pbi, Actor, runId, cancellation);
     }
 
     // An item synced before the team's own text fields and its attached files were read gets them once without an ADO
