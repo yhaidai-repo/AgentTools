@@ -9,7 +9,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Number the acceptance criteria as the PBI lists them (AC 1, AC 2, …); every finding, case and result names one.
 - Map each test case to the criteria it proves; a test case that proves none is a finding, not a case.
 - A contradiction is when the criterion and the test case's expected result can't both be true; quote both sides.
-- Test data: a step that needs a record, an id, a user, a payer, a facility or an environment nobody named is `missing_test_data`; the refinement's test data block and the answers may already hold it.
+- Test data: a step that needs a record, an id, a user, a payer, a facility or an environment nobody named is `missing_test_data`; the refinement's test data block and the answers may already hold it, and the database often does: search for a successful earlier call of the same kind on any facility and date before asking, and reuse its inputs by record id.
 - Ambiguous expectations ("works correctly", "is shown") become a question with the readings as options.
 - An answered question is the decision; a test case that still contradicts it goes into `ado_edits`, with the decision it follows. Never a task for ADO edits.
 

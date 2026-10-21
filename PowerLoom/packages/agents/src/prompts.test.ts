@@ -41,7 +41,8 @@ describe("loadPrompt", () => {
   it("gives the autotest prompt the continue and create_task rules", async () => {
     const prompt = await loadPrompt("autotest", { team: "Signals" });
 
-    assert.match(prompt.version, /^v7\+framework\./);
+    assert.match(prompt.version, /^v8\+framework\./);
+    assert.match(prompt.text, /Before asking the user for test data, search the database/);
     assert.match(prompt.text, /## Continuing from a previous report/);
     assert.match(prompt.text, /An API criterion is proven with `http_request` alone/);
     assert.match(prompt.text, /a cancelled one is the user's decision not to do it/);
