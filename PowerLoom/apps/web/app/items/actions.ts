@@ -81,6 +81,20 @@ export async function rerunTaskAction(adoId: number | null, itemId: string, star
   return { ok: true, message: `${itemId} is open again: it ${start} on the agent's next schedule or "Run now".` };
 }
 
+// An open or blocked agent task is cancelled through the same close as a human item; no agent takes it again.
+export async function cancelTaskAction(adoId: number | null, itemId: string): Promise<ActionResult> {
+  const cancelled = await runWebCommand(closeItemCommand, { adoId, itemId, decision: "cancel" });
+
+  if (!cancelled.ok) {
+    return { ok: false, message: cancelled.error };
+  }
+
+  revalidateItemPages(adoId);
+  revalidatePath("/agents");
+
+  return { ok: true, message: `${itemId} cancelled.` };
+}
+
 // Uploads belong to a PBI, so an item without one takes a text answer only.
 async function storeItemFiles(files: UploadedFile[], request: CloseItemRequest, sourceUrl: string | null): Promise<string | null> {
   if (request.adoId === null) {

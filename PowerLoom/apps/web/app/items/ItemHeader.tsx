@@ -1,4 +1,4 @@
-import { isDeletableItem, isHumanTaskData, isRerunnableTask } from "@powerloom/core";
+import { isCancellableTask, isDeletableItem, isHumanTaskData, isRerunnableTask } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -15,6 +15,7 @@ import { itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { taskBucket } from "@/lib/taskLooks";
 import type { Crumb } from "@/models/Crumb";
+import { CancelTaskButton } from "./CancelTaskButton";
 import { ContinueItem } from "./ContinueItem";
 import { DeleteItemButton } from "./DeleteItemButton";
 import { ItemProgress } from "./ItemProgress";
@@ -44,9 +45,10 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
             {waitsForYou && <a className="button" href="#answer">{item.kind === "question" ? "Answer" : item.kind === "finding" ? "Review" : "Close the task"}</a>}
             {isRerunnableTask(item) && <RerunTaskButton adoId={item.pbiId} itemId={item.id} />}
             <ContinueItem item={item} />
-            {isDeletableItem(item) && (
+            {(isCancellableTask(item) || isDeletableItem(item)) && (
               <Dropdown label="More actions" align="right" pill trigger={<span aria-hidden="true">⋯</span>}>
-                <DeleteItemButton adoId={item.pbiId} itemId={item.id} inMenu />
+                {isCancellableTask(item) && <CancelTaskButton adoId={item.pbiId} itemId={item.id} />}
+                {isDeletableItem(item) && <DeleteItemButton adoId={item.pbiId} itemId={item.id} inMenu />}
               </Dropdown>
             )}
           </div>
