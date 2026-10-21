@@ -6,6 +6,7 @@ import { Dropdown } from "@/components/Dropdown";
 import { HeroStat } from "@/components/HeroStat";
 import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
+import { RunningStrip } from "@/components/RunningStrip";
 import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatAge } from "@/lib/format";
@@ -20,13 +21,14 @@ import { ItemProgress } from "./ItemProgress";
 import { RerunTaskButton } from "./RerunTaskButton";
 
 // A task's header, like the PBI page's (user request 2026-10-18): where it sits, what it is and its state, one primary
-// action, its facts, a few numbers and its way from created to done. While a run works on the task the page follows
-// it, with the Live mark under the breadcrumbs as on the PBI page; otherwise it holds still, so its forms aren't
-// re-rendered.
+// action, its facts, a few numbers and its way from created to done. While a run works on the task, the same strip as
+// the PBI page's says so (agent, timer, its live trace) and the page follows it, with the Live mark under the
+// breadcrumbs; otherwise it holds still, so its forms aren't re-rendered.
 export function ItemHeader({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
   const waitsForYou = taskBucket(item) === "you";
-  const isRunning = detail.runs.some((run) => run.outcome === "running");
+  const running = detail.runs.find((run) => run.outcome === "running") ?? null;
+  const isRunning = running !== null;
 
   return (
     <>
@@ -51,6 +53,7 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
         </div>
         <Facts detail={detail} />
         <Stats detail={detail} />
+        {running && <RunningStrip run={running} itemHref={null} />}
         <ItemProgress item={item} running={isRunning} />
       </section>
     </>
