@@ -23,7 +23,7 @@ export function BugsSection({ bugs, chosen }: { bugs: SprintBugs[]; chosen: stri
   return (
     <>
       <BugTiles sprint={current} />
-      <div className="grid wide-left">
+      <div className="grid wide-left gap-top">
         <StackedColumns title="Bugs per sprint" labels={bugs.map((sprint) => sprintName(sprint.iterationPath))} series={bugSeries(bugs)} format={String} />
         <BugTable bugs={bugs} />
       </div>
