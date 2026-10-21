@@ -5,6 +5,7 @@ import { formatPercent } from "@/lib/format";
 import { sprintName } from "@/lib/sprintProgress";
 import type { ChartSeries } from "@/models/ChartSeries";
 import type { SprintBugs } from "@/models/SprintBugs";
+import { BugTable } from "./BugTable";
 
 // Bugs are red (user, 2026-10-21): QA's in the error red, PowerLoom's in the lighter red of the app's bug tag.
 const QA_COLOR = "var(--error)";
@@ -22,7 +23,10 @@ export function BugsSection({ bugs, chosen }: { bugs: SprintBugs[]; chosen: stri
   return (
     <>
       <BugTiles sprint={current} />
-      <StackedColumns title="Bugs per sprint" labels={bugs.map((sprint) => sprintName(sprint.iterationPath))} series={bugSeries(bugs)} format={String} />
+      <div className="grid wide-left">
+        <StackedColumns title="Bugs per sprint" labels={bugs.map((sprint) => sprintName(sprint.iterationPath))} series={bugSeries(bugs)} format={String} />
+        <BugTable bugs={bugs} />
+      </div>
     </>
   );
 }
