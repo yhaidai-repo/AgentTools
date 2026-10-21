@@ -38,6 +38,7 @@ export * from "./agentStages";
 export * from "./agentTasks";
 export * from "./pbiSkills";
 export * from "./itemKeys";
+export * from "./cancelTask";
 export * from "./deleteItem";
 export * from "./rerunTask";
 export * from "./itemScope";

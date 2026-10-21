@@ -1,4 +1,5 @@
 using PowerLoom.Contracts;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Tasks.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -7,11 +8,15 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Tasks;
 
-// A person closing a question, finding or human task (PowerLoom's humanItems): checked before anything is stored, so a
-// rejected request leaves no upload behind; status_history records the person as the actor.
+// A person closing a question, finding or human task (PowerLoom's humanItems), or cancelling an agent task of any kind
+// that waits (user decision 2026-10-21): checked before anything is stored, so a rejected request leaves no upload
+// behind; status_history records the person as the actor.
 public static class ItemClosing
 {
     private const string Actor = "human";
+
+    // A running agent task finishes its run first.
+    private static readonly ItemStatus[] WaitingAgentTask = [ItemStatus.Open, ItemStatus.Blocked];
 
     // Which decisions each human item kind takes, and the status each one leads to. A finding is closed with an answer
     // here; "submit to vault" goes through Docs / Records.
@@ -26,10 +31,10 @@ public static class ItemClosing
     {
         var item = await ItemScope.FindAsync(db, request.AdoId, request.ItemId, cancellation);
 
-        if (item is null || item.Assignee != HumanTasks.Assignee)
-            return Outcome<LocalItem>.Failure(Problem.NotFound($"{request.ItemId} is not a question, human task or finding of {ItemScope.PbiLabel(request.AdoId)}."));
+        if (item is null || !IsClosableByPerson(item))
+            return Outcome<LocalItem>.Failure(Problem.NotFound($"{request.ItemId} is not a question, human task, finding or agent task of {ItemScope.PbiLabel(request.AdoId)}."));
 
-        var problem = await ProblemOfAsync(db, item, request, cancellation);
+        var problem = AgentStages.IsAgentTask(item.Assignee) ? AgentTaskProblemOf(item, request) : await ProblemOfAsync(db, item, request, cancellation);
 
         return problem is null ? Outcome<LocalItem>.Success(item) : Outcome<LocalItem>.Failure(problem);
     }
@@ -37,7 +42,7 @@ public static class ItemClosing
     // Closes an item checked by FindClosableAsync; the new status.
     public static async Task<ItemStatus> CloseAsync(PowerLoomDbContext db, LocalItem item, CloseItemRequest request, CancellationToken cancellation)
     {
-        var status = Decisions[item.Kind][request.Decision];
+        var status = AgentStages.IsAgentTask(item.Assignee) ? ItemStatus.Cancelled : Decisions[item.Kind][request.Decision];
 
         item.Resolution = request.Resolution;
 
@@ -45,6 +50,16 @@ public static class ItemClosing
         await ItemStatusChange.SetAsync(db, item, status, Actor, null, cancellation);
 
         return status;
+    }
+
+    private static bool IsClosableByPerson(LocalItem item) => item.Assignee == HumanTasks.Assignee || AgentStages.IsAgentTask(item.Assignee);
+
+    private static Problem? AgentTaskProblemOf(LocalItem item, CloseItemRequest request)
+    {
+        if (!WaitingAgentTask.Contains(item.Status))
+            return Problem.Conflict($"{item.Id} is {Label(item.Status)}; only an open or blocked agent task can be cancelled.");
+
+        return request.Decision == CloseDecision.Cancel ? null : Problem.Invalid($"\"{Label(request.Decision)}\" doesn't apply to an agent task; cancel it.");
     }
 
     private static async Task<Problem?> ProblemOfAsync(PowerLoomDbContext db, LocalItem item, CloseItemRequest request, CancellationToken cancellation)
