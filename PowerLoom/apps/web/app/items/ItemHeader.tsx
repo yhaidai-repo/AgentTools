@@ -1,6 +1,5 @@
 import { isDeletableItem, isHumanTaskData, isRerunnableTask } from "@powerloom/core";
 import Link from "next/link";
-import { AutoRefresh } from "@/components/AutoRefresh";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Dropdown } from "@/components/Dropdown";
 import { HeroStat } from "@/components/HeroStat";
@@ -9,7 +8,6 @@ import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatAge } from "@/lib/format";
-import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 import { itemPath } from "@/lib/items";
 import type { ItemDetail } from "@/lib/pbiDetail";
 import { taskBucket } from "@/lib/taskLooks";
@@ -20,18 +18,14 @@ import { ItemProgress } from "./ItemProgress";
 import { RerunTaskButton } from "./RerunTaskButton";
 
 // A task's header, like the PBI page's (user request 2026-10-18): where it sits, what it is and its state, one primary
-// action, its facts, a few numbers and its way from created to done. While a run works on the task the page follows
-// it, with the Live mark under the breadcrumbs as on the PBI page; otherwise it holds still, so its forms aren't
-// re-rendered.
+// action, its facts, a few numbers and its way from created to done.
 export function ItemHeader({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
   const waitsForYou = taskBucket(item) === "you";
-  const isRunning = detail.runs.some((run) => run.outcome === "running");
 
   return (
     <>
       <Breadcrumbs crumbs={crumbsOf(item)} />
-      <AutoRefresh active={isRunning} intervalMs={GRID_REFRESH_MS} />
       <section className="pbi-hero">
         <div className="hero-top">
           <div className="hero-title">
@@ -51,7 +45,7 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
         </div>
         <Facts detail={detail} />
         <Stats detail={detail} />
-        <ItemProgress item={item} running={isRunning} />
+        <ItemProgress item={item} running={detail.runs.some((run) => run.outcome === "running")} />
       </section>
     </>
   );
