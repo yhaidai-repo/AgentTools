@@ -13,6 +13,7 @@ using PowerLoom.Infrastructure.VaultCapture;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
+using PowerLoom.DevHubIntegration.Features.BrowserArtefacts;
 using PowerLoom.DevHubIntegration.Features.DevHub;
 using PowerLoom.SqlIntegration.Features.Connections;
 using Testcontainers.PostgreSql;
@@ -101,6 +102,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<ISqlConnectionTester>(provider => provider.GetRequiredService<FakeSqlConnectionTester>());
         services.AddSingleton<FakeDevHubTester>();
         services.AddSingleton<IDevHubTester>(provider => provider.GetRequiredService<FakeDevHubTester>());
+        services.AddSingleton<FakeDevHubBrowserArtefacts>();
+        services.AddSingleton<IDevHubBrowserArtefacts>(provider => provider.GetRequiredService<FakeDevHubBrowserArtefacts>());
         services.AddSingleton<FakeAzureUserLogin>();
         services.AddSingleton<IAzureUserLogin>(provider => provider.GetRequiredService<FakeAzureUserLogin>());
         services.ConfigureWolverine(options =>
@@ -150,6 +153,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         await db.Database.MigrateAsync();
         // The AgentConfig module's own schema (its PostgresAgentConfigStore creates it in production).
         await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS agent_config; CREATE TABLE IF NOT EXISTS agent_config.agent (id text PRIMARY KEY, definition jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()); CREATE TABLE IF NOT EXISTS agent_config.global (id smallint PRIMARY KEY CHECK (id = 1), value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());");
+        // The AgentUsage module's schema (its PostgresUsageStore creates it in production): the cleanup prunes run_event.
+        await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS agent_usage; CREATE TABLE IF NOT EXISTS agent_usage.usage_record (run_id text PRIMARY KEY, labels jsonb NOT NULL, started_at timestamptz NOT NULL, ended_at timestamptz NOT NULL, duration_ms integer NOT NULL, turns integer NOT NULL, outcome text NOT NULL, error text, input_tokens bigint NOT NULL, output_tokens bigint NOT NULL, cache_read_tokens bigint NOT NULL, cache_write_tokens bigint NOT NULL, cost_usd numeric(14, 6) NOT NULL, provider_cost_usd numeric(14, 6), models jsonb NOT NULL, subscription jsonb NOT NULL DEFAULT '[]'); CREATE TABLE IF NOT EXISTS agent_usage.run_event (run_id text NOT NULL, seq integer NOT NULL, at timestamptz NOT NULL, type text NOT NULL, payload jsonb NOT NULL, PRIMARY KEY (run_id, seq));");
         await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('vault-review', '{{"id":"vault-review","label":"Vault review","enabled":true,"next":null,"options":{{"staleDays":30}}}}') ON CONFLICT (id) DO NOTHING""");
         await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('research', '{{"id":"research","label":"Research","enabled":true,"schedule":"*/15 * * * *","next":"design","waitFor":["humanItems"],"limits":{{"timeoutMinutes":1}},"capabilities":{{"webAccess":false}},"options":{{"batchSize":2}}}}') ON CONFLICT (id) DO NOTHING""");
         await db.Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('design', '{{"id":"design","label":"Design","enabled":true,"next":null,"waitFor":[],"limits":{{"timeoutMinutes":0}}}}') ON CONFLICT (id) DO NOTHING""");

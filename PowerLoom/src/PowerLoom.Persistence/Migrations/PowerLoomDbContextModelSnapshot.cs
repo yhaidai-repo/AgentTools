@@ -1906,6 +1906,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("type");
 
+                    b.Property<string>("UserNotesMd")
+                        .HasColumnType("text")
+                        .HasColumnName("user_notes_md");
+
                     b.Property<string>("Vault")
                         .IsRequired()
                         .HasColumnType("text")

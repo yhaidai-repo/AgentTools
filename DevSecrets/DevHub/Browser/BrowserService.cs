@@ -156,6 +156,48 @@ public sealed partial class BrowserService(SecretsFile secrets, IOptions<DevHubO
         return ArtifactFiles(folder);
     }
 
+    // Every owner with a recordings folder, for PowerLoom's cleanup to judge by its runs.
+    public OwnerArtifacts[] ListOwners()
+    {
+        var root = options.Value.BrowserArtifactsDir;
+
+        if (!Directory.Exists(root))
+            return [];
+
+        return Directory.GetDirectories(root).Select(folder => OwnerOf(new DirectoryInfo(folder))).OrderBy(owner => owner.Owner, StringComparer.Ordinal).ToArray();
+    }
+
+    // Removes an owner's recordings folder (a dry run only measures it); refused while that owner's case is open.
+    public HubResult<DeletedArtifacts> DeleteArtifacts(string owner, bool dryRun)
+    {
+        var folder = Path.Combine(options.Value.BrowserArtifactsDir, owner);
+
+        if (!OwnerName().IsMatch(owner))
+            return HubResult<DeletedArtifacts>.From(HubResult.Invalid("Pass an owner (letters, digits, - and _)."));
+
+        if (_case?.Owner == owner)
+            return HubResult<DeletedArtifacts>.From(HubResult.Conflict($"{owner} has a browser case open; close it first."));
+
+        if (!Directory.Exists(folder))
+            return HubResult<DeletedArtifacts>.From(HubResult.NotFound($"{owner} has no recordings."));
+
+        var files = ArtifactFiles(folder);
+        var bytes = files.Sum(file => new FileInfo(file).Length);
+
+        if (!dryRun)
+            Directory.Delete(folder, recursive: true);
+
+        return HubResult<DeletedArtifacts>.Ok(new DeletedArtifacts(owner, files.Length, bytes, dryRun));
+    }
+
+    private static OwnerArtifacts OwnerOf(DirectoryInfo folder)
+    {
+        var files = folder.EnumerateFiles("*", SearchOption.AllDirectories).ToList();
+        var newest = files.Count == 0 ? folder.LastWriteTimeUtc : files.Max(file => file.LastWriteTimeUtc);
+
+        return new OwnerArtifacts(folder.Name, files.Sum(file => file.Length), new DateTimeOffset(newest, TimeSpan.Zero));
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_case is not null)

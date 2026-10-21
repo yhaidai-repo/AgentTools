@@ -103,7 +103,34 @@ PowerLoom's agents run in Docker and cannot run these scripts; DevHub runs them 
 - Logs and start output can hold secrets; whoever holds the token can read them.
 - `POST /stack` takes an `owner` (PowerLoom: `powerloom-run-<id>`); `DELETE /stack?owner=` stops only that owner's or an unclaimed stack. Without `owner` (a person) it stops any.
 - PowerLoom: Settings → DevHub (URL, token, Test DevHub, Open DevHub) per vault, and the agent switch "DevHub (run services)"; the runner stops a run's stack when the run ends.
+- `GET /browser/artifacts/owners` lists every owner's recordings folder (size, newest write); `DELETE /browser/artifacts/{owner}?dryRun=` removes one (a dry run only measures it; refused while that owner's case is open). PowerLoom's daily artefact cleanup calls both for runs past their buffer.
 - Browser cases: one at a time, like the stack; the owner's `DELETE /browser` closes it, a person's (no owner) closes any; an idle case closes after `DevHub:BrowserIdleMinutes` (30) and when DevHub stops. The MCP gets every dev-secrets value as its `--secrets` file, so a value that shows up in a page or a typed field is redacted in the tool answers. `Start-DevHub.ps1 -Browser msedge|chrome|chromium` picks the browser (default: the installed Edge); the script installs the MCP (`npm install`) and Playwright's ffmpeg (video) on the first start. The runner's `browser_*` tools come with the DevHub switch; the runner closes a run's case when the run ends.
+
+## Stale artefacts on this PC (Remove-StaleArtefacts.ps1)
+
+PowerLoom's cleanup job runs inside Docker and cannot reach these; the script does, with the same buffers:
+
+| Store | Goes when |
+|---|---|
+| `<stack>/*.log` (service logs, can hold secrets) | the stack is stopped and the file is older than `-LogDays` (7) |
+| `PowerLoom/tools/audio-capture/home/recordings/<session>/*.wav` | the session was imported (its transcript exists, its inbox file is gone) `-RecordingDays` (7) ago; a session never handed over, after `-UntouchedRecordingDays` (30); transcripts and `models/` stay |
+| `D:/Projects/<repo>-wt/<branch>` worktrees | clean, pushed with nothing ahead, and the branch's PBI (`<type>/<id>-…`) closed or done ≥ `-WorktreeClosedDays` (14) in the backlog vault; dirty, local-only or no-PBI worktrees and `.claude/worktrees/*` are only listed |
+| `%LOCALAPPDATA%/Temp/claude/*` (Claude Code scratch) | nothing in the folder was written for `-ScratchDays` (7) |
+
+```powershell
+./Remove-StaleArtefacts.ps1 -DryRun     # lists what would go, with sizes; nothing is removed
+./Remove-StaleArtefacts.ps1             # removes it
+```
+
+Register it as a daily Windows scheduled task (run as your user, so git and the worktrees are yours):
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -File D:\Projects\AgentTools\DevSecrets\Remove-StaleArtefacts.ps1"
+$trigger = New-ScheduledTaskTrigger -Daily -At 03:30
+Register-ScheduledTask -TaskName "PowerLoom stale artefacts" -Action $action -Trigger $trigger -Description "Removes stale local stack logs, meeting audio, closed-PBI worktrees and Claude scratch folders"
+```
+
+Selection rules live in `StaleArtefacts.Selection.ps1` (tests: `Tests/StaleArtefacts.Tests.ps1`, Pester).
 
 ## Routing references (map.json)
 

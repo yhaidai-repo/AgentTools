@@ -7,6 +7,8 @@ namespace PowerLoom.Infrastructure.Backlog;
 // rewritten only when its content changes.
 public sealed class BacklogFiles(IOptions<BacklogOptions> options)
 {
+    public const string TrashFolderName = ".trash";
+
     public async Task<string?> ReadTextAsync(string vault, string relativePath, CancellationToken cancellation)
     {
         var file = FileOf(vault, relativePath);
@@ -81,6 +83,37 @@ public sealed class BacklogFiles(IOptions<BacklogOptions> options)
 
         if (Directory.Exists(folder))
             Directory.Delete(folder, recursive: true);
+    }
+
+    // Where a backlog file or folder is on disk (the cleanup measures and moves it there).
+    public string PathOf(string vault, string relativePath) => FileOf(vault, relativePath);
+
+    // The vault's backlog `.trash/`: where the cleanup moves a closed PBI's folder, restorable until the trash is emptied.
+    public string TrashRootOf(string vault) => Path.Combine(options.Value.Root, vault, TrashFolderName);
+
+    // Moves a file or folder into the backlog's `.trash/` under the same relative path; a stale copy there is replaced.
+    public void MoveToTrash(string vault, string relativePath)
+    {
+        var source = FileOf(vault, relativePath);
+        var target = Path.Combine(TrashRootOf(vault), VaultPath.Trusted(relativePath));
+
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        ReplaceInTrash(source, target);
+    }
+
+    private static void ReplaceInTrash(string source, string target)
+    {
+        if (Directory.Exists(source))
+        {
+            if (Directory.Exists(target))
+                Directory.Delete(target, recursive: true);
+
+            Directory.Move(source, target);
+
+            return;
+        }
+
+        File.Move(source, target, overwrite: true);
     }
 
     private string FileOf(string vault, string relativePath) => Path.Combine(options.Value.Root, vault, VaultPath.Trusted(relativePath));

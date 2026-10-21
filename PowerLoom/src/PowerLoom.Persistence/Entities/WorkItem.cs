@@ -54,6 +54,9 @@ public partial class WorkItem
 
     public string? DiscussionMd { get; set; }
 
+    /// <summary>The `## Notes` section of the vault note, saved by the cleanup before a closed PBI's folder goes to the trash.</summary>
+    public string? UserNotesMd { get; set; }
+
     public int? DiscussionRev { get; set; }
 
     public string Skills { get; set; } = null!;

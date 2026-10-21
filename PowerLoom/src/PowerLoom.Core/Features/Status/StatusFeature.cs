@@ -13,6 +13,7 @@ public static class StatusFeature
         services.AddScoped<SchedulesStatusProbe>();
         services.AddScoped<BudgetStatusProbe>();
         services.AddScoped<OutsideAccessProbe>();
+        services.AddScoped<CleanupStatusProbe>();
 
         return services;
     }

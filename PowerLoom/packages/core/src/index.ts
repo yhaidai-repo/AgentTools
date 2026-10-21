@@ -115,6 +115,7 @@ export type { VaultReviewCandidates } from "./models/VaultReviewCandidates";
 export type { ReviewTaskData } from "./models/ReviewTaskData";
 export type { PbiImportRequest } from "./models/PbiImportRequest";
 export type { ImportSettings } from "./models/ImportSettings";
+export type { CleanupSettings } from "./models/CleanupSettings";
 export type { ImportRunStatus } from "./models/ImportRunStatus";
 export type { ImportSourceStatus } from "./models/ImportSourceStatus";
 export type { ImportSourceActivity } from "./models/ImportSourceActivity";

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
 using PowerLoom.Features.Continue.Models;
@@ -7,6 +6,7 @@ using PowerLoom.Infrastructure.ChatLaunch;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.PullRequests;
 
 namespace PowerLoom.Features.Continue.Targets;
 
@@ -18,7 +18,6 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
     // Four backticks, so a snippet that holds a fence of its own doesn't end the block.
     private const string CodeFence = "````";
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     // One command per answered comment; an empty answer takes an answer back. The next review run reads the answers.
     private static readonly string AtTheEnd = "Show the user every answer first and run the commands only after their yes. The input goes on stdin (a heredoc), so the text needs no shell quoting.\n"
@@ -72,7 +71,7 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
         return Outcome<ChatBrief>.Success(brief);
     }
 
-    private static List<int> LinkedPbis(PullRequest pr) => JsonSerializer.Deserialize<List<int>>(pr.WorkItemIds, Json) ?? [];
+    private static List<int> LinkedPbis(PullRequest pr) => PullRequestWorkItems.Parse(pr.WorkItemIds);
 
     private static string PullRequestMarkdown(PullRequest pr, CodeReview review, string source, string target)
     {

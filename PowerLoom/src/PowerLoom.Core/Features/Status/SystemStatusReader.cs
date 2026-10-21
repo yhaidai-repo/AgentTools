@@ -23,6 +23,7 @@ public sealed class SystemStatusReader(
     SchedulesStatusProbe schedules,
     BudgetStatusProbe budget,
     OutsideAccessProbe outside,
+    CleanupStatusProbe cleanups,
     TimeProvider clock)
 {
     private const string ConfluenceStatusKey = "confluence";
@@ -40,7 +41,7 @@ public sealed class SystemStatusReader(
         var outsideReport = OutsideAccessRules.Evaluate(await outside.ReadAsync(now, cancellation));
         var attention = AttentionRules.Evaluate(database, tickerStatus, runnerStatus, messagingStatus, inProgress, syncs, budgetStatus).Concat(outsideReport.Attention).ToList();
 
-        return new SystemStatus(now, database, tickerStatus, runnerStatus, await ConfluenceConfiguredAsync(cancellation), await vaults.ReadAsync(cancellation), messagingStatus, inProgress, await schedules.ReadAsync(now, cancellation), syncs, budgetStatus, outsideReport.States, attention);
+        return new SystemStatus(now, database, tickerStatus, runnerStatus, await ConfluenceConfiguredAsync(cancellation), await vaults.ReadAsync(cancellation), messagingStatus, inProgress, await schedules.ReadAsync(now, cancellation), syncs, budgetStatus, outsideReport.States, await cleanups.ReadAsync(cancellation), attention);
     }
 
     private async Task<ComponentState> DatabaseAsync(CancellationToken cancellation)

@@ -43,6 +43,16 @@ describe("composeTestMessage", () => {
     assert.match(message, /<task-notes>\nThe user's notes on this test task; follow them where they apply:\nUse request 1190908\.\n<\/task-notes>/);
   });
 
+  it("says that a branch only on this PC is started as named, not looked up in Azure DevOps", () => {
+    const onBranch = { ...task, data: { ...(task.data as object), branch: "feature/30474-pc" } } as unknown as ItemRow;
+
+    const onPc = composeTestMessage(onBranch, 30474, pbiMessage, null, noRepos(), true);
+    const pushed = composeTestMessage(onBranch, 30474, pbiMessage, null, noRepos());
+
+    assert.match(onPc, /Branch under test: feature\/30474-pc\nThe branch is only on this PC, not pushed: start_stack builds it/);
+    assert.doesNotMatch(pushed, /only on this PC/);
+  });
+
   it("asks for the analysis and the plan when the task has no report yet", () => {
     const message = composeTestMessage(task, 30474, pbiMessage, null, noRepos());
 

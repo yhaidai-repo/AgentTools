@@ -1801,6 +1801,136 @@
         }
       }
     },
+    "/api/vaults/{vault}/cleanup": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "GET_api_vaults_vault_cleanup",
+        "description": "GET_api_vaults_vault_cleanup",
+        "operationId": "GET_api_vaults_vault_cleanup",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_cleanup",
+        "description": "PUT_api_vaults_vault_cleanup",
+        "operationId": "PUT_api_vaults_vault_cleanup",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCleanupSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/cleanup/run": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_cleanup_run",
+        "description": "POST_api_vaults_vault_cleanup_run",
+        "operationId": "POST_api_vaults_vault_cleanup_run",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents/{agentId}/run": {
       "post": {
         "tags": [
@@ -3299,6 +3429,130 @@
           }
         }
       },
+      "CleanupReport": {
+        "required": [
+          "ranAt",
+          "dryRun",
+          "stores",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "ranAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CleanupStoreReport"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CleanupSettings": {
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "closedPbiDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trashDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedImportDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runEventDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "browserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRunBrowserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CleanupStatus": {
+        "required": [
+          "vault",
+          "dryRun",
+          "lastReport"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "lastReport": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CleanupReport"
+              }
+            ]
+          }
+        }
+      },
+      "CleanupStoreReport": {
+        "required": [
+          "store",
+          "items",
+          "bytes",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CloseDecision": {
         "enum": [
           "answer",
@@ -4438,6 +4692,47 @@
           }
         }
       },
+      "SaveCleanupSettingsRequest": {
+        "required": [
+          "dryRun",
+          "closedPbiDays",
+          "trashDays",
+          "failedImportDays",
+          "runEventDays",
+          "browserArtefactDays",
+          "failedRunBrowserArtefactDays"
+        ],
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "closedPbiDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trashDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedImportDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runEventDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "browserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRunBrowserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SaveConnectionRequest": {
         "required": [
           "enabled",
@@ -5031,6 +5326,7 @@
           "recentSyncs",
           "budget",
           "outside",
+          "cleanups",
           "attention"
         ],
         "type": "object",
@@ -5085,6 +5381,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OutsideComponentState"
+            }
+          },
+          "cleanups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CleanupStatus"
             }
           },
           "attention": {
@@ -5409,6 +5711,9 @@
     },
     {
       "name": "PowerLoom.Features.Continue.ChatsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Cleanup.CleanupEndpoints"
     },
     {
       "name": "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"

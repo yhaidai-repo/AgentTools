@@ -844,6 +844,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_vaults_vault_cleanup
+         * @description GET_api_vaults_vault_cleanup
+         */
+        get: operations["GET_api_vaults_vault_cleanup"];
+        /**
+         * PUT_api_vaults_vault_cleanup
+         * @description PUT_api_vaults_vault_cleanup
+         */
+        put: operations["PUT_api_vaults_vault_cleanup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/cleanup/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_cleanup_run
+         * @description POST_api_vaults_vault_cleanup_run
+         */
+        post: operations["POST_api_vaults_vault_cleanup_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents/{agentId}/run": {
         parameters: {
             query?: never;
@@ -1443,6 +1487,45 @@ export interface components {
         ChatLink: {
             url: string;
         };
+        CleanupReport: {
+            /** Format: date-time */
+            ranAt: string;
+            dryRun: boolean;
+            stores: components["schemas"]["CleanupStoreReport"][];
+            errors: string[];
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int32 */
+            items?: number;
+        };
+        CleanupSettings: {
+            dryRun?: boolean;
+            /** Format: int32 */
+            closedPbiDays?: number;
+            /** Format: int32 */
+            trashDays?: number;
+            /** Format: int32 */
+            failedImportDays?: number;
+            /** Format: int32 */
+            runEventDays?: number;
+            /** Format: int32 */
+            browserArtefactDays?: number;
+            /** Format: int32 */
+            failedRunBrowserArtefactDays?: number;
+        };
+        CleanupStatus: {
+            vault: string;
+            dryRun: boolean;
+            lastReport: null | components["schemas"]["CleanupReport"];
+        };
+        CleanupStoreReport: {
+            store: string;
+            /** Format: int32 */
+            items: number;
+            /** Format: int64 */
+            bytes: number;
+            note: null | string;
+        };
         /** @enum {unknown} */
         CloseDecision: "answer" | "dismiss" | "done" | "cancel";
         CloseRequest: {
@@ -1718,6 +1801,21 @@ export interface components {
             url: string;
             detail: null | string;
         };
+        SaveCleanupSettingsRequest: {
+            dryRun: boolean;
+            /** Format: int32 */
+            closedPbiDays: number;
+            /** Format: int32 */
+            trashDays: number;
+            /** Format: int32 */
+            failedImportDays: number;
+            /** Format: int32 */
+            runEventDays: number;
+            /** Format: int32 */
+            browserArtefactDays: number;
+            /** Format: int32 */
+            failedRunBrowserArtefactDays: number;
+        };
         SaveConnectionRequest: {
             enabled: boolean;
             orgUrl: string;
@@ -1871,6 +1969,7 @@ export interface components {
             recentSyncs: components["schemas"]["SyncRun"][];
             budget: components["schemas"]["BudgetStatus"];
             outside: components["schemas"]["OutsideComponentState"][];
+            cleanups: components["schemas"]["CleanupStatus"][];
             attention: components["schemas"]["Attention"][];
         };
         TaskRef: {
@@ -3149,6 +3248,108 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GET_api_vaults_vault_cleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanupStatus"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PUT_api_vaults_vault_cleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCleanupSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanupSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_cleanup_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

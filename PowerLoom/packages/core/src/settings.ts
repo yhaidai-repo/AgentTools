@@ -1,6 +1,7 @@
 import { config, type PowerLoomDb } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import type { AdoSettings } from "./models/AdoSettings";
+import type { CleanupSettings } from "./models/CleanupSettings";
 import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
@@ -17,6 +18,7 @@ const SYNC_KEY = "sync";
 const CONFLUENCE_KEY = "confluence";
 const IMPORT_KEY = "import";
 const IMPORT_STATUS_KEY = "importStatus";
+const CLEANUP_KEY = "cleanup";
 const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
 const READ_AZURE_KEY = "readAzure";
@@ -37,6 +39,17 @@ const DEFAULT_SYNC_SETTINGS: SyncSettings = {
 const DEFAULT_IMPORT_SETTINGS: ImportSettings = {
   cron: "*/5 * * * *",
   maxItemsPerRun: 50,
+};
+
+// The same defaults as PowerLoom's CleanupSettings (the buffers decided 2026-10-21).
+const DEFAULT_CLEANUP_SETTINGS: CleanupSettings = {
+  dryRun: true,
+  closedPbiDays: 30,
+  trashDays: 90,
+  failedImportDays: 30,
+  runEventDays: 90,
+  browserArtefactDays: 14,
+  failedRunBrowserArtefactDays: 60,
 };
 
 const DEFAULT_PULL_REQUEST_SETTINGS: PullRequestSettings = {
@@ -95,6 +108,13 @@ export async function readImportSettings(db: PowerLoomDb, vault: string): Promis
   const stored = await readValue<Partial<ImportSettings>>(db, vaultSettingKey(vault, IMPORT_KEY));
 
   return { ...DEFAULT_IMPORT_SETTINGS, ...stored };
+}
+
+// The buffers PowerLoom's cleanup job reads (its CleanupSettings; key `cleanup`); dry run until switched off.
+export async function readCleanupSettings(db: PowerLoomDb, vault: string): Promise<CleanupSettings> {
+  const stored = await readValue<Partial<CleanupSettings>>(db, vaultSettingKey(vault, CLEANUP_KEY));
+
+  return { ...DEFAULT_CLEANUP_SETTINGS, ...stored };
 }
 
 export async function saveImportSettings(db: PowerLoomDb, vault: string, settings: ImportSettings): Promise<void> {

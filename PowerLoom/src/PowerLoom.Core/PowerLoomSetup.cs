@@ -3,6 +3,7 @@ using JasperFx;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Agents;
+using PowerLoom.Features.Cleanup;
 using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
 using PowerLoom.Features.Drafts;
@@ -50,6 +51,7 @@ public static class PowerLoomSetup
         builder.Services.AddVaultsFeature();
         builder.Services.AddDocsFeature();
         builder.Services.AddDraftsFeature();
+        builder.Services.AddCleanupFeature();
         builder.Services.AddContinueFeature();
         builder.Services.AddPbisFeature();
         builder.Services.AddImportSourcesFeature();
