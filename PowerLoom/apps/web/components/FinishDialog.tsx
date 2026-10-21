@@ -95,7 +95,7 @@ function FinishForm({ pbi, step, onFinished, onSkip, onCancel }: FinishFormProps
         <textarea rows={3} value={whatWentWrong} onChange={(event) => setWhatWentWrong(event.target.value)} />
       </label>
       {whatWentWrong.trim() && <FaultChoice fault={fault} onChange={setFault} />}
-      <p className="muted">The PBI becomes done in PowerLoom; its open agent tasks are cancelled. Azure DevOps is not changed.</p>
+      <p className="muted">The PBI becomes done in PowerLoom; its open tasks and questions are cancelled, findings stay. Azure DevOps is not changed.</p>
       {error && <p className="result-error">{error}</p>}
       <p className="actions">
         <button type="submit" disabled={!isComplete || isPending}>{isPending ? "Finishing…" : "Finish"}</button>

@@ -8,6 +8,7 @@ import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { fixedPeriodStart } from "@/lib/ranges";
 import { loadRunCounts } from "@/lib/runCounts";
+import { loadRunningRuns } from "@/lib/runningRuns";
 import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "./AgentForm";
 import { AgentHeader } from "./AgentHeader";
@@ -47,6 +48,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         counts={(await loadRunCounts(since, vault)).get(agent.id)}
         spentTodayUsd={spent}
         paused={isPaused(await store.getGlobal())}
+        running={await loadRunningRuns(agent.id, vault)}
       />
       <AgentForm
         agent={agent}

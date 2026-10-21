@@ -101,6 +101,54 @@ public sealed class SyncPbisTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task A_refined_pbi_given_to_another_team_member_is_closed_with_its_items_but_its_findings()
+    {
+        await ConfigureAsync();
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.WorkItems.Add(Pbi(51040, 1, "Committed", "sam@x.io"));
+        ado.WorkItems.Add(Pbi(51041, 1, "Committed", "sam@x.io"));
+        await Sync(51040);
+        await Sync(51041);
+        await SetStatusAsync(51040, PipelineStatus.ReadyForDev);
+        await SeedItemsAsync(51040);
+        ado.WorkItems[^2] = Pbi(51040, 2, "Committed", "Ann@x.io");
+        ado.WorkItems[^1] = Pbi(51041, 2, "Committed", "ann@x.io");
+
+        await Sync(51040);
+        await Sync(51041);
+
+        var pbi = await LoadAsync(51040);
+        var items = await LoadItemsAsync(51040);
+
+        Assert.Equal((PipelineStatus.Closed, true), (pbi.PipelineStatus, pbi.ClosedByUser));
+        Assert.Equal((ItemStatus.Cancelled, ItemStatus.Cancelled, ItemStatus.Open), (items["Q-51040-001"], items["WT-51040"], items["F-51040"]));
+        // One not prepared yet has nothing waiting: it stays as it is.
+        Assert.Equal(PipelineStatus.New, (await LoadAsync(51041)).PipelineStatus);
+    }
+
+    [Fact]
+    public async Task A_pbi_done_in_ado_is_closed_with_its_items_but_its_findings()
+    {
+        await ConfigureAsync();
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+
+        ado.WorkItems.Add(Pbi(51042, 1, "Committed", "sam@x.io"));
+        await Sync(51042);
+        await SetStatusAsync(51042, PipelineStatus.Development);
+        await SeedItemsAsync(51042);
+        ado.WorkItems[^1] = Pbi(51042, 2, "Done", "sam@x.io");
+
+        await Sync(51042);
+
+        var pbi = await LoadAsync(51042);
+        var items = await LoadItemsAsync(51042);
+
+        Assert.Equal((PipelineStatus.Closed, false), (pbi.PipelineStatus, pbi.ClosedByUser));
+        Assert.Equal((ItemStatus.Cancelled, ItemStatus.Cancelled, ItemStatus.Open), (items["Q-51042-001"], items["WT-51042"], items["F-51042"]));
+    }
+
+    [Fact]
     public async Task The_discussion_is_read_when_the_rev_moves_and_a_prepared_pbis_note_shows_it()
     {
         const int adoId = 51020;
@@ -196,6 +244,31 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         Directory.CreateDirectory(Path.GetDirectoryName(noteFile)!);
         await File.WriteAllTextAsync(noteFile, "# old\n\n## Notes\n\nKeep this.\n");
         await db.WorkItems.Where(row => row.AdoId == adoId).ExecuteUpdateAsync(set => set.SetProperty(row => row.VaultPath, notePath));
+    }
+
+    private static AdoWorkItem Pbi(int adoId, int rev, string state, string assignee)
+    {
+        return WorkItemMapperTests.Item(adoId, rev, $$$"""{"System.WorkItemType":"Product Backlog Item","System.Title":"Handed on","System.State":"{{{state}}}","System.AssignedTo":{"uniqueName":"{{{assignee}}}"}}""");
+    }
+
+    // An open question, a blocked tech-writer task and an open finding.
+    private async Task SeedItemsAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which way?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"WT-{adoId}", Kind = ItemKind.Docs, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Merge draft", Status = ItemStatus.Blocked, Assignee = "agent:tech-writer", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKind.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<Dictionary<string, ItemStatus>> LoadItemsAsync(int adoId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId).ToDictionaryAsync(item => item.Id, item => item.Status);
     }
 
     private Task<ITrackedSession> Sync(int? adoId) => host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(bus => Publish(bus, adoId));

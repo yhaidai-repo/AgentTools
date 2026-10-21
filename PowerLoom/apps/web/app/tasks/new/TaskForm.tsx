@@ -11,6 +11,7 @@ const PBI_HINTS: Record<string, string> = {
   refinement: "required",
   design: "required",
   research: "optional; without one, the agent reads the repositories",
+  test: "required; a PBI or bug id",
 };
 
 const REQUIRED_FIELDS = [

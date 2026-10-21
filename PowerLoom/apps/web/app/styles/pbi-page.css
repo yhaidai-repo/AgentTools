@@ -10,6 +10,13 @@
   color: var(--faint);
 }
 
+/* A Live mark under the breadcrumbs (PBI and task pages) keeps the crumbs' distance to the card below. */
+.crumbs + .live {
+  display: flex;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+
 .crumbs a {
   color: var(--muted);
 }
@@ -465,6 +472,12 @@
   font-size: 12px;
   white-space: nowrap;
   color: var(--faint);
+}
+
+/* A child item's title on its own line under its id, type and pipeline (ChildItemRows). */
+.child-row-title {
+  flex-basis: 100%;
+  color: var(--text);
 }
 
 .item-held {

@@ -12,6 +12,7 @@ import { loadPbiResultSets } from "@/lib/resultVersions";
 import type { ResultSet } from "@/models/ResultSet";
 import type { ResultVersion } from "@/models/ResultVersion";
 import { ResultBlock } from "../../results/ResultBlock";
+import { ChildItemRows } from "./ChildItemRows";
 import { ItemList } from "./ItemList";
 import { PbiReposForm } from "./PbiReposForm";
 import { PbiSkills } from "./PbiSkills";
@@ -43,6 +44,7 @@ export async function AgentsTab({ detail, chosen }: { detail: PbiDetail; chosen:
         <Runs detail={detail} />
         <Panel title="Repos" aside={<small>what research and design clone</small>}><Repos detail={detail} /></Panel>
         <Panel title="Skills" aside={<small>for later agents</small>}><PbiSkills adoId={detail.pbi.adoId} skills={detail.pbi.skills} editedAt={detail.pbi.skillsEditedAt} /></Panel>
+        <InternalChildren detail={detail} />
       </div>
     </div>
   );
@@ -55,6 +57,18 @@ function SetTitle({ set }: { set: ResultSet }) {
 
 function VersionCount({ set }: { set: ResultSet }) {
   return set.versions.length > 1 ? <small>{set.versions.length} versions</small> : null;
+}
+
+// Child items created in PowerLoom, e.g. the bugs an agent reported (user, 2026-10-21: internal bugs belong with the
+// agents' work, not on the Azure DevOps tab), in the side column; none, no panel.
+function InternalChildren({ detail }: { detail: PbiDetail }) {
+  const internal = detail.children.filter((child) => child.source !== "ado");
+
+  if (internal.length === 0) {
+    return null;
+  }
+
+  return <Panel title="Child items" aside={<small>reported in PowerLoom</small>}><ChildItemRows items={internal} /></Panel>;
 }
 
 // Questions, human tasks, findings and agent tasks in one list; findings wait for your review without holding the
