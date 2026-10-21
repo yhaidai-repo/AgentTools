@@ -8,6 +8,7 @@ export interface CaseResult {
   observed: string;
   /** Recording files of the case on the host (video, trace, screenshots). */
   artifacts: string[];
-  /** The bug a failed case produced: `bug:<n>` for the n-th bug reported in this run, or an existing bug id. */
+  /** The bug a failed case produced: `bug:<n>` for the n-th bug reported in this run, or an existing bug id; for a
+   * retest, the retested bug (PBI-<id>) whatever the verdict. */
   bug: string | null;
 }

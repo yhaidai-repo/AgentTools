@@ -40,6 +40,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - `fail` needs: the plan, data and environment were right, and the page or API showed something else. Then `report_bug` with steps as run, expected vs actual, the screenshot, log lines, the code location when known (inferred).
 - One bug per distinct failure; cite an existing open bug instead of a duplicate; several cases failing for one cause share one bug.
 - A failure caused by the plan, the data or the environment: a finding or a question, not a bug; the case is `blocked` or `not_run` with why.
+- Bug retests: every bug in `<bugs-to-retest>` gets a case (ref `PBI-<id>`) or rides on the planned case that proves it; its result's `bug` is `PBI-<id>` whatever the verdict. A done bug that fails again is "still failing", not a new bug; never change a bug's state.
 
 ## Continuing from a previous report
 - The `<previous-report>` block is the plan: run the cases without a `pass`; keep the passed verdicts with the earlier report as their evidence unless the branch changed.
