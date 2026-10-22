@@ -7,6 +7,7 @@ import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
+import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -269,6 +270,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Write research results",
     description: "The agent may answer its task with write_research_result: a research result item (RR) on the PBI or task, with findings, evidence and the next steps; earlier results of the task are superseded and the task is closed.",
   },
+  {
+    key: WRITE_NOTES_INTEGRATION,
+    label: "Write vault notes",
+    description: "The agent may write notes in its task's vault with write_note and record findings for the vault registers: a draft merged into the docs vault, a note actualized in place, or a docs request. The vault's AGENTS.md joins its instructions.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -338,7 +344,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [WRITE_NOTES_INTEGRATION]: true } },
     skills: ["powerloom-tech-writer", "powerloom-documentation"],
     options: { batchSize: 3, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(TECH_WRITER_OPTIONS),

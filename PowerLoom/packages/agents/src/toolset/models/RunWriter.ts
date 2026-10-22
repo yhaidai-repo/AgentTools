@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@agenttools/runtime";
+import type { localItem } from "@powerloom/db";
 import type { ReadLog } from "../../evidence/ReadLog";
 import type { WriterTarget } from "./WriterTarget";
 
@@ -7,4 +8,8 @@ import type { WriterTarget } from "./WriterTarget";
 export interface RunWriter {
   tools(log: ReadLog): ToolDefinition<any>[];
   commit(target: WriterTarget): Promise<string[]>;
+  /** Blocks the writer adds to the first message: what its tools work on (a draft, a note). */
+  contextBlocks?(task: typeof localItem.$inferSelect): Promise<string[]>;
+  /** Sections the writer adds to the instructions (a vault's rules). */
+  promptSections?(task: typeof localItem.$inferSelect): Promise<string[]>;
 }

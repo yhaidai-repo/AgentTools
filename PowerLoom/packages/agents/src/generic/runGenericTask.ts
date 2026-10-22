@@ -7,11 +7,13 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
+import { projectRepoName } from "../docsRepos";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { acceptanceCriteriaBlock } from "../tasks/userTasks";
 import { recordWaiting } from "../tasks/waiting";
+import { noteVault } from "../techWriter/taskVault";
 import { AgentToolset } from "../toolset/AgentToolset";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
@@ -53,8 +55,8 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("context", { task: task.id, vault: task.vault });
   run.repos = await openRepos(context, session, await repoSources(context, task), { vault: task.vault });
 
-  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos });
-  const firstMessage = await buildFirstMessage(deps.db, task, run, toolset.webDocumentsBlock());
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task) });
+  const firstMessage = await buildFirstMessage(deps.db, task, run, await toolset.contextBlocks(), toolset.webDocumentsBlock());
   const tools = toolset.tools(firstMessage);
 
   run.toolset = toolset;
@@ -62,7 +64,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
     tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
@@ -72,19 +74,29 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   };
 }
 
-// The PBI's repos; a task without a PBI names its own (the Tasks page's repo choice).
-async function repoSources(context: TaskContext, task: ItemRow): Promise<RepoSource[]> {
-  if (task.pbiId !== null) {
-    return pbiRepoSources(context.deps.db, task.pbiId);
-  }
+// A task that names a vault (a docs task on a note) works in that vault; the docs tools read it and its usage log.
+function taskVaultRoot(deps: TaskContext["deps"], task: ItemRow): string | undefined {
+  const vault = (task.data as { vault?: string } | null)?.vault;
 
-  return [{ vault: task.vault, names: (task.data as { repos?: string[] } | null)?.repos ?? [] }];
+  return vault ? noteVault(deps, vault).root : undefined;
 }
 
-async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun, webDocuments: string): Promise<string> {
+// The PBI's repos, or the ones a task without a PBI names (the Tasks page's repo choice); plus the repo of the docs
+// project a task names (its index note's `repo:`).
+async function repoSources(context: TaskContext, task: ItemRow): Promise<RepoSource[]> {
+  const data = (task.data ?? {}) as { repos?: string[]; project?: string };
+  const projectRepo = data.project ? await projectRepoName(taskVaultRoot(context.deps, task) ?? context.deps.docsRoot, data.project) : null;
+  const fromProject: RepoSource[] = projectRepo ? [{ vault: task.vault, names: [projectRepo] }] : [];
+  const own: RepoSource[] = task.pbiId !== null ? await pbiRepoSources(context.deps.db, task.pbiId) : [{ vault: task.vault, names: data.repos ?? [] }];
+
+  return [...fromProject, ...own];
+}
+
+async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun, writerBlocks: string[], webDocuments: string): Promise<string> {
   return [
     taskBlock(task),
     acceptanceCriteriaBlock(task),
+    ...writerBlocks,
     await previousResultBlock(db, task.id),
     webDocuments,
     reposBlock(run.repos),
