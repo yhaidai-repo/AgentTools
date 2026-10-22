@@ -53,6 +53,7 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     budgets: { perRunUsd: Number(text(form, "perRunUsd")), dailyUsd: Number(text(form, "dailyUsd")) },
     capabilities: { webAccess: form.get("webAccess") === "on", integrations: readIntegrations(form, current) },
     skills: form.getAll("skills").map(String),
+    prompt: text(form, "prompt"),
     options: readOptions(form, current),
     canAssign: form.getAll("canAssign").map(String),
     handles: form.getAll("handles").map(String),

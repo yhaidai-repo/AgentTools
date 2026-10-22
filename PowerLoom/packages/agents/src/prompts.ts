@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { LoadedPrompt } from "./models/LoadedPrompt";
 
@@ -12,6 +13,35 @@ type ReadFragment = (name: string) => Promise<string>;
 // Prompts are versioned files in the repo; `{{name}}` placeholders are filled from `values`.
 export async function loadPrompt(name: string, values: Record<string, string>): Promise<LoadedPrompt> {
   return composePrompt(await readPromptFile(name), values, readPromptFile);
+}
+
+// An agent's prompt: the one stored with its definition when it has one (user decision 2026-10-22: editable in the UI),
+// else its prompt file, else nothing (a UI-created agent without instructions runs on the framework alone). A stored
+// prompt is versioned by its content, so a run records which text it ran on.
+export async function loadAgentPrompt(agentId: string, storedPrompt: string, values: Record<string, string>): Promise<LoadedPrompt> {
+  if (storedPrompt.trim()) {
+    return composePrompt(`<!-- prompt: ${agentId} · version: stored.${contentVersion(storedPrompt)} -->\n${storedPrompt}`, values, readPromptFile);
+  }
+
+  if (await hasPromptFile(agentId)) {
+    return loadPrompt(agentId, values);
+  }
+
+  return composePrompt(`<!-- prompt: ${agentId} · version: none -->\n{{framework}}`, values, readPromptFile);
+}
+
+export async function hasPromptFile(name: string): Promise<boolean> {
+  try {
+    await access(fileURLToPath(new URL(`${name}.md`, PROMPTS_DIR)));
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function contentVersion(text: string): string {
+  return createHash("sha1").update(text).digest("hex").slice(0, 8);
 }
 
 // `{{framework}}` pulls in the shared `_framework.md`; its version joins the prompt's, so a run records both.

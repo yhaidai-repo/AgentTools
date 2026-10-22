@@ -14,6 +14,7 @@ import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
 import { saveAgentAction } from "../../configActions";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
+import { PromptField } from "./PromptField";
 import { SkillsField } from "./SkillsField";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
@@ -46,6 +47,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         </div>
         <div>
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
+          <PromptField prompt={agent.prompt ?? ""} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
           <OptionsFields agent={agent} />
         </div>

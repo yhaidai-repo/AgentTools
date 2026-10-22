@@ -8,7 +8,8 @@ import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
 import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
 import { runDesignTask } from "../design/runDesignTask";
-import { loadPrompt } from "../prompts";
+import { runGenericTask } from "../generic/runGenericTask";
+import { loadAgentPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
@@ -23,6 +24,7 @@ import { endTask, failAfterError, releaseTask } from "./endTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
+// Agents with code of their own; any other agent (created in the UI) runs the generic executor (user decision 2026-10-22).
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
@@ -66,7 +68,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const executor = EXECUTORS[agentId];
+  const executor = EXECUTORS[agentId] ?? runGenericTask;
   const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
@@ -88,22 +90,12 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
     deps,
     agent,
     global: await deps.config.getGlobal(),
-    prompt: await agentPrompt(agentId, { team, agent: agent.label }),
+    prompt: await loadAgentPrompt(agentId, agent.prompt ?? "", { team, agent: agent.label }),
     skills: await loadStageSkills(deps, agent, task.pbiId),
   };
 }
 
-// Every task, with or without a PBI, uses its agent's prompt (user decision 2026-10-14: a task the user creates goes the
-// same way as every other task).
-async function agentPrompt(agentId: string, values: Record<string, string>): Promise<TaskContext["prompt"]> {
-  return EXECUTORS[agentId] ? loadPrompt(agentId, values) : { text: "", version: "none" };
-}
-
 async function refusalReason(context: TaskContext, agentId: string, task: ItemRow): Promise<string | null> {
-  if (!EXECUTORS[agentId]) {
-    return `agent "${agentId}" can't run tasks yet`;
-  }
-
   if (!context.agent.enabled || isPaused(context.global)) {
     return context.agent.enabled ? "agents are paused" : `agent "${agentId}" is disabled`;
   }

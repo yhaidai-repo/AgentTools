@@ -48,7 +48,9 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest",
+  "custom", // runs of agents created in the UI (user decision 2026-10-22); the agent id is in the run's labels
+]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",

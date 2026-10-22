@@ -20,6 +20,8 @@ export interface AgentDefinition {
   capabilities: AgentCapabilities;
   /** Skill names the agent may load on demand. */
   skills: string[];
+  /** The agent's own instructions (user decision 2026-10-22); empty = the prompt file shipped with the code, if any. */
+  prompt?: string;
   /** Agent-specific settings, e.g. { batchSize: 2, maxFailures: 3 }; only keys declared in optionSpecs. */
   options: Record<string, AgentOptionValue>;
   /** Task types this agent may create tasks of (the user always may get one), e.g. ["research", "design"]. */
