@@ -5,9 +5,22 @@ import type { ToolImage } from "../../models/ToolImage";
 export const TOOL_SERVER_NAME = "agent";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 
-// Our tools run in-process as one MCP server; the model sees them as `mcp__agent__<name>`.
+// Our tools run in-process as one MCP server; the model sees them as `mcp__agent__<name>`. Their results name tools
+// the way the model can call them (sdkToolNamer).
 export function createToolServer(tools: ToolDefinition<any>[]): McpSdkServerConfigWithInstance {
-  return createSdkMcpServer({ name: TOOL_SERVER_NAME, version: "1.0.0", tools: tools.map(toSdkTool) });
+  const toSdkText = sdkToolNamer(tools);
+
+  return createSdkMcpServer({ name: TOOL_SERVER_NAME, version: "1.0.0", tools: tools.map((definition) => toSdkTool(definition, toSdkText)) });
+}
+
+// Prompts, task messages and tool results name tools neutrally (`read_pbi`), but this adapter can only call them with
+// the server prefix. The hint line (withSdkToolNaming) alone wasn't enough: run 2542 followed its first message's
+// `read_pbi(...)` and its first calls failed with "No such tool available". So what the model reads names every tool
+// whose name has an underscore by its prefixed name; a name without one could be a plain word and keeps the hint only.
+export function sdkToolNamer(tools: ToolDefinition<any>[]): (text: string) => string {
+  const pattern = neutralNamePattern(tools);
+
+  return (text) => (pattern ? text.replace(pattern, (name) => `${TOOL_PREFIX}${name}`) : text);
 }
 
 export function sdkToolNames(tools: ToolDefinition<any>[]): string[] {
@@ -30,15 +43,30 @@ export function toNeutralToolName(sdkName: string): string {
   return sdkName.startsWith(TOOL_PREFIX) ? sdkName.slice(TOOL_PREFIX.length) : sdkName;
 }
 
-function toSdkTool(definition: ToolDefinition<any>) {
+// A whole neutral name only: not one that is already prefixed, nor part of a longer word (`read_pbis`).
+function neutralNamePattern(tools: ToolDefinition<any>[]): RegExp | null {
+  const names = tools.map((definition) => definition.name).filter((name) => name.includes("_"));
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return new RegExp(`(?<![\\w-])(?:${names.map(escapeRegExp).join("|")})(?![\\w-])`, "g");
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toSdkTool(definition: ToolDefinition<any>, toSdkText: (text: string) => string) {
   return tool(definition.name, definition.description, definition.input, async (input) => {
     try {
       const result = await definition.handler(input);
 
-      return { content: [{ type: "text" as const, text: result.text }, ...imageBlocks(result.images)], isError: result.isError ?? false };
+      return { content: [{ type: "text" as const, text: toSdkText(result.text) }, ...imageBlocks(result.images)], isError: result.isError ?? false };
     } catch (error) {
       // A failing tool is reported to the model, not thrown: the run continues and the trace shows it.
-      return { content: [{ type: "text" as const, text: `Error: ${errorText(error)}` }], isError: true };
+      return { content: [{ type: "text" as const, text: `Error: ${toSdkText(errorText(error))}` }], isError: true };
     }
   });
 }

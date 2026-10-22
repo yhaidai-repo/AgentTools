@@ -10,7 +10,7 @@ import { RunAbort } from "../../RunAbort";
 import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
-import { TOOL_SERVER_NAME, createToolServer, sdkToolNames, withSdkToolNaming } from "./toSdkTools";
+import { TOOL_SERVER_NAME, createToolServer, sdkToolNamer, sdkToolNames, withSdkToolNaming } from "./toSdkTools";
 import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
 
 const CLIENT_APP = "agenttools-runtime/1.0";
@@ -90,11 +90,13 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   }
 }
 
-// The first message waits for the tool server (toolServerGate), so the model's first calls find every tool.
+// The first message waits for the tool server (toolServerGate) and names the tools as the model calls them
+// (sdkToolNamer), so the model's first calls find every tool.
 async function* streamEvents(options: Options, request: AgentRequest, mapper: MessageMapper, events: EventSequence): AsyncIterable<AgentEvent> {
   let serverReady: (status: string) => void = () => undefined;
   const ready = new Promise<string>((resolve) => { serverReady = resolve; });
-  const session = query({ prompt: firstMessageAfter(ready, request.firstMessage), options });
+  const firstMessage = sdkToolNamer(request.tools)(request.firstMessage);
+  const session = query({ prompt: firstMessageAfter(ready, firstMessage), options });
 
   void waitForToolServer(session, TOOL_SERVER_NAME).then(serverReady);
 
@@ -125,7 +127,7 @@ function baseOptions(request: AgentRequest, abort: RunAbort): Options {
   return {
     model: request.model.model,
     effort: request.model.effort,
-    systemPrompt: withSdkToolNaming(request.systemPrompt, request.tools),
+    systemPrompt: withSdkToolNaming(sdkToolNamer(request.tools)(request.systemPrompt), request.tools),
     maxTurns: request.limits.maxTurns,
     abortController: abort.controller,
     tools: builtInTools(request),
