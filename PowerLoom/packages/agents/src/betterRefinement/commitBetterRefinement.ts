@@ -1,6 +1,5 @@
 import { recommendPbiSkills, setItemStatus } from "@powerloom/core";
-import { agentRun, type PowerLoomDb } from "@powerloom/db";
-import { eq } from "drizzle-orm";
+import type { PowerLoomDb } from "@powerloom/db";
 import { commitRelevantPages } from "../relevantPages";
 import { insertRefinement } from "../refinement/commitRefinement";
 import { confirmRepos } from "../refinement/confirmRepos";
@@ -8,40 +7,36 @@ import { queueRefinementFollowUp } from "../refinement/refinementFollowUp";
 import type { RefinementFollowUp } from "../refinement/models/RefinementFollowUp";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import { USER } from "../taskCreation/taskTargets";
-import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
-import { commitCaptures } from "../vaultCapture";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
 import type { RefinementDetails } from "./models/RefinementDetails";
 
-const ACTOR = "agent:better-refinement";
 const NEW_TASK = /new:(\d+)/g;
 
 type Refinement = NonNullable<BetterRefinementDraft["refinement"]>;
 
-// Writes a run's draft: the tasks first (blockers point at them), then the refinement version with its details, the repo
-// confirmation, drafts, skills and pages, and the follow-up refinement when it handed work to the user; closes the task,
-// so a run kept after a budget stop ends done too.
+// Writes a run's refinement (stage 2b, 2026-10-23: a granted writer, so the toolset has written the tasks and drafts
+// already; blockers point at the tasks): the refinement version with its details, the repo confirmation, skills and
+// pages, and the follow-up refinement when it handed work to the user; closes the task, so a run kept after a budget
+// stop ends done too. Returns what it wrote, for the run's outputs.
 export async function commitBetterRefinement(
   db: PowerLoomDb,
   task: { id: string; pbiId: number; vault: string },
   runId: number,
-  draft: BetterRefinementDraft & { refinement: Refinement },
+  agentId: string,
+  draft: { refinement: Refinement; pages: BetterRefinementDraft["pages"] },
+  created: { tasks: CreatedTask[]; taskIds: string[] },
   extra: { docsRead: string[]; documented: Map<string, string>; docsVault: string },
 ): Promise<string[]> {
-  const taskIds = await commitCreatedTasks(db, { pbiId: task.pbiId, vault: task.vault, parentTaskId: task.id, runId, depth: 0, docsVault: extra.docsVault }, draft.tasks);
-  const refinement = withTaskIds(draft.refinement, taskIds);
+  const refinement = withTaskIds(draft.refinement, created.taskIds);
   const version = await insertRefinement(db, task.pbiId, runId, refinement, extra.docsRead);
   const repoQuestionIds = await confirmRepos(db, task.pbiId, runId, refinement.repos.map((repo) => repo.name), extra.documented);
-  const captureIds = await commitCaptures(db, runId, task.pbiId, task.id, draft.captures);
-  const followUpId = await queueRefinementFollowUp(db, followUpOf(task, runId, draft.tasks, taskIds));
-  const outputs = [`PBI-${task.pbiId}-refinement v${version}`, ...taskIds, ...repoQuestionIds, ...captureIds, ...(followUpId ? [followUpId] : [])];
+  const followUpId = await queueRefinementFollowUp(db, followUpOf(task, runId, created.tasks, created.taskIds));
 
   await recommendPbiSkills(db, task.pbiId, refinement.skills);
   await commitRelevantPages(db, task.pbiId, draft.pages, "refinement");
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
-  await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
+  await setItemStatus(db, task.id, "in-progress", "done", `agent:${agentId}`, runId);
 
-  return outputs;
+  return [`PBI-${task.pbiId}-refinement v${version}`, ...repoQuestionIds, ...(followUpId ? [followUpId] : [])];
 }
 
 // `taskIds` are the created tasks' ids, in the order of `tasks`.

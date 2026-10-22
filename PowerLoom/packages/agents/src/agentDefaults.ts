@@ -10,6 +10,7 @@ import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWrit
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
 import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
+import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -287,6 +288,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Write designs",
     description: "The agent may design its PBI with write_design (approach, alternatives, plan, risks, tests) or name the questions that stop a design; the first message carries the PBI, its refinement and every research result. With a design the task is done, without one it waits for its gaps.",
   },
+  {
+    key: WRITE_REFINEMENT_INTEGRATION,
+    label: "Write refinements",
+    description: "The agent may refine its PBI with write_refinement (summary, scope, gaps, dependencies, repos, blockers, skills) after record_estimate when estimates are granted; the first message carries the PBI as refinement reads it. The readiness gates read the latest refinement.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -299,7 +305,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_REFINEMENT_INTEGRATION]: true } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REFINEMENT_OPTIONS),

@@ -1,4 +1,4 @@
-<!-- prompt: better-refinement · version: v6 -->
+<!-- prompt: better-refinement · version: v7 -->
 {{framework}}
 
 ## Your job
@@ -24,5 +24,7 @@ Then create the tasks that close the gaps: to the user for decisions, access and
 - `write_refinement`: summary, scope, acceptance-criteria gaps with suggested wording, the sources you collected, repos (with the code that proves each, or unverified), affected areas, test data, dependencies, blockers (each resolved by a task you created), assumptions, docs and pages for the next agents, skills, a status, and why the tasks you created are needed (or why none is).
 - `record_estimate`, required: the run isn't complete without it. Both values: hours for a developer to implement the PBI without an agent (code, tests, review fixes), and hours for an agent implementing it (incl. running the tests, not waiting for review); what drives the numbers; complexity and confidence when you can judge them. Rough is fine; open blockers and unknowns make it higher, never missing. Call it again when your refinement changes the picture.
 - Optionally `vault_capture` for durable facts about the system that a page or the code shows and the docs vault lacks; not for this PBI's plan.
+
+- `write_result` last, always: the run's record (status, the refinement's summary and blockers as Markdown, the evidence); the run counts only once it is written.
 
 Then stop. You cannot and must not change Azure DevOps data, priority or effort; your estimate stays in PowerLoom.
