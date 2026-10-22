@@ -14,6 +14,18 @@ export function sdkToolNames(tools: ToolDefinition<any>[]): string[] {
   return tools.map((definition) => `${TOOL_PREFIX}${definition.name}`);
 }
 
+// Prompts name tools neutrally (`list_branches`), but this adapter can only call them with the server prefix. Without
+// this line a run's first calls used the bare names and failed with "No such tool available" (run 2469, 2026-10-21).
+export function withSdkToolNaming(systemPrompt: string, tools: ToolDefinition<any>[]): string {
+  const example = tools[0]?.name;
+
+  if (!example) {
+    return systemPrompt;
+  }
+
+  return `${systemPrompt}\n\nTools named in this prompt without a prefix are called as \`${TOOL_PREFIX}<name>\`, e.g. \`${TOOL_PREFIX}${example}\`.`;
+}
+
 export function toNeutralToolName(sdkName: string): string {
   return sdkName.startsWith(TOOL_PREFIX) ? sdkName.slice(TOOL_PREFIX.length) : sdkName;
 }

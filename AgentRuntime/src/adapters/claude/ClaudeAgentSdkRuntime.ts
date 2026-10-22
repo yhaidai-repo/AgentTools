@@ -10,7 +10,7 @@ import { RunAbort } from "../../RunAbort";
 import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
-import { TOOL_SERVER_NAME, createToolServer, sdkToolNames } from "./toSdkTools";
+import { TOOL_SERVER_NAME, createToolServer, sdkToolNames, withSdkToolNaming } from "./toSdkTools";
 import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
 
 const CLIENT_APP = "agenttools-runtime/1.0";
@@ -125,7 +125,7 @@ function baseOptions(request: AgentRequest, abort: RunAbort): Options {
   return {
     model: request.model.model,
     effort: request.model.effort,
-    systemPrompt: request.systemPrompt,
+    systemPrompt: withSdkToolNaming(request.systemPrompt, request.tools),
     maxTurns: request.limits.maxTurns,
     abortController: abort.controller,
     tools: builtInTools(request),
