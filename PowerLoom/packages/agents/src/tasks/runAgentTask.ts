@@ -7,7 +7,6 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
 import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
-import { runDesignTask } from "../design/runDesignTask";
 import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
@@ -21,7 +20,6 @@ type ItemRow = typeof localItem.$inferSelect;
 // Agents with code of their own; any other agent (created in the UI) runs the generic executor (user decision 2026-10-22).
 const EXECUTORS: Record<string, TaskExecutor> = {
   "better-refinement": runBetterRefinementTask,
-  design: runDesignTask,
   "code-review": runCodeReviewTask,
   "better-review": runBetterReviewTask,
   autotest: runAutotestTask,

@@ -1,8 +1,6 @@
 import { localItem, refinement, type PowerLoomDb } from "@powerloom/db";
 import { and, asc, desc, eq } from "drizzle-orm";
-import type { RepoAccess } from "../models/RepoAccess";
 import { buildPbiMessage } from "../refinement/pbiMessage";
-import { reposBlock } from "../repos/reposBlock";
 import type { ResearchContext } from "../research/models/ResearchContext";
 import { refinementBlock } from "../research/researchMessage";
 import { resultBlock } from "../research/researchResultBlock";
@@ -10,8 +8,8 @@ import { userRequestBlock } from "../tasks/userTasks";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// The first message: the PBI, its refinement, every research result and the repos.
-export async function buildDesignMessage(db: PowerLoomDb, vaultRoot: string, context: ResearchContext, repos: RepoAccess): Promise<string> {
+// The design's part of the first message: the PBI, its refinement and every research result (the repos follow it).
+export async function buildDesignMessage(db: PowerLoomDb, vaultRoot: string, context: ResearchContext): Promise<string> {
   const [latest] = await db.select().from(refinement).where(eq(refinement.pbiId, context.pbi.adoId)).orderBy(desc(refinement.version)).limit(1);
   const pbi = (await buildPbiMessage(db, vaultRoot, context.pbi)).replace(/^Refine this PBI\.\n\n/, "");
 
@@ -21,7 +19,6 @@ export async function buildDesignMessage(db: PowerLoomDb, vaultRoot: string, con
     pbi,
     latest ? refinementBlock(latest) : "<refinement>none</refinement>",
     await researchBlock(db, context.pbi.adoId),
-    reposBlock(repos),
   ].filter(Boolean).join("\n\n");
 }
 

@@ -9,6 +9,7 @@ import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
+import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -281,6 +282,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Review a vault",
     description: "The agent may review its task's vault: list its stale and unlinked notes, dead links and open records, decide each (keep, remove, actualize; fix; close), and write the review summary. The decisions are applied when the run succeeds.",
   },
+  {
+    key: WRITE_DESIGN_INTEGRATION,
+    label: "Write designs",
+    description: "The agent may design its PBI with write_design (approach, alternatives, plan, risks, tests) or name the questions that stop a design; the first message carries the PBI, its refinement and every research result. With a design the task is done, without one it waits for its gaps.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -332,7 +338,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_DESIGN_INTEGRATION]: true } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(DESIGN_OPTIONS),

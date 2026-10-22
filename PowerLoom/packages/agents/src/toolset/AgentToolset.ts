@@ -7,6 +7,8 @@ import { createAzureTools } from "../azure/azureTools";
 import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterResearch/ResearchResultWriter";
 import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION, VaultReviewWriter } from "../vaultReview/VaultReviewWriter";
+import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
+import { ownTools } from "./ownTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -182,14 +184,16 @@ export class AgentToolset {
     const { deps, agent } = this.context;
     const hasCreateTask = this.input.createTask ?? agent.canAssign.length > 0;
 
-    return [
+    const shared = [
       ...(hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : []),
       ...createWebDocumentTools(deps.db, this.webDocuments),
       ...(deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : []),
       ...createEstimateTools(this.estimate),
-      ...this.writers.flatMap((writer) => writer.tools(log)),
-      createResultTool(this.result, log),
     ];
+    // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
+    const own = ownTools(this.writers.flatMap((writer) => writer.tools(log)), shared);
+
+    return [...shared, ...own, createResultTool(this.result, log)];
   }
 }
 
@@ -201,5 +205,6 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : []),
     ...(integrations[WRITE_NOTES_INTEGRATION] === true ? [new TechWriterWriter(context.deps)] : []),
     ...(integrations[VAULT_REVIEW_INTEGRATION] === true ? [new VaultReviewWriter(context)] : []),
+    ...(integrations[WRITE_DESIGN_INTEGRATION] === true ? [new DesignWriter(context)] : []),
   ];
 }
