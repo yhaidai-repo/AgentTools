@@ -13,6 +13,13 @@ const LOCK_TIMEOUT_MS = 5_000;
 
 const WHERE_AM_I = "SELECT @@SERVERNAME, DB_NAME(), CAST(SERVERPROPERTY('ProductVersion') AS nvarchar(128))";
 
+// The databases the login can open on the server, without the system ones: a connection is per server, and the agent
+// picks the database per call (user decision 2026-10-22).
+const DATABASES = `SELECT name AS [database], state_desc AS [state]
+FROM sys.databases
+WHERE database_id > 4 AND HAS_DBACCESS(name) = 1
+ORDER BY name`;
+
 const TABLES = `SELECT s.name AS [schema], o.name AS [name], o.type_desc AS [type]
 FROM sys.objects o JOIN sys.schemas s ON s.schema_id = o.schema_id
 WHERE o.type IN ('U', 'V') AND o.is_ms_shipped = 0
@@ -31,26 +38,31 @@ ORDER BY c.column_id`;
 
 // Reads SQL Server for agents (Read SQL, user decision 2026-10-12). Read only twice: the statement check refuses
 // anything but one SELECT, and every query runs in a transaction that is rolled back, so even a write login changes
-// nothing. One connection per call; nothing is kept between calls.
+// nothing. One connection per call; nothing is kept between calls. `database` opens another database of the same server
+// than the connection string's (the login's default when the string names none).
 export class SqlReader {
-  async query(connectionString: string, text: string): Promise<SqlAnswer> {
+  async query(connectionString: string, text: string, database?: string): Promise<SqlAnswer> {
     const problem = readOnlyProblem(text);
 
     if (problem) {
       return { ok: false, message: problem, refused: true };
     }
 
-    return this.run(connectionString, text, {});
+    return this.run(connectionString, text, {}, database);
   }
 
-  listTables(connectionString: string): Promise<SqlAnswer> {
-    return this.run(connectionString, TABLES, {});
+  listDatabases(connectionString: string): Promise<SqlAnswer> {
+    return this.run(connectionString, DATABASES, {});
+  }
+
+  listTables(connectionString: string, database?: string): Promise<SqlAnswer> {
+    return this.run(connectionString, TABLES, {}, database);
   }
 
   // `table` as `schema.name` or `name` (the login's default schema). An unknown table has no columns, which reads better
   // as a miss than as an empty table.
-  async describeTable(connectionString: string, table: string): Promise<SqlAnswer> {
-    const answer = await this.run(connectionString, COLUMNS, { table });
+  async describeTable(connectionString: string, table: string, database?: string): Promise<SqlAnswer> {
+    const answer = await this.run(connectionString, COLUMNS, { table }, database);
 
     if (answer.ok && answer.rows.rows.length === 0) {
       return { ok: false, message: `No table or view named ${table}.` };
@@ -71,11 +83,11 @@ export class SqlReader {
     return { ok: true, message: `Connected: server ${server}, database ${database}, SQL Server ${version}.` };
   }
 
-  private async run(connectionString: string, text: string, params: Record<string, string>): Promise<SqlAnswer> {
+  private async run(connectionString: string, text: string, params: Record<string, string>, database?: string): Promise<SqlAnswer> {
     let pool: sql.ConnectionPool | null = null;
 
     try {
-      pool = await new sql.ConnectionPool(configOf(connectionString)).connect();
+      pool = await new sql.ConnectionPool(configOf(connectionString, database)).connect();
 
       return await inRolledBackTransaction(pool, text, params);
     } catch (error) {
@@ -92,12 +104,15 @@ function isLoginFailure(error: unknown): boolean {
 }
 
 // The user's string with the reader's caps on top: read-only intent (a replica where the server has one), timeouts,
-// one connection.
-function configOf(connectionString: string): sql.config {
+// one connection. A chosen database goes into the driver's config, never into the SQL text, so its name can't change
+// the query.
+export function configOf(connectionString: string, database?: string): sql.config {
   const parsed = sql.ConnectionPool.parseConnectionString(connectionString);
+  const chosen = database?.trim();
 
   return {
     ...parsed,
+    database: chosen || parsed.database,
     connectionTimeout: CONNECT_TIMEOUT_MS,
     requestTimeout: QUERY_TIMEOUT_MS,
     arrayRowMode: true,

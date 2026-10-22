@@ -15,6 +15,7 @@ import { reportBugCommand } from "./reportBugCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
 import { savePbiReposCommand } from "./savePbiReposCommand";
 import { savePbiSkillsCommand } from "./savePbiSkillsCommand";
+import { sqlDatabasesCommand } from "./sqlDatabasesCommand";
 import { sqlDescribeCommand } from "./sqlDescribeCommand";
 import { sqlQueryCommand } from "./sqlQueryCommand";
 import { submitFindingCommand } from "./submitFindingCommand";
@@ -42,6 +43,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   openChatCommand,
   sqlQueryCommand,
   sqlDescribeCommand,
+  sqlDatabasesCommand,
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see COMMANDS
