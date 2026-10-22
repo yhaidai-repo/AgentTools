@@ -6,7 +6,7 @@ import { loadDeadLetters } from "@/lib/deadLetters";
 import { periodStart } from "@/lib/periodStart";
 import { periodOf } from "@/lib/ranges";
 import { loadRunCounts } from "@/lib/runCounts";
-import { loadSubscriptionStatus } from "@/lib/subscription";
+import { loadAgentLimitShares, loadSubscriptionStatus } from "@/lib/subscription";
 import { AgentsTable } from "./AgentsTable";
 import { DeadLetters } from "./DeadLetters";
 import { SubscriptionMeters } from "./SubscriptionMeters";
@@ -26,7 +26,7 @@ export async function OverviewTab({ vault, params, tabs, paused }: { vault: stri
         <div className="tab-filters"><PeriodPicker value={range} path="/agents" keep={{ tab: "overview" }} /></div>
       </div>
       <SubscriptionMeters statuses={await loadSubscriptionStatus()} />
-      <AgentsTable agents={agents} totals={await loadAgentTotals(since, vault)} counts={await loadRunCounts(since, vault)} range={range} paused={paused} />
+      <AgentsTable agents={agents} totals={await loadAgentTotals(since, vault)} counts={await loadRunCounts(since, vault)} limits={await loadAgentLimitShares()} range={range} paused={paused} />
       <DeadLetters letters={await loadDeadLetters(since)} />
     </>
   );

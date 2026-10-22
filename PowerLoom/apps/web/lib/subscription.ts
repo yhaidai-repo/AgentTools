@@ -1,4 +1,4 @@
-import { runSubscriptionShares, subscriptionStatus, type RunSubscriptionShare, type SubscriptionStatus, type UsageRecord } from "@agenttools/usage";
+import { currentWindowShares, runSubscriptionShares, subscriptionStatus, type CurrentWindowShare, type RunSubscriptionShare, type SubscriptionStatus, type UsageRecord } from "@agenttools/usage";
 import { getUsageStore } from "./usage";
 
 // The longest window is a week; one more day covers a run that started before the window did.
@@ -21,6 +21,12 @@ export async function loadRunShares(): Promise<Map<string, RunSubscriptionShare[
   }
 
   return byRun;
+}
+
+// Each agent's share of the limits' current periods (user request 2026-10-22: limits on the agent grid). Like the meters,
+// these are the account's, so every vault's runs count.
+export async function loadAgentLimitShares(): Promise<Map<string, CurrentWindowShare[]>> {
+  return currentWindowShares(await recentRecords(), "agent");
 }
 
 function recentRecords(): Promise<UsageRecord[]> {

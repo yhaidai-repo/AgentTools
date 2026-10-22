@@ -203,6 +203,21 @@
   opacity: 0.8;
 }
 
+/* One limit per line under the cost: its label and share, then its bar against the whole limit. */
+.limit-use {
+  margin-top: 6px;
+}
+
+.limit-use small {
+  display: block;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.limit-use .cost-bar {
+  margin-top: 2px;
+}
+
 .last-run {
   display: inline-flex;
   align-items: center;

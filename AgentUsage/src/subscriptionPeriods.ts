@@ -30,7 +30,7 @@ export function runSubscriptionShares(records: UsageRecord[]): RunSubscriptionSh
   return runWindows(records).map(({ record, usage }) => {
     const period = periods.get(periodKey(usage.provider, usage.window, usage.resetsAt))!;
 
-    return { runId: record.runId, provider: usage.provider, window: usage.window, label: usage.label, share: costShare(period, record) };
+    return { runId: record.runId, provider: usage.provider, window: usage.window, label: usage.label, resetsAt: usage.resetsAt, share: costShare(period, record) };
   });
 }
 

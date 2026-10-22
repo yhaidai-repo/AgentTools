@@ -4,6 +4,8 @@ export interface RunSubscriptionShare {
   provider: string;
   window: string;
   label: string;
+  /** ISO time the window period resets, which tells the period. */
+  resetsAt: string | null;
   /** 0–1. */
   share: number;
 }
