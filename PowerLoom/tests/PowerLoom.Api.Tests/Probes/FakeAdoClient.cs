@@ -21,6 +21,9 @@ public sealed class FakeAdoClient : IAdoClient
     // "<repoId>:<branch>" → head commit.
     public Dictionary<string, string> BranchHeads { get; } = [];
 
+    // Repos whose refs Azure DevOps refuses, as it does for a repo asked in the wrong project (TF401019).
+    public HashSet<string> RefusedRepos { get; } = [];
+
     public Dictionary<int, AdoPullRequestDetails> Details { get; } = [];
 
     // PR id → people's comments on its threads.
@@ -70,7 +73,13 @@ public sealed class FakeAdoClient : IAdoClient
         return Task.FromResult<IReadOnlyList<AdoThreadComment>>(Threads.GetValueOrDefault(pullRequestId, []));
     }
 
-    public Task<string?> GetBranchHeadAsync(string repoId, string branch, CancellationToken cancellation) => Task.FromResult(BranchHeads.GetValueOrDefault($"{repoId}:{branch}"));
+    public Task<string?> GetBranchHeadAsync(string repoId, string branch, CancellationToken cancellation)
+    {
+        if (RefusedRepos.Contains(repoId))
+            throw new AdoRequestException(404, $"TF401019: The Git repository with name or identifier {repoId} does not exist.");
+
+        return Task.FromResult(BranchHeads.GetValueOrDefault($"{repoId}:{branch}"));
+    }
 
     public Task<AdoDownload> DownloadAttachmentAsync(string url, CancellationToken cancellation)
     {

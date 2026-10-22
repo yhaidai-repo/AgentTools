@@ -23,6 +23,9 @@ public sealed class AddReviewTests(PowerLoomHost host)
 {
     private const string RepoId = "r-AddPortal";
     private const string RepoName = "AddPortal";
+    private const string OtherRepoId = "r-AddOtherCore";
+    private const string OtherRepoName = "AddOtherCore";
+    private const string OtherProject = "Other Core";
     private const int Pbi = 74501;
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
@@ -110,6 +113,51 @@ public sealed class AddReviewTests(PowerLoomHost host)
         Assert.Equal($"https://dev.azure.com/org/proj/_git/{RepoName}?version=GBfeature%2F74501-pc", pushed.Url);
     }
 
+    // A repo in another ADO project than the vault's (AA Core, 2026-10-22): its calls go to its own project, on Add review
+    // and on the sync's refresh.
+    [Fact]
+    public async Task A_repo_of_another_ADO_project_is_asked_in_its_own_project()
+    {
+        await SeedAsync();
+        await SeedOtherProjectRepoAsync();
+        var ado = Ado();
+        var factory = host.Host.Services.GetRequiredService<FakeAdoClientFactory>();
+        ado.PullRequests = [];
+        ado.BranchHeads[$"{OtherRepoId}:feature/74501-other"] = "o1";
+
+        var added = await host.Host.PostJson(new AddReviewRequest(PowerLoomHost.Vault, OtherRepoName, "feature/74501-other", null, null), "/api/reviews").Receive<AddedReview>();
+        var askedOnAdd = factory.LastConnection!.Project;
+        factory.Connections.Clear();
+        ado.BranchHeads[$"{OtherRepoId}:feature/74501-other"] = "o2";
+        await Sync();
+        var moved = await RowAsync(added!.PrId);
+
+        Assert.Equal(("branch", OtherProject), (added.Kind, askedOnAdd));
+        Assert.Contains(factory.Connections, connection => connection.Project == OtherProject);
+        Assert.Equal("o2", moved.SourceCommit);
+    }
+
+    [Fact]
+    public async Task An_Azure_DevOps_refusal_is_shown_instead_of_a_server_error()
+    {
+        await SeedAsync();
+        await SeedOtherProjectRepoAsync();
+        var ado = Ado();
+        ado.PullRequests = [];
+        ado.RefusedRepos.Add(OtherRepoId);
+
+        try
+        {
+            var refused = await PostAsync(new AddReviewRequest(PowerLoomHost.Vault, OtherRepoName, "feature/74501-refused", null, null), 502);
+
+            Assert.Contains($"Azure DevOps answered 404 for {OtherRepoName} (project {OtherProject}): TF401019", refused);
+        }
+        finally
+        {
+            ado.RefusedRepos.Remove(OtherRepoId);
+        }
+    }
+
     private async Task<ReviewsResult?> QueueAsync(int prId) => await host.Host.PostJson(new ReviewIds([prId]), "/api/reviews/queue").Receive<ReviewsResult>();
 
     private static AddReviewRequest Request(string branch) => new(PowerLoomHost.Vault, RepoName, branch, null, null);
@@ -147,6 +195,18 @@ public sealed class AddReviewTests(PowerLoomHost host)
         if (!await db.WorkItems.AnyAsync(item => item.AdoId == Pbi))
             db.WorkItems.Add(new WorkItem { AdoId = Pbi, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Add review PBI", AdoState = "Active", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Development, SyncedAt = DateTime.UtcNow });
 
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SeedOtherProjectRepoAsync()
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        if (await db.Repos.AnyAsync(repo => repo.Id == OtherRepoId))
+            return;
+
+        db.Repos.Add(new Repo { Id = OtherRepoId, AdoProject = OtherProject, Name = OtherRepoName, RemoteUrl = $"https://org@dev.azure.com/org/Other%20Core/_git/{OtherRepoName}", DefaultBranch = "refs/heads/master", Vault = PowerLoomHost.Vault });
         await db.SaveChangesAsync();
     }
 

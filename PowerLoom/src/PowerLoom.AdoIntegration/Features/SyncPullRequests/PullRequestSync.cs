@@ -15,7 +15,7 @@ using PowerLoom.Persistence.Reviews;
 namespace PowerLoom.AdoIntegration.Features.SyncPullRequests;
 
 // One check of the vault's pull requests; the database only (the review's notes come from the review runs).
-public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader agents, ILocalBranches localBranches)
+public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader agents, ILocalBranches localBranches, IAdoClientFactory clients)
 {
     private const string Actor = "pull-requests";
     private const string UnlistedReason = "The PR was completed or abandoned in Azure DevOps, or you're no longer a reviewer.";
@@ -44,7 +44,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
 
         var added = await AddNewReviewsAsync(listed, cancellation);
         var closed = await CloseUnlistedAsync(listed, mine, cancellation);
-        var branches = await RefreshBranchReviewsAsync(vault, client, cancellation);
+        var branches = await RefreshBranchReviewsAsync(vault, ado, client, cancellation);
         var followUps = await QueueForReviewerCommentsAsync(listed, ado, client, cancellation);
 
         var branchNote = branches > 0 ? $", {branches} branch review(s) moved or closed" : "";
@@ -99,15 +99,31 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
 
     // A branch review follows its branch: in Azure DevOps (a push moves its head, the list shows new commits), else on the
     // PC through DevHub (a branch pushed since becomes an ADO branch review); gone from both, it closes.
-    private async Task<int> RefreshBranchReviewsAsync(string vault, IAdoClient client, CancellationToken cancellation)
+    private async Task<int> RefreshBranchReviewsAsync(string vault, AdoSettings ado, IAdoClient vaultClient, CancellationToken cancellation)
     {
         var rows = await db.PullRequests.Where(row => row.Vault == vault && (row.Origin == PullRequestOrigin.Local || row.Origin == PullRequestOrigin.Pc) && row.IsListed).ToListAsync(cancellation);
+        var projects = await RepoProjectsAsync(vault, rows, cancellation);
         var changed = 0;
 
         foreach (var row in rows)
-            changed += await RefreshBranchReviewAsync(row, client, cancellation) ? 1 : 0;
+            changed += await RefreshBranchReviewAsync(row, ClientOf(row, projects, ado, vaultClient), cancellation) ? 1 : 0;
 
         return changed;
+    }
+
+    private async Task<Dictionary<string, string>> RepoProjectsAsync(string vault, List<PullRequest> rows, CancellationToken cancellation)
+    {
+        var ids = rows.Select(row => row.RepoId).Distinct().ToList();
+
+        return await db.Repos.Where(repo => repo.Vault == vault && ids.Contains(repo.Id)).ToDictionaryAsync(repo => repo.Id, repo => repo.AdoProject, cancellation);
+    }
+
+    // A branch review's refs are read in its repo's own ADO project (AdoRepoConnection).
+    private IAdoClient ClientOf(PullRequest row, Dictionary<string, string> projects, AdoSettings ado, IAdoClient vaultClient)
+    {
+        var project = projects.GetValueOrDefault(row.RepoId);
+
+        return string.IsNullOrWhiteSpace(project) || project == ado.Project ? vaultClient : clients.For(AdoRepoConnection.For(ado, project));
     }
 
     private async Task<bool> RefreshBranchReviewAsync(PullRequest row, IAdoClient client, CancellationToken cancellation)

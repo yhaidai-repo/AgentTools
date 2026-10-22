@@ -42,13 +42,32 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
         if (repo is null)
             return Outcome<AddedReview>.Failure(Problem.NotFound($"{request.Repo} isn't an enabled Azure DevOps repository of {request.Vault}."));
 
-        var client = clients.For(new AdoConnection(ado.OrgUrl, ado.Project, ado.Team, ado.Pat));
+        var client = clients.For(AdoRepoConnection.For(ado, repo.AdoProject));
+
+        try
+        {
+            return await AddFromAdoAsync(request, client, repo, branch, cancellation);
+        }
+        catch (AdoRequestException error)
+        {
+            return Outcome<AddedReview>.Failure(AdoRefused(repo, error));
+        }
+    }
+
+    private async Task<Outcome<AddedReview>> AddFromAdoAsync(AddReviewRequest request, IAdoClient client, Repo repo, string branch, CancellationToken cancellation)
+    {
         var pr = (await client.ListActivePullRequestsAsync(cancellation)).Where(candidate => candidate.RepoId == repo.Id && candidate.SourceRef == BranchPrefix + branch && candidate.SourceCommit is not null).MaxBy(candidate => candidate.Id);
 
         if (pr is not null)
             return Outcome<AddedReview>.Success(await AddPullRequestAsync(request.Vault, client, pr, cancellation));
 
         return await AddBranchReviewAsync(request, client, repo, branch, cancellation);
+    }
+
+    // Azure DevOps refusing a call (no permission, a repo gone) is the user's to see, not a 500.
+    private static Problem AdoRefused(Repo repo, AdoRequestException error)
+    {
+        return new Problem(502, $"Azure DevOps answered {error.Status} for {repo.Name} (project {repo.AdoProject}): {error.Message}");
     }
 
     private async Task<Repo?> RepoOfAsync(string vault, string name, CancellationToken cancellation)
