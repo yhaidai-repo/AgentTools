@@ -25,7 +25,7 @@ const MAX_TRANSCRIPT_CHARS = 150_000;
 export async function runMeetingNotesTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps, agent } = context;
   const info: AgentRunInfo = {
-    stage: agent.id as Stage,
+    stage: agent.id,
     pbiId: null,
     itemId: task.id,
     labels: { agent: agent.id, item: task.id },

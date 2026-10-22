@@ -68,7 +68,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var run = new AgentRun { PbiId = adoId, Stage = Stage.Research, Outcome = RunOutcome.Success, EndedAt = DateTime.UtcNow };
+        var run = new AgentRun { PbiId = adoId, Stage = "research", Outcome = RunOutcome.Success, EndedAt = DateTime.UtcNow };
         var capture = new VaultCapture { Run = run, PbiId = adoId, Title = "Topic", Project = "pvs", Target = "[[pvs-index]]", Captured = "[]", ToFill = "[]", Name = captureName, Assumptions = "[]", Status = "created", Errors = "[]" };
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Researching, SyncedAt = DateTime.UtcNow });

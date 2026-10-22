@@ -1,3 +1,4 @@
+using PowerLoom.Persistence.Runs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PowerLoom.Domain.Pbis;
@@ -16,7 +17,7 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
     private const int RecentSyncRuns = 10;
     private const string AgentPrefix = "agent:";
 
-    private static readonly Stage[] SyncStages = [Stage.Sync, Stage.PullRequests];
+    private static readonly string[] SyncStages = [JobStages.Sync, JobStages.PullRequests];
     private static readonly KebabCaseNameTranslator Labels = new();
 
     public async Task<List<RunInProgress>> InProgressAsync(DateTimeOffset now, CancellationToken cancellation)
@@ -60,7 +61,7 @@ public sealed class RunsStatusProbe(PowerLoomDbContext db, AgentConfigReader age
             .Select(run => new { run.ItemId, run.Stage })
             .ToListAsync(cancellation);
 
-        return runs.GroupBy(run => run.ItemId!).ToDictionary(group => group.Key, group => Labels.TranslateMemberName(group.Last().Stage.ToString()));
+        return runs.GroupBy(run => run.ItemId!).ToDictionary(group => group.Key, group => group.Last().Stage);
     }
 
     private static string AgentOf(string taskId, string assignee, Dictionary<string, string> runningAgents)

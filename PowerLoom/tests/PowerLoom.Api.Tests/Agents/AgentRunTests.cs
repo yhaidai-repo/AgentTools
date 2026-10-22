@@ -137,7 +137,7 @@ public sealed class AgentRunTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var run = new AgentRun { PbiId = adoId, ItemId = taskId, Stage = Stage.Design, Outcome = RunOutcome.Running };
+        var run = new AgentRun { PbiId = adoId, ItemId = taskId, Stage = "design", Outcome = RunOutcome.Running };
 
         db.AgentRuns.Add(run);
         await db.SaveChangesAsync();

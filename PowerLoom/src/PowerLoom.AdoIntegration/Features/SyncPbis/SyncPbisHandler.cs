@@ -17,7 +17,7 @@ public static class SyncPbisHandler
 {
     public static async Task Handle(SyncPbis message, AdoSettingsStore settings, IAdoClientFactory clients, PowerLoomDbContext db, SprintSync sprintSync, ImportSync importSync, SinglePbiSync singleSync, DiscussionSync discussions, IMessageBus bus, ILogger<SyncPbis> logger, CancellationToken cancellation)
     {
-        var runId = await JobRuns.StartAsync(db, Stage.Sync, cancellation);
+        var runId = await JobRuns.StartAsync(db, JobStages.Sync, cancellation);
 
         try
         {

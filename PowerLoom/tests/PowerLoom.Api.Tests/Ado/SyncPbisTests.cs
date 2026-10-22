@@ -1,3 +1,4 @@
+using PowerLoom.Persistence.Runs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client.Models;
@@ -310,7 +311,7 @@ public sealed class SyncPbisTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().AgentRuns.AsNoTracking().Where(run => run.Stage == Stage.Sync).OrderByDescending(run => run.Id).Select(run => run.Outcome).FirstAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().AgentRuns.AsNoTracking().Where(run => run.Stage == JobStages.Sync).OrderByDescending(run => run.Id).Select(run => run.Outcome).FirstAsync();
     }
 
     private async Task<decimal?> SnapshotEffortAsync(int adoId)

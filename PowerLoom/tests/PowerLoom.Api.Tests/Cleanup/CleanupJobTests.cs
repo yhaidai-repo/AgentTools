@@ -138,8 +138,8 @@ public sealed class CleanupJobTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var oldRun = new AgentRun { PbiId = ClosedPbi, Stage = Stage.Research, Outcome = RunOutcome.Success, StartedAt = RunEnded, EndedAt = RunEnded.AddMinutes(5) };
-        var failedRun = new AgentRun { PbiId = ClosedPbi, Stage = Stage.Research, Outcome = RunOutcome.Success, StartedAt = RunEnded, EndedAt = RunEnded.AddMinutes(5) };
+        var oldRun = new AgentRun { PbiId = ClosedPbi, Stage = "research", Outcome = RunOutcome.Success, StartedAt = RunEnded, EndedAt = RunEnded.AddMinutes(5) };
+        var failedRun = new AgentRun { PbiId = ClosedPbi, Stage = "research", Outcome = RunOutcome.Success, StartedAt = RunEnded, EndedAt = RunEnded.AddMinutes(5) };
 
         db.WorkItems.Add(Pbi(ClosedPbi, PipelineStatus.Closed, $"{ClosedFolder}/PBI-{ClosedPbi}.md"));
         db.WorkItems.Add(Pbi(OpenPbi, PipelineStatus.Development, $"{OpenFolder}/PBI-{OpenPbi}.md"));

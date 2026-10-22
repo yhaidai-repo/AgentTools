@@ -23,7 +23,6 @@ public static class PowerLoomEnumMapping
         npgsql.MapEnum<ReviewSeverity>("review_severity", nameTranslator: kebab);
         npgsql.MapEnum<ReviewStatus>("review_status", nameTranslator: kebab);
         npgsql.MapEnum<RunOutcome>("run_outcome", nameTranslator: kebab);
-        npgsql.MapEnum<Stage>("stage", nameTranslator: kebab);
         npgsql.MapEnum<VaultReviewAction>("vault_review_action", nameTranslator: kebab);
         npgsql.MapEnum<WorkItemSource>("work_item_source", nameTranslator: kebab);
 

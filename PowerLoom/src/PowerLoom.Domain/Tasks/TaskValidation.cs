@@ -110,7 +110,7 @@ public static class TaskValidation
             .Join(db.AgentRuns.AsNoTracking(), capture => capture.RunId, run => run.Id, (capture, run) => new { capture.Name, run.Stage })
             .ToListAsync(cancellation);
         var stuck = await StuckDraftsAsync(db, cancellation);
-        var names = drafts.Where(draft => Labels.TranslateMemberName(draft.Stage.ToString()) != agentId && !stuck.Contains(draft.Name)).Select(draft => draft.Name).ToList();
+        var names = drafts.Where(draft => draft.Stage != agentId && !stuck.Contains(draft.Name)).Select(draft => draft.Name).ToList();
 
         return names.Count > 0 ? [$"Vault drafts not merged: {string.Join(", ", names)}"] : [];
     }
