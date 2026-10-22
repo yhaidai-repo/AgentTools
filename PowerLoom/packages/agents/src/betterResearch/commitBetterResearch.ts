@@ -1,54 +1,47 @@
 import { setItemStatus, vaultOfPbiSql } from "@powerloom/core";
-import { agentRun, localItem, type PowerLoomDb, type workItem } from "@powerloom/db";
-import { eq } from "drizzle-orm";
+import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { commitRelevantPages } from "../relevantPages";
 import { supersedeEarlierResults } from "../research/commitResearch";
 import type { ResearchResultOutput } from "../research/models/ResearchResultOutput";
-import { commitCreatedTasks, nextId } from "../taskCreation/commitCreatedTasks";
-import { commitCaptures } from "../vaultCapture";
-import type { BetterResearchDraft } from "./models/BetterResearchDraft";
+import { nextId } from "../taskCreation/commitCreatedTasks";
+import type { RelevantPage } from "../models/RelevantPage";
 import type { BetterResearchResult } from "./models/BetterResearchResult";
 
-const ACTOR = "agent:better-research";
 const RESULT_VERSION = 2;
 
 type ItemRow = typeof localItem.$inferSelect;
-type WorkItemRow = typeof workItem.$inferSelect;
 
-// Writes a successful run: the result, the tasks it created, drafts and pages; closes the task. A task without a PBI
-// gets the same result item, numbered across the app; drafts and pages belong to a PBI, so it has none.
-export async function commitBetterResearch(
+// Writes the run's research result (stage 2b, 2026-10-23: a granted writer, so the toolset has written the tasks and
+// drafts already): the RR item, the relevant pages, earlier results superseded, the task closed. A task without a PBI
+// gets the same result item, numbered across the app; pages belong to a PBI, so it has none. Returns the item's id.
+export async function commitResearchResult(
   db: PowerLoomDb,
   task: ItemRow,
-  pbi: WorkItemRow | null,
   runId: number,
-  draft: BetterResearchDraft & { result: BetterResearchResult },
+  agentId: string,
+  draft: { result: BetterResearchResult; pages: RelevantPage[] },
+  taskIds: string[],
   extra: { commits: Record<string, string>; docsRead: string[]; docsVault: string },
 ): Promise<string[]> {
-  const pbiId = pbi?.adoId ?? null;
-  const depth = Number((task.data as { depth?: number } | null)?.depth ?? 1);
-  const taskIds = await commitCreatedTasks(db, { pbiId, vault: task.vault, parentTaskId: task.id, runId, depth, docsVault: extra.docsVault }, draft.tasks);
+  const actor = `agent:${agentId}`;
   const data = { ...readableResult(draft.result), result: draft.result, resultVersion: RESULT_VERSION, next: { taskIds, reason: draft.result.nextReason }, commits: extra.commits, docsRead: extra.docsRead };
-  const resultId = await insertResult(db, task, pbiId, runId, draft.result.conclusion, data);
-  const captureIds = pbiId === null ? [] : await commitCaptures(db, runId, pbiId, task.id, draft.captures);
-  const outputs = [resultId, ...taskIds, ...captureIds];
+  const resultId = await insertResult(db, task, runId, actor, draft.result.conclusion, data);
 
-  if (pbiId !== null) {
-    await commitRelevantPages(db, pbiId, draft.pages, "research");
+  if (task.pbiId !== null) {
+    await commitRelevantPages(db, task.pbiId, draft.pages, "research");
   }
 
   await supersedeEarlierResults(db, task.id, resultId, runId);
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
-  await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
+  await setItemStatus(db, task.id, "in-progress", "done", actor, runId);
 
-  return outputs;
+  return [resultId];
 }
 
-async function insertResult(db: PowerLoomDb, task: ItemRow, pbiId: number | null, runId: number, conclusion: string, data: object): Promise<string> {
-  const id = await nextId(db, "RR", pbiId);
-  const vault = pbiId === null ? task.vault : vaultOfPbiSql(pbiId);
+async function insertResult(db: PowerLoomDb, task: ItemRow, runId: number, actor: string, conclusion: string, data: object): Promise<string> {
+  const id = await nextId(db, "RR", task.pbiId);
+  const vault = task.pbiId === null ? task.vault : vaultOfPbiSql(task.pbiId);
 
-  await db.insert(localItem).values({ id, kind: "research-result", pbiId, vault, parentId: task.id, title: `Result: ${task.title}`.slice(0, 120), status: "final", assignee: ACTOR, body: conclusion, data, createdByRun: runId });
+  await db.insert(localItem).values({ id, kind: "research-result", pbiId: task.pbiId, vault, parentId: task.id, title: `Result: ${task.title}`.slice(0, 120), status: "final", assignee: actor, body: conclusion, data, createdByRun: runId });
 
   return id;
 }

@@ -1,9 +1,11 @@
+import type { AgentDefinition } from "@agenttools/config";
 import type { AgentEvent, ToolDefinition } from "@agenttools/runtime";
 import { localItem } from "@powerloom/db";
 import { createAdoTools } from "../ado/adoTools";
 import type { AgentRunSession } from "../AgentRunSession";
 import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azure/azureTools";
+import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterResearch/ResearchResultWriter";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -32,6 +34,8 @@ import type { WebDocumentRun } from "../webDocuments/models/WebDocumentRun";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import type { CommittedToolset } from "./models/CommittedToolset";
+import type { RunWriter } from "./models/RunWriter";
+import type { WriterTarget } from "./models/WriterTarget";
 import type { ToolsetInput } from "./models/ToolsetInput";
 import { depthOf, taskLimits } from "./taskLimits";
 
@@ -49,6 +53,8 @@ export class AgentToolset {
   readonly estimate: RunEstimate;
   /** What write_result recorded; committed with commit(). */
   readonly result = new RunResult();
+  /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
+  private readonly writers: RunWriter[];
   private log: ReadLog | null = null;
 
   private constructor(
@@ -63,6 +69,7 @@ export class AgentToolset {
     this.tasks = input.tasks ?? [];
     this.captures = input.captures ?? [];
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
+    this.writers = grantedWriters(context.agent);
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -108,12 +115,24 @@ export class AgentToolset {
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, taskIds, repos: this.input.repos });
     const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
 
-    await addRunOutputs(deps.db, runId, [...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
+    await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
     await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
+  }
+
+  // One writer after the other: each may read what the one before wrote.
+  private async commitWriters(target: WriterTarget): Promise<string[]> {
+    const ids: string[] = [];
+
+    for (const writer of this.writers) {
+      ids.push(...(await writer.commit(target)));
+    }
+
+    return ids;
   }
 
   private readingTools(): ToolDefinition<any>[] {
@@ -153,7 +172,15 @@ export class AgentToolset {
       ...createWebDocumentTools(deps.db, this.webDocuments),
       ...(deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : []),
       ...createEstimateTools(this.estimate),
+      ...this.writers.flatMap((writer) => writer.tools(log)),
       createResultTool(this.result, log),
     ];
   }
+}
+
+// The output tools the agent's Config grants, by integration key.
+function grantedWriters(agent: AgentDefinition): RunWriter[] {
+  const integrations = agent.capabilities.integrations ?? {};
+
+  return integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : [];
 }

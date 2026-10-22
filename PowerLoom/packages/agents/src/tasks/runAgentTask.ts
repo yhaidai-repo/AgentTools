@@ -12,7 +12,6 @@ import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
-import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runBetterReviewTask } from "../betterReview/runBetterReviewTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
@@ -28,7 +27,6 @@ type ItemRow = typeof localItem.$inferSelect;
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
-  "better-research": runBetterResearchTask,
   "better-refinement": runBetterRefinementTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,

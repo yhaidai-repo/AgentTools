@@ -40,7 +40,8 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
 
-    return await session.finish(ran, () => commit(deps.db, task, session.runId, run));
+    // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
+    return await session.finish(ran, () => commit(deps.db, task, session.runId, run), run.toolset?.result.isWritten ?? false);
   } finally {
     closeRepos(deps, run.repos);
   }
