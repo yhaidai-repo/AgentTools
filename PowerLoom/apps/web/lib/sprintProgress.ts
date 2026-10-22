@@ -4,13 +4,14 @@ import type { SprintDay } from "@/models/SprintDay";
 import type { SprintSummary } from "@/models/SprintSummary";
 import { getDb } from "./db";
 
-// Ready for Release and Done are one series of the sprint chart (user decision 2026-10-21): both mean the item's sprint
-// work is over.
+// Neighbouring states that mean the same for a sprint are one series of its chart (user decisions 2026-10-21 and
+// 2026-10-22): To Do and Ready for Dev (not started), Ready for Release and Done (the sprint's work is over).
+const TODO_OR_READY = "To Do / Ready for Dev";
 const RELEASE_OR_DONE = "Ready for release / Done";
-const MERGED_STATES: Record<string, string> = { "Ready for Release": RELEASE_OR_DONE, Done: RELEASE_OR_DONE };
+const MERGED_STATES: Record<string, string> = { "To Do": TODO_OR_READY, "Ready for Dev": TODO_OR_READY, "Ready for Release": RELEASE_OR_DONE, Done: RELEASE_OR_DONE };
 
 // ADO states in the order a sprint item moves through them; states ADO adds later go after, as they come.
-export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", "In Progress", "Active", "Rework Required", "Code Review", "Testing", "Ready for Release", RELEASE_OR_DONE, "Resolved", "Done", "Closed"];
+export const ADO_STATE_ORDER = ["New", "Approved", "Committed", "To Do", "Ready for Dev", TODO_OR_READY, "In Progress", "Active", "Rework Required", "Code Review", "Testing", "Ready for Release", RELEASE_OR_DONE, "Resolved", "Done", "Closed"];
 
 // Ready for Release counts as done: the sprint's work is over by then (user decision 2026-10-13).
 const DONE_STATES = ["Ready for Release", RELEASE_OR_DONE, "Done", "Closed"];
@@ -24,6 +25,7 @@ const STATE_COLORS: Record<string, string> = {
   Committed: "var(--state-todo)",
   "To Do": "var(--state-todo)",
   "Ready for Dev": "var(--state-ready)",
+  [TODO_OR_READY]: "var(--state-ready)",
   "In Progress": "var(--state-progress)",
   Active: "var(--state-progress)",
   "Rework Required": "var(--state-rework)",
