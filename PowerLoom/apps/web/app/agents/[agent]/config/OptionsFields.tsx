@@ -13,9 +13,17 @@ export function OptionsFields({ agent }: { agent: AgentDefinition }) {
       {agent.optionSpecs.map((spec) => (
         <label key={spec.key} className="option-row">
           <span className="option-text">{spec.label}<small>{spec.min}–{spec.max} · {spec.description}</small></span>
-          <input name={`option:${spec.key}`} type="number" min={spec.min} max={spec.max} step={1} defaultValue={Number(agent.options[spec.key])} required />
+          <input name={`option:${spec.key}`} type="number" min={spec.min} max={spec.max} step={1} defaultValue={valueOf(agent, spec.key, spec.min)} required />
         </label>
       ))}
     </section>
   );
+}
+
+// An option the definition doesn't hold yet (a spec added after the agent was saved, or an agent copied from one without
+// it) shows the range's minimum: an empty required field would block the whole form silently.
+function valueOf(agent: AgentDefinition, key: string, fallback: number): number {
+  const value = agent.options[key];
+
+  return typeof value === "number" ? value : fallback;
 }
