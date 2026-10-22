@@ -10,3 +10,9 @@ type ItemRow = typeof localItem.$inferSelect;
 export function isCancellableTask(item: ItemRow): boolean {
   return agentIdOf(item.assignee) !== null && CANCELLABLE.includes(item.status);
 }
+
+// The Tasks list cancels in bulk (user request 2026-10-22): those agent tasks, and a human task that still waits on the
+// person (its own page cancels it through the close form).
+export function isCancellableFromTaskList(item: ItemRow): boolean {
+  return isCancellableTask(item) || (item.kind === "human" && item.status === "open");
+}

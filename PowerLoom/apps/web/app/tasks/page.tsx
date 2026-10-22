@@ -1,9 +1,10 @@
-import { isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
+import { isCancellableFromTaskList, isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
 import { Pager } from "@/components/Pager";
 import { RememberFilters } from "@/components/RememberFilters";
+import { SelectAll } from "@/components/SelectAll";
 import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
 import { currentVault } from "@/lib/currentVault";
@@ -15,6 +16,7 @@ import { TASK_KINDS, TASK_PAGE_SIZES, bucketOf, countBy, loadTaskList, matchesTa
 import { isHumanWork } from "@/lib/taskLooks";
 import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
+import { CancelTasksForm } from "./CancelTasksForm";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
 import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
@@ -52,7 +54,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
       </div>
       <RememberFilters vault={vault} />
       <TaskFilters filter={filter} total={ofKind.length} buckets={countBy(ofKind, bucketOf)} kinds={withChosenKind(countBy(ofStatus, (row) => row.kind), filter.kind)} />
-      {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} />}
+      {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <CancelTasksForm><TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></CancelTasksForm>}
       {shown.length > 0 && <Pager page={page} size={filter.size} sizes={TASK_PAGE_SIZES} pages={pages} total={shown.length} noun="tasks" hrefOf={(change) => tasksUrl({ ...filter, page: change.page, size: change.size ?? filter.size })} />}
       <div className="section-label">Scheduled tasks</div>
       <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
@@ -78,14 +80,14 @@ function filterOf(params: Record<string, string | undefined>): TaskFilter {
   };
 }
 
-// Four columns, like the Backlog: the facts of a task go on a quiet line under its title. Human work is warm, and while
+// A select column and four columns, like the Backlog: the facts of a task go on a quiet line under its title. Human work is warm, and while
 // it waits on you its row has an amber edge (user request 2026-10-18).
 function TaskTable({ rows }: { rows: TaskRow[] }) {
   return (
     <div className="panel task-table">
       <table className="data-table">
         <thead>
-          <tr><th className="col-id">ID</th><th>Task</th><th className="col-state">Status</th><th className="col-updated num">Updated</th></tr>
+          <tr><th className="col-select"><SelectAll name="taskId" /></th><th className="col-id">ID</th><th>Task</th><th className="col-state">Status</th><th className="col-updated num">Updated</th></tr>
         </thead>
         <tbody>
           {rows.map((row) => <TaskRowView key={row.id} row={row} />)}
@@ -101,6 +103,7 @@ function TaskRowView({ row }: { row: TaskRow }) {
 
   return (
     <tr className={classes || undefined}>
+      <td className="col-select">{isCancellableFromTaskList(row) && <input type="checkbox" name="taskId" value={row.id} aria-label={`Select ${row.id}`} />}</td>
       <td className="col-id"><Link href={itemPath(row)} className="id">{row.id}</Link></td>
       <td className="title">
         <Link href={itemPath(row)} className="row-title" title={row.title}>{row.title}</Link>

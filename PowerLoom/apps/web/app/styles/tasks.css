@@ -74,6 +74,11 @@
   table-layout: fixed;
 }
 
+.task-table .col-select {
+  width: 40px;
+  padding-right: 0;
+}
+
 .task-table .col-id {
   width: 150px;
   white-space: nowrap;
