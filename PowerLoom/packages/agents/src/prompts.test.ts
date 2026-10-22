@@ -34,7 +34,7 @@ describe("loadPrompt", () => {
   it("keeps today's prompts unchanged", async () => {
     const prompt = await loadPrompt("design", { team: "Signals" });
 
-    assert.equal(prompt.version, "v7");
+    assert.equal(prompt.version, "v8");
     assert.doesNotMatch(prompt.text, /How you work/);
   });
 
@@ -64,7 +64,7 @@ describe("loadAgentPrompt", () => {
   it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
     const prompt = await loadAgentPrompt("design", "  ", { team: "Signals" });
 
-    assert.equal(prompt.version, "v7");
+    assert.equal(prompt.version, "v8");
   });
 
   it("gives an agent with neither the framework alone", async () => {
