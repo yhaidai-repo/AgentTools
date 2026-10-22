@@ -1,5 +1,6 @@
 export { agentDefinitionSchema, agentsGlobalSchema, validateAgent, validateGlobal } from "./schemas";
 export { isPaused, mergeWithDefaults } from "./defaults";
+export { isRemovable } from "./removable";
 export { modelCatalog } from "./catalog";
 export { PostgresAgentConfigStore } from "./stores/PostgresAgentConfigStore";
 export { JsonFileAgentConfigStore } from "./stores/JsonFileAgentConfigStore";

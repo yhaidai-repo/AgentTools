@@ -13,11 +13,6 @@ export function isUserTask(task: ItemRow): boolean {
   return userTaskData(task).createdBy === CREATED_BY_USER;
 }
 
-// A goal task's goal: the schedule's goal, or the description of a task the user created.
-export function goalTextOf(task: ItemRow, scheduledGoal: string): string {
-  return isUserTask(task) ? (task.body ?? task.title) : scheduledGoal;
-}
-
 // The criteria and the rule that the result answers each one; empty for tasks the user didn't create.
 export function acceptanceCriteriaBlock(task: ItemRow): string {
   if (!isUserTask(task)) {

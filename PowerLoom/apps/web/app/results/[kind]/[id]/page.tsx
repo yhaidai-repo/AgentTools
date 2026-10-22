@@ -9,14 +9,15 @@ import type { ResultVersion } from "@/models/ResultVersion";
 import { ResultBody } from "../../ResultBody";
 import { ResultMeta } from "../../ResultBlock";
 import { ResultVersionPicker } from "../../ResultVersionPicker";
+import { RunResultHeader } from "../../RunResultHeader";
 
 export const dynamic = "force-dynamic";
 
 const ITEM_TITLES: Record<string, string> = { "research-result": "Research result", "test-report": "Test report" };
-const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", design: "Design", estimate: "Estimate", review: "Review" };
+const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", design: "Design", estimate: "Estimate", review: "Review", run: "Run result" };
 
 // One agent result version on a page of its own (user decision 2026-10-21): the whole width, so its tables get room,
-// unfolded, with its other versions one click away.
+// unfolded, with its other versions one click away. A run result starts with where it comes from.
 export default async function ResultPage({ params }: { params: Promise<{ kind: string; id: string }> }) {
   const { kind: kindParam, id } = await params;
   const kind = resultKindOf(kindParam);
@@ -36,7 +37,10 @@ export default async function ResultPage({ params }: { params: Promise<{ kind: s
       <Breadcrumbs crumbs={crumbsOf(owner, title)} />
       <div className="page-head"><h1>{title}</h1></div>
       {version && <VersionBar versions={versions} version={version} />}
-      <section className="card result-page"><ResultBody result={result} /></section>
+      <section className="card result-page">
+        {result.kind === "run" && <RunResultHeader row={result.row} />}
+        <ResultBody result={result} />
+      </section>
     </>
   );
 }

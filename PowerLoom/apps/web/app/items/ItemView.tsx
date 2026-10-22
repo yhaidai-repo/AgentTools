@@ -52,8 +52,8 @@ function TaskNotes({ detail }: { detail: ItemDetail }) {
   );
 }
 
-// An agent task that ran without a PBI (a goal, or a task created on the Tasks page) keeps its result as its resolution,
-// in Markdown (Better Research's goal path); a PBI task's results are separate items, shown by Results.
+// An agent task that ran without a PBI (a task created on the Tasks page) keeps its result as its resolution, in
+// Markdown (Better Research's no-PBI path); a PBI task's results are separate items, shown by Results.
 function AgentResult({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
 

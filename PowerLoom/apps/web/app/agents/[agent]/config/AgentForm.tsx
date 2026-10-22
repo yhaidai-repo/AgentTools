@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { BlockerKind } from "@powerloom/core";
-import type { AgentDefinition, CatalogModel } from "@agenttools/config";
+import { isRemovable, type AgentDefinition, type CatalogModel } from "@agenttools/config";
 import type { SkillCatalog } from "@agenttools/runtime/skills";
 import { CronField } from "@/components/CronField";
 import { DailyBudgetStatus } from "@/components/DailyBudgetStatus";
@@ -14,6 +14,8 @@ import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
 import { saveAgentAction } from "../../configActions";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
+import { DeleteAgentButton } from "./DeleteAgentButton";
+import { PromptField } from "./PromptField";
 import { SkillsField } from "./SkillsField";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
@@ -46,12 +48,14 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         </div>
         <div>
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
+          <PromptField prompt={agent.prompt ?? ""} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
           <OptionsFields agent={agent} />
         </div>
       </div>
       <div className="form-footer">
         <span className="form-footer-note">{result ? <span className={result.ok ? "text-ok" : "text-error"}>{result.message}</span> : "Changes apply to the next run"}</span>
+        {isRemovable(agent) && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
     </form>

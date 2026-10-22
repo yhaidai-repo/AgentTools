@@ -108,3 +108,65 @@
 .result-page {
   padding: 20px 24px;
 }
+
+/* A run result's full page: where it comes from above its body, its evidence, and its data folded. */
+.run-result-head {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+.run-result-head dt {
+  color: var(--muted);
+}
+
+.run-result-head dd {
+  margin: 0;
+}
+
+.run-result-status.status-complete {
+  color: var(--ok);
+}
+
+.run-result-status.status-partial,
+.run-result-status.status-blocked,
+.result-status.status-partial,
+.result-status.status-blocked {
+  color: var(--warn);
+}
+
+.result-status.status-complete {
+  color: var(--ok);
+}
+
+.run-result-evidence {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.run-result-evidence li > span + span {
+  margin-left: 8px;
+}
+
+.run-result-evidence blockquote {
+  margin: 4px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+}
+
+.run-result-data {
+  margin-top: 12px;
+}
+
+.run-result-data > summary {
+  padding: 8px 0;
+}
+
+.run-result-data > pre {
+  margin: 0;
+}

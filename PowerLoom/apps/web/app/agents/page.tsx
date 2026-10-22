@@ -1,4 +1,5 @@
 import { isPaused, type AgentsGlobal } from "@agenttools/config";
+import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
 import { RememberFilters } from "@/components/RememberFilters";
@@ -36,6 +37,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Searc
       <div className="page-head">
         <h1>Agents</h1>
         <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
+        <Link className="button page-action" href="/agents/new">New agent</Link>
         <PauseSwitch isPaused={isPaused(global)} />
       </div>
       <RememberFilters vault={vault} />

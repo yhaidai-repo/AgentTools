@@ -4,6 +4,7 @@ import type { AgentConfigStore } from "../models/AgentConfigStore";
 import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
 import type { ConfigChange } from "../models/ConfigChange";
+import { isRemovable } from "../removable";
 import { validateAgent, validateGlobal } from "../schemas";
 import { CHANGE_CHANNEL, SCHEMA_SQL } from "./postgresSchema";
 
@@ -76,6 +77,21 @@ export class PostgresAgentConfigStore implements AgentConfigStore {
       await client.query(`UNLISTEN ${CHANGE_CHANNEL}`);
       client.release();
     };
+  }
+
+  async remove(id: string): Promise<void> {
+    const agent = await this.get(id);
+
+    if (!agent) {
+      return;
+    }
+
+    if (!isRemovable(agent)) {
+      throw new Error(`Agent "${id}" is shipped with the code and can't be deleted.`);
+    }
+
+    await this.pool.query("DELETE FROM agent_config.agent WHERE id = $1", [id]);
+    await this.notify({ kind: "agent", id });
   }
 
   private async write(agent: AgentDefinition): Promise<void> {

@@ -9,7 +9,8 @@ namespace PowerLoom.Features.Pbis.Notes;
 
 // The one safe way to update the vault for a PBI: nothing but its database state is written (PowerLoom's publishPbi). Its
 // agents' drafts first (a rejected one becomes a human task, which the notes then show), then its notes: refinement
-// note, design note, item notes, the PBI note's regions and the index (unchanged files are skipped).
+// note, design note, item notes, every run's result note, the PBI note's regions and the index (unchanged files are
+// skipped).
 public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, PbiNoteWriter notes, DraftWriter drafts)
 {
     private static readonly KebabCaseNameTranslator Labels = new();
@@ -31,6 +32,7 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
         await WriteRefinementAsync(row.Vault, pbiPath, adoId, cancellation);
         await WriteDesignAsync(row.Vault, pbiPath, adoId, cancellation);
         await WriteItemsAsync(row.Vault, pbiPath, adoId, attachments, cancellation);
+        await WriteResultsAsync(row.Vault, pbiPath, adoId, cancellation);
         // The handoff note moved to the chat notes (chats/pbi-<id>.md, 2026-10-11): one from before is removed.
         files.Remove(row.Vault, BacklogPaths.ImplementNotePath(pbiPath, adoId));
         await notes.WriteIndexAsync(row.Vault, cancellation);
@@ -64,6 +66,19 @@ public sealed class PbiNotesRenderer(PowerLoomDbContext db, BacklogFiles files, 
             NoteJson.List<string>(latest.Assumptions), await PbiEstimates.OfRunAsync(db, latest.RunId, cancellation));
 
         await files.WriteNoteAsync(vault, BacklogPaths.DesignNotePath(pbiPath, adoId), notesSection => DesignNoteRenderer.Render(note, notesSection), cancellation);
+    }
+
+    // Every run's result, one note each under its task (user decision 2026-10-22): a task's history stays readable.
+    private async Task WriteResultsAsync(string vault, string pbiPath, int adoId, CancellationToken cancellation)
+    {
+        var results = await db.RunResults.AsNoTracking().Where(row => row.PbiId == adoId).OrderBy(row => row.CreatedAt).ToListAsync(cancellation);
+
+        foreach (var result in results)
+        {
+            var note = new ResultNote(adoId, result.Id, result.RunId, result.TaskId, result.Agent, result.Status, result.Body, NoteJson.List<ResultEvidence>(result.Evidence), result.CreatedAt);
+
+            await files.WriteNoteAsync(vault, BacklogPaths.ResultNotePath(pbiPath, result.TaskId, result.Id, result.RunId), notesSection => ResultNoteRenderer.Render(note, notesSection), cancellation);
+        }
     }
 
     private async Task WriteItemsAsync(string vault, string pbiPath, int adoId, IReadOnlyList<VaultAttachment> attachments, CancellationToken cancellation)

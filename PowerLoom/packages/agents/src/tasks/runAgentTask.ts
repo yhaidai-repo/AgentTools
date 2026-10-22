@@ -8,8 +8,8 @@ import type { TaskContext } from "../models/TaskContext";
 import type { TaskExecutor } from "../models/TaskExecutor";
 import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
 import { runDesignTask } from "../design/runDesignTask";
-import { runGoalTask } from "../goal/runGoalTask";
-import { loadPrompt } from "../prompts";
+import { runGenericTask } from "../generic/runGenericTask";
+import { loadAgentPrompt } from "../prompts";
 import { runRefinementTask } from "../refinement/runRefinementTask";
 import { runResearchTask } from "../research/runResearchTask";
 import { runBetterResearchTask } from "../betterResearch/runBetterResearchTask";
@@ -24,6 +24,7 @@ import { endTask, failAfterError, releaseTask } from "./endTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
+// Agents with code of their own; any other agent (created in the UI) runs the generic executor (user decision 2026-10-22).
 const EXECUTORS: Record<string, TaskExecutor> = {
   refinement: runRefinementTask,
   research: runResearchTask,
@@ -37,12 +38,6 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   "meeting-notes": runMeetingNotesTask,
   autotest: runAutotestTask,
 };
-
-// Scheduled goal tasks (GT-…) run the generic goal prompt; every other task, with or without a PBI, runs its agent's own
-// executor (user decision 2026-10-14: a task the user creates goes the same way as every other task).
-function runsAsGoal(task: ItemRow): boolean {
-  return task.kind === "goal";
-}
 
 // One task the dispatcher validated and claimed. Rechecked here (the dispatcher's view can be a minute old), run, ended.
 // Returns null when the task was handed back without a run. An unexpected error still ends the task, then fails the job.
@@ -73,7 +68,7 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
     return null;
   }
 
-  const executor = runsAsGoal(task) ? runGoalTask : EXECUTORS[agentId];
+  const executor = EXECUTORS[agentId] ?? runGenericTask;
   const result = await executor(context, task);
 
   console.log(`${agentId} ${task.id}: run ${result.runId} ${result.outcome}, $${result.costUsd.toFixed(4)}${result.error ? ` (${result.error})` : ""}`);
@@ -95,25 +90,12 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
     deps,
     agent,
     global: await deps.config.getGlobal(),
-    prompt: await taskPrompt(agentId, task, { team, agent: agent.label }),
+    prompt: await loadAgentPrompt(agentId, agent.prompt ?? "", { team, agent: agent.label }),
     skills: await loadStageSkills(deps, agent, task.pbiId),
   };
 }
 
-// A goal task has its own prompt (user decision 2026-10-06); every other task uses the agent's.
-async function taskPrompt(agentId: string, task: ItemRow, values: Record<string, string>): Promise<TaskContext["prompt"]> {
-  if (runsAsGoal(task)) {
-    return loadPrompt("goal", values);
-  }
-
-  return EXECUTORS[agentId] ? loadPrompt(agentId, values) : { text: "", version: "none" };
-}
-
 async function refusalReason(context: TaskContext, agentId: string, task: ItemRow): Promise<string | null> {
-  if (!runsAsGoal(task) && !EXECUTORS[agentId]) {
-    return `agent "${agentId}" can't run tasks yet`;
-  }
-
   if (!context.agent.enabled || isPaused(context.global)) {
     return context.agent.enabled ? "agents are paused" : `agent "${agentId}" is disabled`;
   }

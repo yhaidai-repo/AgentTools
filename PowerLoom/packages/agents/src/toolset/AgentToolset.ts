@@ -15,6 +15,9 @@ import { recordReads } from "../evidence/recordReads";
 import type { CaptureDraft } from "../models/CaptureDraft";
 import type { TaskContext } from "../models/TaskContext";
 import { createReadPbiTool } from "../pbiContext/readPbiTool";
+import { commitResult } from "../result/commitResult";
+import { createResultTool } from "../result/resultTool";
+import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
 import { createSqlTools } from "../sqlTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
@@ -36,13 +39,16 @@ type ItemRow = typeof localItem.$inferSelect;
 
 // The tools every agent gets from its Config alone (user decision 2026-10-14: the user gives any agent any tool, no
 // runner decides on its own): docs, the repos it opened plus the vault's catalog, its PBI, every integration switched
-// on, the PBI's web pages, vault drafts, record_estimate when granted, and create_task for the task types it may create. A
-// runner adds only its own result tools. Reads are recorded, so create_task's evidence can cite them in every agent.
+// on, the PBI's web pages, vault drafts, record_estimate when granted, create_task for the task types it may create, and
+// write_result for what the run produced. A runner adds only its own result tools. Reads are recorded, so create_task's
+// evidence can cite them in every agent.
 export class AgentToolset {
   readonly tasks: CreatedTask[];
   readonly captures: CaptureDraft[];
   /** What record_estimate recorded; committed with commit(). */
   readonly estimate: RunEstimate;
+  /** What write_result recorded; committed with commit(). */
+  readonly result = new RunResult();
   private log: ReadLog | null = null;
 
   private constructor(
@@ -94,7 +100,7 @@ export class AgentToolset {
   }
 
   /** Writes what the shared tools noted into arrays of its own (a runner that lent its draft's arrays commits those with
-   *  the draft): the tasks created, the drafts captured, both listed in the run's outputs; and the estimate. */
+   *  the draft): the tasks created, the drafts captured, the result, all listed in the run's outputs; and the estimate. */
   async commit(runId: number): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
@@ -102,7 +108,9 @@ export class AgentToolset {
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
-    await addRunOutputs(deps.db, runId, [...taskIds, ...captureIds]);
+    const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
+
+    await addRunOutputs(deps.db, runId, [...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
     await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
@@ -145,6 +153,7 @@ export class AgentToolset {
       ...createWebDocumentTools(deps.db, this.webDocuments),
       ...(deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : []),
       ...createEstimateTools(this.estimate),
+      createResultTool(this.result, log),
     ];
   }
 }

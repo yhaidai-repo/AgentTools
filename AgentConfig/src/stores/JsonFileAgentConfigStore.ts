@@ -6,6 +6,7 @@ import type { AgentConfigStore } from "../models/AgentConfigStore";
 import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
 import type { ConfigChange } from "../models/ConfigChange";
+import { isRemovable } from "../removable";
 import { validateAgent, validateGlobal } from "../schemas";
 
 interface ConfigFile {
@@ -45,6 +46,23 @@ export class JsonFileAgentConfigStore implements AgentConfigStore {
     const file = await this.read();
 
     await this.write({ ...file, agents: { ...file.agents, [agent.id]: checked.value } });
+  }
+
+  async remove(id: string): Promise<void> {
+    const file = await this.read();
+    const agent = file.agents[id];
+
+    if (!agent) {
+      return;
+    }
+
+    if (!isRemovable(agent)) {
+      throw new Error(`Agent "${id}" is shipped with the code and can't be deleted.`);
+    }
+
+    const { [id]: _removed, ...agents } = file.agents;
+
+    await this.write({ ...file, agents });
   }
 
   async getGlobal(): Promise<AgentsGlobal> {

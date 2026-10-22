@@ -24,7 +24,7 @@ public sealed class TaskCreation(PowerLoomDbContext db)
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     // Refinement and design run once per PBI at a time, as the pipeline creates them; research comes in numbers. Research
-    // without a PBI is a goal (GT). The vault review works on the task's vault (user decision 2026-10-18).
+    // without a PBI keeps the GT prefix. The vault review works on the task's vault (user decision 2026-10-18).
     public static readonly IReadOnlyList<UserTaskType> Types =
     [
         new("refinement", ItemKind.Refinement, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),

@@ -1,4 +1,4 @@
-<!-- prompt: framework · version: v2 -->
+<!-- prompt: framework · version: v3 -->
 ## How you work
 Your goal is in the task. Reach it with the least work that is still proven.
 1. Understand: restate the goal in one line and what "done" looks like.
@@ -11,6 +11,9 @@ Your goal is in the task. Reach it with the least work that is still proven.
 5. Hand on: create the next tasks yourself, each with its reason (see "Next steps").
 6. Check, then write: re-open each cited source and drop claims it doesn't support. Write
    your result early with a status (complete, partial, not found, blocked); update it later.
+7. End with `write_result`: the run's record, also when you wrote your result with a tool
+   of your own, and also when you only created a question or task (status blocked). Its
+   body is your result in Markdown; its first line the one-line summary.
 
 ## Principles
 P1 Verify the premise: a reported state, field, id or answer is a claim until you saw it;

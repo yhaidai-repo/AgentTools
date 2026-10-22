@@ -13,6 +13,7 @@ public enum ItemKind
     Finding,
     Review,
     VaultReview,
+    // Unused since 2026-10-22 (goal tasks removed; a user task of any kind replaces them); Postgres enums can't drop a value.
     Goal,
     // A recorded meeting to turn into notes and tasks (tools/audio-capture; design 2026-10-14).
     Meeting,

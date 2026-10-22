@@ -62,7 +62,7 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
         "ALTER TABLE work_item DROP COLUMN IF EXISTS extra_fields_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS attached_files",
         "ALTER TABLE work_item DROP COLUMN IF EXISTS closed_by_user",
         "ALTER TABLE code_review DROP COLUMN IF EXISTS details", "ALTER TABLE code_review DROP COLUMN IF EXISTS seen_comments", "ALTER TABLE review_comment DROP COLUMN IF EXISTS category",
-        "DROP TABLE IF EXISTS pbi_estimate", "DROP TABLE IF EXISTS code_review_version",
+        "DROP TABLE IF EXISTS pbi_estimate", "DROP TABLE IF EXISTS code_review_version", "DROP TABLE IF EXISTS run_result",
         "DROP INDEX IF EXISTS agent_run_item_idx", "ALTER TABLE agent_run DROP COLUMN IF EXISTS continues_run_id", "ALTER TABLE agent_run DROP COLUMN IF EXISTS conversation_id",
         "ALTER TABLE local_item DROP COLUMN IF EXISTS start_over"];
 

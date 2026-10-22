@@ -1,7 +1,7 @@
 import { readChildItems } from "../bugs/childItems";
 import { estimateText, latestPbiEstimate } from "../pbiEstimates";
 import { pbiRepoEntries } from "../pbiRepos";
-import { design, localItem, refinement, testCase, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
+import { design, localItem, refinement, runResult, testCase, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { and, desc, eq, ne, notInArray } from "drizzle-orm";
 import { LISTED_KINDS } from "./pbiInputs";
 import type { PbiReference } from "../models/PbiReference";
@@ -10,14 +10,16 @@ type WorkItemRow = typeof workItem.$inferSelect;
 
 const TITLE_CHARS = 160;
 
-// What the other blocks don't list: the parent and child items, the latest refinement, design and estimate, the findings,
-// results and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each by reference.
+// What the other blocks don't list: the parent and child items, the latest refinement, design and estimate, every run's
+// result, the findings, results and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each
+// by reference (user decision 2026-10-22: the context lists everything the PBI has).
 export async function loadRelated(db: PowerLoomDb, row: WorkItemRow): Promise<PbiReference[]> {
   return [
     ...parentReference(row),
     ...(await childReferences(db, row.adoId)),
     ...(await versionedReferences(db, row.adoId)),
     ...(await estimateReference(db, row.adoId)),
+    ...(await resultReferences(db, row.adoId)),
     ...(await itemReferences(db, row.adoId)),
     ...(await draftReferences(db, row.adoId)),
     ...(await testCaseReferences(db, row.adoId)),
@@ -72,6 +74,26 @@ async function estimateReference(db: PowerLoomDb, adoId: number): Promise<PbiRef
 }
 
 // Questions, human tasks and research tasks are in <existing-items> already; deleted items stay hidden.
+// Every run's result on the PBI, oldest first: the latest complete one of a task is its current result, the earlier ones
+// its history. The ref stays valid once the run is deleted.
+async function resultReferences(db: PowerLoomDb, adoId: number): Promise<PbiReference[]> {
+  const rows = await db
+    .select({ id: runResult.id, runId: runResult.runId, taskId: runResult.taskId, agent: runResult.agent, status: runResult.status, body: runResult.body })
+    .from(runResult).where(eq(runResult.pbiId, adoId)).orderBy(runResult.createdAt);
+
+  return rows.map((row) => ({ ref: resultRef(row.id), kind: `result of ${row.taskId ?? "a deleted task"} by ${row.agent}`, status: row.status, title: short(resultTitle(row.runId, row.body)) }));
+}
+
+function resultTitle(runId: number | null, body: string): string {
+  const firstLine = body.split(/\r?\n/).find((line) => line.trim())?.replace(/^#+\s*/, "") ?? "-";
+
+  return runId === null ? firstLine : `RUN-${runId}: ${firstLine}`;
+}
+
+export function resultRef(id: number): string {
+  return `RESULT-${id}`;
+}
+
 async function itemReferences(db: PowerLoomDb, adoId: number): Promise<PbiReference[]> {
   const rows = await db
     .select({ id: localItem.id, kind: localItem.kind, status: localItem.status, title: localItem.title })

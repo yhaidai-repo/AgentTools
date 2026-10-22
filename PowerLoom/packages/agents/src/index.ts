@@ -1,6 +1,6 @@
 export { AgentRunSession } from "./AgentRunSession";
 export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
-export { loadPrompt } from "./prompts";
+export { hasPromptFile, loadAgentPrompt, loadPrompt } from "./prompts";
 export { runAgentTask } from "./tasks/runAgentTask";
 export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
 export { CONFLUENCE_INTEGRATION } from "./confluenceTools";

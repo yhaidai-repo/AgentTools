@@ -29,6 +29,10 @@ export const agentDefinitionSchema = z.object({
   }),
   capabilities: z.object({ webAccess: z.boolean(), integrations: z.record(z.string(), z.boolean()).default({}) }),
   skills: z.array(z.string().min(1)),
+  // The agent's own instructions (user decision 2026-10-22); empty = the prompt file shipped with the code, if any.
+  prompt: z.string().default(""),
+  // builtin: shipped in code (kept by ensureDefaults, never deleted); user: created in the UI (user decision 2026-10-22).
+  origin: z.enum(["builtin", "user"]).default("builtin"),
   options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   canAssign: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, "a task type")).default([]),
   handles: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, "a task type")).default([]),

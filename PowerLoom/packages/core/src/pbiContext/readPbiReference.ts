@@ -1,4 +1,4 @@
-import { attachment, design, localItem, refinement, testCase, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
+import { attachment, design, localItem, refinement, runResult, testCase, vaultCapture, workItem, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 import { attachmentRef } from "../attachmentIds";
 import type { Outcome } from "../models/Outcome";
@@ -10,9 +10,10 @@ const VERSIONED_REF = /^PBI-(\d+):(refinement|design|estimate)$/i;
 const DRAFT_REF = /^DRAFT-(\d+)$/i;
 const ATTACHMENT_REF = /^ATT-(\d+)$/i;
 const TEST_CASE_REF = /^TC-(\d+)$/i;
+const RESULT_REF = /^RESULT-(\d+)$/i;
 
-// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement, design or estimate, an item
-// (question, task, finding, result), a vault draft, an upload's text or an Azure DevOps test case.
+// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement, design or estimate, a run's
+// result, an item (question, task, finding, result), a vault draft, an upload's text or an Azure DevOps test case.
 export async function readPbiReference(db: PowerLoomDb, backlogMount: string, ref: string): Promise<Outcome<string>> {
   const versioned = VERSIONED_REF.exec(ref);
   const pbi = PBI_REF.exec(ref);
@@ -40,7 +41,19 @@ export async function readPbiReference(db: PowerLoomDb, backlogMount: string, re
     return readTestCase(db, Number(test[1]));
   }
 
+  const result = RESULT_REF.exec(ref);
+
+  if (result) {
+    return readResult(db, Number(result[1]));
+  }
+
   return readItem(db, ref);
+}
+
+async function readResult(db: PowerLoomDb, id: number): Promise<Outcome<string>> {
+  const [row] = await db.select().from(runResult).where(eq(runResult.id, id));
+
+  return row ? asJson({ ...row, run: row.runId === null ? null : `RUN-${row.runId}` }) : notFound(`RESULT-${id}`);
 }
 
 async function readPbi(db: PowerLoomDb, backlogMount: string, adoId: number): Promise<Outcome<string>> {

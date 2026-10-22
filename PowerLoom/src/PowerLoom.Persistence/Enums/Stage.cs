@@ -19,4 +19,6 @@ public enum Stage
     BetterReview,
     // Analyses acceptance criteria against test cases, plans and runs the cases on a DevHub stack (design 2026-10-20).
     Autotest,
+    // Runs of agents created in the UI, on the generic executor (user decision 2026-10-22); the agent id is in the run's labels.
+    Custom,
 }

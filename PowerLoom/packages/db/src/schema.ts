@@ -32,7 +32,7 @@ export const itemKind = pgEnum("item_kind", [
   "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
   "review", // code-review task: one review of one pull request
   "vault-review", // one review pass over the selected vaults: stale notes, invalid links
-  "goal", // a scheduled task of any agent: a goal on chosen repositories, no PBI (user decision 2026-10-06)
+  "goal", // unused since 2026-10-22 (goal tasks removed; a user task of any kind replaces them); Postgres enums can't drop a value
   "meeting", // a recorded meeting to turn into notes and follow-ups (tools/audio-capture, 2026-10-14)
   "test", // Autotest task: prove a PBI's acceptance criteria end to end (design 2026-10-20)
   "test-report", // what an Autotest run found and planned (TR)
@@ -48,7 +48,9 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest"]);
+export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest",
+  "custom", // runs of agents created in the UI (user decision 2026-10-22); the agent id is in the run's labels
+]);
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -569,6 +571,33 @@ export const codeReviewVersion = pgTable("code_review_version", {
 }, (t) => [
   index("code_review_version_pr_idx").on(t.prId, t.createdAt),
   uniqueIndex("code_review_version_run_uq").on(t.runId),
+]);
+
+// One source behind a result's claim, as the agents' Evidence: the read-log id, where that is for a reader, what it shows.
+export interface ResultEvidence {
+  source: string;
+  ref: string;
+  note: string;
+  quote?: string;
+}
+
+// What one agent run produced, whatever the agent (user decision 2026-10-22): one result per run, kept as the task's
+// history and rendered into the backlog vault under the task. Written by the shared write_result tool.
+export const runResult = pgTable("run_result", {
+  id: serial("id").primaryKey(),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id, { onDelete: "set null" }),
+  taskId: text("task_id").references(() => localItem.id, { onDelete: "set null" }),
+  pbiId: integer("pbi_id").references(() => workItem.adoId, { onDelete: "set null" }), // null for a task without a PBI
+  agent: text("agent").notNull(), // the agent id, e.g. better-research
+  status: text("status").notNull(), // complete | partial | blocked; text, since a Postgres enum can't drop a value
+  body: text("body").notNull(),
+  data: jsonb("data").$type<object | null>(), // the structured result in the shape the agent's prompt asked for
+  evidence: jsonb("evidence").$type<ResultEvidence[] | null>(),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("run_result_run_uq").on(t.runId),
+  index("run_result_task_idx").on(t.taskId, t.createdAt),
+  index("run_result_pbi_idx").on(t.pbiId, t.createdAt),
 ]);
 
 export const reviewComment = pgTable("review_comment", {

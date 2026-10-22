@@ -1,4 +1,4 @@
-import { agentRun, codeReviewVersion, design, localItem, pbiEstimate, refinement, reviewComment } from "@powerloom/db";
+import { agentRun, codeReviewVersion, design, localItem, pbiEstimate, refinement, reviewComment, runResult } from "@powerloom/db";
 import { and, asc, eq } from "drizzle-orm";
 import type { AgentResult } from "@/models/AgentResult";
 import type { ResultKind } from "@/models/ResultKind";
@@ -15,19 +15,20 @@ export async function loadResult(kind: ResultKind, id: string): Promise<AgentRes
     estimate: () => byNumericId(id, async (rowId) => wrap("estimate", (await getDb().select().from(pbiEstimate).where(eq(pbiEstimate.id, rowId)))[0])),
     item: () => loadResultItem(id),
     review: () => byNumericId(id, loadReviewRun),
+    run: () => byNumericId(id, async (rowId) => wrap("run", (await getDb().select().from(runResult).where(eq(runResult.id, rowId)))[0])),
   };
 
   return loaders[kind]();
 }
 
-// The PBI and the task a result belongs to: an item answers its parent task, a review run is its task's, a version
-// belongs to its run's task.
+// The PBI and the task a result belongs to: an item answers its parent task, a review run is its task's, a run result
+// names both, a version belongs to its run's task.
 export async function resultOwner(result: AgentResult): Promise<{ pbiId: number | null; taskId: string | null }> {
   if (result.kind === "item") {
     return { pbiId: result.row.pbiId, taskId: result.row.parentId };
   }
 
-  if (result.kind === "review") {
+  if (result.kind === "review" || result.kind === "run") {
     return { pbiId: result.row.pbiId, taskId: result.row.taskId };
   }
 

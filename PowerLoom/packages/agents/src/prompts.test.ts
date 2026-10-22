@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { composePrompt, loadPrompt } from "./prompts";
+import { composePrompt, loadAgentPrompt, loadPrompt } from "./prompts";
 
 const FRAMEWORK = "<!-- prompt: framework · version: v2 -->\n## How you work\nVerify first.\n";
 
@@ -49,5 +49,28 @@ describe("loadPrompt", () => {
     assert.match(prompt.text, /a cancelled one is the user's decision not to do it/);
     assert.match(prompt.text, /The branch the task names is started as named/);
     assert.match(prompt.text, /The background host runs \*\*no\*\* worker unless `start_stack`'s `config` names it/);
+  });
+});
+
+describe("loadAgentPrompt", () => {
+  it("runs a stored prompt, versioned by its content, with the framework filled in", async () => {
+    const prompt = await loadAgentPrompt("security-review", ["{{framework}}", "", "Review {{team}} for secrets."].join("\n"), { team: "Signals" });
+
+    assert.match(prompt.version, /^stored\.[0-9a-f]{8}\+framework\./);
+    assert.match(prompt.text, /How you work/);
+    assert.match(prompt.text, /Review Signals for secrets\./);
+  });
+
+  it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
+    const prompt = await loadAgentPrompt("research", "  ", { team: "Signals" });
+
+    assert.equal(prompt.version, "v13");
+  });
+
+  it("gives an agent with neither the framework alone", async () => {
+    const prompt = await loadAgentPrompt("made-in-the-ui", "", { team: "Signals" });
+
+    assert.match(prompt.version, /^none\+framework\./);
+    assert.match(prompt.text, /How you work/);
   });
 });
