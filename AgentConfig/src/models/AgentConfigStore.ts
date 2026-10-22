@@ -10,6 +10,8 @@ export interface AgentConfigStore {
   get(id: string): Promise<AgentDefinition | null>;
   /** Validates, saves and notifies listeners. Throws on invalid input. */
   save(agent: AgentDefinition): Promise<void>;
+  /** Deletes an agent created in the UI and notifies listeners; a built-in agent is refused. */
+  remove(id: string): Promise<void>;
   getGlobal(): Promise<AgentsGlobal>;
   saveGlobal(global: AgentsGlobal): Promise<void>;
   /** Calls `listener` on every change, from any client. Returns an unsubscribe function. */
