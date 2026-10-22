@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { BlockerKind } from "@powerloom/core";
-import { isRemovable, type AgentDefinition, type CatalogModel } from "@agenttools/config";
+import type { AgentDefinition, CatalogModel } from "@agenttools/config";
 import type { SkillCatalog } from "@agenttools/runtime/skills";
 import { CronField } from "@/components/CronField";
 import { DailyBudgetStatus } from "@/components/DailyBudgetStatus";
@@ -29,12 +29,14 @@ interface AgentFormProps {
   taskTypes: TaskTypeChoices;
   /** This agent's finished runs today, what its daily budget counts. */
   spentTodayUsd: number;
+  /** Created in the UI, so it may be deleted; decided on the server (the config package's entry point needs node:fs). */
+  removable: boolean;
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes. Laid out
 // like New PBI (user decision 2026-10-18): how it runs, its limits and access on the left; its place in the pipeline,
 // skills and options on the right; Save in a bar that stays on screen.
-export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd }: AgentFormProps) {
+export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd, removable }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
@@ -55,7 +57,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
       </div>
       <div className="form-footer">
         <span className="form-footer-note">{result ? <span className={result.ok ? "text-ok" : "text-error"}>{result.message}</span> : "Changes apply to the next run"}</span>
-        {isRemovable(agent) && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
+        {removable && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
     </form>
