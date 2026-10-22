@@ -10,7 +10,7 @@ docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- <command> '<j
 
 - The answer is JSON: `{"ok": true, "value": …}`, or `{"ok": false, "error": "…"}` with exit code 1.
 - Without a command it lists every command with its input schema.
-- `pbi.read`, `pbi.get`, `sql.query` and `sql.describe` only read. Ask the user before any other command: they change PowerLoom.
+- `pbi.read`, `pbi.get`, `sql.databases`, `sql.query` and `sql.describe` only read. Ask the user before any other command: they change PowerLoom.
 
 ## Working on a PBI
 1. Start with `pbi.read '{"ref":"PBI-<id>"}'`: the PBI's prepared context, the same the agents get. It holds the ADO
@@ -33,6 +33,7 @@ JSON
 ```
 
 - `sql.describe` with `{"vault", "connection"}` lists the tables; add `"table": "dbo.Verification"` for its columns. Describe first, then query.
+- A connection is a server: `sql.databases` with `{"vault", "connection"}` lists the databases its login can open; add `"database": "<name>"` to `sql.describe` and `sql.query` to read one other than the connection's own.
 - A wrong or disabled connection name answers with the enabled ones.
 
 ## Commands that change PowerLoom (ask first)

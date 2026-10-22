@@ -41,7 +41,7 @@ function requestRow(context: CommandContext, read: ChatSqlRead, connection: SqlC
     tool: read.tool,
     kind: "sql",
     resource: connection.name,
-    target: sqlTarget(connection),
+    target: sqlTarget(connection, read.database),
     request: read.request,
     startedAt,
     durationMs: Date.now() - startedAt.getTime(),

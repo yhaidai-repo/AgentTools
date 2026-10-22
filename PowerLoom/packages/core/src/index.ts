@@ -56,6 +56,7 @@ export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
 export { sqlQueryCommand } from "./commands/sqlQueryCommand";
 export { sqlDescribeCommand } from "./commands/sqlDescribeCommand";
+export { sqlDatabasesCommand } from "./commands/sqlDatabasesCommand";
 export { recordDataAccess } from "./dataAccessLog";
 export type { DataAccessRow } from "./models/DataAccessRow";
 export { sqlTarget } from "./readSql/sqlTarget";
