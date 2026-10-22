@@ -37,4 +37,16 @@ public sealed class ResultNoteRendererTests
         Assert.Contains("task: null", text);
         Assert.Contains("## Evidence\n\n–", text);
     }
+
+    [Fact]
+    public void A_body_that_starts_with_a_paragraph_gives_a_capped_title()
+    {
+        var paragraph = string.Join(" ", Enumerable.Repeat("Signals reads rules from Cosmos on every event", 6));
+        var note = new ResultNote(30474, 8, 2676, "AT-30474-002", "better-research", "complete", paragraph, [], Created);
+
+        var text = ResultNoteRenderer.Render(note, "");
+
+        Assert.Contains("title: \"Signals reads rules from Cosmos on every event Signals reads rules from Cosmos on every event Signals reads rules from C\\u2026\"", text);
+        Assert.Contains($"\n\n{paragraph}\n\n", text);
+    }
 }
