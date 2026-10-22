@@ -1,6 +1,7 @@
 import type { ToolDefinition } from "@agenttools/runtime";
 import type { localItem } from "@powerloom/db";
 import type { ReadLog } from "../../evidence/ReadLog";
+import type { RepoSource } from "../../models/RepoSource";
 import type { WriterTarget } from "./WriterTarget";
 
 // An output tool any agent can be granted (user decision 2026-10-22: writers are shared and granted like readers), with
@@ -12,4 +13,6 @@ export interface RunWriter {
   contextBlocks?(task: typeof localItem.$inferSelect): Promise<string[]>;
   /** Sections the writer adds to the instructions (a vault's rules). */
   promptSections?(task: typeof localItem.$inferSelect): Promise<string[]>;
+  /** Repos the writer's work needs open besides the task's own (a vault's projects). */
+  repoSources?(task: typeof localItem.$inferSelect): Promise<RepoSource[]>;
 }

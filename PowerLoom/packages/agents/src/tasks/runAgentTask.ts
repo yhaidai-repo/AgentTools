@@ -12,7 +12,6 @@ import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runBetterReviewTask } from "../betterReview/runBetterReviewTask";
-import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
 import { runAutotestTask } from "../autotest/runAutotestTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
 import { endTask, failAfterError, releaseTask } from "./endTask";
@@ -25,7 +24,6 @@ const EXECUTORS: Record<string, TaskExecutor> = {
   design: runDesignTask,
   "code-review": runCodeReviewTask,
   "better-review": runBetterReviewTask,
-  "vault-review": runVaultReviewTask,
   autotest: runAutotestTask,
 };
 
