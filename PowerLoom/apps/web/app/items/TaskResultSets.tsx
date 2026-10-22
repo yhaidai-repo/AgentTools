@@ -6,7 +6,8 @@ import type { ResultVersion } from "@/models/ResultVersion";
 import { ResultBlock } from "../results/ResultBlock";
 
 // What this task's runs wrote, one block per result with its versions behind a picker (user decision 2026-10-21):
-// research results and test reports answering it, the refinement or design versions and the estimates of its runs.
+// its runs' results, research results and test reports answering it, the refinement or design versions and the
+// estimates of its runs.
 export async function TaskResultSets({ detail, chosen }: { detail: ItemDetail; chosen: string | undefined }) {
   const { item } = detail;
   const sets = await loadTaskResultSets(item, detail.runs.map((run) => run.id));

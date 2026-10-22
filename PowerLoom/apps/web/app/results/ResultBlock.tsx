@@ -38,15 +38,19 @@ export async function ResultBlock({ set, chosen, hrefOf, withQuestion = true }: 
   );
 }
 
-// The version, who wrote it and when, and the way to its full page.
+// The version, who wrote it and when, and the way to its full page. A run result is labelled by its run, so its label
+// is the run link.
 export function ResultMeta({ version, withOpen = true }: { version: ResultVersion; withOpen?: boolean }) {
+  const runHref = version.runId === null ? null : `/agents/runs/${version.runId}`;
+  const labelIsRun = version.kind === "run";
+
   return (
     <p className="result-meta">
-      <span className="result-version">{version.label}</span>
+      {labelIsRun && runHref ? <Link href={runHref} className="result-version">{version.label}</Link> : <span className="result-version">{version.label}</span>}
       {version.agent && <span>{version.agent}</span>}
-      {version.runId !== null && <Link href={`/agents/runs/${version.runId}`}>RUN-{version.runId}</Link>}
+      {!labelIsRun && runHref && <Link href={runHref}>RUN-{version.runId}</Link>}
       <TimeAgo date={version.at} />
-      {version.status && version.status !== "final" && <span className="result-status">{version.status}</span>}
+      {version.status && version.status !== "final" && <span className={`result-status status-${version.status}`}>{version.status}</span>}
       {withOpen && <Link href={resultPath(version)} className="result-open">Open full page ↗</Link>}
     </p>
   );

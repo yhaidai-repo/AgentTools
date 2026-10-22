@@ -8,6 +8,7 @@ import { DesignSection } from "../pbis/[adoId]/DesignSection";
 import { EstimateLine } from "../pbis/[adoId]/EstimateLine";
 import { RefinementDetailsLine } from "../pbis/[adoId]/RefinementDetailsLine";
 import { ReviewBody } from "./ReviewBody";
+import { RunResultBody } from "./RunResultBody";
 
 type RefinementRow = typeof refinement.$inferSelect;
 
@@ -28,6 +29,10 @@ export function ResultBody({ result, withQuestion = true }: { result: AgentResul
 
   if (result.kind === "review") {
     return <ReviewBody review={result.row} />;
+  }
+
+  if (result.kind === "run") {
+    return <RunResultBody row={result.row} />;
   }
 
   return (

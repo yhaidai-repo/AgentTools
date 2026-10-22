@@ -36,6 +36,7 @@ function VersionLink({ version, isChosen, href }: { version: ResultVersion; isCh
   return <Link href={href} scroll={false} replace className={isChosen ? "on" : undefined} title={versionLabel(version)}>{version.label}</Link>;
 }
 
+// A run result's label is its run already.
 function versionLabel(version: ResultVersion): string {
-  return version.runId === null ? version.label : `${version.label} · RUN-${version.runId}`;
+  return version.runId === null || version.kind === "run" ? version.label : `${version.label} · RUN-${version.runId}`;
 }

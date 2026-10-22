@@ -1,4 +1,4 @@
-import type { design, localItem, pbiEstimate, refinement } from "@powerloom/db";
+import type { design, localItem, pbiEstimate, refinement, runResult } from "@powerloom/db";
 import type { ResultQuestion } from "./ResultQuestion";
 import type { ReviewRunResult } from "./ReviewRunResult";
 
@@ -8,4 +8,5 @@ export type AgentResult =
   | { kind: "design"; row: typeof design.$inferSelect }
   | { kind: "estimate"; row: typeof pbiEstimate.$inferSelect }
   | { kind: "item"; row: typeof localItem.$inferSelect; question: ResultQuestion | null }
-  | { kind: "review"; row: ReviewRunResult };
+  | { kind: "review"; row: ReviewRunResult }
+  | { kind: "run"; row: typeof runResult.$inferSelect };
