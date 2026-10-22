@@ -5,17 +5,18 @@ import type { BacklogRow } from "@/models/BacklogRow";
 import type { BacklogView } from "@/models/BacklogView";
 
 // The status filter and the counts in one row of pills (user decision 2026-10-18): a pill toggles its status, several
-// at once (user request 2026-10-13); All clears the choice. Counts are over the whole vault, not the page.
+// at once (user request 2026-10-13); All clears the choice. Counts are over the whole vault, not the page. A chosen
+// status keeps its pill at 0, so a filter the last PBI left stays visible and can be switched off (user, 2026-10-22).
 export function StatusPills({ rows, statuses, view }: { rows: BacklogRow[]; statuses: string[]; view: BacklogView }) {
   const counts = countByStatus(rows);
-  const shown = statuses.filter((status) => counts.has(status));
+  const shown = statuses.filter((status) => counts.has(status) || view.statuses.includes(status));
 
   return (
     <nav className="status-pills" aria-label="Filter by status">
       <Link href={backlogUrl({ size: view.size })} className={view.statuses.length === 0 ? "status-pill on" : "status-pill"}>All <b>{rows.length}</b></Link>
       {shown.map((status) => (
         <Link key={status} href={backlogUrl({ statuses: toggled(view.statuses, status, statuses), size: view.size })} className={view.statuses.includes(status) ? "status-pill on" : "status-pill"}>
-          {stageLabel(status)} <b>{counts.get(status)}</b>
+          {stageLabel(status)} <b>{counts.get(status) ?? 0}</b>
         </Link>
       ))}
     </nav>
