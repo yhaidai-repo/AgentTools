@@ -6,6 +6,7 @@ import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
+import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -306,6 +307,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Give estimates",
     description: "The agent may record an estimate of its PBI with record_estimate: hours for a developer without an agent and hours for an agent implementing it. The PBI shows the latest estimate from any agent. Refinement agents must give one when this is on.",
   },
+  // Output tools are granted like readers (user decision 2026-10-22); the first one shared, Better Research's (stage 2b).
+  {
+    key: RESEARCH_RESULT_INTEGRATION,
+    label: "Write research results",
+    description: "The agent may answer its task with write_research_result: a research result item (RR) on the PBI or task, with findings, evidence and the next steps; earlier results of the task are superseded and the task is closed.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -373,7 +380,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [RESEARCH_RESULT_INTEGRATION]: true } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),
