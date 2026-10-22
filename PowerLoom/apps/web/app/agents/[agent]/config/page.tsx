@@ -1,5 +1,5 @@
 import { AGENT_TASK_TYPES, BLOCKER_KINDS, CREATABLE_TASK_TYPES } from "@powerloom/core";
-import { isPaused, modelCatalog } from "@agenttools/config";
+import { isPaused, isRemovable, modelCatalog } from "@agenttools/config";
 import { notFound } from "next/navigation";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -52,6 +52,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
       />
       <AgentForm
         agent={agent}
+        removable={isRemovable(agent)}
         catalog={modelCatalog()}
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
