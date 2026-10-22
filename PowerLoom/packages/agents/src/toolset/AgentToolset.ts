@@ -1,4 +1,3 @@
-import type { AgentDefinition } from "@agenttools/config";
 import type { AgentEvent, ToolDefinition } from "@agenttools/runtime";
 import { localItem } from "@powerloom/db";
 import { createAdoTools } from "../ado/adoTools";
@@ -6,6 +5,7 @@ import type { AgentRunSession } from "../AgentRunSession";
 import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azure/azureTools";
 import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterResearch/ResearchResultWriter";
+import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWriterWriter";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -69,7 +69,7 @@ export class AgentToolset {
     this.tasks = input.tasks ?? [];
     this.captures = input.captures ?? [];
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
-    this.writers = grantedWriters(context.agent);
+    this.writers = grantedWriters(context);
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -115,13 +115,27 @@ export class AgentToolset {
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, taskIds, repos: this.input.repos });
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, taskIds, repos: this.input.repos, result: this.result.latest });
     const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
 
     await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
     await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
+  }
+
+  /** What the granted writers add to the first message (a draft, a note to actualize). */
+  async contextBlocks(): Promise<string[]> {
+    const blocks = await Promise.all(this.writers.map((writer) => writer.contextBlocks?.(this.task) ?? []));
+
+    return blocks.flat();
+  }
+
+  /** What the granted writers add to the instructions (a vault's rules). */
+  async promptSections(): Promise<string[]> {
+    const sections = await Promise.all(this.writers.map((writer) => writer.promptSections?.(this.task) ?? []));
+
+    return sections.flat();
   }
 
   // One writer after the other: each may read what the one before wrote.
@@ -179,8 +193,11 @@ export class AgentToolset {
 }
 
 // The output tools the agent's Config grants, by integration key.
-function grantedWriters(agent: AgentDefinition): RunWriter[] {
-  const integrations = agent.capabilities.integrations ?? {};
+function grantedWriters(context: TaskContext): RunWriter[] {
+  const integrations = context.agent.capabilities.integrations ?? {};
 
-  return integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : [];
+  return [
+    ...(integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : []),
+    ...(integrations[WRITE_NOTES_INTEGRATION] === true ? [new TechWriterWriter(context.deps)] : []),
+  ];
 }
