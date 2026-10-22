@@ -58,7 +58,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   await session.phase("context", { task: task.id, vault: task.vault });
   run.repos = await openRepos(context, session, await repoSources(context, task, writers), { vault: task.vault });
 
-  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task), writers });
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task), writers, depth: chainDepth(task) });
   const firstMessage = await buildFirstMessage(deps.db, task, run, await toolset.contextBlocks(), toolset.webDocumentsBlock());
   const tools = toolset.tools(firstMessage);
 
@@ -75,6 +75,11 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
     observe: (event) => toolset.observe(event),
     hasRequiredOutput: () => toolset.result.isWritten,
   };
+}
+
+// A refinement starts a PBI's chain: the tasks it creates are depth 1. Every other task carries its depth.
+function chainDepth(task: ItemRow): number | undefined {
+  return task.kind === "refinement" ? 0 : undefined;
 }
 
 // A task that names a vault (a docs task on a note) works in that vault; the docs tools read it and its usage log.

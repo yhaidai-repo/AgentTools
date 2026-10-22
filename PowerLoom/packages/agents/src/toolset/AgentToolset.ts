@@ -8,6 +8,7 @@ import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterRese
 import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION, VaultReviewWriter } from "../vaultReview/VaultReviewWriter";
 import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
+import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
 import { ownTools } from "./ownTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
@@ -118,7 +119,7 @@ export class AgentToolset {
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, taskIds, repos: this.input.repos, result: this.result.latest });
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest });
     const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
 
     await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
@@ -191,7 +192,7 @@ export class AgentToolset {
       ...createEstimateTools(this.estimate),
     ];
     // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
-    const own = ownTools(this.writers.flatMap((writer) => writer.tools(log)), shared);
+    const own = ownTools(this.writers.flatMap((writer) => writer.tools(log, { estimate: this.estimate })), shared);
 
     return [...shared, ...own, createResultTool(this.result, log)];
   }
@@ -206,5 +207,6 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[WRITE_NOTES_INTEGRATION] === true ? [new TechWriterWriter(context.deps)] : []),
     ...(integrations[VAULT_REVIEW_INTEGRATION] === true ? [new VaultReviewWriter(context)] : []),
     ...(integrations[WRITE_DESIGN_INTEGRATION] === true ? [new DesignWriter(context)] : []),
+    ...(integrations[WRITE_REFINEMENT_INTEGRATION] === true ? [new RefinementWriter(context)] : []),
   ];
 }
