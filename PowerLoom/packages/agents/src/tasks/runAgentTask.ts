@@ -10,13 +10,10 @@ import { runCodeReviewTask } from "../codeReview/runCodeReviewTask";
 import { runDesignTask } from "../design/runDesignTask";
 import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
-import { runRefinementTask } from "../refinement/runRefinementTask";
-import { runResearchTask } from "../research/runResearchTask";
 import { runBetterRefinementTask } from "../betterRefinement/runBetterRefinementTask";
 import { runBetterReviewTask } from "../betterReview/runBetterReviewTask";
 import { runTechWriterTask } from "../techWriter/runTechWriterTask";
 import { runVaultReviewTask } from "../vaultReview/runVaultReviewTask";
-import { runMeetingNotesTask } from "../meetingNotes/runMeetingNotesTask";
 import { runAutotestTask } from "../autotest/runAutotestTask";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
 import { endTask, failAfterError, releaseTask } from "./endTask";
@@ -25,15 +22,12 @@ type ItemRow = typeof localItem.$inferSelect;
 
 // Agents with code of their own; any other agent (created in the UI) runs the generic executor (user decision 2026-10-22).
 const EXECUTORS: Record<string, TaskExecutor> = {
-  refinement: runRefinementTask,
-  research: runResearchTask,
   "better-refinement": runBetterRefinementTask,
   design: runDesignTask,
   "tech-writer": runTechWriterTask,
   "code-review": runCodeReviewTask,
   "better-review": runBetterReviewTask,
   "vault-review": runVaultReviewTask,
-  "meeting-notes": runMeetingNotesTask,
   autotest: runAutotestTask,
 };
 

@@ -118,11 +118,11 @@ describe("estimateText", () => {
 });
 
 describe("estimate grant defaults", () => {
-  it("is on for the refinement agents and design, off for the others", () => {
+  it("is on for Better Refinement and design, off for the others", () => {
     const granted = AGENT_DEFAULTS.filter((agent) => agent.capabilities.integrations?.[ESTIMATE_INTEGRATION] === true).map((agent) => agent.id);
     const offered = AGENT_DEFAULTS.every((agent) => agent.integrationSpecs?.some((spec) => spec.key === ESTIMATE_INTEGRATION));
 
-    assert.deepEqual(granted, ["refinement", "better-refinement", "design"]);
+    assert.deepEqual(granted, ["better-refinement", "design"]);
     assert.equal(offered, true);
   });
 });
