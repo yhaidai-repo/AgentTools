@@ -134,9 +134,6 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         data["createdBy"] = CreatedBy;
         data["doneWhen"] = task.AcceptanceCriteria.Trim();
 
-        foreach (var (key, value) in task.Extra ?? new Dictionary<string, object?>())
-            data[key] = value;
-
         if (task.ScheduleId is not null)
         {
             data["scheduleId"] = task.ScheduleId;

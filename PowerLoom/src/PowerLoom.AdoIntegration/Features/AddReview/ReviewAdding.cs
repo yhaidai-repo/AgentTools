@@ -19,7 +19,7 @@ namespace PowerLoom.AdoIntegration.Features.AddReview;
 // Reviews → Add review (user decision 2026-10-21): the active ADO pull request from the branch, kept in Reviews while
 // it is active whoever's it is; without one, a branch review: no PR, the branch diffed against a target branch, its
 // linked PBI named or read from the branch name (feature/30474-…). A branch that isn't pushed is looked up on the PC
-// through DevHub (user, 2026-10-21): that branch review can be tested, not code-reviewed, until it is pushed.
+// through DevHub (user, 2026-10-21): that branch review isn't code-reviewed until it is pushed.
 public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILocalBranches localBranches)
 {
     private const string BranchPrefix = BranchRefs.Prefix;
@@ -106,9 +106,9 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
         db.CodeReviews.Add(new CodeReview { PrId = id });
         await db.SaveChangesAsync(cancellation);
 
-        var linked = pbis.Value!.Count > 0 ? $", linked to PBI-{pbis.Value[0]}" : ", no linked PBI (Start test needs one)";
+        var linked = pbis.Value!.Count > 0 ? $", linked to PBI-{pbis.Value[0]}" : ", no linked PBI";
 
-        var where = origin == PullRequestOrigin.Pc ? " It's only on this PC: Start test works, code review needs the branch pushed." : "";
+        var where = origin == PullRequestOrigin.Pc ? " It's only on this PC: code review needs the branch pushed." : "";
 
         return Outcome<AddedReview>.Success(new AddedReview(id, "branch", $"Branch review {id} added: {branch} against {target}{linked}.{where}"));
     }

@@ -682,38 +682,6 @@
         }
       }
     },
-    "/api/reviews/test": {
-      "post": {
-        "tags": [
-          "PowerLoom.Features.Reviews.ReviewsEndpoints"
-        ],
-        "summary": "POST_api_reviews_test",
-        "description": "POST_api_reviews_test",
-        "operationId": "POST_api_reviews_test",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewIds"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewsResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/reviews/close": {
       "post": {
         "tags": [

@@ -348,26 +348,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reviews/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * POST_api_reviews_test
-         * @description POST_api_reviews_test
-         */
-        post: operations["POST_api_reviews_test"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reviews/close": {
         parameters: {
             query?: never;
@@ -2488,30 +2468,6 @@ export interface operations {
         };
     };
     POST_api_reviews_queue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewIds"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewsResult"];
-                };
-            };
-        };
-    };
-    POST_api_reviews_test: {
         parameters: {
             query?: never;
             header?: never;

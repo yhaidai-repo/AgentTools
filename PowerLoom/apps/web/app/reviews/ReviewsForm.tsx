@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ActionResult } from "@/models/ActionResult";
-import { closeSelected, deleteSelected, queueSelected, testSelected } from "./actions";
+import { closeSelected, deleteSelected, queueSelected } from "./actions";
 
 // Wraps the server-rendered table so its row checkboxes submit with this form (user decision 2026-10-06: bulk actions
 // like the Backlog). The actions live in a bar that shows only while rows are ticked (user decision 2026-10-18); each
@@ -11,7 +11,6 @@ export function ReviewsForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
   const [selected, setSelected] = useState(0);
   const [queued, queueAction, isQueuing] = useActionState<ActionResult | null, FormData>(queueSelected, null);
-  const [tested, testAction, isTesting] = useActionState<ActionResult | null, FormData>(testSelected, null);
   const [closed, closeAction, isClosing] = useActionState<ActionResult | null, FormData>(closeSelected, null);
   const [deleted, deleteAction, isDeleting] = useActionState<ActionResult | null, FormData>(deleteSelected, null);
 
@@ -25,12 +24,11 @@ export function ReviewsForm({ children }: { children: ReactNode }) {
       <div className={`selection-bar${selected > 0 ? " show" : ""}`} aria-hidden={selected === 0}>
         <span key={selected} className="selection-count">{selected} selected</span>
         <button type="submit" disabled={isQueuing} title="Reviews each PR's current commit; a rerun reopens a closed review">{isQueuing ? "Queuing…" : "Start review"}</button>
-        <button type="submit" className="secondary" formAction={testAction} disabled={isTesting} title="A test task per linked PBI on the PR's branch; the test agent runs the PBI's acceptance criteria on a local stack">{isTesting ? "Starting…" : "Start test"}</button>
         <button type="submit" className="secondary" formAction={closeAction} disabled={isClosing} title="Closes the reviews in PowerLoom only">{isClosing ? "Closing…" : "Close"}</button>
         <button type="submit" className="danger" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete} title="Removes the reviews from PowerLoom; Azure DevOps is not changed">{isDeleting ? "Deleting…" : "Delete"}</button>
         <button type="button" className="link-button selection-clear" onClick={onClear}>Clear</button>
       </div>
-      <ActionResults results={[queued, tested, closed, deleted]} />
+      <ActionResults results={[queued, closed, deleted]} />
       {children}
     </form>
   );

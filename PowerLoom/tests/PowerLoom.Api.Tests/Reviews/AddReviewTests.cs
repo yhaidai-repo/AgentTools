@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Alba;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +17,7 @@ using Wolverine.Tracking;
 namespace PowerLoom.Api.Tests.Reviews;
 
 // Reviews → Add review (user decision 2026-10-21): the active PR of the branch, kept while active whoever's it is; else
-// a branch review that follows its branch and can be tested.
+// a branch review that follows its branch.
 [Collection(PowerLoomCollection.Name)]
 public sealed class AddReviewTests(PowerLoomHost host)
 {
@@ -48,7 +47,7 @@ public sealed class AddReviewTests(PowerLoomHost host)
     }
 
     [Fact]
-    public async Task A_branch_without_a_PR_becomes_a_branch_review_that_follows_its_branch_and_can_be_tested()
+    public async Task A_branch_without_a_PR_becomes_a_branch_review_that_follows_its_branch()
     {
         await SeedAsync();
         var ado = Ado();
@@ -61,11 +60,9 @@ public sealed class AddReviewTests(PowerLoomHost host)
         ado.BranchHeads[$"{RepoId}:feature/74501-branch"] = "h2";
         await Sync();
         var moved = await RowAsync(added.PrId);
-        var tested = await host.Host.PostJson(new ReviewIds([added.PrId]), "/api/reviews/test").Receive<ReviewsResult>();
         ado.BranchHeads.Remove($"{RepoId}:feature/74501-branch");
         await Sync();
         var closed = await RowAsync(added.PrId);
-        var task = await TaskAsync(tested!.Done.Single().Value);
 
         Assert.Equal("branch", added.Kind);
         Assert.True(added.PrId >= 9_000_001);
@@ -75,7 +72,6 @@ public sealed class AddReviewTests(PowerLoomHost host)
         Assert.Equal(("h2", true, ReviewStatus.Active), (moved.SourceCommit, moved.IsListed, moved.CodeReview!.Status));
         Assert.Equal((false, ReviewStatus.Closed), (closed.IsListed, closed.CodeReview!.Status));
         Assert.Contains("branch was deleted", closed.CodeReview!.ClosedReason);
-        Assert.Equal(JsonValueKind.Null, JsonDocument.Parse(task.Data!).RootElement.GetProperty("pullRequestId").ValueKind);
     }
 
     [Fact]
@@ -89,7 +85,7 @@ public sealed class AddReviewTests(PowerLoomHost host)
         Assert.Contains($"{RepoName} has no branch feature/nope in Azure DevOps or on this PC, and no active pull request from it.", refused);
     }
 
-    // A branch that isn't pushed (user, 2026-10-21): found on the PC through DevHub, tested, not code-reviewed; once
+    // A branch that isn't pushed (user, 2026-10-21): found on the PC through DevHub, not code-reviewed; once
     // pushed, the sync turns it into an Azure DevOps branch review.
     [Fact]
     public async Task A_branch_only_on_this_PC_becomes_a_branch_review_that_turns_into_an_ADO_one_once_pushed()
@@ -103,7 +99,6 @@ public sealed class AddReviewTests(PowerLoomHost host)
         var added = await host.Host.PostJson(Request("feature/74501-pc"), "/api/reviews").Receive<AddedReview>();
         var row = await RowAsync(added!.PrId);
         var review = await QueueAsync(added.PrId);
-        var tested = await host.Host.PostJson(new ReviewIds([added.PrId]), "/api/reviews/test").Receive<ReviewsResult>();
         ado.BranchHeads[$"{RepoId}:feature/74501-pc"] = "p2";
         await Sync();
         var pushed = await RowAsync(added.PrId);
@@ -111,7 +106,6 @@ public sealed class AddReviewTests(PowerLoomHost host)
         Assert.Contains("only on this PC", added.Message);
         Assert.Equal((PullRequestOrigin.Pc, "p1", "", $"Branch feature/74501-pc (this PC)"), (row.Origin, row.SourceCommit, row.Url, row.Title));
         Assert.Contains("the branch is only on this PC: push it", review!.Refused.Single());
-        Assert.Single(tested!.Done);
         Assert.Equal((PullRequestOrigin.Local, "p2", true), (pushed.Origin, pushed.SourceCommit, pushed.IsListed));
         Assert.Equal($"https://dev.azure.com/org/proj/_git/{RepoName}?version=GBfeature%2F74501-pc", pushed.Url);
     }
@@ -161,12 +155,5 @@ public sealed class AddReviewTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().PullRequests.AsNoTracking().Include(row => row.CodeReview).SingleAsync(row => row.Id == id);
-    }
-
-    private async Task<LocalItem> TaskAsync(string id)
-    {
-        using var scope = host.Host.Services.CreateScope();
-
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().SingleAsync(item => item.Id == id);
     }
 }
