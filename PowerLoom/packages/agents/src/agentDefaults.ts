@@ -22,59 +22,8 @@ function batchSizeOption(unit: string): AgentOptionSpec {
   };
 }
 
-const MEETING_NOTES_OPTIONS: AgentOptionSpec[] = [
-  batchSizeOption("Meetings"),
-  {
-    key: "maxFailures",
-    label: "Failures before blocking a meeting",
-    description: "After this many failed runs, the meeting task is set to blocked and no longer picked.",
-    min: 1,
-    max: 10,
-  },
-  {
-    key: "maxTasksPerRun",
-    label: "Follow-ups per meeting",
-    description: "Most tasks and questions one meeting may create.",
-    min: 0,
-    max: 20,
-  },
-];
 
-const REFINEMENT_OPTIONS: AgentOptionSpec[] = [
-  batchSizeOption("PBIs"),
-  {
-    key: "maxFailures",
-    label: "Failures before skipping a PBI",
-    description: "After this many failed runs on one PBI, refinement stops picking it until you prepare it again in the Backlog.",
-    min: 1,
-    max: 10,
-  },
-];
 
-const RESEARCH_OPTIONS: AgentOptionSpec[] = [
-  batchSizeOption("Tasks"),
-  {
-    key: "maxFailures",
-    label: "Failures before blocking a task",
-    description: "After this many failed runs, the research task is set to blocked and no longer picked.",
-    min: 1,
-    max: 10,
-  },
-  {
-    key: "maxDepth",
-    label: "Follow-up depth",
-    description: "How deep research may create follow-up research tasks. 1 = no follow-ups; 2 = tasks from refinement may create one level of follow-ups.",
-    min: 1,
-    max: 5,
-  },
-  {
-    key: "repoRefreshMinutes",
-    label: "Repo refresh (minutes)",
-    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
-    min: 1,
-    max: 1440,
-  },
-];
 
 // The caps on create_task (chaining v2), shared by every agent that has it.
 const TASK_CREATION_OPTIONS: AgentOptionSpec[] = [
@@ -149,7 +98,14 @@ const BETTER_RESEARCH_OPTIONS: AgentOptionSpec[] = [
 ];
 
 const BETTER_REFINEMENT_OPTIONS: AgentOptionSpec[] = [
-  ...REFINEMENT_OPTIONS,
+  batchSizeOption("PBIs"),
+  {
+    key: "maxFailures",
+    label: "Failures before skipping a PBI",
+    description: "After this many failed runs on one PBI, refinement stops picking it until you prepare it again in the Backlog.",
+    min: 1,
+    max: 10,
+  },
   ...TASK_CREATION_OPTIONS,
   {
     key: "repoRefreshMinutes",
@@ -317,24 +273,6 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
   {
-    id: "refinement",
-    label: "Refinement",
-    description: "Makes a prepared PBI ready for research and design: summary, scope, AC gaps, dependencies, repos, research tasks, questions.",
-    enabled: true,
-    schedule: "0 * * * *",
-    model: { provider: "anthropic", model: "claude-sonnet-5" },
-    limits: { maxTurns: 40, timeoutMinutes: 10 },
-    budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true } },
-    skills: ["powerloom-refinement-checklist"],
-    options: { batchSize: 2, maxFailures: 3 },
-    optionSpecs: withToolsetOptions(REFINEMENT_OPTIONS),
-    integrationSpecs: INTEGRATIONS,
-    canAssign: [],
-    handles: ["refinement"],
-    waitFor: ["humanItems", "linkedDocuments", "drafts"],
-  },
-  {
     id: "better-refinement",
     label: "Better Refinement",
     description: "Makes a PBI developable: collects all its information, checks repos and affected areas in the code, test data, dependencies and blockers, and creates the tasks that close the gaps.",
@@ -352,24 +290,6 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     handles: ["refinement"],
     // Its tasks name their dependencies, and the documents it needs are linked to the PBI (user decision 2026-10-13).
     waitFor: ["linkedDocuments"],
-  },
-  {
-    id: "research",
-    label: "Research",
-    description: "Answers one research task from code and docs and writes a research result.",
-    enabled: true,
-    schedule: "30 * * * *",
-    model: { provider: "anthropic", model: "claude-opus-5-5" },
-    limits: { maxTurns: 60, timeoutMinutes: 20 },
-    budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
-    skills: ["powerloom-research-checklist"],
-    options: { batchSize: 2, maxFailures: 3, maxDepth: 2, repoRefreshMinutes: 30 },
-    optionSpecs: withToolsetOptions(RESEARCH_OPTIONS),
-    integrationSpecs: INTEGRATIONS,
-    canAssign: [],
-    handles: ["research"],
-    waitFor: ["humanItems", "linkedDocuments", "drafts"],
   },
   {
     id: "better-research",
@@ -505,23 +425,5 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     canAssign: ["research"],
     handles: ["test"],
     waitFor: ["linkedDocuments"],
-  },
-  {
-    id: "meeting-notes",
-    label: "Meeting notes",
-    description: "Reads a recorded meeting's transcript and writes its notes into the vault: summary, decisions, action items, work items discussed, open questions. Creates tasks for your action items, questions left to you, and research or design on the work items discussed.",
-    enabled: false,
-    schedule: "*/10 * * * *",
-    model: { provider: "anthropic", model: "claude-sonnet-5" },
-    limits: { maxTurns: 30, timeoutMinutes: 15 },
-    budgets: { perRunUsd: 1, dailyUsd: 5 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
-    skills: [],
-    options: { batchSize: 2, maxFailures: 2, maxTasksPerRun: 8 },
-    optionSpecs: MEETING_NOTES_OPTIONS,
-    integrationSpecs: INTEGRATIONS,
-    canAssign: ["research", "design"],
-    handles: ["meeting"],
-    waitFor: [],
   },
 ];

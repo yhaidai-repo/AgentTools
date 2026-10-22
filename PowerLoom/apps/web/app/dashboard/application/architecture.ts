@@ -112,15 +112,12 @@ const runnerModules: SchemeNode[] = [
 ];
 
 const runnerAgents: SchemeNode[] = [
-  node("agent-refinement", "refinement", "component", "runner-agents"),
-  node("agent-research", "research", "component", "runner-agents"),
   node("agent-design", "design", "component", "runner-agents"),
   node("agent-tech-writer", "tech-writer", "component", "runner-agents"),
   node("agent-code-review", "code-review", "component", "runner-agents"),
   node("agent-vault-review", "vault-review", "component", "runner-agents"),
   node("agent-better-refinement", "better-refinement", "component", "runner-agents"),
   node("agent-better-research", "better-research", "component", "runner-agents"),
-  node("agent-meeting-notes", "meeting-notes", "component", "runner-agents"),
   node("agent-better-review", "better-review", "component", "runner-agents"),
 ];
 
