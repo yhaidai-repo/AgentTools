@@ -5,6 +5,8 @@ namespace PowerLoom.Features.Pbis.Notes;
 
 public static class ResultNoteRenderer
 {
+    private const int TitleMax = 120;
+
     public static string Render(ResultNote note, string notesSection)
     {
         var pbi = $"[[{BacklogPaths.PbiNoteName(note.AdoId)}]]";
@@ -38,12 +40,14 @@ public static class ResultNoteRenderer
         ]);
     }
 
-    // The body's first non-empty line, without a heading marker.
+    // The body's first non-empty line, without a heading marker, capped: an agent that starts with a paragraph instead
+    // of a heading would otherwise give the note a paragraph for a title.
     private static string Summary(string body)
     {
         var line = body.Split('\n').Select(item => item.Trim()).FirstOrDefault(item => item.Length > 0) ?? "-";
+        var text = line.TrimStart('#').Trim();
 
-        return line.TrimStart('#').Trim();
+        return text.Length <= TitleMax ? text : $"{text[..TitleMax].TrimEnd()}…";
     }
 
     private static string EvidenceLine(ResultEvidence item)
