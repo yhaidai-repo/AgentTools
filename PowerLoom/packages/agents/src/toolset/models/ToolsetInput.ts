@@ -1,6 +1,7 @@
 import type { DuplicateGuard } from "../../DuplicateGuard";
 import type { CaptureDraft } from "../../models/CaptureDraft";
 import type { RepoAccess } from "../../models/RepoAccess";
+import type { RunWriter } from "./RunWriter";
 import type { CreatedTask } from "../../taskCreation/models/CreatedTask";
 
 // What a runner hands the shared toolset: the repos it opened and, when its own draft keeps them, the arrays the
@@ -17,4 +18,6 @@ export interface ToolsetInput {
   createTask?: boolean;
   tasks?: CreatedTask[];
   captures?: CaptureDraft[];
+  /** The granted writers, when the runner built them first (to open their repos); by default the Config's. */
+  writers?: RunWriter[];
 }

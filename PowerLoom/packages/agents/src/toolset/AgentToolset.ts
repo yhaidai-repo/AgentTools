@@ -6,6 +6,7 @@ import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azure/azureTools";
 import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterResearch/ResearchResultWriter";
 import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWriterWriter";
+import { VAULT_REVIEW_INTEGRATION, VaultReviewWriter } from "../vaultReview/VaultReviewWriter";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
@@ -69,7 +70,7 @@ export class AgentToolset {
     this.tasks = input.tasks ?? [];
     this.captures = input.captures ?? [];
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
-    this.writers = grantedWriters(context);
+    this.writers = input.writers ?? grantedWriters(context);
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -193,11 +194,12 @@ export class AgentToolset {
 }
 
 // The output tools the agent's Config grants, by integration key.
-function grantedWriters(context: TaskContext): RunWriter[] {
+export function grantedWriters(context: TaskContext): RunWriter[] {
   const integrations = context.agent.capabilities.integrations ?? {};
 
   return [
     ...(integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : []),
     ...(integrations[WRITE_NOTES_INTEGRATION] === true ? [new TechWriterWriter(context.deps)] : []),
+    ...(integrations[VAULT_REVIEW_INTEGRATION] === true ? [new VaultReviewWriter(context)] : []),
   ];
 }

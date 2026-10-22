@@ -8,6 +8,7 @@ import { READ_SQL_INTEGRATION } from "./sqlTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
+import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -275,6 +276,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Write vault notes",
     description: "The agent may write notes in its task's vault with write_note and record findings for the vault registers: a draft merged into the docs vault, a note actualized in place, or a docs request. The vault's AGENTS.md joins its instructions.",
   },
+  {
+    key: VAULT_REVIEW_INTEGRATION,
+    label: "Review a vault",
+    description: "The agent may review its task's vault: list its stale and unlinked notes, dead links and open records, decide each (keep, remove, actualize; fix; close), and write the review summary. The decisions are applied when the run succeeds.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -402,7 +408,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [VAULT_REVIEW_INTEGRATION]: true } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
     options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(VAULT_REVIEW_OPTIONS),

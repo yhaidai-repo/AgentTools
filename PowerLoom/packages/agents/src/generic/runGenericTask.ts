@@ -7,6 +7,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
+import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
@@ -14,7 +15,7 @@ import { reposBlock } from "../repos/reposBlock";
 import { acceptanceCriteriaBlock } from "../tasks/userTasks";
 import { recordWaiting } from "../tasks/waiting";
 import { noteVault } from "../techWriter/taskVault";
-import { AgentToolset } from "../toolset/AgentToolset";
+import { AgentToolset, grantedWriters } from "../toolset/AgentToolset";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
 
@@ -52,10 +53,12 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, run: GenericRun): Promise<AgentRunInput> {
   const { deps, agent, prompt, skills } = context;
 
-  await session.phase("context", { task: task.id, vault: task.vault });
-  run.repos = await openRepos(context, session, await repoSources(context, task), { vault: task.vault });
+  const writers = grantedWriters(context);
 
-  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task) });
+  await session.phase("context", { task: task.id, vault: task.vault });
+  run.repos = await openRepos(context, session, await repoSources(context, task, writers), { vault: task.vault });
+
+  const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task), writers });
   const firstMessage = await buildFirstMessage(deps.db, task, run, await toolset.contextBlocks(), toolset.webDocumentsBlock());
   const tools = toolset.tools(firstMessage);
 
@@ -82,14 +85,15 @@ function taskVaultRoot(deps: TaskContext["deps"], task: ItemRow): string | undef
 }
 
 // The PBI's repos, or the ones a task without a PBI names (the Tasks page's repo choice); plus the repo of the docs
-// project a task names (its index note's `repo:`).
-async function repoSources(context: TaskContext, task: ItemRow): Promise<RepoSource[]> {
+// project a task names (its index note's `repo:`), plus what the granted writers need.
+async function repoSources(context: TaskContext, task: ItemRow, writers: RunWriter[]): Promise<RepoSource[]> {
+  const fromWriters = (await Promise.all(writers.map((writer) => writer.repoSources?.(task) ?? []))).flat();
   const data = (task.data ?? {}) as { repos?: string[]; project?: string };
   const projectRepo = data.project ? await projectRepoName(taskVaultRoot(context.deps, task) ?? context.deps.docsRoot, data.project) : null;
   const fromProject: RepoSource[] = projectRepo ? [{ vault: task.vault, names: [projectRepo] }] : [];
   const own: RepoSource[] = task.pbiId !== null ? await pbiRepoSources(context.deps.db, task.pbiId) : [{ vault: task.vault, names: data.repos ?? [] }];
 
-  return [...fromProject, ...own];
+  return [...fromProject, ...own, ...fromWriters];
 }
 
 async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun, writerBlocks: string[], webDocuments: string): Promise<string> {
