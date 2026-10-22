@@ -48,9 +48,8 @@ export const itemStatus = pgEnum("item_status", [
 
 export const entityKind = pgEnum("entity_kind", ["pbi", "item"]);
 
-export const stage = pgEnum("stage", ["sync", "refinement", "research", "design", "tech-writer", "pull-requests", "code-review", "vault-review", "better-research", "better-refinement", "meeting-notes", "better-review", "autotest",
-  "custom", // runs of agents created in the UI (user decision 2026-10-22); the agent id is in the run's labels
-]);
+// The stages that aren't agents: the two jobs that record runs too. Every other stage is an agent id.
+export const JOB_STAGES = ["sync", "pull-requests"] as const;
 
 export const runOutcome = pgEnum("run_outcome", [
   "running", "success", "no-op", "failed", "budget-exceeded", "gate-rejected", "rate-limited",
@@ -166,7 +165,7 @@ export const bug = pgTable("bug", {
 
 export const agentRun = pgTable("agent_run", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
-  stage: stage("stage").notNull(),
+  stage: text("stage").notNull(), // the agent id, or a job's name (JOB_STAGES); text since 2026-10-23: agents created in the UI have any id
   pbiId: integer("pbi_id").references(() => workItem.adoId),
   itemId: text("item_id").references((): AnyPgColumn => localItem.id),
   promptVersion: text("prompt_version"),

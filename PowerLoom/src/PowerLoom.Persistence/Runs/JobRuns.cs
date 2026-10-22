@@ -7,7 +7,7 @@ namespace PowerLoom.Persistence.Runs;
 // and counts leave them out.
 public static class JobRuns
 {
-    public static async Task<long> StartAsync(PowerLoomDbContext db, Stage stage, CancellationToken cancellation)
+    public static async Task<long> StartAsync(PowerLoomDbContext db, string stage, CancellationToken cancellation)
     {
         var run = new AgentRun { Stage = stage };
 

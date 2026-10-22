@@ -40,7 +40,6 @@ public partial class PowerLoomDbContext
             .HasPostgresEnum("review_severity", LabelsOf<ReviewSeverity>())
             .HasPostgresEnum("review_status", LabelsOf<ReviewStatus>())
             .HasPostgresEnum("run_outcome", LabelsOf<RunOutcome>())
-            .HasPostgresEnum("stage", LabelsOf<Stage>())
             .HasPostgresEnum("vault_review_action", LabelsOf<VaultReviewAction>())
             .HasPostgresEnum("work_item_source", LabelsOf<WorkItemSource>());
     }

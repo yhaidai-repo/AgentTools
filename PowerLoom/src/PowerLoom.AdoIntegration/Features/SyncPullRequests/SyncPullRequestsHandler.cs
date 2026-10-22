@@ -12,7 +12,7 @@ public static class SyncPullRequestsHandler
 {
     public static async Task Handle(SyncPullRequests message, AdoSettingsStore settings, IAdoClientFactory clients, PowerLoomDbContext db, PullRequestSync sync, ILogger<SyncPullRequests> logger, CancellationToken cancellation)
     {
-        var runId = await JobRuns.StartAsync(db, Stage.PullRequests, cancellation);
+        var runId = await JobRuns.StartAsync(db, JobStages.PullRequests, cancellation);
 
         try
         {

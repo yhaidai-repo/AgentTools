@@ -1,5 +1,5 @@
 import { setItemStatus } from "@powerloom/core";
-import { localItem, runResult, stage as stageEnum, type PowerLoomDb } from "@powerloom/db";
+import { localItem, runResult, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
@@ -17,12 +17,8 @@ import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
 
 type ItemRow = typeof localItem.$inferSelect;
-type Stage = (typeof stageEnum.enumValues)[number];
 
 const ACTOR = "agent-runner";
-// Runs of agents the stage enum doesn't name (agents created in the UI) are recorded under this stage; the agent id is in
-// the run's labels.
-const CUSTOM_STAGE: Stage = "custom";
 
 // One task of an agent without code of its own (user decision 2026-10-22): its prompt, the framework and its skills as
 // instructions; the task, the PBI's context (AgentRunSession adds it) and the task's latest result as the first message;
@@ -31,7 +27,7 @@ const CUSTOM_STAGE: Stage = "custom";
 export async function runGenericTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps, agent } = context;
   const info: AgentRunInfo = {
-    stage: stageOf(agent.id),
+    stage: agent.id,
     pbiId: task.pbiId,
     itemId: task.id,
     labels: { agent: agent.id, item: task.id },
@@ -48,10 +44,6 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
   } finally {
     closeRepos(deps, run.repos);
   }
-}
-
-function stageOf(agentId: string): Stage {
-  return (stageEnum.enumValues as string[]).includes(agentId) ? (agentId as Stage) : CUSTOM_STAGE;
 }
 
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, run: GenericRun): Promise<AgentRunInput> {

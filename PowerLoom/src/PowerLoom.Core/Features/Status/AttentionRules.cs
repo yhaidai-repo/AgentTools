@@ -1,3 +1,4 @@
+using PowerLoom.Persistence.Runs;
 using PowerLoom.Features.Status.Models;
 using PowerLoom.Persistence.Enums;
 
@@ -61,5 +62,5 @@ public static class AttentionRules
             yield return new Attention(BudgetComponent, StateLevel.Degraded, $"{agent.AgentId} spent {agent.SpentTodayUsd:0.00} USD of its daily {agent.DailyLimitUsd:0.00} USD.");
     }
 
-    private static string Label(Stage stage) => stage == Stage.PullRequests ? "pull request check" : "PBI sync";
+    private static string Label(string stage) => stage == JobStages.PullRequests ? "pull request check" : "PBI sync";
 }

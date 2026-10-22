@@ -1,6 +1,7 @@
 namespace PowerLoom.Persistence.Enums;
 
-// PostgreSQL enum `stage`; the labels are the kebab-case of the member names (KebabCaseNameTranslator).
+// History only: the PostgreSQL enum `stage` that agent_run.stage had until 2026-10-23, kept for the migrations that
+// created it. The column is text now (any agent id, also agents created in the UI); jobs use JobStages.
 public enum Stage
 {
     Sync,

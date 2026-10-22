@@ -55,7 +55,7 @@ public sealed class StuckDraftsTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var run = new AgentRun { PbiId = AdoId, Stage = Stage.Research, Outcome = RunOutcome.Success, StartedAt = DateTime.UtcNow };
+        var run = new AgentRun { PbiId = AdoId, Stage = "research", Outcome = RunOutcome.Success, StartedAt = DateTime.UtcNow };
 
         db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Stuck draft PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.ReadyForDesign, SyncedAt = DateTime.UtcNow });
         db.AgentRuns.Add(run);

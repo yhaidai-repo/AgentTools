@@ -29,7 +29,8 @@ public partial class AgentRun
 
     public RunOutcome Outcome { get; set; }
 
-    public Stage Stage { get; set; }
+    // The agent id (or a job's name: JobStages); text, so an agent created in the UI records its runs under its own id.
+    public string Stage { get; set; } = null!;
 
     public Guid? ConversationId { get; set; }
 
