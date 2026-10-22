@@ -15,7 +15,6 @@ const KIND_TAGS: Record<string, { label: string; tone: string }> = {
   docs: { label: "Docs", tone: "kind-docs" },
   review: { label: "Review", tone: "kind-review" },
   "vault-review": { label: "Vault review", tone: "kind-docs" },
-  goal: { label: "Goal", tone: "kind-design" },
   meeting: { label: "Meeting", tone: "kind-meeting" },
   test: { label: "Test", tone: "kind-review" },
   "test-report": { label: "Test report", tone: "kind-review" },

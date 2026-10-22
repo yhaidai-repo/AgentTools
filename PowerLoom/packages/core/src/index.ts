@@ -1,7 +1,6 @@
 export * from "./settings";
 export * from "./vaults";
 export * from "./repos";
-export type { GoalTaskData } from "./models/GoalTaskData";
 export type { RepoRow } from "./models/RepoRow";
 export type { Vault } from "./models/Vault";
 export * from "./currentSprint";

@@ -32,7 +32,7 @@ export const itemKind = pgEnum("item_kind", [
   "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
   "review", // code-review task: one review of one pull request
   "vault-review", // one review pass over the selected vaults: stale notes, invalid links
-  "goal", // a scheduled task of any agent: a goal on chosen repositories, no PBI (user decision 2026-10-06)
+  "goal", // unused since 2026-10-22 (goal tasks removed; a user task of any kind replaces them); Postgres enums can't drop a value
   "meeting", // a recorded meeting to turn into notes and follow-ups (tools/audio-capture, 2026-10-14)
   "test", // Autotest task: prove a PBI's acceptance criteria end to end (design 2026-10-20)
   "test-report", // what an Autotest run found and planned (TR)

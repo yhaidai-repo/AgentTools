@@ -9,7 +9,7 @@ import { RESULT_KINDS } from "./items";
 const LIST_LIMIT = 500;
 
 // The kinds the page lists; research results show inside their task.
-export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review", "goal", "meeting", "test"] as const;
+export const TASK_KINDS = ["question", "human", "finding", "refinement", "research", "design", "docs", "review", "vault-review", "meeting", "test"] as const;
 
 export const TASK_PAGE_SIZES = [25, 50, 100];
 
