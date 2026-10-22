@@ -1304,6 +1304,69 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("review_comment", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.RunResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Agent")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("agent");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Data")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data");
+
+                    b.Property<string>("Evidence")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence");
+
+                    b.Property<int?>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<long?>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TaskId")
+                        .HasColumnType("text")
+                        .HasColumnName("task_id");
+
+                    b.HasKey("Id")
+                        .HasName("run_result_pkey");
+
+                    b.HasIndex(new[] { "PbiId", "CreatedAt" }, "run_result_pbi_idx");
+
+                    b.HasIndex(new[] { "RunId" }, "run_result_run_uq")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "TaskId", "CreatedAt" }, "run_result_task_idx");
+
+                    b.ToTable("run_result", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.SkillRevision", b =>
                 {
                     b.Property<int>("Id")
@@ -2302,6 +2365,33 @@ namespace PowerLoom.Persistence.Migrations
                     b.Navigation("Pr");
 
                     b.Navigation("Run");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.RunResult", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.WorkItem", "Pbi")
+                        .WithMany()
+                        .HasForeignKey("PbiId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("run_result_pbi_id_work_item_ado_id_fk");
+
+                    b.HasOne("PowerLoom.Persistence.Entities.AgentRun", "Run")
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("run_result_run_id_agent_run_id_fk");
+
+                    b.HasOne("PowerLoom.Persistence.Entities.LocalItem", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("run_result_task_id_local_item_id_fk");
+
+                    b.Navigation("Pbi");
+
+                    b.Navigation("Run");
+
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.StatusHistory", b =>

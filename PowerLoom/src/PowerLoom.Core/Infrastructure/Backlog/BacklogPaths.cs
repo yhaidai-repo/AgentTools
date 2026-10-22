@@ -31,6 +31,13 @@ public static partial class BacklogPaths
 
     public static string ItemNotePath(string pbiNotePath, string itemId, ItemKind kind) => $"{FolderOf(pbiNotePath)}/{ItemFolder(kind)}/{itemId}.md";
 
+    // A run's result is named by its run (unique across the vault); by its row once the run is deleted.
+    public static string ResultNoteName(int resultId, long? runId) => runId is null ? $"RESULT-{resultId}" : $"RUN-{runId}";
+
+    // One folder per task under tasks/, next to the task's own note; a result whose task is deleted goes to tasks/ itself.
+    public static string ResultNotePath(string pbiNotePath, string? taskId, int resultId, long? runId) =>
+        $"{FolderOf(pbiNotePath)}/tasks/{(taskId is null ? "" : $"{taskId}/")}{ResultNoteName(resultId, runId)}.md";
+
     // Uploads keep their name, prefixed with the attachment ref so two files of the same name never clash.
     public static string AttachmentRef(int attachmentId) => $"ATT-{attachmentId}";
 

@@ -571,6 +571,33 @@ export const codeReviewVersion = pgTable("code_review_version", {
   uniqueIndex("code_review_version_run_uq").on(t.runId),
 ]);
 
+// One source behind a result's claim, as the agents' Evidence: the read-log id, where that is for a reader, what it shows.
+export interface ResultEvidence {
+  source: string;
+  ref: string;
+  note: string;
+  quote?: string;
+}
+
+// What one agent run produced, whatever the agent (user decision 2026-10-22): one result per run, kept as the task's
+// history and rendered into the backlog vault under the task. Written by the shared write_result tool.
+export const runResult = pgTable("run_result", {
+  id: serial("id").primaryKey(),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id, { onDelete: "set null" }),
+  taskId: text("task_id").references(() => localItem.id, { onDelete: "set null" }),
+  pbiId: integer("pbi_id").references(() => workItem.adoId, { onDelete: "set null" }), // null for a task without a PBI
+  agent: text("agent").notNull(), // the agent id, e.g. better-research
+  status: text("status").notNull(), // complete | partial | blocked; text, since a Postgres enum can't drop a value
+  body: text("body").notNull(),
+  data: jsonb("data").$type<object | null>(), // the structured result in the shape the agent's prompt asked for
+  evidence: jsonb("evidence").$type<ResultEvidence[] | null>(),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("run_result_run_uq").on(t.runId),
+  index("run_result_task_idx").on(t.taskId, t.createdAt),
+  index("run_result_pbi_idx").on(t.pbiId, t.createdAt),
+]);
+
 export const reviewComment = pgTable("review_comment", {
   id: text("id").primaryKey(), // RC-<prId>-<nnn>
   prId: integer("pr_id").notNull().references(() => pullRequest.id),
