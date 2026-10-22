@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TimeAgo } from "@/components/TimeAgo";
 import { agentColor } from "@/lib/agentColors";
 import { agentsUrl } from "@/lib/agentsUrl";
+import { budgetFill } from "@/lib/budget";
 import { cronText } from "@/lib/cronText";
 import { average, formatDuration, formatTokens, formatUsd } from "@/lib/format";
 import { outcomeDot } from "@/lib/runOutcomes";
@@ -15,21 +16,22 @@ interface AgentsTableProps {
   agents: AgentDefinition[];
   totals: Map<string, AgentTotals>;
   counts: Map<string, RunCounts>;
+  spentToday: Map<string, number>;
   range: string;
   paused: boolean;
 }
 
 // One row per agent in four columns that fit (user decision 2026-10-18): the agent in its colour with its model, tokens,
-// time and schedule under it; its runs; its cost as a bar; its last run. The row opens its config; Run now shows on
-// hover. Agents that are on come first, then by cost.
-export function AgentsTable({ agents, totals, counts, range, paused }: AgentsTableProps) {
+// time and schedule under it; its runs; its cost, with a bar of today's spend against its daily budget (user, 2026-10-22:
+// the same as its page's Today tile); its last run. The row opens its config; Run now shows on hover. Agents that are
+// on come first, then by cost.
+export function AgentsTable({ agents, totals, counts, spentToday, range, paused }: AgentsTableProps) {
   if (agents.length === 0) {
     return <p className="quiet-line">No agents yet: they appear once the agent-runner has started.</p>;
   }
 
   const slots = new Map(agents.map((agent, slot) => [agent.id, slot]));
   const sorted = [...agents].sort((a, b) => Number(b.enabled) - Number(a.enabled) || costOf(totals, b) - costOf(totals, a));
-  const maxCost = Math.max(...agents.map((agent) => costOf(totals, agent)), 0);
 
   return (
     <div className="panel">
@@ -39,7 +41,7 @@ export function AgentsTable({ agents, totals, counts, range, paused }: AgentsTab
             <tr><th>Agent</th><th className="col-runs num">Runs</th><th className="col-cost num">Cost</th><th className="col-last num">Last run</th><th className="col-act" aria-label="Actions" /></tr>
           </thead>
           <tbody>
-            {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} maxCost={maxCost} range={range} paused={paused} />)}
+            {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} spentToday={spentToday.get(agent.id) ?? 0} range={range} paused={paused} />)}
           </tbody>
         </table>
       </RunNowResults>
@@ -53,14 +55,14 @@ interface AgentRowProps {
   color: string;
   totals?: AgentTotals;
   counts?: RunCounts;
-  maxCost: number;
+  spentToday: number;
   range: string;
   paused: boolean;
 }
 
 // Runs, failures and the last run come from the run table (running runs included); tokens, cost and duration only exist
 // for finished runs, so their averages are over finished runs.
-function AgentRow({ agent, color, totals, counts, maxCost, range, paused }: AgentRowProps) {
+function AgentRow({ agent, color, totals, counts, spentToday, range, paused }: AgentRowProps) {
   const runs = totals?.runs ?? 0;
   const cost = totals?.costUsd ?? 0;
 
@@ -82,7 +84,7 @@ function AgentRow({ agent, color, totals, counts, maxCost, range, paused }: Agen
       <td className="col-cost num">
         {formatUsd(cost)}
         {runs > 0 && <small className="cost-per-run">{formatUsd(average(cost, runs))} a run</small>}
-        <div className="cost-bar"><b style={{ width: `${maxCost > 0 ? (cost / maxCost) * 100 : 0}%` }} /></div>
+        <div className="cost-bar" title={`Today ${formatUsd(spentToday)} of ${formatUsd(agent.budgets.dailyUsd)}`}><b style={{ width: `${budgetFill(spentToday, agent.budgets.dailyUsd) * 100}%` }} /></div>
       </td>
       <td className="col-last num"><LastRun counts={counts} /></td>
       <td className="col-act"><span className="row-action"><RunNowButton agentId={agent.id} disabled={paused || !agent.enabled} /></span></td>

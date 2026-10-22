@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadAgentTotals } from "@/lib/agentTotals";
+import { spentTodayByAgent } from "@/lib/budgetUsage";
 import { loadDeadLetters } from "@/lib/deadLetters";
 import { periodStart } from "@/lib/periodStart";
 import { periodOf } from "@/lib/ranges";
@@ -26,7 +27,7 @@ export async function OverviewTab({ vault, params, tabs, paused }: { vault: stri
         <div className="tab-filters"><PeriodPicker value={range} path="/agents" keep={{ tab: "overview" }} /></div>
       </div>
       <SubscriptionMeters statuses={await loadSubscriptionStatus()} />
-      <AgentsTable agents={agents} totals={await loadAgentTotals(since, vault)} counts={await loadRunCounts(since, vault)} range={range} paused={paused} />
+      <AgentsTable agents={agents} totals={await loadAgentTotals(since, vault)} counts={await loadRunCounts(since, vault)} spentToday={await spentTodayByAgent(agents.map((agent) => agent.id))} range={range} paused={paused} />
       <DeadLetters letters={await loadDeadLetters(since)} />
     </>
   );

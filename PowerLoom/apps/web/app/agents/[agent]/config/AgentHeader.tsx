@@ -6,7 +6,7 @@ import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { agentColor } from "@/lib/agentColors";
 import { agentsUrl } from "@/lib/agentsUrl";
-import { isNearBudget } from "@/lib/budget";
+import { budgetFill, isNearBudget } from "@/lib/budget";
 import { cronText } from "@/lib/cronText";
 import { itemPath } from "@/lib/items";
 import { average, formatUsd } from "@/lib/format";
@@ -71,7 +71,7 @@ function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinitio
       <HeroStat label="Failed" value={String(failures)} tone={failures > 0 ? "error" : undefined} />
       <HeroStat label="Cost · 30 days" value={formatUsd(cost)} note={totals?.runs ? `${formatUsd(average(cost, totals.runs))} a run` : undefined} />
       <HeroStat label="Today" value={formatUsd(spentTodayUsd)} note={`of ${formatUsd(agent.budgets.dailyUsd)}`} tone={isNearBudget(spentTodayUsd, agent.budgets.dailyUsd) ? "warn" : undefined}>
-        <div className="budget-meter"><b style={{ width: `${Math.min(spentTodayUsd / Math.max(agent.budgets.dailyUsd, 0.01), 1) * 100}%` }} /></div>
+        <div className="budget-meter"><b style={{ width: `${budgetFill(spentTodayUsd, agent.budgets.dailyUsd) * 100}%` }} /></div>
       </HeroStat>
     </div>
   );
