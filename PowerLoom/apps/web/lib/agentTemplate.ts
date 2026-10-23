@@ -40,8 +40,9 @@ export async function newAgentTemplate(id: string): Promise<AgentDefinition> {
   };
 }
 
+// The keys every agent with options declares; an agent without any (the MCP chat) says nothing about them.
 function sharedOptionSpecs(builtins: AgentDefinition[]): AgentDefinition["optionSpecs"] {
-  const [first, ...rest] = builtins;
+  const [first, ...rest] = builtins.filter((agent) => agent.optionSpecs.length > 0);
 
   if (!first) {
     return [];

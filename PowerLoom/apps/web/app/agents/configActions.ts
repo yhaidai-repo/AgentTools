@@ -7,7 +7,7 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { newAgentTemplate } from "@/lib/agentTemplate";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import { readPromptFile } from "@/lib/promptFiles";
-import { insertPromptVersion } from "@/lib/promptVersions";
+import { deletePromptVersions, insertPromptVersion } from "@/lib/promptVersions";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Saves through AgentConfig only; the agent-runner is notified and reschedules by itself.
@@ -135,6 +135,7 @@ export async function deleteAgentAction(id: string): Promise<ActionResult> {
   }
 
   await store.remove(id);
+  await deletePromptVersions(id);
   revalidatePath("/agents");
   redirect("/agents");
 }

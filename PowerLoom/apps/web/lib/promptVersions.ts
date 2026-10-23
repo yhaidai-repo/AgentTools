@@ -12,3 +12,8 @@ export async function loadPromptVersions(agentId: string): Promise<PromptVersion
 export async function insertPromptVersion(agentId: string, version: number, text: string): Promise<void> {
   await getDb().insert(agentPromptVersion).values({ agentId, version, text });
 }
+
+// A deleted agent takes its prompt history with it.
+export async function deletePromptVersions(agentId: string): Promise<void> {
+  await getDb().delete(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId));
+}
