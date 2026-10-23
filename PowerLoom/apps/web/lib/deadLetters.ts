@@ -1,18 +1,12 @@
-import { powerloom } from "./powerloom";
+import type { DeadLetter } from "@powerloom/core";
+import { webCommandContext } from "./commandContext";
 
-export interface DeadLetter {
-  id: string;
-  messageType: string;
-  exceptionType: string | null;
-  exceptionMessage: string | null;
-  sentAt: Date;
-  source: string | null;
-  replayable: boolean;
-}
+export type { DeadLetter };
 
-// Messages PowerLoom gave up on (Wolverine's dead letters): the errors outside a single run, never hidden.
+// Messages PowerLoom gave up on (Wolverine's dead letters): the errors outside a single run, never hidden. None when
+// PowerLoom refuses the read, as before the port.
 export async function loadDeadLetters(from: Date): Promise<DeadLetter[]> {
-  const { data } = await powerloom.GET("/api/dead-letters", { params: { query: { since: from.toISOString() } } });
+  const outcome = await webCommandContext().powerloom.deadLetters(from);
 
-  return (data ?? []).map((letter) => ({ ...letter, exceptionType: letter.exceptionType ?? null, exceptionMessage: letter.exceptionMessage ?? null, source: letter.source ?? null, sentAt: new Date(letter.sentAt) }));
+  return outcome.ok ? outcome.value : [];
 }

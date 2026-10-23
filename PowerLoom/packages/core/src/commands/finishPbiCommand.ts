@@ -4,6 +4,7 @@ import type { PbiFeedback } from "../models/PbiFeedback";
 
 export const finishPbiCommand: Command<PbiFeedback, { message: string; wwwRecordId: number | null }> = {
   name: "pbi.finish",
+  effect: "destructive",
   description: "Finish a PBI in PowerLoom (status done; its open items but findings are cancelled; ADO is not changed) with the user's feedback: the agents' rating 1–10, the hours the user spent, and optionally what went wrong (logged as a WWW record).",
   input: z.object({
     adoId: z.number().int().positive(),

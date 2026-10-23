@@ -1,4 +1,7 @@
 import type { StoredTraceEvent } from "@agenttools/usage";
+// The browser bundle (TraceView is a client component) must not pull core's barrel, which reaches the database driver;
+// the summary is a pure module, so it is imported by its path.
+import { traceEventSummary } from "@powerloom/core/src/agentRuns/traceEvents";
 import type { TraceLine } from "@/models/TraceLine";
 import type { TraceLook } from "@/models/TraceLook";
 
@@ -61,7 +64,7 @@ export function groupPhases(events: StoredTraceEvent[]): TraceLine[] {
 }
 
 export function summaryOf(event: StoredTraceEvent): string {
-  return clip(fullSummaryOf(event.payload as Payload, event.type));
+  return clip(traceEventSummary(event));
 }
 
 function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
@@ -84,25 +87,6 @@ function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
 
 function isError(event: StoredTraceEvent): boolean {
   return event.type === "error" || (event.type === "tool_result" && Boolean((event.payload as Payload).isError));
-}
-
-function fullSummaryOf(payload: Payload, type: string): string {
-  switch (type) {
-    case "tool_call":
-      return JSON.stringify(payload.input);
-    case "tool_result":
-      return String(payload.output);
-    case "usage":
-      return `in ${payload.inputTokens} · out ${payload.outputTokens} · cache r ${payload.cacheReadTokens} / w ${payload.cacheWriteTokens}`;
-    case "text":
-      return String(payload.text);
-    case "result":
-      return `${payload.reason}, ${payload.turns} turns`;
-    case "rate_limit":
-      return [payload.status, ...(payload.windows ?? []).map((window: { window: string; utilization: number }) => `${window.window} ${Math.round(window.utilization * 100)}%`)].join(" · ");
-    default:
-      return payload.message ? String(payload.message) : "";
-  }
 }
 
 function clip(text: string): string {

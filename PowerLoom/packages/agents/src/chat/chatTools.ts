@@ -2,8 +2,10 @@ import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
 import type { CommandContext } from "@powerloom/core";
 import { createAdoTools } from "../ado/adoTools";
+import { createChatAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azure/azureTools";
 import { commandTools } from "../commandTool";
+import { chatTestCaseTools } from "../testCases/testCaseTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
 import type { AgentDeps } from "../models/AgentDeps";
@@ -35,16 +37,18 @@ function withoutTaken(commands: ToolDefinition<any>[], readers: ToolDefinition<a
 // The readers that change something outside: a stack on DevHub, a request from the host.
 const WRITING_READERS = new Set(["start_stack", "stop_stack", "http_request"]);
 
-// read_pbi is left out: the chat has the same command as pbi_read.
+// read_pbi is left out: the chat has the same command as pbi_read. The tools a run binds to its task's PBI
+// (read_attachment, read_test_cases) take the PBI as an argument here.
 function readingTools(deps: AgentDeps, agent: AgentDefinition, access: OutsideAccessContext): ToolDefinition<any>[] {
   const tools: ToolDefinition<any>[] = [
     ...createAgentDocTools(deps, agent.id, access.runId),
     listReposTool(deps.db, access.vault),
+    createChatAttachmentTool(deps.db),
     ...createConfluenceTools(deps, agent, access),
     ...createSqlTools(deps, agent, access),
     ...createAzureTools(deps, agent, access),
     ...createDevHubTools(deps, agent, access),
-    ...createAdoTools(deps, agent, access),
+    ...createAdoTools(deps, agent, access, chatTestCaseTools),
   ];
 
   return tools.map((tool) => ({ ...tool, annotations: tool.annotations ?? { readOnly: !WRITING_READERS.has(tool.name) } }));

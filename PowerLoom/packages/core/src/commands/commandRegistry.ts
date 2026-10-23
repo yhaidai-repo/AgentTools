@@ -21,6 +21,32 @@ import { sqlDatabasesCommand } from "./sqlDatabasesCommand";
 import { sqlDescribeCommand } from "./sqlDescribeCommand";
 import { sqlQueryCommand } from "./sqlQueryCommand";
 import { submitFindingCommand } from "./submitFindingCommand";
+import { listPbisCommand } from "./listPbisCommand";
+import { listTasksCommand } from "./listTasksCommand";
+import { getTaskCommand } from "./getTaskCommand";
+import { listTestCasesCommand } from "./listTestCasesCommand";
+import { listSchedulesCommand } from "./listSchedulesCommand";
+import { getScheduleCommand } from "./getScheduleCommand";
+import { listRunsCommand } from "./listRunsCommand";
+import { getRunCommand } from "./getRunCommand";
+import { getRunEventsCommand } from "./getRunEventsCommand";
+import { listAgentsCommand } from "./listAgentsCommand";
+import { getAgentCommand } from "./getAgentCommand";
+import { getAgentsGlobalCommand } from "./getAgentsGlobalCommand";
+import { getUsageSummaryCommand } from "./getUsageSummaryCommand";
+import { listDataAccessCommand } from "./listDataAccessCommand";
+import { listDeadLettersCommand } from "./listDeadLettersCommand";
+import { getStatusCommand } from "./getStatusCommand";
+import { getResultCommand } from "./getResultCommand";
+import { listResultVersionsCommand } from "./listResultVersionsCommand";
+import { listReviewsCommand } from "./listReviewsCommand";
+import { getReviewCommand } from "./getReviewCommand";
+import { listVaultNotesCommand } from "./listVaultNotesCommand";
+import { getVaultUsageCommand } from "./getVaultUsageCommand";
+import { getVaultRegistersCommand } from "./getVaultRegistersCommand";
+import { listVaultTrashCommand } from "./listVaultTrashCommand";
+import { listSkillsCommand } from "./listSkillsCommand";
+import { getSkillCommand } from "./getSkillCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -48,6 +74,33 @@ export const COMMANDS: readonly Command<any, any>[] = [
   sqlQueryCommand,
   sqlDescribeCommand,
   sqlDatabasesCommand,
+  // The read commands (stage 2 of the powerloom-mcp design, 2026-10-23): what the pages show, for the chats.
+  listPbisCommand,
+  listTasksCommand,
+  getTaskCommand,
+  listTestCasesCommand,
+  listSchedulesCommand,
+  getScheduleCommand,
+  listRunsCommand,
+  getRunCommand,
+  getRunEventsCommand,
+  listAgentsCommand,
+  getAgentCommand,
+  getAgentsGlobalCommand,
+  getUsageSummaryCommand,
+  listDataAccessCommand,
+  listDeadLettersCommand,
+  getStatusCommand,
+  getResultCommand,
+  listResultVersionsCommand,
+  listReviewsCommand,
+  getReviewCommand,
+  listVaultNotesCommand,
+  getVaultUsageCommand,
+  getVaultRegistersCommand,
+  listVaultTrashCommand,
+  listSkillsCommand,
+  getSkillCommand,
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see COMMANDS

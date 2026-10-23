@@ -1,6 +1,4 @@
-import { isFailedOutcome } from "@powerloom/core";
-import { agentRun, localItem, workItem } from "@powerloom/db";
-import { and, eq } from "drizzle-orm";
+import { isFailedOutcome, loadRun } from "@powerloom/core";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
@@ -9,7 +7,6 @@ import { getAgentConfig } from "@/lib/agentConfig";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { getUsageStore } from "@/lib/usage";
-import { runInVault } from "@/lib/vaultRuns";
 import { RunHeader } from "./RunHeader";
 import { RunCaptures, RunOutputs } from "./RunOutputs";
 import { TraceView } from "./TraceView";
@@ -27,7 +24,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   }
 
   const runId = Number((await params).id);
-  const found = Number.isInteger(runId) ? await loadRun(runId, vault) : null;
+  const found = Number.isInteger(runId) ? await loadRun(getDb(), runId, vault) : null;
 
   if (!found) {
     notFound();
@@ -59,15 +56,4 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
       </div>
     </>
   );
-}
-
-async function loadRun(runId: number, vault: string) {
-  const [row] = await getDb()
-    .select({ run: agentRun, task: localItem })
-    .from(agentRun)
-    .leftJoin(localItem, eq(localItem.id, agentRun.itemId))
-    .leftJoin(workItem, eq(workItem.adoId, agentRun.pbiId))
-    .where(and(eq(agentRun.id, runId), runInVault(vault)));
-
-  return row ?? null;
 }

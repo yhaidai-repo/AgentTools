@@ -16,6 +16,11 @@ export function skillFolders(): SkillFolder[] {
   return paths.map((path) => ({ path, hostPath: hostPathOf(path), editable: path === POWERLOOM_SKILLS_FOLDER }));
 }
 
+// The one folder PowerLoom may write, for the skill catalog the commands read.
+export function editableSkillFolder(): string {
+  return POWERLOOM_SKILLS_FOLDER;
+}
+
 export function isEditableSkillFolder(path: string): boolean {
   return skillFolders().some((folder) => folder.path === path && folder.editable);
 }

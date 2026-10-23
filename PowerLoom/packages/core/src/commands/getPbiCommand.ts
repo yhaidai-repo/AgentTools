@@ -6,6 +6,7 @@ import { parsePbiReference } from "../pbiAdmin";
 
 export const getPbiCommand: Command<{ link: string }, PbiOverview> = {
   name: "pbi.get",
+  effect: "read",
   description: "Read a PBI by its Azure DevOps or PowerLoom link, #id or id: fields, ADO state, pipeline status, parent, child items, bug record, repos, skills and note path. A child item's parent is the PBI whose branch it is worked on.",
   input: z.object({ link: z.string().trim().min(1) }),
   async run(context, input) {

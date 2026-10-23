@@ -3,7 +3,8 @@ import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, createAzureUserLogin
 import { createPowerLoomClient, createPowerLoomPort } from "@powerloom/client";
 import { readVaults } from "@powerloom/core";
 import { createDb } from "@powerloom/db";
-import { RuntimeRegistry, listSkills } from "@agenttools/runtime";
+import { RuntimeRegistry } from "@agenttools/runtime";
+import { skillCatalogOf } from "@agenttools/runtime/skills";
 import { ChatSessions } from "./ChatSessions";
 import { McpHttpServer } from "./McpHttpServer";
 
@@ -27,7 +28,9 @@ const sessions = new ChatSessions({
   powerloom: createPowerLoomPort(createPowerLoomClient(env.powerloomUrl)),
   backlogMount: env.backlogMount,
   agents: deps.config,
-  skills: { names: async () => (await listSkills(env.skillFolders)).skills.map((skill) => skill.name) },
+  usage: deps.usageStore,
+  // PowerLoom's own skills folder is the first one (SKILL_FOLDERS), the only one the commands may edit.
+  skills: skillCatalogOf(env.skillFolders, env.skillFolders[0] ?? null),
 });
 const server = new McpHttpServer({ token, sessions, azureLogin, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
 const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000), SWEEP_MS);

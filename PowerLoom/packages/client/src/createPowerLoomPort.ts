@@ -1,5 +1,6 @@
-import type { ChatTarget, CloseItemRequest, CreatePbiInput, ItemStatus, Outcome, PbiFeedback, PbiSkillChoices, PowerLoomPort, ReportBugInput } from "@powerloom/core";
+import type { ChatTarget, CloseItemRequest, CreatePbiInput, DeadLetter, ItemStatus, Outcome, PbiFeedback, PbiSkillChoices, PowerLoomPort, ReportBugInput, SystemStatus } from "@powerloom/core";
 import type { PowerLoomClient } from "./createPowerLoomClient";
+import type { components } from "./schema";
 import { powerloomFailure, problemDetail } from "./powerloomFailure";
 
 // The commands' way to PowerLoom over its API: one adapter for every caller (the web, the CLI, the MCP server).
@@ -103,7 +104,26 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
 
       return data ? { ok: true, value: data.name } : powerloomFailure(error, response);
     },
+    // PowerLoom not answering at all is the status's expected miss (the page shows that), not a crash of the caller.
+    async status(): Promise<Outcome<SystemStatus>> {
+      try {
+        const { data, error, response } = await powerloom.GET("/api/status");
+
+        return data ? { ok: true, value: data } : powerloomFailure(error, response);
+      } catch (cause) {
+        return { ok: false, error: `PowerLoom doesn't answer: ${cause instanceof Error ? cause.message : String(cause)}` };
+      }
+    },
+    async deadLetters(since) {
+      const { data, error, response } = await powerloom.GET("/api/dead-letters", { params: { query: { since: since.toISOString() } } });
+
+      return data ? { ok: true, value: data.map(deadLetterOf) } : powerloomFailure(error, response);
+    },
   };
+}
+
+function deadLetterOf(letter: components["schemas"]["DeadLetterInfo"]): DeadLetter {
+  return { ...letter, exceptionType: letter.exceptionType ?? null, exceptionMessage: letter.exceptionMessage ?? null, source: letter.source ?? null, sentAt: new Date(letter.sentAt) };
 }
 
 // Close and reopen answer per PBI; for one PBI, its line is the outcome.

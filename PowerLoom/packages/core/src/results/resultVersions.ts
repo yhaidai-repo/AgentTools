@@ -1,0 +1,210 @@
+import { agentRun, codeReviewVersion, design, localItem, pbiEstimate, refinement, runResult, type PowerLoomDb } from "@powerloom/db";
+import { and, asc, eq, inArray, type SQL } from "drizzle-orm";
+import type { AgentResult } from "../models/AgentResult";
+import type { ResultOwner } from "../models/ResultOwner";
+import type { ResultSet } from "../models/ResultSet";
+import type { ResultVersion } from "../models/ResultVersion";
+import { reviewTaskPrId, reviewTasksOf } from "../reviews/reviews";
+import { RESULT_KINDS } from "../tasks/items";
+import { versionKey } from "./resultLinks";
+
+type ItemResultRow = Awaited<ReturnType<typeof itemRows>>[number];
+type RunResultRow = Awaited<ReturnType<typeof runResultRows>>[number];
+
+const ITEM_TITLES: Record<string, string> = { "research-result": "Research results", "test-report": "Test reports" };
+const RUN_RESULTS_TITLE = "Run results";
+
+// A PBI's results on its page (user decision 2026-10-21: every version under its task, one shown): its estimates,
+// refinements and designs, then each research or test task's results and each task's run results.
+export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise<ResultSet[]> {
+  const [estimates, refinements, designs, items, runResults] = await Promise.all([
+    estimateVersions(db, eq(pbiEstimate.pbiId, adoId)),
+    refinementVersions(db, eq(refinement.pbiId, adoId)),
+    designVersions(db, eq(design.pbiId, adoId)),
+    itemRows(db, eq(localItem.pbiId, adoId)),
+    runResultRows(db, eq(runResult.pbiId, adoId)),
+  ]);
+
+  return [
+    { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "No agent has estimated it yet." },
+    { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "Not refined yet." },
+    { key: "design", title: "Design", task: null, versions: designs, empty: "Not designed yet." },
+    ...itemSets(items),
+    ...runResultSets(runResults),
+  ];
+}
+
+// A pull request's reviews (user decision 2026-10-21): one version per successful review run, each rerun being a new
+// review task. A review task's page opens on its own newest version (`ownRunIds`), the review page on the latest.
+export async function loadReviewResultSet(db: PowerLoomDb, prId: number, ownRunIds: number[] = []): Promise<ResultSet> {
+  const versions = await reviewVersions(db, prId);
+  const own = versions.filter((version) => version.runId !== null && ownRunIds.includes(version.runId)).at(-1);
+
+  return { key: "review", title: "Review", task: null, versions, empty: "Not reviewed yet.", preferred: own ? versionKey(own) : undefined };
+}
+
+// What one task's runs wrote: the refinement, design or estimate versions of its runs, the result items answering it,
+// its runs' results, or, for a review task, its pull request's reviews (opening on its own run). Estimates keep the
+// numbers they have on the PBI page, so they are counted over the whole PBI first.
+export async function loadTaskResultSets(db: PowerLoomDb, task: { id: string; pbiId: number | null; kind: string; data: unknown }, runIds: number[]): Promise<ResultSet[]> {
+  const prId = task.kind === "review" ? reviewTaskPrId(task.data) : null;
+  const [reviews, items, runResults, refinements, designs, estimates] = await Promise.all([
+    prId === null ? null : loadReviewResultSet(db, prId, runIds),
+    itemRows(db, eq(localItem.parentId, task.id)),
+    runResultVersions(db, eq(runResult.taskId, task.id)),
+    runIds.length === 0 ? [] : refinementVersions(db, inArray(refinement.runId, runIds)),
+    runIds.length === 0 ? [] : designVersions(db, inArray(design.runId, runIds)),
+    runIds.length === 0 || task.pbiId === null ? [] : estimatesOfRuns(db, task.pbiId, runIds),
+  ]);
+  const sets: ResultSet[] = [
+    ...(reviews ? [reviews] : []),
+    { key: "run", title: RUN_RESULTS_TITLE, task: null, versions: runResults, empty: "" },
+    { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "" },
+    { key: "design", title: "Design", task: null, versions: designs, empty: "" },
+    { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "" },
+    ...itemSets(items),
+  ];
+
+  return sets.filter((set) => set.versions.length > 0);
+}
+
+// The versions beside one result on its full page: the PBI's for a refinement, design or estimate, the task's for an
+// item or a run result, the pull request's for a review run.
+export async function loadSiblingVersions(db: PowerLoomDb, result: AgentResult, owner: ResultOwner): Promise<ResultVersion[]> {
+  if (result.kind === "review") {
+    return reviewVersions(db, result.row.prId);
+  }
+
+  if (result.kind === "item") {
+    return owner.taskId === null ? [] : itemSets(await itemRows(db, eq(localItem.parentId, owner.taskId)))[0]?.versions ?? [];
+  }
+
+  if (result.kind === "run") {
+    return runResultVersions(db, owner.taskId === null ? eq(runResult.id, result.row.id) : eq(runResult.taskId, owner.taskId));
+  }
+
+  const pbiId = owner.pbiId;
+
+  if (pbiId === null) {
+    return [];
+  }
+
+  const loaders = { refinement: () => refinementVersions(db, eq(refinement.pbiId, pbiId)), design: () => designVersions(db, eq(design.pbiId, pbiId)), estimate: () => estimateVersions(db, eq(pbiEstimate.pbiId, pbiId)) };
+
+  return loaders[result.kind]();
+}
+
+// Every successful review run of the pull request, with when its version was kept (its start for runs from before).
+async function reviewVersions(db: PowerLoomDb, prId: number): Promise<ResultVersion[]> {
+  const rows = await db
+    .select({ runId: agentRun.id, agent: agentRun.stage, startedAt: agentRun.startedAt, keptAt: codeReviewVersion.createdAt })
+    .from(agentRun)
+    .innerJoin(localItem, eq(localItem.id, agentRun.itemId))
+    .leftJoin(codeReviewVersion, eq(codeReviewVersion.runId, agentRun.id))
+    .where(and(reviewTasksOf(prId), eq(agentRun.outcome, "success")))
+    .orderBy(asc(agentRun.id));
+
+  return rows.map((row, index) => ({ kind: "review", id: String(row.runId), label: `v${index + 1}`, runId: row.runId, agent: row.agent, at: row.keptAt ?? row.startedAt, status: null }));
+}
+
+async function refinementVersions(db: PowerLoomDb, where: SQL): Promise<ResultVersion[]> {
+  const rows = await db
+    .select({ id: refinement.id, version: refinement.version, runId: refinement.runId, agent: agentRun.stage, at: refinement.createdAt })
+    .from(refinement)
+    .leftJoin(agentRun, eq(agentRun.id, refinement.runId))
+    .where(where)
+    .orderBy(asc(refinement.version));
+
+  return rows.map((row) => ({ kind: "refinement", id: String(row.id), label: `v${row.version}`, runId: row.runId, agent: row.agent, at: row.at, status: null }));
+}
+
+async function designVersions(db: PowerLoomDb, where: SQL): Promise<ResultVersion[]> {
+  const rows = await db
+    .select({ id: design.id, version: design.version, runId: design.runId, agent: agentRun.stage, at: design.createdAt })
+    .from(design)
+    .leftJoin(agentRun, eq(agentRun.id, design.runId))
+    .where(where)
+    .orderBy(asc(design.version));
+
+  return rows.map((row) => ({ kind: "design", id: String(row.id), label: `v${row.version}`, runId: row.runId, agent: row.agent, at: row.at, status: null }));
+}
+
+async function estimatesOfRuns(db: PowerLoomDb, pbiId: number, runIds: number[]): Promise<ResultVersion[]> {
+  const all = await estimateVersions(db, eq(pbiEstimate.pbiId, pbiId));
+
+  return all.filter((version) => version.runId !== null && runIds.includes(version.runId));
+}
+
+// Estimates have no version number: they count in the order agents recorded them.
+async function estimateVersions(db: PowerLoomDb, where: SQL): Promise<ResultVersion[]> {
+  const rows = await db
+    .select({ id: pbiEstimate.id, runId: pbiEstimate.runId, agent: pbiEstimate.agent, at: pbiEstimate.createdAt })
+    .from(pbiEstimate)
+    .where(where)
+    .orderBy(asc(pbiEstimate.createdAt), asc(pbiEstimate.id));
+
+  return rows.map((row, index) => ({ kind: "estimate", id: String(row.id), label: `v${index + 1}`, runId: row.runId, agent: row.agent, at: row.at, status: null }));
+}
+
+function itemRows(db: PowerLoomDb, where: SQL) {
+  return db
+    .select({ id: localItem.id, kind: localItem.kind, parentId: localItem.parentId, pbiId: localItem.pbiId, runId: localItem.createdByRun, agent: agentRun.stage, at: localItem.createdAt, status: localItem.status })
+    .from(localItem)
+    .leftJoin(agentRun, eq(agentRun.id, localItem.createdByRun))
+    .where(and(where, inArray(localItem.kind, RESULT_KINDS)))
+    .orderBy(asc(localItem.id));
+}
+
+// Result items grouped by the task they answer, each group in the order its items were written.
+function itemSets(rows: ItemResultRow[]): ResultSet[] {
+  return [...groupByTask(rows, (row) => row.parentId)].map(([taskId, own]) => ({
+    key: taskId,
+    title: ITEM_TITLES[own[0].kind] ?? "Results",
+    task: { id: taskId, pbiId: own[0].pbiId },
+    versions: own.map((row, index) => ({ kind: "item", id: row.id, label: `v${index + 1}`, runId: row.runId, agent: row.agent, at: row.at, status: row.status })),
+    empty: "",
+  }));
+}
+
+// A run result is labelled by its run (user decision 2026-10-22), not counted: one result per run, in the order the
+// runs wrote them, so the picker shows the newest run first.
+async function runResultVersions(db: PowerLoomDb, where: SQL): Promise<ResultVersion[]> {
+  const rows = await runResultRows(db, where);
+
+  return rows.map(runResultVersion);
+}
+
+function runResultVersion(row: RunResultRow): ResultVersion {
+  return { kind: "run", id: String(row.id), label: row.runId === null ? `#${row.id}` : `RUN-${row.runId}`, runId: row.runId, agent: row.agent, at: row.at, status: row.status };
+}
+
+function runResultRows(db: PowerLoomDb, where: SQL) {
+  return db
+    .select({ id: runResult.id, runId: runResult.runId, taskId: runResult.taskId, pbiId: runResult.pbiId, agent: runResult.agent, status: runResult.status, at: runResult.createdAt })
+    .from(runResult)
+    .where(where)
+    .orderBy(asc(runResult.createdAt), asc(runResult.id));
+}
+
+// Run results grouped by their task; the key tells them apart from the task's result items on the same page.
+function runResultSets(rows: RunResultRow[]): ResultSet[] {
+  return [...groupByTask(rows, (row) => row.taskId)].map(([taskId, own]) => ({
+    key: `run-${taskId}`,
+    title: RUN_RESULTS_TITLE,
+    task: { id: taskId, pbiId: own[0].pbiId },
+    versions: own.map(runResultVersion),
+    empty: "",
+  }));
+}
+
+function groupByTask<Row>(rows: Row[], taskOf: (row: Row) => string | null): Map<string, Row[]> {
+  const byTask = new Map<string, Row[]>();
+
+  for (const row of rows.filter((candidate) => taskOf(candidate) !== null)) {
+    const taskId = taskOf(row)!;
+
+    byTask.set(taskId, [...(byTask.get(taskId) ?? []), row]);
+  }
+
+  return byTask;
+}

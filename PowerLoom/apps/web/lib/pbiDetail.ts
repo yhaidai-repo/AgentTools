@@ -1,22 +1,8 @@
 import { agentRun, attachment, design, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
-import { latestPbiEstimate, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { ATTACHMENT_SUMMARY_COLUMNS, latestPbiEstimate, loadItemDetail as loadItemDetailOf, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
-
-// Uploads without their bytes (downloads read those on their own).
-const ATTACHMENT_SUMMARY = {
-  id: attachment.id,
-  itemId: attachment.itemId,
-  sourceUrl: attachment.sourceUrl,
-  origin: attachment.origin,
-  sourceVersion: attachment.sourceVersion,
-  fileName: attachment.fileName,
-  sizeBytes: attachment.sizeBytes,
-  textChars: sql<number | null>`length(${attachment.text})`,
-  vaultPath: attachment.vaultPath,
-  createdAt: attachment.createdAt,
-};
 
 // Everything the PBI page shows.
 export async function loadPbiDetail(adoId: number) {
@@ -29,7 +15,7 @@ export async function loadPbiDetail(adoId: number) {
 
   // Items the user deleted stay in the DB (so agents don't recreate them) but aren't shown.
   const items = await db.select().from(localItem).where(and(eq(localItem.pbiId, adoId), ne(localItem.status, "deleted"))).orderBy(localItem.id);
-  const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.pbiId, adoId)).orderBy(attachment.id);
+  const attachments = await db.select(ATTACHMENT_SUMMARY_COLUMNS).from(attachment).where(eq(attachment.pbiId, adoId)).orderBy(attachment.id);
   const runs = await db.select().from(agentRun).where(eq(agentRun.pbiId, adoId)).orderBy(desc(agentRun.id));
   const [latestRefinement] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
   const [latestDesign] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
@@ -50,22 +36,9 @@ async function loadRelations(adoId: number, parentId: number | null) {
   return { parent: parent ?? null, bug: await readBug(db, adoId), children: await readChildItems(db, adoId) };
 }
 
-// One item with its uploads, its runs and the findings it raised; its versioned results load where they are shown. The
-// route checks the item belongs to its URL (a PBI's page, or Tasks for items without one).
-export async function loadItemDetail(itemId: string) {
-  const db = getDb();
-  const [item] = await db.select().from(localItem).where(eq(localItem.id, itemId));
-
-  if (!item) {
-    return null;
-  }
-
-  const attachments = await db.select(ATTACHMENT_SUMMARY).from(attachment).where(eq(attachment.itemId, itemId)).orderBy(attachment.id);
-  const findings = await db.select().from(localItem).where(and(eq(localItem.parentId, itemId), eq(localItem.kind, "finding"), ne(localItem.status, "deleted"))).orderBy(localItem.id);
-
-  const runs = await db.select({ id: agentRun.id, stage: agentRun.stage, itemId: agentRun.itemId, startedAt: agentRun.startedAt, outcome: agentRun.outcome, outputs: agentRun.outputs }).from(agentRun).where(eq(agentRun.itemId, itemId)).orderBy(desc(agentRun.id));
-
-  return { item, attachments, findings, runs };
+// One item with its uploads, its runs and its findings (core, shared with task.get) with the web's database.
+export function loadItemDetail(itemId: string) {
+  return loadItemDetailOf(getDb(), itemId);
 }
 
 export type PbiDetail = NonNullable<Awaited<ReturnType<typeof loadPbiDetail>>>;

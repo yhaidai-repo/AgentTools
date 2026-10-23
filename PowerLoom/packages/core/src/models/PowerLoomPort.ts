@@ -7,7 +7,9 @@ import type { ItemStatus } from "./ItemStatus";
 import type { ReportBugInput } from "./ReportBugInput";
 import type { ReportedBug } from "./ReportedBug";
 import type { ChatTarget } from "./ChatTarget";
+import type { DeadLetter } from "./DeadLetter";
 import type { Outcome } from "./Outcome";
+import type { SystemStatus } from "./SystemStatus";
 
 // PowerLoom, the .NET backend taking over the worker's jobs (the vault's adoa-backend-delivery note). The caller (the
 // web, the CLI) supplies the client; core stays free of HTTP.
@@ -45,4 +47,9 @@ export interface PowerLoomPort {
 
   // A new skill of PowerLoom's own: `<name>/SKILL.md` in its skills folder (user decision 2026-10-23).
   createSkill(name: string, content: string): Promise<Outcome<string>>;
+
+  // PowerLoom's view of the running system (the dashboard's Application tab); a failure when PowerLoom itself doesn't answer.
+  status(): Promise<Outcome<SystemStatus>>;
+  // Messages PowerLoom gave up on (Wolverine's dead letters) sent since `since`: the errors outside a single run.
+  deadLetters(since: Date): Promise<Outcome<DeadLetter[]>>;
 }

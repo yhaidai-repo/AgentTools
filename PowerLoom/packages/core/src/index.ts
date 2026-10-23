@@ -4,6 +4,18 @@ export * from "./repos";
 export type { RepoRow } from "./models/RepoRow";
 export type { Vault } from "./models/Vault";
 export * from "./currentSprint";
+export * from "./periods";
+// Stage 2 of the powerloom-mcp design: the pages' reads, shared with the read commands.
+export * from "./backlog";
+export * from "./tasks";
+export * from "./agentRuns";
+export * from "./agentStats";
+export * from "./results";
+export * from "./reviews";
+export * from "./vaultPage";
+export * from "./skills";
+export type { Period } from "./models/Period";
+export { limitInput, pbiIdInput, periodInput, vaultInput } from "./commands/inputs";
 export * from "./pbiStatus";
 export * from "./runs";
 export * from "./adoLinks";

@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@agenttools/runtime";
+import { z } from "zod";
 import { TEST_CASES, adoFailure, adoResource } from "../ado/adoToolResults";
 import type { AdoAccess } from "../models/AdoAccess";
 import type { AgentDeps } from "../models/AgentDeps";
@@ -20,6 +21,20 @@ export function testCaseTools(deps: AgentDeps, context: OutsideAccessContext, ac
   }
 
   return [readTestCasesTool(deps, context, access, pbiId)];
+}
+
+// The chat's variant: no task names the PBI, so the call does (stage 2 of the powerloom-mcp design, 2026-10-23).
+export function chatTestCaseTools(deps: AgentDeps, context: OutsideAccessContext, access: AdoAccess): ToolDefinition<any>[] {
+  return [
+    defineOutsideTool(deps.outside, context, {
+      name: "read_test_cases",
+      description: "Read the Azure DevOps Test Cases that test a PBI (its Tested By links), with their steps and expected results, and save them to the PBI. Lists them; read one in full with pbi_read(TC-<id>). Call it again to refresh after the test cases change in ADO.",
+      input: { pbiId: z.number().int().positive().describe("The PBI's id, e.g. 38519") },
+      resource: () => adoResource(access, TEST_CASES),
+      request: (input) => `Tested By of PBI-${input.pbiId}`,
+      handler: (input) => readAndSave(deps, access, input.pbiId),
+    }),
+  ];
 }
 
 function readTestCasesTool(deps: AgentDeps, context: OutsideAccessContext, access: AdoAccess, pbiId: number) {
@@ -52,7 +67,7 @@ function listText(pbiId: number, cases: TestCaseRecord[]): string {
 
   const lines = cases.map((item) => `- TC-${item.adoId} (${item.state}, ${stepCount(item)} steps): ${item.title}`);
 
-  return [`${cases.length} Test Case(s) of PBI-${pbiId}, saved to the PBI. Read one in full with read_pbi(TC-<id>).`, ...lines].join("\n");
+  return [`${cases.length} Test Case(s) of PBI-${pbiId}, saved to the PBI. Read one in full with pbi_read(TC-${cases[0].adoId}) or read_pbi.`, ...lines].join("\n");
 }
 
 function stepCount(item: TestCaseRecord): number {
