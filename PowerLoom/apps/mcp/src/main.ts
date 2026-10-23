@@ -26,6 +26,7 @@ const sessions = new ChatSessions({
   deps,
   powerloom: createPowerLoomPort(createPowerLoomClient(env.powerloomUrl)),
   backlogMount: env.backlogMount,
+  agents: deps.config,
   skills: { names: async () => (await listSkills(env.skillFolders)).skills.map((skill) => skill.name) },
 });
 const server = new McpHttpServer({ token, sessions, azureLogin, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });

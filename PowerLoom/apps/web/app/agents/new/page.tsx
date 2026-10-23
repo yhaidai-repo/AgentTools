@@ -1,7 +1,8 @@
 import { AGENT_TASK_TYPES } from "@powerloom/core";
 import { modelCatalog } from "@agenttools/config";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { newAgentTemplate } from "@/lib/agentTemplate";
+import { newAgentTemplate } from "@powerloom/core";
+import { getAgentConfig } from "@/lib/agentConfig";
 import { loadSkillCatalog } from "@/lib/skills";
 import { NewAgentForm } from "./NewAgentForm";
 
@@ -14,7 +15,7 @@ export default async function NewAgentPage() {
     <>
       <Breadcrumbs crumbs={[{ label: "Agents", href: "/agents" }, { label: "New agent" }]} />
       <h1>New agent</h1>
-      <NewAgentForm template={await newAgentTemplate("new-agent")} catalog={modelCatalog()} skills={await loadSkillCatalog()} taskTypes={AGENT_TASK_TYPES} />
+      <NewAgentForm template={await newAgentTemplate(getAgentConfig(), "new-agent")} catalog={modelCatalog()} skills={await loadSkillCatalog()} taskTypes={AGENT_TASK_TYPES} />
     </>
   );
 }

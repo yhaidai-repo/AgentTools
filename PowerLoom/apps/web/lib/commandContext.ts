@@ -1,6 +1,7 @@
 import { runCommand, type Command, type CommandContext, type Outcome } from "@powerloom/core";
 import { createPowerLoomPort, powerloomFailure } from "@powerloom/client";
 import type { UploadedFile } from "@powerloom/attachments";
+import { getAgentConfig } from "./agentConfig";
 import { backlogMount } from "./backlogMount";
 import { getDb } from "./db";
 import { powerloom } from "./powerloom";
@@ -21,6 +22,7 @@ export function webCommandContext(): CommandContext {
     powerloom: powerloomPort,
     skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
     backlogMount: backlogMount(),
+    agents: getAgentConfig(),
   };
 }
 

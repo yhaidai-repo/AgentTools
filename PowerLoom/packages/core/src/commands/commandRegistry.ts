@@ -2,6 +2,8 @@ import type { Command } from "../models/Command";
 import { answerReviewCommentCommand } from "./answerReviewCommentCommand";
 import { closeItemCommand } from "./closeItemCommand";
 import { closePbiCommand } from "./closePbiCommand";
+import { createAgentCommand } from "./createAgentCommand";
+import { createSkillCommand } from "./createSkillCommand";
 import { createWwwRecordCommand } from "./createWwwRecordCommand";
 import { createPbiCommand } from "./createPbiCommand";
 import { deletePbiCommand } from "./deletePbiCommand";
@@ -41,6 +43,8 @@ export const COMMANDS: readonly Command<any, any>[] = [
   answerReviewCommentCommand,
   createWwwRecordCommand,
   openChatCommand,
+  createSkillCommand,
+  createAgentCommand,
   sqlQueryCommand,
   sqlDescribeCommand,
   sqlDatabasesCommand,
