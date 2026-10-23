@@ -70,10 +70,11 @@ if ($WithApi) {
     Update-Api $running
 }
 
-# The agent-runner service builds the image the web runs too; building doesn't touch a running container.
+# The agent-runner service builds the image the web and the MCP server run too; building doesn't touch a running
+# container. The MCP server is recreated with the web: a chat's session ends, its next call opens a new one.
 Invoke-Compose @("build", "agent-runner")
-Invoke-Compose @("up", "-d", "--no-deps", "web")
-Write-Host "web recreated."
+Invoke-Compose @("up", "-d", "--no-deps", "web", "mcp")
+Write-Host "web and mcp recreated."
 
 if ($WithRunner) {
     Update-Runner $running

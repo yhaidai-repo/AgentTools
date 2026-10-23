@@ -8,11 +8,12 @@
     "start": "next start -p 3000",
     "typecheck": "tsc -p . --noEmit",
     "cli": "tsx cli/powerloomCli.ts",
-    "openapi": "openapi-typescript ../../openapi/PowerLoom.Api.json -o lib/powerloom/schema.d.ts"
+    "openapi": "npm run openapi -w @powerloom/client"
   },
   "dependencies": {
     "@powerloom/ado": "*",
     "@powerloom/attachments": "*",
+    "@powerloom/client": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/vault": "*",
@@ -32,7 +33,6 @@
     "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "openapi-typescript": "^7.13.0",
     "typescript": "^5.9.3"
   }
 }

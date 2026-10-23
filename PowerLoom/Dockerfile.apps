@@ -24,8 +24,10 @@ COPY PowerLoom/packages/vault/package.json PowerLoom/packages/vault/
 COPY PowerLoom/packages/attachments/package.json PowerLoom/packages/attachments/
 COPY PowerLoom/packages/notes/package.json PowerLoom/packages/notes/
 COPY PowerLoom/packages/agents/package.json PowerLoom/packages/agents/
+COPY PowerLoom/packages/client/package.json PowerLoom/packages/client/
 COPY PowerLoom/apps/agent-runner/package.json PowerLoom/apps/agent-runner/
 COPY PowerLoom/apps/web/package.json PowerLoom/apps/web/
+COPY PowerLoom/apps/mcp/package.json PowerLoom/apps/mcp/
 RUN npm ci --no-fund --no-audit
 COPY AgentConfig AgentConfig
 COPY AgentRuntime AgentRuntime

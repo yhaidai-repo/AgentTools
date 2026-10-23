@@ -7,6 +7,10 @@ import type { Stage } from "./models/Stage";
 // counts leave them out.
 export const JOB_STAGES: Stage[] = ["sync", "pull-requests"];
 
+// The stage of a Claude chat's MCP session (one session = one run, decision MCPQ-002, 2026-10-23); also the agent
+// definition whose Config grants the chat its tools. Its run names its vault in `input` ({vault, client}).
+export const CHAT_STAGE = "chat";
+
 // Outcomes that aren't failures. A budget stop is the budget doing its job (user decision 2026-10-13): every statistic
 // counts it apart from the failures.
 export const NOT_FAILED_OUTCOMES: RunOutcome[] = ["success", "no-op", "running", "budget-exceeded"];

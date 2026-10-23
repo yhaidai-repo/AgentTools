@@ -1,6 +1,7 @@
 import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
-import { AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS } from "./azure/azureIntegrations";
+import { AZURE_ACCESS_INTEGRATION, AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
+import { CHAT_AGENT_ID } from "./chat/models/ChatPrincipal";
 import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
@@ -445,6 +446,26 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
     handles: ["vault-review"],
+    waitFor: [],
+  },
+  // The MCP server's principal (design powerloom-mcp, 2026-10-23): what a Claude chat may read is granted here like any
+  // agent's tools. PowerLoom's commands it always has; it never runs tasks (no schedule, no task types).
+  {
+    id: CHAT_AGENT_ID,
+    label: "Chat (MCP)",
+    description: "A Claude chat connected through the PowerLoom MCP server. Its reading tools (vault docs, Confluence, Read SQL, Read Azure, Azure DevOps, DevHub) are what this Config grants; PowerLoom's commands it always has. It runs no tasks; its sessions show as runs.",
+    enabled: true,
+    schedule: null,
+    model: { provider: "anthropic", model: "claude-opus-5-5" },
+    limits: { maxTurns: 1, timeoutMinutes: 1 },
+    budgets: { perRunUsd: 0, dailyUsd: 0 },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    skills: [],
+    options: {},
+    optionSpecs: [],
+    integrationSpecs: INTEGRATIONS,
+    canAssign: [],
+    handles: [],
     waitFor: [],
   },
   // Turns each recorded meeting (MT-…, from tools/audio-capture) into notes in its vault and the follow-ups it asked for;

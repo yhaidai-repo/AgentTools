@@ -111,6 +111,47 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # A Claude chat's way in (design powerloom-mcp, 2026-10-23): the MCP server, loopback only, a bearer token from .env.
+  # The same image as web and agent-runner; it reads the vaults like a run (the docs usage log is written) and starts an
+  # Azure MCP server per session, so it has the runner's mounts, but no Claude token: the chat brings its own model.
+  mcp:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@powerloom/mcp"]
+    environment:
+      DATABASE_URL: *db-url
+      MCP_TOKEN: ${MCP_TOKEN:?set in .env}
+      MCP_PORT: "3110"
+      POWERLOOM_URL: http://powerloom:8080  # the commands write through PowerLoom, as the web does
+      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      CONFLUENCE_SITE: ${CONFLUENCE_SITE:-}
+      REPO_CACHE_ROOT: /repo-cache
+      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-}
+      BACKLOG_MOUNT: /vault
+      SKILL_FOLDERS: /app/PowerLoom/skills:/skills:/app/DevSecrets/skills
+      VAULT_CAPTURE_HOME: /app/VaultCapture
+      VAULTS_DIR: /vaults
+      VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+    ports:
+      - "127.0.0.1:${MCP_PORT:-3110}:3110"
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${VAULTS_ROOT:?set in .env}:/vaults
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ./skills:/app/PowerLoom/skills:ro
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro
+      - repo-cache:/repo-cache
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3110/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      powerloom:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.
   # PowerLoom: the .NET backend taking over the worker's jobs feature by feature (the vault's adoa-backend-delivery note).
   powerloom:
