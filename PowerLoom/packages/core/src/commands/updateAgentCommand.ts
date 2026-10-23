@@ -33,7 +33,7 @@ const input = z.object({
 // change, AgentConfig validates the whole definition, and a changed prompt is a new stored version.
 export const updateAgentCommand: Command<UpdateAgentInput, { id: string; promptVersion: number; enabled: boolean; changed: string[] }> = {
   name: "agent.update",
-  description: "Change an existing agent's Config: label, description, enabled, cron schedule, model, limits, budgets, web access, grants (integration keys), skills, options, task types it takes or hands on, what it waits for, and its prompt (every edit is a new stored version; the shipped file's text puts it back on the file). Only the fields given change. Read it with agent.get first.",
+  description: "Change an existing agent's Config: label, description, enabled, cron schedule, model, limits, budgets, web access, grants (integration keys), skills, options, task types it takes or hands on, what it waits for, and its prompt (every edit is a new stored version; the shipped file's text puts it back on the file). Only the fields given change. Read it with agent.get first. Change only what the user asked for and show the new values before calling, as the Config page's form does.",
   input,
   async run(context, input) {
     const agents = context.agents;

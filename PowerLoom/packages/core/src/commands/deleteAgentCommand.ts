@@ -7,7 +7,7 @@ import type { Command } from "../models/Command";
 export const deleteAgentCommand: Command<{ id: string }, { id: string; label: string }> = {
   name: "agent.delete",
   effect: "destructive",
-  description: "Delete an agent created by agent.create or the New agent page, with its stored prompt versions. An agent shipped with the code can't be deleted (disable it with agent.update instead). Its finished runs and results stay.",
+  description: "Delete an agent created by agent.create or the New agent page, with its stored prompt versions. An agent shipped with the code can't be deleted (disable it with agent.update instead). Its finished runs and results stay. Confirm with the user first, naming the agent, as the page's dialog does.",
   input: z.object({ id: z.string().trim().min(1).describe("The agent's id (agent.list)") }),
   async run(context, input) {
     const agents = context.agents;

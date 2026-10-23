@@ -6,7 +6,7 @@ const PBI_TYPES = ["Product Backlog Item", "Bug", "Task"] as const;
 
 export const createPbiCommand: Command<CreatePbiInput, { adoId: number }> = {
   name: "pbi.create",
-  description: "Create a PBI in PowerLoom itself (no Azure DevOps counterpart): title, type, priority, description and acceptance criteria in Markdown. With parentId it is a child item of that PBI, in the parent's vault (vault may then be left out). Prepare it for refinement afterwards.",
+  description: "Create a PBI in PowerLoom itself (no Azure DevOps counterpart): title, type, priority, description and acceptance criteria in Markdown. With parentId it is a child item of that PBI, in the parent's vault (vault may then be left out). Prepare it for refinement afterwards. Ask the user for the title, description and acceptance criteria when missing, confirm the type and priority, and show the PBI before calling.",
   input: z.object({
     vault: z.string().min(1).optional(),
     title: z.string().trim().min(1).max(255),

@@ -7,7 +7,7 @@ import type { SubmitFindingRequest } from "../models/SubmitFindingRequest";
 // register and closes the finding with the record's id.
 export const submitFindingCommand: Command<SubmitFindingRequest, { itemId: string; register: string }> = {
   name: "finding.submit",
-  description: "Submit a finding to the vault as an open question or a known issue of a project (its vault folder name), with the final title and text, the default (bullets) and, for a question, the options. PowerLoom writes the register record and closes the finding with its id.",
+  description: "Submit a finding to the vault as an open question or a known issue of a project (its vault folder name), with the final title and text, the default (bullets) and, for a question, the options. PowerLoom writes the register record and closes the finding with its id. Show the user the final title, text, default and options first, as the finding form does, and call after their yes.",
   input: z.object({
     itemId: z.string().min(1),
     adoId: z.number().int().positive().nullable(),

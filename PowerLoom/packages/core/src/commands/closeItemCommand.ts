@@ -11,7 +11,7 @@ import type { Outcome } from "../models/Outcome";
 
 export const closeItemCommand: Command<CloseItemInput, { status: ItemStatus }> = {
   name: "item.close",
-  description: "Close a question or finding (answer / dismiss) or a human task (done / cancel) with the person's answer or result, or cancel an open or blocked agent task of any kind (cancel). A human task with steps takes one answer per step in `answers` (\"\" skips a step); `resolution` is the answer of a question or finding, or the task's note.",
+  description: "Close a question or finding (answer / dismiss) or a human task (done / cancel) with the person's answer or result, or cancel an open or blocked agent task of any kind (cancel). A human task with steps takes one answer per step in `answers` (\"\" skips a step); `resolution` is the answer of a question or finding, or the task's note. The answer or result is the user's, as on the item page: propose one, show it, and call with what the user confirmed, with their dismiss or cancel reason.",
   input: z.object({
     itemId: z.string().min(1),
     adoId: z.number().int().positive().nullable(),
