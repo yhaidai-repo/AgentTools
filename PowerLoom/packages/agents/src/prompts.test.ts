@@ -56,7 +56,7 @@ describe("loadAgentPrompt", () => {
   it("runs a stored prompt under its version, with the framework filled in", async () => {
     const prompt = await loadAgentPrompt("security-review", { text: ["{{framework}}", "", "Review {{team}} for secrets."].join("\n"), version: 3 }, { team: "Signals" });
 
-    assert.match(prompt.version, /^v3\+framework\./);
+    assert.match(prompt.version, /^ui-v3\+framework\./);
     assert.match(prompt.text, /How you work/);
     assert.match(prompt.text, /Review Signals for secrets\./);
   });
