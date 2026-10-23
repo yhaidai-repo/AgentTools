@@ -1,0 +1,24 @@
+{
+  "name": "@powerloom/mcp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@agenttools/runtime": "*",
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@powerloom/agents": "*",
+    "@powerloom/azure": "*",
+    "@powerloom/client": "*",
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "tsx": "^4.23.15",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { azureTokenAnswer } from "@powerloom/agents";
 import type { AgentRunJob } from "@powerloom/core";
-import { NotSignedInError, type AzureUserLogin } from "@powerloom/azure";
+import type { AzureUserLogin } from "@powerloom/azure";
 import type { DevHubCheck } from "@powerloom/devhub";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 
@@ -97,22 +98,11 @@ export class RunnerServer {
     answer(response, 404, { error: "not found" });
   }
 
-  // 401 when nobody signed in, so the shim answers as a signed-out az would and the tool call becomes `denied`.
+  // The `az` shim's question for the Azure MCP server a run started: answered from the vault's sign-in.
   private async token(response: ServerResponse, url: URL): Promise<void> {
-    const vault = vaultOf(url);
-    const resource = url.searchParams.get("resource");
+    const { status, body } = await azureTokenAnswer(this.azureLogin, url);
 
-    if (!vault || !resource) {
-      answer(response, 400, { error: "expected ?vault=&resource=" });
-
-      return;
-    }
-
-    try {
-      answer(response, 200, await this.azureLogin.token(vault, resource, url.searchParams.get("tenant") || null));
-    } catch (error) {
-      answer(response, error instanceof NotSignedInError ? 401 : 502, { error: (error as Error).message });
-    }
+    answer(response, status, body);
   }
 
   // Entra's code comes back at once; a refusal before that (a blocked client id, no network) is the answer.

@@ -6,7 +6,7 @@ import { agentRun, createDb } from "@powerloom/db";
 import { PostgresUsageStore, type StoredTraceEvent } from "@agenttools/usage";
 import { gte } from "drizzle-orm";
 import { readFile } from "node:fs/promises";
-import { requireEnv } from "./env";
+import { requireEnv } from "@powerloom/agents";
 
 const TRACE_DAYS = 30;
 

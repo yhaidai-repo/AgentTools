@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { ToolAnnotations } from "./ToolAnnotations";
 import type { ToolResult } from "./ToolResult";
 
 // Provider-neutral tool; each runtime adapter converts it to its own format.
@@ -13,4 +14,6 @@ export interface ToolDefinition<Shape extends z.ZodRawShape = z.ZodRawShape> {
   /** Rebuilds in-memory state from an earlier call's input and result without running the tool again (e.g. a read's
    *  source id for evidence checks); a host continuing a conversation calls it for each earlier successful call. */
   restore?: (input: unknown, output: string) => void;
+  /** What a client may gate on (an MCP client's permission mode); left out = a plain write. */
+  annotations?: ToolAnnotations;
 }

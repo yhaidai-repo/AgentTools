@@ -1,3 +1,6 @@
+// First: it patches dns.lookup for the hosts' containers (no IPv6 route), before any client is created.
+import "./deps/preferIpv4";
+
 export { AgentRunSession } from "./AgentRunSession";
 export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
 export { hasPromptFile, loadAgentPrompt, loadPrompt } from "./prompts";
@@ -15,9 +18,20 @@ export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";
 export { DocUsageLog } from "./DocUsageLog";
 export { DataAccessLog } from "./DataAccessLog";
 export { AccessRequests } from "./AccessRequests";
+export { AgentDepsFactory } from "./deps/AgentDepsFactory";
+export { createAzureUserLogin } from "./deps/createAzureUserLogin";
+export { azureTokenAnswer } from "./deps/azureTokenAnswer";
+export { adoAuthHeader, depsEnvFromProcess, docsExclude, requireEnv, skillFolders } from "./deps/env";
+export { chatTools } from "./chat/chatTools";
+export { ChatRun } from "./chat/ChatRun";
+export { CHAT_AGENT_ID } from "./chat/models/ChatPrincipal";
+export { commandToolName, commandTools } from "./commandTool";
 export type { AgentDeps } from "./models/AgentDeps";
 export type { AgentRunInfo } from "./models/AgentRunInfo";
 export type { AgentRunInput } from "./models/AgentRunInput";
 export type { AgentRunResult } from "./models/AgentRunResult";
 export type { LoadedPrompt } from "./models/LoadedPrompt";
 export type { CaptureRules } from "./models/CaptureRules";
+export type { DepsEnv } from "./deps/models/DepsEnv";
+export type { HttpAnswer } from "./deps/azureTokenAnswer";
+export type { ChatPrincipal } from "./chat/models/ChatPrincipal";

@@ -19,13 +19,16 @@
     "@powerloom/db": "*",
     "@powerloom/devhub": "*",
     "@powerloom/mongo": "*",
+    "@powerloom/notes": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "drizzle-orm": "^0.45.3",
+    "pg": "^8.23.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }

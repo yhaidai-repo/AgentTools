@@ -1,4 +1,4 @@
-import type { components } from "@/lib/powerloom/schema";
+import type { components } from "@powerloom/client";
 import { powerloom } from "./powerloom";
 
 export type SystemStatus = components["schemas"]["SystemStatus"];

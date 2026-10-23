@@ -27,6 +27,7 @@ export type { RunEndReason } from "./models/RunEndReason";
 export type { ModelRef } from "./models/ModelRef";
 export type { RunLimits } from "./models/RunLimits";
 export type { ToolDefinition } from "./models/ToolDefinition";
+export type { ToolAnnotations } from "./models/ToolAnnotations";
 export type { ToolResult } from "./models/ToolResult";
 export type { Conversation } from "./models/Conversation";
 export type { ConversationStore } from "./models/ConversationStore";
