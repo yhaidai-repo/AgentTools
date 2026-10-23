@@ -1,5 +1,7 @@
 import sql from "mssql";
 import { readOnlyProblem } from "./readOnlyStatement";
+import { bareName, columnsSql, DESCRIBE_HINT, groupColumns, isWrongNameError, missingTables, namedParams, namesHintText, referencedTables, sameNameSql } from "./wrongNameHint";
+import type { MissingTable } from "./models/MissingTable";
 import type { SqlAnswer } from "./models/SqlAnswer";
 import type { SqlConnectionCheck } from "./models/SqlConnectionCheck";
 import type { SqlRows } from "./models/SqlRows";
@@ -48,7 +50,15 @@ export class SqlReader {
       return { ok: false, message: problem, refused: true };
     }
 
-    return this.run(connectionString, text, {}, database);
+    const answer = await this.run(connectionString, text, {}, database);
+
+    if (answer.ok || !isWrongNameError(answer.errorNumber)) {
+      return answer;
+    }
+
+    const hint = await this.namesHint(connectionString, text, database);
+
+    return { ...answer, message: `${answer.message}\n\n${hint}` };
   }
 
   listDatabases(connectionString: string): Promise<SqlAnswer> {
@@ -83,6 +93,37 @@ export class SqlReader {
     return { ok: true, message: `Connected: server ${server}, database ${database}, SQL Server ${version}.` };
   }
 
+  // Best effort: a lookup that fails leaves the plain describe hint.
+  private async namesHint(connectionString: string, text: string, database?: string): Promise<string> {
+    const tables = referencedTables(text);
+
+    if (tables.length === 0) {
+      return DESCRIBE_HINT;
+    }
+
+    const answer = await this.run(connectionString, columnsSql(tables.length), namedParams("t", tables), database);
+
+    if (!answer.ok) {
+      return DESCRIBE_HINT;
+    }
+
+    const found = groupColumns(tables, answer.rows.rows);
+    const unknown = tables.filter((table) => !found.some((entry) => entry.table === table));
+    const missing = await this.missingTables(connectionString, unknown, database);
+
+    return namesHintText(found, missing);
+  }
+
+  private async missingTables(connectionString: string, tables: string[], database?: string): Promise<MissingTable[]> {
+    if (tables.length === 0) {
+      return [];
+    }
+
+    const answer = await this.run(connectionString, sameNameSql(tables.length), namedParams("n", tables.map(bareName)), database);
+
+    return missingTables(tables, answer.ok ? answer.rows.rows : []);
+  }
+
   private async run(connectionString: string, text: string, params: Record<string, string>, database?: string): Promise<SqlAnswer> {
     let pool: sql.ConnectionPool | null = null;
 
@@ -91,7 +132,7 @@ export class SqlReader {
 
       return await inRolledBackTransaction(pool, text, params);
     } catch (error) {
-      return { ok: false, message: (error as Error).message, denied: isLoginFailure(error) };
+      return { ok: false, message: (error as Error).message, denied: isLoginFailure(error), errorNumber: serverErrorNumber(error) };
     } finally {
       await pool?.close();
     }
@@ -101,6 +142,13 @@ export class SqlReader {
 // tedious names a refused login ELOGIN; everything else (a timeout, a bad query) is an ordinary failure.
 function isLoginFailure(error: unknown): boolean {
   return (error as { code?: string }).code === "ELOGIN";
+}
+
+// mssql's RequestError carries SQL Server's error number; a connection or driver error has none.
+function serverErrorNumber(error: unknown): number | undefined {
+  const number = (error as { number?: unknown }).number;
+
+  return typeof number === "number" ? number : undefined;
 }
 
 // The user's string with the reader's caps on top: read-only intent (a replica where the server has one), timeouts,
