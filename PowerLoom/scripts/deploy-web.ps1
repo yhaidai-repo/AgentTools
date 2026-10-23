@@ -10,7 +10,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RunningRunsSql = "select id || ' ' || stage || ' ' || coalesce(item_id, '-') || ' since ' || to_char(started_at, 'HH24:MI') from agent_run where outcome = 'running' order by id"
+# Chat sessions (the MCP server's runs, stage chat) don't hold the guard: they report their end later and survive a restart.
+$RunningRunsSql = "select id || ' ' || stage || ' ' || coalesce(item_id, '-') || ' since ' || to_char(started_at, 'HH24:MI') from agent_run where outcome = 'running' and stage <> 'chat' order by id"
 
 function Get-RunningRuns {
     $rows = $RunningRunsSql | docker exec -i powerloom-db-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At'
