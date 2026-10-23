@@ -42,4 +42,7 @@ export interface PowerLoomPort {
   savePbiRepos(adoId: number, repos: string[]): Promise<Outcome<number>>;
   // The user's skill list for a PBI; the number saved.
   savePbiSkills(choices: PbiSkillChoices): Promise<Outcome<number>>;
+
+  // A new skill of PowerLoom's own: `<name>/SKILL.md` in its skills folder (user decision 2026-10-23).
+  createSkill(name: string, content: string): Promise<Outcome<string>>;
 }

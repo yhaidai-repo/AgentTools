@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@powerloom/confluence": "*",
+    "@agenttools/config": "*",
     "@powerloom/db": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",

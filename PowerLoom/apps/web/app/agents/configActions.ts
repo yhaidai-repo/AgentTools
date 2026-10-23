@@ -3,9 +3,9 @@
 import { isRemovable, validateAgent, validateGlobal, type AgentDefinition, type AgentOptionValue } from "@agenttools/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createAgentCommand, createSkillCommand, newAgentTemplate } from "@powerloom/core";
 import { getAgentConfig } from "@/lib/agentConfig";
-import { newAgentTemplate } from "@/lib/agentTemplate";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
+import { runWebCommand } from "@/lib/commandContext";
 import { readPromptFile } from "@/lib/promptFiles";
 import { deletePromptVersions, insertPromptVersion } from "@/lib/promptVersions";
 import type { ActionResult } from "@/models/ActionResult";
@@ -59,54 +59,41 @@ async function withPromptVersion(next: AgentDefinition, current: AgentDefinition
 // with it), the task types it takes, and the template's defaults for the rest, changed under Advanced; disabled and
 // without a schedule until configured. It runs on the generic executor.
 export async function createAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const store = getAgentConfig();
-  const id = text(form, "id");
-
-  if (await store.get(id)) {
-    return { ok: false, message: `An agent with the id "${id}" exists.` };
-  }
-
-  const template = await newAgentTemplate(id);
-  const checked = validateAgent(newAgent(form, template));
-
-  if (!checked.ok) {
-    return { ok: false, message: checked.errors.join("; ") };
-  }
-
   const skill = await createNewSkill(form);
 
   if (skill && !skill.ok) {
     return skill;
   }
 
-  const agent = { ...checked.value, skills: [...checked.value.skills, ...(skill ? [skill.message] : [])] };
-
-  if (agent.prompt) {
-    await insertPromptVersion(agent.id, 1, agent.prompt);
-  }
-
-  await store.save(agent);
-  revalidatePath("/agents");
-  redirect(`/agents/${agent.id}/config`);
-}
-
-function newAgent(form: FormData, template: AgentDefinition): AgentDefinition {
-  const prompt = text(form, "prompt").replace(/\r\n/g, "\n");
-
-  return {
-    ...readAgentForm(form, template),
-    id: template.id,
+  const template = await newAgentTemplate(getAgentConfig(), text(form, "id"));
+  const advanced = readAgentForm(form, template);
+  const created = await runWebCommand(createAgentCommand, {
+    id: text(form, "id"),
     label: text(form, "label"),
     description: text(form, "description"),
-    enabled: false,
+    prompt: text(form, "prompt"),
+    handles: form.getAll("handles").map(String),
+    skills: [...form.getAll("skills").map(String), ...(skill ? [skill.message] : [])],
+    canAssign: [],
+    grants: Object.entries(advanced.capabilities.integrations ?? {}).filter(([, on]) => on).map(([key]) => key),
+    webAccess: advanced.capabilities.webAccess,
+    model: advanced.model,
+    limits: advanced.limits,
+    budgets: advanced.budgets,
     schedule: null,
-    prompt,
-    promptVersion: prompt ? 1 : 0,
-    origin: "user",
-  };
+    enabled: false,
+    options: Object.fromEntries(Object.entries(advanced.options).filter((entry): entry is [string, number] => typeof entry[1] === "number")),
+  });
+
+  if (!created.ok) {
+    return { ok: false, message: created.error };
+  }
+
+  revalidatePath("/agents");
+  redirect(`/agents/${created.value.id}/config`);
 }
 
-// The skill the form wrote, created in PowerLoom's own skills folder; `message` carries its name when it is ok.
+// The skill the form wrote, through the same command a chat uses; `message` carries its name when it is ok.
 async function createNewSkill(form: FormData): Promise<ActionResult | null> {
   const name = text(form, "newSkillName");
 
@@ -114,12 +101,13 @@ async function createNewSkill(form: FormData): Promise<ActionResult | null> {
     return null;
   }
 
-  const description = text(form, "newSkillDescription") || `Skill of the agent ${text(form, "id")}.`;
-  const content = ["---", `name: ${name}`, `description: ${description}`, "---", "", text(form, "newSkillContent").replace(/\r\n/g, "\n"), ""].join("\n");
-  const created = await powerloom.POST("/api/skills", { body: { name, content } });
-  const result = powerloomResult(created, name);
+  const created = await runWebCommand(createSkillCommand, {
+    name,
+    description: text(form, "newSkillDescription") || `Skill of the agent ${text(form, "id")}.`,
+    body: text(form, "newSkillContent"),
+  });
 
-  return result.ok ? { ok: true, message: name } : result;
+  return created.ok ? { ok: true, message: created.value.name } : { ok: false, message: created.error };
 }
 
 export async function deleteAgentAction(id: string): Promise<ActionResult> {

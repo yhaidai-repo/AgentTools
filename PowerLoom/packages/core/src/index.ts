@@ -30,6 +30,11 @@ export type { CloseDecision, CloseItemRequest } from "./models/CloseItemRequest"
 export type { ReportBugInput } from "./models/ReportBugInput";
 export type { PbiSkillChoices } from "./models/PbiSkillChoices";
 export type { CreatePbiInput } from "./models/CreatePbiInput";
+export type { CreateAgentInput } from "./models/CreateAgentInput";
+export type { CreateSkillInput } from "./models/CreateSkillInput";
+export { createAgentCommand } from "./commands/createAgentCommand";
+export { createSkillCommand } from "./commands/createSkillCommand";
+export { newAgentTemplate } from "./agents/newAgentTemplate";
 export type { ReportedBug } from "./models/ReportedBug";
 export type { NewHumanTask } from "./models/NewHumanTask";
 export type { LinkedDocumentKind } from "./models/LinkedDocumentKind";

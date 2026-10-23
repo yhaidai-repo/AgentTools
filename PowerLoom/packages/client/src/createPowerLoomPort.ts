@@ -98,6 +98,11 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
 
       return data ? { ok: true, value: data.saved } : powerloomFailure(error, response);
     },
+    async createSkill(name, content) {
+      const { data, error, response } = await powerloom.POST("/api/skills", { body: { name, content } });
+
+      return data ? { ok: true, value: data.name } : powerloomFailure(error, response);
+    },
   };
 }
 
