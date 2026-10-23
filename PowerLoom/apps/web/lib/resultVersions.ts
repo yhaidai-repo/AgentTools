@@ -13,25 +13,37 @@ type RunResultRow = Awaited<ReturnType<typeof runResultRows>>[number];
 
 const ITEM_TITLES: Record<string, string> = { "research-result": "Research results", "test-report": "Test reports" };
 const RUN_RESULTS_TITLE = "Run results";
+// Tasks whose results the PBI page shows as their own kind (the Refinement, Design, research-result and test-report
+// sets, the review page): their run results would show the same thing twice.
+const KINDS_WITH_OWN_RESULTS = new Set(["refinement", "design", "research", "test", "review"]);
 
 // A PBI's results on its page (user decision 2026-10-21: every version under its task, one shown): its estimates,
-// refinements and designs, then each research or test task's results and each task's run results.
+// refinements and designs, then each research or test task's results, and the run results of the other tasks (docs,
+// vault review, agents made in the UI), whose only result they are.
 export async function loadPbiResultSets(adoId: number): Promise<ResultSet[]> {
-  const [estimates, refinements, designs, items, runResults] = await Promise.all([
+  const [estimates, refinements, designs, items, runResults, kinds] = await Promise.all([
     estimateVersions(eq(pbiEstimate.pbiId, adoId)),
     refinementVersions(eq(refinement.pbiId, adoId)),
     designVersions(eq(design.pbiId, adoId)),
     itemRows(eq(localItem.pbiId, adoId)),
     runResultRows(eq(runResult.pbiId, adoId)),
+    taskKinds(adoId),
   ]);
+  const ownOnly = runResults.filter((row) => row.taskId !== null && !KINDS_WITH_OWN_RESULTS.has(kinds.get(row.taskId) ?? ""));
 
   return [
     { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "No agent has estimated it yet." },
     { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "Not refined yet." },
     { key: "design", title: "Design", task: null, versions: designs, empty: "Not designed yet." },
     ...itemSets(items),
-    ...runResultSets(runResults),
+    ...runResultSets(ownOnly),
   ];
+}
+
+async function taskKinds(adoId: number): Promise<Map<string, string>> {
+  const rows = await getDb().select({ id: localItem.id, kind: localItem.kind }).from(localItem).where(eq(localItem.pbiId, adoId));
+
+  return new Map(rows.map((row) => [row.id, row.kind]));
 }
 
 // A pull request's reviews (user decision 2026-10-21): one version per successful review run, each rerun being a new
