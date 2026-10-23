@@ -6,7 +6,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import { createSecretTools } from "./secretTools";
 
-const context = { vault: "work-projects", agentId: "autotest", runId: 7, taskId: "TT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "autotest", runId: 7, owner: "powerloom-run-7", taskId: "TT-1-001", pbiId: 1 };
 
 function harness(client: Partial<DevHubClient>) {
   const entries: DataAccessEntry[] = [];

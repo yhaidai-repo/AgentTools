@@ -7,7 +7,12 @@ type BrowserCalls = Pick<DevHubClient, "browserStatus" | "closeBrowser">;
 // The end of a run (user decision 2026-10-13): the stack the run started stops with it. A stack someone else started
 // (a person at the console, another run) is left alone. Returns what happened for the runner's log; never throws.
 export async function stopRunStack(client: DevHubCalls, runId: number): Promise<string | null> {
-  return stopStackOwnedBy(client, (owner) => owner === stackOwner(runId));
+  return stopOwnedStack(client, stackOwner(runId));
+}
+
+// The end of a chat session (user decision 2026-10-24): the stack it started stops with it, by its owner name.
+export async function stopOwnedStack(client: DevHubCalls, owner: string): Promise<string | null> {
+  return stopStackOwnedBy(client, (candidate) => candidate === owner);
 }
 
 // The runner's start: no run is in progress, so a stack a run left behind (the runner stopped mid-run) is orphaned.
@@ -30,7 +35,11 @@ async function stopStackOwnedBy(client: DevHubCalls, isOurs: (owner: string) => 
 
 // The browser case a run opened closes with the run, so its recording is written; one opened by hand is left alone.
 export async function closeRunBrowser(client: BrowserCalls, runId: number): Promise<string | null> {
-  return closeBrowserOwnedBy(client, (owner) => owner === stackOwner(runId));
+  return closeOwnedBrowser(client, stackOwner(runId));
+}
+
+export async function closeOwnedBrowser(client: BrowserCalls, owner: string): Promise<string | null> {
+  return closeBrowserOwnedBy(client, (candidate) => candidate === owner);
 }
 
 export async function closeOrphanedBrowser(client: BrowserCalls): Promise<string | null> {

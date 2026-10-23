@@ -6,7 +6,7 @@ import { DataAccessLog } from "./DataAccessLog";
 import type { DataAccessEntry } from "./models/DataAccessEntry";
 import { defineOutsideTool, outcomeOf } from "./outsideAccess";
 
-const context = { vault: "work-projects", agentId: "research", runId: 42, taskId: "AT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "research", runId: 42, owner: "powerloom-run-42", taskId: "AT-1-001", pbiId: 1 };
 
 function fakeLog(): { log: DataAccessLog; entries: DataAccessEntry[] } {
   const entries: DataAccessEntry[] = [];

@@ -6,7 +6,7 @@ import type { AgentDeps } from "./models/AgentDeps";
 import type { DataAccessEntry } from "./models/DataAccessEntry";
 import { createSqlTools } from "./sqlTools";
 
-const context = { vault: "work-projects", agentId: "research", runId: 42, taskId: "AT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "research", runId: 42, owner: "powerloom-run-42", taskId: "AT-1-001", pbiId: 1 };
 const agent = { capabilities: { integrations: { readSql: true } } } as unknown as AgentDefinition;
 const connection = { name: "pvs", server: "sql01", database: "Pvs_Development", connectionString: "Server=sql01;Database=Pvs_Development", enabled: true };
 

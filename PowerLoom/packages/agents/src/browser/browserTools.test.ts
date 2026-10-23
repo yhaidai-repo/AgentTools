@@ -7,7 +7,7 @@ import type { DataAccessEntry } from "../models/DataAccessEntry";
 import { createBrowserTools } from "./browserTools";
 import type { McpCallResult } from "./models/McpCallResult";
 
-const context = { vault: "work-projects", agentId: "autotest", runId: 7, taskId: "TT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "autotest", runId: 7, owner: "powerloom-run-7", taskId: "TT-1-001", pbiId: 1 };
 const status = { open: true, owner: "powerloom-run-7", case: "TC-1234", headless: true, startedAt: null, expiresAt: null, mcpSessionKnown: false };
 
 function harness(answers: Record<string, McpCallResult> = {}) {

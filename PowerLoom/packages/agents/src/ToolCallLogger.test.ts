@@ -7,7 +7,7 @@ import type { DataAccessEntry } from "./models/DataAccessEntry";
 import { defineOutsideTool } from "./outsideAccess";
 import { ToolCallLogger } from "./ToolCallLogger";
 
-const context = { vault: "work-projects", agentId: "research", runId: 7, taskId: "AT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "research", runId: 7, owner: "powerloom-run-7", taskId: "AT-1-001", pbiId: 1 };
 const base = { runId: "7", seq: 0, at: new Date("2026-10-13T10:00:00Z") };
 
 function fakeLog(): { log: DataAccessLog; entries: DataAccessEntry[] } {
