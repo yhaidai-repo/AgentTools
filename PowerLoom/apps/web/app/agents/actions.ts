@@ -1,16 +1,19 @@
 "use server";
 
+import { pauseAgentsCommand, runAgentCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
-import { getAgentConfig } from "@/lib/agentConfig";
+import { runWebCommand } from "@/lib/commandContext";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
-// Kill switch through AgentConfig; resuming also clears a rate-limit pause.
+// Kill switch through agent.pause (the command a chat uses too); resuming also clears a rate-limit pause.
 export async function setAgentsPaused(paused: boolean): Promise<ActionResult> {
-  const store = getAgentConfig();
-  const global = await store.getGlobal();
+  const changed = await runWebCommand(pauseAgentsCommand, { paused });
 
-  await store.saveGlobal({ ...global, paused, pausedUntil: paused ? global.pausedUntil : null });
+  if (!changed.ok) {
+    return { ok: false, message: changed.error };
+  }
+
   revalidatePath("/agents");
 
   return { ok: true, message: paused ? "All agents paused." : "Agents resumed." };
@@ -35,13 +38,7 @@ export async function discardDeadLetter(id: string): Promise<ActionResult> {
 
 // Same as the agent's schedule: PowerLoom validates the agent's open tasks and starts the valid ones.
 export async function runAgentNow(agentId: string): Promise<ActionResult> {
-  const agent = await getAgentConfig().get(agentId);
+  const dispatched = await runWebCommand(runAgentCommand, { id: agentId });
 
-  if (!agent) {
-    return { ok: false, message: "Unknown agent." };
-  }
-
-  const dispatched = await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: agent.id } } });
-
-  return powerloomResult(dispatched, `${agent.label}: its open tasks are being checked and started. Held tasks show their reasons on the PBI page.`);
+  return dispatched.ok ? { ok: true, message: `${dispatched.value.message} Held tasks show their reasons on the PBI page.` } : { ok: false, message: dispatched.error };
 }

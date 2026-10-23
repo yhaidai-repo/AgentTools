@@ -104,6 +104,21 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
 
       return data ? { ok: true, value: data.name } : powerloomFailure(error, response);
     },
+    async saveSkill(name, content, hash) {
+      const { data, error, response } = await powerloom.PUT("/api/skills/{name}", { params: { path: { name } }, body: { content, hash } });
+
+      return data ? { ok: true, value: data } : powerloomFailure(error, response);
+    },
+    async restoreSkill(name, revisionId, hash) {
+      const { data, error, response } = await powerloom.POST("/api/skills/{name}/revisions/{id}/restore", { params: { path: { name, id: revisionId } }, body: { hash } });
+
+      return data ? { ok: true, value: data } : powerloomFailure(error, response);
+    },
+    async runAgent(agentId) {
+      const { data, error, response } = await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId } } });
+
+      return data ? { ok: true, value: { agentId: data.agentId } } : powerloomFailure(error, response);
+    },
     // PowerLoom not answering at all is the status's expected miss (the page shows that), not a crash of the caller.
     async status(): Promise<Outcome<SystemStatus>> {
       try {

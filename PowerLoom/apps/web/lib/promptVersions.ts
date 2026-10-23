@@ -1,19 +1,9 @@
-import { agentPromptVersion } from "@powerloom/db";
-import { desc, eq } from "drizzle-orm";
+import { loadPromptVersions as loadPromptVersionsOf, type PromptVersionRow } from "@powerloom/core";
 import { getDb } from "./db";
 
-export type PromptVersionRow = typeof agentPromptVersion.$inferSelect;
+export type { PromptVersionRow } from "@powerloom/core";
 
-export async function loadPromptVersions(agentId: string): Promise<PromptVersionRow[]> {
-  return getDb().select().from(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId)).orderBy(desc(agentPromptVersion.version));
-}
-
-// Every edit is a new version (user decision 2026-10-23); the number follows the agent's current one.
-export async function insertPromptVersion(agentId: string, version: number, text: string): Promise<void> {
-  await getDb().insert(agentPromptVersion).values({ agentId, version, text });
-}
-
-// A deleted agent takes its prompt history with it.
-export async function deletePromptVersions(agentId: string): Promise<void> {
-  await getDb().delete(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId));
+// The stored prompt versions (core's query with the web's database); agent.update and agent.delete write them.
+export function loadPromptVersions(agentId: string): Promise<PromptVersionRow[]> {
+  return loadPromptVersionsOf(getDb(), agentId);
 }

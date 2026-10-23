@@ -3,6 +3,13 @@ import { answerReviewCommentCommand } from "./answerReviewCommentCommand";
 import { closeItemCommand } from "./closeItemCommand";
 import { closePbiCommand } from "./closePbiCommand";
 import { createAgentCommand } from "./createAgentCommand";
+import { updateAgentCommand } from "./updateAgentCommand";
+import { deleteAgentCommand } from "./deleteAgentCommand";
+import { pauseAgentsCommand } from "./pauseAgentsCommand";
+import { runAgentCommand } from "./runAgentCommand";
+import { saveAgentsGlobalCommand } from "./saveAgentsGlobalCommand";
+import { saveSkillCommand } from "./saveSkillCommand";
+import { restoreSkillCommand } from "./restoreSkillCommand";
 import { createSkillCommand } from "./createSkillCommand";
 import { createWwwRecordCommand } from "./createWwwRecordCommand";
 import { createPbiCommand } from "./createPbiCommand";
@@ -71,6 +78,13 @@ export const COMMANDS: readonly Command<any, any>[] = [
   openChatCommand,
   createSkillCommand,
   createAgentCommand,
+  updateAgentCommand,
+  deleteAgentCommand,
+  pauseAgentsCommand,
+  runAgentCommand,
+  saveAgentsGlobalCommand,
+  saveSkillCommand,
+  restoreSkillCommand,
   sqlQueryCommand,
   sqlDescribeCommand,
   sqlDatabasesCommand,

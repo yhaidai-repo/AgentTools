@@ -1,58 +1,32 @@
 "use server";
 
-import { isRemovable, validateAgent, validateGlobal, type AgentDefinition, type AgentOptionValue } from "@agenttools/config";
+import type { AgentDefinition, AgentOptionValue } from "@agenttools/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAgentCommand, createSkillCommand, newAgentTemplate } from "@powerloom/core";
+import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, saveAgentsGlobalCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { runWebCommand } from "@/lib/commandContext";
-import { readPromptFile } from "@/lib/promptFiles";
-import { deletePromptVersions, insertPromptVersion } from "@/lib/promptVersions";
 import type { ActionResult } from "@/models/ActionResult";
 
-// Saves through AgentConfig only; the agent-runner is notified and reschedules by itself.
+// The Config page's save runs agent.update (the command a chat uses too): the whole form, prompt versioning and
+// validation inside the command; the agent-runner is notified and reschedules by itself.
 export async function saveAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const store = getAgentConfig();
-  const current = await store.get(text(form, "id"));
+  const current = await getAgentConfig().get(text(form, "id"));
 
   if (!current) {
     return { ok: false, message: "Unknown agent." };
   }
 
-  const checked = validateAgent(await withPromptVersion(readAgentForm(form, current), current));
+  const saved = await runWebCommand(updateAgentCommand, updateInputFromForm(form, current));
 
-  if (!checked.ok) {
-    return { ok: false, message: checked.errors.join("; ") };
+  if (!saved.ok) {
+    return { ok: false, message: saved.error };
   }
 
-  if (checked.value.promptVersion !== (current.promptVersion ?? 0)) {
-    await insertPromptVersion(checked.value.id, checked.value.promptVersion ?? 0, checked.value.prompt ?? "");
-  }
-
-  await store.save(checked.value);
   revalidatePath("/agents");
-  revalidatePath(`/agents/${checked.value.id}/config`);
+  revalidatePath(`/agents/${saved.value.id}/config`);
 
-  return { ok: true, message: `${checked.value.label} saved. The agent-runner applies it right away.` };
-}
-
-// The prompt as typed: the file's own text = back on the file (nothing stored, also when a stored copy equals it);
-// unchanged = the version stays; any other text = the next version (user decision 2026-10-23: every edit is a new version).
-async function withPromptVersion(next: AgentDefinition, current: AgentDefinition): Promise<AgentDefinition> {
-  const file = await readPromptFile(current.id);
-  const typed = (next.prompt ?? "").replace(/\r\n/g, "\n").trim();
-  const stored = (current.prompt ?? "").trim();
-  const version = current.promptVersion ?? 0;
-
-  if (file && typed === file.text.trim()) {
-    return { ...next, prompt: "", promptVersion: version };
-  }
-
-  if (typed === stored) {
-    return { ...next, prompt: current.prompt ?? "", promptVersion: version };
-  }
-
-  return { ...next, prompt: typed, promptVersion: version + 1 };
+  return { ok: true, message: `${current.label} saved. The agent-runner applies it right away.` };
 }
 
 // A new agent (user decision 2026-10-23): its prompt (saved as version 1), the skills it may load (a new one written
@@ -75,14 +49,14 @@ export async function createAgentAction(_previous: ActionResult | null, form: Fo
     handles: form.getAll("handles").map(String),
     skills: [...form.getAll("skills").map(String), ...(skill ? [skill.message] : [])],
     canAssign: [],
-    grants: Object.entries(advanced.capabilities.integrations ?? {}).filter(([, on]) => on).map(([key]) => key),
+    grants: grantsOf(advanced),
     webAccess: advanced.capabilities.webAccess,
     model: advanced.model,
     limits: advanced.limits,
     budgets: advanced.budgets,
     schedule: null,
     enabled: false,
-    options: Object.fromEntries(Object.entries(advanced.options).filter((entry): entry is [string, number] => typeof entry[1] === "number")),
+    options: numberOptions(advanced),
   });
 
   if (!created.ok) {
@@ -111,35 +85,48 @@ async function createNewSkill(form: FormData): Promise<ActionResult | null> {
 }
 
 export async function deleteAgentAction(id: string): Promise<ActionResult> {
-  const store = getAgentConfig();
-  const agent = await store.get(id);
+  const deleted = await runWebCommand(deleteAgentCommand, { id });
 
-  if (!agent) {
-    return { ok: false, message: "Unknown agent." };
+  if (!deleted.ok) {
+    return { ok: false, message: deleted.error };
   }
 
-  if (!isRemovable(agent)) {
-    return { ok: false, message: "This agent is shipped with the code and can't be deleted." };
-  }
-
-  await store.remove(id);
-  await deletePromptVersions(id);
   revalidatePath("/agents");
   redirect("/agents");
 }
 
 export async function saveGlobalAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const store = getAgentConfig();
-  const checked = validateGlobal({ ...(await store.getGlobal()), dailyBudgetUsd: Number(text(form, "dailyBudgetUsd")) });
+  const saved = await runWebCommand(saveAgentsGlobalCommand, { dailyBudgetUsd: Number(text(form, "dailyBudgetUsd")) });
 
-  if (!checked.ok) {
-    return { ok: false, message: checked.errors.join("; ") };
+  if (!saved.ok) {
+    return { ok: false, message: saved.error };
   }
 
-  await store.saveGlobal(checked.value);
   revalidatePath("/settings");
 
   return { ok: true, message: "Saved." };
+}
+
+// The whole form as agent.update takes it: every field is sent, so the command replaces them all.
+function updateInputFromForm(form: FormData, current: AgentDefinition): UpdateAgentInput {
+  const next = readAgentForm(form, current);
+
+  return {
+    id: current.id,
+    enabled: next.enabled,
+    schedule: next.schedule,
+    model: next.model,
+    limits: next.limits,
+    budgets: next.budgets,
+    webAccess: next.capabilities.webAccess,
+    grants: grantsOf(next),
+    skills: next.skills,
+    prompt: next.prompt ?? "",
+    options: numberOptions(next),
+    canAssign: next.canAssign,
+    handles: next.handles,
+    waitFor: next.waitFor,
+  };
 }
 
 function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinition {
@@ -160,6 +147,15 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     handles: form.getAll("handles").map(String),
     waitFor: form.getAll("waitFor").map(String),
   };
+}
+
+// The integrations switched on, as the commands take them.
+function grantsOf(agent: AgentDefinition): string[] {
+  return Object.entries(agent.capabilities.integrations ?? {}).filter(([, on]) => on).map(([key]) => key);
+}
+
+function numberOptions(agent: AgentDefinition): Record<string, number> {
+  return Object.fromEntries(Object.entries(agent.options).filter((entry): entry is [string, number] => typeof entry[1] === "number"));
 }
 
 // One field per declared option (`option:<key>`); AgentConfig checks the ranges.
