@@ -19,7 +19,14 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
     return { ok: false, message: "Unknown agent." };
   }
 
-  const checked = validateAgent(await withPromptVersion(readAgentForm(form, current), current));
+  const skill = await createNewSkill(form);
+
+  if (skill && !skill.ok) {
+    return skill;
+  }
+
+  const edited = readAgentForm(form, current);
+  const checked = validateAgent(await withPromptVersion({ ...edited, skills: [...edited.skills, ...(skill ? [skill.message] : [])] }, current));
 
   if (!checked.ok) {
     return { ok: false, message: checked.errors.join("; ") };
@@ -66,23 +73,24 @@ export async function createAgentAction(_previous: ActionResult | null, form: Fo
   }
 
   const template = await newAgentTemplate(getAgentConfig(), text(form, "id"));
-  const advanced = readAgentForm(form, template);
+  const agent = readAgentForm(form, template);
   const created = await runWebCommand(createAgentCommand, {
     id: text(form, "id"),
-    label: text(form, "label"),
-    description: text(form, "description"),
-    prompt: text(form, "prompt"),
-    handles: form.getAll("handles").map(String),
-    skills: [...form.getAll("skills").map(String), ...(skill ? [skill.message] : [])],
-    canAssign: [],
-    grants: Object.entries(advanced.capabilities.integrations ?? {}).filter(([, on]) => on).map(([key]) => key),
-    webAccess: advanced.capabilities.webAccess,
-    model: advanced.model,
-    limits: advanced.limits,
-    budgets: advanced.budgets,
-    schedule: null,
-    enabled: false,
-    options: Object.fromEntries(Object.entries(advanced.options).filter((entry): entry is [string, number] => typeof entry[1] === "number")),
+    label: agent.label,
+    description: agent.description,
+    prompt: agent.prompt ?? "",
+    handles: agent.handles,
+    skills: [...agent.skills, ...(skill ? [skill.message] : [])],
+    canAssign: agent.canAssign,
+    waitFor: agent.waitFor,
+    grants: Object.entries(agent.capabilities.integrations ?? {}).filter(([, on]) => on).map(([key]) => key),
+    webAccess: agent.capabilities.webAccess,
+    model: agent.model,
+    limits: agent.limits,
+    budgets: agent.budgets,
+    schedule: agent.schedule,
+    enabled: agent.enabled,
+    options: Object.fromEntries(Object.entries(agent.options).filter((entry): entry is [string, number] => typeof entry[1] === "number")),
   });
 
   if (!created.ok) {
@@ -147,6 +155,8 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
 
   return {
     ...current,
+    label: text(form, "label") || current.label,
+    description: text(form, "description"),
     enabled: form.get("enabled") === "on",
     schedule: text(form, "schedule") || null,
     model: { provider: text(form, "provider"), model: text(form, "model"), ...(effort ? { effort: effort as AgentDefinition["model"]["effort"] } : {}) },

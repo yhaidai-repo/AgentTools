@@ -11,7 +11,9 @@ import { SwitchField } from "@/components/SwitchField";
 import type { ActionResult } from "@/models/ActionResult";
 import type { SkillFolder } from "@/models/SkillFolder";
 import type { TaskTypeChoices } from "@/models/TaskTypeChoices";
-import { saveAgentAction } from "../../configActions";
+import { createAgentAction, saveAgentAction } from "../../configActions";
+import { IdentitySection } from "./IdentitySection";
+import { NewSkillFields } from "./NewSkillFields";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
 import { DeleteAgentButton } from "./DeleteAgentButton";
@@ -36,19 +38,22 @@ interface AgentFormProps {
   promptFile: PromptFile | null;
   /** The stored prompt's earlier versions, newest first. */
   promptVersions: PromptVersion[];
+  /** The New agent page: the same form on the template's defaults, with an id to type and Create instead of Save. */
+  isNew?: boolean;
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes. Laid out
-// like New PBI (user decision 2026-10-18): how it runs, its limits and access on the left; its place in the pipeline,
-// skills and options on the right; Save in a bar that stays on screen.
-export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd, removable, promptFile, promptVersions }: AgentFormProps) {
-  const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
+// like New PBI (user decision 2026-10-18): who it is, how it runs, its limits and access on the left; its place in the
+// pipeline, prompt, skills and options on the right; Save in a bar that stays on screen. The New agent page is the same
+// form on the template's defaults (user decision 2026-10-24).
+export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd, removable, promptFile, promptVersions, isNew = false }: AgentFormProps) {
+  const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(isNew ? createAgentAction : saveAgentAction, null);
 
   return (
     <form action={action} className="new-pbi agent-form">
-      <input type="hidden" name="id" value={agent.id} />
       <div className="config-columns">
         <div>
+          <IdentitySection agent={agent} isNew={isNew} />
           <RunSection agent={agent} catalog={catalog} />
           <LimitsSection agent={agent} spentTodayUsd={spentTodayUsd} />
           <AccessSection agent={agent} />
@@ -57,13 +62,14 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
           <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
+          <NewSkillFields suggestedName={isNew ? "" : `${agent.id}-checklist`} />
           <OptionsFields agent={agent} />
         </div>
       </div>
       <div className="form-footer">
-        <span className="form-footer-note">{result ? <span className={result.ok ? "text-ok" : "text-error"}>{result.message}</span> : "Changes apply to the next run"}</span>
+        <span className="form-footer-note">{result ? <span className={result.ok ? "text-ok" : "text-error"}>{result.message}</span> : isNew ? "Created with these settings; change them here later" : "Changes apply to the next run"}</span>
         {removable && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
-        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+        <button type="submit" disabled={isSaving}>{isNew ? (isSaving ? "Creating…" : "Create") : (isSaving ? "Saving…" : "Save")}</button>
       </div>
     </form>
   );

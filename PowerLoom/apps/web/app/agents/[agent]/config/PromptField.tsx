@@ -24,11 +24,11 @@ interface PromptFieldProps {
 export function PromptField({ stored, storedVersion, file, versions }: PromptFieldProps) {
   const current = stored || file?.text || "";
   const [text, setText] = useState(current);
-  const source = stored ? `your version ${storedVersion}` : file ? `code version ${file.version}` : "none";
+  const source = stored ? `your version ${storedVersion}` : file ? `code version ${file.version}` : "";
 
   return (
     <section className="config-section">
-      <h2>Prompt <small className="muted">{source}</small></h2>
+      <h2>Prompt {source && <small className="muted">{source}</small>}</h2>
       <label className="field">
         <span>Instructions</span>
         <textarea name="prompt" rows={18} value={text} onChange={(event) => setText(event.target.value)} spellCheck={false} />

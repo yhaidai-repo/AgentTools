@@ -7,6 +7,8 @@ export interface CreateAgentInput {
   handles: string[];
   skills: string[];
   canAssign: string[];
+  /** What the agent waits for on a PBI before taking its task (blocker kinds); none by default. */
+  waitFor: string[];
   /** Integration keys to switch on (e.g. readRepos, readSql, writeNotes); the rest stay off. */
   grants: string[];
   webAccess: boolean;
