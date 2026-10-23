@@ -15,7 +15,8 @@ import { saveAgentAction } from "../../configActions";
 import { OptionsFields } from "./OptionsFields";
 import { PipelineFields } from "./PipelineFields";
 import { DeleteAgentButton } from "./DeleteAgentButton";
-import { PromptField } from "./PromptField";
+import { PromptField, type PromptVersion } from "./PromptField";
+import type { PromptFile } from "@/models/PromptFile";
 import { SkillsField } from "./SkillsField";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
@@ -31,12 +32,16 @@ interface AgentFormProps {
   spentTodayUsd: number;
   /** Created in the UI, so it may be deleted; decided on the server (the config package's entry point needs node:fs). */
   removable: boolean;
+  /** The prompt file shipped with the code, when the agent has one. */
+  promptFile: PromptFile | null;
+  /** The stored prompt's earlier versions, newest first. */
+  promptVersions: PromptVersion[];
 }
 
 // Generic: renders any agent definition (its declared options included), so new agents need no UI changes. Laid out
 // like New PBI (user decision 2026-10-18): how it runs, its limits and access on the left; its place in the pipeline,
 // skills and options on the right; Save in a bar that stays on screen.
-export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd, removable }: AgentFormProps) {
+export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, taskTypes, spentTodayUsd, removable, promptFile, promptVersions }: AgentFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveAgentAction, null);
 
   return (
@@ -50,7 +55,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         </div>
         <div>
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
-          <PromptField prompt={agent.prompt ?? ""} />
+          <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
           <OptionsFields agent={agent} />
         </div>

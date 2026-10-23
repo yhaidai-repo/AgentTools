@@ -438,6 +438,16 @@ export const attachment = pgTable("attachment", {
 
 // Earlier versions of skills edited in the web UI (the personal skills folder has no git history); newest last.
 
+// Every saved version of an agent's prompt (user decision 2026-10-23: each edit is a new version); the definition holds
+// the current text and version number.
+export const agentPromptVersion = pgTable("agent_prompt_version", {
+  id: serial("id").primaryKey(),
+  agentId: text("agent_id").notNull(),
+  version: integer("version").notNull(),
+  text: text("text").notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("agent_prompt_version_agent_version_uq").on(t.agentId, t.version)]);
+
 export const skillRevision = pgTable("skill_revision", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),

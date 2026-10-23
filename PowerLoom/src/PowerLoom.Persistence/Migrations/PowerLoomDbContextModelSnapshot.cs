@@ -73,6 +73,44 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("ado_state_change", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.AgentPromptVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("agent_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("agent_prompt_version_pkey");
+
+                    b.HasIndex(new[] { "AgentId", "Version" }, "agent_prompt_version_agent_version_uq")
+                        .IsUnique();
+
+                    b.ToTable("agent_prompt_version", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.AgentRun", b =>
                 {
                     b.Property<long>("Id")

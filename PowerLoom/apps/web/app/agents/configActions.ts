@@ -4,6 +4,8 @@ import { isRemovable, validateAgent, validateGlobal, type AgentDefinition, type 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { readPromptFile } from "@/lib/promptFiles";
+import { insertPromptVersion } from "@/lib/promptVersions";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Saves through AgentConfig only; the agent-runner is notified and reschedules by itself.
@@ -15,10 +17,14 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
     return { ok: false, message: "Unknown agent." };
   }
 
-  const checked = validateAgent(readAgentForm(form, current));
+  const checked = validateAgent(await withPromptVersion(readAgentForm(form, current), current));
 
   if (!checked.ok) {
     return { ok: false, message: checked.errors.join("; ") };
+  }
+
+  if (checked.value.promptVersion !== (current.promptVersion ?? 0)) {
+    await insertPromptVersion(checked.value.id, checked.value.promptVersion ?? 0, checked.value.prompt ?? "");
   }
 
   await store.save(checked.value);
@@ -26,6 +32,25 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
   revalidatePath(`/agents/${checked.value.id}/config`);
 
   return { ok: true, message: `${checked.value.label} saved. The agent-runner applies it right away.` };
+}
+
+// The prompt as typed: unchanged = the version stays; the file's own text = back on the file (nothing stored); any
+// other text = the next version (user decision 2026-10-23: every edit is a new version).
+async function withPromptVersion(next: AgentDefinition, current: AgentDefinition): Promise<AgentDefinition> {
+  const file = await readPromptFile(current.id);
+  const typed = (next.prompt ?? "").replace(/\r\n/g, "\n").trim();
+  const stored = (current.prompt ?? "").trim();
+  const version = current.promptVersion ?? 0;
+
+  if (typed === stored) {
+    return { ...next, prompt: current.prompt ?? "", promptVersion: version };
+  }
+
+  if (file && typed === file.text.trim()) {
+    return { ...next, prompt: "", promptVersion: version };
+  }
+
+  return { ...next, prompt: typed, promptVersion: version + 1 };
 }
 
 // A new agent is a copy of an existing one under its own id (user decision 2026-10-22), disabled and without a schedule

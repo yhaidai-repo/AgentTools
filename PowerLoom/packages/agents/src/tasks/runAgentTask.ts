@@ -68,7 +68,7 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
     deps,
     agent,
     global: await deps.config.getGlobal(),
-    prompt: await loadAgentPrompt(agentId, agent.prompt ?? "", { team, agent: agent.label }),
+    prompt: await loadAgentPrompt(agentId, { text: agent.prompt ?? "", version: agent.promptVersion ?? 0 }, { team, agent: agent.label }),
     skills: await loadStageSkills(deps, agent, task.pbiId),
   };
 }

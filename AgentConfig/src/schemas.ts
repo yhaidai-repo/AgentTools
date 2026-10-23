@@ -31,6 +31,8 @@ export const agentDefinitionSchema = z.object({
   skills: z.array(z.string().min(1)),
   // The agent's own instructions (user decision 2026-10-22); empty = the prompt file shipped with the code, if any.
   prompt: z.string().default(""),
+  // The stored prompt's version: every edit is a new one (user decision 2026-10-23); 0 while the prompt file applies.
+  promptVersion: z.number().int().nonnegative().default(0),
   // builtin: shipped in code (kept by ensureDefaults, never deleted); user: created in the UI (user decision 2026-10-22).
   origin: z.enum(["builtin", "user"]).default("builtin"),
   options: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),

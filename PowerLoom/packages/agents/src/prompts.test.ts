@@ -53,22 +53,22 @@ describe("loadPrompt", () => {
 });
 
 describe("loadAgentPrompt", () => {
-  it("runs a stored prompt, versioned by its content, with the framework filled in", async () => {
-    const prompt = await loadAgentPrompt("security-review", ["{{framework}}", "", "Review {{team}} for secrets."].join("\n"), { team: "Signals" });
+  it("runs a stored prompt under its version, with the framework filled in", async () => {
+    const prompt = await loadAgentPrompt("security-review", { text: ["{{framework}}", "", "Review {{team}} for secrets."].join("\n"), version: 3 }, { team: "Signals" });
 
-    assert.match(prompt.version, /^stored\.[0-9a-f]{8}\+framework\./);
+    assert.match(prompt.version, /^v3\+framework\./);
     assert.match(prompt.text, /How you work/);
     assert.match(prompt.text, /Review Signals for secrets\./);
   });
 
   it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
-    const prompt = await loadAgentPrompt("design", "  ", { team: "Signals" });
+    const prompt = await loadAgentPrompt("design", { text: "  ", version: 0 }, { team: "Signals" });
 
     assert.equal(prompt.version, "v8");
   });
 
   it("gives an agent with neither the framework alone", async () => {
-    const prompt = await loadAgentPrompt("made-in-the-ui", "", { team: "Signals" });
+    const prompt = await loadAgentPrompt("made-in-the-ui", { text: "", version: 0 }, { team: "Signals" });
 
     assert.match(prompt.version, /^none\+framework\./);
     assert.match(prompt.text, /How you work/);
