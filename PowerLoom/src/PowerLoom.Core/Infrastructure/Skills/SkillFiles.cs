@@ -51,6 +51,32 @@ public sealed partial class SkillFiles(IOptions<SkillsOptions> options)
         return null;
     }
 
+    // A new skill of PowerLoom's own (user decision 2026-10-23: created with a new agent) in the editable folder; refused
+    // when a folder already has the name, so an existing skill is never shadowed. Returns why it was refused, or null.
+    public async Task<string?> CreateAsync(string name, string content, CancellationToken cancellation)
+    {
+        if (!SkillName().IsMatch(name))
+            return "A skill name is lower-case letters, digits and dashes.";
+
+        if (options.Value.Editable.Length == 0)
+            return "PowerLoom has no folder of its own for skills (Skills:Editable).";
+
+        if (await ReadAsync(name, cancellation) is not null)
+            return $"A skill named {name} exists already.";
+
+        var problem = ContentProblem(content);
+
+        if (problem is not null)
+            return problem;
+
+        var folder = Path.Combine(options.Value.Editable, name);
+
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, FileName), content, cancellation);
+
+        return null;
+    }
+
     // Agents see a skill by its frontmatter description, so it must stay.
     private static string? ContentProblem(string content)
     {

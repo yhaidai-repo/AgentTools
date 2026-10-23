@@ -1,19 +1,20 @@
+import { AGENT_TASK_TYPES } from "@powerloom/core";
+import { modelCatalog } from "@agenttools/config";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { getAgentConfig } from "@/lib/agentConfig";
+import { newAgentTemplate } from "@/lib/agentTemplate";
+import { loadSkillCatalog } from "@/lib/skills";
 import { NewAgentForm } from "./NewAgentForm";
 
 export const dynamic = "force-dynamic";
 
-// An agent created in the UI (user decision 2026-10-22): a copy of an existing agent's settings under a new id, with or
-// without its prompt and skills, disabled until configured. It runs on the generic executor with its own prompt.
+// An agent created in the UI (user decision 2026-10-22, reshaped 2026-10-23): its prompt, skills and task types, with
+// defaults for the rest; disabled until configured. It runs on the generic executor.
 export default async function NewAgentPage() {
-  const agents = await getAgentConfig().list();
-
   return (
     <>
       <Breadcrumbs crumbs={[{ label: "Agents", href: "/agents" }, { label: "New agent" }]} />
       <h1>New agent</h1>
-      <NewAgentForm agents={agents.map((agent) => ({ id: agent.id, label: agent.label, description: agent.description }))} />
+      <NewAgentForm template={await newAgentTemplate("new-agent")} catalog={modelCatalog()} skills={await loadSkillCatalog()} taskTypes={AGENT_TASK_TYPES} />
     </>
   );
 }

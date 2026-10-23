@@ -34,6 +34,13 @@ public sealed class SkillEditing(PowerLoomDbContext db, SkillFiles files)
         return await ReplaceAsync(current, content, cancellation);
     }
 
+    public async Task<Outcome<bool>> CreateAsync(string name, string content, CancellationToken cancellation)
+    {
+        var problem = await files.CreateAsync(name, content, cancellation);
+
+        return problem is null ? Outcome<bool>.Success(true) : Outcome<bool>.Failure(Problem.Invalid(problem));
+    }
+
     private async Task<Outcome<bool>> ReplaceAsync(SkillFile current, string content, CancellationToken cancellation)
     {
         var revision = new SkillRevision { Name = current.Name, Folder = current.Folder, Content = current.Content };
