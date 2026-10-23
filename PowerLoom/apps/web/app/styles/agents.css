@@ -707,3 +707,40 @@ tr:hover .row-action,
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* New agent: the switch lists of task types and skills, and the skill written with the agent. */
+.switch-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.new-skill {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.new-skill legend {
+  padding: 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+details.config-section > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.config-section > summary > h2 {
+  display: inline;
+}
+
+details.config-section > summary::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+
+details.config-section[open] > summary::before {
+  content: "▾ ";
+}

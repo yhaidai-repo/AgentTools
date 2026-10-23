@@ -308,6 +308,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_skills
+         * @description POST_api_skills
+         */
+        post: operations["POST_api_skills"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/skills/{name}/revisions/{id}/restore": {
         parameters: {
             query?: never;
@@ -1555,6 +1575,10 @@ export interface components {
             parentId: null | number;
             actor: null | string;
         };
+        CreateSkillRequest: {
+            name: string;
+            content: string;
+        };
         CreateTaskRequest: {
             vault: string;
             type: string;
@@ -1903,8 +1927,6 @@ export interface components {
             enabled: boolean;
         };
         /** @enum {unknown} */
-        Stage: string;
-        /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
         StoredAttachments: {
             ids: number[];
@@ -1925,7 +1947,7 @@ export interface components {
         SyncRun: {
             /** Format: int64 */
             id: number;
-            stage: components["schemas"]["Stage"];
+            stage: string;
             outcome: components["schemas"]["RunOutcome"];
             error: null | string;
             /** Format: date-time */
@@ -2426,6 +2448,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SaveSkillRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSkill"];
+                };
+            };
+        };
+    };
+    POST_api_skills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSkillRequest"];
             };
         };
         responses: {

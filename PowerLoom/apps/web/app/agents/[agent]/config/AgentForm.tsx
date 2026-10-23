@@ -70,7 +70,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
 }
 
 // On or off, when it runs (the cron also in words), which model and how hard it thinks.
-function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog: CatalogModel[] }) {
+export function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog: CatalogModel[] }) {
   const [effort, setEffort] = useState(agent.model.effort ?? "");
 
   return (
@@ -96,7 +96,7 @@ function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog: Catal
   );
 }
 
-function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spentTodayUsd: number }) {
+export function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spentTodayUsd: number }) {
   return (
     <section className="panel config-section">
       <h3>Limits and budget <small>API-price estimate</small></h3>
@@ -112,7 +112,7 @@ function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spent
 }
 
 // What the agent may read or run: one switch each, its description as the hint (user decision 2026-10-18).
-function AccessSection({ agent }: { agent: AgentDefinition }) {
+export function AccessSection({ agent }: { agent: AgentDefinition }) {
   return (
     <section className="panel config-section">
       <h3>Access <small>what it may read or run</small></h3>

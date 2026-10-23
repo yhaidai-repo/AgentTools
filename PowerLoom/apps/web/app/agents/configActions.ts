@@ -4,6 +4,8 @@ import { isRemovable, validateAgent, validateGlobal, type AgentDefinition, type 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { newAgentTemplate } from "@/lib/agentTemplate";
+import { powerloom, powerloomResult } from "@/lib/powerloom";
 import { readPromptFile } from "@/lib/promptFiles";
 import { insertPromptVersion } from "@/lib/promptVersions";
 import type { ActionResult } from "@/models/ActionResult";
@@ -53,30 +55,71 @@ async function withPromptVersion(next: AgentDefinition, current: AgentDefinition
   return { ...next, prompt: typed, promptVersion: version + 1 };
 }
 
-// A new agent is a copy of an existing one under its own id (user decision 2026-10-22), disabled and without a schedule
-// until configured; with or without the source's prompt and skills. It runs on the generic executor.
+// A new agent (user decision 2026-10-23): its prompt (saved as version 1), the skills it may load (a new one written
+// with it), the task types it takes, and the template's defaults for the rest, changed under Advanced; disabled and
+// without a schedule until configured. It runs on the generic executor.
 export async function createAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const store = getAgentConfig();
   const id = text(form, "id");
-  const base = await store.get(text(form, "basedOn"));
-
-  if (!base) {
-    return { ok: false, message: "Choose the agent to base it on." };
-  }
 
   if (await store.get(id)) {
     return { ok: false, message: `An agent with the id "${id}" exists.` };
   }
 
-  const checked = validateAgent(copiedAgent(base, form));
+  const template = await newAgentTemplate(id);
+  const checked = validateAgent(newAgent(form, template));
 
   if (!checked.ok) {
     return { ok: false, message: checked.errors.join("; ") };
   }
 
-  await store.save(checked.value);
+  const skill = await createNewSkill(form);
+
+  if (skill && !skill.ok) {
+    return skill;
+  }
+
+  const agent = { ...checked.value, skills: [...checked.value.skills, ...(skill ? [skill.message] : [])] };
+
+  if (agent.prompt) {
+    await insertPromptVersion(agent.id, 1, agent.prompt);
+  }
+
+  await store.save(agent);
   revalidatePath("/agents");
-  redirect(`/agents/${checked.value.id}/config`);
+  redirect(`/agents/${agent.id}/config`);
+}
+
+function newAgent(form: FormData, template: AgentDefinition): AgentDefinition {
+  const prompt = text(form, "prompt").replace(/\r\n/g, "\n");
+
+  return {
+    ...readAgentForm(form, template),
+    id: template.id,
+    label: text(form, "label"),
+    description: text(form, "description"),
+    enabled: false,
+    schedule: null,
+    prompt,
+    promptVersion: prompt ? 1 : 0,
+    origin: "user",
+  };
+}
+
+// The skill the form wrote, created in PowerLoom's own skills folder; `message` carries its name when it is ok.
+async function createNewSkill(form: FormData): Promise<ActionResult | null> {
+  const name = text(form, "newSkillName");
+
+  if (!name) {
+    return null;
+  }
+
+  const description = text(form, "newSkillDescription") || `Skill of the agent ${text(form, "id")}.`;
+  const content = ["---", `name: ${name}`, `description: ${description}`, "---", "", text(form, "newSkillContent").replace(/\r\n/g, "\n"), ""].join("\n");
+  const created = await powerloom.POST("/api/skills", { body: { name, content } });
+  const result = powerloomResult(created, name);
+
+  return result.ok ? { ok: true, message: name } : result;
 }
 
 export async function deleteAgentAction(id: string): Promise<ActionResult> {
@@ -138,22 +181,6 @@ function readOptions(form: FormData, current: AgentDefinition): Record<string, A
 // One checkbox per integration the host declares (`integration:<key>`); undeclared keys never reach the definition.
 function readIntegrations(form: FormData, current: AgentDefinition): Record<string, boolean> {
   return Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, form.get(`integration:${spec.key}`) === "on"]));
-}
-
-function copiedAgent(base: AgentDefinition, form: FormData): AgentDefinition {
-  const copyInstructions = form.get("copyInstructions") === "on";
-
-  return {
-    ...base,
-    id: text(form, "id"),
-    label: text(form, "label"),
-    description: text(form, "description"),
-    enabled: false,
-    schedule: null,
-    prompt: copyInstructions ? (base.prompt ?? "") : "",
-    skills: copyInstructions ? base.skills : [],
-    origin: "user",
-  };
 }
 
 function text(form: FormData, name: string): string {

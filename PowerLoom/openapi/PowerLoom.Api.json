@@ -599,6 +599,38 @@
         }
       }
     },
+    "/api/skills": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "POST_api_skills",
+        "description": "POST_api_skills",
+        "operationId": "POST_api_skills",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/skills/{name}/revisions/{id}/restore": {
       "post": {
         "tags": [
@@ -3739,6 +3771,21 @@
           }
         }
       },
+      "CreateSkillRequest": {
+        "required": [
+          "name",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
       "CreateTaskRequest": {
         "required": [
           "vault",
@@ -5135,23 +5182,6 @@
           }
         }
       },
-      "Stage": {
-        "enum": [
-          "sync",
-          "refinement",
-          "research",
-          "design",
-          "tech-writer",
-          "pull-requests",
-          "code-review",
-          "vault-review",
-          "better-research",
-          "better-refinement",
-          "meeting-notes",
-          "better-review",
-          "autotest"
-        ]
-      },
       "StateLevel": {
         "enum": [
           "ok",
@@ -5249,7 +5279,7 @@
             "format": "int64"
           },
           "stage": {
-            "$ref": "#/components/schemas/Stage"
+            "type": "string"
           },
           "outcome": {
             "$ref": "#/components/schemas/RunOutcome"

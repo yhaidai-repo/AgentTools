@@ -19,6 +19,15 @@ public static class SkillsEndpoints
         return saved.Ok ? TypedResults.Ok(new SavedSkill(name, saved.Value, null)) : saved.Problem!.ToProblemResult();
     }
 
+    // A new skill of PowerLoom's own, made with a new agent (user decision 2026-10-23).
+    [WolverinePost("/api/skills")]
+    public static async Task<Results<Ok<SavedSkill>, ProblemHttpResult>> Create(CreateSkillRequest request, SkillEditing editing, CancellationToken cancellation)
+    {
+        var created = await editing.CreateAsync(request.Name, request.Content, cancellation);
+
+        return created.Ok ? TypedResults.Ok(new SavedSkill(request.Name, true, null)) : created.Problem!.ToProblemResult();
+    }
+
     // A restore is a save of the old content, so the version it replaces becomes a revision too.
     [WolverinePost("/api/skills/{name}/revisions/{id}/restore")]
     public static async Task<Results<Ok<SavedSkill>, ProblemHttpResult>> Restore(string name, int id, RestoreRequest request, SkillEditing editing, PowerLoomDbContext db, CancellationToken cancellation)
