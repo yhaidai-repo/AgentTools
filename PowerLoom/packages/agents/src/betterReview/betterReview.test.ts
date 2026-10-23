@@ -240,7 +240,7 @@ describe("Better Review summary and prompt", () => {
   it("starts from the shared framework", async () => {
     const prompt = await loadPrompt("better-review", { team: "Core" });
 
-    assert.match(prompt.version, /^v2\+framework\./);
+    assert.match(prompt.version, /^v3\+framework\./);
     assert.match(prompt.text, /## How you work/);
     assert.match(prompt.text, /Better Review of the Core team/);
   });

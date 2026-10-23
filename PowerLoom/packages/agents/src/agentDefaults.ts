@@ -11,6 +11,9 @@ import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
 import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
+import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
+import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
+import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -293,6 +296,21 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Write refinements",
     description: "The agent may refine its PBI with write_refinement (summary, scope, gaps, dependencies, repos, blockers, skills) after record_estimate when estimates are granted; the first message carries the PBI as refinement reads it. The readiness gates read the latest refinement.",
   },
+  {
+    key: CODE_REVIEW_INTEGRATION,
+    label: "Review code (comments and summary)",
+    description: "The agent reviews its task's pull request: the PR is checked out for the repo tools, its diff is in the first message, and add_review_comment, update_comment and write_review_summary record the review. Needs Read repositories.",
+  },
+  {
+    key: BETTER_REVIEW_INTEGRATION,
+    label: "Review pull requests (Better Review)",
+    description: "The agent reviews its task's pull request against its PBIs, the repo's review rules and the other reviewers' threads, with follow-ups anchored to the last reviewed commit; the PR is checked out for the repo tools. Needs Read repositories.",
+  },
+  {
+    key: AUTOTEST_INTEGRATION,
+    label: "Write test reports",
+    description: "The agent proves its PBI's acceptance criteria: the test cases, design and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
+  },
 ];
 
 export const AGENT_DEFAULTS: AgentDefinition[] = [
@@ -381,7 +399,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 15 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [CODE_REVIEW_INTEGRATION]: true } },
     skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(CODE_REVIEW_OPTIONS),
@@ -401,7 +419,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 4, dailyUsd: 20 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false, [BETTER_REVIEW_INTEGRATION]: true } },
     skills: ["powerloom-better-review", "powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, maxDepth: 2, maxTasksPerRun: 3, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REVIEW_OPTIONS),
@@ -441,7 +459,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     limits: { maxTurns: 120, timeoutMinutes: 45 },
     budgets: { perRunUsd: 10, dailyUsd: 20 },
     // DevHub (the stack and the browser) and the ADO test cases are its job (user decisions 2026-10-20).
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false, [AUTOTEST_INTEGRATION]: true } },
     skills: ["powerloom-autotest-checklist"],
     options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30, headless: 1 },
     optionSpecs: withToolsetOptions([...BETTER_RESEARCH_OPTIONS, HEADLESS_OPTION]),

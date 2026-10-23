@@ -2,8 +2,8 @@ import { setItemStatus, vaultOfPbiSql } from "@powerloom/core";
 import { agentRun, localItem, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import type { AgentDeps } from "../models/AgentDeps";
-import { commitCreatedTasks, nextId } from "../taskCreation/commitCreatedTasks";
-import { commitCaptures } from "../vaultCapture";
+import { nextId } from "../taskCreation/commitCreatedTasks";
+import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import { commitBugs } from "./commitBugs";
 import type { AutotestDraft } from "./models/AutotestDraft";
 import type { TestReport } from "./models/TestReport";
@@ -15,30 +15,29 @@ const REPORT_VERSION = 2;
 type ItemRow = typeof localItem.$inferSelect;
 type WorkItemRow = typeof workItem.$inferSelect;
 
-// Writes a successful run: the bugs it found (through PowerLoom's bug endpoint), the report (TR), the tasks it created
-// and its drafts. A complete report closes the task; one that waits for an answer (the plan's approval, missing test
-// data) sends the task back to open, held by the blocking items it created, so the next run goes on once they close.
+// Writes a successful run (stage 2b, 2026-10-23: a granted writer, so the toolset has written the tasks and drafts
+// already): the bugs it found (through PowerLoom's bug endpoint) and the report (TR). A complete report closes the
+// task; one that waits for an answer (the plan's approval, missing test data) sends the task back to open, held by the
+// blocking items it created, so the next run goes on once they close.
 export async function commitTestReport(
   deps: Pick<AgentDeps, "db" | "powerloomUrl">,
   task: ItemRow,
   pbi: WorkItemRow,
   runId: number,
-  draft: AutotestDraft & { report: TestReport },
+  draft: { report: TestReport; bugs: AutotestDraft["bugs"] },
+  created: { tasks: CreatedTask[]; taskIds: string[] },
   extra: { commits: Record<string, string>; docsRead: string[]; docsVault: string },
 ): Promise<string[]> {
   const { db } = deps;
   const pbiId = pbi.adoId;
-  const depth = Number((task.data as { depth?: number } | null)?.depth ?? 1);
   const bugIds = await commitBugs(deps.powerloomUrl, pbiId, draft.bugs);
-  const taskIds = await commitCreatedTasks(db, { pbiId, vault: task.vault, parentTaskId: task.id, runId, depth, docsVault: extra.docsVault }, draft.tasks);
-  const report = withResolvedIds(draft.report, taskIds, bugIds);
-  const data = { report, reportVersion: REPORT_VERSION, next: { taskIds, reason: report.nextReason }, bugIds, commits: extra.commits, docsRead: extra.docsRead };
-  const reportId = await insertReport(db, task, pbiId, runId, renderTestReport(report, taskIds, bugIds), data);
-  const captureIds = await commitCaptures(db, runId, pbiId, task.id, draft.captures);
-  const outputs = [reportId, ...bugIds, ...taskIds, ...captureIds];
+  const report = withResolvedIds(draft.report, created.taskIds, bugIds);
+  const data = { report, reportVersion: REPORT_VERSION, next: { taskIds: created.taskIds, reason: report.nextReason }, bugIds, commits: extra.commits, docsRead: extra.docsRead };
+  const reportId = await insertReport(db, task, pbiId, runId, renderTestReport(report, created.taskIds, bugIds), data);
+  const outputs = [reportId, ...bugIds];
 
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
-  await settleTask(db, task, runId, report, blockingIds(draft, taskIds));
+  await settleTask(db, task, runId, report, blockingIds(created.tasks, created.taskIds));
 
   return outputs;
 }
@@ -69,8 +68,8 @@ async function settleTask(db: PowerLoomDb, task: ItemRow, runId: number, report:
   await setItemStatus(db, task.id, "in-progress", "open", ACTOR, runId);
 }
 
-function blockingIds(draft: AutotestDraft, taskIds: string[]): string[] {
-  return draft.tasks.flatMap((created, index) => created.blocking && taskIds[index] ? [taskIds[index]] : []);
+function blockingIds(tasks: CreatedTask[], taskIds: string[]): string[] {
+  return tasks.flatMap((created, index) => created.blocking && taskIds[index] ? [taskIds[index]] : []);
 }
 
 function withResolvedIds(report: TestReport, taskIds: string[], bugIds: string[]): TestReport {

@@ -9,6 +9,9 @@ import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWri
 import { VAULT_REVIEW_INTEGRATION, VaultReviewWriter } from "../vaultReview/VaultReviewWriter";
 import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
 import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
+import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWriter";
+import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
+import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter";
 import { ownTools } from "./ownTools";
 import { createConfluenceTools } from "../confluenceTools";
 import { createDevHubTools } from "../devHubTools";
@@ -130,7 +133,8 @@ export class AgentToolset {
 
   /** What the granted writers add to the first message (a draft, a note to actualize). */
   async contextBlocks(): Promise<string[]> {
-    const blocks = await Promise.all(this.writers.map((writer) => writer.contextBlocks?.(this.task) ?? []));
+    const run = { runId: this.session.runId, repos: this.input.repos, session: this.session };
+    const blocks = await Promise.all(this.writers.map((writer) => writer.contextBlocks?.(this.task, run) ?? []));
 
     return blocks.flat();
   }
@@ -208,5 +212,8 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[VAULT_REVIEW_INTEGRATION] === true ? [new VaultReviewWriter(context)] : []),
     ...(integrations[WRITE_DESIGN_INTEGRATION] === true ? [new DesignWriter(context)] : []),
     ...(integrations[WRITE_REFINEMENT_INTEGRATION] === true ? [new RefinementWriter(context)] : []),
+    ...(integrations[CODE_REVIEW_INTEGRATION] === true ? [new ReviewWriter(context)] : []),
+    ...(integrations[BETTER_REVIEW_INTEGRATION] === true ? [new BetterReviewWriter(context)] : []),
+    ...(integrations[AUTOTEST_INTEGRATION] === true ? [new AutotestWriter(context)] : []),
   ];
 }

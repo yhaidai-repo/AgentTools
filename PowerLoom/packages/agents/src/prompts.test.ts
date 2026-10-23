@@ -41,7 +41,7 @@ describe("loadPrompt", () => {
   it("gives the autotest prompt the continue and create_task rules", async () => {
     const prompt = await loadPrompt("autotest", { team: "Signals" });
 
-    assert.match(prompt.version, /^v9\+framework\./);
+    assert.match(prompt.version, /^v10\+framework\./);
     assert.match(prompt.text, /Each bug in `<bugs-to-retest>` is a case too/);
     assert.match(prompt.text, /Before asking the user for test data, search the database/);
     assert.match(prompt.text, /## Continuing from a previous report/);
