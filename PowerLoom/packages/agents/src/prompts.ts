@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { LoadedPrompt } from "./models/LoadedPrompt";
@@ -15,12 +14,12 @@ export async function loadPrompt(name: string, values: Record<string, string>): 
   return composePrompt(await readPromptFile(name), values, readPromptFile);
 }
 
-// An agent's prompt: the one stored with its definition when it has one (user decision 2026-10-22: editable in the UI),
-// else its prompt file, else nothing (a UI-created agent without instructions runs on the framework alone). A stored
-// prompt is versioned by its content, so a run records which text it ran on.
-export async function loadAgentPrompt(agentId: string, storedPrompt: string, values: Record<string, string>): Promise<LoadedPrompt> {
-  if (storedPrompt.trim()) {
-    return composePrompt(`<!-- prompt: ${agentId} · version: stored.${contentVersion(storedPrompt)} -->\n${storedPrompt}`, values, readPromptFile);
+// An agent's prompt: the one stored with its definition when it has one (user decision 2026-10-22: editable in the UI;
+// every edit a new version, 2026-10-23), else its prompt file, else nothing (a UI-created agent without instructions
+// runs on the framework alone). A run records the version it ran on.
+export async function loadAgentPrompt(agentId: string, stored: { text: string; version: number }, values: Record<string, string>): Promise<LoadedPrompt> {
+  if (stored.text.trim()) {
+    return composePrompt(`<!-- prompt: ${agentId} · version: v${stored.version} -->\n${stored.text}`, values, readPromptFile);
   }
 
   if (await hasPromptFile(agentId)) {
@@ -40,9 +39,6 @@ export async function hasPromptFile(name: string): Promise<boolean> {
   }
 }
 
-function contentVersion(text: string): string {
-  return createHash("sha1").update(text).digest("hex").slice(0, 8);
-}
 
 // `{{framework}}` pulls in the shared `_framework.md`; its version joins the prompt's, so a run records both.
 export async function composePrompt(raw: string, values: Record<string, string>, readFragment: ReadFragment): Promise<LoadedPrompt> {

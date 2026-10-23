@@ -40,6 +40,8 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<RunResult> RunResults { get; set; }
 
+    public virtual DbSet<AgentPromptVersion> AgentPromptVersions { get; set; }
+
     public virtual DbSet<PbiRepo> PbiRepos { get; set; }
 
     public virtual DbSet<PullRequest> PullRequests { get; set; }

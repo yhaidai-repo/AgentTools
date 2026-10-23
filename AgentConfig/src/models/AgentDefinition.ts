@@ -22,6 +22,8 @@ export interface AgentDefinition {
   skills: string[];
   /** The agent's own instructions (user decision 2026-10-22); empty = the prompt file shipped with the code, if any. */
   prompt?: string;
+  /** The stored prompt's version; every edit is a new one. 0 while the prompt file applies. */
+  promptVersion?: number;
   /** builtin: shipped in code, kept by ensureDefaults; user: created in the UI, may be deleted. Missing = builtin. */
   origin?: "builtin" | "user";
   /** Agent-specific settings, e.g. { batchSize: 2, maxFailures: 3 }; only keys declared in optionSpecs. */
