@@ -6,22 +6,6 @@ import type { z } from "zod";
 // Agents run read commands only: a command that reaches PowerLoom from an agent is a bug, so it fails loudly.
 const NO_POWERLOOM = new Proxy({}, { get: (_target, name) => () => Promise.reject(new Error(`agents can't run PowerLoom's ${String(name)}`)) }) as PowerLoomPort;
 
-const READ_ONLY: ToolAnnotations = { readOnly: true };
-const DESTRUCTIVE: ToolAnnotations = { destructive: true };
-
-// What a client may gate on per command; a command not listed is a plain write.
-const ANNOTATIONS: Record<string, ToolAnnotations> = {
-  "pbi.read": READ_ONLY,
-  "pbi.get": READ_ONLY,
-  "sql.query": READ_ONLY,
-  "sql.describe": READ_ONLY,
-  "sql.databases": READ_ONLY,
-  "pbi.delete": DESTRUCTIVE,
-  "pbi.finish": DESTRUCTIVE,
-  "pbi.close": DESTRUCTIVE,
-  "review.delete": DESTRUCTIVE,
-};
-
 // A PowerLoom command as a tool (user decision 2026-10-13): one contract for the agents and for Claude chats, which
 // run the same command through the CLI or the MCP server.
 export function createCommandTool<I>(name: string, command: Command<I, unknown>, context: CommandContext): ToolDefinition<any> {
@@ -29,7 +13,7 @@ export function createCommandTool<I>(name: string, command: Command<I, unknown>,
     name,
     description: command.description,
     input: (command.input as unknown as z.ZodObject<z.ZodRawShape>).shape,
-    annotations: ANNOTATIONS[command.name],
+    annotations: annotationsOf(command),
     handler: async (input) => {
       const outcome = await runCommand(command, context, input);
 
@@ -50,6 +34,15 @@ export function commandToolName(commandName: string): string {
 
 export function agentCommandContext(db: PowerLoomDb, backlogMount: string): CommandContext {
   return { db, actor: "agent", powerloom: NO_POWERLOOM, skills: { names: async () => [] }, backlogMount };
+}
+
+// The command's effect as the hints a client gates on; a plain write has none.
+function annotationsOf(command: Command<unknown, unknown>): ToolAnnotations | undefined {
+  if (command.effect === "read") {
+    return { readOnly: true };
+  }
+
+  return command.effect === "destructive" ? { destructive: true } : undefined;
 }
 
 // A command that answers with text (e.g. pbi.read) gives the agent just the text; anything else comes as JSON.

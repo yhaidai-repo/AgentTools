@@ -1,7 +1,7 @@
-import { isOpen } from "./items";
-import type { TaskLike } from "@/models/TaskLike";
+import { taskBucket, type TaskLike } from "@powerloom/core";
 
-export type TaskBucket = "you" | "held" | "open" | "done" | "cancelled";
+// The bucket and its rule live in core (shared with task.list); the tags and pills stay here.
+export { isHumanWork, taskBucket, type TaskBucket } from "@powerloom/core";
 
 // The kinds' tags: human work is warm (user request 2026-10-18: tasks for humans stand out), agent work keeps the cool
 // colours of its pipeline stage.
@@ -24,23 +24,6 @@ const CLOSED_LABELS: Record<string, string> = { done: "Done", answered: "Answere
 
 export function kindTag(kind: string): { label: string; tone: string } {
   return KIND_TAGS[kind] ?? { label: kind, tone: "kind-docs" };
-}
-
-export function isHumanWork(task: TaskLike): boolean {
-  return task.assignee === "human";
-}
-
-// What a task waits for: you (an open human item), the dispatcher (held), an agent (open), or nothing any more.
-export function taskBucket(task: TaskLike): TaskBucket {
-  if (!isOpen(task)) {
-    return ["cancelled", "dismissed", "superseded", "deleted"].includes(task.status) ? "cancelled" : "done";
-  }
-
-  if (isHumanWork(task)) {
-    return "you";
-  }
-
-  return task.status === "open" && task.heldBy.length > 0 ? "held" : "open";
 }
 
 // The status pill: "Waits for you" pulses amber, a running agent task pulses cyan, held is dashed, closed is quiet.

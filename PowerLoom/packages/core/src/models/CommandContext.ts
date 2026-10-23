@@ -1,4 +1,5 @@
 import type { AgentConfigStore } from "@agenttools/config";
+import type { UsageStore } from "@agenttools/usage";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { PowerLoomPort } from "./PowerLoomPort";
 import type { SkillCatalog } from "./SkillCatalog";
@@ -13,4 +14,6 @@ export interface CommandContext {
   backlogMount: string;
   /** The agent definitions, for the commands that create or change agents; absent where a caller may not (an agent run). */
   agents?: AgentConfigStore;
+  /** The runs' usage records and traces (AgentUsage), for the read commands on runs and costs; absent in an agent run. */
+  usage?: UsageStore;
 }

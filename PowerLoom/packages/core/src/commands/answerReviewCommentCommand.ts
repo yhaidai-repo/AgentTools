@@ -3,7 +3,7 @@ import type { Command } from "../models/Command";
 
 export const answerReviewCommentCommand: Command<{ commentId: string; answer: string | null }, { prId: number; answered: boolean }> = {
   name: "review.answerComment",
-  description: "Answer a code-review comment (the agent's next run on the PR reads it); an empty answer takes it back.",
+  description: "Answer a code-review comment (the agent's next run on the PR reads it); an empty answer takes it back. The answer is the user's, as on the review page: propose one, then call with what they confirmed.",
   input: z.object({ commentId: z.string().min(1), answer: z.string().trim().transform((text) => text || null).nullable().default(null) }),
   async run(context, input) {
     return context.powerloom.answerReviewComment(input.commentId, input.answer);

@@ -1,10 +1,11 @@
 import { readVaults } from "@powerloom/core";
-import { vaultsDir } from "@powerloom/vault";
 import { cookies } from "next/headers";
-import { join } from "node:path";
 import type { VaultChoice } from "@/models/VaultChoice";
 import { getDb } from "./db";
 import { VAULT_COOKIE } from "./sharedFilters";
+
+// The vault's folder as the web sees it (read-only) lives in core's vaultPage domain, shared with the vault commands.
+export { vaultRootOf } from "@powerloom/core";
 
 // The vault every page shows: the one picked in the top bar, or the first when none (or a removed one) is remembered;
 // null while no vault is configured (the pages then show the Add vault placeholder, user decision 2026-10-06).
@@ -28,11 +29,4 @@ export async function requireVault(): Promise<string> {
   }
 
   return vault;
-}
-
-// The vault's folder as the web sees it (read-only); null when the vaults root isn't mounted.
-export function vaultRootOf(vault: string): string | null {
-  const root = vaultsDir();
-
-  return root ? join(root, vault) : null;
 }

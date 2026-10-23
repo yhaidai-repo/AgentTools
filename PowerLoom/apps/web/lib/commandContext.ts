@@ -5,7 +5,9 @@ import { getAgentConfig } from "./agentConfig";
 import { backlogMount } from "./backlogMount";
 import { getDb } from "./db";
 import { powerloom } from "./powerloom";
-import { loadSkillCatalog } from "./skills";
+import { skillCatalogOf } from "@agenttools/runtime/skills";
+import { editableSkillFolder, skillFolders } from "./skills";
+import { getUsageStore } from "./usage";
 
 // Every web action runs its change as a command (user decision 2026-10-05), so the web, the CLI and the MCP server
 // share one contract per change. This is the web's side: the person at the browser, PowerLoom, the skill folders.
@@ -20,9 +22,10 @@ export function webCommandContext(): CommandContext {
     db: getDb(),
     actor: "human",
     powerloom: powerloomPort,
-    skills: { names: async () => (await loadSkillCatalog()).skills.map((skill) => skill.name) },
+    skills: skillCatalogOf(skillFolders().map((folder) => folder.path), editableSkillFolder()),
     backlogMount: backlogMount(),
     agents: getAgentConfig(),
+    usage: getUsageStore(),
   };
 }
 

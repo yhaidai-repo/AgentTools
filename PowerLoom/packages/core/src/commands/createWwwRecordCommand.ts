@@ -7,7 +7,7 @@ const optionalText = z.string().trim().min(1).nullable().default(null);
 
 export const createWwwRecordCommand: Command<NewWwwRecord, { id: number }> = {
   name: "www.create",
-  description: "Log a What-went-wrong record in a vault's www-log.md (the www-record skill's format). Fault is Human or Agent only.",
+  description: "Log a What-went-wrong record in a vault's www-log.md (the www-record skill's format). Fault is Human or Agent only. Fill it from what the user said: ask what was planned, what happened, whose fault and the root cause when unclear; never invent them, and show the record before calling.",
   input: z.object({
     vault: z.string().regex(/^\w[\w .-]*$/, "a vault folder name under the vaults root"),
     source: z.string().trim().min(1),

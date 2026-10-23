@@ -1,20 +1,16 @@
-import { skillRevision } from "@powerloom/db";
+import { loadRevisions as loadRevisionsOf, type SkillRevision } from "@powerloom/core";
 import { readSkill, type SkillFile } from "@agenttools/runtime/skills";
-import { createHash } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { skillFolders } from "./skills";
 
-const SHOWN_REVISIONS = 20;
-
-export function contentHash(content: string): string {
-  return createHash("sha256").update(content).digest("hex");
-}
+// The hash a save passes back lives in core's skills domain, shared with skill.get.
+export { contentHash } from "@powerloom/core";
 
 export function loadSkillFile(name: string): Promise<SkillFile | null> {
   return readSkill(skillFolders().map((folder) => folder.path), name);
 }
 
-export function loadRevisions(name: string) {
-  return getDb().select().from(skillRevision).where(eq(skillRevision.name, name)).orderBy(desc(skillRevision.savedAt)).limit(SHOWN_REVISIONS);
+// The versions saves replaced (core's loadRevisions with the web's database).
+export function loadRevisions(name: string): Promise<SkillRevision[]> {
+  return loadRevisionsOf(getDb(), name);
 }

@@ -7,7 +7,10 @@ import type { ItemStatus } from "./ItemStatus";
 import type { ReportBugInput } from "./ReportBugInput";
 import type { ReportedBug } from "./ReportedBug";
 import type { ChatTarget } from "./ChatTarget";
+import type { DeadLetter } from "./DeadLetter";
 import type { Outcome } from "./Outcome";
+import type { SavedSkill } from "./SavedSkill";
+import type { SystemStatus } from "./SystemStatus";
 
 // PowerLoom, the .NET backend taking over the worker's jobs (the vault's adoa-backend-delivery note). The caller (the
 // web, the CLI) supplies the client; core stays free of HTTP.
@@ -45,4 +48,16 @@ export interface PowerLoomPort {
 
   // A new skill of PowerLoom's own: `<name>/SKILL.md` in its skills folder (user decision 2026-10-23).
   createSkill(name: string, content: string): Promise<Outcome<string>>;
+  // Rewrites one of PowerLoom's own skills; `hash` is the content the caller read (a stale one is refused), the
+  // replaced text becomes a revision.
+  saveSkill(name: string, content: string, hash: string): Promise<Outcome<SavedSkill>>;
+  // Puts a revision's text back as the skill (the current text becomes a revision too).
+  restoreSkill(name: string, revisionId: number, hash: string): Promise<Outcome<SavedSkill>>;
+  // Dispatches the agent now, as its schedule would: its open tasks are validated and the valid ones started.
+  runAgent(agentId: string): Promise<Outcome<{ agentId: string }>>;
+
+  // PowerLoom's view of the running system (the dashboard's Application tab); a failure when PowerLoom itself doesn't answer.
+  status(): Promise<Outcome<SystemStatus>>;
+  // Messages PowerLoom gave up on (Wolverine's dead letters) sent since `since`: the errors outside a single run.
+  deadLetters(since: Date): Promise<Outcome<DeadLetter[]>>;
 }

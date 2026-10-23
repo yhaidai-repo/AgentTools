@@ -13,12 +13,15 @@ export const ADO_INTEGRATION = "adoTestCases";
 // The Azure DevOps tools (user decision 2026-10-14), for an agent with the integration switched on in its Config,
 // while the run's vault's Azure DevOps integration is on: work items, pull requests with their threads and changed
 // files, and the PBI's Test Cases. Read only, with the vault's PAT; every call goes to the data access log.
-export function createAdoTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
+// `testCases` builds the Test Cases tool: the run's (its task's PBI) by default, the chat's (a PBI argument) for the MCP.
+export function createAdoTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, testCases: TestCaseToolsBuilder = testCaseTools): ToolDefinition<any>[] {
   const isOn = agent.capabilities.integrations?.[ADO_INTEGRATION] === true;
 
   if (!isOn || !deps.ado) {
     return [];
   }
 
-  return [...workItemTools(deps, context, deps.ado), ...pullRequestTools(deps, context, deps.ado), ...testCaseTools(deps, context, deps.ado)];
+  return [...workItemTools(deps, context, deps.ado), ...pullRequestTools(deps, context, deps.ado), ...testCases(deps, context, deps.ado)];
 }
+
+type TestCaseToolsBuilder = typeof testCaseTools;

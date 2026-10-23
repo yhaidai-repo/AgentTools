@@ -6,6 +6,7 @@ import { sqlConnectionInput, sqlDatabaseInput, sqlVaultInput } from "../readSql/
 
 export const sqlDescribeCommand: Command<{ vault: string; connection: string; database?: string; table?: string }, SqlRowsText> = {
   name: "sql.describe",
+  effect: "read",
   description: "List a vault's Read SQL database's tables and views, or, with a table, its columns: type, max length, nullable, primary key and the column a foreign key references. Another database of the server goes in `database`.",
   input: z.object({
     vault: sqlVaultInput,

@@ -7,7 +7,7 @@ import type { ReportedBug } from "../models/ReportedBug";
 // prepared right away by PowerLoom, so its agents start like on a PBI.
 export const reportBugCommand: Command<ReportBugInput, ReportedBug> = {
   name: "bug.report",
-  description: "Report a bug of a PBI found after design: parent (Azure DevOps or PowerLoom link, #id or id), title, description in Markdown (steps, expected, actual). Creates a [BUG] child item that goes through refinement, research and design like a PBI.",
+  description: "Report a bug of a PBI found after design: parent (Azure DevOps or PowerLoom link, #id or id), title, description in Markdown (steps, expected, actual). Creates a [BUG] child item that goes through refinement, research and design like a PBI. Ask the user for the steps, the expected and the actual result when they haven't given them; show the title and description before calling.",
   input: z.object({
     parent: z.string().trim().min(1),
     title: z.string().trim().min(1).max(240),
