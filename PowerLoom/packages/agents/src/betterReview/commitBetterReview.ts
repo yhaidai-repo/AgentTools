@@ -4,7 +4,6 @@ import { eq, sql } from "drizzle-orm";
 import { applyUpdates, insertComments, markOutdated, recordReviewVersion } from "../codeReview/commitReview";
 import type { AgentDeps } from "../models/AgentDeps";
 import { addRunOutputs } from "../tasks/runOutputs";
-import type { AgentToolset } from "../toolset/AgentToolset";
 import type { BetterReviewRun } from "./models/BetterReviewRun";
 import type { ReviewerNote } from "./models/ReviewerNote";
 import { renderSummary } from "./renderSummary";
@@ -23,7 +22,7 @@ const NEW_COMMENT = /^new:(\d+)$/;
 // details (the threads' verdicts, carried ones included, and the newest comment it saw in each) and the comments it saw,
 // so the PR sync doesn't queue a follow-up for them; the commit, summary and details are also this run's version. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
 // here, so a run its budget stopped after the summary keeps its review.
-export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: BetterReviewRun, runId: number, toolset: AgentToolset): Promise<string[]> {
+export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: BetterReviewRun, runId: number, taskIds: string[]): Promise<string[]> {
   const { pr } = run.context!;
   const checkout = run.checkout!;
   const result = run.draft.result!;
@@ -41,7 +40,6 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
 
   await deps.db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
 
-  const { taskIds } = await toolset.commit(runId);
   const rules = await saveRules(deps, run, runId);
   const details = {
     version: DETAILS_VERSION,

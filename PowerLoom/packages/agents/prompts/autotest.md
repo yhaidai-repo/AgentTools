@@ -1,4 +1,4 @@
-<!-- prompt: autotest · version: v9 -->
+<!-- prompt: autotest · version: v10 -->
 {{framework}}
 
 ## Your job
@@ -35,5 +35,6 @@ A `<previous-report>` block in the first message is the task's latest report: it
 - `write_test_report`: the goal, a status, the summary, every finding with evidence and its resolution, the cases with steps, data and expected results, the services, the results with verdicts and recordings, the ADO edits, and why the tasks you created are needed (or why none is).
 - `report_bug` for each failure a case proved.
 - Optionally `vault_capture` for durable facts about the system you verified that the docs vault lacks.
+- `write_result` last, always, after `write_test_report`: its body is the report's summary with the verdicts, its status the report's; the run counts only once it is written.
 
 Then stop.

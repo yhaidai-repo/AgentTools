@@ -7,6 +7,7 @@ import type { AgentRunInput } from "../models/AgentRunInput";
 import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
+import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { pbiRepoSources } from "../repos/agentRepos";
@@ -37,7 +38,7 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     model: agent.model,
     promptVersion: context.prompt.version,
   };
-  const run: GenericRun = { repos: noRepos(), toolset: null };
+  const run: GenericRun = { repos: noRepos(), toolset: null, writers: [] };
   const session = await AgentRunSession.begin(deps, info);
 
   try {
@@ -46,8 +47,25 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
     return await session.finish(ran, () => commit(deps.db, task, session.runId, run), run.toolset?.result.isWritten ?? false);
   } finally {
+    await cleanUpWriters(run);
     closeRepos(deps, run.repos);
   }
+}
+
+// Each writer removes what it left behind (a checkout); one failing doesn't stop the others.
+async function cleanUpWriters(run: GenericRun): Promise<void> {
+  for (const writer of run.writers) {
+    try {
+      await writer.cleanUp?.();
+    } catch (error) {
+      console.error(`cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+}
+
+// How the repos open: the first writer that says so decides (a PR checkout as the tools' root).
+function repoOptions(task: ItemRow, runId: number, writers: RunWriter[]): OpenReposOptions {
+  return Object.assign({}, ...writers.map((writer) => writer.repoOptions?.(task, runId) ?? {}));
 }
 
 async function prepare(context: TaskContext, session: AgentRunSession, task: ItemRow, run: GenericRun): Promise<AgentRunInput> {
@@ -55,8 +73,9 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   const writers = grantedWriters(context);
 
+  run.writers = writers;
   await session.phase("context", { task: task.id, vault: task.vault });
-  run.repos = await openRepos(context, session, await repoSources(context, task, writers), { vault: task.vault });
+  run.repos = await openRepos(context, session, await repoSources(context, task, writers), { vault: task.vault, ...repoOptions(task, session.runId, writers) });
 
   const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task), writers, depth: chainDepth(task) });
   const firstMessage = await buildFirstMessage(deps.db, task, run, await toolset.contextBlocks(), toolset.webDocumentsBlock());
