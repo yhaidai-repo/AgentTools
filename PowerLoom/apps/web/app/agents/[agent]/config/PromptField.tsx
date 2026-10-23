@@ -34,8 +34,10 @@ export function PromptField({ stored, storedVersion, file, versions }: PromptFie
         <textarea name="prompt" rows={18} value={text} onChange={(event) => setText(event.target.value)} spellCheck={false} />
       </label>
       <p className="field-hint">
-        Saving a change makes version {storedVersion + 1}. <code>{"{{framework}}"}</code> inserts the shared framework; <code>{"{{team}}"}</code> and <code>{"{{agent}}"}</code> are filled per run.
-        {file && stored && <> <button type="button" className="link" onClick={() => setText(file.text)}>Use the file ({file.version}) again</button></>}
+        {stored ? `Runs on stored version ${storedVersion}.` : file ? `Runs on the prompt file shipped with the code (${file.version}).` : "Has no prompt yet: its runs get the shared framework and the task only."}
+        {" "}Save a change and it becomes stored version {storedVersion + 1}; earlier versions are kept below.
+        {" "}Placeholders: <code>{"{{framework}}"}</code> = the shared framework text every agent starts with, <code>{"{{team}}"}</code> = the vault&apos;s team, <code>{"{{agent}}"}</code> = this agent&apos;s name.
+        {file && stored && <> <button type="button" className="link" onClick={() => setText(file.text)}>Put the file&apos;s text ({file.version}) back; saving it returns the agent to the file.</button></>}
       </p>
       {versions.length > 0 && (
         <details className="prompt-versions">
