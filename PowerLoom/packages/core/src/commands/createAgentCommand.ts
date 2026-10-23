@@ -26,6 +26,7 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
     handles: z.array(TASK_TYPE).min(1),
     skills: z.array(z.string().trim().min(1)).default([]),
     canAssign: z.array(TASK_TYPE).default([]),
+    waitFor: z.array(z.string().trim().min(1)).default([]),
     grants: z.array(z.string().trim().min(1)).default([]),
     webAccess: z.boolean().default(false),
     model: z.object({ provider: z.string().min(1), model: z.string().min(1), effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional() }).nullable().default(null),
@@ -97,6 +98,7 @@ async function buildDefinition(agents: NonNullable<CommandContext["agents"]>, in
     prompt: input.prompt.replace(/\r\n/g, "\n"),
     promptVersion: 1,
     canAssign: input.canAssign,
+    waitFor: input.waitFor,
     handles: input.handles,
     options: { ...template.options, ...input.options },
   };

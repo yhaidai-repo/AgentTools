@@ -9,7 +9,8 @@ import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
 
 // The Config page's save runs agent.update (the command a chat uses too): the whole form, prompt versioning and
-// validation inside the command; the agent-runner is notified and reschedules by itself.
+// validation inside the command; the agent-runner is notified and reschedules by itself. A skill written under Skills is
+// created first and added to the agent's skills.
 export async function saveAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const current = await getAgentConfig().get(text(form, "id"));
 
@@ -17,7 +18,14 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
     return { ok: false, message: "Unknown agent." };
   }
 
-  const saved = await runWebCommand(updateAgentCommand, updateInputFromForm(form, current));
+  const skill = await createNewSkill(form);
+
+  if (skill && !skill.ok) {
+    return skill;
+  }
+
+  const input = updateInputFromForm(form, current);
+  const saved = await runWebCommand(updateAgentCommand, { ...input, skills: [...(input.skills ?? []), ...(skill ? [skill.message] : [])] });
 
   if (!saved.ok) {
     return { ok: false, message: saved.error };
@@ -29,9 +37,8 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
   return { ok: true, message: `${current.label} saved. The agent-runner applies it right away.` };
 }
 
-// A new agent (user decision 2026-10-23): its prompt (saved as version 1), the skills it may load (a new one written
-// with it), the task types it takes, and the template's defaults for the rest, changed under Advanced; disabled and
-// without a schedule until configured. It runs on the generic executor.
+// A new agent (user decision 2026-10-23; the Config form itself since 2026-10-24): the whole form on the template's
+// defaults, a skill written with it, through agent.create. It runs on the generic executor.
 export async function createAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const skill = await createNewSkill(form);
 
@@ -40,23 +47,24 @@ export async function createAgentAction(_previous: ActionResult | null, form: Fo
   }
 
   const template = await newAgentTemplate(getAgentConfig(), text(form, "id"));
-  const advanced = readAgentForm(form, template);
+  const agent = readAgentForm(form, template);
   const created = await runWebCommand(createAgentCommand, {
     id: text(form, "id"),
-    label: text(form, "label"),
-    description: text(form, "description"),
-    prompt: text(form, "prompt"),
-    handles: form.getAll("handles").map(String),
-    skills: [...form.getAll("skills").map(String), ...(skill ? [skill.message] : [])],
-    canAssign: [],
-    grants: grantsOf(advanced),
-    webAccess: advanced.capabilities.webAccess,
-    model: advanced.model,
-    limits: advanced.limits,
-    budgets: advanced.budgets,
-    schedule: null,
-    enabled: false,
-    options: numberOptions(advanced),
+    label: agent.label,
+    description: agent.description,
+    prompt: agent.prompt ?? "",
+    handles: agent.handles,
+    skills: [...agent.skills, ...(skill ? [skill.message] : [])],
+    canAssign: agent.canAssign,
+    waitFor: agent.waitFor,
+    grants: grantsOf(agent),
+    webAccess: agent.capabilities.webAccess,
+    model: agent.model,
+    limits: agent.limits,
+    budgets: agent.budgets,
+    schedule: agent.schedule,
+    enabled: agent.enabled,
+    options: numberOptions(agent),
   });
 
   if (!created.ok) {
@@ -113,6 +121,8 @@ function updateInputFromForm(form: FormData, current: AgentDefinition): UpdateAg
 
   return {
     id: current.id,
+    label: next.label,
+    description: next.description,
     enabled: next.enabled,
     schedule: next.schedule,
     model: next.model,
@@ -134,6 +144,8 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
 
   return {
     ...current,
+    label: text(form, "label") || current.label,
+    description: text(form, "description"),
     enabled: form.get("enabled") === "on",
     schedule: text(form, "schedule") || null,
     model: { provider: text(form, "provider"), model: text(form, "model"), ...(effort ? { effort: effort as AgentDefinition["model"]["effort"] } : {}) },

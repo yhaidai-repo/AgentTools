@@ -708,12 +708,7 @@ tr:hover .row-action,
   }
 }
 
-/* New agent: the switch lists of task types and skills, and the skill written with the agent. */
-.switch-list {
-  display: flex;
-  flex-direction: column;
-}
-
+/* The skill written with an agent, under its Skills. */
 .new-skill {
   margin-top: 12px;
   padding: 12px;
@@ -725,22 +720,4 @@ tr:hover .row-action,
   padding: 0 6px;
   font-size: 13px;
   color: var(--muted);
-}
-
-details.config-section > summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-details.config-section > summary > h2 {
-  display: inline;
-}
-
-details.config-section > summary::before {
-  content: "▸ ";
-  color: var(--muted);
-}
-
-details.config-section[open] > summary::before {
-  content: "▾ ";
 }
