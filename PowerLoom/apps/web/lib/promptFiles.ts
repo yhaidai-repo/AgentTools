@@ -20,8 +20,12 @@ export async function readPromptFile(agentId: string): Promise<PromptFile | null
   return null;
 }
 
+// The text as a textarea submits it (LF): the files are checked out with CRLF on Windows, and an unchanged prompt must
+// compare equal to the file, so the agent stays on the file instead of getting a stored copy.
 function parse(raw: string): PromptFile {
-  return { text: raw.replace(HEADER, ""), version: HEADER.exec(raw)?.[1] ?? "unversioned" };
+  const text = raw.replace(/\r\n/g, "\n");
+
+  return { text: text.replace(HEADER, ""), version: HEADER.exec(text)?.[1] ?? "unversioned" };
 }
 
 async function exists(path: string): Promise<boolean> {
