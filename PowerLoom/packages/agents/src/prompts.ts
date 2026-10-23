@@ -16,10 +16,10 @@ export async function loadPrompt(name: string, values: Record<string, string>): 
 
 // An agent's prompt: the one stored with its definition when it has one (user decision 2026-10-22: editable in the UI;
 // every edit a new version, 2026-10-23), else its prompt file, else nothing (a UI-created agent without instructions
-// runs on the framework alone). A run records the version it ran on.
+// runs on the framework alone). A run records the version it ran on: a stored one as ui-v<N>, apart from the files' v<N>.
 export async function loadAgentPrompt(agentId: string, stored: { text: string; version: number }, values: Record<string, string>): Promise<LoadedPrompt> {
   if (stored.text.trim()) {
-    return composePrompt(`<!-- prompt: ${agentId} · version: v${stored.version} -->\n${stored.text}`, values, readPromptFile);
+    return composePrompt(`<!-- prompt: ${agentId} · version: ui-v${stored.version} -->\n${stored.text}`, values, readPromptFile);
   }
 
   if (await hasPromptFile(agentId)) {
