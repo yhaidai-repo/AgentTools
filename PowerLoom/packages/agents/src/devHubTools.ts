@@ -16,6 +16,8 @@ import { defineOutsideTool } from "./outsideAccess";
 export const DEVHUB_INTEGRATION = "localStack";
 // DevHub knows a stack started by a run under this prefix plus the run id.
 export const RUN_OWNER_PREFIX = "powerloom-run-";
+// A chat session's stack (user decision 2026-10-24: a chat is not a run); the MCP server stops it with the session.
+export const CHAT_OWNER_PREFIX = "powerloom-chat-";
 
 // A start builds and starts up to five apps; past this the tool hands back and the agent checks stack_status.
 const START_WAIT_MS = 6 * 60_000;
@@ -41,7 +43,7 @@ export function createDevHubTools(deps: AgentDeps, agent: AgentDefinition, conte
   }
 
   const access = deps.devHub;
-  const owner = stackOwner(context.runId);
+  const owner = context.owner;
 
   return [
     listServicesTool(deps, context, access),
@@ -62,6 +64,11 @@ export function isHeadless(agent: AgentDefinition): boolean {
 // The runner stops the run's stack by this name when the run ends.
 export function stackOwner(runId: number): string {
   return `${RUN_OWNER_PREFIX}${runId}`;
+}
+
+// The MCP server stops the session's stack by this name when the session ends.
+export function chatOwner(sessionId: string): string {
+  return `${CHAT_OWNER_PREFIX}${sessionId}`;
 }
 
 function listServicesTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {

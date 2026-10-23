@@ -8,6 +8,7 @@ public static class VaultsFeature
     public static IServiceCollection AddVaultsFeature(this IServiceCollection services)
     {
         services.AddSingleton<TrashFolder>();
+        services.AddSingleton<McpConnectionFile>();
         services.AddSingleton<VaultInitializer>();
         // After the database migrator (registered first): it reads the connected vaults.
         services.AddHostedService<OwnedFilesRefresher>();

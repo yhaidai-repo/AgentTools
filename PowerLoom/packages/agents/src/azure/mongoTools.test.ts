@@ -8,7 +8,7 @@ import type { DataAccessEntry } from "../models/DataAccessEntry";
 import { READ_MONGO_INTEGRATION } from "./azureIntegrations";
 import { createMongoTools } from "./mongoTools";
 
-const context = { vault: "work-projects", agentId: "tester", runId: 7, taskId: "AT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "tester", runId: 7, owner: "powerloom-run-7", taskId: "AT-1-001", pbiId: 1 };
 const ON_PREM = "mongodb://reader:t3st-pw@10.0.0.7:27017/?authMechanism=SCRAM-SHA-256";
 const FETCHED = "mongodb://acct:ro@acct.mongo.cosmos.azure.com:10255/?ssl=true";
 

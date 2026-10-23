@@ -20,10 +20,33 @@ public sealed class AddVaultTests(PowerLoomHost host)
 
         Assert.Equal("notes-vault", added!.Vault);
         Assert.Equal(["draft/", ".usage/", ".obsidian/"], added.Created.Take(3));
-        Assert.Equal(["AGENTS.md", "POWERLOOM.md"], added.Created.Skip(3).Order(StringComparer.Ordinal));
+        Assert.Equal([".mcp.json", "AGENTS.md", "POWERLOOM.md"], added.Created.Skip(3).Order(StringComparer.Ordinal));
         Assert.Contains($"vault at {PowerLoomHost.HostRoot}/notes-vault", agents);
         Assert.DoesNotContain("{{", agents);
+        Assert.Contains("\"X-PowerLoom-Vault\": \"notes-vault\"", await File.ReadAllTextAsync(Path.Combine(root, ".mcp.json")));
         Assert.True(await IsActiveVaultAsync("notes-vault"));
+    }
+
+    // The vault's .mcp.json is shared with the user's other servers: PowerLoom owns its entry only (user decision 2026-10-24).
+    [Fact]
+    public async Task The_MCP_entry_joins_the_user_s_servers_and_is_written_once()
+    {
+        var initializer = host.Host.Services.GetRequiredService<VaultInitializer>();
+        var path = Path.Combine(host.VaultRoot, ".mcp.json");
+
+        await File.WriteAllTextAsync(path, """{ "mcpServers": { "azure": { "command": "npx" }, "powerloom": { "type": "http", "url": "http://old" } } }""");
+
+        var changed = await initializer.RefreshOwnedFilesAsync(PowerLoomHost.Vault, CancellationToken.None);
+        var changedAgain = await initializer.RefreshOwnedFilesAsync(PowerLoomHost.Vault, CancellationToken.None);
+        var written = await File.ReadAllTextAsync(path);
+
+        Assert.True(changed);
+        Assert.False(changedAgain);
+        Assert.Contains("\"azure\"", written);
+        Assert.Contains("\"url\": \"http://127.0.0.1:3110/mcp\"", written);
+        Assert.Contains("\"Authorization\": \"Bearer test-token\"", written);
+        Assert.Contains($"\"X-PowerLoom-Vault\": \"{PowerLoomHost.Vault}\"", written);
+        Assert.DoesNotContain("http://old", written);
     }
 
     [Fact]

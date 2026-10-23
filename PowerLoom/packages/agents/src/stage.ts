@@ -6,6 +6,7 @@ import { BudgetGuard } from "@agenttools/usage";
 import type { AgentDeps } from "./models/AgentDeps";
 import type { StageSkills } from "./models/StageSkills";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
+import { stackOwner } from "./devHubTools";
 import { conversationTrace } from "./resume/conversationTrace";
 
 const RATE_LIMIT_PAUSE_MS = 60 * 60 * 1000;
@@ -53,10 +54,11 @@ export async function pauseForRateLimit(deps: AgentDeps, resetsAt: Date | null):
 
 // The docs vault tools every agent gets; what it reads and searches goes to the vault's usage log (user decision 2026-10-02).
 // Another vault's root (a tech-writer actualize task) gets the same tools without the docs vault's log and exclusions.
-export function createAgentDocTools(deps: AgentDeps, agentId: string, runId: number, root = deps.docsRoot): ToolDefinition<any>[] {
+// `session` labels the usage log: `RUN-<id>` for a run, `CHAT-<id>` for a chat session.
+export function createAgentDocTools(deps: AgentDeps, agentId: string, session: string, root = deps.docsRoot): ToolDefinition<any>[] {
   const isDocsVault = root === deps.docsRoot;
   const usageLog = isDocsVault ? deps.docUsageLog : null;
-  const onUse = usageLog ? (paths: string[], kind: "read" | "search") => usageLog.record(paths, kind, agentId, runId) : undefined;
+  const onUse = usageLog ? (paths: string[], kind: "read" | "search") => usageLog.record(paths, kind, agentId, session) : undefined;
 
   return createDocTools({ root, exclude: isDocsVault ? deps.docsExclude : [], onUse });
 }
@@ -74,7 +76,7 @@ export async function docsReadInRun(deps: AgentDeps, runId: number): Promise<str
 
 // Who is reading, for the data access log: the run, its agent and task, the task's PBI and vault.
 export function outsideAccessContext(agentId: string, runId: number, task: { id: string; pbiId: number | null; vault: string }): OutsideAccessContext {
-  return { vault: task.vault, agentId, runId, taskId: task.id, pbiId: task.pbiId };
+  return { vault: task.vault, agentId, runId, owner: stackOwner(runId), taskId: task.id, pbiId: task.pbiId };
 }
 
 // Confluence pages the agent read successfully in this run (read_confluence_page calls whose result wasn't an error).

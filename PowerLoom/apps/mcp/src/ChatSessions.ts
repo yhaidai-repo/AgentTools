@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { CHAT_AGENT_ID, ChatRun, chatTools, closeRunBrowser, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { CHAT_AGENT_ID, chatOwner, chatTools, closeOwnedBrowser, stopOwnedStack, type AgentDeps } from "@powerloom/agents";
 import type { CommandContext } from "@powerloom/core";
 import type { ChatHost } from "./models/ChatHost";
 import type { ChatSession } from "./models/ChatSession";
@@ -10,10 +10,9 @@ import { registerTools } from "./registerTools";
 const SERVER_NAME = "powerloom";
 const SERVER_VERSION = "1.0.0";
 
-type SessionOutcome = "success" | "aborted" | "failed";
-
-// The open MCP sessions (decision MCPQ-002, 2026-10-23: one session = one run of the `chat` agent). A session is built
-// for one vault with the chat agent's grants at that moment; its tools are the agents' readers and every command.
+// The open MCP sessions. A session is not a run (user decision 2026-10-24: nothing of it in agent_run); it is built
+// for one vault with the chat agent's grants at that moment, its tools are the agents' readers and every command, and
+// its calls go to the data access log and the usage log under its id.
 export class ChatSessions {
   private readonly sessions = new Map<string, ChatSession>();
 
@@ -33,37 +32,31 @@ export class ChatSessions {
     return session;
   }
 
-  /** A session for the initialize request: registered under its id once the transport assigned one. */
+  /** A session for the initialize request: registered under its id once the transport confirmed it. */
   async open(vault: string, client: string): Promise<ChatSession> {
+    const id = randomUUID();
     const deps = await this.host.deps.forVault(vault);
-    const run = await ChatRun.begin(this.host.db, { vault, client });
     const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (id) => {
+      sessionIdGenerator: () => id,
+      onsessioninitialized: () => {
         this.sessions.set(id, session);
       },
     });
-    const session: ChatSession = { vault, client, run, deps, server, transport, lastUsedAt: Date.now() };
+    const session: ChatSession = { id, vault, client, deps, server, transport, lastUsedAt: Date.now() };
 
     try {
-      registerTools(server, chatTools(deps, await this.chatAgent(deps), { vault, client, runId: run.id }, this.commandContext(client)));
-      transport.onclose = () => void this.close(session, "success");
+      registerTools(server, chatTools(deps, await this.chatAgent(deps), { vault, client, sessionId: id }, this.commandContext(client)));
+      transport.onclose = () => void this.close(session);
       await server.connect(transport);
     } catch (error) {
-      await this.abandon(session, error);
+      await this.host.deps.closeAzure(deps.azure);
       throw error;
     }
 
-    console.log(`session for ${client} on ${vault}: RUN-${run.id}`);
+    console.log(`session ${id} for ${client} on ${vault}`);
 
     return session;
-  }
-
-  // A session that couldn't be built leaves no run in progress and no Azure server behind.
-  private async abandon(session: ChatSession, error: unknown): Promise<void> {
-    await this.host.deps.closeAzure(session.deps.azure);
-    await session.run.end("failed", error instanceof Error ? error.message : String(error));
   }
 
   async closeIdle(maxIdleMs: number): Promise<void> {
@@ -74,31 +67,28 @@ export class ChatSessions {
     }
   }
 
-  async closeAll(outcome: SessionOutcome): Promise<void> {
+  async closeAll(): Promise<void> {
     for (const session of this.sessions.values()) {
       session.transport.onclose = undefined;
       await session.transport.close();
-      await this.close(session, outcome);
+      await this.close(session);
     }
   }
 
-  // The chat's run ends with its session: its stack and browser on DevHub are stopped, the Azure server closed.
-  private async close(session: ChatSession, outcome: SessionOutcome): Promise<void> {
-    const id = session.transport.sessionId;
-
-    if (id === undefined || !this.sessions.delete(id)) {
+  // The session's stack and browser on DevHub stop with it, the Azure server closes.
+  private async close(session: ChatSession): Promise<void> {
+    if (!this.sessions.delete(session.id)) {
       return;
     }
 
     try {
-      await stopDevHubOfRun(session.deps, session.run.id);
+      await stopDevHubOfSession(session);
       await this.host.deps.closeAzure(session.deps.azure);
-      await session.run.end(outcome);
     } catch (error) {
-      console.error(`RUN-${session.run.id}: closing the session failed:`, error);
+      console.error(`session ${session.id}: closing failed:`, error);
     }
 
-    console.log(`session RUN-${session.run.id} ended (${outcome})`);
+    console.log(`session ${session.id} ended`);
   }
 
   private async chatAgent(deps: AgentDeps) {
@@ -117,13 +107,13 @@ export class ChatSessions {
   }
 }
 
-async function stopDevHubOfRun(deps: AgentDeps, runId: number): Promise<void> {
-  if (!deps.devHub) {
+async function stopDevHubOfSession(session: ChatSession): Promise<void> {
+  if (!session.deps.devHub) {
     return;
   }
 
-  logNote(await closeRunBrowser(deps.devHub.client, runId));
-  logNote(await stopRunStack(deps.devHub.client, runId));
+  logNote(await closeOwnedBrowser(session.deps.devHub.client, chatOwner(session.id)));
+  logNote(await stopOwnedStack(session.deps.devHub.client, chatOwner(session.id)));
 }
 
 function logNote(note: string | null): void {

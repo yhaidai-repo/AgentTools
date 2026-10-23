@@ -30,6 +30,7 @@ import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
 import { createSqlTools } from "../sqlTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
+import { runRef } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
 import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
@@ -162,7 +163,7 @@ export class AgentToolset {
     const access = outsideAccessContext(agent.id, this.session.runId, this.task);
 
     return [
-      ...createAgentDocTools(deps, agent.id, this.session.runId, this.input.docsRoot),
+      ...createAgentDocTools(deps, agent.id, runRef(this.session.runId), this.input.docsRoot),
       ...this.input.repos.tools,
       ...this.catalogTools(),
       ...this.pbiTools(),

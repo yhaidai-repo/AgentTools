@@ -35,6 +35,7 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
         [
             $"Create {vaultFolder}/CLAUDE.md unless it exists, with exactly: \"# Docs vault\", an empty line, \"Follow @AGENTS.md for every change in this folder. Be short.\"",
             $"Make sure ~/.claude/settings.json has these two hooks, adding only what is missing: a PostToolUse hook with matcher \"Read|Edit|MultiEdit|Write|Grep|Bash|PowerShell\" running pwsh -NoProfile -NonInteractive -File \"{agentTools}/VaultUsage/Adapters/ClaudeCode/Invoke-ClaudeHook.ps1\", and a Stop hook running pwsh -NoProfile -NonInteractive -File \"{agentTools}/VaultCapture/Adapters/ClaudeCode/Invoke-ContextLimitHook.ps1\".",
+            $"Claude Code asks whether to use the \"powerloom\" MCP server that {vaultFolder}/.mcp.json lists (PowerLoom writes that entry): allow it, then call its status_get tool once; an answer with PowerLoom's state means the vault's chats reach PowerLoom.",
         ];
     }
 

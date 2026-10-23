@@ -8,7 +8,7 @@ import { fetchTestCases } from "./fetchTestCases";
 import { stepsMarkdown } from "./testCaseMarkdown";
 import { testCaseTools } from "./testCaseTools";
 
-const context = { vault: "work-projects", agentId: "refinement", runId: 7, taskId: "RT-36973-001", pbiId: 36973 };
+const context = { vault: "work-projects", agentId: "refinement", runId: 7, owner: "powerloom-run-7", taskId: "RT-36973-001", pbiId: 36973 };
 
 const STEPS = `<steps id="0" last="4"><step id="2" type="ActionStep"><parameterizedString isformatted="true">&lt;P&gt;Open the &lt;B&gt;Features&lt;/B&gt; tab&lt;/P&gt;</parameterizedString><parameterizedString isformatted="true">&lt;P&gt;The checkbox shows&lt;/P&gt;</parameterizedString><description/></step><compref id="3" ref="500"/></steps>`;
 const SHARED = `<steps id="0" last="2"><step id="2" type="ActionStep"><parameterizedString isformatted="true">Sign in as admin</parameterizedString><parameterizedString isformatted="true"/><description/></step></steps>`;
