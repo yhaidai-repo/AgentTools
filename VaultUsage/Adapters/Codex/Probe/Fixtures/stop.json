@@ -1,0 +1,11 @@
+{
+  "session_id": "captured-session",
+  "turn_id": "captured-turn",
+  "transcript_path": "C:/probe/rollout.jsonl",
+  "cwd": "C:/probe/Документи",
+  "hook_event_name": "Stop",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "stop_hook_active": false,
+  "last_assistant_message": "[omitted]"
+}
