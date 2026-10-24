@@ -23,11 +23,11 @@ agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `
 | `tools/outlook-export` | the Outlook mail export for the `outlook` import source |
 | `scripts/` | backup and restore, schema tooling |
 
-The npm workspace root is `D:/Projects/AgentTools` (with `AgentConfig`, `AgentRuntime`, `AgentUsage`); `Dockerfile.apps`
+The npm workspace root is the repository root (`AgentTools`) (with `AgentConfig`, `AgentRuntime`, `AgentUsage`); `Dockerfile.apps`
 builds the TypeScript image from there, `Dockerfile` the backend from this folder.
 
 ## Run
-First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault path>,…` (full paths in one parent folder) (`.env`, folders,
+First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault path>,…` (full paths in one parent folder; optional `-ReposRoot`, `-SkillsPath`) (`.env`, folders,
 database volume, stack, vaults with their vault review schedule; safe to run again). By hand:
 ```bash
 cp .env.example .env               # passwords, paths, CLAUDE_CODE_OAUTH_TOKEN
@@ -73,7 +73,7 @@ folders under `IMPORT_INBOX_PATH` (default `./import-inbox`); read files are del
 
 ## Local development
 ```bash
-npm install                        # in D:/Projects/AgentTools
+npm install                        # in the repository root
 npm run powerloom:dev:web          # needs DATABASE_URL, POWERLOOM_URL in env
 ```
 
