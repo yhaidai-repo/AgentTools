@@ -18,7 +18,7 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
 
     public Outcome<OpenedChat> Open(ChatRequest request)
     {
-        var prompt = Prompt(request);
+        var prompt = PromptFor(request);
 
         if (prompt.Length > PromptMax)
             return Outcome<OpenedChat>.Failure(Problem.Invalid($"The prompt has {prompt.Length} characters; a claude:// link takes about {PromptMax}."));
@@ -39,10 +39,19 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
         ];
     }
 
-    private static string Prompt(ChatRequest request)
+    // The note's short version goes into the prompt, so the user sees what the chat is told (user decision 2026-10-24);
+    // one too long for the link is left out.
+    private static string PromptFor(ChatRequest request)
+    {
+        var shown = $"{Prompt(request, $"Read {request.Handoff.Path} and follow its Start section. Its short version, for you and me:")}\n\n---\n\n{request.Handoff.ShortVersion}";
+
+        return shown.Length <= PromptMax ? shown : Prompt(request, $"Read {request.Handoff.Path} and follow its Start section.");
+    }
+
+    private static string Prompt(ChatRequest request, string handoffStep)
     {
         var addFolders = request.ExtraFolders.Count > 0 ? [$"Add these folders to this session: {string.Join(", ", request.ExtraFolders)}."] : Array.Empty<string>();
-        var steps = addFolders.Concat(request.Steps).Select((step, index) => $"{index + 1}. {step}");
+        var steps = addFolders.Concat(request.Steps).Append(handoffStep).Select((step, index) => $"{index + 1}. {step}");
 
         return string.Join("\n", new[] { request.Title }.Concat(request.Intro).Concat(steps));
     }
