@@ -9,7 +9,7 @@ namespace PowerLoom.Features.Vaults.Add;
 public sealed class CodexConfigFile(IOptions<McpOptions> options)
 {
     public const string FileName = ".codex/config.toml";
-    private static readonly Regex Header = new(@"^\s*\[\s*(?<name>[^\]]+)\s*\]\s*(?:#.*)?$", RegexOptions.CultureInvariant);
+    private static readonly Regex Header = new(@"^\s*\[\[?\s*(?<name>(?:""(?:[^""\\]|\\.)*""|'[^']*'|[A-Za-z0-9_-]+)(?:\s*\.\s*(?:""(?:[^""\\]|\\.)*""|'[^']*'|[A-Za-z0-9_-]+))*)\s*\]\]?\s*(?:#.*)?$", RegexOptions.CultureInvariant);
 
     public async Task<bool> EnsureAsync(string root, string vault, CancellationToken cancellation)
     {
@@ -86,9 +86,20 @@ public sealed class CodexConfigFile(IOptions<McpOptions> options)
 
     private static bool IsOwnedTable(string name)
     {
-        var normalized = Regex.Replace(name.Trim(), @"\s*\.\s*", ".").Replace("\"", "").Replace("'", "");
+        var parts = Regex.Matches(name, @"""(?:[^""\\]|\\.)*""|'[^']*'|[A-Za-z0-9_-]+").Select(match => KeyOf(match.Value)).ToArray();
 
-        return normalized == "mcp_servers.powerloom" || normalized.StartsWith("mcp_servers.powerloom.", StringComparison.Ordinal);
+        return parts.Length >= 2 && parts[0] == "mcp_servers" && parts[1] == "powerloom";
+    }
+
+    private static string KeyOf(string value)
+    {
+        if (value.StartsWith('\''))
+            return value[1..^1];
+
+        if (value.StartsWith('"'))
+            return Regex.Replace(value[1..^1], @"\\(?:u(?<hex>[0-9A-Fa-f]{4})|U(?<hex>[0-9A-Fa-f]{8}))", match => char.ConvertFromUtf32(Convert.ToInt32(match.Groups["hex"].Value, 16)));
+
+        return value;
     }
 
     private static string MultilineAfter(string line, string delimiter)

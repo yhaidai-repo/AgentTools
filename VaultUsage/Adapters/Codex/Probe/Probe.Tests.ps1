@@ -34,6 +34,17 @@ Describe 'Codex hook payload probe' {
         ($lines[1] | ConvertFrom-Json).hook_event_name | Should -Be 'Stop'
     }
 
+    It 'preserves UTF-8 paths from hook stdin' {
+        $payload = @{ cwd = 'C:/Документи/нотатки'; hook_event_name = 'PostToolUse'; tool_name = 'Bash' } | ConvertTo-Json -Compress
+
+        $payload | pwsh -NoProfile -NonInteractive -File $script:ProbePath
+
+        $written = Get-Content -LiteralPath $env:CODEX_HOOK_PROBE_LOG -Raw | ConvertFrom-Json
+
+        $LASTEXITCODE | Should -Be 0
+        $written.cwd | Should -Be 'C:/Документи/нотатки'
+    }
+
     It 'does not interrupt a session when input is malformed' {
         $output = 'not json' | pwsh -NoProfile -NonInteractive -File $script:ProbePath 2>&1
 

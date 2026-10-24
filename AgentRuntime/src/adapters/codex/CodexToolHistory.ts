@@ -2,29 +2,54 @@ import type { PastToolCall } from "../../models/PastToolCall";
 import { toolResultText } from "../claude/MessageMapper";
 import { neutralCodexToolName } from "./codexToolNames";
 import { objectOf } from "./codexWindows";
+import type { CodexHistoryCall } from "./models/CodexHistoryCall";
 
 export class CodexToolHistory {
-  private readonly calls = new Map<string, { name: string; input: unknown }>();
+  private readonly calls = new Map<string, CodexHistoryCall>();
   private readonly completed = new Map<string, PastToolCall>();
+  private lastOrder = 0;
 
   add(entry: Record<string, unknown>): void {
-    if (entry.type === "item.completed") {
-      this.addItem(objectOf(entry.item));
+    switch (entry.type) {
+      case "item.started":
+      case "item.completed":
+        this.addItem(objectOf(entry.item), entry.type === "item.completed");
 
-      return;
-    }
+        return;
+      case "response_item":
+        this.addResponse(objectOf(entry.payload));
 
-    if (entry.type === "response_item") {
-      this.addResponse(objectOf(entry.payload));
+        return;
+      case "event_msg":
+        this.addRuntimeEvent(objectOf(entry.payload));
+
+        return;
     }
   }
 
   results(): PastToolCall[] {
-    return [...this.completed.values()];
+    return [...this.calls.entries()].sort((a, b) => a[1].order - b[1].order)
+      .flatMap(([id]) => this.completed.has(id) ? [this.completed.get(id)!] : []);
   }
 
-  private addItem(item: Record<string, unknown>): void {
+  private addRuntimeEvent(payload: Record<string, unknown>): void {
+    if (payload.type !== "item_completed" && payload.type !== "item_started") {
+      return;
+    }
+
+    const item = objectOf(payload.item);
+
+    this.addItem({ ...item, type: item.type === "McpToolCall" ? "mcp_tool_call" : item.type }, payload.type === "item_completed", payload.started_at_ms);
+  }
+
+  private addItem(item: Record<string, unknown>, complete: boolean, startedAt?: unknown): void {
     if (item.type !== "mcp_tool_call" || item.server !== "agent" || typeof item.id !== "string" || typeof item.tool !== "string") {
+      return;
+    }
+
+    this.track(item.id, neutralCodexToolName(item.tool), item.arguments, startedAt);
+
+    if (!complete || (item.status !== "completed" && item.status !== "failed")) {
       return;
     }
 
@@ -40,9 +65,21 @@ export class CodexToolHistory {
     });
   }
 
+  private track(id: string, name: string, input: unknown, startedAt?: unknown): void {
+    if (this.calls.has(id)) {
+      return;
+    }
+
+    const order = typeof startedAt === "number" && Number.isFinite(startedAt) ? startedAt : this.lastOrder + 1;
+
+    this.lastOrder = Math.max(this.lastOrder, order);
+
+    this.calls.set(id, { name, input, order });
+  }
+
   private addResponse(payload: Record<string, unknown>): void {
     if (payload.type === "function_call" && typeof payload.name === "string" && payload.name.startsWith("mcp__agent__") && typeof payload.call_id === "string") {
-      this.calls.set(payload.call_id, { name: neutralCodexToolName(payload.name), input: argumentsOf(payload.arguments) });
+      this.track(payload.call_id, neutralCodexToolName(payload.name), argumentsOf(payload.arguments));
 
       return;
     }
@@ -63,7 +100,7 @@ export class CodexToolHistory {
     const result = objectOf(parsed);
     const output = typeof parsed === "string" ? parsed : toolResultText(result.content);
 
-    this.completed.set(callId, { callId, ...call, isError: result.isError === true, output });
+    this.completed.set(callId, { callId, name: call.name, input: call.input, isError: result.isError === true, output });
   }
 }
 

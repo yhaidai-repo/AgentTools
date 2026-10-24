@@ -60,6 +60,7 @@ for (const [name, events, expected] of [
   ["failed turn", [{ type: "turn.failed", error: { message: "failed" } }], "failed"],
   ["rate limit", [{ type: "error", message: "Usage limit reached" }], "rate-limited"],
   ["empty stream", [], "failed"],
+  ["fatal error followed by completion", [{ type: "error", message: "tool host disabled" }, ...success], "failed"],
 ] as const) {
   test("ends exactly once on " + name, async () => {
     const home = await mkdtemp(join(tmpdir(), "codex-runtime-test-"));
@@ -141,6 +142,8 @@ test("configures isolated read-only execution and removes its working folder", a
     assert.equal(options.apiKey, undefined);
     assert.equal(options.env?.CODEX_HOME, home);
     assert.equal(options.env?.CODEX_API_KEY, undefined);
+    assert.equal(options.env?.CODEX_APP_TOOLS_PIPE_PATH, undefined);
+    assert.equal(options.env?.CODEX_PERMISSION_PROFILE, undefined);
     assert.equal(options.env?.OPENAI_API_KEY, undefined);
     assert.equal(options.config?.project_doc_max_bytes, 0);
     assert.equal(options.config?.developer_instructions, "system");

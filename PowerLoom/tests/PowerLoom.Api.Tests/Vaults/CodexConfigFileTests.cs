@@ -78,6 +78,21 @@ public sealed class CodexConfigFileTests : IDisposable
         Assert.False(Directory.Exists(root));
     }
 
+    [Theory]
+    [InlineData("[[skills.config]]\npath = 'keep'\n")]
+    [InlineData("[mcp_servers.\"powerloom] # backup\"]\nurl = 'keep'\n")]
+    [InlineData("[mcp_servers.\"\\U00000070owerloom.other\"]\nurl = 'keep'\n")]
+    [InlineData("[mcp_servers.\"powerloom.other\"]\nurl = 'keep'\n")]
+    [InlineData("[mcp_servers.'powerloom.other']\nurl = 'keep'\n")]
+    public async Task EnsureAsync_preserves_array_tables_and_quoted_unrelated_server_names(string suffix)
+    {
+        await WriteAsync("[mcp_servers.powerloom]\nurl = 'old'\n" + suffix, false);
+
+        Assert.True(await Writer().EnsureAsync(root, "vault", CancellationToken.None));
+        Assert.EndsWith(suffix, await File.ReadAllTextAsync(ConfigPath()));
+        Assert.False(await Writer().EnsureAsync(root, "vault", CancellationToken.None));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(root))

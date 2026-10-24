@@ -1,0 +1,15 @@
+{
+  "session_id": "captured-session",
+  "turn_id": "captured-turn",
+  "transcript_path": "C:/probe/rollout.jsonl",
+  "cwd": "C:/probe/Документи",
+  "hook_event_name": "PostToolUse",
+  "model": "gpt-6.1-sol",
+  "permission_mode": "default",
+  "tool_name": "apply_patch",
+  "tool_use_id": "captured-call",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Delete File: .powerloom-hook-probe.tmp.md\n*** End Patch"
+  },
+  "tool_response": "Exit code: 0\nWall time: 0.5 seconds\nOutput:\nSuccess. Updated the following files:\nD .powerloom-hook-probe.tmp.md\n"
+}

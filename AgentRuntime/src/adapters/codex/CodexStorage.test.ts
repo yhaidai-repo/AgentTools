@@ -28,6 +28,8 @@ test("reads the newest token count without making a probe request", async () => 
       tokenCount("2026-10-24T00:00:00Z", 90),
     ].join("\n"));
 
+    await mkdir(join(home, "sessions", "rollout-unreadable.jsonl"));
+
     const subscription = new CodexSubscription(home);
     const report = await subscription.usage();
     const event = await subscription.event("thread");

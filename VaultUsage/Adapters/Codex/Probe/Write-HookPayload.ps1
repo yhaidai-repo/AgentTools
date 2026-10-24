@@ -1,4 +1,7 @@
 $ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+
 
 function Get-ProbePath {
     if ($env:CODEX_HOOK_PROBE_LOG) {

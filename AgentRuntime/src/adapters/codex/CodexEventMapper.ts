@@ -9,6 +9,7 @@ export class CodexEventMapper {
   reason: RunEndReason = "failed";
   message: string | null = null;
   threadId: string | null = null;
+  private failed = false;
   private readonly calls = new Set<string>();
   private readonly completed = new Set<string>();
 
@@ -21,7 +22,7 @@ export class CodexEventMapper {
 
         return [];
       case "turn.completed":
-        this.reason = "success";
+        this.reason = this.failed ? this.reason : "success";
 
         return [this.usage(event.usage)];
       case "turn.failed":
@@ -94,6 +95,7 @@ export class CodexEventMapper {
   }
 
   private failure(message: string): EventBody[] {
+    this.failed = true;
     this.reason = isCodexRateLimit(message) ? "rate-limited" : "failed";
     this.message = message;
 

@@ -4,14 +4,14 @@ import { codexInstructions } from "./codexToolNames";
 import type { CodexToolServer } from "./CodexToolServer";
 
 export function codexOptions(request: AgentRequest, codexHome: string, server: CodexToolServer): CodexOptions {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined && !/^(?:OPENAI_API_KEY|CODEX_API_KEY|CODEX_HOME)$/i.test(key))) as Record<string, string>;
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined && !/^(?:CODEX_|OPENAI_|ANTHROPIC_|CLAUDE_|POWERLOOM_CODEX_)/i.test(key))) as Record<string, string>;
 
   return {
     env: { ...env, CODEX_HOME: codexHome },
     config: {
       developer_instructions: codexInstructions(request.systemPrompt, request.tools),
       project_doc_max_bytes: 0,
-      features: { shell_tool: false, multi_agent: false, hooks: false, memories: false, remote_plugin: false },
+      features: { shell_tool: false, multi_agent: false, hooks: false, memories: false, remote_plugin: false, apps: false, plugins: false, goals: false, view_image: false, computer_use: false, browser_use: false, image_generation: false, in_app_browser: false, workspace_dependencies: false, skill_search: false, sleep_tool: false },
       mcp_servers: { agent: { url: server.url, http_headers: { Authorization: "Bearer " + server.token }, required: true } },
     },
   };

@@ -115,12 +115,16 @@ export class CodexSdkRuntime implements AgentRuntime {
   }
 
   private failure(error: unknown, mapper: CodexEventMapper, abort: RunAbort) {
+    if (abort.controller.signal.aborted) {
+      return [];
+    }
+
     const message = error instanceof Error ? error.message : String(error);
 
     mapper.message = mapper.message ?? message;
     mapper.reason = isCodexRateLimit(message) ? "rate-limited" : "failed";
 
-    return abort.controller.signal.aborted ? [] : [{ type: "error" as const, message }];
+    return [{ type: "error" as const, message }];
   }
 
   private async resumedThread(request: AgentRequest): Promise<string | null> {

@@ -63,3 +63,16 @@ Remove only these probe entries after capture; keep unrelated hooks.
 
 Run Invoke-Pester ./VaultUsage/Adapters/Codex/Probe/Probe.Tests.ps1.
 The tests launch the script as a child process and use temporary log files.
+
+## Captured fixtures (2026-10-24)
+
+Fixtures/ holds shortened real desktop payloads: Bash, apply_patch, an unrelated
+MCP tool, and Stop. IDs, absolute user paths and unrelated tool contents are
+redacted; field names and relevant tool input/output shapes are retained.
+The shell and patch captures came from a disposable note created and removed
+during this implementation. No real PowerLoom MCP payload or PreCompact
+payload has been captured; PowerLoom tool exclusion has a synthetic test.
+
+The desktop normalizes nested exec_command calls to Bash with a command field,
+and passes shell/patch responses as strings. Stop includes stop_hook_active.
+Explicit UTF-8 Console input/output is required for Cyrillic paths on this PC.

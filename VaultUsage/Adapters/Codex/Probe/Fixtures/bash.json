@@ -1,0 +1,15 @@
+{
+  "session_id": "captured-session",
+  "turn_id": "captured-turn",
+  "transcript_path": "C:/probe/rollout.jsonl",
+  "cwd": "C:/probe/Документи",
+  "hook_event_name": "PostToolUse",
+  "model": "gpt-6.1-sol",
+  "permission_mode": "default",
+  "tool_name": "Bash",
+  "tool_use_id": "captured-call",
+  "tool_input": {
+    "command": "Get-Content -LiteralPath '.powerloom-hook-probe.tmp.md'"
+  },
+  "tool_response": "# Disposable UTF-8 hook probe\r\n\r\nTemporary note for verifying Unicode working-directory capture.\r\n"
+}

@@ -51,9 +51,17 @@ export class CodexRollouts {
 
   private async readLatest(threadId?: string): Promise<CodexTokenCount | null> {
     const files = threadId ? [await this.findThread(threadId)] : await this.files();
-    const counts = await Promise.all(files.filter((file): file is string => file !== null).map((file) => this.tokenCount(file)));
+    const counts = await Promise.all(files.filter((file): file is string => file !== null).map((file) => this.safeTokenCount(file)));
 
     return counts.filter((count): count is CodexTokenCount => count !== null).sort((a, b) => b.at.getTime() - a.at.getTime())[0] ?? null;
+  }
+
+  private async safeTokenCount(path: string): Promise<CodexTokenCount | null> {
+    try {
+      return await this.tokenCount(path);
+    } catch {
+      return null;
+    }
   }
 
   private async tokenCount(path: string): Promise<CodexTokenCount | null> {
