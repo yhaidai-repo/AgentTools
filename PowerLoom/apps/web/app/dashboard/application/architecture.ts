@@ -38,6 +38,8 @@ const topLevel: SchemeNode[] = [
   node("database", "Postgres", "service", undefined, "state, queues, usage, config", 0, 2),
   node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 4.5, 3),
   node("backup", "backup", "service", undefined, "daily pg_dump", 0, 1),
+  // Desktop chats reach PowerLoom through the MCP server: every command is a tool there.
+  node("mcp", "mcp", "service", undefined, "PowerLoom's tools for desktop chats (port 3110)", 1.5, 3),
   // What the agents read outside on their own (per-agent switches), around agent-runner; their colors come from the
   // agents' recent reads and open access requests.
   node("mongo", "Mongo", "external", undefined, "Cosmos DB for MongoDB, and servers by connection string (Read Azure)", 1.5, 1),
@@ -141,7 +143,6 @@ const runnerTools: SchemeNode[] = [
 
 const webParts: SchemeNode[] = [
   node("web-pages", "Pages", "module", "web", "Dashboard, Backlog, Tasks, Reviews, Vault, Agents, Runs, Settings", 0, 0),
-  node("web-cli", "CLI", "module", "web", "powerloomCli: the commands for chats (pbi.read, …)", 1, 0),
   node("web-client", "PowerLoom client", "module", "web", "openapi-fetch, typed from the OpenAPI document", 0, 1),
 ];
 
@@ -187,7 +188,8 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("tool-ado", "ado", "work items, PRs"),
   link("tool-pbi-context", "schema-public"),
   link("tool-access", "schema-public"),
-  link("web-cli", "schema-public", "pbi.read"),
+  link("mcp", "schema-public", "reads"),
+  link("mcp", "pl-http", "writes"),
   link("runner-agents", "schema-public"),
   link("agent-config", "schema-agent-config"),
   link("budget", "schema-agent-usage"),
