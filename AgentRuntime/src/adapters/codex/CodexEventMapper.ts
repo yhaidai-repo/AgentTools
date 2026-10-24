@@ -3,6 +3,7 @@ import type { EventBody } from "../../EventSequence";
 import type { RunEndReason } from "../../models/RunEndReason";
 import { toolResultText } from "../claude/MessageMapper";
 import { neutralCodexToolName } from "./codexToolNames";
+import { objectOf } from "./codexWindows";
 
 export class CodexEventMapper {
   turns = 0;
@@ -117,8 +118,12 @@ function toolCallOf(item: ThreadItem): EventBody | null {
       return { type: "tool_call", callId: item.id, name: "shell", input: { command: item.command } };
     case "file_change":
       return { type: "tool_call", callId: item.id, name: "apply_patch", input: { changes: item.changes } };
-    default:
+    case "agent_message":
+    case "reasoning":
+    case "error":
       return null;
+    default:
+      return { type: "tool_call", callId: item.id, name: "codex_" + item.type, input: item };
   }
 }
 
@@ -132,8 +137,12 @@ function toolResultOf(item: ThreadItem): EventBody | null {
       return { type: "tool_result", callId: item.id, isError: item.status === "failed" || (item.exit_code ?? 0) !== 0, output: item.aggregated_output };
     case "file_change":
       return { type: "tool_result", callId: item.id, isError: item.status === "failed", output: JSON.stringify(item.changes) };
-    default:
+    case "agent_message":
+    case "reasoning":
+    case "error":
       return null;
+    default:
+      return { type: "tool_result", callId: item.id, isError: objectOf(item).status === "failed" || Boolean(objectOf(item).error), output: JSON.stringify(item) };
   }
 }
 
