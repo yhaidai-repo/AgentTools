@@ -40,7 +40,7 @@ at most 200 rows. Every read goes to the data access log.
 | `item_close` | answers or dismisses a question or finding, finishes (`answers`: one per step) or cancels a human task |
 | `item_delete`, `task_rerun`, `task_notes_save` | deletes a question or task, runs a finished agent task again, saves a test task's notes |
 | `finding_submit` | records a finding in a project's register (open question or known issue) and closes it |
-| `review_add`, `review_queue`, `review_close`, `review_answerComment`, `pullRequests_sync` | adds, starts or closes a review, answers a comment, checks for new pull requests |
+| `review_add`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds, starts, closes or deletes (from PowerLoom only) a review, answers a comment, checks for new pull requests |
 | `pbi_create`, `pbi_delete`, `pbi_finish`, `pbi_close`, `pbi_reopen` | creates, deletes, finishes, closes or reopens a PBI in PowerLoom |
 | `pbi_prepare`, `pbi_sync`, `pbi_importNow` | prepares PBIs for the agents, syncs from Azure DevOps, imports the inbox |
 | `pbi_saveRepos`, `pbi_saveSkills`, `pbi_userNotes_save`, `pbi_attach` | sets a PBI's repos, skills or the user's notes; attaches a file by its path on this PC |
@@ -52,6 +52,9 @@ at most 200 rows. Every read goes to the data access log.
 | `vault_capture` | saves verified facts the vault lacks as a draft in draft/, for a person to verify and merge |
 | `register_add`, `register_close` | records an open question or known issue in a project's register; closes a record the user settled |
 | `www_create` | adds a What-went-wrong record |
+| `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget |
+| `skill_create`, `skill_save`, `skill_restore` | creates a skill, rewrites one of PowerLoom's own skills, puts a revision of one back |
+| `deadletter_replay`, `deadletter_discard` | runs a message PowerLoom gave up on again, or drops it for good |
 | `chat_open` | opens a Continue chat |
 
 Settings themselves (tokens, connections, switches) are changed on PowerLoom's Settings page; `settings_get` reads them.

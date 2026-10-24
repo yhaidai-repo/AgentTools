@@ -65,4 +65,11 @@ describe("a chat session's tools", () => {
 
     assert.deepEqual([...new Set(named)].filter((name) => !names.has(name)), []);
   });
+
+  it("that change PowerLoom are all in POWERLOOM.md's list of tools to ask first about", async () => {
+    const text = await readFile(POWERLOOM_MD, "utf8");
+    const unlisted = COMMANDS.filter((command) => command.effect !== "read").map((command) => commandToolName(command.name)).filter((name) => !text.includes(`\`${name}\``));
+
+    assert.deepEqual(unlisted, []);
+  });
 });
