@@ -7,7 +7,7 @@ import { reviewWorkPort } from "./reviewWorkPort";
 import { taskWorkPort } from "./taskWorkPort";
 import { vaultWorkPort } from "./vaultWorkPort";
 
-// The commands' way to PowerLoom over its API: one adapter for every caller (the web, the CLI, the MCP server).
+// The commands' way to PowerLoom over its API: one adapter for every caller (the web, the MCP server).
 export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
   return {
     ...pbiWorkPort(powerloom),

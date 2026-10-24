@@ -6,8 +6,8 @@ import type { z } from "zod";
 // Agents run read commands only: a command that reaches PowerLoom from an agent is a bug, so it fails loudly.
 const NO_POWERLOOM = new Proxy({}, { get: (_target, name) => () => Promise.reject(new Error(`agents can't run PowerLoom's ${String(name)}`)) }) as PowerLoomPort;
 
-// A PowerLoom command as a tool (user decision 2026-10-13): one contract for the agents and for Claude chats, which
-// run the same command through the CLI or the MCP server.
+// A PowerLoom command as a tool (user decision 2026-10-13): one contract for the agents and for the chats, which run
+// the same command through the MCP server.
 export function createCommandTool<I>(name: string, command: Command<I, unknown>, context: CommandContext): ToolDefinition<any> {
   return defineTool({
     name,

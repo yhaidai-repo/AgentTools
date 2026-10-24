@@ -9,7 +9,7 @@ import { skillCatalogOf } from "@agenttools/runtime/skills";
 import { editableSkillFolder, skillFolders } from "./skills";
 import { getUsageStore } from "./usage";
 
-// Every web action runs its change as a command (user decision 2026-10-05), so the web, the CLI and the MCP server
+// Every web action runs its change as a command (user decision 2026-10-05), so the web and the MCP server
 // share one contract per change. This is the web's side: the person at the browser, PowerLoom, the skill folders.
 export function runWebCommand<I, O>(command: Command<I, O>, input: unknown): Promise<Outcome<O>> {
   return runCommand(command, webCommandContext(), input);

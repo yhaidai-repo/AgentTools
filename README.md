@@ -60,7 +60,6 @@ Details: [`PowerLoom/README.md`](PowerLoom/README.md).
 ## Future plans
 
 - **OpenAI / Codex support**: an OpenAI runtime adapter, "Continue with Codex", Codex hooks for VaultUsage and VaultCapture, Codex MCP config.
-- **MCP stages 3–5**: write tools for what is web-only today, chats using the MCP instead of the CLI, chats without file access.
 - **Access requests**: a refused tool becomes one human task with the fix; the task re-runs when it is closed.
 - **Web documents**: agents with web access read a PBI's web links and save notes.
 - **Create tasks** from the Tasks page for any agent type, with schedules.

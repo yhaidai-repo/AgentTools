@@ -16,7 +16,7 @@ agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `
 | `src/PowerLoom.AdoIntegration`, `src/PowerLoom.ConfluenceIntegration` | the Azure DevOps and Confluence libraries |
 | `tests/PowerLoom.Api.Tests` | Alba + Testcontainers (one host and Postgres per run) |
 | `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback); skills read-only, docs vault writable for the tech-writer's merges |
-| `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) and the CLI (`cli/powerloomCli.ts`) |
+| `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) |
 | `packages/*` | the TypeScript libraries the two apps share (`db`, `core`, `agents`, `notes`, `ado`, `confluence`, `attachments`, `vault`) |
 | `skills/` | PowerLoom's own skills for agents (`powerloom-*`) |
 | `templates/vault` | root files of a new vault (Settings → Add vault) |

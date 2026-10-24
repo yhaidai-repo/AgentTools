@@ -7,9 +7,6 @@ namespace PowerLoom.Features.Continue;
 // The one chat note every kind gets (user decision 2026-10-10): the chat reads it and follows its Start section.
 public static class ChatNote
 {
-    // PowerLoom's commands on the command line (user decision 2026-10-09: no MCP yet); the vault's POWERLOOM.md lists them.
-    public const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
-
     // A command as the powerloom MCP server names its tool (`item.close` → `item_close`). The vault's MCP entry gives every
     // chat app the same server, so a note names the tool alone, without a client's prefix (stage 4 of the powerloom-mcp design).
     public static string Tool(string command) => command.Replace('.', '_');
