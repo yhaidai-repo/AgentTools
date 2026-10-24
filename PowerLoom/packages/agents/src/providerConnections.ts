@@ -1,21 +1,13 @@
 import type { PowerLoomDb } from "@powerloom/db";
 import { readClaudeToken } from "@powerloom/core";
+import { CodexHome } from "./codex/CodexHome";
+import type { ProviderConnectionsOptions } from "./models/ProviderConnectionsOptions";
 
 const CLAUDE_PROVIDER = "anthropic";
+const CODEX_PROVIDER = "openai-codex";
 const TOKEN_VARIABLE = "CLAUDE_CODE_OAUTH_TOKEN";
 // The names Settings → AI providers shows; a provider without one is shown by its id.
-const PROVIDER_LABELS: Record<string, string> = { [CLAUDE_PROVIDER]: "Claude" };
-
-export interface ProviderConnectionsOptions {
-  /** The saved Claude token (Settings → AI providers), null when none is saved. */
-  readClaudeToken: () => Promise<string | null>;
-  /** CLAUDE_CODE_OAUTH_TOKEN as .env gave it at start-up: the fallback when Settings has none. */
-  claudeEnvToken: string | null;
-  /** The providers the host registered a runtime for. */
-  registeredProviders: () => string[];
-  /** The environment the runtimes read their login from (the runner's process env). */
-  env: NodeJS.ProcessEnv;
-}
+const PROVIDER_LABELS: Record<string, string> = { [CLAUDE_PROVIDER]: "Claude", [CODEX_PROVIDER]: "Codex" };
 
 // Whether an agent's provider is connected, checked right before its run (Settings → AI providers). For Claude it also
 // sets the runner's env to the token the run must use: the saved one, else the .env fallback. The runner runs one task
@@ -24,16 +16,28 @@ export class ProviderConnections {
   constructor(private readonly options: ProviderConnectionsOptions) {}
 
   static forRunner(db: PowerLoomDb, registeredProviders: () => string[], env: NodeJS.ProcessEnv = process.env): ProviderConnections {
-    return new ProviderConnections({ readClaudeToken: () => readClaudeToken(db), claudeEnvToken: env[TOKEN_VARIABLE] || null, registeredProviders, env });
+    const codexHome = env.CODEX_HOME ? new CodexHome(env.CODEX_HOME) : null;
+
+    return new ProviderConnections({ readClaudeToken: () => readClaudeToken(db), claudeEnvToken: env[TOKEN_VARIABLE] || null, registeredProviders, env, isCodexSignedIn: codexHome ? () => codexHome.isSignedIn() : null });
   }
 
   /** Null when the provider is connected (and its login is set for the run), else what the user must do. */
   async prepare(provider: string): Promise<string | null> {
+    if (!this.options.registeredProviders().includes(provider)) {
+      return connectMessage(provider);
+    }
+
     if (provider === CLAUDE_PROVIDER) {
       return this.prepareClaude();
     }
 
-    return this.options.registeredProviders().includes(provider) ? null : connectMessage(provider);
+    return provider === CODEX_PROVIDER ? this.prepareCodex() : null;
+  }
+
+  private async prepareCodex(): Promise<string | null> {
+    const isSignedIn = (await this.options.isCodexSignedIn?.()) ?? false;
+
+    return isSignedIn ? null : connectMessage(CODEX_PROVIDER);
   }
 
   private async prepareClaude(): Promise<string | null> {

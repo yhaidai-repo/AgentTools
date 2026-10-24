@@ -6,6 +6,7 @@ import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AzureLoginStart } from "@/models/AzureLoginStart";
 import type { AzureLoginStatus } from "@/models/AzureLoginStatus";
+import type { CodexLoginStart, CodexLoginStatus } from "@/lib/aiProviders";
 
 // The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06). PowerLoom saves
 // them and schedules the vault's jobs from the saved settings: nothing to apply here.
@@ -301,6 +302,48 @@ export async function saveChatAppAction(_previous: ActionResult | null, form: Fo
   const result = powerloomResult(saved, `Saved. Chats open in ${label}.`);
 
   revalidatePath("/", "layout");
+
+  return result;
+}
+
+// Connect Codex (Settings → AI providers): the agent-runner signs in to PowerLoom's own Codex home with a device code.
+export async function startCodexLoginAction(): Promise<{ ok: true; start: CodexLoginStart } | { ok: false; message: string }> {
+  const started = await powerloom.POST("/api/ai-providers/codex/login");
+
+  return started.data ? { ok: true, start: started.data } : { ok: false, message: powerloomResult(started, "").message };
+}
+
+export async function codexLoginStatusAction(): Promise<CodexLoginStatus> {
+  const status = await powerloom.GET("/api/ai-providers/codex/login");
+
+  if (!status.data) {
+    return { status: "failed", error: powerloomResult(status, "").message, output: "" };
+  }
+
+  if (status.data.status === "done") {
+    revalidatePath("/settings");
+  }
+
+  return status.data;
+}
+
+export async function disconnectCodexAction(): Promise<ActionResult> {
+  const disconnected = await powerloom.DELETE("/api/ai-providers/codex/login");
+  const result = powerloomResult(disconnected, "Disconnected. Agents on Codex models stop until Codex is connected again.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// The fallback when the device sign-in fails: the auth.json of a PC where `codex login` worked.
+export async function saveCodexLoginFileAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const file = form.get("authJson");
+  const authJson = file instanceof File ? await file.text() : "";
+  const saved = await powerloom.PUT("/api/ai-providers/codex/login-file", { body: { authJson: authJson || null } });
+  const result = powerloomResult(saved, "Saved. Codex is connected with the uploaded login.");
+
+  revalidatePath("/settings");
 
   return result;
 }

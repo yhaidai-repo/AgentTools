@@ -9,6 +9,7 @@ public static class RunnerSetup
         builder.Services.AddOptions<RunnerOptions>().BindConfiguration(RunnerOptions.Section);
         builder.Services.AddHttpClient(RunnerClient.HttpClientName);
         builder.Services.AddSingleton<IRunnerClient, RunnerClient>();
+        builder.Services.AddSingleton<RunnerHttp>();
         builder.Services.AddHealthChecks().AddCheck<RunnerHealthCheck>("runner", tags: [HealthSetup.RunnerTag]);
 
         return builder;

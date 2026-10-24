@@ -13,7 +13,8 @@ Other vaults are separate: no links, relations or shared notes between vaults.
 
 ## Hierarchy
 ```
-{{vaultPath}}/ common: AGENTS.md, CLAUDE.md, index.md, www-log.md, draft/
+{{vaultPath}}/ common: AGENTS.md, CLAUDE.md, index.md, www-log.md, draft/;
+│              PowerLoom's MCP entry: .mcp.json (Claude Code), .codex/config.toml (Codex)
 └── <key>/                  one project
     ├── <key>-index.md          project entry: repo path, feature table
     ├── <key>-known-issues.md   <key>-open-questions.md   <key>-glossary.md

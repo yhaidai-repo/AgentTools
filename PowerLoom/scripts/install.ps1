@@ -144,7 +144,8 @@ function New-HostFolders {
         (Read-EnvValue "REPOS_ROOT"),
         (Join-Path $AgentToolsRoot "DevSecrets/skills"),
         (Join-Path $PowerLoomRoot "backups"),
-        (Join-Path $PowerLoomRoot "import-inbox")
+        (Join-Path $PowerLoomRoot "import-inbox"),
+        (Join-Path $PowerLoomRoot "agent-homes/codex")
     )
 
     foreach ($folder in $folders) {

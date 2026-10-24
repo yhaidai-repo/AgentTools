@@ -1,10 +1,10 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, recoverInterruptedRuns, requireEnv, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, recoverInterruptedRuns, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
 import { readDevHubSettings, readVaults, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { SqlReader } from "@powerloom/sql";
-import { ClaudeAgentSdkRuntime, RuntimeRegistry } from "@agenttools/runtime";
+import { ClaudeAgentSdkRuntime, CodexSdkRuntime, RuntimeRegistry } from "@agenttools/runtime";
 import { and, eq, lt, notInArray } from "drizzle-orm";
 import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
 import { RunnerServer } from "./runnerServer";
@@ -25,6 +25,15 @@ const env = depsEnvFromProcess(`http://127.0.0.1:${runnerPort}`);
 // continue a run that didn't finish, even after a restart (user decision 2026-10-19).
 const keepConversations = Boolean(process.env.CLAUDE_CONFIG_DIR);
 const runtimes = new RuntimeRegistry().register(new ClaudeAgentSdkRuntime(keepConversations));
+// Codex signs in to PowerLoom's own home (PowerLoom/agent-homes/codex, mounted at CODEX_HOME; never the user's ~/.codex).
+// It is always registered when the home is there: the connected check before a run decides whether it may run.
+const codexHome = process.env.CODEX_HOME ? new CodexHome(process.env.CODEX_HOME) : null;
+
+if (codexHome) {
+  runtimes.register(new CodexSdkRuntime({ keepConversations: true, codexHome: codexHome.path }));
+}
+
+const codex = codexHome ? { home: codexHome, login: new CodexDeviceLogin(codexHome, { spawn: spawnCodexLogin }) } : null;
 const azureLogin = createAzureUserLogin(db);
 const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes });
 
@@ -43,7 +52,7 @@ await stopOrphanedStacks();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, codex);
 
 server.listen(runnerPort);
 console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}`);

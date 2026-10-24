@@ -29,6 +29,9 @@ COPY PowerLoom/apps/agent-runner/package.json PowerLoom/apps/agent-runner/
 COPY PowerLoom/apps/web/package.json PowerLoom/apps/web/
 COPY PowerLoom/apps/mcp/package.json PowerLoom/apps/mcp/
 RUN npm ci --no-fund --no-audit
+# Codex runs its CLI's Linux binary (an optional platform package of @openai/codex, musl-static): fail the build when
+# npm skipped it, instead of the first Codex run.
+RUN node node_modules/@openai/codex/bin/codex.js --version
 COPY AgentConfig AgentConfig
 COPY AgentRuntime AgentRuntime
 COPY AgentUsage AgentUsage
