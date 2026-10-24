@@ -275,6 +275,36 @@ export async function removeAzureResourceAction(name: string): Promise<void> {
   revalidatePath("/settings");
 }
 
+// Settings → AI providers (one for the whole PowerLoom): the Claude token, written and never read back.
+export async function saveClaudeTokenAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const saved = await powerloom.PUT("/api/ai-providers/claude/token", { body: { token: field(form, "token") || null } });
+  const result = powerloomResult(saved, "Saved. Agents on Claude models use this token from their next run.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+export async function removeClaudeTokenAction(): Promise<ActionResult> {
+  const removed = await powerloom.DELETE("/api/ai-providers/claude/token");
+  const result = powerloomResult(removed, removed.data?.connected ? "Removed. Runs use CLAUDE_CODE_OAUTH_TOKEN from .env again." : "Removed. Claude isn't connected: its agents stop until a token is saved.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// The app chats open in: "Continue with …" and "Configure with …" follow it.
+export async function saveChatAppAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const saved = await powerloom.PUT("/api/chats/app", { body: { launcher: field(form, "launcher") } });
+  const label = saved.data?.apps.find((app) => app.id === saved.data?.current)?.label ?? "the chosen app";
+  const result = powerloomResult(saved, `Saved. Chats open in ${label}.`);
+
+  revalidatePath("/", "layout");
+
+  return result;
+}
+
 // Every feature section's switch (user decision 2026-10-06).
 function isEnabled(form: FormData): boolean {
   return form.get("enabled") === "on";

@@ -12,6 +12,7 @@ import type { DocsVault } from "./DocsVault";
 import type { RegisterEntry } from "./RegisterEntry";
 import type { AzureAccess } from "./AzureAccess";
 import type { DevHubAccess } from "./DevHubAccess";
+import type { ProviderConnections } from "../providerConnections";
 import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 
@@ -19,6 +20,8 @@ export interface AgentDeps {
   db: PowerLoomDb;
   config: AgentConfigStore;
   runtimes: RuntimeRegistry;
+  /** Settings → AI providers: whether an agent's provider is connected; sets the run's login before it starts. */
+  connections: ProviderConnections;
   usageStore: UsageStore;
   prices: PriceBook;
   /** The run's vault (the task's PBI's, or the task's own): its docs root. */

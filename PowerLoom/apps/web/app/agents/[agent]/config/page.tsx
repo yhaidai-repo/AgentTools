@@ -5,6 +5,7 @@ import { loadPromptVersions } from "@/lib/promptVersions";
 import { notFound } from "next/navigation";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { connectedModels, loadAiProviders } from "@/lib/aiProviders";
 import { loadAgentTotals } from "@/lib/agentTotals";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
@@ -57,7 +58,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         removable={isRemovable(agent)}
         promptFile={await readPromptFile(agent.id)}
         promptVersions={(await loadPromptVersions(agent.id)).map((row) => ({ version: row.version, text: row.text, createdAt: row.createdAt }))}
-        catalog={modelCatalog()}
+        catalog={connectedModels(modelCatalog(), await loadAiProviders())}
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
         blockerKinds={BLOCKER_KINDS}

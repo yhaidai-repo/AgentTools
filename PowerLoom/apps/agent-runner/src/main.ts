@@ -1,6 +1,6 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
 import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, recoverInterruptedRuns, requireEnv, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { readDevHubSettings, readVaults, type AgentRunJob } from "@powerloom/core";
+import { readDevHubSettings, readVaults, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { SqlReader } from "@powerloom/sql";
@@ -32,6 +32,8 @@ const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes
 const powerloom = new PowerLoomCallback(env.powerloomUrl);
 
 await deps.ensureStores(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
+// Settings → AI providers shows Claude as connected through .env while no token is saved there; the token stays here.
+await saveClaudeEnvTokenReport(db, Boolean(process.env.CLAUDE_CODE_OAUTH_TOKEN));
 
 for (const taskId of await recoverInterruptedRuns(db)) {
   await report(taskId, INTERRUPTED);

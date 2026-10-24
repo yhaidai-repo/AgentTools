@@ -11,7 +11,7 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
 {
     public async Task<Outcome<ChatLink>> OpenAsync(ChatKind kind, string id, CancellationToken cancellation)
     {
-        var launcher = launchers.Current();
+        var launcher = await launchers.CurrentAsync(cancellation);
 
         if (!launcher.Ok)
             return Outcome<ChatLink>.Failure(launcher.Problem);

@@ -12,8 +12,7 @@
 # -ReposRoot: the folder with the code repos agents may read; default: the folder this repository was cloned into.
 # -SkillsPath: extra skills agents may load; default: Claude Code's skills folder if there is one, else an empty
 #   PowerLoom/local-skills.
-# The Claude token comes from $env:CLAUDE_CODE_OAUTH_TOKEN, or is asked once (`claude setup-token` prints one); without
-#   one PowerLoom runs, but agents can't until it is set in .env.
+# No AI provider is set up here: the Claude token is saved in Settings -> AI providers once PowerLoom runs.
 param(
     [Parameter(Mandatory)][string[]]$Vaults,
     [string]$ReposRoot,
@@ -69,21 +68,6 @@ function New-Secret {
     return -join ((1..24) | ForEach-Object { "{0:x2}" -f (Get-Random -Maximum 256) })
 }
 
-function Get-ClaudeToken {
-    if ($env:CLAUDE_CODE_OAUTH_TOKEN) {
-        return $env:CLAUDE_CODE_OAUTH_TOKEN
-    }
-
-    $secure = Read-Host "Claude token (claude setup-token; Enter to skip)" -AsSecureString
-    $token = [System.Net.NetworkCredential]::new("", $secure).Password
-
-    if (-not $token) {
-        Write-Warning "No Claude token: agents can't run until CLAUDE_CODE_OAUTH_TOKEN is set in .env (then docker compose up -d)."
-    }
-
-    return $token
-}
-
 function Get-ReposRoot {
     if ($ReposRoot) {
         return ConvertTo-HostPath $ReposRoot
@@ -113,7 +97,6 @@ function Get-InstallValues {
         SKILLS_PATH             = Get-SkillsPath
         REPOS_ROOT              = Get-ReposRoot
         AGENTTOOLS_PATH         = ConvertTo-HostPath $AgentToolsRoot
-        CLAUDE_CODE_OAUTH_TOKEN = Get-ClaudeToken
         MCP_TOKEN               = New-Secret
     }
 }
@@ -241,7 +224,8 @@ function Add-Vault([string]$api, [string]$path) {
 function Show-NextSteps {
     Write-Host ""
     Write-Host "PowerLoom runs: http://localhost:$(Read-EnvValue 'WEB_PORT')"
-    Write-Host "Next: Settings -> per vault: Azure DevOps (org, project, team, user, token) and the features to switch on;"
+    Write-Host "Next: Settings -> AI providers: the Claude token (claude setup-token prints one); agents run once it is saved."
+    Write-Host "      Settings -> per vault: Azure DevOps (org, project, team, user, token) and the features to switch on;"
     Write-Host "      'Configure with Claude' on each vault (CLAUDE.md, the VaultUsage/VaultCapture hooks, the MCP server)."
 }
 
