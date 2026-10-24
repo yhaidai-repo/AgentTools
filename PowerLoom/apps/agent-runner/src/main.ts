@@ -1,6 +1,6 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, recoverInterruptedRuns, requireEnv, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { readDevHubSettings, readVaults, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
+import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, clearReviewCheckouts, devHubsOfVaults, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, recoverInterruptedRuns, requireEnv, runAgentTask, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { SqlReader } from "@powerloom/sql";
@@ -92,17 +92,10 @@ async function stopStackOfRun(access: AgentDeps["devHub"], runId: number | null)
 // At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a
 // vault points at.
 async function stopOrphanedStacks(): Promise<void> {
-  for (const client of await devHubsOfVaults()) {
+  for (const client of await devHubsOfVaults(db)) {
     logStackNote(await closeOrphanedBrowser(client));
     logStackNote(await stopOrphanedStack(client));
   }
-}
-
-async function devHubsOfVaults(): Promise<DevHubClient[]> {
-  const settings = await Promise.all((await readVaults(db)).map((vault) => readDevHubSettings(db, vault.name)));
-  const devHubs = new Map(settings.filter((stack) => stack.enabled && stack.token).map((stack) => [`${stack.url} ${stack.token}`, stack]));
-
-  return [...devHubs.values()].map((stack) => new DevHubClient(stack.url, stack.token));
 }
 
 function logStackNote(note: string | null): void {

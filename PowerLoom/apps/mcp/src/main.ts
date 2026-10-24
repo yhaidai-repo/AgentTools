@@ -1,5 +1,5 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, createAzureUserLogin, depsEnvFromProcess, requireEnv } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, closeOrphanedChatBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, requireEnv, stopOrphanedChatStack } from "@powerloom/agents";
 import { createPowerLoomClient, createPowerLoomPort } from "@powerloom/client";
 import { readVaults, type HostFolder } from "@powerloom/core";
 import { createDb } from "@powerloom/db";
@@ -21,6 +21,7 @@ const azureLogin = createAzureUserLogin(db);
 const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes: new RuntimeRegistry() });
 
 await deps.ensureStores(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
+await stopOrphanedChatStacks();
 
 const sessions = new ChatSessions({
   db,
@@ -51,6 +52,21 @@ function hostFolders(): HostFolder[] {
   ];
 
   return folders.filter((folder) => folder.hostRoot.trim().length > 0);
+}
+
+// No session survives a restart, so a stack or browser case a chat left behind is orphaned on every DevHub a vault
+// points at (the agent-runner does the same for runs).
+async function stopOrphanedChatStacks(): Promise<void> {
+  for (const client of await devHubsOfVaults(db)) {
+    logNote(await closeOrphanedChatBrowser(client));
+    logNote(await stopOrphanedChatStack(client));
+  }
+}
+
+function logNote(note: string | null): void {
+  if (note) {
+    console.log(note);
+  }
 }
 
 async function stop(): Promise<void> {
