@@ -3,13 +3,14 @@
 # The agents and their prompts need no step: the agent-runner adds every built-in agent with the prompt files shipped in
 # the code when it starts. Each vault added here gets the vault review schedule (every 6 hours) from Add vault.
 #
-#   pwsh scripts/install.ps1 -Vaults work-projects,personal-projects
+#   pwsh scripts/install.ps1 -Vaults D:/Claude/work-projects,D:/Claude/personal-projects
 #
+# -Vaults: the vault folders, full paths. PowerLoom mounts one vaults root, so they must share one parent folder; it
+# becomes VAULTS_ROOT. A missing folder is created from PowerLoom's templates (your notes aren't copied).
 # The Claude token comes from $env:CLAUDE_CODE_OAUTH_TOKEN, or is asked once (`claude setup-token` prints one).
 param(
-    [string]$VaultsRoot = "D:/Claude",
-    [string]$ReposRoot = "D:/Projects",
-    [string[]]$Vaults = @()
+    [Parameter(Mandatory)][string[]]$Vaults,
+    [string]$ReposRoot = "D:/Projects"
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +21,29 @@ $EnvFile = Join-Path $PowerLoomRoot ".env"
 $DatabaseVolume = "adoa_pgdata"
 $BacklogVault = "powerloom-backlog"
 $HealthAttempts = 60
+
+function ConvertTo-HostPath([string]$path) {
+    return [System.IO.Path]::GetFullPath($path).Replace('\', '/').TrimEnd('/')
+}
+
+function Get-VaultsRoot([string[]]$paths) {
+    $parents = @($paths | ForEach-Object { ConvertTo-HostPath (Split-Path -Parent $_) } | Sort-Object -Unique)
+
+    if ($parents.Count -ne 1) {
+        throw "The vaults must be folders of one parent folder (PowerLoom mounts one vaults root); got: $($parents -join ', ')."
+    }
+
+    return $parents[0]
+}
+
+# An .env from an earlier run keeps its vaults root; a vault outside it couldn't be mounted.
+function Assert-VaultsRoot {
+    $configured = Read-EnvValue "VAULTS_ROOT"
+
+    if ($configured -ne $VaultsRoot) {
+        throw "The vaults are in $VaultsRoot, but .env has VAULTS_ROOT=$configured. Change .env or pass vaults from $configured."
+    }
+}
 
 function Assert-Docker {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -168,15 +192,15 @@ function Test-Api([string]$api) {
 
 # Add vault prepares the folder from PowerLoom's templates and creates its vault review schedule; one added before is
 # a conflict, which is fine here.
-function Add-Vault([string]$api, [string]$vault) {
-    $body = @{ folder = "$(Read-EnvValue 'VAULTS_ROOT')/$vault" } | ConvertTo-Json
+function Add-Vault([string]$api, [string]$path) {
+    $body = @{ folder = $path } | ConvertTo-Json
 
     try {
         Invoke-RestMethod -Method Post -Uri "$api/api/vaults" -ContentType "application/json" -Body $body | Out-Null
-        Write-Host "Vault $vault added."
+        Write-Host "Vault $path added."
     }
     catch {
-        Write-Host "Vault ${vault}: $($_.ErrorDetails.Message ?? $_.Exception.Message)"
+        Write-Host "Vault ${path}: $($_.ErrorDetails.Message ?? $_.Exception.Message)"
     }
 }
 
@@ -187,8 +211,12 @@ function Show-NextSteps {
     Write-Host "      'Configure with Claude' on each vault (CLAUDE.md, the VaultUsage/VaultCapture hooks, the MCP server)."
 }
 
+$VaultPaths = @($Vaults | ForEach-Object { ConvertTo-HostPath $_ })
+$VaultsRoot = Get-VaultsRoot $VaultPaths
+
 Assert-Docker
 New-EnvFile
+Assert-VaultsRoot
 New-HostFolders
 New-DatabaseVolume
 Start-Stack
@@ -197,8 +225,8 @@ $api = "http://127.0.0.1:$(Read-EnvValue 'POWERLOOM_PORT')"
 
 Wait-Api $api
 
-foreach ($vault in $Vaults) {
-    Add-Vault $api $vault
+foreach ($path in $VaultPaths) {
+    Add-Vault $api $path
 }
 
 Show-NextSteps
