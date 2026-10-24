@@ -6,6 +6,8 @@ import type { SqlReader } from "@powerloom/sql";
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { commandToolName } from "../commandTool";
 import type { AgentDeps } from "../models/AgentDeps";
+import { isOutsideTool } from "../outsideAccess";
+import { classifyToolCall } from "../toolKinds";
 import { COMMANDS_SOURCE } from "../toolset/toolSources";
 import { chatSessionTools, chatTools } from "./chatTools";
 import { CHAT_AGENT_ID } from "./models/ChatPrincipal";
@@ -57,6 +59,14 @@ describe("a chat session's tools", () => {
     assert.equal(sourceOf("pbi_read"), COMMANDS_SOURCE);
     assert.equal(sourceOf("list_repos"), "Every agent");
     assert.equal(sourceOf("sql_query"), "Read SQL (SQL Server)");
+  });
+
+  it("log every call under a kind the Tools tab names (none as Other)", () => {
+    const chat = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const { offered } = chatSessionTools(fakeDeps(), chat, { vault: "work", client: "test", sessionId: "s1" }, {} as CommandContext);
+    const other = offered.filter((tool) => !isOutsideTool(tool.name) && classifyToolCall(tool.name, {}).kind === "other");
+
+    assert.deepEqual(other.map((tool) => tool.name), []);
   });
 
   it("include every command, the session's own reader standing in for one of the same name", () => {

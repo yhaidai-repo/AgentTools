@@ -1,4 +1,6 @@
+import { COMMANDS } from "@powerloom/core";
 import type { DataAccessKind } from "@powerloom/db";
+import { commandToolName } from "./commandTool";
 import type { OutsideResource } from "./models/OutsideResource";
 
 // Optional: how a known tool's call reads in the log (its kind, the resource and the request from its input). A tool
@@ -17,6 +19,8 @@ const text = (value: unknown): string => (typeof value === "string" ? value : va
 const repo: ToolKind = { kind: "repo", resource: (input) => text(input.repo) || "repo", request: (input) => [input.path, input.pattern, input.query].map(text).filter(Boolean).join(" ") };
 const docs: ToolKind = { kind: "docs", resource: () => "docs", request: (input) => [input.path, input.query, input.folder].map(text).filter(Boolean).join(" ") };
 const internal: ToolKind = { kind: "internal" };
+const skill: ToolKind = { kind: "skills", resource: (input) => text(input.name) || "skills" };
+const web: ToolKind = { kind: "web", resource: (input) => hostOf(text(input.url)), request: (input) => text(input.url) };
 
 const TOOL_KINDS: Record<string, ToolKind> = {
   list_repos: { kind: "repo", resource: () => "catalog" },
@@ -29,14 +33,30 @@ const TOOL_KINDS: Record<string, ToolKind> = {
   search_docs: docs,
   list_docs: docs,
   WebSearch: { kind: "web", resource: () => "web search", request: (input) => text(input.query) },
-  WebFetch: { kind: "web", resource: (input) => hostOf(text(input.url)), request: (input) => text(input.url) },
+  WebFetch: web,
   use_skill: { kind: "skills", resource: (input) => text(input.name) || "skill" },
   list_skills: { kind: "skills", resource: () => "skills" },
+  git_diff: repo,
+  read_pbi: internal,
+  fetch_document: web,
+  save_document_notes: web,
+  // PowerLoom's commands that read the vault or the skills, as chats call them over MCP; every other command is
+  // PowerLoom's own (see commandKindOf).
+  vault_notes: docs,
+  vault_usage: docs,
+  vault_registers: docs,
+  vault_trash: docs,
+  skill_list: skill,
+  skill_get: skill,
 };
+
+// Every PowerLoom command as its tool is named (pbi_read, agent_create, …): a chat's calls over MCP and an agent's
+// command tools read as PowerLoom's own, not as `other`.
+const COMMAND_TOOLS = new Set(COMMANDS.map((command) => commandToolName(command.name)));
 
 // Where and what, for any tool call: the entry's answer, or the defaults.
 export function classifyToolCall(name: string, input: unknown): OutsideResource & { request: string } {
-  const entry = TOOL_KINDS[name] ?? internalOrOther(name);
+  const entry = TOOL_KINDS[name] ?? (COMMAND_TOOLS.has(name) ? internal : internalOrOther(name));
   const fields = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   const request = entry.request ? entry.request(fields) : JSON.stringify(fields);
 
