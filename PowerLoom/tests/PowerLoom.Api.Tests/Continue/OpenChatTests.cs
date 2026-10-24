@@ -31,6 +31,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
 
         Assert.StartsWith($"claude://code/new?folder={Uri.EscapeDataString($"{PowerLoomHost.HostRoot}/test-vault")}&q=", link!.Url);
         Assert.Contains(Uri.EscapeDataString($"{PowerLoomHost.AgentTools}"), link.Url);
+        Assert.DoesNotContain("Add these folders to this session", PromptOf(link));
         Assert.Contains("# Configure the vault test-vault for Claude", note);
         Assert.Contains("## Setup", note);
         Assert.Contains("CLAUDE.md", note);
