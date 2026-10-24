@@ -9,7 +9,7 @@ import { sqlConnectionInput, sqlVaultInput } from "../readSql/sqlCommandInputs";
 export const sqlDatabasesCommand: Command<{ vault: string; connection: string }, SqlRowsText> = {
   name: "sql.databases",
   effect: "read",
-  description: "List the databases a vault's Read SQL connection can open on its server (system databases left out), with their state. Pass one as `database` to sql.describe and sql.query.",
+  description: "List the databases a vault's Read SQL connection can open on its server (system databases left out), with their state. Pass one as `database` to sql_describe and sql_query.",
   input: z.object({
     vault: sqlVaultInput,
     connection: sqlConnectionInput,

@@ -1,6 +1,6 @@
 "use server";
 
-import { closeItemCommand, linkedUrlOf, rerunTaskCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
+import { closeItemCommand, deleteItemCommand, linkedUrlOf, rerunTaskCommand, saveTaskNotesCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { UploadedFile } from "@powerloom/attachments";
@@ -12,7 +12,6 @@ import { getDb } from "@/lib/db";
 import { formAdoId, formLines, formText, readUploads } from "@/lib/formFields";
 import { answersFromForm } from "@/lib/humanTaskAnswers";
 import type { ActionResult } from "@/models/ActionResult";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
 
 // Answer / dismiss a question or finding, finish / cancel a human task. Attached files (several, chosen, pasted or dropped)
 // are stored first, and only if the item can be closed (PowerLoom's dry run).
@@ -55,7 +54,7 @@ export async function submitFindingAction(_previous: ActionResult | null, form: 
 
 // Soft delete: gone from the pages and the Vault, kept so agents don't create it again. Back to the PBI (or Tasks) page after.
 export async function deleteItemAction(adoId: number | null, itemId: string): Promise<ActionResult> {
-  const deleted = await webCommandContext().powerloom.deleteItem(adoId, itemId);
+  const deleted = await runWebCommand(deleteItemCommand, { adoId, itemId });
 
   if (!deleted.ok) {
     return { ok: false, message: deleted.error };
@@ -138,7 +137,8 @@ function revalidateItemPages(adoId: number | null): void {
 // page showed, so a save never overwrites notes changed meanwhile.
 export async function saveTaskNotes(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const id = String(form.get("itemId") ?? "");
-  const result = powerloomResult(await powerloom.PUT("/api/items/{id}/user-notes", { params: { path: { id } }, body: { text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") } }), "Notes saved; the next run reads them.");
+  const saved = await runWebCommand(saveTaskNotesCommand, { itemId: id, text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") });
+  const result = saved.ok ? { ok: true, message: "Notes saved; the next run reads them." } : { ok: false, message: saved.error };
 
   revalidatePath(String(form.get("path") ?? "/tasks"));
 

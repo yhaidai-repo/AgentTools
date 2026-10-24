@@ -43,7 +43,7 @@ const NO_TOTALS: AgentTotals = { runs: 0, tokens: 0, costUsd: 0, durationMs: 0 }
 export const listAgentsCommand: Command<AgentListInput, AgentListEntry[]> = {
   name: "agent.list",
   effect: "read",
-  description: "List every agent with its schedule, model, budgets, today's spend, and the vault's runs in the period: runs, failures, running, cost, tokens, duration, last run. Pass an id to agent.get or as `agent` to run.list.",
+  description: "List every agent with its schedule, model, budgets, today's spend, and the vault's runs in the period: runs, failures, running, cost, tokens, duration, last run. Pass an id to agent_get or as `agent` to run_list.",
   input,
   async run(context, input) {
     if (!context.agents || !context.usage) {

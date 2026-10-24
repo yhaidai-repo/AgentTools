@@ -45,6 +45,22 @@ public sealed class CodexDesktopLauncherTests
     }
 
     [Fact]
+    public void Setup_copies_the_global_rules_and_the_skills_where_Codex_reads_them_and_asks_before_overwriting()
+    {
+        var steps = new CodexDesktopLauncher().VaultSetupSteps("D:/vault", "D:/tools");
+        var rules = steps.Single(step => step.Contains("~/.codex/AGENTS.md"));
+        var skills = steps.Single(step => step.Contains("~/.agents/skills"));
+
+        Assert.Contains("~/.claude/CLAUDE.md", rules);
+        Assert.Contains("ask before adding", rules);
+        Assert.Contains("Never remove", rules);
+        Assert.Contains("~/.claude/skills", skills);
+        Assert.Contains("create-branch and www-record", skills);
+        Assert.Contains("ask me before overwriting", skills);
+        Assert.True(steps.ToList().IndexOf(skills) < steps.ToList().FindIndex(step => step.Contains("status_get")), "the skills are in place before the connection check");
+    }
+
+    [Fact]
     public void Setup_names_both_hooks_trust_and_the_connection_check()
     {
         var launcher = new CodexDesktopLauncher();
@@ -59,7 +75,8 @@ public sealed class CodexDesktopLauncherTests
         Assert.Contains("D:/vault", steps);
         Assert.Contains(".codex/config.toml", steps);
         Assert.Contains("status_get", steps);
-        Assert.DoesNotContain("CLAUDE.md", steps);
+        // The vault's CLAUDE.md is Claude Code's to create; Codex setup only reads the global one to copy it.
+        Assert.DoesNotContain("D:/vault/CLAUDE.md", steps);
     }
 
     private static ChatRequest RequestWith(string shortVersion)

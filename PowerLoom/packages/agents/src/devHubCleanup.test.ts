@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { StackPhase, StackStatus } from "@powerloom/devhub";
-import { closeOrphanedBrowser, closeRunBrowser, stopOrphanedStack, stopRunStack } from "./devHubCleanup";
+import { closeOrphanedBrowser, closeOrphanedChatBrowser, closeRunBrowser, stopOrphanedChatStack, stopOrphanedStack, stopRunStack } from "./devHubCleanup";
 
 function devHubWith(phase: StackPhase, owner: string | null) {
   const stops: string[] = [];
@@ -101,5 +101,38 @@ describe("closeOrphanedBrowser", () => {
 
     assert.deepEqual(run.closes, ["powerloom-run-3"]);
     assert.deepEqual(person.closes, []);
+  });
+});
+
+describe("the MCP server's start", () => {
+  it("stops a stack a chat session left behind, and leaves a run's or a person's stack alone", async () => {
+    const chat = devHubWith("ready", "powerloom-chat-0b5f");
+    const run = devHubWith("ready", "powerloom-run-7");
+    const person = devHubWith("ready", "dev");
+
+    const note = await stopOrphanedChatStack(chat.client);
+
+    await stopOrphanedChatStack(run.client);
+    await stopOrphanedChatStack(person.client);
+
+    assert.equal(note, "stopped the local stack of powerloom-chat-0b5f");
+    assert.deepEqual([...chat.stops, ...run.stops, ...person.stops], ["powerloom-chat-0b5f"]);
+  });
+
+  it("closes a chat's browser case only", async () => {
+    const closed: string[] = [];
+    const browserOf = (owner: string) => ({
+      browserStatus: async () => ({ ok: true as const, value: { open: true, owner } }) as never,
+      closeBrowser: async (name: string) => {
+        closed.push(name);
+
+        return { ok: true as const, value: {} } as never;
+      },
+    });
+
+    await closeOrphanedChatBrowser(browserOf("powerloom-chat-0b5f"));
+    await closeOrphanedChatBrowser(browserOf("powerloom-run-7"));
+
+    assert.deepEqual(closed, ["powerloom-chat-0b5f"]);
   });
 });

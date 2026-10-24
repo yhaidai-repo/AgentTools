@@ -724,6 +724,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_drafts
+         * @description POST_api_vaults_vault_drafts
+         */
+        post: operations["POST_api_vaults_vault_drafts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/register-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_register_records
+         * @description POST_api_vaults_vault_register_records
+         */
+        post: operations["POST_api_vaults_vault_register_records"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/register-records/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_register_records_close
+         * @description POST_api_vaults_vault_register_records_close
+         */
+        post: operations["POST_api_vaults_vault_register_records_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records": {
         parameters: {
             query?: never;
@@ -967,6 +1027,74 @@ export interface paths {
          * @description DELETE_api_ai_providers_claude_token
          */
         delete: operations["DELETE_api_ai_providers_claude_token"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers/codex/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_ai_providers_codex_login
+         * @description GET_api_ai_providers_codex_login
+         */
+        get: operations["GET_api_ai_providers_codex_login"];
+        put?: never;
+        /**
+         * POST_api_ai_providers_codex_login
+         * @description POST_api_ai_providers_codex_login
+         */
+        post: operations["POST_api_ai_providers_codex_login"];
+        /**
+         * DELETE_api_ai_providers_codex_login
+         * @description DELETE_api_ai_providers_codex_login
+         */
+        delete: operations["DELETE_api_ai_providers_codex_login"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers/codex/login/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_ai_providers_codex_login_cancel
+         * @description POST_api_ai_providers_codex_login_cancel
+         */
+        post: operations["POST_api_ai_providers_codex_login_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers/codex/login-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_ai_providers_codex_login_file
+         * @description PUT_api_ai_providers_codex_login_file
+         */
+        put: operations["PUT_api_ai_providers_codex_login_file"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1493,6 +1621,14 @@ export interface components {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
         };
+        AddRegisterRecordRequest: {
+            project: string;
+            kind: string;
+            title: string;
+            text: string;
+            default: null | string[];
+            options: null | string[];
+        };
         AddReviewRequest: {
             vault: string;
             repo: string;
@@ -1506,6 +1642,9 @@ export interface components {
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedRegisterRecord: {
+            id: string;
         };
         AddedReview: {
             /** Format: int32 */
@@ -1566,9 +1705,20 @@ export interface components {
             spentTodayUsd: number;
             agents: components["schemas"]["AgentBudget"][];
         };
+        CaptureDraftRequest: {
+            project: string;
+            name: string;
+            title: string;
+            target: string;
+            captured: string[];
+            assumptions: null | string[];
+            toFill: null | string[];
+            source: string;
+        };
         ChatApp: {
             id: string;
             label: string;
+            connected: boolean;
         };
         ChatApps: {
             current: string;
@@ -1623,6 +1773,14 @@ export interface components {
         };
         /** @enum {unknown} */
         CloseDecision: "answer" | "dismiss" | "done" | "cancel";
+        CloseRegisterRecordRequest: {
+            path: string;
+            id: string;
+            status: string;
+            duplicateOf: null | components["schemas"]["RecordRef"];
+            decision: string;
+            decidedBy: string;
+        };
         CloseRequest: {
             /** Format: int32 */
             adoId: null | number;
@@ -1643,6 +1801,21 @@ export interface components {
         ClosedPbis: {
             done: string[];
             refused: string[];
+        };
+        ClosedRegisterRecord: {
+            path: string;
+            id: string;
+            status: string;
+        };
+        CodexLoginStart: {
+            verificationUri: null | string;
+            userCode: null | string;
+            output: string;
+        };
+        CodexLoginStatus: {
+            status: string;
+            error: null | string;
+            output: string;
         };
         CompletedRunRequest: {
             /** Format: int64 */
@@ -1739,6 +1912,12 @@ export interface components {
         };
         DispatchedAgent: {
             agentId: string;
+        };
+        DraftCaptureResult: {
+            ok: boolean;
+            mode: string;
+            path: null | string;
+            errors: string[];
         };
         EnabledRequest: {
             enabled: boolean;
@@ -1843,6 +2022,10 @@ export interface components {
         };
         /** @enum {unknown} */
         RecordKind: "www" | "open-question" | "known-issue";
+        RecordRef: {
+            path: string;
+            id: string;
+        };
         RemoveLinkRequest: {
             url: string;
         };
@@ -1925,6 +2108,9 @@ export interface components {
             browserArtefactDays: number;
             /** Format: int32 */
             failedRunBrowserArtefactDays: number;
+        };
+        SaveCodexLoginFileRequest: {
+            authJson: null | string;
         };
         SaveConnectionRequest: {
             enabled: boolean;
@@ -3212,6 +3398,118 @@ export interface operations {
             };
         };
     };
+    POST_api_vaults_vault_drafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaptureDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCaptureResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_vaults_vault_register_records: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRegisterRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedRegisterRecord"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_register_records_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseRegisterRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedRegisterRecord"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     POST_api_records: {
         parameters: {
             query?: never;
@@ -3587,6 +3885,110 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GET_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStatus"];
+                };
+            };
+        };
+    };
+    POST_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStart"];
+                };
+            };
+        };
+    };
+    DELETE_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+        };
+    };
+    POST_api_ai_providers_codex_login_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStatus"];
+                };
+            };
+        };
+    };
+    PUT_api_ai_providers_codex_login_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCodexLoginFileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
             };
         };
     };

@@ -1,5 +1,5 @@
 import type { DevHubClient } from "@powerloom/devhub";
-import { RUN_OWNER_PREFIX, stackOwner } from "./devHubTools";
+import { CHAT_OWNER_PREFIX, RUN_OWNER_PREFIX, stackOwner } from "./devHubTools";
 
 type DevHubCalls = Pick<DevHubClient, "status" | "stop">;
 type BrowserCalls = Pick<DevHubClient, "browserStatus" | "closeBrowser">;
@@ -18,6 +18,11 @@ export async function stopOwnedStack(client: DevHubCalls, owner: string): Promis
 // The runner's start: no run is in progress, so a stack a run left behind (the runner stopped mid-run) is orphaned.
 export async function stopOrphanedStack(client: DevHubCalls): Promise<string | null> {
   return stopStackOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX));
+}
+
+// The MCP server's start: no chat session survives a restart, so a stack a session left behind is orphaned.
+export async function stopOrphanedChatStack(client: DevHubCalls): Promise<string | null> {
+  return stopStackOwnedBy(client, (owner) => owner.startsWith(CHAT_OWNER_PREFIX));
 }
 
 async function stopStackOwnedBy(client: DevHubCalls, isOurs: (owner: string) => boolean): Promise<string | null> {
@@ -44,6 +49,10 @@ export async function closeOwnedBrowser(client: BrowserCalls, owner: string): Pr
 
 export async function closeOrphanedBrowser(client: BrowserCalls): Promise<string | null> {
   return closeBrowserOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX));
+}
+
+export async function closeOrphanedChatBrowser(client: BrowserCalls): Promise<string | null> {
+  return closeBrowserOwnedBy(client, (owner) => owner.startsWith(CHAT_OWNER_PREFIX));
 }
 
 async function closeBrowserOwnedBy(client: BrowserCalls, isOurs: (owner: string) => boolean): Promise<string | null> {

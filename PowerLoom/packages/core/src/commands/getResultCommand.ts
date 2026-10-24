@@ -9,7 +9,7 @@ import { resultVault } from "../results/resultVault";
 
 const input = z.object({
   kind: z.enum(RESULT_KIND_NAMES).describe("Where the result is stored: refinement, design, estimate, item (a research result or test report), review (a review run) or run (what one run wrote)"),
-  id: z.string().trim().min(1).describe("The result's id as result.versions lists it: a row id (refinement, design, estimate, run), an item id (RR-…, TR-…) or a review run's id"),
+  id: z.string().trim().min(1).describe("The result's id as result_versions lists it: a row id (refinement, design, estimate, run), an item id (RR-…, TR-…) or a review run's id"),
   vault: vaultInput,
 });
 
@@ -18,7 +18,7 @@ const input = z.object({
 export const getResultCommand: Command<{ kind: ResultKind; id: string; vault: string }, ResultRead> = {
   name: "result.get",
   effect: "read",
-  description: "Read one agent result in full: a refinement, design or estimate version, a research result or test report, a review run (its summary and comments) or a run result, with the PBI and task it belongs to. Get the kind and id from result.versions.",
+  description: "Read one agent result in full: a refinement, design or estimate version, a research result or test report, a review run (its summary and comments) or a run result, with the PBI and task it belongs to. Get the kind and id from result_versions.",
   input,
   async run(context, input) {
     const result = await loadResult(context.db, input.kind, input.id);

@@ -1,6 +1,7 @@
 import type { AgentConfigStore } from "@agenttools/config";
 import type { UsageStore } from "@agenttools/usage";
 import type { PowerLoomDb } from "@powerloom/db";
+import type { HostFolder } from "./HostFolder";
 import type { PowerLoomPort } from "./PowerLoomPort";
 import type { SkillCatalog } from "./SkillCatalog";
 
@@ -16,4 +17,6 @@ export interface CommandContext {
   agents?: AgentConfigStore;
   /** The runs' usage records and traces (AgentUsage), for the read commands on runs and costs; absent in an agent run. */
   usage?: UsageStore;
+  /** The PC folders this caller can read files from (the MCP's vaults and repos mounts), for a file named by its PC path. */
+  hostFolders?: HostFolder[];
 }

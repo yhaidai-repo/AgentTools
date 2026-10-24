@@ -4,6 +4,9 @@ import type { AgentRunJob } from "@powerloom/core";
 import type { AzureUserLogin } from "@powerloom/azure";
 import type { DevHubCheck } from "@powerloom/devhub";
 import type { SqlConnectionCheck } from "@powerloom/sql";
+import type { RunnerCodex } from "./models/RunnerCodex";
+
+const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set (docker-compose.yml mounts agent-homes/codex there).";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
@@ -11,7 +14,9 @@ import type { SqlConnectionCheck } from "@powerloom/sql";
 // signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
 // 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for Azure (start, status, sign out); the runner keeps the token cache. `GET /azure/token`: the `az` shim's
-// question for the Azure MCP server, a token of that sign-in for one API. `GET /health` for PowerLoom's health check and Docker's.
+// question for the Azure MCP server, a token of that sign-in for one API. `/codex/*`: Connect Codex in Settings → AI providers
+// (status, device sign-in start and status, disconnect, a login file upload); the runner owns PowerLoom's Codex home.
+// `GET /health` for PowerLoom's health check and Docker's.
 export class RunnerServer {
   private running: string | null = null;
   private readonly server: Server;
@@ -21,6 +26,7 @@ export class RunnerServer {
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
     private readonly testDevHub: (url: string, token: string) => Promise<DevHubCheck>,
     private readonly azureLogin: AzureUserLogin,
+    private readonly codex: RunnerCodex | null = null,
   ) {
     this.server = createServer((request, response) => this.handle(request, response));
   }
@@ -72,6 +78,12 @@ export class RunnerServer {
       return;
     }
 
+    if (url.pathname.startsWith("/codex/")) {
+      await this.codexRoute(request, response, url);
+
+      return;
+    }
+
     answer(response, 404, { error: "not found" });
   }
 
@@ -96,6 +108,81 @@ export class RunnerServer {
     }
 
     answer(response, 404, { error: "not found" });
+  }
+
+  private async codexRoute(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
+    if (!this.codex) {
+      answer(response, 404, { error: NO_CODEX });
+
+      return;
+    }
+
+    const route = `${request.method} ${url.pathname}`;
+
+    if (route === "GET /codex/status") {
+      answer(response, 200, { connected: await this.codex.home.isSignedIn() });
+
+      return;
+    }
+
+    if (route === "POST /codex/login/start") {
+      await this.startCodexLogin(this.codex, response);
+
+      return;
+    }
+
+    if (route === "GET /codex/login/status") {
+      answer(response, 200, this.codex.login.status());
+
+      return;
+    }
+
+    if (route === "POST /codex/login/cancel") {
+      answer(response, 200, this.codex.login.cancel());
+
+      return;
+    }
+
+    if (route === "DELETE /codex/login") {
+      await this.codex.login.signOut();
+      answer(response, 200, { ok: true });
+
+      return;
+    }
+
+    if (route === "PUT /codex/login-file") {
+      await this.saveCodexLoginFile(this.codex, request, response);
+
+      return;
+    }
+
+    answer(response, 404, { error: "not found" });
+  }
+
+  // The link and code come back at once; a CLI that ends first (device codes switched off, no network) is the answer.
+  private async startCodexLogin(codex: RunnerCodex, response: ServerResponse): Promise<void> {
+    try {
+      answer(response, 200, await codex.login.start());
+    } catch (error) {
+      answer(response, 502, { error: (error as Error).message });
+    }
+  }
+
+  private async saveCodexLoginFile(codex: RunnerCodex, request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const body = (await readBody(request)) as { authJson?: unknown } | null;
+
+    if (typeof body?.authJson !== "string") {
+      answer(response, 400, { error: "expected {authJson}" });
+
+      return;
+    }
+
+    try {
+      await codex.home.saveLoginFile(body.authJson);
+      answer(response, 200, { ok: true });
+    } catch (error) {
+      answer(response, 400, { error: (error as Error).message });
+    }
   }
 
   // The `az` shim's question for the Azure MCP server a run started: answered from the vault's sign-in.

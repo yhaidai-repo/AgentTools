@@ -5,7 +5,7 @@ import { readTaskSchedule } from "../taskSchedules";
 import { vaultInput } from "./inputs";
 
 const input = z.object({
-  id: z.number().int().positive().describe("The schedule's id, as schedule.list gives it"),
+  id: z.number().int().positive().describe("The schedule's id, as schedule_list gives it"),
   vault: vaultInput,
 });
 

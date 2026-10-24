@@ -26,5 +26,8 @@ public sealed class VaultFiles(VaultRoots roots)
 
     public bool Exists(string vault, string relativePath) => File.Exists(FileOf(vault, relativePath));
 
+    // For a read, change and write back that another process may do at the same time; null when it stays busy.
+    public Task<NoteLock?> LockAsync(string vault, string relativePath, CancellationToken cancellation) => NoteLock.TryEnterAsync(FileOf(vault, relativePath), cancellation);
+
     private string FileOf(string vault, string relativePath) => Path.Combine(roots.RootOf(vault), VaultPath.Trusted(relativePath));
 }

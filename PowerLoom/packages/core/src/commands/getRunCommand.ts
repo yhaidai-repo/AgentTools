@@ -46,7 +46,7 @@ const INPUT_CHARS = 4000;
 export const getRunCommand: Command<RunInput, RunDetail> = {
   name: "run.get",
   effect: "read",
-  description: "Read one agent run of a vault: agent, PBI, task, outcome and error, first message, tokens and cost once ended, the outputs it made (item ids, notes) and the runs it continued or was continued by. run.events gives its trace.",
+  description: "Read one agent run of a vault: agent, PBI, task, outcome and error, first message, tokens and cost once ended, the outputs it made (item ids, notes) and the runs it continued or was continued by. run_events gives its trace.",
   input,
   async run(context, input) {
     if (!context.usage) {

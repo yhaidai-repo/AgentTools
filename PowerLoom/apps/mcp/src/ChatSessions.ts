@@ -103,7 +103,7 @@ export class ChatSessions {
 
   // The commands run as the chat (status_history actor `chat:<client>`), writing through PowerLoom like the web.
   private commandContext(client: string): CommandContext {
-    return { db: this.host.db, actor: `chat:${client}`, powerloom: this.host.powerloom, skills: this.host.skills, backlogMount: this.host.backlogMount, agents: this.host.agents, usage: this.host.usage };
+    return { db: this.host.db, actor: `chat:${client}`, powerloom: this.host.powerloom, skills: this.host.skills, backlogMount: this.host.backlogMount, agents: this.host.agents, usage: this.host.usage, hostFolders: this.host.hostFolders };
   }
 }
 

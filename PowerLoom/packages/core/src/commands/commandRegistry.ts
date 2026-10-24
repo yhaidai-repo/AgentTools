@@ -54,6 +54,39 @@ import { getVaultRegistersCommand } from "./getVaultRegistersCommand";
 import { listVaultTrashCommand } from "./listVaultTrashCommand";
 import { listSkillsCommand } from "./listSkillsCommand";
 import { getSkillCommand } from "./getSkillCommand";
+import { preparePbisCommand } from "./preparePbisCommand";
+import { syncPbisCommand } from "./syncPbisCommand";
+import { importNowCommand } from "./importNowCommand";
+import { getPbiUserNotesCommand } from "./getPbiUserNotesCommand";
+import { savePbiUserNotesCommand } from "./savePbiUserNotesCommand";
+import { attachToPbiCommand } from "./attachToPbiCommand";
+import { addConfluenceLinkCommand } from "./addConfluenceLinkCommand";
+import { removeConfluenceLinkCommand } from "./removeConfluenceLinkCommand";
+import { loadConfluencePageCommand } from "./loadConfluencePageCommand";
+import { createTaskCommand } from "./createTaskCommand";
+import { saveScheduleCommand } from "./saveScheduleCommand";
+import { deleteScheduleCommand } from "./deleteScheduleCommand";
+import { tickScheduleCommand } from "./tickScheduleCommand";
+import { deleteItemCommand } from "./deleteItemCommand";
+import { saveTaskNotesCommand } from "./saveTaskNotesCommand";
+import { addReviewCommand } from "./addReviewCommand";
+import { queueReviewCommand } from "./queueReviewCommand";
+import { closeReviewCommand } from "./closeReviewCommand";
+import { syncPullRequestsCommand } from "./syncPullRequestsCommand";
+import { enableRepoCommand } from "./enableRepoCommand";
+import { addLocalRepoCommand } from "./addLocalRepoCommand";
+import { removeRepoCommand } from "./removeRepoCommand";
+import { addVaultCommand } from "./addVaultCommand";
+import { removeVaultCommand } from "./removeVaultCommand";
+import { restoreTrashCommand } from "./restoreTrashCommand";
+import { deleteTrashCommand } from "./deleteTrashCommand";
+import { runCleanupCommand } from "./runCleanupCommand";
+import { replayDeadLetterCommand } from "./replayDeadLetterCommand";
+import { discardDeadLetterCommand } from "./discardDeadLetterCommand";
+import { getSettingsCommand } from "./getSettingsCommand";
+import { captureDraftCommand } from "./captureDraftCommand";
+import { addRegisterRecordCommand } from "./addRegisterRecordCommand";
+import { closeRegisterRecordCommand } from "./closeRegisterRecordCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -88,6 +121,39 @@ export const COMMANDS: readonly Command<any, any>[] = [
   sqlQueryCommand,
   sqlDescribeCommand,
   sqlDatabasesCommand,
+  preparePbisCommand,
+  syncPbisCommand,
+  importNowCommand,
+  getPbiUserNotesCommand,
+  savePbiUserNotesCommand,
+  attachToPbiCommand,
+  addConfluenceLinkCommand,
+  removeConfluenceLinkCommand,
+  loadConfluencePageCommand,
+  createTaskCommand,
+  saveScheduleCommand,
+  deleteScheduleCommand,
+  tickScheduleCommand,
+  deleteItemCommand,
+  saveTaskNotesCommand,
+  addReviewCommand,
+  queueReviewCommand,
+  closeReviewCommand,
+  syncPullRequestsCommand,
+  enableRepoCommand,
+  addLocalRepoCommand,
+  removeRepoCommand,
+  addVaultCommand,
+  removeVaultCommand,
+  restoreTrashCommand,
+  deleteTrashCommand,
+  runCleanupCommand,
+  replayDeadLetterCommand,
+  discardDeadLetterCommand,
+  getSettingsCommand,
+  captureDraftCommand,
+  addRegisterRecordCommand,
+  closeRegisterRecordCommand,
   // The read commands (stage 2 of the powerloom-mcp design, 2026-10-23): what the pages show, for the chats.
   listPbisCommand,
   listTasksCommand,

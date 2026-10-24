@@ -1,13 +1,12 @@
 "use server";
 
-import { readTaskSchedule } from "@powerloom/core";
+import { createTaskCommand, saveScheduleCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
-import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
 import { itemPath } from "@/lib/items";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 import type { TaskActionResult } from "@/models/TaskActionResult";
 import type { TaskFormValues } from "@/models/TaskFormValues";
@@ -22,27 +21,24 @@ export async function saveTaskAction(_previous: TaskActionResult | null, form: F
 
 // The new task's page opens.
 async function createTask(form: FormData): Promise<ActionResult> {
-  const created = await powerloom.POST("/api/tasks", { body: { ...readTask(form), vault: await requireVault(), actor: null } });
+  const created = await runWebCommand(createTaskCommand, { ...readTask(form), vault: await requireVault(), cron: null });
 
-  if (!created.response.ok || !created.data) {
-    return powerloomResult(created, "");
+  if (!created.ok || created.value.taskId === null) {
+    return { ok: false, message: created.ok ? created.value.message : created.error };
   }
 
   revalidatePath("/tasks");
-  redirect(itemPath({ id: created.data.id, pbiId: created.data.pbiId ?? null }));
+  redirect(itemPath({ id: created.value.taskId, pbiId: created.value.pbiId }));
 }
 
 // A schedule keeps its vault; a new one belongs to the vault selected in the top bar.
 async function saveSchedule(form: FormData): Promise<ActionResult> {
   const id = formText(form, "scheduleId") === null ? null : Number(formText(form, "scheduleId"));
-  const previous = id === null ? null : await readTaskSchedule(getDb(), id);
   const task = readTask(form);
-  const saved = await powerloom.PUT("/api/task-schedules", {
-    body: { id, name: task.title, vault: previous?.vault ?? (await requireVault()), cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", taskType: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi, repos: task.repos },
-  });
+  const saved = await runWebCommand(saveScheduleCommand, { id, vault: await requireVault(), name: task.title, cron: formText(form, "cron") ?? "", enabled: form.get("enabled") === "on", type: task.type, description: task.description, acceptanceCriteria: task.acceptanceCriteria, pbi: task.pbi, repos: task.repos });
 
-  if (!saved.response.ok) {
-    return powerloomResult(saved, "");
+  if (!saved.ok) {
+    return { ok: false, message: saved.error };
   }
 
   revalidatePath("/tasks");

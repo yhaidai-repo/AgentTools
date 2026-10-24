@@ -8,7 +8,7 @@ namespace PowerLoom.Features.Vaults.Add;
 // the connection to PowerLoom's MCP server (user decision 2026-10-24). Creates whatever is missing; existing files are
 // never touched, except the files and the .mcp.json entry PowerLoom owns. Agent-app files (Claude's CLAUDE.md) are the
 // app's own.
-public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> options, McpConnectionFile mcp, TimeProvider clock)
+public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> options, McpConnectionFile mcp, CodexConfigFile codex, TimeProvider clock)
 {
     private static readonly string[] Folders = ["draft", ".usage", ".obsidian"];
 
@@ -30,10 +30,14 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
         if (await mcp.EnsureAsync(root, vault, cancellation))
             created.Add(McpConnectionFile.FileName);
 
+        if (await codex.EnsureAsync(root, vault, cancellation))
+            created.Add(CodexConfigFile.FileName);
+
         return created;
     }
 
-    // Brings PowerLoom's own files and its MCP entry of a connected vault up to date; true when one changed.
+    // Brings PowerLoom's own files and its MCP entries (Claude Code's and Codex's) of a connected vault up to date; true
+    // when one changed.
     public async Task<bool> RefreshOwnedFilesAsync(string vault, CancellationToken cancellation)
     {
         var root = roots.RootOf(vault);
@@ -46,6 +50,7 @@ public sealed class VaultInitializer(VaultRoots roots, IOptions<VaultOptions> op
             changed |= await RefreshAsync(root, file, vault, cancellation);
 
         changed |= await mcp.EnsureAsync(root, vault, cancellation);
+        changed |= await codex.EnsureAsync(root, vault, cancellation);
 
         return changed;
     }

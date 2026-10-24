@@ -1,6 +1,6 @@
 ---
 name: powerloom-agent-author
-description: How a chat creates a PowerLoom agent or skill the user describes. Use when the user asks for a new agent, a new skill, or an agent that does something no agent does yet; ends in agent.create / skill.create.
+description: How a chat creates a PowerLoom agent or skill the user describes. Use when the user asks for a new agent, a new skill, or an agent that does something no agent does yet; ends in the agent_create / skill_create tools.
 ---
 
 # Authoring a PowerLoom agent or skill
@@ -37,8 +37,8 @@ Skip questions the user has answered already. Propose defaults for the rest (mod
 - Body: checklists and rules an agent can follow step by step; cite files and symbols when they matter.
 
 ## Then
-- `skill.create` first when the agent needs a new skill, then `agent.create` naming it in `skills`.
-- `agent.create` saves the agent disabled; tell the user to review it on its Config page (prompt, grants, schedule)
+- `skill_create` first when the agent needs a new skill, then `agent_create` naming it in `skills`.
+- `agent_create` saves the agent disabled; tell the user to review it on its Config page (prompt, grants, schedule)
   and switch it on there, or pass `enabled: true` when they asked for that.
-- Show the user what you are about to create (prompt included) and ask once before the call: these commands change
+- Show the user what you are about to create (prompt included) and ask once before the call: these tools change
   PowerLoom.

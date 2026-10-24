@@ -15,13 +15,23 @@ function Add-VaultRegisterRecord {
         return New-RegisterResult -Errors $errors
     }
 
-    $file = Read-DraftFile -Path $register.Path
-    $id = Get-NextRegisterId -Records @(Get-RegisterRecordList -Lines $file.Lines -Prefix $register.Prefix) -Prefix $register.Prefix
-    $record = ConvertTo-RegisterLine -InputObject $InputObject -Id $id -Label $register.Label -Date (Get-Date -Format 'yyyy-MM-dd')
+    # Read, next id and write under the register's lock: two writers at once would lose a record or repeat an id.
+    return Use-RegisterLock -Path $register.Path -Action { Add-RegisterLine -InputObject $InputObject -Register $register }
+}
 
-    Write-DraftFile -Path $register.Path -Lines (@($file.Lines) + '' + $record) -NewLine $file.NewLine
+function Add-RegisterLine {
+    param(
+        [Parameter(Mandatory)][object]$InputObject,
+        [Parameter(Mandatory)][object]$Register
+    )
 
-    return New-RegisterResult -Id $id -Path $register.Path
+    $file = Read-DraftFile -Path $Register.Path
+    $id = Get-NextRegisterId -Records @(Get-RegisterRecordList -Lines $file.Lines -Prefix $Register.Prefix) -Prefix $Register.Prefix
+    $record = ConvertTo-RegisterLine -InputObject $InputObject -Id $id -Label $Register.Label -Date (Get-Date -Format 'yyyy-MM-dd')
+
+    Write-DraftFile -Path $Register.Path -Lines (@($file.Lines) + '' + $record) -NewLine $file.NewLine
+
+    return New-RegisterResult -Id $id -Path $Register.Path
 }
 
 function Get-RegisterInputError {
@@ -39,7 +49,31 @@ function Get-RegisterInputError {
         return $Register.Error
     }
 
-    return @(@('title', 'text') | Where-Object { [string]::IsNullOrWhiteSpace($InputObject.$_) } | ForEach-Object { "$_ is required." })
+    $missing = @(@('title', 'text') | Where-Object { [string]::IsNullOrWhiteSpace($InputObject.$_) } | ForEach-Object { "$_ is required." })
+
+    return $missing + @(Get-RegisterShapeError -InputObject $InputObject)
+}
+
+# A record is one heading and its lines: a line break in the title or a list entry, or a heading line in the text,
+# would start a record (or a fake one) of its own.
+function Get-RegisterShapeError {
+    param([Parameter(Mandatory)][object]$InputObject)
+
+    $entries = @($InputObject.default) + @($InputObject.options) | Where-Object { $_ }
+    $errors = @()
+    if ([string]$InputObject.title -match '[\r\n]') {
+        $errors += 'title is one line.'
+    }
+
+    if (@($entries | Where-Object { [string]$_ -match '[\r\n]' }).Count -gt 0) {
+        $errors += 'each default and option is one line.'
+    }
+
+    if ([string]$InputObject.text -match '(?m)^\s*#') {
+        $errors += 'text has no heading lines (a line starting with #): it would start a record of its own.'
+    }
+
+    return $errors
 }
 
 function ConvertTo-RegisterLine {
