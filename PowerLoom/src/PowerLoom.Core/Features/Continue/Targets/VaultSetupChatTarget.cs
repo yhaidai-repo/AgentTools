@@ -29,7 +29,6 @@ public sealed class VaultSetupChatTarget(PowerLoomDbContext db, HostPaths hostPa
         {
             Ending = $"Do the Setup steps below. Then read {folder}/AGENTS.md and tell me in a few lines what you changed on this PC and what the vault's rules ask of you.",
             Sections = [new ChatSection("Setup", $"The vault's folder is {folder}; PowerLoom's tools (VaultUsage, VaultCapture) are in {hostPaths.AgentTools}.\n\n{string.Join("\n", steps)}")],
-            ExtraFolders = [hostPaths.AgentTools],
         });
     }
 }
