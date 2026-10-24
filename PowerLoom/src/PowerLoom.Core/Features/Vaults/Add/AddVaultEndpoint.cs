@@ -12,13 +12,14 @@ using Wolverine.Http;
 namespace PowerLoom.Features.Vaults.Add;
 
 // Settings → Add vault: a folder of the vaults root becomes a vault with every feature off; one removed earlier comes
-// back as it was. The folder needn't exist: it is prepared from PowerLoom's templates.
+// back as it was. The folder needn't exist: it is prepared from PowerLoom's templates. Each vault gets the vault review
+// schedule.
 public static class AddVaultEndpoint
 {
     private const string NoFeatures = """{"adoSync":false,"mailSync":false,"pullRequests":false}""";
 
     [WolverinePost("/api/vaults")]
-    public static async Task<Results<Ok<AddedVault>, ProblemHttpResult>> Post(AddVaultRequest request, PowerLoomDbContext db, VaultInitializer initializer, IOptions<VaultOptions> options, CancellationToken cancellation)
+    public static async Task<Results<Ok<AddedVault>, ProblemHttpResult>> Post(AddVaultRequest request, PowerLoomDbContext db, VaultInitializer initializer, VaultReviewSchedule reviewSchedule, IOptions<VaultOptions> options, CancellationToken cancellation)
     {
         var name = VaultFolderName.Parse(request.Folder, options.Value.HostRoot);
 
@@ -31,6 +32,7 @@ public static class AddVaultEndpoint
             return problem.ToProblemResult();
 
         await AddOrRestoreAsync(db, name.Value, cancellation);
+        await reviewSchedule.EnsureAsync(name.Value, cancellation);
 
         var created = await initializer.PrepareAsync(name.Value, cancellation);
 

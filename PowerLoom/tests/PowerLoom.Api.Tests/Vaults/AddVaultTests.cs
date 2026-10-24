@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Vaults.Add;
 using PowerLoom.Features.Vaults.Add.Models;
 using PowerLoom.Persistence;
+using PowerLoom.Persistence.Entities;
 
 namespace PowerLoom.Api.Tests.Vaults;
 
@@ -68,6 +69,18 @@ public sealed class AddVaultTests(PowerLoomHost host)
         Assert.Equal("the user's rules", await File.ReadAllTextAsync(agents));
     }
 
+    // A fresh install reviews its vaults as the user's PC does (user decision 2026-10-24).
+    [Fact]
+    public async Task A_new_vault_gets_the_vault_review_schedule_once()
+    {
+        await host.Host.PostJson(new AddVaultRequest($"{PowerLoomHost.HostRoot}/reviewed-vault"), "/api/vaults").Receive<AddedVault>();
+
+        var schedules = await SchedulesOfAsync("reviewed-vault");
+
+        Assert.Equal([("vault-review", "0 */6 * * *", true)], schedules.Select(schedule => (schedule.TaskType, schedule.Cron, schedule.Enabled)));
+        Assert.Equal("Vault review schedule", schedules[0].Name);
+    }
+
     [Fact]
     public async Task Adding_it_again_is_a_conflict_and_adoa_s_own_vault_is_refused()
     {
@@ -82,6 +95,14 @@ public sealed class AddVaultTests(PowerLoomHost host)
             scenario.Post.Json(new AddVaultRequest("powerloom-backlog")).ToUrl("/api/vaults");
             scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
         });
+    }
+
+    private async Task<List<TaskSchedule>> SchedulesOfAsync(string vault)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        return await db.TaskSchedules.AsNoTracking().Where(schedule => schedule.Vault == vault).ToListAsync();
     }
 
     private async Task<bool> IsActiveVaultAsync(string name)
