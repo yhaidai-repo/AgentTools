@@ -1,6 +1,6 @@
 "use server";
 
-import { closePbiCommand, createPbiCommand, finishPbiCommand, isAdoActive, reopenPbiCommand, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type Outcome, type PbiFeedback } from "@powerloom/core";
+import { closePbiCommand, createPbiCommand, preparePbisCommand, finishPbiCommand, isAdoActive, reopenPbiCommand, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type Outcome, type PbiFeedback } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
@@ -57,15 +57,13 @@ export async function preparePbiAction(adoId: number): Promise<ActionResult> {
 }
 
 async function preparePbis(adoIds: number[]): Promise<ActionResult> {
-  const prepared = await powerloom.POST("/api/pbis/prepare", { body: { adoIds } });
+  const prepared = await runWebCommand(preparePbisCommand, { adoIds });
 
-  if (!prepared.response.ok || !prepared.data) {
-    return powerloomResult(prepared, "");
+  if (!prepared.ok) {
+    return { ok: false, message: prepared.error };
   }
 
-  const closed = prepared.data.closed.length > 0 ? ` Skipped ${prepared.data.closed.map((adoId) => `PBI-${adoId}`).join(", ")}: closed, reopen first.` : "";
-
-  return { ok: true, message: `${prepared.data.queued.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").${closed}` };
+  return { ok: true, message: [prepared.value.message, ...prepared.value.skipped].join(" ") };
 }
 
 // The Backlog's Close and Reopen (user decision 2026-10-16): the selected PBIs in one request; a refused one is reported.
