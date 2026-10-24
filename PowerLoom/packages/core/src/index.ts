@@ -94,6 +94,8 @@ export { createTaskCommand } from "./commands/createTaskCommand";
 export { saveScheduleCommand } from "./commands/saveScheduleCommand";
 export { deleteScheduleCommand } from "./commands/deleteScheduleCommand";
 export { tickScheduleCommand } from "./commands/tickScheduleCommand";
+export { deleteItemCommand } from "./commands/deleteItemCommand";
+export { saveTaskNotesCommand } from "./commands/saveTaskNotesCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
