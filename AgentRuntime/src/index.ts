@@ -1,3 +1,4 @@
+export { CodexSdkRuntime } from "./adapters/codex/CodexSdkRuntime";
 export { ClaudeAgentSdkRuntime } from "./adapters/claude/ClaudeAgentSdkRuntime";
 export { RuntimeRegistry } from "./RuntimeRegistry";
 export { RepoCache } from "./repos/RepoCache";
