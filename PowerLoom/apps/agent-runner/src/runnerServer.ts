@@ -137,6 +137,12 @@ export class RunnerServer {
       return;
     }
 
+    if (route === "POST /codex/login/cancel") {
+      answer(response, 200, this.codex.login.cancel());
+
+      return;
+    }
+
     if (route === "DELETE /codex/login") {
       await this.codex.login.signOut();
       answer(response, 200, { ok: true });

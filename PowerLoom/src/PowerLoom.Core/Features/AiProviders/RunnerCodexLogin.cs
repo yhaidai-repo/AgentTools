@@ -15,6 +15,8 @@ public sealed class RunnerCodexLogin(RunnerHttp runner) : ICodexLogin
 
     public Task<Outcome<CodexLoginStatus>> LoginStatusAsync(CancellationToken cancellation) => runner.GetAsync<CodexLoginStatus>("/codex/login/status", cancellation, RunnerHttp.StatusTimeout);
 
+    public Task<Outcome<CodexLoginStatus>> CancelAsync(CancellationToken cancellation) => runner.PostAsync<CodexLoginStatus>("/codex/login/cancel", new { }, cancellation);
+
     public async Task<Outcome<bool>> SignOutAsync(CancellationToken cancellation) => Done(await runner.DeleteAsync<JsonElement>("/codex/login", cancellation));
 
     public async Task<Outcome<bool>> SaveLoginFileAsync(string authJson, CancellationToken cancellation) => Done(await runner.PutAsync<JsonElement>("/codex/login-file", new RunnerCodexLoginFile(authJson), cancellation));

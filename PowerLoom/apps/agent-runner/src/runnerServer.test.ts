@@ -67,4 +67,13 @@ describe("the runner's Codex routes", async () => {
     assert.equal(started.body.userCode, "ABCD-12345");
     assert.equal(status.body.status, "pending");
   });
+
+  it("cancel a pending sign-in", async () => {
+    await call(32411, "POST", "/codex/login/start");
+    const cancelled = await call(32411, "POST", "/codex/login/cancel");
+    const status = await call(32411, "GET", "/codex/login/status");
+
+    assert.equal(cancelled.body.status, "none");
+    assert.equal(status.body.status, "none");
+  });
 });

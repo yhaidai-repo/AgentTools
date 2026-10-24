@@ -93,6 +93,26 @@ describe("Connect Codex's device sign-in", () => {
     assert.equal(login.status().status, "failed");
   });
 
+  it("cancels a pending sign-in, kills the CLI and starts afresh on the next Connect", async () => {
+    const first = new FakeLogin();
+    const second = new FakeLogin();
+    const { login, spawned } = loginWith([first, second]);
+    const starting = login.start();
+
+    first.print("https://auth.openai.com/codex/device ABCD-12345");
+    await starting;
+
+    const cancelled = login.cancel();
+    const again = login.start();
+
+    second.print("https://auth.openai.com/codex/device WXYZ-9876");
+    await again;
+
+    assert.equal(cancelled.status, "none");
+    assert.equal(first.killed, true);
+    assert.equal(spawned.length, 2);
+  });
+
   it("kills an abandoned sign-in when it times out", async () => {
     const fake = new FakeLogin();
     const { login } = loginWith([fake], { signInTimeoutMs: 200 });

@@ -2292,6 +2292,28 @@
         }
       }
     },
+    "/api/ai-providers/codex/login/cancel": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "POST_api_ai_providers_codex_login_cancel",
+        "description": "POST_api_ai_providers_codex_login_cancel",
+        "operationId": "POST_api_ai_providers_codex_login_cancel",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ai-providers/codex/login-file": {
       "put": {
         "tags": [

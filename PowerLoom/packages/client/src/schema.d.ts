@@ -1060,6 +1060,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai-providers/codex/login/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_ai_providers_codex_login_cancel
+         * @description POST_api_ai_providers_codex_login_cancel
+         */
+        post: operations["POST_api_ai_providers_codex_login_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai-providers/codex/login-file": {
         parameters: {
             query?: never;
@@ -3924,6 +3944,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+        };
+    };
+    POST_api_ai_providers_codex_login_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStatus"];
                 };
             };
         };

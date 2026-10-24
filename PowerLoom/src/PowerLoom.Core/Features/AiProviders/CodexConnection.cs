@@ -26,6 +26,8 @@ public sealed class CodexConnection(ICodexLogin login)
 
     public Task<Outcome<CodexLoginStatus>> LoginStatusAsync(CancellationToken cancellation) => login.LoginStatusAsync(cancellation);
 
+    public Task<Outcome<CodexLoginStatus>> CancelAsync(CancellationToken cancellation) => login.CancelAsync(cancellation);
+
     public async Task<Outcome<ProviderStatus>> DisconnectAsync(CancellationToken cancellation)
     {
         var signedOut = await login.SignOutAsync(cancellation);

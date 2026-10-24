@@ -12,6 +12,8 @@ public interface ICodexLogin
 
     Task<Outcome<CodexLoginStatus>> LoginStatusAsync(CancellationToken cancellation);
 
+    Task<Outcome<CodexLoginStatus>> CancelAsync(CancellationToken cancellation);
+
     Task<Outcome<bool>> SignOutAsync(CancellationToken cancellation);
 
     Task<Outcome<bool>> SaveLoginFileAsync(string authJson, CancellationToken cancellation);

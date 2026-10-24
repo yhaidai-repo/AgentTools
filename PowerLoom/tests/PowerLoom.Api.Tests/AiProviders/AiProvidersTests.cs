@@ -104,6 +104,15 @@ public sealed class AiProvidersTests(PowerLoomHost host) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Cancel_stops_the_pending_sign_in()
+    {
+        var cancelled = await host.Host.PostJson(new { }, $"{CodexLoginPath}/cancel").Receive<CodexLoginStatus>();
+
+        Assert.Equal("none", cancelled!.Status);
+        Assert.True(Codex.Cancelled);
+    }
+
+    [Fact]
     public async Task A_login_file_connects_Codex_and_Disconnect_removes_the_login()
     {
         var saved = await host.Host.PutJson(new SaveCodexLoginFileRequest("{\"tokens\":{}}"), $"{CodexLoginPath}-file").Receive<ProviderStatus>();

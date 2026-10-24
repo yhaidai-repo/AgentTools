@@ -44,6 +44,15 @@ public static class AiProvidersEndpoints
         return status.Ok ? TypedResults.Ok(status.Value) : status.Problem.ToProblemResult();
     }
 
+    // Cancel on the page: the pending sign-in stops; a login there was stays.
+    [WolverinePost("/api/ai-providers/codex/login/cancel")]
+    public static async Task<Results<Ok<CodexLoginStatus>, ProblemHttpResult>> CancelCodexLogin([FromServices] CodexConnection codex, CancellationToken cancellation)
+    {
+        var cancelled = await codex.CancelAsync(cancellation);
+
+        return cancelled.Ok ? TypedResults.Ok(cancelled.Value) : cancelled.Problem.ToProblemResult();
+    }
+
     [WolverineDelete("/api/ai-providers/codex/login")]
     public static async Task<Results<Ok<ProviderStatus>, ProblemHttpResult>> DisconnectCodex([FromServices] CodexConnection codex, CancellationToken cancellation)
     {

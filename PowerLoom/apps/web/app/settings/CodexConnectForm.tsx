@@ -6,7 +6,7 @@ import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { CodexLoginStart, ProviderStatus } from "@/lib/aiProviders";
 import type { ActionResult } from "@/models/ActionResult";
-import { codexLoginStatusAction, disconnectCodexAction, saveCodexLoginFileAction, startCodexLoginAction } from "./actions";
+import { cancelCodexLoginAction, codexLoginStatusAction, disconnectCodexAction, saveCodexLoginFileAction, startCodexLoginAction } from "./actions";
 
 // How often the page asks whether the user finished at the link.
 const POLL_MS = 3000;
@@ -51,6 +51,11 @@ export function CodexConnectForm({ status }: { status: ProviderStatus | null }) 
 
   const disconnect = () => startTransition(async () => setDisconnected(await disconnectCodexAction()));
 
+  const cancel = () => startTransition(async () => {
+    setStarted(null);
+    setDisconnected(await cancelCodexLoginAction());
+  });
+
   return (
     <div className="panel settings-card">
       <SettingsHead title="Codex" description="Agents on Codex models run on your ChatGPT plan, signed in to PowerLoom's own Codex folder (agent-homes/codex), not to your ~/.codex." />
@@ -69,6 +74,7 @@ export function CodexConnectForm({ status }: { status: ProviderStatus | null }) 
       <div className="settings-foot">
         <ResultLine result={fileResult ?? disconnected} />
         {status?.connected && <button type="button" className="secondary" disabled={isPending} onClick={disconnect}>Disconnect</button>}
+        {started && <button type="button" className="secondary" disabled={isPending} onClick={cancel}>Cancel</button>}
         <button type="button" disabled={isPending || started !== null} onClick={connect}>{isPending ? "Starting…" : "Connect Codex"}</button>
       </div>
     </div>

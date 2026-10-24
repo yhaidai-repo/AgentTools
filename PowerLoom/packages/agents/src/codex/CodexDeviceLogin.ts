@@ -39,6 +39,19 @@ export class CodexDeviceLogin {
     return { status: this.state, error: this.error, output: plainText(this.output) };
   }
 
+  /** Stops a pending sign-in, keeping any login there is: Connect Codex can be started again. */
+  cancel(): CodexLoginStatus {
+    if (this.state === "pending") {
+      this.clearTimer();
+      this.child?.kill();
+      this.child = null;
+      this.state = "none";
+      this.error = null;
+    }
+
+    return this.status();
+  }
+
   /** Stops a pending sign-in and removes the login. */
   async signOut(): Promise<void> {
     this.end("failed", "Disconnected.");

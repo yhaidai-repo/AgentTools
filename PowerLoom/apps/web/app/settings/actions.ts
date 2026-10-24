@@ -328,6 +328,10 @@ export async function codexLoginStatusAction(): Promise<CodexLoginStatus> {
   return status.data;
 }
 
+export async function cancelCodexLoginAction(): Promise<ActionResult> {
+  return powerloomResult(await powerloom.POST("/api/ai-providers/codex/login/cancel"), "Cancelled. Connect Codex starts a new sign-in.");
+}
+
 export async function disconnectCodexAction(): Promise<ActionResult> {
   const disconnected = await powerloom.DELETE("/api/ai-providers/codex/login");
   const result = powerloomResult(disconnected, "Disconnected. Agents on Codex models stop until Codex is connected again.");

@@ -19,7 +19,16 @@ public sealed class FakeCodexLogin : ICodexLogin
 
     public Task<Outcome<CodexLoginStart>> StartAsync(CancellationToken cancellation) => Answer(Start);
 
+    public bool Cancelled { get; private set; }
+
     public Task<Outcome<CodexLoginStatus>> LoginStatusAsync(CancellationToken cancellation) => Answer(new CodexLoginStatus(Connected ? "done" : "pending", null, ""));
+
+    public Task<Outcome<CodexLoginStatus>> CancelAsync(CancellationToken cancellation)
+    {
+        Cancelled = true;
+
+        return Answer(new CodexLoginStatus("none", null, ""));
+    }
 
     public Task<Outcome<bool>> SignOutAsync(CancellationToken cancellation)
     {
@@ -41,6 +50,7 @@ public sealed class FakeCodexLogin : ICodexLogin
         Connected = false;
         Unreachable = false;
         SavedLoginFile = null;
+        Cancelled = false;
     }
 
     private Task<Outcome<T>> Answer<T>(T value)
