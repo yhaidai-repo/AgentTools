@@ -22,8 +22,8 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
         if (!brief.Ok)
             return Outcome<ChatLink>.Failure(brief.Problem);
 
-        var notePath = await WriteNoteAsync(brief.Value, kind, id, launcher.Value.Label, cancellation);
-        var launch = launcher.Value.Open(RequestFor(brief.Value, notePath));
+        var handoff = await WriteNoteAsync(brief.Value, kind, id, launcher.Value.Label, cancellation);
+        var launch = launcher.Value.Open(RequestFor(brief.Value, handoff));
 
         if (!launch.Ok)
             return Outcome<ChatLink>.Failure(launch.Problem);
@@ -33,7 +33,7 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
         return Outcome<ChatLink>.Success(new ChatLink(launch.Value.Url));
     }
 
-    private async Task<string> WriteNoteAsync(ChatBrief brief, ChatKind kind, string id, string label, CancellationToken cancellation)
+    private async Task<ChatHandoff> WriteNoteAsync(ChatBrief brief, ChatKind kind, string id, string label, CancellationToken cancellation)
     {
         var notePath = BacklogPaths.ChatNotePath(ChatNote.KindLabel(kind), id);
         var existing = await backlog.ReadTextAsync(brief.Vault, notePath, cancellation);
@@ -41,15 +41,14 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
 
         await backlog.WriteTextAsync(brief.Vault, notePath, text, cancellation);
 
-        return notePath;
+        return new ChatHandoff(hostPaths.BacklogPath(brief.Vault, notePath), ChatNote.ShortVersion(text));
     }
 
-    // One fixed prompt for every kind: the note holds the rest.
-    private ChatRequest RequestFor(ChatBrief brief, string notePath)
+    // One prompt for every kind: the folders to add and the note, which holds the rest.
+    private ChatRequest RequestFor(ChatBrief brief, ChatHandoff handoff)
     {
         var folders = hostPaths.RepoPaths(brief.Repos).Concat(brief.ExtraFolders).ToList();
-        var step = $"Read {hostPaths.BacklogPath(brief.Vault, notePath)} and follow its Start section.";
 
-        return new ChatRequest(brief.Title, [], hostPaths.ChatFolder(brief.Vault), folders, [step]);
+        return new ChatRequest(brief.Title, [], hostPaths.ChatFolder(brief.Vault), folders, [], handoff);
     }
 }
