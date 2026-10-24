@@ -88,6 +88,24 @@ Describe 'Add-VaultRegisterRecord' {
         $result.ok | Should -BeFalse
         $result.errors | Should -Contain 'title is required.'
     }
+
+    It 'rejects a title, a default or an option over two lines, and a heading line in the text' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = "Wrong total`n## KI-999 Fake"; text = "Sums twice.`n## KI-998 Fake"; default = @("a`nb"); options = @() }
+
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+
+        $result.ok | Should -BeFalse
+        $result.errors | Should -Contain 'title is one line.'
+        $result.errors | Should -Contain 'each default and option is one line.'
+        $result.errors | Should -Contain 'text has no heading lines (a line starting with #): it would start a record of its own.'
+        Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') | Should -Not -Contain '## KI-999 Fake'
+    }
+
+    It 'keeps a text over several lines' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = "Sums twice.`nSee #42 in the log." }
+
+        (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeTrue
+    }
 }
 
 Describe 'Register lock' {

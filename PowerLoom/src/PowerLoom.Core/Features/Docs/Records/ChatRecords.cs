@@ -117,8 +117,11 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
     private static RecordClosingEdit ClosingOf(CloseRegisterRecordRequest request, DateOnly today)
     {
         var duplicate = request.DuplicateOf is { } original ? $"Duplicate of {original.Id}{(original.Path == request.Path ? "" : $" ({original.Path})")}. " : "";
-        var decision = string.Join(" ", $"{duplicate}{request.Decision}".Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        var decision = OneLine($"{duplicate}{request.Decision}");
 
-        return new RecordClosingEdit(request.Status == "fixed" ? "Fixed" : "Resolved", $"{request.DecidedBy}, {today:yyyy-MM-dd}", decision);
+        return new RecordClosingEdit(request.Status == "fixed" ? "Fixed" : "Resolved", $"{OneLine(request.DecidedBy)}, {today:yyyy-MM-dd}", decision);
     }
+
+    // The decision block is one line: a line break could start a heading (a record) of its own.
+    private static string OneLine(string text) => string.Join(" ", text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 }

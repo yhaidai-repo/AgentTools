@@ -63,11 +63,14 @@ public sealed class ChatRecordsTests(PowerLoomHost host)
     {
         await WriteRegisterAsync("# Known issues\n\n## KI-001 Sync drops a page\n\n> **Open** · Created 2026-10-01\n\nLost.\n\n## KI-002 Same drop\n\n> **Open** · Created 2026-10-02\n\nLost too.\n");
 
-        await host.Host.PostJson(new CloseRegisterRecordRequest(IssuesPath, "KI-002", "duplicate", new RecordRef(IssuesPath, "KI-001"), "Same page loss.", "the user in a chat"), $"{VaultApi}/register-records/close").Receive<ClosedRegisterRecord>();
+        await host.Host.PostJson(new CloseRegisterRecordRequest(IssuesPath, "KI-002", "duplicate", new RecordRef(IssuesPath, "KI-001"), "Same page loss.\n## KI-009 Fake", "the user\n## KI-008 Fake"), $"{VaultApi}/register-records/close").Receive<ClosedRegisterRecord>();
         var text = await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, IssuesPath));
 
         Assert.Contains("## [RESOLVED] KI-002 Same drop\n\n> **Resolved**", text);
-        Assert.Contains("): Duplicate of KI-001. Same page loss.", text);
+        Assert.Contains("**Decision** (the user ## KI-008 Fake, ", text);
+        Assert.Contains("): Duplicate of KI-001. Same page loss. ## KI-009 Fake", text);
+        Assert.DoesNotContain("\n## KI-009", text);
+        Assert.DoesNotContain("\n## KI-008", text);
     }
 
     [Fact]

@@ -9,3 +9,8 @@ export const pbiIdInput = z.number().int().positive().describe("The PBI's id, e.
 export const limitInput = (max: number, fallback: number) => z.number().int().min(1).max(max).default(fallback).describe(`Most rows to answer (up to ${max})`);
 export const trashPathInput = z.string().trim().min(1).describe("The trashed note's path, as vault.trash lists it");
 export const deadLetterIdInput = z.string().trim().min(1).describe("The dead letter's id (deadletter.list)");
+
+// Register records are one heading and its lines: a line break in a title or a list entry, or a heading line in the
+// text, would start a record of its own (VaultCapture refuses them too).
+export const oneLineInput = z.string().trim().min(1).refine((value) => !/[\r\n]/.test(value), "one line, no line breaks");
+export const noHeadingLinesInput = z.string().trim().min(1).refine((value) => !/^\s*#/m.test(value), "no heading lines (a line starting with #)");

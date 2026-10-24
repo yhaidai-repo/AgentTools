@@ -49,7 +49,31 @@ function Get-RegisterInputError {
         return $Register.Error
     }
 
-    return @(@('title', 'text') | Where-Object { [string]::IsNullOrWhiteSpace($InputObject.$_) } | ForEach-Object { "$_ is required." })
+    $missing = @(@('title', 'text') | Where-Object { [string]::IsNullOrWhiteSpace($InputObject.$_) } | ForEach-Object { "$_ is required." })
+
+    return $missing + @(Get-RegisterShapeError -InputObject $InputObject)
+}
+
+# A record is one heading and its lines: a line break in the title or a list entry, or a heading line in the text,
+# would start a record (or a fake one) of its own.
+function Get-RegisterShapeError {
+    param([Parameter(Mandatory)][object]$InputObject)
+
+    $entries = @($InputObject.default) + @($InputObject.options) | Where-Object { $_ }
+    $errors = @()
+    if ([string]$InputObject.title -match '[\r\n]') {
+        $errors += 'title is one line.'
+    }
+
+    if (@($entries | Where-Object { [string]$_ -match '[\r\n]' }).Count -gt 0) {
+        $errors += 'each default and option is one line.'
+    }
+
+    if ([string]$InputObject.text -match '(?m)^\s*#') {
+        $errors += 'text has no heading lines (a line starting with #): it would start a record of its own.'
+    }
+
+    return $errors
 }
 
 function ConvertTo-RegisterLine {
