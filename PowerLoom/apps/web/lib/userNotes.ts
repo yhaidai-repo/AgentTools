@@ -1,12 +1,9 @@
+import { getPbiUserNotesCommand } from "@powerloom/core";
 import type { UserNotesView } from "@/models/UserNotesView";
-import { powerloom, powerloomResult } from "./powerloom";
+import { runWebCommand } from "./commandContext";
 
 export async function loadUserNotes(adoId: number): Promise<UserNotesView> {
-  const response = await powerloom.GET("/api/pbis/{adoId}/user-notes", { params: { path: { adoId } } });
+  const notes = await runWebCommand(getPbiUserNotesCommand, { adoId });
 
-  if (!response.data) {
-    return { text: null, problem: powerloomResult(response, "").message };
-  }
-
-  return { text: response.data.text, problem: null };
+  return notes.ok ? { text: notes.value.text, problem: null } : { text: null, problem: notes.error };
 }

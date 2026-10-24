@@ -1,9 +1,8 @@
 "use server";
 
-import { pauseAgentsCommand, runAgentCommand } from "@powerloom/core";
+import { discardDeadLetterCommand, pauseAgentsCommand, replayDeadLetterCommand, runAgentCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
 // Kill switch through agent.pause (the command a chat uses too); resuming also clears a rate-limit pause.
@@ -21,19 +20,19 @@ export async function setAgentsPaused(paused: boolean): Promise<ActionResult> {
 
 // A dead letter put back on its queue (PowerLoom's durability agent picks it up), or dropped for good.
 export async function replayDeadLetter(id: string): Promise<ActionResult> {
-  const replayed = await powerloom.POST("/api/dead-letters/{id}/replay", { params: { path: { id } } });
+  const replayed = await runWebCommand(replayDeadLetterCommand, { id });
 
   revalidatePath("/agents");
 
-  return powerloomResult(replayed, "Replayed: it runs again in a moment.");
+  return replayed.ok ? { ok: true, message: "Replayed: it runs again in a moment." } : { ok: false, message: replayed.error };
 }
 
 export async function discardDeadLetter(id: string): Promise<ActionResult> {
-  const discarded = await powerloom.DELETE("/api/dead-letters/{id}", { params: { path: { id } } });
+  const discarded = await runWebCommand(discardDeadLetterCommand, { id });
 
   revalidatePath("/agents");
 
-  return powerloomResult(discarded, "Discarded.");
+  return discarded.ok ? { ok: true, message: "Discarded." } : { ok: false, message: discarded.error };
 }
 
 // Same as the agent's schedule: PowerLoom validates the agent's open tasks and starts the valid ones.

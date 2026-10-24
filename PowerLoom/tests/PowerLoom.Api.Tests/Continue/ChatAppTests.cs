@@ -12,10 +12,10 @@ namespace PowerLoom.Api.Tests.Continue;
 [Collection(PowerLoomCollection.Name)]
 public sealed class ChatAppTests(PowerLoomHost host) : IAsyncLifetime
 {
-    public Task InitializeAsync() => ForgetChoiceAsync();
+    public Task InitializeAsync() => ResetAsync();
 
     // The other tests in the collection expect Claude, the .env default.
-    public Task DisposeAsync() => ForgetChoiceAsync();
+    public Task DisposeAsync() => ResetAsync();
 
     [Fact]
     public async Task The_registered_apps_are_listed_and_Claude_is_chosen_until_another_is_saved()
@@ -23,8 +23,9 @@ public sealed class ChatAppTests(PowerLoomHost host) : IAsyncLifetime
         var apps = await host.Host.GetAsJson<ChatApps>("/api/chats/apps");
 
         Assert.Equal(ClaudeDesktopLauncher.LauncherId, apps!.Current);
-        Assert.Contains(new ChatApp(ClaudeDesktopLauncher.LauncherId, "Claude"), apps.Apps);
-        Assert.Contains(new ChatApp(ProbeChatLauncher.LauncherId, "Probe App"), apps.Apps);
+        Assert.Contains(new ChatApp(ClaudeDesktopLauncher.LauncherId, "Claude", true), apps.Apps);
+        Assert.Contains(new ChatApp(CodexDesktopLauncher.LauncherId, "Codex", false), apps.Apps);
+        Assert.Contains(new ChatApp(ProbeChatLauncher.LauncherId, "Probe App", true), apps.Apps);
     }
 
     [Fact]
@@ -50,13 +51,56 @@ public sealed class ChatAppTests(PowerLoomHost host) : IAsyncLifetime
 
         var refused = await host.Host.Scenario(scenario =>
         {
-            scenario.Put.Json(new ChooseChatAppRequest("codex-desktop")).ToUrl("/api/chats/app");
+            scenario.Put.Json(new ChooseChatAppRequest("no-such-app")).ToUrl("/api/chats/app");
             scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
         });
         var apps = await host.Host.GetAsJson<ChatApps>("/api/chats/apps");
 
-        Assert.Contains("Unknown chat app \\\"codex-desktop\\\"", await refused.ReadAsTextAsync());
+        Assert.Contains("Unknown chat app \\\"no-such-app\\\"", await refused.ReadAsTextAsync());
         Assert.Equal(ProbeChatLauncher.LauncherId, apps!.Current);
+    }
+
+    [Fact]
+    public async Task Codex_can_be_chosen_only_once_it_is_connected_and_then_opens_the_chats()
+    {
+        var refused = await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId)).ToUrl("/api/chats/app");
+            scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
+        });
+
+        host.Host.Services.GetRequiredService<FakeCodexLogin>().Connected = true;
+
+        var saved = await host.Host.PutJson(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId), "/api/chats/app").Receive<ChatApps>();
+        var launcher = await host.Host.GetAsJson<LauncherAvailability>("/api/chats/launcher");
+        var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Vault, PowerLoomHost.Vault), "/api/chats").Receive<ChatLink>();
+
+        Assert.Contains("Connect Codex in Settings → AI providers", await refused.ReadAsTextAsync());
+        Assert.Equal(CodexDesktopLauncher.LauncherId, saved!.Current);
+        Assert.Contains(new ChatApp(CodexDesktopLauncher.LauncherId, "Codex", true), saved.Apps);
+        Assert.Equal(new LauncherAvailability("Codex", null), launcher);
+        Assert.StartsWith("codex://new?path=", link!.Url);
+    }
+
+    [Fact]
+    public async Task Saving_the_chosen_app_again_after_it_got_disconnected_is_no_refusal()
+    {
+        var codex = host.Host.Services.GetRequiredService<FakeCodexLogin>();
+
+        codex.Connected = true;
+        await host.Host.PutJson(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId), "/api/chats/app").Receive<ChatApps>();
+        codex.Connected = false;
+
+        var saved = await host.Host.PutJson(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId), "/api/chats/app").Receive<ChatApps>();
+
+        Assert.Equal(CodexDesktopLauncher.LauncherId, saved!.Current);
+        Assert.Contains(new ChatApp(CodexDesktopLauncher.LauncherId, "Codex", false), saved.Apps);
+    }
+
+    private async Task ResetAsync()
+    {
+        host.Host.Services.GetRequiredService<FakeCodexLogin>().Reset();
+        await ForgetChoiceAsync();
     }
 
     private async Task ForgetChoiceAsync()

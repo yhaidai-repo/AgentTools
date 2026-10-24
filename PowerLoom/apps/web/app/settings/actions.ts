@@ -1,11 +1,15 @@
 "use server";
 
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
+import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AzureLoginStart } from "@/models/AzureLoginStart";
 import type { AzureLoginStatus } from "@/models/AzureLoginStatus";
+import type { CodexLoginStart, CodexLoginStatus } from "@/lib/aiProviders";
+import { messageResult } from "@/lib/messageResult";
 
 // The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06). PowerLoom saves
 // them and schedules the vault's jobs from the saved settings: nothing to apply here.
@@ -75,10 +79,9 @@ export async function saveCleanupSettingsAction(_previous: ActionResult | null, 
 
 // Starts the vault's cleanup now (with the saved settings); the report lands on the dashboard's Application tab.
 export async function runCleanupAction(_previous: ActionResult | null, _form: FormData): Promise<ActionResult> {
-  const vault = await requireVault();
-  const started = await powerloom.POST("/api/vaults/{vault}/cleanup/run", { params: { path: { vault } } });
+  const started = await runWebCommand(runCleanupCommand, { vault: await requireVault() });
 
-  return powerloomResult(started, "Cleanup started; see the dashboard's Application tab for its report.");
+  return messageResult(started);
 }
 
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -112,20 +115,20 @@ export async function testConnection(_previous: ActionResult | null, form: FormD
 
 // Repository configuration (user decision 2026-10-06), kept by PowerLoom.
 export async function setRepoEnabledAction(id: string, enabled: boolean): Promise<void> {
-  await powerloom.PUT("/api/vaults/{vault}/repos/{id}/enabled", { params: { path: { vault: await requireVault(), id } }, body: { enabled } });
+  await runWebCommand(enableRepoCommand, { vault: await requireVault(), id, enabled });
   revalidatePath("/settings");
 }
 
 export async function addLocalRepoAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const added = await powerloom.POST("/api/vaults/{vault}/repos/local", { params: { path: { vault: await requireVault() } }, body: { name: field(form, "name") } });
+  const added = await runWebCommand(addLocalRepoCommand, { vault: await requireVault(), name: field(form, "name") });
 
   revalidatePath("/settings");
 
-  return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
+  return added.ok ? { ok: true, message: `${added.value.name} added and enabled.` } : { ok: false, message: added.error };
 }
 
 export async function removeLocalRepoAction(id: string): Promise<void> {
-  await powerloom.DELETE("/api/vaults/{vault}/repos/{id}", { params: { path: { vault: await requireVault(), id } } });
+  await runWebCommand(removeRepoCommand, { vault: await requireVault(), id });
   revalidatePath("/settings");
 }
 
@@ -301,6 +304,52 @@ export async function saveChatAppAction(_previous: ActionResult | null, form: Fo
   const result = powerloomResult(saved, `Saved. Chats open in ${label}.`);
 
   revalidatePath("/", "layout");
+
+  return result;
+}
+
+// Connect Codex (Settings → AI providers): the agent-runner signs in to PowerLoom's own Codex home with a device code.
+export async function startCodexLoginAction(): Promise<{ ok: true; start: CodexLoginStart } | { ok: false; message: string }> {
+  const started = await powerloom.POST("/api/ai-providers/codex/login");
+
+  return started.data ? { ok: true, start: started.data } : { ok: false, message: powerloomResult(started, "").message };
+}
+
+export async function codexLoginStatusAction(): Promise<CodexLoginStatus> {
+  const status = await powerloom.GET("/api/ai-providers/codex/login");
+
+  if (!status.data) {
+    return { status: "failed", error: powerloomResult(status, "").message, output: "" };
+  }
+
+  if (status.data.status === "done") {
+    revalidatePath("/settings");
+  }
+
+  return status.data;
+}
+
+export async function cancelCodexLoginAction(): Promise<ActionResult> {
+  return powerloomResult(await powerloom.POST("/api/ai-providers/codex/login/cancel"), "Cancelled. Connect Codex starts a new sign-in.");
+}
+
+export async function disconnectCodexAction(): Promise<ActionResult> {
+  const disconnected = await powerloom.DELETE("/api/ai-providers/codex/login");
+  const result = powerloomResult(disconnected, "Disconnected. Agents on Codex models stop until Codex is connected again.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// The fallback when the device sign-in fails: the auth.json of a PC where `codex login` worked.
+export async function saveCodexLoginFileAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const file = form.get("authJson");
+  const authJson = file instanceof File ? await file.text() : "";
+  const saved = await powerloom.PUT("/api/ai-providers/codex/login-file", { body: { authJson: authJson || null } });
+  const result = powerloomResult(saved, "Saved. Codex is connected with the uploaded login.");
+
+  revalidatePath("/settings");
 
   return result;
 }

@@ -18,7 +18,7 @@ const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower
 // agent is for before; this command validates and saves.
 export const createAgentCommand: Command<CreateAgentInput, { id: string; promptVersion: number; enabled: boolean }> = {
   name: "agent.create",
-  description: "Create a PowerLoom agent that runs on the generic executor: id, label, the one-line description for the Agents page, its prompt ({{framework}} inserts the shared framework; {{team}} and {{agent}} are filled per run), the task types it takes, the skills it may load (existing names; make one with skill.create first), the task types it may hand on, its grants (integration keys such as readRepos, readSql, writeNotes), and optionally model, limits, budgets, a cron schedule and enabled. Ask first what the agent's goal is, what it reads, what it produces, and which tasks it should take.",
+  description: "Create a PowerLoom agent that runs on the generic executor: id, label, the one-line description for the Agents page, its prompt ({{framework}} inserts the shared framework; {{team}} and {{agent}} are filled per run), the task types it takes, the skills it may load (existing names; make one with skill_create first), the task types it may hand on, its grants (integration keys such as readRepos, readSql, writeNotes), and optionally model, limits, budgets, a cron schedule and enabled. Ask first what the agent's goal is, what it reads, what it produces, and which tasks it should take.",
   input: z.object({
     id: z.string().trim().regex(AGENT_ID, "lower-case letters, digits and dashes").max(60),
     label: z.string().trim().min(1).max(80),

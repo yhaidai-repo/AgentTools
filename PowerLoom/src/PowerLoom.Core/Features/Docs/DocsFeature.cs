@@ -7,6 +7,7 @@ public static class DocsFeature
     public static IServiceCollection AddDocsFeature(this IServiceCollection services)
     {
         services.AddScoped<RecordSources>();
+        services.AddScoped<ChatRecords>();
         services.AddScoped<IRecordWriter, WwwRecordWriter>();
         services.AddScoped<IRecordWriter, FindingRecordWriter>();
 

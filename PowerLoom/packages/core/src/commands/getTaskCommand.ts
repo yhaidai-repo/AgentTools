@@ -14,7 +14,7 @@ type GetTaskInput = z.infer<typeof input>;
 export const getTaskCommand: Command<GetTaskInput, ItemDetail> = {
   name: "task.get",
   effect: "read",
-  description: "Read one task, question or finding by its id: its body and data (held-by reasons, resolution, answers), its uploads (without bytes), the findings it raised and its runs with their outputs. Pass a run's id to run.get for its trace.",
+  description: "Read one task, question or finding by its id: its body and data (held-by reasons, resolution, answers), its uploads (without bytes), the findings it raised and its runs with their outputs. Pass a run's id to run_get for its trace.",
   input,
   async run(context, input) {
     const detail = await loadItemDetail(context.db, input.id);

@@ -9,6 +9,7 @@ public static class VaultsFeature
     {
         services.AddSingleton<TrashFolder>();
         services.AddSingleton<McpConnectionFile>();
+        services.AddSingleton<CodexConfigFile>();
         services.AddSingleton<VaultInitializer>();
         services.AddScoped<VaultReviewSchedule>();
         // After the database migrator (registered first): it reads the connected vaults.

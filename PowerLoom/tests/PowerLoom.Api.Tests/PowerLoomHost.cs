@@ -1,3 +1,4 @@
+using PowerLoom.Features.AiProviders;
 using PowerLoom.Infrastructure.ChatLaunch;
 using PowerLoom.Infrastructure.LocalBranches;
 using Alba;
@@ -108,6 +109,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<FakeDevHubBrowserArtefacts>();
         services.AddSingleton<IDevHubBrowserArtefacts>(provider => provider.GetRequiredService<FakeDevHubBrowserArtefacts>());
         services.AddSingleton<IChatLauncher, ProbeChatLauncher>();
+        services.AddSingleton<FakeCodexLogin>();
+        services.AddSingleton<ICodexLogin>(provider => provider.GetRequiredService<FakeCodexLogin>());
         services.AddSingleton<FakeAzureUserLogin>();
         services.AddSingleton<IAzureUserLogin>(provider => provider.GetRequiredService<FakeAzureUserLogin>());
         services.ConfigureWolverine(options =>

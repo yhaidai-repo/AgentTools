@@ -1,11 +1,21 @@
 import type { ChatTarget, CloseItemRequest, CreatePbiInput, DeadLetter, ItemStatus, Outcome, PbiFeedback, PbiSkillChoices, PowerLoomPort, ReportBugInput, SystemStatus } from "@powerloom/core";
 import type { PowerLoomClient } from "./createPowerLoomClient";
 import type { components } from "./schema";
+import { captureWorkPort } from "./captureWorkPort";
+import { pbiWorkPort } from "./pbiWorkPort";
 import { powerloomFailure, problemDetail } from "./powerloomFailure";
+import { reviewWorkPort } from "./reviewWorkPort";
+import { taskWorkPort } from "./taskWorkPort";
+import { vaultWorkPort } from "./vaultWorkPort";
 
-// The commands' way to PowerLoom over its API: one adapter for every caller (the web, the CLI, the MCP server).
+// The commands' way to PowerLoom over its API: one adapter for every caller (the web, the MCP server).
 export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
   return {
+    ...pbiWorkPort(powerloom),
+    ...taskWorkPort(powerloom),
+    ...reviewWorkPort(powerloom),
+    ...vaultWorkPort(powerloom),
+    ...captureWorkPort(powerloom),
     // PowerLoom answers 202 when the record is queued; anything else is an unexpected failure of the change.
     async addRecord(kind, sourceId) {
       const { response, error } = await powerloom.POST("/api/records", { body: { kind, sourceId } });

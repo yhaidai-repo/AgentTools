@@ -3,7 +3,7 @@ import { renderBug } from "./bugTool";
 
 const ACTOR = "agent:autotest";
 
-// Bugs go through PowerLoom's bug endpoint (the same path QA's bugs and the CLI's bug.report take): a [BUG] task under
+// Bugs go through PowerLoom's bug endpoint (the same path QA's bugs and a chat's bug_report take): a [BUG] task under
 // the PBI plus its bug record, prepared for the pipeline on the next tick. Returns the created ids in the drafts'
 // order, so `bug:<n>` references resolve.
 export async function commitBugs(powerloomUrl: string, pbiId: number, bugs: AutotestDraft["bugs"], fetcher: typeof fetch = fetch): Promise<string[]> {

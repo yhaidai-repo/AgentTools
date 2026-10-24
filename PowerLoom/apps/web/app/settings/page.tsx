@@ -14,6 +14,7 @@ import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { ChatAppForm } from "./ChatAppForm";
 import { ClaudeTokenForm } from "./ClaudeTokenForm";
+import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
@@ -112,6 +113,7 @@ async function AiProvidersTab({ providers }: { providers: ProviderStatus[] | nul
     <>
       <p className="quiet-line">These settings are for the whole PowerLoom, not only this vault.</p>
       <ClaudeTokenForm status={providers?.find((provider) => provider.provider === "anthropic") ?? null} />
+      <CodexConnectForm status={providers?.find((provider) => provider.provider === "openai-codex") ?? null} />
       <ChatAppForm apps={await loadChatApps()} />
     </>
   );

@@ -38,7 +38,7 @@ interface RunListEntry {
 export const listRunsCommand: Command<RunListInput, RunListEntry[]> = {
   name: "run.list",
   effect: "read",
-  description: "List a vault's agent runs in a period, newest first: id (RUN-<n>), agent (stage), PBI, task, outcome, error, cost and tokens once ended. Filter by agent id and outcome group. Pass an id to run.get or run.events.",
+  description: "List a vault's agent runs in a period, newest first: id (RUN-<n>), agent (stage), PBI, task, outcome, error, cost and tokens once ended. Filter by agent id and outcome group. Pass an id to run_get or run_events.",
   input,
   async run(context, input) {
     if (!context.usage) {

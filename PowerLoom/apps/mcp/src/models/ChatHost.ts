@@ -1,7 +1,7 @@
 import type { AgentConfigStore } from "@agenttools/config";
 import type { UsageStore } from "@agenttools/usage";
 import type { AgentDepsFactory } from "@powerloom/agents";
-import type { PowerLoomPort, SkillCatalog } from "@powerloom/core";
+import type { HostFolder, PowerLoomPort, SkillCatalog } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 
 // What every chat session is built from: the vault deps, and the commands' context (PowerLoom, the skill folders).
@@ -15,4 +15,6 @@ export interface ChatHost {
   agents: AgentConfigStore;
   /** The runs' usage and traces, for the read commands on runs and costs. */
   usage: UsageStore;
+  /** The PC folders this container mounts (vaults, repos): a chat names a file by its PC path (pbi.attach). */
+  hostFolders: HostFolder[];
 }

@@ -9,7 +9,7 @@ const input = z.object({ vault: vaultInput });
 export const listSchedulesCommand: Command<{ vault: string }, TaskSchedule[]> = {
   name: "schedule.list",
   effect: "read",
-  description: "List a vault's scheduled tasks as the Tasks page shows them: name, agent, cron, the task params each tick creates, enabled, and what the last tick did. Pass an id to schedule.get for one.",
+  description: "List a vault's scheduled tasks as the Tasks page shows them: name, agent, cron, the task params each tick creates, enabled, and what the last tick did. Pass an id to schedule_get for one.",
   input,
   async run(context, input) {
     const schedules = await listVaultTaskSchedules(context.db, input.vault);

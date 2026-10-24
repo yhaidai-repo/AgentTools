@@ -1,6 +1,6 @@
 "use server";
 
-import { closePbiCommand, createPbiCommand, finishPbiCommand, isAdoActive, reopenPbiCommand, savePbiReposCommand, parsePbiReference, readAdoSettings, readSyncSettings, saveSyncSettings, type Outcome, type PbiFeedback } from "@powerloom/core";
+import { adoIntegrationProblem, closePbiCommand, createPbiCommand, preparePbisCommand, finishPbiCommand, importNowCommand, reopenPbiCommand, savePbiReposCommand, readSyncSettings, saveSyncSettings, syncPbisCommand, type Outcome, type PbiFeedback } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
@@ -9,12 +9,13 @@ import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
+import { messageResult } from "@/lib/messageResult";
 
 // The picked sprint becomes the sync setting (user decision 2026-10-02): Sync now, the scheduled sync and the Backlog
 // list all follow it.
 export async function syncNow(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const vault = await requireVault();
-  const problem = await integrationProblem(vault);
+  const problem = await adoIntegrationProblem(getDb(), vault);
 
   if (problem) {
     return { ok: false, message: problem };
@@ -24,12 +25,7 @@ export async function syncNow(_previous: ActionResult | null, form: FormData): P
   revalidatePath("/pbis");
 
   // PowerLoom runs one vault's syncs one after the other.
-  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null, sources: "sprint" } }), "Sync queued. Refresh in a moment.");
-}
-
-// Syncing and importing need the vault's Azure DevOps integration (user decision 2026-10-06).
-async function integrationProblem(vault: string): Promise<string | null> {
-  return isAdoActive(await readAdoSettings(getDb(), vault)) ? null : `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.`;
+  return messageResult(await runWebCommand(syncPbisCommand, { vault, pbi: null }));
 }
 
 async function saveSyncSprint(vault: string, sprint: string): Promise<void> {
@@ -57,15 +53,13 @@ export async function preparePbiAction(adoId: number): Promise<ActionResult> {
 }
 
 async function preparePbis(adoIds: number[]): Promise<ActionResult> {
-  const prepared = await powerloom.POST("/api/pbis/prepare", { body: { adoIds } });
+  const prepared = await runWebCommand(preparePbisCommand, { adoIds });
 
-  if (!prepared.response.ok || !prepared.data) {
-    return powerloomResult(prepared, "");
+  if (!prepared.ok) {
+    return { ok: false, message: prepared.error };
   }
 
-  const closed = prepared.data.closed.length > 0 ? ` Skipped ${prepared.data.closed.map((adoId) => `PBI-${adoId}`).join(", ")}: closed, reopen first.` : "";
-
-  return { ok: true, message: `${prepared.data.queued.length} PBI(s) queued: notes written and a refinement task each (it starts on the Refinement schedule or "Run now").${closed}` };
+  return { ok: true, message: [prepared.value.message, ...prepared.value.skipped].join(" ") };
 }
 
 // The Backlog's Close and Reopen (user decision 2026-10-16): the selected PBIs in one request; a refused one is reported.
@@ -193,32 +187,18 @@ function selectedIds(form: FormData): number[] {
 
 // One PBI by id or ADO link (user decision 2026-10-02); PowerLoom holds the ADO token, so it fetches it.
 export async function syncOnePbi(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const adoId = parsePbiReference(String(form.get("pbi") ?? ""));
+  const pbi = formText(form, "pbi");
 
-  if (adoId === null) {
+  if (pbi === null) {
     return { ok: false, message: "Enter a PBI or Task id, or its Azure DevOps link." };
   }
 
-  const vault = await requireVault();
-  const problem = await integrationProblem(vault);
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
-
-  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId, sources: null } }), `PBI-${adoId} queued; reload in a few seconds (a failure shows on the Runs page).`);
+  return messageResult(await runWebCommand(syncPbisCommand, { vault: await requireVault(), pbi }));
 }
 
 // PowerLoom reads the import sources; one vault's syncs run one after the other.
 export async function importNow(): Promise<ActionResult> {
-  const vault = await requireVault();
-  const problem = await integrationProblem(vault);
-
-  if (problem) {
-    return { ok: false, message: problem };
-  }
-
-  return powerloomResult(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId: null, sources: "imports" } }), "Import queued; the list updates in a few seconds.");
+  return messageResult(await runWebCommand(importNowCommand, { vault: await requireVault() }));
 }
 
 // Deletes in PowerLoom only, through PowerLoom (it removes the PBI's notes too). Refused while an agent runs on it.
