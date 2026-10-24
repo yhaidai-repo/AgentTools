@@ -5,7 +5,7 @@ import type { Command } from "../models/Command";
 
 export const openChatCommand: Command<{ target: ChatTarget }, ChatLaunch> = {
   name: "chat.open",
-  description: "Continue a PBI, question, human task, finding or PR review with an agent app (model agnostic), or configure a vault for it: returns the link that opens a new chat with its context. A PBI moves to development.",
+  description: "Continue a PBI, question, human task, finding or PR review with an agent app (model agnostic), or configure a vault for it: returns the link that opens a new chat with its context. A PBI moves to development, so confirm with the user first, naming the PBI or item.",
   input: z.object({
     target: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("pbi"), adoId: z.number().int().positive() }),

@@ -7,7 +7,7 @@ import { mapOutcome } from "./mapOutcome";
 // The Backlog's Import now: PowerLoom reads the vault's import sources (the inbox, mails, recordings).
 export const importNowCommand: Command<{ vault: string }, { message: string }> = {
   name: "pbi.importNow",
-  description: "Import now: PowerLoom reads the vault's import sources (the import inbox) and turns new items into PBIs. Needs the vault's Azure DevOps integration.",
+  description: "Import now: PowerLoom reads the vault's import sources (the import inbox) and turns new items into PBIs. Needs the vault's Azure DevOps integration. Confirm with the user first, naming the vault.",
   input: z.object({ vault: vaultInput }),
   async run(context, input) {
     const problem = await adoIntegrationProblem(context.db, input.vault);
