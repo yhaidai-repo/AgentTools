@@ -27,6 +27,8 @@ The npm workspace root is `D:/Projects/AgentTools` (with `AgentConfig`, `AgentRu
 builds the TypeScript image from there, `Dockerfile` the backend from this folder.
 
 ## Run
+First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault>,…` (`.env`, folders,
+database volume, stack, vaults with their vault review schedule; safe to run again). By hand:
 ```bash
 cp .env.example .env               # passwords, paths, CLAUDE_CODE_OAUTH_TOKEN
 docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it (the name predates the rename)
