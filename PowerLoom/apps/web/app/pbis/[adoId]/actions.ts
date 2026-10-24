@@ -1,6 +1,6 @@
 "use server";
 
-import { savePbiReposCommand, savePbiSkillsCommand } from "@powerloom/core";
+import { savePbiReposCommand, savePbiSkillsCommand, savePbiUserNotesCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
@@ -74,10 +74,9 @@ export async function saveSkills(_previous: ActionResult | null, form: FormData)
 // The user's own notes: the PBI note's `## Notes` section, read by the agents with the note (user decision 2026-10-13).
 export async function saveUserNotes(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoId = Number(form.get("adoId"));
-  const body = { text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") };
-  const saved = await powerloom.PUT("/api/pbis/{adoId}/user-notes", { params: { path: { adoId } }, body });
+  const saved = await runWebCommand(savePbiUserNotesCommand, { adoId, text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") });
 
   revalidatePath(`/pbis/${adoId}`);
 
-  return powerloomResult(saved, "Saved to the PBI note. The next agent runs on this PBI read it.");
+  return saved.ok ? { ok: true, message: "Saved to the PBI note. The next agent runs on this PBI read it." } : { ok: false, message: saved.error };
 }
