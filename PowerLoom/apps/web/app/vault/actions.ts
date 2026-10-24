@@ -14,5 +14,7 @@ export async function trashAction(path: string, action: TrashAction): Promise<Ac
 
   revalidatePath("/vault");
 
-  return done.ok ? { ok: true, message: `${path} ${action === "restore" ? "restored" : "deleted"}.` } : { ok: false, message: done.error };
+  const verb = action === "restore" ? "restored" : "deleted";
+
+  return done.ok ? { ok: true, message: `${path} ${verb}.` } : { ok: false, message: done.error };
 }

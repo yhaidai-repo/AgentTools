@@ -9,6 +9,7 @@ import type { ActionResult } from "@/models/ActionResult";
 import type { AzureLoginStart } from "@/models/AzureLoginStart";
 import type { AzureLoginStatus } from "@/models/AzureLoginStatus";
 import type { CodexLoginStart, CodexLoginStatus } from "@/lib/aiProviders";
+import { messageResult } from "@/lib/messageResult";
 
 // The integration's switch and fields; an empty token keeps the saved one (user decision 2026-10-06). PowerLoom saves
 // them and schedules the vault's jobs from the saved settings: nothing to apply here.
@@ -80,7 +81,7 @@ export async function saveCleanupSettingsAction(_previous: ActionResult | null, 
 export async function runCleanupAction(_previous: ActionResult | null, _form: FormData): Promise<ActionResult> {
   const started = await runWebCommand(runCleanupCommand, { vault: await requireVault() });
 
-  return started.ok ? { ok: true, message: started.value.message } : { ok: false, message: started.error };
+  return messageResult(started);
 }
 
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

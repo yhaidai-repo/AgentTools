@@ -1,19 +1,16 @@
 "use server";
 
-import { addReviewCommand, answerReviewCommentCommand, closeReviewCommand, deleteReviewCommand, queueReviewCommand, syncPullRequestsCommand, type Outcome } from "@powerloom/core";
+import { addReviewCommand, answerReviewCommentCommand, closeReviewCommand, deleteReviewCommand, queueReviewCommand, syncPullRequestsCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
 import { formText } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
+import { messageResult } from "@/lib/messageResult";
 
 // PowerLoom checks the vault's pull requests; one vault's checks run one after the other.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
-  return messageOf(await runWebCommand(syncPullRequestsCommand, { vault: await requireVault() }));
-}
-
-function messageOf(outcome: Outcome<{ message: string }>): ActionResult {
-  return outcome.ok ? { ok: true, message: outcome.value.message } : { ok: false, message: outcome.error };
+  return messageResult(await runWebCommand(syncPullRequestsCommand, { vault: await requireVault() }));
 }
 
 // The answer feeds the agent's next run on this PR (user decision 2026-10-02). An empty answer takes it back.
@@ -32,7 +29,7 @@ export async function answerComment(_previous: ActionResult | null, form: FormDa
 // Local only: ADO isn't told (user decision 2026-10-02). Rerun reopens it.
 export async function closeReviewAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const prId = Number(form.get("prId"));
-  const result = messageOf(await runWebCommand(closeReviewCommand, { prId, reason: formText(form, "reason") }));
+  const result = messageResult(await runWebCommand(closeReviewCommand, { prId, reason: formText(form, "reason") }));
 
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
@@ -51,7 +48,7 @@ export async function addReview(_previous: ActionResult | null, form: FormData):
 
   revalidatePath("/reviews");
 
-  return added.ok ? { ok: true, message: added.value.message } : { ok: false, message: added.error };
+  return messageResult(added);
 }
 
 export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -77,7 +74,7 @@ async function forSelected(form: FormData, done: string, act: (prId: number) => 
 
 // The review page's Close (no reason) and Delete (user decision 2026-10-06: the same actions on the grid and the review page).
 export async function closeReview(prId: number): Promise<ActionResult> {
-  const result = messageOf(await runWebCommand(closeReviewCommand, { prId, reason: null }));
+  const result = messageResult(await runWebCommand(closeReviewCommand, { prId, reason: null }));
 
   revalidatePath("/reviews");
 
@@ -101,5 +98,5 @@ export async function queueReview(prId: number): Promise<ActionResult> {
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return messageOf(queued);
+  return messageResult(queued);
 }

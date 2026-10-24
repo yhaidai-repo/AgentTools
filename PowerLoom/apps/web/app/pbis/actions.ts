@@ -9,6 +9,7 @@ import { getDb } from "@/lib/db";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import { formText, readUploads } from "@/lib/formFields";
 import type { ActionResult } from "@/models/ActionResult";
+import { messageResult } from "@/lib/messageResult";
 
 // The picked sprint becomes the sync setting (user decision 2026-10-02): Sync now, the scheduled sync and the Backlog
 // list all follow it.
@@ -24,11 +25,7 @@ export async function syncNow(_previous: ActionResult | null, form: FormData): P
   revalidatePath("/pbis");
 
   // PowerLoom runs one vault's syncs one after the other.
-  return messageOf(await runWebCommand(syncPbisCommand, { vault, pbi: null }));
-}
-
-function messageOf(outcome: Outcome<{ message: string }>): ActionResult {
-  return outcome.ok ? { ok: true, message: outcome.value.message } : { ok: false, message: outcome.error };
+  return messageResult(await runWebCommand(syncPbisCommand, { vault, pbi: null }));
 }
 
 async function saveSyncSprint(vault: string, sprint: string): Promise<void> {
@@ -196,12 +193,12 @@ export async function syncOnePbi(_previous: ActionResult | null, form: FormData)
     return { ok: false, message: "Enter a PBI or Task id, or its Azure DevOps link." };
   }
 
-  return messageOf(await runWebCommand(syncPbisCommand, { vault: await requireVault(), pbi }));
+  return messageResult(await runWebCommand(syncPbisCommand, { vault: await requireVault(), pbi }));
 }
 
 // PowerLoom reads the import sources; one vault's syncs run one after the other.
 export async function importNow(): Promise<ActionResult> {
-  return messageOf(await runWebCommand(importNowCommand, { vault: await requireVault() }));
+  return messageResult(await runWebCommand(importNowCommand, { vault: await requireVault() }));
 }
 
 // Deletes in PowerLoom only, through PowerLoom (it removes the PBI's notes too). Refused while an agent runs on it.

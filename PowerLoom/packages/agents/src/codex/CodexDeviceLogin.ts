@@ -80,7 +80,14 @@ export class CodexDeviceLogin {
     }
 
     this.child = null;
-    this.end(code === 0 ? "done" : "failed", code === 0 ? null : `codex login ended: ${plainText(this.output).trim() || `exit code ${code}`}`);
+
+    if (code === 0) {
+      this.end("done", null);
+
+      return;
+    }
+
+    this.end("failed", `codex login ended: ${plainText(this.output).trim() || `exit code ${code}`}`);
   }
 
   private end(state: "done" | "failed", error: string | null): void {

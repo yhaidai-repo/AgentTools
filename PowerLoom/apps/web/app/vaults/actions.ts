@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
 import type { AddVaultResult } from "@/models/AddVaultResult";
+import { messageResult } from "@/lib/messageResult";
 
 // PowerLoom adds the vault and prepares its folder and files (PowerLoom's templates); the page waits for it.
 export async function addVaultAction(_previous: AddVaultResult | null, form: FormData): Promise<AddVaultResult> {
@@ -25,5 +26,5 @@ export async function removeVaultAction(_previous: ActionResult | null, form: Fo
 
   revalidatePath("/", "layout");
 
-  return removed.ok ? { ok: true, message: removed.value.message } : { ok: false, message: removed.error };
+  return messageResult(removed);
 }

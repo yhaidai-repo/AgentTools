@@ -116,10 +116,20 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
 
     private static RecordClosingEdit ClosingOf(CloseRegisterRecordRequest request, DateOnly today)
     {
-        var duplicate = request.DuplicateOf is { } original ? $"Duplicate of {original.Id}{(original.Path == request.Path ? "" : $" ({original.Path})")}. " : "";
-        var decision = OneLine($"{duplicate}{request.Decision}");
+        var decision = OneLine($"{DuplicateNote(request)}{request.Decision}");
 
         return new RecordClosingEdit(request.Status == "fixed" ? "Fixed" : "Resolved", $"{OneLine(request.DecidedBy)}, {today:yyyy-MM-dd}", decision);
+    }
+
+    // "Duplicate of KI-001. ", with the register when it is another one.
+    private static string DuplicateNote(CloseRegisterRecordRequest request)
+    {
+        if (request.DuplicateOf is not { } original)
+            return "";
+
+        var elsewhere = original.Path == request.Path ? "" : $" ({original.Path})";
+
+        return $"Duplicate of {original.Id}{elsewhere}. ";
     }
 
     // The decision block is one line: a line break could start a heading (a record) of its own.
