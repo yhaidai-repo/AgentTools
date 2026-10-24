@@ -31,6 +31,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
 
         Assert.StartsWith($"claude://code/new?folder={Uri.EscapeDataString($"{PowerLoomHost.HostRoot}/test-vault")}&q=", link!.Url);
         Assert.Contains(Uri.EscapeDataString($"{PowerLoomHost.AgentTools}"), link.Url);
+        Assert.DoesNotContain("Add these folders to this session", PromptOf(link));
         Assert.Contains("# Configure the vault test-vault for Claude", note);
         Assert.Contains("## Setup", note);
         Assert.Contains("CLAUDE.md", note);
@@ -57,9 +58,9 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains($"{PowerLoomHost.HostRoot}/test-vault/adoa/adoa-open-questions.md", note);
         Assert.Contains("**Recommendation**", note);
         Assert.Contains("## At the end", note);
-        Assert.Contains("finding.submit` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"type\":\"question\",\"project\":\"adoa\"", note);
-        Assert.Contains("item.close` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"decision\":\"dismiss\"", note);
-        Assert.DoesNotContain("pbi.read", note);
+        Assert.Contains("finding_submit` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"type\":\"question\",\"project\":\"adoa\"", note);
+        Assert.Contains("item_close` with `{\"itemId\":\"FND-7001\",\"adoId\":null,\"decision\":\"dismiss\"", note);
+        Assert.DoesNotContain("pbi_read", note);
         Assert.EndsWith("## Notes\nMy own remark.\n", note);
         Assert.DoesNotContain("stale", note);
         Assert.Contains("## The item", PromptOf(link));
@@ -78,7 +79,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("# Help me follow up on agent task GT-7002: Map the payers", note);
         Assert.Contains("**What the agent did**", note);
         Assert.Contains("Result:\n\nThree payers map to one code.", note);
-        Assert.Contains("task.rerun` with `{\"itemId\":\"GT-7002\",\"adoId\":null,\"startOver\":false}`", note);
+        Assert.Contains("task_rerun` with `{\"itemId\":\"GT-7002\",\"adoId\":null,\"startOver\":false}`", note);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ using PowerLoom.Persistence.PullRequests;
 namespace PowerLoom.Features.Continue.Targets;
 
 // A review's chat (user decision 2026-10-05): review only, no fixes. The note holds the PR, PowerLoom's summary and the
-// comments with their answers; after the user's yes the chat answers the open comments in PowerLoom, one command per
+// comments with their answers; after the user's yes the chat answers the open comments in PowerLoom, one tool call per
 // comment (user decision 2026-10-21).
 public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
 {
@@ -19,9 +19,9 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
     private const string CodeFence = "````";
 
 
-    // One command per answered comment; an empty answer takes an answer back. The next review run reads the answers.
-    private static readonly string AtTheEnd = "Show the user every answer first and run the commands only after their yes. The input goes on stdin (a heredoc), so the text needs no shell quoting.\n"
-        + $"- Answer a comment: `{ChatNote.PowerLoomCli} review.answerComment` with `{{\"commentId\":\"<id from Comments>\",\"answer\":\"<the answer, markdown>\"}}`, once per comment.";
+    // One call per answered comment; an empty answer takes an answer back. The next review run reads the answers.
+    private static readonly string AtTheEnd = "Show the user every answer first and call the tool only after their yes.\n"
+        + $"- Answer a comment: `{ChatNote.Tool("review.answerComment")}` with `{{\"commentId\":\"<id from Comments>\",\"answer\":\"<the answer, markdown>\"}}`, once per comment.";
 
     private static readonly IReadOnlyList<string> Briefing =
     [

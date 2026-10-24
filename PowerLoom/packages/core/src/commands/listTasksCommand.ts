@@ -19,7 +19,7 @@ type ListTasksInput = z.infer<typeof input>;
 export const listTasksCommand: Command<ListTasksInput, TaskListRow[]> = {
   name: "task.list",
   effect: "read",
-  description: "List a vault's tasks, questions and findings created in the period, as the Tasks page does: what waits on you first, then the latest change. Filter by PBI, kind or status; pass an id (RT-…, Q-…, HT-…, F-…) to task.get for the body.",
+  description: "List a vault's tasks, questions and findings created in the period, as the Tasks page does: what waits on you first, then the latest change. Filter by PBI, kind or status; pass an id (RT-…, Q-…, HT-…, F-…) to task_get for the body.",
   input,
   async run(context, input) {
     const rows = await loadTaskList(context.db, { pbi: input.pbi ?? "", range: input.period }, input.vault);

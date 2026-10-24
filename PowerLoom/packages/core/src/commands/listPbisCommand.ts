@@ -23,7 +23,7 @@ interface ListPbisValue {
 export const listPbisCommand: Command<ListPbisInput, ListPbisValue> = {
   name: "pbi.list",
   effect: "read",
-  description: "List a vault's PBIs as the Backlog page does: newest change first, a child item after its parent, with what waits on you per PBI. Filter by pipeline status or a search term; pass an adoId to pbi.get or pbi.read for one PBI.",
+  description: "List a vault's PBIs as the Backlog page does: newest change first, a child item after its parent, with what waits on you per PBI. Filter by pipeline status or a search term; pass an adoId to pbi_get or pbi_read for one PBI.",
   input,
   async run(context, input) {
     const rows = await loadBacklogRows(context.db, input.vault);

@@ -4,8 +4,8 @@ import type { Command } from "../models/Command";
 // The Agents page's Run now: PowerLoom validates the agent's open tasks and starts the valid ones, as its schedule would.
 export const runAgentCommand: Command<{ id: string }, { agentId: string; message: string }> = {
   name: "agent.run",
-  description: "Run an agent now, as its schedule would: PowerLoom checks the agent's open tasks and starts the valid ones (held tasks keep their reasons, see task.list). Answers at once; run.list shows what started.",
-  input: z.object({ id: z.string().trim().min(1).describe("The agent's id (agent.list)") }),
+  description: "Run an agent now, as its schedule would: PowerLoom checks the agent's open tasks and starts the valid ones (held tasks keep their reasons, see task_list). Answers at once; run_list shows what started. Confirm with the user first, naming the agent.",
+  input: z.object({ id: z.string().trim().min(1).describe("The agent's id (agent_list)") }),
   async run(context, input) {
     const agent = await context.agents?.get(input.id);
 

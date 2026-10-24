@@ -17,7 +17,7 @@ const HINT = "pbi.read with ref TC-<adoId> gives the case in full (its steps and
 export const listTestCasesCommand: Command<{ pbiId: number }, ListTestCasesValue> = {
   name: "testcase.list",
   effect: "read",
-  description: "List the Azure DevOps Test Cases saved for a PBI (title, state, step count, when fetched). Empty when none were fetched yet. Pass TC-<adoId> to pbi.read for a case's steps.",
+  description: "List the Azure DevOps Test Cases saved for a PBI (title, state, step count, when fetched). Empty when none were fetched yet. Pass TC-<adoId> to pbi_read for a case's steps.",
   input,
   async run(context, input) {
     const testCases = await listTestCases(context.db, input.pbiId);

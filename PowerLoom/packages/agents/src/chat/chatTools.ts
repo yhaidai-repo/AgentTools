@@ -23,8 +23,14 @@ export function chatTools(deps: AgentDeps, agent: AgentDefinition, principal: Ch
   const access: OutsideAccessContext = { vault: principal.vault, agentId: agent.id, runId: null, owner: chatOwner(principal.sessionId), taskId: null, pbiId: null };
   const readers = readingTools(deps, agent, access, `CHAT-${principal.sessionId}`);
 
-  return withChatLogging([...readers, ...withoutTaken(commandTools(commands), readers)], deps.accessLog, access);
+  const sessionVault = (command: { name: string }) => (WRITES_INTO_SESSION_VAULT.has(command.name) ? { vault: principal.vault } : {});
+
+  return withChatLogging([...readers, ...withoutTaken(commandTools(commands, sessionVault), readers)], deps.accessLog, access);
 }
+
+// The capture tools (stage 5) write the notes of the chat's own vault: the session's vault, never one the chat names, so
+// a chat in one vault can't write into another.
+const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close"]);
 
 // A reader bound to the session's vault replaces the command of the same name that takes the vault as an argument
 // (sql_query, sql_describe, sql_databases): one tool per name, the session-scoped one.

@@ -5,7 +5,7 @@ import type { Command } from "../models/Command";
 // The Settings page's shared daily budget; AgentConfig validates the whole global record.
 export const saveAgentsGlobalCommand: Command<{ dailyBudgetUsd: number }, { dailyBudgetUsd: number }> = {
   name: "agent.saveGlobal",
-  description: "Set the daily budget all agents share (USD per UTC day); runs stop starting once it is spent. agent.global shows the current budget and today's spend. Show the user the current budget (agent.global) and the new one before calling.",
+  description: "Set the daily budget all agents share (USD per UTC day); runs stop starting once it is spent. agent_global shows the current budget and today's spend. Show the user the current budget (agent_global) and the new one before calling.",
   input: z.object({ dailyBudgetUsd: z.number().min(0).describe("USD per UTC day for all agents together") }),
   async run(context, input) {
     const agents = context.agents;

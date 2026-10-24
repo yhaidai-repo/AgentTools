@@ -23,13 +23,13 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         Assert.Contains("`git diff origin/development...origin/feature/501-cache`", note);
         Assert.Contains("[Open in Azure DevOps](https://dev.azure.com/x/pr/501) · PVS · `feature/501-cache` → `development` · by Sam", note);
         Assert.Contains("PBIs: [[PBI-31001]]", note);
-        Assert.Contains("pbi.read '{\"ref\":\"PBI-31001\"}'", note);
+        Assert.Contains("`pbi_read` with `{\"ref\":\"PBI-31001\"}`", note);
         Assert.Contains("## Summary\n\nLooks fine, one risk.", note);
         Assert.Contains("### RC-501-1 · major · open", note);
         Assert.Contains("`Cache.cs:10-12`", note);
         Assert.DoesNotContain("RC-501-2", note);
         Assert.Contains("- Review only: change no file.", note);
-        Assert.Contains("review.answerComment` with `{\"commentId\":\"<id from Comments>\"", note);
+        Assert.Contains("review_answerComment` with `{\"commentId\":\"<id from Comments>\"", note);
         Assert.Contains("## Pull request", Uri.UnescapeDataString(link.Url));
         Assert.DoesNotContain("### RC-501-1", Uri.UnescapeDataString(link.Url));
     }

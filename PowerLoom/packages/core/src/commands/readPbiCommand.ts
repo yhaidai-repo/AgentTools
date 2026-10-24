@@ -3,7 +3,7 @@ import type { Command } from "../models/Command";
 import type { PbiReadResult } from "../models/PbiReadResult";
 import { readPbiReference } from "../pbiContext/readPbiReference";
 
-// One tool for agents (read_pbi) and Claude chats (the CLI) alike (user decision 2026-10-13): the same prepared PBI
+// One tool for agents (read_pbi) and chats (pbi_read on the MCP server) alike (user decision 2026-10-13): the same prepared PBI
 // context, and any reference it lists.
 export const readPbiCommand: Command<{ ref: string }, PbiReadResult> = {
   name: "pbi.read",

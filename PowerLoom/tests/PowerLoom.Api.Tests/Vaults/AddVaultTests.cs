@@ -21,10 +21,11 @@ public sealed class AddVaultTests(PowerLoomHost host)
 
         Assert.Equal("notes-vault", added!.Vault);
         Assert.Equal(["draft/", ".usage/", ".obsidian/"], added.Created.Take(3));
-        Assert.Equal([".mcp.json", "AGENTS.md", "POWERLOOM.md"], added.Created.Skip(3).Order(StringComparer.Ordinal));
+        Assert.Equal([".codex/config.toml", ".mcp.json", "AGENTS.md", "POWERLOOM.md"], added.Created.Skip(3).Order(StringComparer.Ordinal));
         Assert.Contains($"vault at {PowerLoomHost.HostRoot}/notes-vault", agents);
         Assert.DoesNotContain("{{", agents);
         Assert.Contains("\"X-PowerLoom-Vault\": \"notes-vault\"", await File.ReadAllTextAsync(Path.Combine(root, ".mcp.json")));
+        Assert.Contains("\"X-PowerLoom-Vault\" = \"notes-vault\"", await File.ReadAllTextAsync(Path.Combine(root, ".codex", "config.toml")));
         Assert.True(await IsActiveVaultAsync("notes-vault"));
     }
 

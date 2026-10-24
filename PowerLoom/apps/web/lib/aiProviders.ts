@@ -4,6 +4,8 @@ import { powerloom } from "@/lib/powerloom";
 
 export type ProviderStatus = components["schemas"]["ProviderStatus"];
 export type ChatApps = components["schemas"]["ChatApps"];
+export type CodexLoginStart = components["schemas"]["CodexLoginStart"];
+export type CodexLoginStatus = components["schemas"]["CodexLoginStatus"];
 
 // Settings → AI providers (one for the whole PowerLoom): whether each provider is connected; null while PowerLoom isn't
 // reachable.

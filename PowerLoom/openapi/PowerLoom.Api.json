@@ -1607,6 +1607,165 @@
         }
       }
     },
+    "/api/vaults/{vault}/drafts": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_drafts",
+        "description": "POST_api_vaults_vault_drafts",
+        "operationId": "POST_api_vaults_vault_drafts",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCaptureResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/register-records": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_register_records",
+        "description": "POST_api_vaults_vault_register_records",
+        "operationId": "POST_api_vaults_vault_register_records",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRegisterRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedRegisterRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/register-records/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_register_records_close",
+        "description": "POST_api_vaults_vault_register_records_close",
+        "operationId": "POST_api_vaults_vault_register_records_close",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRegisterRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedRegisterRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/records": {
       "post": {
         "tags": [
@@ -2067,6 +2226,122 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/ai-providers/codex/login": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "POST_api_ai_providers_codex_login",
+        "description": "POST_api_ai_providers_codex_login",
+        "operationId": "POST_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStart"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "GET_api_ai_providers_codex_login",
+        "description": "GET_api_ai_providers_codex_login",
+        "operationId": "GET_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "DELETE_api_ai_providers_codex_login",
+        "description": "DELETE_api_ai_providers_codex_login",
+        "operationId": "DELETE_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-providers/codex/login/cancel": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "POST_api_ai_providers_codex_login_cancel",
+        "description": "POST_api_ai_providers_codex_login_cancel",
+        "operationId": "POST_api_ai_providers_codex_login_cancel",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-providers/codex/login-file": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "PUT_api_ai_providers_codex_login_file",
+        "description": "PUT_api_ai_providers_codex_login_file",
+        "operationId": "PUT_api_ai_providers_codex_login_file",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCodexLoginFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
           }
         }
       }
@@ -3269,6 +3544,49 @@
           }
         }
       },
+      "AddRegisterRecordRequest": {
+        "required": [
+          "project",
+          "kind",
+          "title",
+          "text",
+          "default",
+          "options"
+        ],
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "default": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "AddReviewRequest": {
         "required": [
           "vault",
@@ -3324,6 +3642,17 @@
         "type": "object",
         "properties": {
           "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedRegisterRecord": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "string"
           }
         }
@@ -3550,10 +3879,65 @@
           }
         }
       },
+      "CaptureDraftRequest": {
+        "required": [
+          "project",
+          "name",
+          "title",
+          "target",
+          "captured",
+          "assumptions",
+          "toFill",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "captured": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assumptions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "toFill": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
       "ChatApp": {
         "required": [
           "id",
-          "label"
+          "label",
+          "connected"
         ],
         "type": "object",
         "properties": {
@@ -3562,6 +3946,9 @@
           },
           "label": {
             "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
           }
         }
       },
@@ -3745,6 +4132,44 @@
           "cancel"
         ]
       },
+      "CloseRegisterRecordRequest": {
+        "required": [
+          "path",
+          "id",
+          "status",
+          "duplicateOf",
+          "decision",
+          "decidedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "duplicateOf": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordRef"
+              }
+            ]
+          },
+          "decision": {
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          }
+        }
+      },
       "CloseRequest": {
         "required": [
           "adoId",
@@ -3834,6 +4259,72 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "ClosedRegisterRecord": {
+        "required": [
+          "path",
+          "id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CodexLoginStart": {
+        "required": [
+          "verificationUri",
+          "userCode",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "verificationUri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      },
+      "CodexLoginStatus": {
+        "required": [
+          "status",
+          "error",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "output": {
+            "type": "string"
           }
         }
       },
@@ -4234,6 +4725,35 @@
         "properties": {
           "agentId": {
             "type": "string"
+          }
+        }
+      },
+      "DraftCaptureResult": {
+        "required": [
+          "ok",
+          "mode",
+          "path",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -4656,6 +5176,21 @@
           "known-issue"
         ]
       },
+      "RecordRef": {
+        "required": [
+          "path",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
       "RemoveLinkRequest": {
         "required": [
           "url"
@@ -4980,6 +5515,20 @@
           "failedRunBrowserArtefactDays": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SaveCodexLoginFileRequest": {
+        "required": [
+          "authJson"
+        ],
+        "type": "object",
+        "properties": {
+          "authJson": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5935,6 +6484,9 @@
     },
     {
       "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
     },
     {
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"

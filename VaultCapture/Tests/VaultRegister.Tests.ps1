@@ -88,4 +88,76 @@ Describe 'Add-VaultRegisterRecord' {
         $result.ok | Should -BeFalse
         $result.errors | Should -Contain 'title is required.'
     }
+
+    It 'rejects a title, a default or an option over two lines, and a heading line in the text' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = "Wrong total`n## KI-999 Fake"; text = "Sums twice.`n## KI-998 Fake"; default = @("a`nb"); options = @() }
+
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+
+        $result.ok | Should -BeFalse
+        $result.errors | Should -Contain 'title is one line.'
+        $result.errors | Should -Contain 'each default and option is one line.'
+        $result.errors | Should -Contain 'text has no heading lines (a line starting with #): it would start a record of its own.'
+        Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') | Should -Not -Contain '## KI-999 Fake'
+    }
+
+    It 'keeps a text over several lines' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = "Sums twice.`nSee #42 in the log." }
+
+        (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeTrue
+    }
+}
+
+Describe 'Register lock' {
+    BeforeEach {
+        $vaultRoot = New-RegisterVault
+        $config = [pscustomobject]@{ vaults = @([IO.Path]::GetFullPath($vaultRoot)) }
+        $vaultName = Split-Path -Leaf $vaultRoot
+        $lock = Join-Path $vaultRoot 'pvs' '.pvs-known-issues.md.lock'
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
+    }
+
+    It 'leaves no lock file after an add' {
+        (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeTrue
+
+        Test-Path -LiteralPath $lock | Should -BeFalse
+    }
+
+    It 'gives every one of parallel adds its own id' {
+        $module = Join-Path $PSScriptRoot '..' 'VaultCapture.psd1'
+        $jobs = 1..4 | ForEach-Object {
+            Start-ThreadJob -ArgumentList $module, $record, $config -ScriptBlock {
+                param($module, $record, $config)
+                Import-Module $module -Force
+                Add-VaultRegisterRecord -InputObject $record -Config $config
+            }
+        }
+        $results = @($jobs | Wait-Job | Receive-Job)
+        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md')
+
+        @($results | Where-Object ok).Count | Should -Be 4
+        ($results.id | Sort-Object) | Should -Be @('KI-001', 'KI-002', 'KI-003', 'KI-004')
+        @($content | Where-Object { $_ -like '## KI-*' }).Count | Should -Be 4
+    }
+
+    It 'answers busy while another writer holds the lock, and takes over a stale one' {
+        New-Item -ItemType File -Path $lock | Out-Null
+
+        $busy = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') } {
+            param($Path)
+            Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
+        }
+        (Get-Item -LiteralPath $lock -Force).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(-5)
+        $taken = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') } {
+            param($Path)
+            Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
+        }
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+
+        $taken | Should -Be 'written'
+        $busy.ok | Should -BeFalse
+        $busy.errors | Should -Contain 'the register is being written by another process: try again in a moment.'
+        $result.id | Should -Be 'KI-001'
+        Test-Path -LiteralPath $lock | Should -BeFalse
+    }
 }

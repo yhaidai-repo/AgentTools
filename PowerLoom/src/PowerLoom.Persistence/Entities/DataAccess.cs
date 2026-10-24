@@ -10,7 +10,7 @@ public partial class DataAccess
 
     public string AgentId { get; set; } = null!;
 
-    // Null for a chat's read through the CLI (user decision 2026-10-16).
+    // Null for a chat's read (user decision 2026-10-16; a chat session is not a run).
     public long? RunId { get; set; }
 
     public string? TaskId { get; set; }

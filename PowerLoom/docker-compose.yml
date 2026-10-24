@@ -41,6 +41,8 @@ services:
       # Claude's own folder on a volume: the runs' transcripts outlive a restart, so a task's next run continues a run
       # that didn't finish (user decision 2026-10-19). Auth is the token above or the one saved in Settings.
       CLAUDE_CONFIG_DIR: /agent-sessions
+      # PowerLoom's own Codex home (Settings → AI providers → Connect Codex signs in here), never the user's ~/.codex.
+      CODEX_HOME: /codex-home
       # ADO tokens are per vault, in Settings (user decision 2026-10-06): the runner reads them from the DB for its clones.
       # Agents with the Confluence integration on in their Config read and search pages with this account.
       CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
@@ -65,6 +67,7 @@ services:
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
       - repo-cache:/repo-cache
       - agent-sessions:/agent-sessions
+      - ./agent-homes/codex:/codex-home  # git-ignored; the install script creates it
       # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
       - ${REPOS_ROOT:?set in .env}:/repos:ro
     healthcheck:
@@ -133,6 +136,9 @@ services:
       VAULT_CAPTURE_HOME: /app/VaultCapture
       VAULTS_DIR: /vaults
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+      # PC paths of the two mounts below: pbi_attach takes a file by its PC path and reads it through them.
+      VAULTS_HOST_ROOT: ${VAULTS_ROOT:-}
+      REPOS_HOST_ROOT: ${REPOS_ROOT:-}
     ports:
       - "127.0.0.1:${MCP_PORT:-3110}:3110"
     volumes:

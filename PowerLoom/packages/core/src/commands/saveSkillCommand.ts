@@ -5,11 +5,11 @@ import type { SavedSkill } from "../models/SavedSkill";
 // PowerLoom writes PowerLoom's own skills (user decision 2026-10-01) and keeps the replaced version as a revision.
 export const saveSkillCommand: Command<{ name: string; content: string; hash: string }, SavedSkill> = {
   name: "skill.save",
-  description: "Rewrite one of PowerLoom's own skills (its whole SKILL.md, frontmatter with name and description included); the replaced text becomes a revision. Pass the hash skill.get gave: a skill changed since then is refused. Agents use the new text from their next run. Show the user the new text (or the diff) before calling, as the Skills page does.",
+  description: "Rewrite one of PowerLoom's own skills (its whole SKILL.md, frontmatter with name and description included); the replaced text becomes a revision. Pass the hash skill_get gave: a skill changed since then is refused. Agents use the new text from their next run. Show the user the new text (or the diff) before calling, as the Skills page does.",
   input: z.object({
-    name: z.string().trim().min(1).describe("The skill's name (skill.list)"),
+    name: z.string().trim().min(1).describe("The skill's name (skill_list)"),
     content: z.string().min(1).describe("The whole SKILL.md"),
-    hash: z.string().trim().min(1).describe("The hash from skill.get of the text being replaced"),
+    hash: z.string().trim().min(1).describe("The hash from skill_get of the text being replaced"),
   }),
   run(context, input) {
     return context.powerloom.saveSkill(input.name, input.content, input.hash);

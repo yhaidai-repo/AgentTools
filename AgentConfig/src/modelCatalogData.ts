@@ -9,4 +9,7 @@ export const BUNDLED_MODELS: CatalogModel[] = [
   { provider: "anthropic", model: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
   { provider: "anthropic", model: "claude-sonnet-5", label: "Claude Sonnet 5" },
   { provider: "anthropic", model: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
+  // Codex on the ChatGPT plan: gpt-6.1-sol ran live through the Codex SDK; gpt-6-astra is documented, not run yet.
+  { provider: "openai-codex", model: "gpt-6.1-sol", label: "GPT-6.1 Sol (Codex)" },
+  { provider: "openai-codex", model: "gpt-6-astra", label: "GPT-6 Astra (Codex)" },
 ];

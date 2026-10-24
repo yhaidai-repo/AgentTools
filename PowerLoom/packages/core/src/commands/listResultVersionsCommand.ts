@@ -25,7 +25,7 @@ const input = z
 export const listResultVersionsCommand: Command<ListResultVersionsInput, ResultSetSummary[]> = {
   name: "result.versions",
   effect: "read",
-  description: "List every result version of one PBI (its estimates, refinements, designs and each task's results), one task (what its runs wrote) or one pull request (its review runs), oldest first with the latest marked. Pass a version's kind and id to result.get.",
+  description: "List every result version of one PBI (its estimates, refinements, designs and each task's results), one task (what its runs wrote) or one pull request (its review runs), oldest first with the latest marked. Pass a version's kind and id to result_get.",
   input,
   async run(context, input) {
     const sets = await setsOf(context.db, input);
