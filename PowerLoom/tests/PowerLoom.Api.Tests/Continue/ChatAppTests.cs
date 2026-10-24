@@ -82,6 +82,21 @@ public sealed class ChatAppTests(PowerLoomHost host) : IAsyncLifetime
         Assert.StartsWith("codex://new?path=", link!.Url);
     }
 
+    [Fact]
+    public async Task Saving_the_chosen_app_again_after_it_got_disconnected_is_no_refusal()
+    {
+        var codex = host.Host.Services.GetRequiredService<FakeCodexLogin>();
+
+        codex.Connected = true;
+        await host.Host.PutJson(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId), "/api/chats/app").Receive<ChatApps>();
+        codex.Connected = false;
+
+        var saved = await host.Host.PutJson(new ChooseChatAppRequest(CodexDesktopLauncher.LauncherId), "/api/chats/app").Receive<ChatApps>();
+
+        Assert.Equal(CodexDesktopLauncher.LauncherId, saved!.Current);
+        Assert.Contains(new ChatApp(CodexDesktopLauncher.LauncherId, "Codex", false), saved.Apps);
+    }
+
     private async Task ResetAsync()
     {
         host.Host.Services.GetRequiredService<FakeCodexLogin>().Reset();
