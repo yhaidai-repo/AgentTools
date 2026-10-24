@@ -36,9 +36,10 @@ services:
     command: ["npm", "run", "start", "-w", "@powerloom/agent-runner"]
     environment:
       DATABASE_URL: *db-url
-      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      # The fallback while Settings → AI providers has no Claude token; the runner sets the saved one before each run.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       # Claude's own folder on a volume: the runs' transcripts outlive a restart, so a task's next run continues a run
-      # that didn't finish (user decision 2026-10-19). Auth stays the token above.
+      # that didn't finish (user decision 2026-10-19). Auth is the token above or the one saved in Settings.
       CLAUDE_CONFIG_DIR: /agent-sessions
       # ADO tokens are per vault, in Settings (user decision 2026-10-06): the runner reads them from the DB for its clones.
       # Agents with the Confluence integration on in their Config read and search pages with this account.
@@ -174,7 +175,7 @@ services:
       Skills__Folders__1: /skills
       Skills__Folders__2: /app/DevSecrets/skills
       Skills__Editable: /app/PowerLoom/skills  # the Skills page edits PowerLoom's own skills only (user decision 2026-10-01); each save keeps the old version in the DB
-      Chat__Launcher: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
+      Chat__Launcher: ${CONTINUE_LAUNCHER:-claude-desktop}  # the chat app while Settings → AI providers has none chosen
       Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
       Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … PowerLoom's backlog vault
       Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"

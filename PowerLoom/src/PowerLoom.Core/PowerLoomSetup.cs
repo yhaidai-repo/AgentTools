@@ -3,6 +3,7 @@ using JasperFx;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Agents;
+using PowerLoom.Features.AiProviders;
 using PowerLoom.Features.Cleanup;
 using PowerLoom.Features.Continue;
 using PowerLoom.Features.Docs;
@@ -62,6 +63,7 @@ public static class PowerLoomSetup
         builder.Services.AddReposFeature();
         builder.Services.AddSkillsFeature();
         builder.Services.AddAgentsFeature();
+        builder.Services.AddAiProvidersFeature();
         builder.Services.AddStatusFeature();
         builder.Services.AddOpenApi();
 

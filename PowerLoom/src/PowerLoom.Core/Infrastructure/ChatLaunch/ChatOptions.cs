@@ -5,7 +5,7 @@ public sealed class ChatOptions
 {
     public const string Section = "Chat";
 
-    // The agent app chats open in (model agnostic); one launcher per app.
+    // The agent app chats open in when Settings → AI providers has no choice saved (CONTINUE_LAUNCHER); one launcher per app.
     public string Launcher { get; set; } = ClaudeDesktopLauncher.LauncherId;
 
     // The repos folder on the PC: D:/Projects/<repo>.

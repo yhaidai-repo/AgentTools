@@ -3,6 +3,7 @@ import { taskTypeChoices } from "@/lib/taskTypes";
 import { modelCatalog } from "@agenttools/config";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { connectedModels, loadAiProviders } from "@/lib/aiProviders";
 import { loadSkillCatalog, skillFolders } from "@/lib/skills";
 import { AgentForm } from "../[agent]/config/AgentForm";
 
@@ -21,7 +22,7 @@ export default async function NewAgentPage() {
         removable={false}
         promptFile={null}
         promptVersions={[]}
-        catalog={modelCatalog()}
+        catalog={connectedModels(modelCatalog(), await loadAiProviders())}
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
         blockerKinds={BLOCKER_KINDS}

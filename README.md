@@ -47,13 +47,14 @@ cd <folder>/AgentTools/PowerLoom
 pwsh scripts/install.ps1 -Vaults <vaults folder>/<vault>
 ```
 
-The script writes `.env` (generated passwords, your paths, the Claude token from `claude setup-token`), creates the
+The script writes `.env` (generated passwords, your paths), creates the
 folders and the database volume, starts the stack, and adds the vaults. No path is assumed: `-Vaults` takes the vault
 folders as full paths (they must share one parent folder; a missing one is created empty from the templates, so copy
 your notes first), `-ReposRoot` the folder with your code repos (default: where AgentTools was cloned), `-SkillsPath`
 extra agent skills (default: Claude Code's skills folder if there is one, else an empty `PowerLoom/local-skills`).
-Without a Claude token PowerLoom runs, but agents start only once it is set in `.env`. The agents come with the prompts in the code.
-Then open the web UI the script prints → Settings for Azure DevOps per vault, and "Configure with Claude" on each vault.
+The agents come with the prompts in the code. Then open the web UI the script prints → Settings → AI providers: paste the
+Claude token `claude setup-token` prints (agents run once it is saved) and pick the chat app; then Settings for Azure
+DevOps per vault, and "Configure with Claude" on each vault.
 Details: [`PowerLoom/README.md`](PowerLoom/README.md).
 
 ## Future plans
