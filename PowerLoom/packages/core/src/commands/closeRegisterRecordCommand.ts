@@ -13,7 +13,7 @@ export const closeRegisterRecordCommand: Command<{ vault: string; path: string; 
   description: "Close an open register record (KI, OQ or WWW) the user settled: fixed (known issues only), resolved (answered, decided or fixed), or duplicate (name the record it repeats). Written as the vault rules say: [RESOLVED] in the heading, the status, Updated and a Decision line (WWW: Status resolved and the decision in Resolution). Heading links to it in other notes are pointed at the register by the next vault review. Confirm with the user first, naming the record and the decision.",
   input: z.object({
     vault: vaultInput,
-    path: z.string().trim().min(1).describe("The register note, relative to the vault root, as vault.registers shows it (www-log.md, pvs/pvs-known-issues.md)"),
+    path: z.string().trim().min(1).describe("The register note, relative to the vault root, as vault_registers shows it (www-log.md, pvs/pvs-known-issues.md)"),
     id: z.string().trim().min(1).describe("The record id, e.g. KI-008, OQ-003, WWW-005"),
     status: z.enum(["fixed", "resolved", "duplicate"]),
     duplicateOf: z.object({ path: z.string().trim().min(1), id: z.string().trim().min(1) }).nullable().default(null).describe("Duplicate only: the record it repeats (register path and id)"),

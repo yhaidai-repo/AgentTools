@@ -8,7 +8,7 @@ export const removeConfluenceLinkCommand: Command<{ adoId: number; url: string }
   name: "pbi.confluenceLink.remove",
   effect: "destructive",
   description: "Remove a Confluence page link from a PBI; later agents no longer get it. Confirm with the user first, naming the page and the PBI.",
-  input: z.object({ adoId: pbiIdInput, url: z.string().trim().min(1).describe("The linked page's link, as pbi.get lists it") }),
+  input: z.object({ adoId: pbiIdInput, url: z.string().trim().min(1).describe("The linked page's link, as pbi_get lists it") }),
   async run(context, input) {
     return mapOutcome(await context.powerloom.removeConfluenceLink(input.adoId, input.url), (links) => ({ links }));
   },

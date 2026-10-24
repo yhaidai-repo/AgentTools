@@ -14,7 +14,7 @@ import { periodStats } from "./listAgentsCommand";
 const HEADER_RANGE = "30d";
 
 const input = z.object({
-  id: z.string().trim().min(1).describe("The agent's id, e.g. refinement (agent.list has them)"),
+  id: z.string().trim().min(1).describe("The agent's id, e.g. refinement (agent_list has them)"),
   vault: vaultInput,
 });
 

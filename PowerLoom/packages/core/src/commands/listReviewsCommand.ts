@@ -19,7 +19,7 @@ const input = z.object({
 export const listReviewsCommand: Command<{ vault: string; status: ReviewListStatus; limit: number }, ReviewSummary[]> = {
   name: "review.list",
   effect: "read",
-  description: "List the vault's code reviews, newest pull requests first: the PR, its branches, where the review stands, its comment counts, pushes since the reviewed commit and whether it needs the user. Pass a prId to review.get.",
+  description: "List the vault's code reviews, newest pull requests first: the PR, its branches, where the review stands, its comment counts, pushes since the reviewed commit and whether it needs the user. Pass a prId to review_get.",
   input,
   async run(context, input) {
     const rows = await loadReviewRows(context.db, input.vault);

@@ -79,6 +79,15 @@ describe("a chat session's tools", () => {
     assert.deepEqual(inputs.filter((keys) => keys.includes("vault")), []);
   });
 
+  it("name other tools as the session sees them, with _ (vault_registers, not vault.registers)", () => {
+    const dotted = COMMANDS.map((command) => command.name).filter((name) => name.includes("."));
+    const pattern = new RegExp(`(?<![\\w.])(${dotted.map((name) => name.replace(/\./g, "\\.")).join("|")})(?!\\w)`);
+    const texts = (command: (typeof COMMANDS)[number]) => [command.description, ...Object.values((command.input as unknown as { shape: Record<string, { description?: string }> }).shape).map((field) => field.description ?? "")];
+    const named = COMMANDS.flatMap((command) => texts(command).filter((text) => pattern.test(text)).map((text) => `${command.name}: ${pattern.exec(text)?.[1]}`));
+
+    assert.deepEqual(named, []);
+  });
+
   it("that change PowerLoom are all in POWERLOOM.md's list of tools to ask first about", async () => {
     const text = await readFile(POWERLOOM_MD, "utf8");
     const unlisted = COMMANDS.filter((command) => command.effect !== "read").map((command) => commandToolName(command.name)).filter((name) => !text.includes(`\`${name}\``));

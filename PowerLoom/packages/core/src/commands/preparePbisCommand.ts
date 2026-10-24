@@ -6,7 +6,7 @@ import { mapOutcome } from "./mapOutcome";
 // The Backlog's and the PBI page's Prepare: notes written, a refinement task each.
 export const preparePbisCommand: Command<{ adoIds: number[] }, { queued: number[]; skipped: string[]; message: string }> = {
   name: "pbi.prepare",
-  description: "Prepare one or several PBIs: PowerLoom writes their notes and queues a refinement task each (it starts on the refinement schedule or agent.run). Closed PBIs are skipped (reopen first). Ask the user which PBIs when they didn't name them; never pick them yourself.",
+  description: "Prepare one or several PBIs: PowerLoom writes their notes and queues a refinement task each (it starts on the refinement schedule or agent_run). Closed PBIs are skipped (reopen first). Ask the user which PBIs when they didn't name them; never pick them yourself.",
   input: z.object({ adoIds: z.array(pbiIdInput).min(1).describe("The PBIs to prepare") }),
   async run(context, input) {
     const prepared = await context.powerloom.preparePbis(input.adoIds);

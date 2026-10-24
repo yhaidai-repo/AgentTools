@@ -12,7 +12,7 @@ const CRON = /^(\S+\s+){4}\S+$/;
 const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower-case letters, digits and dashes");
 
 const input = z.object({
-  id: z.string().trim().min(1).describe("The agent's id, e.g. better-research (agent.list)"),
+  id: z.string().trim().min(1).describe("The agent's id, e.g. better-research (agent_list)"),
   label: z.string().trim().min(1).max(80).optional(),
   description: z.string().trim().max(300).optional(),
   enabled: z.boolean().optional(),
@@ -21,9 +21,9 @@ const input = z.object({
   limits: z.object({ maxTurns: z.number().int().min(1), timeoutMinutes: z.number().int().min(1) }).optional(),
   budgets: z.object({ perRunUsd: z.number().min(0), dailyUsd: z.number().min(0) }).optional(),
   webAccess: z.boolean().optional(),
-  grants: z.array(z.string().trim().min(1)).optional().describe("The integrations switched on (keys as agent.get lists them); every other one goes off"),
+  grants: z.array(z.string().trim().min(1)).optional().describe("The integrations switched on (keys as agent_get lists them); every other one goes off"),
   skills: z.array(z.string().trim().min(1)).optional(),
-  options: z.record(z.string(), z.number()).optional().describe("Option values, merged over the current ones (keys as agent.get lists them)"),
+  options: z.record(z.string(), z.number()).optional().describe("Option values, merged over the current ones (keys as agent_get lists them)"),
   canAssign: z.array(TASK_TYPE).optional(),
   handles: z.array(TASK_TYPE).optional(),
   waitFor: z.array(z.string().trim().min(1)).optional(),
@@ -34,7 +34,7 @@ const input = z.object({
 // change, AgentConfig validates the whole definition, and a changed prompt is a new stored version.
 export const updateAgentCommand: Command<UpdateAgentInput, { id: string; promptVersion: number; enabled: boolean; changed: string[] }> = {
   name: "agent.update",
-  description: "Change an existing agent's Config: label, description, enabled, cron schedule, model, limits, budgets, web access, grants (integration keys), skills, options, task types it takes or hands on, what it waits for, and its prompt (every edit is a new stored version; the shipped file's text puts it back on the file). Only the fields given change. Read it with agent.get first. Change only what the user asked for and show the new values before calling, as the Config page's form does.",
+  description: "Change an existing agent's Config: label, description, enabled, cron schedule, model, limits, budgets, web access, grants (integration keys), skills, options, task types it takes or hands on, what it waits for, and its prompt (every edit is a new stored version; the shipped file's text puts it back on the file). Only the fields given change. Read it with agent_get first. Change only what the user asked for and show the new values before calling, as the Config page's form does.",
   input,
   async run(context, input) {
     const agents = context.agents;

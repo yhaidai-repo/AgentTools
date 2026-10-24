@@ -9,8 +9,8 @@ const REVIEW_TASK_TYPE = "review";
 // answers included. The task goes to the pool; every enabled agent taking review tasks is started now, and one claims it.
 export const queueReviewCommand: Command<{ prId: number }, { message: string }> = {
   name: "review.queue",
-  description: "Start a review of a pull request (or branch review) at its current commit, earlier comments and answers included: a review task for the agents taking review tasks, started now. Ask the user which review when they didn't say (review.list).",
-  input: z.object({ prId: z.number().int().describe("The review's PR id (review.list)") }),
+  description: "Start a review of a pull request (or branch review) at its current commit, earlier comments and answers included: a review task for the agents taking review tasks, started now. Ask the user which review when they didn't say (review_list).",
+  input: z.object({ prId: z.number().int().describe("The review's PR id (review_list)") }),
   async run(context, input) {
     const queued = await context.powerloom.queueReview(input.prId);
 

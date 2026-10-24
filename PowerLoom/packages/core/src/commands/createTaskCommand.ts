@@ -32,7 +32,7 @@ export const createTaskCommand: Command<CreateTaskInput, CreatedTaskOrSchedule> 
     vault: vaultInput,
     ...taskFields,
     cron: z.string().trim().min(1).nullable().default(null).describe("Optional cron, e.g. 0 7 * * 1: a schedule instead of one task now"),
-    enabled: z.boolean().default(true).describe("A schedule's switch (off: only schedule.tick creates its task)"),
+    enabled: z.boolean().default(true).describe("A schedule's switch (off: only schedule_tick creates its task)"),
   }),
   async run(context, input) {
     return input.cron === null ? createTask(context, input) : createSchedule(context, input, input.cron);

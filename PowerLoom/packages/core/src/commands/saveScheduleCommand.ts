@@ -22,9 +22,9 @@ interface SaveScheduleInput {
 // The schedule page's Save: a schedule by task type. An existing schedule keeps its vault.
 export const saveScheduleCommand: Command<SaveScheduleInput, SavedSchedule> = {
   name: "schedule.save",
-  description: "Create or change a schedule by task type: on its cron it creates the described task for any agent taking the type, none while the last one still waits. Read it first with schedule.get when changing one. Ask the user for whatever they didn't say (name, cron, type, what to do, when it is done, the PBI where the type needs one) and show them the schedule before saving.",
+  description: "Create or change a schedule by task type: on its cron it creates the described task for any agent taking the type, none while the last one still waits. Read it first with schedule_get when changing one. Ask the user for whatever they didn't say (name, cron, type, what to do, when it is done, the PBI where the type needs one) and show them the schedule before saving.",
   input: z.object({
-    id: z.number().int().positive().nullable().default(null).describe("The schedule to change (schedule.list); null for a new one"),
+    id: z.number().int().positive().nullable().default(null).describe("The schedule to change (schedule_list); null for a new one"),
     vault: vaultInput.nullable().default(null).describe("A new schedule's vault; a changed one keeps its own"),
     name: z.string().trim().min(1).max(120).describe("The schedule's name, also its tasks' title"),
     cron: z.string().trim().min(1).describe("When it ticks, e.g. 0 7 * * 1"),

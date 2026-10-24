@@ -6,7 +6,7 @@ import { mapOutcome } from "./mapOutcome";
 // record_finding for a chat (stage 5, MCPQ-008): the user is here to say yes, so the record goes into the register at once.
 export const addRegisterRecordCommand: Command<{ vault: string; project: string; kind: "questions" | "issues"; title: string; text: string; default: string[]; options: string[] }, { id: string }> = {
   name: "register.add",
-  description: "Record something only a person can settle in a project's register: an open question (business rule, missing spec, docs vs code) or a known issue (a likely defect), in the vault rules' format. Check vault.registers first so it isn't recorded twice. Show the user the record (title, text, defaults, options) and add it after their yes.",
+  description: "Record something only a person can settle in a project's register: an open question (business rule, missing spec, docs vs code) or a known issue (a likely defect), in the vault rules' format. Check vault_registers first so it isn't recorded twice. Show the user the record (title, text, defaults, options) and add it after their yes.",
   input: z.object({
     vault: vaultInput,
     project: z.string().trim().min(1).describe("The project key, e.g. pvs"),

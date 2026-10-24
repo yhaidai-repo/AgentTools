@@ -6,7 +6,7 @@ import { mapOutcome } from "./mapOutcome";
 export const tickScheduleCommand: Command<{ id: number }, { result: string }> = {
   name: "schedule.tick",
   description: "Create a schedule's task now, as its next tick would (none while one of its tasks still waits; also for a schedule that is off). Answers what happened. Confirm with the user first, naming the schedule.",
-  input: z.object({ id: z.number().int().positive().describe("The schedule (schedule.list)") }),
+  input: z.object({ id: z.number().int().positive().describe("The schedule (schedule_list)") }),
   async run(context, input) {
     return mapOutcome(await context.powerloom.tickSchedule(input.id), (result) => ({ result }));
   },
