@@ -1,0 +1,51 @@
+import { frontmatterBlock, noteTitle } from "@powerloom/vault";
+import { readFile, readdir } from "node:fs/promises";
+import { basename, join, relative } from "node:path";
+import type { PowerLoomNote } from "../models/PowerLoomNote";
+import type { VaultNote } from "../models/VaultNote";
+
+// Folders VaultUsage never tracks (its config's excludeFolders), so they aren't notes here either.
+const HIDDEN_FOLDERS = [".obsidian", ".usage", ".trash"];
+const POWERLOOM_AUTHOR = /^PowerLoom tech-writer \((RUN-(\d+)), (\d{4}-\d{2}-\d{2})\)$/;
+
+export async function listVaultNotes(root: string): Promise<VaultNote[]> {
+  const entries = await readdir(root, { withFileTypes: true, recursive: true });
+  const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => join(entry.parentPath, entry.name));
+  const visible = files.map((file) => relative(root, file).replaceAll("\\", "/")).filter((path) => !path.split("/").some((part) => HIDDEN_FOLDERS.includes(part)));
+
+  return Promise.all(visible.sort().map(async (path) => readNote(root, path)));
+}
+
+// The tech-writer's notes changed since the period's start (user decision 2026-10-02: the page lists only those, and the
+// period applies), newest change first. The stamp has a day, so a note changed on the start day counts.
+export function notesWrittenByPowerLoom(notes: VaultNote[], since: Date): PowerLoomNote[] {
+  const sinceDay = since.toISOString().slice(0, 10);
+
+  const written = notes.map((note) => ({ note, match: note.authors.map((author) => POWERLOOM_AUTHOR.exec(author)).find(Boolean) })).filter((entry) => entry.match);
+
+  return written
+    .map(({ note, match }): PowerLoomNote => ({ path: note.path, title: note.title, runId: Number(match![2]), date: match![3], action: null, createdByRunId: null }))
+    .filter((note) => note.date >= sinceDay)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.runId ?? 0) - (a.runId ?? 0));
+}
+
+async function readNote(root: string, path: string): Promise<VaultNote> {
+  const text = await readFile(join(root, path), "utf8");
+
+  return { path, title: noteTitle(text) ?? basename(path, ".md"), authors: authorsOf(text) };
+}
+
+// `authors: ["Claude Code (chat, 2026-10-02)", "PowerLoom tech-writer (RUN-36, 2026-10-02)"]`, the vault rules' format.
+function authorsOf(text: string): string[] {
+  const line = /^authors:\s*(\[.*\])\s*$/m.exec(frontmatterBlock(text))?.[1];
+
+  if (!line) {
+    return [];
+  }
+
+  try {
+    return (JSON.parse(line) as unknown[]).map(String);
+  } catch {
+    return [];
+  }
+}

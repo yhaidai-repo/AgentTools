@@ -1,0 +1,43 @@
+# One image for agent-runner and web. Build context: the AgentTools folder (see docker-compose.yml).
+FROM node:24-alpine
+# Node's connection racing (autoselect family) times out on this Docker network; plain connect works.
+ENV NODE_OPTIONS=--no-network-family-autoselection \
+    NEXT_TELEMETRY_DISABLED=1
+RUN apk add --no-cache git
+# PowerShell 7 (musl build) for the VaultCapture module, which the agent-runner calls to save vault drafts.
+ARG PWSH_VERSION=7.6.6
+RUN apk add --no-cache ca-certificates less ncurses-terminfo-base krb5-libs libgcc libintl libssl3 libstdc++ tzdata userspace-rcu zlib icu-libs gcompat  && wget -q -O /tmp/pwsh.tar.gz https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-musl-x64.tar.gz  && mkdir -p /opt/microsoft/powershell/7 && tar zxf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7  && chmod +x /opt/microsoft/powershell/7/pwsh && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh && rm /tmp/pwsh.tar.gz
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY AgentConfig/package.json AgentConfig/
+COPY AgentRuntime/package.json AgentRuntime/
+COPY AgentUsage/package.json AgentUsage/
+COPY PowerLoom/packages/db/package.json PowerLoom/packages/db/
+COPY PowerLoom/packages/core/package.json PowerLoom/packages/core/
+COPY PowerLoom/packages/ado/package.json PowerLoom/packages/ado/
+COPY PowerLoom/packages/confluence/package.json PowerLoom/packages/confluence/
+COPY PowerLoom/packages/sql/package.json PowerLoom/packages/sql/
+COPY PowerLoom/packages/azure/package.json PowerLoom/packages/azure/
+COPY PowerLoom/packages/mongo/package.json PowerLoom/packages/mongo/
+COPY PowerLoom/packages/devhub/package.json PowerLoom/packages/devhub/
+COPY PowerLoom/packages/vault/package.json PowerLoom/packages/vault/
+COPY PowerLoom/packages/attachments/package.json PowerLoom/packages/attachments/
+COPY PowerLoom/packages/notes/package.json PowerLoom/packages/notes/
+COPY PowerLoom/packages/agents/package.json PowerLoom/packages/agents/
+COPY PowerLoom/packages/client/package.json PowerLoom/packages/client/
+COPY PowerLoom/apps/agent-runner/package.json PowerLoom/apps/agent-runner/
+COPY PowerLoom/apps/web/package.json PowerLoom/apps/web/
+COPY PowerLoom/apps/mcp/package.json PowerLoom/apps/mcp/
+RUN npm ci --no-fund --no-audit
+COPY AgentConfig AgentConfig
+COPY AgentRuntime AgentRuntime
+COPY AgentUsage AgentUsage
+COPY VaultCapture VaultCapture
+COPY PowerLoom/apps PowerLoom/apps
+# The az shim for the Azure MCP server (a glibc binary, hence gcompat above): tokens come from the runner's sign-in, not from an az login.
+RUN install -m 755 PowerLoom/apps/agent-runner/shim/az /usr/local/bin/az
+COPY PowerLoom/packages PowerLoom/packages
+COPY PowerLoom/skills PowerLoom/skills
+COPY PowerLoom/templates PowerLoom/templates
+COPY PowerLoom/tsconfig.base.json PowerLoom/
+RUN npm run build -w @powerloom/web

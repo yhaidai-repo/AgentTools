@@ -1,0 +1,248 @@
+name: PowerLoom
+
+# Each service gets only the variables it needs: the Claude token never reaches the web.
+# The agent-runner has the ADO token only to clone repos (user decision 2026-10-01).
+x-db-url: &db-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+x-app: &app
+  image: powerloom-app
+  pull_policy: never
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5442}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Agent runs: one dispatched task per job. Writes the DB, then the task's PBI notes (backlog) and its drafts (via
+  # VaultCapture, draft/ only). Docs, skills and the rest of the docs vault are read-only.
+  agent-runner:
+    <<: *app
+    build:  # builds powerloom-app once; the web reuses it
+      context: ..
+      dockerfile: PowerLoom/Dockerfile.apps
+    command: ["npm", "run", "start", "-w", "@powerloom/agent-runner"]
+    environment:
+      DATABASE_URL: *db-url
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      # Claude's own folder on a volume: the runs' transcripts outlive a restart, so a task's next run continues a run
+      # that didn't finish (user decision 2026-10-19). Auth stays the token above.
+      CLAUDE_CONFIG_DIR: /agent-sessions
+      # ADO tokens are per vault, in Settings (user decision 2026-10-06): the runner reads them from the DB for its clones.
+      # Agents with the Confluence integration on in their Config read and search pages with this account.
+      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      CONFLUENCE_SITE: ${CONFLUENCE_SITE:-}
+      REPO_CACHE_ROOT: /repo-cache
+      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-}  # folders of a vault hidden from agents
+      BACKLOG_MOUNT: /vault
+      SKILL_FOLDERS: /app/PowerLoom/skills:/skills:/app/DevSecrets/skills
+      VAULT_CAPTURE_HOME: /app/VaultCapture
+      VAULTS_DIR: /vaults
+      VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+      RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs, one at a time)
+      POWERLOOM_URL: http://powerloom:8080  # … and takes the one callback per run
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault
+      # Every vault, writable: a run reads the docs of its task's vault and the tech-writer merges drafts into it (user decision 2026-10-02) and actualizes
+      # notes; the vault review fixes links and moves removed notes to .trash/ (user decision 2026-10-03). Tools refuse draft/ and root files.
+      - ${VAULTS_ROOT:?set in .env}:/vaults
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ./skills:/app/PowerLoom/skills:ro  # from the repo, so skill edits apply without a rebuild
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
+      - repo-cache:/repo-cache
+      - agent-sessions:/agent-sessions
+      # Local repositories (Settings → Repositories): git checkouts under REPOS_ROOT, cloned from here (user decision 2026-10-06).
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3200/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      powerloom:
+        condition: service_healthy  # PowerLoom migrates the schema at start
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@powerloom/web"]
+    environment:
+      DATABASE_URL: *db-url
+      VAULT_PATH: ${VAULT_PATH}
+      BACKLOG_MOUNT: /vault  # read-only here: "Continue with Claude" waits for the handoff note
+      IMPORT_INBOX_PATH: ${IMPORT_INBOX_PATH:-./import-inbox}  # shown in Settings; only PowerLoom reads the folder
+      SKILL_FOLDERS: /app/PowerLoom/skills:/skills:/app/DevSecrets/skills  # same as agent-runner, to list the skills an agent may use
+      SKILLS_PATH: ${SKILLS_PATH}
+      VAULTS_DIR: /vaults  # the Vault page reads the selected vault's notes and its VaultUsage log; Settings adds vaults from here
+      # "Continue with Claude": PC paths in the claude:// link; the chat opens in the vaults root and adds the repos.
+      CONTINUE_FOLDER: ${VAULTS_ROOT:?set in .env}
+      REPOS_ROOT: ${REPOS_ROOT:-}
+      REPOS_MOUNT: /repos  # Settings → Repositories checks a local repo's folder here
+      AGENTTOOLS_PATH: ${AGENTTOOLS_PATH:-}  # "Configure with <agent>" for a new vault: VaultUsage and VaultCapture on the PC
+      CONTINUE_LAUNCHER: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
+      VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+      POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
+      PROMETHEUS_URL: http://otel-lgtm:9090  # the dashboard's Delivery tab asks Prometheus for PowerLoom's rates
+      GRAFANA_URL: http://127.0.0.1:${GRAFANA_PORT:-3200}  # the dashboard's link to the logs (Grafana Explore), as the PC reaches it
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3100}:3000"
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${VAULTS_ROOT:?set in .env}:/vaults:ro
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ./skills:/app/PowerLoom/skills:ro  # PowerLoom writes the skills now
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
+    depends_on:
+      powerloom:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # A Claude chat's way in (design powerloom-mcp, 2026-10-23): the MCP server, loopback only, a bearer token from .env.
+  # The same image as web and agent-runner; it reads the vaults like a run (the docs usage log is written) and starts an
+  # Azure MCP server per session, so it has the runner's mounts, but no Claude token: the chat brings its own model.
+  mcp:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@powerloom/mcp"]
+    environment:
+      DATABASE_URL: *db-url
+      MCP_TOKEN: ${MCP_TOKEN:?set in .env}
+      MCP_PORT: "3110"
+      POWERLOOM_URL: http://powerloom:8080  # the commands write through PowerLoom, as the web does
+      CONFLUENCE_EMAIL: ${CONFLUENCE_EMAIL:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      CONFLUENCE_SITE: ${CONFLUENCE_SITE:-}
+      REPO_CACHE_ROOT: /repo-cache
+      DOCS_EXCLUDE: ${DOCS_EXCLUDE:-}
+      BACKLOG_MOUNT: /vault
+      SKILL_FOLDERS: /app/PowerLoom/skills:/skills:/app/DevSecrets/skills
+      VAULT_CAPTURE_HOME: /app/VaultCapture
+      VAULTS_DIR: /vaults
+      VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+    ports:
+      - "127.0.0.1:${MCP_PORT:-3110}:3110"
+    volumes:
+      - ${VAULT_PATH:?set in .env}:/vault:ro
+      - ${VAULTS_ROOT:?set in .env}:/vaults
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ./skills:/app/PowerLoom/skills:ro
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro
+      - repo-cache:/repo-cache
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3110/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      powerloom:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.
+  # PowerLoom: the .NET backend taking over the worker's jobs feature by feature (the vault's adoa-backend-delivery note).
+  powerloom:
+    build:
+      context: .
+    environment:
+      ConnectionStrings__PowerLoom: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Vaults__Root: /vaults
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
+      VaultCapture__Home: /app/VaultCapture  # findings into a project's registers go through the module
+      Vaults__HostRoot: ${VAULTS_ROOT:?set in .env}  # the vaults root as the PC sees it: new vaults' files, chat links
+      Vaults__TemplateHome: /app/templates/vault  # root files of a new vault (Settings → Add vault)
+      Vaults__Exclude: ${VAULTS_EXCLUDE:-powerloom-backlog}
+      Backlog__Root: /vault  # PowerLoom's backlog vault: the chat notes are written here
+      Import__InboxRoot: /import-inbox  # the import sources' files (Outlook mails, inbox requests)
+      Confluence__Email: ${CONFLUENCE_EMAIL:-}  # the linked Confluence pages are fetched with this account
+      Confluence__ApiToken: ${CONFLUENCE_API_TOKEN:-}
+      Repos__Mount: /repos  # Settings → Repositories checks a local repo's folder here
+      Skills__Folders__0: /app/PowerLoom/skills  # the skill folders in the agent-runner's order (SKILL_FOLDERS)
+      Skills__Folders__1: /skills
+      Skills__Folders__2: /app/DevSecrets/skills
+      Skills__Editable: /app/PowerLoom/skills  # the Skills page edits PowerLoom's own skills only (user decision 2026-10-01); each save keeps the old version in the DB
+      Chat__Launcher: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
+      Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
+      Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … PowerLoom's backlog vault
+      Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"
+      Runner__Url: http://agent-runner:3200  # the agents' dispatch starts the runs there
+      # The MCP server as the PC sees it and its token: written into every vault's .mcp.json (Add vault, every start).
+      Mcp__Url: http://127.0.0.1:${MCP_PORT:-3110}/mcp
+      Mcp__Token: ${MCP_TOKEN:-}
+    ports:
+      - "127.0.0.1:${POWERLOOM_PORT:-5180}:8080"
+    volumes:
+      - ${VAULTS_ROOT:?set in .env}:/vaults  # read-write: trash, records and notes are written here
+      - ${VAULT_PATH:?set in .env}:/vault  # PowerLoom's backlog vault: chat notes
+      # PBI import requests from tools outside Docker (e.g. the Outlook exporter); read files are deleted.
+      - ${IMPORT_INBOX_PATH:-./import-inbox}:/import-inbox
+      - ../VaultCapture:/app/VaultCapture:ro
+      - ./templates/vault:/app/templates/vault:ro
+      - ${REPOS_ROOT:?set in .env}:/repos:ro
+      - ./skills:/app/PowerLoom/skills  # writable: the Skills page's saves
+      - ${SKILLS_PATH:?set in .env}:/skills:ro
+      - ../DevSecrets/skills:/app/DevSecrets/skills:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Traces, metrics and logs of PowerLoom: Grafana with Tempo, Prometheus and Loki in one container.
+  otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3200}:3000"  # Grafana: admin / admin
+    volumes:
+      - otel-data:/data
+      - ./tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro  # the image's config plus a 7-day trace retention
+    restart: unless-stopped
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/scripts/backup-cron.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ${BACKUP_PATH:-./backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  # Named after the old compose project (adoa): the volumes keep their data across the rename to powerloom.
+  # One read-only checkout per repo, shared by research and design; refreshed at most every 30 min.
+  repo-cache:
+    name: adoa_repo-cache
+  otel-data:
+    name: adoa_otel-data
+  # Agent run transcripts (CLAUDE_CONFIG_DIR of the agent-runner); a task's are deleted when it succeeds.
+  agent-sessions:
+    name: powerloom_agent-sessions
+  # external: `docker compose down -v` cannot delete it. First run: docker volume create adoa_pgdata
+  pgdata:
+    external: true
+    name: adoa_pgdata

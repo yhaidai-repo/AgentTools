@@ -1,0 +1,1 @@
+ALTER TYPE "public"."repo_source" ADD VALUE 'vault-documented';

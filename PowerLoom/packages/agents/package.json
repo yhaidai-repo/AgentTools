@@ -1,0 +1,35 @@
+{
+  "name": "@powerloom/agents",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@agenttools/config": "*",
+    "@agenttools/runtime": "*",
+    "@agenttools/usage": "*",
+    "@powerloom/ado": "*",
+    "@powerloom/attachments": "*",
+    "@powerloom/azure": "*",
+    "@powerloom/confluence": "*",
+    "@powerloom/core": "*",
+    "@powerloom/db": "*",
+    "@powerloom/devhub": "*",
+    "@powerloom/mongo": "*",
+    "@powerloom/notes": "*",
+    "@powerloom/sql": "*",
+    "@powerloom/vault": "*",
+    "drizzle-orm": "^0.45.3",
+    "pg": "^8.23.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,36 @@
+// First: it patches dns.lookup for the hosts' containers (no IPv6 route), before any client is created.
+import "./deps/preferIpv4";
+
+export { AgentRunSession } from "./AgentRunSession";
+export { recoverInterruptedRuns } from "./recoverInterruptedRuns";
+export { hasPromptFile, loadAgentPrompt, loadPrompt } from "./prompts";
+export { runAgentTask } from "./tasks/runAgentTask";
+export { AGENT_DEFAULTS, GLOBAL_DEFAULTS } from "./agentDefaults";
+export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
+export { READ_SQL_INTEGRATION } from "./sqlTools";
+export { CHAT_OWNER_PREFIX, DEVHUB_INTEGRATION, chatOwner, stackOwner } from "./devHubTools";
+export { ADO_INTEGRATION } from "./ado/adoTools";
+export { closeOrphanedBrowser, closeOwnedBrowser, closeRunBrowser, stopOrphanedStack, stopOwnedStack, stopRunStack } from "./devHubCleanup";
+export { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
+export { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "./azure/azureTools";
+export { loadCaptureRules } from "./vaultCapture";
+export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";
+export { DocUsageLog } from "./DocUsageLog";
+export { DataAccessLog } from "./DataAccessLog";
+export { AccessRequests } from "./AccessRequests";
+export { AgentDepsFactory } from "./deps/AgentDepsFactory";
+export { createAzureUserLogin } from "./deps/createAzureUserLogin";
+export { azureTokenAnswer } from "./deps/azureTokenAnswer";
+export { adoAuthHeader, depsEnvFromProcess, docsExclude, requireEnv, skillFolders } from "./deps/env";
+export { chatTools } from "./chat/chatTools";
+export { CHAT_AGENT_ID } from "./chat/models/ChatPrincipal";
+export { commandToolName, commandTools } from "./commandTool";
+export type { AgentDeps } from "./models/AgentDeps";
+export type { AgentRunInfo } from "./models/AgentRunInfo";
+export type { AgentRunInput } from "./models/AgentRunInput";
+export type { AgentRunResult } from "./models/AgentRunResult";
+export type { LoadedPrompt } from "./models/LoadedPrompt";
+export type { CaptureRules } from "./models/CaptureRules";
+export type { DepsEnv } from "./deps/models/DepsEnv";
+export type { HttpAnswer } from "./deps/azureTokenAnswer";
+export type { ChatPrincipal } from "./chat/models/ChatPrincipal";

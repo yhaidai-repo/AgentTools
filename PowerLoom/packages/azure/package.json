@@ -1,0 +1,21 @@
+{
+  "name": "@powerloom/azure",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@azure/mcp": "3.0.0",
+    "@azure/msal-node": "6.0.1",
+    "@azure/service-bus": "7.10.0",
+    "@modelcontextprotocol/sdk": "^1.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

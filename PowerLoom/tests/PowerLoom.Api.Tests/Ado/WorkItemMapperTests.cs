@@ -1,0 +1,103 @@
+using System.Text.Json;
+using PowerLoom.AdoIntegration.Client.Models;
+using PowerLoom.AdoIntegration.Features.SyncPbis;
+using PowerLoom.AdoIntegration.Features.SyncPbis.Models;
+using PowerLoom.Persistence.Enums;
+
+namespace PowerLoom.Api.Tests.Ado;
+
+public sealed class WorkItemMapperTests
+{
+    public static AdoWorkItem Item(int id, int rev, string fieldsJson) => new(id, rev, JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(fieldsJson)!);
+
+    [Fact]
+    public void Fields_are_mapped_and_rich_text_becomes_markdown()
+    {
+        var item = Item(7, 2, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Faster sync","System.State":"Committed","System.IterationPath":"P\\S7","System.AssignedTo":{"uniqueName":"sam@x.io","displayName":"Sam"},"Microsoft.VSTS.Common.Priority":2,"Microsoft.VSTS.Scheduling.Effort":5,"System.Parent":31001,"System.Tags":"api; urgent","System.ChangedDate":"2026-10-01T10:00:00Z","System.Description":"<p>Hi <b>there</b></p><ul><li>one</li></ul>","Microsoft.VSTS.Common.AcceptanceCriteria":"plain text"}""");
+
+        var mapped = WorkItemMapper.Map(item);
+
+        Assert.Equal((7, 2, "Product Backlog Item", "Faster sync", "Committed", "sam@x.io", 2, 5m, 31001), (mapped.AdoId, mapped.Rev, mapped.Type, mapped.Title, mapped.AdoState, mapped.AssignedTo, mapped.Priority, mapped.Effort, mapped.AdoParentId));
+        Assert.Equal(["api", "urgent"], mapped.Tags);
+        Assert.Equal(new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc), mapped.AdoChangedAt);
+        Assert.Equal("Hi **there**\n\n- one", mapped.DescriptionMd.Replace("\r\n", "\n"));
+        Assert.Equal("plain text", mapped.AcceptanceCriteriaMd);
+        Assert.Equal(64, mapped.ContentHash.Length);
+    }
+
+    [Fact]
+    public void The_teams_own_rich_text_fields_come_under_their_names_and_ados_own_fields_and_plain_values_stay_out()
+    {
+        var item = Item(8, 1, """{"System.Title":"t","System.Description":"<p>d</p>","System.History":"<p>last comment</p>","Custom.DevNotes":"<h2>Notes</h2><ul><li>NM101 is parsed</li></ul>","Custom.Team":"<b>never</b> mind","Custom.Code":"ABC-1"}""");
+
+        var mapped = WorkItemMapper.Map(item);
+
+        Assert.Equal("### Dev Notes\n\n#### Notes\n\n- NM101 is parsed\n\n### Team\n\n**never** mind", mapped.ExtraFieldsMd);
+    }
+
+    [Fact]
+    public void Attached_files_become_download_links_with_their_names_and_other_links_stay_out()
+    {
+        var name = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""{"name":"41856275 Commercial (1).271"}""");
+        var item = Item(9, 1, """{"System.Title":"t"}""") with
+        {
+            Relations =
+            [
+                new AdoWorkItemRelation("AttachedFile", "https://dev.azure.com/org/p1/_apis/wit/attachments/abc", name),
+                new AdoWorkItemRelation("System.LinkTypes.Hierarchy-Reverse", "https://dev.azure.com/org/p1/_apis/wit/workItems/1", null),
+            ],
+        };
+
+        var mapped = WorkItemMapper.Map(item);
+
+        Assert.Equal(["https://dev.azure.com/org/p1/_apis/wit/attachments/abc?fileName=41856275%20Commercial%20%281%29.271"], mapped.AttachedFileUrls);
+    }
+
+    [Fact]
+    public void The_hash_follows_the_title_description_and_criteria_only()
+    {
+        var a = WorkItemMapper.Map(Item(1, 1, """{"System.Title":"t","System.Description":"d","System.State":"New"}"""));
+        var b = WorkItemMapper.Map(Item(1, 2, """{"System.Title":"t","System.Description":"d","System.State":"Done"}"""));
+        var c = WorkItemMapper.Map(Item(1, 3, """{"System.Title":"t","System.Description":"changed","System.State":"New"}"""));
+        var withNotes = WorkItemMapper.Map(Item(1, 4, """{"System.Title":"t","System.Description":"d","System.State":"New","Custom.Notes":"<p>n</p>"}"""));
+
+        Assert.Equal(a.ContentHash, b.ContentHash);
+        Assert.Equal(a.ContentHash, withNotes.ContentHash);
+        Assert.NotEqual(a.ContentHash, c.ContentHash);
+    }
+
+    [Theory]
+    [InlineData(PipelineStatus.Refining, "Committed", PipelineStatus.Refining)]
+    [InlineData(PipelineStatus.WaitingHuman, "Committed", PipelineStatus.WaitingHuman)]
+    [InlineData(PipelineStatus.New, "Committed", PipelineStatus.New)]
+    [InlineData(PipelineStatus.Done, "Committed", PipelineStatus.Done)]
+    [InlineData(PipelineStatus.Refining, "Done", PipelineStatus.Closed)]
+    [InlineData(PipelineStatus.Closed, "Committed", PipelineStatus.New)]
+    public void The_sync_owns_only_the_closed_and_reopened_transitions(PipelineStatus current, string adoState, PipelineStatus expected)
+    {
+        Assert.Equal(expected, PipelineStatusRule.Next(current, adoState, closedByUser: false));
+    }
+
+    [Theory]
+    [InlineData("Committed")]
+    [InlineData("Done")]
+    public void A_PBI_the_user_closed_stays_closed_whatever_its_ADO_state(string adoState)
+    {
+        Assert.Equal(PipelineStatus.Closed, PipelineStatusRule.Next(PipelineStatus.Closed, adoState, closedByUser: true));
+    }
+
+    [Fact]
+    public void A_window_takes_the_ids_after_the_cursor_up_to_the_cap()
+    {
+        var middle = SyncWindow.Select([10, 20, 30, 40, 50], 20, 2);
+        var last = SyncWindow.Select([10, 20, 30, 40, 50], 40, 2);
+        var empty = SyncWindow.Select([], 0, 2);
+
+        Assert.Equal([30, 40], middle.Ids);
+        Assert.Equal(40, middle.NextCursor);
+        Assert.Equal([50], last.Ids);
+        Assert.Equal(0, last.NextCursor);
+        Assert.Empty(empty.Ids);
+        Assert.Equal(0, empty.NextCursor);
+    }
+}

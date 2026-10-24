@@ -1,0 +1,5750 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "PowerLoom.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/vaults/{vault}/trash": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
+        ],
+        "summary": "GET_api_vaults_vault_trash",
+        "description": "GET_api_vaults_vault_trash",
+        "operationId": "GET_api_vaults_vault_trash",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrashEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_trash",
+        "description": "DELETE_api_vaults_vault_trash",
+        "operationId": "DELETE_api_vaults_vault_trash",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashPathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/trash/restore": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_trash_restore",
+        "description": "POST_api_vaults_vault_trash_restore",
+        "operationId": "POST_api_vaults_vault_trash_restore",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashPathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Remove.RemoveVaultEndpoint"
+        ],
+        "summary": "DELETE_api_vaults_vault",
+        "description": "DELETE_api_vaults_vault",
+        "operationId": "DELETE_api_vaults_vault",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovedVault"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+        ],
+        "summary": "POST_api_vaults",
+        "description": "POST_api_vaults",
+        "operationId": "POST_api_vaults",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVaultRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedVault"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/user-notes": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+        ],
+        "summary": "PUT_api_items_id_user_notes",
+        "description": "PUT_api_items_id_user_notes",
+        "operationId": "PUT_api_items_id_user_notes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTaskNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskUserNotes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-schedules": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "PUT_api_task_schedules",
+        "description": "PUT_api_task_schedules",
+        "operationId": "PUT_api_task_schedules",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-schedules/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "DELETE_api_task_schedules_id",
+        "description": "DELETE_api_task_schedules_id",
+        "operationId": "DELETE_api_task_schedules_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/task-schedules/{id}/tick": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+        ],
+        "summary": "POST_api_task_schedules_id_tick",
+        "description": "POST_api_task_schedules_id_tick",
+        "operationId": "POST_api_task_schedules_id_tick",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TickResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/rerun": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.RerunTasks.RerunTasksEndpoint"
+        ],
+        "summary": "POST_api_tasks_rerun",
+        "description": "POST_api_tasks_rerun",
+        "operationId": "POST_api_tasks_rerun",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerunResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bugs": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.ReportBug.ReportBugEndpoint"
+        ],
+        "summary": "POST_api_bugs",
+        "description": "POST_api_bugs",
+        "operationId": "POST_api_bugs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportBugRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportedBug"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
+        ],
+        "summary": "DELETE_api_items_id",
+        "description": "DELETE_api_items_id",
+        "operationId": "DELETE_api_items_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.CreateTask.CreateTaskEndpoint"
+        ],
+        "summary": "POST_api_tasks",
+        "description": "POST_api_tasks",
+        "operationId": "POST_api_tasks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedTask"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
+        ],
+        "summary": "POST_api_items_id_close",
+        "description": "POST_api_items_id_close",
+        "operationId": "POST_api_items_id_close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.StatusEndpoint"
+        ],
+        "summary": "GET_api_status",
+        "description": "GET_api_status",
+        "operationId": "GET_api_status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/skills/{name}": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "PUT_api_skills_name",
+        "description": "PUT_api_skills_name",
+        "operationId": "PUT_api_skills_name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSkillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "POST_api_skills",
+        "description": "POST_api_skills",
+        "operationId": "POST_api_skills",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/{name}/revisions/{id}/restore": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Skills.SkillsEndpoints"
+        ],
+        "summary": "POST_api_skills_name_revisions_id_restore",
+        "description": "POST_api_skills_name_revisions_id_restore",
+        "operationId": "POST_api_skills_name_revisions_id_restore",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkill"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/queue": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_reviews_queue",
+        "description": "POST_api_reviews_queue",
+        "operationId": "POST_api_reviews_queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_reviews_close",
+        "description": "POST_api_reviews_close",
+        "operationId": "POST_api_reviews_close",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseReviewsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "DELETE_api_reviews",
+        "description": "DELETE_api_reviews",
+        "operationId": "DELETE_api_reviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
+        ],
+        "summary": "POST_api_reviews",
+        "description": "POST_api_reviews",
+        "operationId": "POST_api_reviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedReview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review-comments/{id}/answer": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.ReviewsEndpoints"
+        ],
+        "summary": "POST_api_review_comments_id_answer",
+        "description": "POST_api_review_comments_id_answer",
+        "operationId": "POST_api_review_comments_id_answer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnsweredComment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/{id}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_repos_id_enabled",
+        "description": "PUT_api_vaults_vault_repos_id_enabled",
+        "operationId": "PUT_api_vaults_vault_repos_id_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/local": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_repos_local",
+        "description": "POST_api_vaults_vault_repos_local",
+        "operationId": "POST_api_vaults_vault_repos_local",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLocalRepoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/repos/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Repos.CatalogEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_repos_id",
+        "description": "DELETE_api_vaults_vault_repos_id",
+        "operationId": "DELETE_api_vaults_vault_repos_id",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/user-notes": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
+        ],
+        "summary": "GET_api_pbis_adoId_user_notes",
+        "description": "GET_api_pbis_adoId_user_notes",
+        "operationId": "GET_api_pbis_adoId_user_notes",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PbiUserNotes"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
+        ],
+        "summary": "PUT_api_pbis_adoId_user_notes",
+        "description": "PUT_api_pbis_adoId_user_notes",
+        "operationId": "PUT_api_pbis_adoId_user_notes",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveUserNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PbiUserNotes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/skills": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Skills.SaveSkillsEndpoint"
+        ],
+        "summary": "PUT_api_pbis_adoId_skills",
+        "description": "PUT_api_pbis_adoId_skills",
+        "operationId": "PUT_api_pbis_adoId_skills",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSkillsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSkills"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/repos": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Repos.SaveReposEndpoint"
+        ],
+        "summary": "PUT_api_pbis_adoId_repos",
+        "description": "PUT_api_pbis_adoId_repos",
+        "operationId": "PUT_api_pbis_adoId_repos",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveReposRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRepos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/prepare": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
+        ],
+        "summary": "POST_api_pbis_prepare",
+        "description": "POST_api_pbis_prepare",
+        "operationId": "POST_api_pbis_prepare",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/finish": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Finish.FinishEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_finish",
+        "description": "POST_api_pbis_adoId_finish",
+        "operationId": "POST_api_pbis_adoId_finish",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinishedPbi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
+        ],
+        "summary": "DELETE_api_pbis",
+        "description": "DELETE_api_pbis",
+        "operationId": "DELETE_api_pbis",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedPbis"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Create.CreateEndpoint"
+        ],
+        "summary": "POST_api_pbis",
+        "description": "POST_api_pbis",
+        "operationId": "POST_api_pbis",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePbiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedPbi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/confluence-links": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+        ],
+        "summary": "POST_api_pbis_adoId_confluence_links",
+        "description": "POST_api_pbis_adoId_confluence_links",
+        "operationId": "POST_api_pbis_adoId_confluence_links",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PbiConfluencePage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+        ],
+        "summary": "DELETE_api_pbis_adoId_confluence_links",
+        "description": "DELETE_api_pbis_adoId_confluence_links",
+        "operationId": "DELETE_api_pbis_adoId_confluence_links",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PbiConfluencePage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Close.CloseEndpoint"
+        ],
+        "summary": "POST_api_pbis_close",
+        "description": "POST_api_pbis_close",
+        "operationId": "POST_api_pbis_close",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/reopen": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Close.ReopenEndpoint"
+        ],
+        "summary": "POST_api_pbis_reopen",
+        "description": "POST_api_pbis_reopen",
+        "operationId": "POST_api_pbis_reopen",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedPbis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/attachments": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Pbis.Attachments.AttachmentsEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_attachments",
+        "description": "POST_api_pbis_adoId_attachments",
+        "operationId": "POST_api_pbis_adoId_attachments",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "itemId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sourceUrl": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "files": {
+                        "$ref": "#/components/schemas/IFormFileCollection"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "files"
+                ],
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "itemId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sourceUrl": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "files": {
+                        "$ref": "#/components/schemas/IFormFileCollection"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredAttachments"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/import-sources": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+        ],
+        "summary": "PUT_api_vaults_vault_import_sources",
+        "description": "PUT_api_vaults_vault_import_sources",
+        "operationId": "PUT_api_vaults_vault_import_sources",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSourceSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/records": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.RecordsEndpoints"
+        ],
+        "summary": "POST_api_records",
+        "description": "POST_api_records",
+        "operationId": "POST_api_records",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/dead-letters": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "GET_api_dead_letters",
+        "description": "GET_api_dead_letters",
+        "operationId": "GET_api_dead_letters",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeadLetterInfo"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dead-letters/{id}/replay": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "POST_api_dead_letters_id_replay",
+        "description": "POST_api_dead_letters_id_replay",
+        "operationId": "POST_api_dead_letters_id_replay",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterAction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dead-letters/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+        ],
+        "summary": "DELETE_api_dead_letters_id",
+        "description": "DELETE_api_dead_letters_id",
+        "operationId": "DELETE_api_dead_letters_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterAction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chats": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "POST_api_chats",
+        "description": "POST_api_chats",
+        "operationId": "POST_api_chats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatLink"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chats/launcher": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "GET_api_chats_launcher",
+        "description": "GET_api_chats_launcher",
+        "operationId": "GET_api_chats_launcher",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LauncherAvailability"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/cleanup": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "GET_api_vaults_vault_cleanup",
+        "description": "GET_api_vaults_vault_cleanup",
+        "operationId": "GET_api_vaults_vault_cleanup",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_cleanup",
+        "description": "PUT_api_vaults_vault_cleanup",
+        "operationId": "PUT_api_vaults_vault_cleanup",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCleanupSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/cleanup/run": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Cleanup.CleanupEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_cleanup_run",
+        "description": "POST_api_vaults_vault_cleanup_run",
+        "operationId": "POST_api_vaults_vault_cleanup_run",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agentId}/run": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"
+        ],
+        "summary": "POST_api_agents_agentId_run",
+        "description": "POST_api_agents_agentId_run",
+        "operationId": "POST_api_agents_agentId_run",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchedAgent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-runs/{taskId}/completed": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Agents.Completed.AgentRunsEndpoint"
+        ],
+        "summary": "POST_api_agent_runs_taskId_completed",
+        "description": "POST_api_agent_runs_taskId_completed",
+        "operationId": "POST_api_agent_runs_taskId_completed",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/ado/repositories/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncRepositories.SyncRepositoriesEndpoint"
+        ],
+        "summary": "POST_api_ado_repositories_sync",
+        "description": "POST_api_ado_repositories_sync",
+        "operationId": "POST_api_ado_repositories_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRepositoriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/ado/pull-requests/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncPullRequests.SyncPullRequestsEndpoint"
+        ],
+        "summary": "POST_api_ado_pull_requests_sync",
+        "description": "POST_api_ado_pull_requests_sync",
+        "operationId": "POST_api_ado_pull_requests_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPullRequestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/ado/pbis/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.SyncPbis.SyncPbisEndpoint"
+        ],
+        "summary": "POST_api_ado_pbis_sync",
+        "description": "POST_api_ado_pbis_sync",
+        "operationId": "POST_api_ado_pbis_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPbisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/pbi-sync-settings": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "description": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "operationId": "PUT_api_vaults_vault_ado_pbi_sync_settings",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PbiSyncSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/pull-request-settings": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "description": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "operationId": "PUT_api_vaults_vault_ado_pull_request_settings",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PullRequestSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/connection": {
+      "put": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_ado_connection",
+        "description": "PUT_api_vaults_vault_ado_connection",
+        "operationId": "PUT_api_vaults_vault_ado_connection",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedConnection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/ado/connection/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_ado_connection_test",
+        "description": "POST_api_vaults_vault_ado_connection_test",
+        "operationId": "POST_api_vaults_vault_ado_connection_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pbis/{adoId}/confluence-pages/load": {
+      "post": {
+        "tags": [
+          "PowerLoom.ConfluenceIntegration.Features.LoadPage.LoadPageEndpoint"
+        ],
+        "summary": "POST_api_pbis_adoId_confluence_pages_load",
+        "description": "POST_api_pbis_adoId_confluence_pages_load",
+        "operationId": "POST_api_pbis_adoId_confluence_pages_load",
+        "parameters": [
+          {
+            "name": "adoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql": {
+      "put": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_sql",
+        "description": "PUT_api_vaults_vault_read_sql",
+        "operationId": "PUT_api_vaults_vault_read_sql",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections": {
+      "post": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_sql_connections",
+        "description": "POST_api_vaults_vault_read_sql_connections",
+        "operationId": "POST_api_vaults_vault_read_sql_connections",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSqlConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections/{name}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "description": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "operationId": "PUT_api_vaults_vault_read_sql_connections_name_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/connections/{name}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "description": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "operationId": "DELETE_api_vaults_vault_read_sql_connections_name",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-sql/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_sql_test",
+        "description": "POST_api_vaults_vault_read_sql_test",
+        "operationId": "POST_api_vaults_vault_read_sql_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSqlConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlConnectionCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/{kind}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_kind_enabled",
+        "description": "PUT_api_vaults_vault_read_azure_kind_enabled",
+        "operationId": "PUT_api_vaults_vault_read_azure_kind_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/subscription": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_subscription",
+        "description": "PUT_api_vaults_vault_read_azure_subscription",
+        "operationId": "PUT_api_vaults_vault_read_azure_subscription",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AzureSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources": {
+      "post": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_azure_resources",
+        "description": "POST_api_vaults_vault_read_azure_resources",
+        "operationId": "POST_api_vaults_vault_read_azure_resources",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAzureResourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureResourceSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources/{name}/enabled": {
+      "put": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "description": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "operationId": "PUT_api_vaults_vault_read_azure_resources_name_enabled",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureResourceSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/resources/{name}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "description": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "operationId": "DELETE_api_vaults_vault_read_azure_resources_name",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/user-login/start": {
+      "post": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_read_azure_user_login_start",
+        "description": "POST_api_vaults_vault_read_azure_user_login_start",
+        "operationId": "POST_api_vaults_vault_read_azure_user_login_start",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureLoginStart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/user-login/{flowId}": {
+      "get": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "GET_api_vaults_vault_read_azure_user_login_flowId",
+        "description": "GET_api_vaults_vault_read_azure_user_login_flowId",
+        "operationId": "GET_api_vaults_vault_read_azure_user_login_flowId",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flowId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AzureLoginStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/read-azure/user-login": {
+      "delete": {
+        "tags": [
+          "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_read_azure_user_login",
+        "description": "DELETE_api_vaults_vault_read_azure_user_login",
+        "operationId": "DELETE_api_vaults_vault_read_azure_user_login",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/devhub": {
+      "put": {
+        "tags": [
+          "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_devhub",
+        "description": "PUT_api_vaults_vault_devhub",
+        "operationId": "PUT_api_vaults_vault_devhub",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDevHubRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevHubSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/devhub/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_devhub_test",
+        "description": "POST_api_vaults_vault_devhub_test",
+        "operationId": "POST_api_vaults_vault_devhub_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestDevHubRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevHubCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddAzureResourceRequest": {
+        "required": [
+          "name",
+          "kind",
+          "target",
+          "secret"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AddLinkRequest": {
+        "required": [
+          "url",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "why": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AddLocalRepoRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AddRecordRequest": {
+        "required": [
+          "kind",
+          "sourceId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RecordKind"
+          },
+          "sourceId": {
+            "type": "string"
+          }
+        }
+      },
+      "AddReviewRequest": {
+        "required": [
+          "vault",
+          "repo",
+          "branch",
+          "targetBranch",
+          "pbi"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "targetBranch": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AddSqlConnectionRequest": {
+        "required": [
+          "name",
+          "connectionString"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "connectionString": {
+            "type": "string"
+          }
+        }
+      },
+      "AddVaultRequest": {
+        "required": [
+          "folder"
+        ],
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedReview": {
+        "required": [
+          "prId",
+          "kind",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedVault": {
+        "required": [
+          "vault",
+          "created"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "created": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentBudget": {
+        "required": [
+          "agentId",
+          "dailyLimitUsd",
+          "spentTodayUsd"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "dailyLimitUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "spentTodayUsd": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AnswerRequest": {
+        "required": [
+          "answer"
+        ],
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AnsweredComment": {
+        "required": [
+          "prId",
+          "answered"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "answered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Attention": {
+        "required": [
+          "component",
+          "severity",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AzureLoginStart": {
+        "required": [
+          "flowId",
+          "userCode",
+          "verificationUri",
+          "message",
+          "expiresInSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "flowId": {
+            "type": "string"
+          },
+          "userCode": {
+            "type": "string"
+          },
+          "verificationUri": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AzureLoginStatus": {
+        "required": [
+          "status",
+          "username",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AzureResourceSummary": {
+        "required": [
+          "name",
+          "kind",
+          "display",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "display": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AzureSubscriptionRequest": {
+        "required": [
+          "subscription"
+        ],
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BudgetStatus": {
+        "required": [
+          "dailyLimitUsd",
+          "spentTodayUsd",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "dailyLimitUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "spentTodayUsd": {
+            "type": "number",
+            "format": "double"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentBudget"
+            }
+          }
+        }
+      },
+      "ChatKind": {
+        "enum": [
+          "pbi",
+          "item",
+          "review",
+          "vault"
+        ]
+      },
+      "ChatLink": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "CleanupReport": {
+        "required": [
+          "ranAt",
+          "dryRun",
+          "stores",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "ranAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CleanupStoreReport"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CleanupSettings": {
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "closedPbiDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trashDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedImportDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runEventDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "browserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRunBrowserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CleanupStatus": {
+        "required": [
+          "vault",
+          "dryRun",
+          "lastReport"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "lastReport": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CleanupReport"
+              }
+            ]
+          }
+        }
+      },
+      "CleanupStoreReport": {
+        "required": [
+          "store",
+          "items",
+          "bytes",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CloseDecision": {
+        "enum": [
+          "answer",
+          "dismiss",
+          "done",
+          "cancel"
+        ]
+      },
+      "CloseRequest": {
+        "required": [
+          "adoId",
+          "decision",
+          "resolution",
+          "hasAttachment"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CloseDecision"
+          },
+          "resolution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasAttachment": {
+            "type": "boolean"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "CloseReviewsRequest": {
+        "required": [
+          "prIds",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "prIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ClosedItem": {
+        "required": [
+          "itemId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ClosedPbis": {
+        "required": [
+          "done",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CompletedRunRequest": {
+        "required": [
+          "runId",
+          "outcome",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RunOutcome"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ComponentState": {
+        "required": [
+          "state",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectionCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatePbiRequest": {
+        "required": [
+          "vault",
+          "title",
+          "type",
+          "priority",
+          "descriptionMd",
+          "acceptanceCriteriaMd",
+          "parentId",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "descriptionMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acceptanceCriteriaMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateSkillRequest": {
+        "required": [
+          "name",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateTaskRequest": {
+        "required": [
+          "vault",
+          "type",
+          "title",
+          "description",
+          "acceptanceCriteria",
+          "pbi",
+          "repos",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "acceptanceCriteria": {
+            "type": "string"
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreatedPbi": {
+        "required": [
+          "adoId",
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatedTask": {
+        "required": [
+          "id",
+          "pbiId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DeadLetterAction": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "DeadLetterInfo": {
+        "required": [
+          "id",
+          "messageType",
+          "exceptionType",
+          "exceptionMessage",
+          "sentAt",
+          "source",
+          "replayable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "exceptionType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exceptionMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replayable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeleteItemRequest": {
+        "required": [
+          "adoId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DeleteRequest": {
+        "required": [
+          "adoIds"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "DeletedItem": {
+        "required": [
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        }
+      },
+      "DeletedPbi": {
+        "required": [
+          "adoId",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "DeletedPbis": {
+        "required": [
+          "deleted",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedPbi"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DevHubCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "DevHubSummary": {
+        "required": [
+          "enabled",
+          "url",
+          "hasToken"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "hasToken": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DispatchedAgent": {
+        "required": [
+          "agentId"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          }
+        }
+      },
+      "EnabledRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FinishRequest": {
+        "required": [
+          "rating",
+          "effortHours",
+          "whatWentWrong",
+          "fault",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effortHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "whatWentWrong": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fault": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FinishedPbi": {
+        "required": [
+          "message",
+          "wwwRecordId"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "wwwRecordId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
+      "IFormFileCollection": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/IFormFile"
+        }
+      },
+      "LauncherAvailability": {
+        "required": [
+          "label",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LoadPageRequest": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "MessagingStatus": {
+        "required": [
+          "incoming",
+          "scheduled",
+          "deadLetters",
+          "deadLettersLast24h",
+          "incomingByType"
+        ],
+        "type": "object",
+        "properties": {
+          "incoming": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scheduled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadLetters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadLettersLast24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "incomingByType": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "OpenChatRequest": {
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ChatKind"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "OutsideComponentState": {
+        "required": [
+          "component",
+          "tool",
+          "state",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "PbiConfluencePage": {
+        "required": [
+          "url",
+          "title",
+          "why",
+          "by"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          }
+        }
+      },
+      "PbiIdsRequest": {
+        "required": [
+          "adoIds",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PbiSyncSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxItemsPerRun",
+          "sprint"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxItemsPerRun": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sprint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PbiUserNotes": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareRequest": {
+        "required": [
+          "adoIds"
+        ],
+        "type": "object",
+        "properties": {
+          "adoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "PreparedPbis": {
+        "required": [
+          "queued",
+          "unknown",
+          "closed"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "unknown": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "closed": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PullRequestSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxPullRequestsPerRun",
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxPullRequestsPerRun": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RecordKind": {
+        "enum": [
+          "www",
+          "open-question",
+          "known-issue"
+        ]
+      },
+      "RemoveLinkRequest": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "RemovedVault": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "RepoSummary": {
+        "required": [
+          "id",
+          "name",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReportBugRequest": {
+        "required": [
+          "parent",
+          "title",
+          "descriptionMd",
+          "priority",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "descriptionMd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReportedBug": {
+        "required": [
+          "adoId",
+          "parentId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RerunRequest": {
+        "required": [
+          "tasks"
+        ],
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskRef"
+            }
+          }
+        }
+      },
+      "RerunResult": {
+        "required": [
+          "reopened",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "reopened": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RestoreRequest": {
+        "required": [
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewIds": {
+        "required": [
+          "prIds"
+        ],
+        "type": "object",
+        "properties": {
+          "prIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "ReviewOutcome": {
+        "required": [
+          "prId",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewsResult": {
+        "required": [
+          "done",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewOutcome"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RunInProgress": {
+        "required": [
+          "taskId",
+          "agentId",
+          "pbiId",
+          "since",
+          "stuck"
+        ],
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stuck": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RunOutcome": {
+        "enum": [
+          "running",
+          "success",
+          "no-op",
+          "failed",
+          "budget-exceeded",
+          "gate-rejected",
+          "rate-limited",
+          "timeout",
+          "aborted",
+          "max-turns"
+        ]
+      },
+      "RunnerStatus": {
+        "required": [
+          "state",
+          "reachable",
+          "runningTask",
+          "url",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "reachable": {
+            "type": "boolean"
+          },
+          "runningTask": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveCleanupSettingsRequest": {
+        "required": [
+          "dryRun",
+          "closedPbiDays",
+          "trashDays",
+          "failedImportDays",
+          "runEventDays",
+          "browserArtefactDays",
+          "failedRunBrowserArtefactDays"
+        ],
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "closedPbiDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trashDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedImportDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runEventDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "browserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRunBrowserArtefactDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SaveConnectionRequest": {
+        "required": [
+          "enabled",
+          "orgUrl",
+          "project",
+          "team",
+          "user",
+          "pat"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "orgUrl": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "pat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveDevHubRequest": {
+        "required": [
+          "enabled",
+          "url",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveReposRequest": {
+        "required": [
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SaveSkillRequest": {
+        "required": [
+          "content",
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          }
+        }
+      },
+      "SaveSkillsRequest": {
+        "required": [
+          "skills"
+        ],
+        "type": "object",
+        "properties": {
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillChoice"
+            }
+          }
+        }
+      },
+      "SaveTaskNotesRequest": {
+        "required": [
+          "text",
+          "loadedText"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "loadedText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveUserNotesRequest": {
+        "required": [
+          "text",
+          "loadedText"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "loadedText": {
+            "type": "string"
+          }
+        }
+      },
+      "SavedConnection": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SavedRepos": {
+        "required": [
+          "saved"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SavedSchedule": {
+        "required": [
+          "id",
+          "name",
+          "agentId",
+          "vault",
+          "cron",
+          "enabled",
+          "taskType"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "taskType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SavedSettings": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SavedSkill": {
+        "required": [
+          "name",
+          "changed",
+          "restoredFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "restoredFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SavedSkills": {
+        "required": [
+          "saved"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SavedSourceSettings": {
+        "required": [
+          "enabled",
+          "importFolder"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "importFolder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ScheduleInput": {
+        "required": [
+          "id",
+          "name",
+          "vault",
+          "cron",
+          "enabled",
+          "taskType",
+          "description",
+          "acceptanceCriteria",
+          "pbi",
+          "repos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "taskType": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acceptanceCriteria": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ScheduleStatus": {
+        "required": [
+          "key",
+          "cron",
+          "message",
+          "nextDueAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "nextDueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SkillChoice": {
+        "required": [
+          "name",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceSettingsRequest": {
+        "required": [
+          "enabled",
+          "cron",
+          "maxItemsPerRun",
+          "importFolder"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "cron": {
+            "type": "string"
+          },
+          "maxItemsPerRun": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "importFolder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SqlConnectionCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "SqlConnectionSummary": {
+        "required": [
+          "name",
+          "server",
+          "database",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "server": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StateLevel": {
+        "enum": [
+          "ok",
+          "degraded",
+          "failed"
+        ]
+      },
+      "StoredAttachments": {
+        "required": [
+          "ids",
+          "refs"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SyncPbisRequest": {
+        "required": [
+          "vault",
+          "adoId",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "sources": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SyncSources"
+              }
+            ]
+          }
+        }
+      },
+      "SyncPullRequestsRequest": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "SyncRepositoriesRequest": {
+        "required": [
+          "vault"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          }
+        }
+      },
+      "SyncRun": {
+        "required": [
+          "id",
+          "stage",
+          "outcome",
+          "error",
+          "startedAt",
+          "endedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RunOutcome"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SyncSources": {
+        "enum": [
+          "sprint",
+          "imports",
+          null
+        ]
+      },
+      "SystemStatus": {
+        "required": [
+          "checkedAt",
+          "database",
+          "ticker",
+          "runner",
+          "confluenceConfigured",
+          "vaults",
+          "messaging",
+          "runs",
+          "schedules",
+          "recentSyncs",
+          "budget",
+          "outside",
+          "cleanups",
+          "attention"
+        ],
+        "type": "object",
+        "properties": {
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/ComponentState"
+          },
+          "ticker": {
+            "$ref": "#/components/schemas/TickerStatus"
+          },
+          "runner": {
+            "$ref": "#/components/schemas/RunnerStatus"
+          },
+          "confluenceConfigured": {
+            "type": "boolean"
+          },
+          "vaults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VaultStatus"
+            }
+          },
+          "messaging": {
+            "$ref": "#/components/schemas/MessagingStatus"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunInProgress"
+            }
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleStatus"
+            }
+          },
+          "recentSyncs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncRun"
+            }
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetStatus"
+          },
+          "outside": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutsideComponentState"
+            }
+          },
+          "cleanups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CleanupStatus"
+            }
+          },
+          "attention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attention"
+            }
+          }
+        }
+      },
+      "TaskRef": {
+        "required": [
+          "adoId",
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "startOver": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "TaskUserNotes": {
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "TestConnectionRequest": {
+        "required": [
+          "orgUrl",
+          "project",
+          "team",
+          "pat"
+        ],
+        "type": "object",
+        "properties": {
+          "orgUrl": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "pat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TestDevHubRequest": {
+        "required": [
+          "url",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TestSqlConnectionRequest": {
+        "required": [
+          "name",
+          "connectionString"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectionString": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TickResult": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string"
+          }
+        }
+      },
+      "TickerStatus": {
+        "required": [
+          "state",
+          "startedAt",
+          "lastTickAt"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/StateLevel"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastTickAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "TrashEntry": {
+        "required": [
+          "path",
+          "sizeBytes",
+          "modifiedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TrashPathRequest": {
+        "required": [
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "VaultStatus": {
+        "required": [
+          "name",
+          "adoEnabled",
+          "adoConfigured",
+          "lastPbiSyncAt",
+          "lastPullRequestSyncAt",
+          "importConfigured",
+          "importCheckedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "adoEnabled": {
+            "type": "boolean"
+          },
+          "adoConfigured": {
+            "type": "boolean"
+          },
+          "lastPbiSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastPullRequestSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "importConfigured": {
+            "type": "boolean"
+          },
+          "importCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Vaults.Remove.RemoveVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Vaults.Add.AddVaultEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.RerunTasks.RerunTasksEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.ReportBug.ReportBugEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.CreateTask.CreateTaskEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.CloseItem.CloseItemEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Status.StatusEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Skills.SkillsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Reviews.ReviewsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Repos.CatalogEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.UserNotes.UserNotesEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Skills.SaveSkillsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Repos.SaveReposEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Finish.FinishEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Delete.DeleteEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Create.CreateEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.ConfluenceLinks.ConfluenceLinksEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Close.CloseEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Close.ReopenEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Pbis.Attachments.AttachmentsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Continue.ChatsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Cleanup.CleanupEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Agents.Completed.AgentRunsEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncRepositories.SyncRepositoriesEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncPullRequests.SyncPullRequestsEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.SyncPbis.SyncPbisEndpoint"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.Settings.SettingsEndpoints"
+    },
+    {
+      "name": "PowerLoom.AdoIntegration.Features.Connection.ConnectionEndpoints"
+    },
+    {
+      "name": "PowerLoom.ConfluenceIntegration.Features.LoadPage.LoadPageEndpoint"
+    },
+    {
+      "name": "PowerLoom.SqlIntegration.Features.Connections.ReadSqlEndpoints"
+    },
+    {
+      "name": "PowerLoom.AzureIntegration.Features.Resources.ReadAzureEndpoints"
+    },
+    {
+      "name": "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
+    }
+  ]
+}

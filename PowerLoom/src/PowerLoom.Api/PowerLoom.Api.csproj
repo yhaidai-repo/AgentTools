@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PowerLoom.Core\PowerLoom.Core.csproj" />
+    <ProjectReference Include="..\PowerLoom.AdoIntegration\PowerLoom.AdoIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.ConfluenceIntegration\PowerLoom.ConfluenceIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.SqlIntegration\PowerLoom.SqlIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.AzureIntegration\PowerLoom.AzureIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.DevHubIntegration\PowerLoom.DevHubIntegration.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."pipeline_status" ADD VALUE 'development' BEFORE 'stale';

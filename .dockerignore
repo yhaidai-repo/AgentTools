@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.next
+VaultUsage
+PowerLoom/.env
+PowerLoom/backups
+PowerLoom/import-inbox
+PowerLoom/vault
+PowerLoom/.vs
+**/bin
+**/obj
+**/TestResults

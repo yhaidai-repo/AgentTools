@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PowerLoom.AdoIntegration/PowerLoom.AdoIntegration.csproj" />
+    <Project Path="src/PowerLoom.AzureIntegration/PowerLoom.AzureIntegration.csproj" />
+    <Project Path="src/PowerLoom.Api/PowerLoom.Api.csproj" />
+    <Project Path="src/PowerLoom.ConfluenceIntegration/PowerLoom.ConfluenceIntegration.csproj" />
+    <Project Path="src/PowerLoom.Contracts/PowerLoom.Contracts.csproj" />
+    <Project Path="src/PowerLoom.Core/PowerLoom.Core.csproj" />
+    <Project Path="src/PowerLoom.Domain/PowerLoom.Domain.csproj" />
+    <Project Path="src/PowerLoom.DevHubIntegration/PowerLoom.DevHubIntegration.csproj" />
+    <Project Path="src/PowerLoom.Persistence/PowerLoom.Persistence.csproj" />
+    <Project Path="src/PowerLoom.SqlIntegration/PowerLoom.SqlIntegration.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PowerLoom.Api.Tests/PowerLoom.Api.Tests.csproj" />
+  </Folder>
+</Solution>

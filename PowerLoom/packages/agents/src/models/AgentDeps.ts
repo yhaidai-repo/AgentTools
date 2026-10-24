@@ -1,0 +1,64 @@
+import type { AdoAccess } from "./AdoAccess";
+import type { ConfluenceClient } from "@powerloom/confluence";
+import type { PowerLoomDb } from "@powerloom/db";
+import type { AgentConfigStore } from "@agenttools/config";
+import type { RepoCache, RuntimeRegistry } from "@agenttools/runtime";
+import type { PriceBook, UsageStore } from "@agenttools/usage";
+import type { DataAccessLog } from "../DataAccessLog";
+import type { OutsideAccessServices } from "./OutsideAccessServices";
+import type { DocUsageLog } from "../DocUsageLog";
+import type { CaptureRules } from "./CaptureRules";
+import type { DocsVault } from "./DocsVault";
+import type { RegisterEntry } from "./RegisterEntry";
+import type { AzureAccess } from "./AzureAccess";
+import type { DevHubAccess } from "./DevHubAccess";
+import type { SqlAccess } from "./SqlAccess";
+import type { VaultsAccess } from "./VaultsAccess";
+
+export interface AgentDeps {
+  db: PowerLoomDb;
+  config: AgentConfigStore;
+  runtimes: RuntimeRegistry;
+  usageStore: UsageStore;
+  prices: PriceBook;
+  /** The run's vault (the task's PBI's, or the task's own): its docs root. */
+  docsRoot: string;
+  /** Folders inside the docs root hidden from agents. */
+  docsExclude: string[];
+  /** The run's vault's rendered backlog: agents read the PBI note from it. */
+  vaultRoot: string;
+  /** Folders searched for skills, first match wins. */
+  skillFolders: string[];
+  repoCache: RepoCache;
+  /** VaultCapture rules; null when the module is not available (then agents get no vault_capture tool). */
+  captureRules: CaptureRules | null;
+  repoCacheRoot: string;
+  /** The run's vault, writable, for the tech-writer; null where PowerLoom may not write it. */
+  docsVault: DocsVault | null;
+  /** The run's vault's folder name: findings and the Vault page's note writes are about it. */
+  docsVaultName: string;
+  /** Every vault under the vaults root, writable; null where it isn't mounted. */
+  vaults: VaultsAccess | null;
+  /** A project's register records (VaultCapture `register`); null where the module isn't available. */
+  listRegister: ((project: string, kind: "questions" | "issues") => Promise<RegisterEntry[]>) | null;
+  /** Confluence account for agents with the integration on; null when CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN aren't set. */
+  confluence: ConfluenceClient | null;
+  /** The Confluence site agents search (CONFLUENCE_SITE); null = no search tool, page links still work. */
+  confluenceSite: string | null;
+  /** Every tool call goes here (user decision 2026-10-13: traceable). */
+  accessLog: DataAccessLog;
+  /** The outside-read tools' wrapper: the same log, plus a human task for a denied call. */
+  outside: OutsideAccessServices;
+  /** The run's vault's Read SQL connections for agents with the integration on; null while the vault's Read SQL is off. */
+  sql: SqlAccess | null;
+  /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */
+  azure: AzureAccess | null;
+  /** PowerLoom's API (POWERLOOM_URL): the one place an agent's commit may write through, e.g. a bug it found. */
+  powerloomUrl: string;
+  /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
+  devHub: DevHubAccess | null;
+  /** The vault's Azure DevOps while its integration is on (the ADO tools). */
+  ado: AdoAccess | null;
+  /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
+  docUsageLog: DocUsageLog | null;
+}

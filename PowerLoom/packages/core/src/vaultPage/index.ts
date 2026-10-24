@@ -1,0 +1,20 @@
+// The vaultPage domain: the reads the web pages and the read commands share (stage 2 of the powerloom-mcp design, 2026-10-23).
+export { mountedVaultRoot, vaultRootOf } from "./vaultRoot";
+export { listVaultNotes, notesWrittenByPowerLoom } from "./vaultNotes";
+export { withWriteActions } from "./vaultNoteWrites";
+export { ALL_NOTE_AGENTS, noteAgentChoices, isNoteUsed, noteUsage, useCount } from "./vaultUsage";
+export { WWW_LOG_PATH, isOpenWww, readVaultRegisters } from "./vaultRegisters";
+export { REGISTERS, registerRows, wwwRows, type RegisterKey } from "./registerRows";
+export { listVaultNotesCommand } from "../commands/listVaultNotesCommand";
+export { getVaultUsageCommand } from "../commands/getVaultUsageCommand";
+export { getVaultRegistersCommand } from "../commands/getVaultRegistersCommand";
+export { listVaultTrashCommand } from "../commands/listVaultTrashCommand";
+export type { VaultNote } from "../models/VaultNote";
+export type { PowerLoomNote } from "../models/PowerLoomNote";
+export type { NoteUsage } from "../models/NoteUsage";
+export type { VaultRegisters } from "../models/VaultRegisters";
+export type { ProjectRegisterRecord } from "../models/ProjectRegisterRecord";
+export type { RegisterRow } from "../models/RegisterRow";
+export type { VaultNoteEntry } from "../models/VaultNoteEntry";
+export type { VaultUsageSummary } from "../models/VaultUsageSummary";
+export type { VaultRegisterRows } from "../models/VaultRegisterRows";

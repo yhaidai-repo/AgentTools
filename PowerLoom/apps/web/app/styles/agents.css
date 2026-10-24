@@ -1,0 +1,723 @@
+/* Agents in the Ice theme: the pause switch, the subscription meters, the agents and runs tables, tool calls, an
+   agent's config form and a run's trace. */
+
+/* The page head's switch: teal while agents run, grey when paused. */
+.pause-switch-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.pause-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 4px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.pause-knob {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ok) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 50%, transparent);
+}
+
+.pause-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 16px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  transition: left var(--motion-base) var(--motion-out);
+}
+
+.pause-switch.paused .pause-knob {
+  background: rgb(255 255 255 / 0.05);
+  border-color: var(--border-hi);
+}
+
+.pause-switch.paused .pause-knob::after {
+  left: 2px;
+  background: var(--muted);
+  box-shadow: none;
+}
+
+.pause-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 6%, transparent);
+  animation: breathe-warn var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.pause-banner .banner-what {
+  flex: 1;
+}
+
+/* Subscription limits: the account's use dim, PowerLoom's share bright. */
+.subscription-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.sub-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.sub-top small {
+  margin-left: 6px;
+  color: var(--faint);
+}
+
+.sub-top b {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.sub-bar {
+  position: relative;
+  height: 6px;
+  margin: 10px 0 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.sub-all,
+.sub-ours {
+  position: absolute;
+  inset: 0 auto 0 0;
+}
+
+.sub-all {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.sub-ours {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.sub-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* The agents table. */
+.agents-table .col-runs { width: 84px; }
+.agents-table .col-cost { width: 130px; }
+.agents-table .col-last { width: 104px; }
+.agents-table .col-act { width: 130px; }
+
+.agent-name {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.agent-name:hover {
+  color: var(--accent);
+}
+
+.agent-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 8px -1px var(--c);
+}
+
+.agent-dot.big {
+  width: 12px;
+  height: 12px;
+}
+
+.off-tag {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px dashed var(--border-hi);
+  border-radius: 999px;
+}
+
+.runs-note,
+.cost-per-run {
+  display: block;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.runs-note.failed {
+  color: var(--error);
+}
+
+.runs-note.running {
+  color: var(--accent);
+}
+
+.cost-bar {
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.cost-bar b {
+  display: block;
+  height: 100%;
+  background: var(--c);
+  opacity: 0.8;
+}
+
+.last-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Run now shows on the row's hover (user decision 2026-10-18), and stays while it has focus or shows its answer. */
+.row-action {
+  opacity: 0;
+  transition: opacity var(--motion-fast);
+}
+
+tr:hover .row-action,
+.row-action:focus-within,
+.row-action:has(.result-ok, .result-error) {
+  opacity: 1;
+}
+
+.agent-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 9px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--c, var(--muted));
+  border: 1px solid color-mix(in srgb, var(--c, var(--muted)) 40%, transparent);
+  border-radius: 999px;
+}
+
+.agent-tag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* The runs table. */
+.runs-pills {
+  margin-bottom: 12px;
+}
+
+.runs-table td {
+  vertical-align: top;
+}
+
+.runs-table .col-select { width: 40px; padding-right: 0; }
+.runs-table .col-run { width: 190px; }
+.runs-table .col-cost { width: 110px; }
+.runs-table .col-took { width: 84px; }
+.runs-table .col-outcome { width: 150px; }
+
+.runs-table input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.runs-table tr:has(input[name="taskId"]:checked) td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* The longest outcome (budget-exceeded) fits the column; a longer one wraps instead of leaving the table. */
+.run-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.run-outcome .dot {
+  flex: none;
+}
+
+.run-error {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tools. */
+.tools-table .col-agents { width: 140px; }
+
+.resource-name {
+  display: block;
+  overflow: hidden;
+  font: 12.5px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.call-ok { background: var(--ok); }
+.call-refused { background: var(--warn); }
+.call-denied { background: var(--human); }
+.call-failed { background: var(--error); }
+
+.call-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.call-row:last-child {
+  border-bottom: none;
+}
+
+.call-row > summary {
+  display: grid;
+  grid-template-columns: 72px auto minmax(0, 1fr) auto 64px 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.call-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.call-when,
+.call-ms {
+  font: 11.5px var(--font-mono);
+  color: var(--faint);
+}
+
+.call-ms {
+  text-align: right;
+}
+
+.call-tool {
+  overflow: hidden;
+  font: 12.5px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.call-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.call-reason {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+}
+
+.call-request,
+.run-input,
+.trace-payload {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font: 12px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.run-input {
+  margin: 0 20px 16px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* An agent's config. */
+.hero-description {
+  max-width: 760px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hero-stat.error .hero-stat-value {
+  color: var(--error);
+}
+
+.budget-meter {
+  height: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.budget-meter b {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+
+.hero-stat.warn .budget-meter b {
+  background: var(--warn);
+}
+
+.config-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.config-section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 0 20px 18px;
+}
+
+.config-section > h3 {
+  padding: 16px 0 0;
+}
+
+.cron-control {
+  display: grid;
+  gap: 6px;
+}
+
+.cron-words {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 8px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+  align-items: start;
+}
+
+/* A label and its control share the row's tracks with the neighbouring field, so a hint that wraps onto a second line
+   doesn't push its control below the one beside it. */
+.field-grid > .field:has(> :nth-child(2):last-child) {
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 6px;
+}
+
+.form-picker .dropdown,
+.form-picker .dropdown-trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* A checkbox drawn as a switch, its hint under the label. */
+.switch-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.switch-field:last-child {
+  border-bottom: none;
+}
+
+.switch-field input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-knob {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid var(--border-hi);
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.switch-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: left var(--motion-base) var(--motion-out), background var(--motion-fast);
+}
+
+.switch-field input:checked + .switch-knob {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.switch-field input:checked + .switch-knob::after {
+  left: 14px;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.switch-field input:focus-visible + .switch-knob {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.switch-text small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: 1fr 84px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.option-row:last-child {
+  border-bottom: none;
+}
+
+.option-text small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.option-row input {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px 3px 11px;
+  font: 12px var(--font-mono);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-2) 6%, transparent);
+}
+
+.skill-chip a {
+  color: var(--text);
+}
+
+.skill-chip.missing {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+}
+
+.skill-remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+  background: rgb(255 255 255 / 0.06);
+  border: none;
+  border-radius: 50%;
+  box-shadow: none;
+}
+
+.skill-folders ol {
+  margin: 6px 0;
+  padding-left: 20px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* A run's page. */
+.failure-panel p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--error);
+  overflow-wrap: anywhere;
+}
+
+.trace-pills {
+  margin-bottom: 8px;
+}
+
+.trace-pills .status-pill {
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.trace-group {
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--faint);
+  border-bottom: 1px solid rgb(255 255 255 / 0.035);
+}
+
+.trace-line {
+  border-bottom: 1px solid rgb(255 255 255 / 0.035);
+}
+
+.trace-line > summary {
+  display: grid;
+  grid-template-columns: 20px 72px 120px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 12.5px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.trace-line > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trace-line.nested > summary {
+  padding-left: 26px;
+}
+
+.trace-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  border-radius: 6px;
+  color: var(--faint);
+  background: rgb(255 255 255 / 0.05);
+}
+
+.trace-time {
+  font: 11.5px var(--font-mono);
+  color: var(--faint);
+}
+
+.trace-kind {
+  overflow: hidden;
+  font: 500 11.5px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.trace-text {
+  min-width: 0;
+  overflow: hidden;
+  font: 12px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.trace-line[open] .trace-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.trace-call .trace-icon { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.trace-call .trace-kind { color: var(--accent); }
+.trace-result .trace-icon { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.trace-result .trace-kind { color: var(--ok); }
+.trace-result.failed .trace-icon { color: var(--error); background: color-mix(in srgb, var(--error) 14%, transparent); }
+.trace-result.failed .trace-kind,
+.trace-result.failed .trace-text { color: var(--error); }
+.trace-said .trace-icon { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 14%, transparent); }
+.trace-said .trace-kind { color: var(--accent-2); }
+.trace-said .trace-text { font-family: var(--font-sans); white-space: normal; color: var(--text); }
+.trace-end .trace-icon { color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.trace-end .trace-kind { color: var(--ok); }
+
+@media (max-width: 1000px) {
+  .config-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .run-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The skill written with an agent, under its Skills. */
+.new-skill {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.new-skill legend {
+  padding: 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}

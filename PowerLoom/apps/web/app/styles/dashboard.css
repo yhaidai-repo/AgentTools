@@ -1,0 +1,448 @@
+/* The dashboard in the Ice theme: tile bands and panel grids, the rate sparklines, the charts, the architecture scheme
+   and the pipeline bars. */
+
+.band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid.wide-left {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.gap-top {
+  margin-top: 14px;
+}
+
+@media (max-width: 1100px) {
+  .band,
+  .grid.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid.two,
+  .grid.wide-left {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .band,
+  .grid.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.attention-list {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.attention-list a {
+  color: inherit;
+}
+
+/* A rate tile: the latest value large, the day's line under it. */
+.rate-value {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-value small {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.rates-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+  overflow: visible;
+}
+
+.sparkline-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 70%, transparent));
+}
+
+.sparkline-area {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.hint {
+  font-size: 12px;
+}
+
+/* Charts: hand-rolled SVG in a panel; the title row can hold a switch. */
+.panel.chart {
+  margin: 0;
+  padding: 16px 20px;
+}
+
+.panel.chart figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel.chart .empty {
+  margin: 12px 0;
+}
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-grid line {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart-grid text,
+.chart-axis {
+  font-size: 11px;
+  fill: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-grid text {
+  text-anchor: end;
+}
+
+.chart-axis,
+.chart-value {
+  text-anchor: middle;
+}
+
+.chart-value {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.chart-baseline {
+  stroke: var(--border-hi);
+  stroke-width: 1;
+}
+
+.chart rect {
+  rx: 2;
+  transition: filter var(--motion-fast);
+}
+
+/* A stacked column is one solid shape: its segments are square, the column's clip rounds its top. */
+.chart rect.chart-segment {
+  rx: 0;
+}
+
+.chart rect:hover {
+  filter: brightness(1.25);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+}
+
+.chart-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+}
+
+/* Horizontal bars (cost per minute of run time): label, bar, value. */
+.bars {
+  display: grid;
+  gap: 8px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 34%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.bar-label {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 8px;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 4px;
+}
+
+.bar-value {
+  font: 12px var(--font-mono);
+  color: var(--text);
+}
+
+/* A today's spend against its limit, in the agent table. */
+.budget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 170px;
+}
+
+.budget .meter {
+  flex: 1;
+  margin: 0;
+}
+
+.budget span.amount {
+  font: 12px var(--font-mono);
+  color: var(--muted);
+}
+
+/* Held tasks list their reasons under the row. */
+/* The sprint picker's label beside its dropdown. */
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Pipeline: one row per status, the median stay as a glowing bar, p95 as a violet tick, on a log scale. */
+.pipe {
+  display: grid;
+  grid-template-columns: 180px 1fr 190px;
+  gap: 8px 16px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.pipe-track {
+  position: relative;
+  height: 14px;
+}
+
+.pipe-axis {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.pipe-span {
+  position: absolute;
+  top: 6px;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent-2) 35%, transparent);
+}
+
+.pipe-bar {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent), var(--accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.pipe-p95 {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--accent-2);
+  box-shadow: 0 0 8px var(--accent-2);
+}
+
+.pipe-time {
+  font: 12px var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pipe-time b {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-tick {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  background: var(--accent-2);
+}
+
+@media (max-width: 1100px) {
+  .pipe {
+    grid-template-columns: 130px 1fr 170px;
+  }
+}
+
+/* The architecture scheme */
+.scheme svg {
+  width: 100%;
+  height: 520px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--edge);
+  touch-action: none;
+  cursor: grab;
+}
+
+.scheme-breadcrumb {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.scheme-breadcrumb .link-button:disabled {
+  color: var(--text);
+  font-weight: 600;
+  cursor: default;
+  text-decoration: none;
+  opacity: 1;
+}
+
+.scheme-node rect {
+  fill: var(--surface-solid);
+  stroke: var(--border-hi);
+  stroke-width: 1.2;
+}
+
+.scheme-node.kind-external rect {
+  stroke-dasharray: 6 4;
+}
+
+.scheme-node.openable {
+  cursor: pointer;
+}
+
+.scheme-node.openable:hover rect {
+  stroke: var(--accent);
+}
+
+.scheme-node.marked rect {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.scheme-node .scheme-dot {
+  fill: var(--faint);
+}
+
+.scheme-node.health-ok .scheme-dot {
+  fill: var(--ok);
+}
+
+.scheme-node.health-degraded .scheme-dot {
+  fill: var(--warn);
+}
+
+.scheme-node.health-degraded rect {
+  stroke: var(--warn);
+}
+
+.scheme-node.health-failed .scheme-dot {
+  fill: var(--error);
+}
+
+.scheme-node.health-failed rect {
+  stroke: var(--error);
+  stroke-width: 2;
+}
+
+.scheme-label {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.scheme-detail {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.scheme-more {
+  font-size: 16px;
+  fill: var(--muted);
+}
+
+.scheme-link line {
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  opacity: 0.5;
+}
+
+.scheme-arrow {
+  fill: var(--muted);
+}
+
+.scheme-link-label {
+  font-size: 10px;
+  fill: var(--muted);
+  text-anchor: middle;
+}

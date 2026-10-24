@@ -1,0 +1,19 @@
+{
+  "name": "agenttools",
+  "private": true,
+  "workspaces": [
+    "AgentConfig",
+    "AgentRuntime",
+    "AgentUsage",
+    "PowerLoom/packages/*",
+    "PowerLoom/apps/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "powerloom:db:generate": "npm run generate -w @powerloom/db",
+    "powerloom:dev:web": "npm run dev -w @powerloom/web"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "blockOn": ["auto", "manual"],
+  "markerTtlMinutes": 30,
+  "stateFolder": "~/.vault-capture/pre-compact"
+}

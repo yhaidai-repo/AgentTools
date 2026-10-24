@@ -1,0 +1,26 @@
+{
+  "draft": {
+    "folder": "draft",
+    "namePattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+    "sourcePatterns": ["^user message", "^session finding", "^spec .+"],
+    "maxLines": 80,
+    "firstSection": "Captured",
+    "assumptionsSection": "Assumptions",
+    "lastSection": "To fill",
+    "defaultToFill": "Verify the captured facts, move them to the target, delete this draft.",
+    "notePathPattern": "[^\\s\"'`\\[\\]()<>]+\\.md\\b"
+  },
+  "guidance": [
+    "Save to the vault the work belongs to. Never link, copy or share notes between vaults.",
+    "Record only facts already in your context (user messages, specs, session findings). No new research.",
+    "New information goes to a draft. Never merge it into verified notes.",
+    "A claim is code-read unless tagged (inferred) or (runtime-verified).",
+    "Tag every assumption (assumption) inline or list it under Assumptions.",
+    "New known issues and open questions: propose them to the user, never write them without a yes.",
+    "Be short: bullets, no padding, no repeated context. One fact, one place.",
+    "Cite symbols, not line numbers.",
+    "Note names are unique per vault: kebab-case, prefixed with the project key.",
+    "Refer to notes as [[note]] links, never as file paths (no .md). Targets are [[note]] or a folder.",
+    "Nothing new worth keeping: save nothing."
+  ]
+}
