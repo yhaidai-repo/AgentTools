@@ -1,6 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
 import { z } from "zod";
+import { MAX_ATTACHMENT_BYTES, secretFileProblem } from "../attachablePath";
 import { contentTypeOf } from "../contentTypeOf";
 import { containerPathOf } from "../hostPaths";
 import type { AttachmentFile } from "../models/AttachmentFile";
@@ -11,10 +12,11 @@ import { pbiIdInput } from "./inputs";
 import { mapOutcome } from "./mapOutcome";
 
 // The PBI page's attachment upload for a chat: a file on the PC, named by its path, read through the container's
-// mounts (the vaults root, the repos), so a chat attaches what the user points at without uploading bytes.
+// mounts (the vaults root, the repos), so a chat attaches what the user points at without uploading bytes. Secrets
+// (a secrets repo, .env files, keys) are refused, and a file over the backend's limit is refused before it is read.
 export const attachToPbiCommand: Command<{ adoId: number; path: string; itemId: string | null }, { refs: string[] }> = {
   name: "pbi.attach",
-  description: "Attach a file to a PBI by its path on this PC (under the vaults folder or the repos folder; anything else is refused): PowerLoom stores it and reads its text for the agents. Optionally as the answer to one of the PBI's items. Ask the user for the file's path; never guess it.",
+  description: "Attach a file to a PBI by its path on this PC (under the vaults folder or the repos folder, at most 20 MB; anything else, and secrets such as .env files or keys, is refused): PowerLoom stores it and reads its text for the agents. Optionally as the answer to one of the PBI's items. Ask the user for the file's path; never guess it.",
   input: z.object({
     adoId: pbiIdInput,
     path: z.string().trim().min(1).describe("The file's path on the PC, e.g. D:/Claude/work/specs/export.pdf"),
@@ -40,8 +42,19 @@ async function readHostFile(hostPath: string, folders: HostFolder[]): Promise<Ou
     return { ok: false, error: `${hostPath} is outside the folders PowerLoom can read (${folders.map((folder) => folder.hostRoot).join(", ") || "none here"}).` };
   }
 
+  const secret = secretFileProblem(hostPath);
+
+  return secret ? { ok: false, error: secret } : readAttachable(hostPath, path);
+}
+
+async function readAttachable(hostPath: string, path: string): Promise<Outcome<AttachmentFile>> {
   try {
+    const { size } = await stat(path);
     const fileName = basename(path);
+
+    if (size > MAX_ATTACHMENT_BYTES) {
+      return { ok: false, error: `${hostPath} is ${Math.ceil(size / 1024 / 1024)} MB; an attachment is at most ${MAX_ATTACHMENT_BYTES / 1024 / 1024} MB.` };
+    }
 
     return { ok: true, value: { fileName, contentType: contentTypeOf(fileName), bytes: await readFile(path) } };
   } catch (error) {
