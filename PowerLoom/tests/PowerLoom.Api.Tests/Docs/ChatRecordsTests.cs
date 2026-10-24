@@ -70,6 +70,18 @@ public sealed class ChatRecordsTests(PowerLoomHost host)
         Assert.Contains("): Duplicate of KI-001. Same page loss.", text);
     }
 
+    [Fact]
+    public async Task A_path_outside_the_vault_is_refused_and_a_close_leaves_no_lock_behind()
+    {
+        await WriteRegisterAsync("# Known issues\n\n## KI-001 Sync drops a page\n\n> **Open** · Created 2026-10-01\n\nLost.\n");
+
+        await ShouldFailAsync($"{VaultApi}/register-records/close", new CloseRegisterRecordRequest("../chatp/chatp-known-issues.md", "KI-001", "fixed", null, "x", "the user"), HttpStatusCode.BadRequest);
+        await ShouldFailAsync($"{VaultApi}/register-records/close", new CloseRegisterRecordRequest(IssuesPath, "KI-001", "duplicate", new RecordRef("../x/x-known-issues.md", "KI-009"), "x", "the user"), HttpStatusCode.BadRequest);
+        await host.Host.PostJson(new CloseRegisterRecordRequest(IssuesPath, "KI-001", "fixed", null, "Fixed.", "the user"), $"{VaultApi}/register-records/close").Receive<ClosedRegisterRecord>();
+
+        Assert.False(File.Exists(Path.Combine(host.VaultRoot, "chatp", ".chatp-known-issues.md.lock")));
+    }
+
     private static CaptureDraftRequest Draft(string name) => new("chatp", name, "Sync paging", "[[chatp-sync]]", ["The sync reads 200 items a page."], null, ["Is 200 configurable?"], "session finding: powerloom chat CHAT-1");
 
     private async Task WriteRegisterAsync(string text)

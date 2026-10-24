@@ -36,14 +36,33 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
     }
 
     // Only the register note changes; heading links elsewhere that name the record are left for the vault review, which
-    // points them at the register as the vault rules say.
+    // points them at the register as the vault rules say. Read and written back under the register's lock, which
+    // VaultCapture's adds take too.
     public async Task<Outcome<ClosedRegisterRecord>> CloseRegisterRecordAsync(string vault, CloseRegisterRecordRequest request, CancellationToken cancellation)
     {
-        var text = MaintenanceRecords.RegisterKindOf(request.Path) is null ? null : await files.ReadTextAsync(vault, request.Path, cancellation);
+        var paths = PathProblem(request.Path) ?? (request.DuplicateOf is { } original ? PathProblem(original.Path) : null);
+
+        if (paths is not null)
+            return Outcome<ClosedRegisterRecord>.Failure(paths);
+
+        if (MaintenanceRecords.RegisterKindOf(request.Path) is null || !files.Exists(vault, request.Path))
+            return NotOpen(request);
+
+        using var held = await files.LockAsync(vault, request.Path, cancellation);
+
+        if (held is null)
+            return Outcome<ClosedRegisterRecord>.Failure(Problem.Conflict($"{request.Path} is being written by another process: try again in a moment."));
+
+        return await CloseHeldAsync(vault, request, cancellation);
+    }
+
+    private async Task<Outcome<ClosedRegisterRecord>> CloseHeldAsync(string vault, CloseRegisterRecordRequest request, CancellationToken cancellation)
+    {
+        var text = await files.ReadTextAsync(vault, request.Path, cancellation);
         var record = text is null ? null : MaintenanceRecords.Of(request.Path, text).FirstOrDefault(candidate => candidate.Id == request.Id && candidate.IsOpen);
 
         if (record is null)
-            return Outcome<ClosedRegisterRecord>.Failure(Problem.NotFound($"{request.Path} has no open record {request.Id} (vault.registers lists them)."));
+            return NotOpen(request);
 
         var problem = StatusProblem(record, request) ?? await DuplicateProblemAsync(vault, request, cancellation);
 
@@ -55,6 +74,16 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
         await files.WriteTextAsync(vault, request.Path, RegisterRecordClosing.Close(text!, record, ClosingOf(request, today), today), cancellation);
 
         return Outcome<ClosedRegisterRecord>.Success(new ClosedRegisterRecord(request.Path, request.Id, request.Status));
+    }
+
+    private static Outcome<ClosedRegisterRecord> NotOpen(CloseRegisterRecordRequest request) =>
+        Outcome<ClosedRegisterRecord>.Failure(Problem.NotFound($"{request.Path} has no open record {request.Id} (vault_registers lists them)."));
+
+    private static Problem? PathProblem(string path)
+    {
+        var parsed = VaultPath.Parse(path);
+
+        return parsed.Ok ? null : parsed.Problem;
     }
 
     private static string? StatusProblem(MaintenanceRecord record, CloseRegisterRecordRequest request)
