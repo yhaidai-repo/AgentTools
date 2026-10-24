@@ -4,6 +4,7 @@ using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using DocumentKinds = PowerLoom.Domain.Pbis.LinkedDocuments;
 
 namespace PowerLoom.Domain.Tasks;
@@ -82,7 +83,7 @@ public static class TaskValidation
     private static async Task<List<string>> OpenHumanItemsAsync(PowerLoomDbContext db, int pbiId, CancellationToken cancellation)
     {
         var ids = await db.LocalItems.AsNoTracking()
-            .Where(item => item.PbiId == pbiId && item.Assignee == HumanTasks.Assignee && item.Kind != ItemKind.Finding && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress))
+            .Where(item => item.PbiId == pbiId && item.Assignee == HumanTasks.Assignee && item.Kind != ItemKinds.Finding && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress))
             .OrderBy(item => item.Id).Select(item => item.Id).ToListAsync(cancellation);
 
         return ids.Count > 0 ? [$"Waiting for you: {string.Join(", ", ids)}"] : [];

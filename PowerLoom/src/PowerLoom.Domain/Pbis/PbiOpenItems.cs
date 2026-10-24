@@ -16,7 +16,7 @@ public static class PbiOpenItems
     public static async Task<int> CancelAsync(PowerLoomDbContext db, int adoId, string actor, long? runId, CancellationToken cancellation)
     {
         var worked = db.AgentRuns.Where(run => run.Outcome == RunOutcome.Running && run.ItemId != null).Select(run => run.ItemId);
-        var open = await db.LocalItems.Where(item => item.PbiId == adoId && Waiting.Contains(item.Status) && item.Kind != ItemKind.Finding && !worked.Contains(item.Id)).ToListAsync(cancellation);
+        var open = await db.LocalItems.Where(item => item.PbiId == adoId && Waiting.Contains(item.Status) && item.Kind != ItemKinds.Finding && !worked.Contains(item.Id)).ToListAsync(cancellation);
 
         foreach (var item in open)
             await ItemStatusChange.SetAsync(db, item, ItemStatus.Cancelled, actor, runId, cancellation);

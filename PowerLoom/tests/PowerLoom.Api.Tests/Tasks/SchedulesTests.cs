@@ -7,6 +7,7 @@ using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Tasks;
 
@@ -33,7 +34,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
         Assert.Contains("Not among the vault's enabled repositories: Nope.", await refused.ReadAsTextAsync());
         Assert.Equal(("*", "research"), (saved.AgentId, saved.TaskType));
         Assert.StartsWith("GT-", task.Id);
-        Assert.Equal((ItemKind.Research, "agent:*", "Weekly look", "Check the retries", ItemStatus.Open), (task.Kind, task.Assignee, task.Title, task.Body, task.Status));
+        Assert.Equal((ItemKinds.Research, "agent:*", "Weekly look", "Check the retries", ItemStatus.Open), (task.Kind, task.Assignee, task.Title, task.Body, task.Status));
         Assert.Contains($"\"scheduleId\": {saved.Id}", task.Data);
         Assert.Contains("\"doneWhen\": \"Lists every retry\"", task.Data);
         Assert.Equal($"{task.Id} still waits; no new task", second!.Result);
@@ -62,7 +63,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
         var task = await LoadAsync(ticked!.Result.Split(' ')[0]);
 
         Assert.StartsWith("VR-", task.Id);
-        Assert.Equal((ItemKind.VaultReview, "agent:*", PowerLoomHost.Vault), (task.Kind, task.Assignee, task.Vault));
+        Assert.Equal((ItemKinds.VaultReview, "agent:*", PowerLoomHost.Vault), (task.Kind, task.Assignee, task.Vault));
         Assert.Contains($"\"scheduleId\": {saved.Id}", task.Data);
 
         await host.Host.Scenario(scenario =>
@@ -85,7 +86,7 @@ public sealed class SchedulesTests(PowerLoomHost host)
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Typed schedule PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Refining, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(new LocalItem { Id = $"RT-{adoId}-001", Kind = ItemKind.Refinement, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Refine the PBI", Status = ItemStatus.Open, Assignee = "agent:*", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"RT-{adoId}-001", Kind = ItemKinds.Refinement, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Refine the PBI", Status = ItemStatus.Open, Assignee = "agent:*", HeldBy = "[]" });
         await db.SaveChangesAsync();
     }
 

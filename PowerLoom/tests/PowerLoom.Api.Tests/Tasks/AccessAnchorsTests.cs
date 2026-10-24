@@ -8,6 +8,7 @@ using PowerLoom.Features.Tasks.CloseItem.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Tasks;
 
@@ -77,10 +78,10 @@ public sealed class AccessAnchorsTests(PowerLoomHost host)
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
         db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Anchors PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Researching, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(new LocalItem { Id = Sql, Kind = ItemKind.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Access to pvs-dev for research", Status = ItemStatus.Open, Assignee = "human", Data = """{"accessRequest":{"kind":"sql","resource":"pvs-dev","agentTaskId":"AT-63002-001"}}""", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = Confluence, Kind = ItemKind.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Access to Confluence for research", Status = ItemStatus.Open, Assignee = "human", Data = """{"accessRequest":{"kind":"confluence","resource":"x.atlassian.net","agentTaskId":"AT-63002-001"}}""", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = Research, Kind = ItemKind.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Done, Assignee = "agent:research", Attempts = 1, Data = $$$"""{"rerunAfter":["{{{Sql}}}","{{{Confluence}}}"]}""", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = Design, Kind = ItemKind.Design, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Design", Status = ItemStatus.Blocked, Assignee = "agent:design", Attempts = 3, Data = $$$"""{"rerunAfter":["{{{Sql}}}"]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Sql, Kind = ItemKinds.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Access to pvs-dev for research", Status = ItemStatus.Open, Assignee = "human", Data = """{"accessRequest":{"kind":"sql","resource":"pvs-dev","agentTaskId":"AT-63002-001"}}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Confluence, Kind = ItemKinds.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Access to Confluence for research", Status = ItemStatus.Open, Assignee = "human", Data = """{"accessRequest":{"kind":"confluence","resource":"x.atlassian.net","agentTaskId":"AT-63002-001"}}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Research, Kind = ItemKinds.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Done, Assignee = "agent:research", Attempts = 1, Data = $$$"""{"rerunAfter":["{{{Sql}}}","{{{Confluence}}}"]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Design, Kind = ItemKinds.Design, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Design", Status = ItemStatus.Blocked, Assignee = "agent:design", Attempts = 3, Data = $$$"""{"rerunAfter":["{{{Sql}}}"]}""", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }

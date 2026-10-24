@@ -5,6 +5,7 @@ using PowerLoom.Contracts;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -59,7 +60,7 @@ public sealed class FindingRecordTests(PowerLoomHost host)
             Title = title,
             Assignee = "human",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Finding,
+            Kind = ItemKinds.Finding,
             Status = ItemStatus.InProgress,
             Body = "the finding's text",
             Data = """{"type":"question","project":"adoa","default":["keep"],"options":["a","b"]}""",

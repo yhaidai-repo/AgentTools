@@ -1,6 +1,6 @@
 using PowerLoom.Domain.Pbis;
 using PowerLoom.Persistence.Entities;
-using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Continue.Targets;
 
@@ -13,9 +13,9 @@ public static class ItemChats
 
     private const string CommandsOnly = "PowerLoom is written only through the commands under At the end, each after the user's yes; nothing is pasted.";
 
-    private static readonly Dictionary<ItemKind, Outline> Outlines = new()
+    private static readonly Dictionary<string, Outline> Outlines = new()
     {
-        [ItemKind.Question] = new(
+        [ItemKinds.Question] = new(
             "Help me answer question",
             [
                 "**The question**: in short, and what it blocks.",
@@ -25,7 +25,7 @@ public static class ItemChats
             ],
             "End by asking \"Use this answer?\" Change no file. After a yes, close the question with the answer by the command under At the end.",
             CommandsOnly),
-        [ItemKind.Human] = new(
+        [ItemKinds.Human] = new(
             "Help me with human task",
             [
                 "**The task**: in short.",
@@ -35,7 +35,7 @@ public static class ItemChats
             ],
             "End by asking \"Shall I help with step 1?\" Change no file unless I ask. When the task is done, close it with the per-step results by the command under At the end.",
             "Change no file unless the user asks. " + CommandsOnly),
-        [ItemKind.Finding] = new(
+        [ItemKinds.Finding] = new(
             "Help me review finding",
             [
                 "**The finding**: in short, and the register it would go to (open questions or known issues).",

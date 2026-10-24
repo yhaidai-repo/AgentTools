@@ -10,6 +10,7 @@ using PowerLoom.Features.Tasks.RerunTasks.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -73,9 +74,9 @@ public sealed class ItemActionsTests(PowerLoomHost host)
 
         db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Items PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Refining, SyncedAt = DateTime.UtcNow });
         db.Repos.Add(new Repo { Id = "r-conf", AdoProject = "Proj", Name = "ConfRepo", RemoteUrl = "https://x", Vault = PowerLoomHost.Vault });
-        db.LocalItems.Add(new LocalItem { Id = $"Q-{AdoId}-001", Kind = ItemKind.Question, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Which repos?", Status = ItemStatus.Open, Assignee = "human", Body = "Repos?", Data = """{"key":"repos:ConfRepo"}""", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"HT-{AdoId}-001", Kind = ItemKind.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Do it", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"AT-{AdoId}-001", Kind = ItemKind.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Done, Assignee = "agent:research", Attempts = 2, HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"Q-{AdoId}-001", Kind = ItemKinds.Question, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Which repos?", Status = ItemStatus.Open, Assignee = "human", Body = "Repos?", Data = """{"key":"repos:ConfRepo"}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"HT-{AdoId}-001", Kind = ItemKinds.Human, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Do it", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"AT-{AdoId}-001", Kind = ItemKinds.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Done, Assignee = "agent:research", Attempts = 2, HeldBy = "[]" });
         db.PbiRepos.Add(new PbiRepo { PbiId = AdoId, RepoId = "r-conf", Source = RepoSource.AgentAssumed });
 
         await db.SaveChangesAsync();

@@ -7,6 +7,7 @@ using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Meetings.Import;
 
@@ -24,7 +25,7 @@ public sealed class MeetingTaskCreation(PowerLoomDbContext db, VaultFiles files)
     public async Task<MeetingImportOutcome> CreateAsync(string vault, MeetingImport meeting, CancellationToken cancellation)
     {
         var notePath = MeetingTranscriptNote.PathOf(meeting);
-        var existing = await db.LocalItems.AsNoTracking().Where(row => row.Kind == ItemKind.Meeting && row.Vault == vault && row.VaultPath == notePath).Select(row => row.Id).FirstOrDefaultAsync(cancellation);
+        var existing = await db.LocalItems.AsNoTracking().Where(row => row.Kind == ItemKinds.Meeting && row.Vault == vault && row.VaultPath == notePath).Select(row => row.Id).FirstOrDefaultAsync(cancellation);
 
         if (existing is not null)
             return new MeetingImportOutcome(null, $"imported before as {existing}");
@@ -43,7 +44,7 @@ public sealed class MeetingTaskCreation(PowerLoomDbContext db, VaultFiles files)
         new()
         {
             Id = id,
-            Kind = ItemKind.Meeting,
+            Kind = ItemKinds.Meeting,
             Vault = vault,
             Title = Title(meeting),
             Status = ItemStatus.Open,

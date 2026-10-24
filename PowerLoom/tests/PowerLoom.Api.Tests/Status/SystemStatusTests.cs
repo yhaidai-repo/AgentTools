@@ -7,6 +7,7 @@ using PowerLoom.Infrastructure.Runner.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Persistence.Durability;
 
@@ -73,7 +74,7 @@ public sealed class SystemStatusTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
         var now = DateTime.UtcNow;
-        var request = new LocalItem { Id = "HT-STATUS-1", Kind = ItemKind.Human, Vault = PowerLoomHost.Vault, Title = "Access to status-bus.servicebus.windows.net for research", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]", Data = AccessRequestData };
+        var request = new LocalItem { Id = "HT-STATUS-1", Kind = ItemKinds.Human, Vault = PowerLoomHost.Vault, Title = "Access to status-bus.servicebus.windows.net for research", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]", Data = AccessRequestData };
 
         db.LocalItems.Add(request);
         db.DataAccesses.AddRange(Enumerable.Range(1, 3).Select(minutes => Call("serviceBus", "status-bus.servicebus.windows.net", "denied", "Unauthorized", now.AddMinutes(-minutes))));

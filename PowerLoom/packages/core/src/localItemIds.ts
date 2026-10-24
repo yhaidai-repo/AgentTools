@@ -1,7 +1,8 @@
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, like } from "drizzle-orm";
 
-export type ItemPrefix = "RT" | "AT" | "DT" | "HT" | "Q" | "RR" | "TT" | "TR";
+// XT: a task of a custom type an agent made in the UI handles (user decision 2026-10-24).
+export type ItemPrefix = "RT" | "AT" | "DT" | "HT" | "Q" | "RR" | "TT" | "TR" | "XT";
 
 // Items that may have no PBI (tech-writer tasks, their findings, vault-review tasks) are numbered across the app: `WT-001`,
 // `F-001`, `VR-001`.

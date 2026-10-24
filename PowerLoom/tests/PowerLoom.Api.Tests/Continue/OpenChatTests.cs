@@ -5,6 +5,7 @@ using PowerLoom.Features.Continue.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Continue;
 
@@ -114,7 +115,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Sync drops the last page",
             Assignee = "human",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Finding,
+            Kind = ItemKinds.Finding,
             Status = ItemStatus.Open,
             Body = "the finding's full text",
             Data = """{"type":"question","project":"adoa","default":[],"options":[]}""",
@@ -133,7 +134,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Check the queue",
             Assignee = "human",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Human,
+            Kind = ItemKinds.Human,
             Status = ItemStatus.Open,
             Body = "Two steps.",
             Data = """{"why":"w","solves":"s","steps":[{"action":"Count","source":"sql","resource":"db","reportBack":"n"},{"action":"Clear","source":"sql","resource":"db","reportBack":"ok"}]}""",
@@ -152,7 +153,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Map the payers",
             Assignee = "agent:better-research",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Research,
+            Kind = ItemKinds.Research,
             Status = ItemStatus.Done,
             Body = "Find how payers map to codes.",
             Resolution = "Three payers map to one code.",

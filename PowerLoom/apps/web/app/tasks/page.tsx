@@ -1,4 +1,4 @@
-import { isCancellableFromTaskList, isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
+import { TASK_TYPE_PATTERN, isCancellableFromTaskList, isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
@@ -70,7 +70,7 @@ function withChosenKind(kinds: Map<string, number>, kind: string): Map<string, n
 
 function filterOf(params: Record<string, string | undefined>): TaskFilter {
   return {
-    kind: TASK_KINDS.find((kind) => kind === params.kind) ?? "",
+    kind: TASK_KINDS.find((kind) => kind === params.kind) ?? (params.kind && TASK_TYPE_PATTERN.test(params.kind) ? params.kind : ""),
     status: STATUSES.find((status) => status === params.status) ?? "all",
     pbi: (params.pbi ?? "").trim(),
     range: periodOf(params.range),

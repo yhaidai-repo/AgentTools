@@ -1,5 +1,4 @@
 using System.Text.Json;
-using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Features.Pbis.Notes.Models;
 
@@ -7,7 +6,7 @@ namespace PowerLoom.Features.Pbis.Notes.Models;
 // `Attachments`: vault file names of the uploads that came with the answer.
 public sealed record ItemNote(
     string Id,
-    ItemKind Kind,
+    string Kind,
     int AdoId,
     string? ParentId,
     string Title,

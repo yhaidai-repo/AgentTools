@@ -1,3 +1,4 @@
+import { isCustomTaskType } from "@powerloom/core";
 import type { TaskTarget } from "./models/TaskTarget";
 
 export const USER = "user";
@@ -11,9 +12,16 @@ const TASK_TARGETS: TaskTarget[] = [
 ];
 
 export function allowedTargets(canAssign: string[]): TaskTarget[] {
-  return TASK_TARGETS.filter((target) => canAssign.includes(target.type));
+  const builtIn = TASK_TARGETS.filter((target) => canAssign.includes(target.type));
+
+  return [...builtIn, ...canAssign.filter(isCustomTaskType).map(customTarget)];
 }
 
 export function targetOf(type: string): TaskTarget | undefined {
-  return TASK_TARGETS.find((target) => target.type === type);
+  return TASK_TARGETS.find((target) => target.type === type) ?? (isCustomTaskType(type) ? customTarget(type) : undefined);
+}
+
+// A custom task type (user decision 2026-10-24): the agent that handles it takes the task; numbered XT on the PBI.
+function customTarget(type: string): TaskTarget {
+  return { type, kind: type, scope: "pbi", prefix: "XT", needsDocPath: false, purpose: `A ${type} task for the agent that handles ${type}.` };
 }

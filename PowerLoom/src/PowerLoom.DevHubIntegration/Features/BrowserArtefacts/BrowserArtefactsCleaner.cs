@@ -6,6 +6,7 @@ using PowerLoom.DevHubIntegration.Settings;
 using PowerLoom.Features.Cleanup;
 using PowerLoom.Features.Cleanup.Models;
 using PowerLoom.Persistence;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.DevHubIntegration.Features.BrowserArtefacts;
 
@@ -80,7 +81,7 @@ public sealed partial class BrowserArtefactsCleaner(PowerLoomDbContext db, DevHu
     // A failed case in the run's test report, or a bug reported on the PBI while the run was at work.
     private async Task<bool> KeepsLongerAsync(RecordedRun run, CancellationToken cancellation)
     {
-        var reports = await db.LocalItems.AsNoTracking().Where(item => item.CreatedByRun == run.Id && item.Kind == Persistence.Enums.ItemKind.TestReport).Select(item => item.Data).ToListAsync(cancellation);
+        var reports = await db.LocalItems.AsNoTracking().Where(item => item.CreatedByRun == run.Id && item.Kind == ItemKinds.TestReport).Select(item => item.Data).ToListAsync(cancellation);
 
         if (reports.Any(Domain.Pbis.TestReportData.HasFailedCase))
             return true;

@@ -9,7 +9,7 @@ const input = z.object({
   vault: vaultInput,
   period: periodInput,
   pbi: z.string().trim().regex(/^(none|\d+)$/).optional().describe("A PBI's id for its tasks only, or \"none\" for tasks without a PBI"),
-  kind: z.enum(TASK_KINDS).optional().describe("Only this kind of item"),
+  kind: z.string().trim().min(1).optional().describe(`Only this kind of item: ${TASK_KINDS.join(", ")}, or a custom task type an agent handles`),
   status: z.enum([...TASK_BUCKETS, "all"]).default("all").describe("What the task waits for, as the page's pills: you, held, open, done, cancelled, or all"),
   limit: limitInput(500, 100),
 });

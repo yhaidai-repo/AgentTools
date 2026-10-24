@@ -1,4 +1,5 @@
-import { AGENT_TASK_TYPES, BLOCKER_KINDS, CREATABLE_TASK_TYPES } from "@powerloom/core";
+import { BLOCKER_KINDS } from "@powerloom/core";
+import { taskTypeChoices } from "@/lib/taskTypes";
 import { isPaused, isRemovable, modelCatalog } from "@agenttools/config";
 import { readPromptFile } from "@/lib/promptFiles";
 import { loadPromptVersions } from "@/lib/promptVersions";
@@ -16,7 +17,6 @@ import { AgentForm } from "./AgentForm";
 import { AgentHeader } from "./AgentHeader";
 
 // From core on the server: the form is a client component, and core pulls in the database driver.
-const TASK_TYPES = { agent: AGENT_TASK_TYPES, creatable: CREATABLE_TASK_TYPES };
 // The header's period: long enough to say how the agent does (user decision 2026-10-18).
 const HEADER_RANGE = "30d";
 
@@ -61,7 +61,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         skills={await loadSkillCatalog()}
         skillFolders={skillFolders()}
         blockerKinds={BLOCKER_KINDS}
-        taskTypes={TASK_TYPES}
+        taskTypes={await taskTypeChoices()}
         spentTodayUsd={spent}
       />
     </>

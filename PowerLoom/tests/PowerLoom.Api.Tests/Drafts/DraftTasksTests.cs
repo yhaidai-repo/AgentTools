@@ -8,6 +8,7 @@ using PowerLoom.Infrastructure.VaultCapture.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -38,7 +39,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         var chat = tasks.Single(task => task.Body == "chat-note");
 
         Assert.Equal(2, tasks.Count);
-        Assert.Equal((ItemKind.Docs, AgentStages.AnyAgent, ItemStatus.Open, adoId, "Merge draft: Topic"), (topic.Kind, topic.Assignee, topic.Status, topic.PbiId, topic.Title));
+        Assert.Equal((ItemKinds.Docs, AgentStages.AnyAgent, ItemStatus.Open, adoId, "Merge draft: Topic"), (topic.Kind, topic.Assignee, topic.Status, topic.PbiId, topic.Title));
         Assert.Equal(("Merge draft: Chat note", (int?)null), (chat.Title, chat.PbiId));
         Assert.Contains("\"key\": \"merge:pvs-topic:2026-10-10\"", topic.Data);
         Assert.Contains("\"path\": \"draft/pvs-topic.md\"", topic.Data);
@@ -83,7 +84,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking()
-            .Where(item => item.Kind == ItemKind.Docs && item.Vault == PowerLoomHost.Vault && (item.Body == "pvs-topic" || item.Body == "chat-note")).OrderBy(item => item.Id).ToListAsync();
+            .Where(item => item.Kind == ItemKinds.Docs && item.Vault == PowerLoomHost.Vault && (item.Body == "pvs-topic" || item.Body == "chat-note")).OrderBy(item => item.Id).ToListAsync();
     }
 
     private async Task<LocalItem> LoadTaskAsync(string id)

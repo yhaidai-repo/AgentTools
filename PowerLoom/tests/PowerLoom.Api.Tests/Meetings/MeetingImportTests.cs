@@ -5,6 +5,7 @@ using PowerLoom.Features.Meetings.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -34,7 +35,7 @@ public sealed class MeetingImportTests(PowerLoomHost host)
         var data = JsonDocument.Parse(task.Data!).RootElement;
         var note = await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "meetings", $"{SourceRef}-transcript.md"));
 
-        Assert.Equal((ItemKind.Meeting, "agent:*", ItemStatus.Open, (int?)null, $"meetings/{SourceRef}-transcript.md"), (task.Kind, task.Assignee, task.Status, task.PbiId, task.VaultPath));
+        Assert.Equal((ItemKinds.Meeting, "agent:*", ItemStatus.Open, (int?)null, $"meetings/{SourceRef}-transcript.md"), (task.Kind, task.Assignee, task.Status, task.PbiId, task.VaultPath));
         Assert.StartsWith("MT-", task.Id);
         Assert.StartsWith("Meeting notes: Backlog Refinement (2026-10-14", task.Title);
         Assert.Equal(("audio-capture", SourceRef, 4064, "large-v3-turbo"), (data.GetProperty("createdBy").GetString(), data.GetProperty("sourceRef").GetString(), data.GetProperty("durationSec").GetInt32(), data.GetProperty("model").GetString()));
@@ -59,7 +60,7 @@ public sealed class MeetingImportTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(row => row.Kind == ItemKind.Meeting && row.Vault == PowerLoomHost.Vault).SingleAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(row => row.Kind == ItemKinds.Meeting && row.Vault == PowerLoomHost.Vault).SingleAsync();
     }
 
     private static string MeetingJson() => $$"""

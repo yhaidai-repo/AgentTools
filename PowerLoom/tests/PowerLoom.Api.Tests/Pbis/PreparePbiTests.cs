@@ -7,6 +7,7 @@ using PowerLoom.Features.Pbis.Prepare.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine.Tracking;
 
 namespace PowerLoom.Api.Tests.Pbis;
@@ -69,7 +70,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         db.Refinements.Add(new Refinement { PbiId = adoId, Version = 1, Summary = "Scope is clear.", ScopeIn = """["Login"]""", ScopeOut = "[]", AcGaps = "[]", Dependencies = "[]", Repos = "[]", Assumptions = "[]", RelevantDocs = "[]", DocsRead = "[]", Skills = "[]" });
         db.Designs.Add(new Design { PbiId = adoId, Version = 1, Approach = "Simple.", Alternatives = "[]", Plan = """[{"step":"Add the form","repo":"PVS","locations":["src/Login.tsx"],"change":"new component","agentDoable":true}]""", Risks = "[]", Tests = "[]", Assumptions = "[]", EstimateBasis = "guess", Complexity = 2 });
         db.TestCases.Add(new TestCase { PbiId = adoId, AdoId = 71001, Title = "Login works", State = "Ready", Rev = 1, StepsMd = "1. Open the page" });
-        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", Body = "Tenant?", Data = """{"why":"routing","options":["A","B"]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKinds.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", Body = "Tenant?", Data = """{"why":"routing","options":["A","B"]}""", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }
@@ -85,7 +86,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKind.Refinement && item.Assignee.StartsWith("agent:") && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKinds.Refinement && item.Assignee.StartsWith("agent:") && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
     }
 
     private async Task<bool> RememberedAsDeletedAsync(int adoId)

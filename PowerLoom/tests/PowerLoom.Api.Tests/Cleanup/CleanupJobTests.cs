@@ -12,6 +12,7 @@ using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -148,7 +149,7 @@ public sealed class CleanupJobTests(PowerLoomHost host)
         db.AgentRuns.AddRange(oldRun, failedRun);
         await db.SaveChangesAsync();
 
-        db.LocalItems.Add(new LocalItem { Id = $"TR-{ClosedPbi}-001", Vault = PowerLoomHost.Vault, PbiId = ClosedPbi, Kind = ItemKind.TestReport, Status = ItemStatus.Done, Title = "report", Assignee = "autotest", HeldBy = "[]", CreatedByRun = failedRun.Id, Data = """{"report":{"results":[{"case":"TC-1","verdict":"fail"}]}}""", CreatedAt = LongAgo, UpdatedAt = LongAgo });
+        db.LocalItems.Add(new LocalItem { Id = $"TR-{ClosedPbi}-001", Vault = PowerLoomHost.Vault, PbiId = ClosedPbi, Kind = ItemKinds.TestReport, Status = ItemStatus.Done, Title = "report", Assignee = "autotest", HeldBy = "[]", CreatedByRun = failedRun.Id, Data = """{"report":{"results":[{"case":"TC-1","verdict":"fail"}]}}""", CreatedAt = LongAgo, UpdatedAt = LongAgo });
         await db.SaveChangesAsync();
         await SeedUsageAsync(db, oldRun.Id);
         await scope.ServiceProvider.GetRequiredService<DevHubSettingsStore>().SaveAsync(PowerLoomHost.Vault, new DevHubSettings { Enabled = true, Token = Token }, CancellationToken.None);

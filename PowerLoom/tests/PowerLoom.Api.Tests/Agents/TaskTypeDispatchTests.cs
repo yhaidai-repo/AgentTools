@@ -5,6 +5,7 @@ using PowerLoom.Features.Agents.Dispatch;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Agents;
 
@@ -51,13 +52,13 @@ public sealed class TaskTypeDispatchTests(PowerLoomHost host)
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
         db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Task types PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.NeedsResearch, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(Task(AnyResearch, ItemKind.Research, AgentStages.AnyAgent));
-        db.LocalItems.Add(Task(PinnedResearch, ItemKind.Research, AgentStages.AssigneeOf(Classic)));
-        db.LocalItems.Add(Task(PinnedBetter, ItemKind.Research, AgentStages.AssigneeOf(Better)));
-        db.LocalItems.Add(Task(AnyDesign, ItemKind.Design, AgentStages.AnyAgent));
+        db.LocalItems.Add(Task(AnyResearch, ItemKinds.Research, AgentStages.AnyAgent));
+        db.LocalItems.Add(Task(PinnedResearch, ItemKinds.Research, AgentStages.AssigneeOf(Classic)));
+        db.LocalItems.Add(Task(PinnedBetter, ItemKinds.Research, AgentStages.AssigneeOf(Better)));
+        db.LocalItems.Add(Task(AnyDesign, ItemKinds.Design, AgentStages.AnyAgent));
 
         await db.SaveChangesAsync();
     }
 
-    private static LocalItem Task(string id, ItemKind kind, string assignee) => new() { Id = id, Kind = kind, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = id, Status = ItemStatus.Open, Assignee = assignee, HeldBy = "[]" };
+    private static LocalItem Task(string id, string kind, string assignee) => new() { Id = id, Kind = kind, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = id, Status = ItemStatus.Open, Assignee = assignee, HeldBy = "[]" };
 }

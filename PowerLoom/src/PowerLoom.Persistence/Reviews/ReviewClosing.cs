@@ -27,7 +27,7 @@ public static class ReviewClosing
 
     private static async Task CancelQueuedTasksAsync(PowerLoomDbContext db, int prId, string actor, CancellationToken cancellation)
     {
-        var queued = await db.LocalItems.Where(item => item.Kind == ItemKind.Review && item.Status == ItemStatus.Open).ToListAsync(cancellation);
+        var queued = await db.LocalItems.Where(item => item.Kind == ItemKinds.Review && item.Status == ItemStatus.Open).ToListAsync(cancellation);
 
         foreach (var task in queued.Where(task => PullRequestOf(task) == prId))
             await ItemStatusChange.SetAsync(db, task, ItemStatus.Cancelled, actor, null, cancellation);

@@ -9,6 +9,7 @@ public static class TasksFeature
     public static IServiceCollection AddTasksFeature(this IServiceCollection services)
     {
         services.AddScoped<TaskScheduling>();
+        services.AddScoped<CustomTaskTypes>();
         services.AddScoped<TaskCreation>();
         services.AddScoped<TaskNotes.TaskNotes>();
         services.AddSingleton<ICronSource, TaskScheduleCronSource>();

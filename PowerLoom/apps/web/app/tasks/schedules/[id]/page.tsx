@@ -1,4 +1,5 @@
-import { USER_TASK_TYPES, enabledRepos, readTaskSchedule } from "@powerloom/core";
+import { enabledRepos, readTaskSchedule } from "@powerloom/core";
+import { loadCustomTaskTypes, userTaskTypes } from "@/lib/taskTypes";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getDb } from "@/lib/db";
@@ -21,7 +22,7 @@ export default async function EditSchedulePage({ params }: { params: Promise<{ i
     <>
       <Breadcrumbs crumbs={[{ label: "Tasks", href: "/tasks" }, { label: schedule.name }]} />
       <h1>Scheduled task: {schedule.name}</h1>
-      <TaskForm values={taskScheduleValues(schedule)} types={USER_TASK_TYPES} repos={repos} />
+      <TaskForm values={taskScheduleValues(schedule)} types={await userTaskTypes()} customTypes={await loadCustomTaskTypes()} repos={repos} />
     </>
   );
 }

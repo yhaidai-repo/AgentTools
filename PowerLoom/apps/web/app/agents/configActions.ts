@@ -156,9 +156,17 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     prompt: text(form, "prompt"),
     options: readOptions(form, current),
     canAssign: form.getAll("canAssign").map(String),
-    handles: form.getAll("handles").map(String),
+    handles: handlesOf(form),
     waitFor: form.getAll("waitFor").map(String),
   };
+}
+
+// The chosen task types plus a new one typed for the agent (user decision 2026-10-24); the commands check its form.
+function handlesOf(form: FormData): string[] {
+  const typed = text(form, "newTaskType");
+  const chosen = form.getAll("handles").map(String);
+
+  return typed && !chosen.includes(typed) ? [...chosen, typed] : chosen;
 }
 
 // The integrations switched on, as the commands take them.
