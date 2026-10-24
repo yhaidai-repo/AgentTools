@@ -30,6 +30,8 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         Assert.DoesNotContain("RC-501-2", note);
         Assert.Contains("- Review only: change no file.", note);
         Assert.Contains("review.answerComment` with `{\"commentId\":\"<id from Comments>\"", note);
+        Assert.Contains("## Pull request", Uri.UnescapeDataString(link.Url));
+        Assert.DoesNotContain("### RC-501-1", Uri.UnescapeDataString(link.Url));
     }
 
     private async Task StoreReviewAsync(int prId)
