@@ -105,6 +105,8 @@ export { addLocalRepoCommand } from "./commands/addLocalRepoCommand";
 export { removeRepoCommand } from "./commands/removeRepoCommand";
 export { addVaultCommand } from "./commands/addVaultCommand";
 export { removeVaultCommand } from "./commands/removeVaultCommand";
+export { restoreTrashCommand } from "./commands/restoreTrashCommand";
+export { deleteTrashCommand } from "./commands/deleteTrashCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
