@@ -36,7 +36,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
   const [pbi, setPbi] = useState(values.pbi);
   const [cron, setCron] = useState(values.cron);
   const [problems, setProblems] = useState<Record<string, string>>({});
-  const pbiHint = PBI_HINTS[type];
+  const pbiHint = PBI_HINTS[type] ?? (customTypes.includes(type) ? PBI_HINTS.research : undefined);
   const readsRepos = (type === "research" || customTypes.includes(type)) && pbi.trim() === "";
   const isEditing = values.scheduleId !== null;
   const isScheduled = isEditing || cron.trim() !== "";
