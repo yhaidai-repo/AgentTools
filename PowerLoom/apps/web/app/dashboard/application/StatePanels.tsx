@@ -4,6 +4,7 @@ import { StatusRow } from "@/components/StatusRow";
 import { TimeAgo } from "@/components/TimeAgo";
 import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
 import { toneOfState } from "@/lib/tone";
+import type { ObservabilityState } from "@/models/ObservabilityState";
 import type { Tone } from "@/models/Tone";
 import { CleanupPanel } from "./CleanupPanel";
 import { nodeById } from "./schemeLayout";
@@ -13,19 +14,19 @@ type VaultStatus = SystemStatus["vaults"][number];
 interface StatePanelsProps {
   status: SystemStatus;
   vault: string;
-  /** Whether Prometheus (otel-lgtm) answered the rates query. */
-  prometheusAnswers: boolean;
+  /** otel-lgtm: switched off, or whether Prometheus answered the rates query. */
+  observability: ObservabilityState;
 }
 
 // The state of each part, one panel per kind: PowerLoom's services, its messaging, and the selected vault's
 // integrations (user decision 2026-10-18: no other vault's rows), and the vault's artefact cleanup.
-export function StatePanels({ status, vault, prometheusAnswers }: StatePanelsProps) {
+export function StatePanels({ status, vault, observability }: StatePanelsProps) {
   const vaultStatus = status.vaults.find((entry) => entry.name === vault) ?? null;
   const cleanup = status.cleanups.find((entry) => entry.vault === vault) ?? null;
 
   return (
     <div className="grid three">
-      <ServicesPanel status={status} prometheusAnswers={prometheusAnswers} />
+      <ServicesPanel status={status} observability={observability} />
       <MessagingPanel messaging={status.messaging} />
       <IntegrationsPanel status={status} vault={vaultStatus} />
       <CleanupPanel cleanup={cleanup} />
@@ -33,7 +34,7 @@ export function StatePanels({ status, vault, prometheusAnswers }: StatePanelsPro
   );
 }
 
-function ServicesPanel({ status, prometheusAnswers }: { status: SystemStatus; prometheusAnswers: boolean }) {
+function ServicesPanel({ status, observability }: { status: SystemStatus; observability: ObservabilityState }) {
   const runner = status.runner;
 
   return (
@@ -41,10 +42,12 @@ function ServicesPanel({ status, prometheusAnswers }: { status: SystemStatus; pr
       <StatusRow name="Postgres" value={status.database.detail} tone={toneOfState(status.database.state)} />
       <StatusRow name="Schedule ticker" value={status.ticker.lastTickAt ? <TimeAgo date={status.ticker.lastTickAt} /> : "no tick yet"} tone={toneOfState(status.ticker.state)} />
       <StatusRow name="agent-runner" value={runner.reachable ? (runner.runningTask ? `running ${runner.runningTask}` : "idle") : runner.detail ?? "unreachable"} tone={toneOfState(runner.state)} />
-      <StatusRow name="otel-lgtm" value={prometheusAnswers ? "answers" : "no answer"} tone={prometheusAnswers ? "good" : "warn"} />
+      <StatusRow name="otel-lgtm" value={observability} tone={OBSERVABILITY_TONES[observability]} />
     </Panel>
   );
 }
+
+const OBSERVABILITY_TONES: Record<ObservabilityState, Tone> = { off: "plain", answers: "good", "no answer": "warn" };
 
 function MessagingPanel({ messaging }: { messaging: SystemStatus["messaging"] }) {
   const deadTone: Tone = messaging.deadLetters > 0 ? "warn" : "good";
