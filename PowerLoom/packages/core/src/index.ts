@@ -82,6 +82,8 @@ export * from "./pbiAdmin";
 export * from "./finishPbi";
 // Commands: contracts for every caller (web actions now, an MCP server later).
 export { preparePbisCommand } from "./commands/preparePbisCommand";
+export { syncPbisCommand } from "./commands/syncPbisCommand";
+export { importNowCommand } from "./commands/importNowCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
