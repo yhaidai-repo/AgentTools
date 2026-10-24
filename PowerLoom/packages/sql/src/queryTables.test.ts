@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { bareName, queriedTables, referencedTables, tableAliases } from "./queryTables";
+import { bareName, queriedTables, referencedTables, sqlCode, tableAliases } from "./queryTables";
 
 describe("referencedTables", () => {
   it("finds the tables after FROM and JOIN, with aliases left out", () => {
@@ -39,6 +39,15 @@ describe("tableAliases", () => {
       { table: "[membership].[Tenant]", alias: "t" },
       { table: "dbo.Visit", alias: "" },
     ]);
+  });
+});
+
+describe("sqlCode", () => {
+  it("drops string literals and comments, quotes inside a literal included", () => {
+    const text = "SELECT v.Id -- from dbo.Old o\nFROM dbo.Verification v /* JOIN dbo.Gone g */ WHERE v.Note = 'it''s from x.Nope'";
+
+    assert.equal(sqlCode(text), "SELECT v.Id  \nFROM dbo.Verification v   WHERE v.Note = ''");
+    assert.deepEqual(referencedTables(text), ["dbo.Verification"]);
   });
 });
 

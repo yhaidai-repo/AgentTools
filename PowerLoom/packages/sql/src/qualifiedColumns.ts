@@ -1,11 +1,12 @@
-import { bareName, NAME_PART, sameIgnoringCase, sameTable, unbracketed } from "./queryTables";
+import { bareName, NAME_PART, sameIgnoringCase, sameTable, sqlCode, unbracketed } from "./queryTables";
 import type { TableAlias } from "./models/TableAlias";
 import type { TableColumns } from "./models/TableColumns";
 import type { WrongName } from "./models/WrongName";
 
 // The query's alias.column references the looked-up tables don't have. SQL Server names one kind of problem per try
 // (a missing table stops it before any column), so the hint checks every qualified column at once.
-export function unknownQualifiedColumns(text: string, aliases: TableAlias[], found: TableColumns[]): WrongName[] {
+export function unknownQualifiedColumns(query: string, aliases: TableAlias[], found: TableColumns[]): WrongName[] {
+  const text = sqlCode(query);
   const names = found.flatMap((entry) => qualifiersOf(entry.table, aliases).flatMap((qualifier) => unknownColumns(text, qualifier, entry)));
 
   return names.filter((name, index) => names.findIndex((other) => sameIgnoringCase(other.name, name.name)) === index);

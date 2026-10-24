@@ -19,6 +19,12 @@ describe("unknownQualifiedColumns", () => {
     ]);
   });
 
+  it("doesn't take a string literal or a comment for a column", () => {
+    const text = "SELECT v.Status FROM dbo.Verification v WHERE v.Status <> 'see v.Nope' -- v.Other";
+
+    assert.deepEqual(unknownQualifiedColumns(text, [{ table: "dbo.Verification", alias: "v" }], FOUND), []);
+  });
+
   it("checks a table without an alias by its own name, and not inside a longer name", () => {
     const text = "SELECT Verification.Stat, dbo.Verification.Other FROM dbo.Verification";
 

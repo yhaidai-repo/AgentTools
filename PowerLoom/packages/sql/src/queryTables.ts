@@ -8,9 +8,17 @@ const TABLE_NAME = String.raw`${NAME_PART}(?:\s*\.\s*${NAME_PART}){0,2}`;
 const NOT_AN_ALIAS = String.raw`(?:ON|WHERE|JOIN|INNER|LEFT|RIGHT|FULL|CROSS|OUTER|GROUP|ORDER|HAVING|UNION|EXCEPT|INTERSECT|WITH|FOR|OPTION|PIVOT|UNPIVOT|TABLESAMPLE)\b`;
 const TABLE_AFTER_FROM_OR_JOIN = new RegExp(String.raw`\b(?:FROM|JOIN)\s+(${TABLE_NAME})(?:\s+(?:AS\s+)?(?!${NOT_AN_ALIAS})(${NAME_PART}))?`, "gi");
 const CTE_NAME = /(?:\bWITH|,)\s*(\w+)\s*(?:\([^)]*\)\s*)?AS\s*\(/gi;
+// A string literal ('it''s' included) or a comment: text, not names.
+const NOT_CODE = /'(?:[^']|'')*'|--[^\n]*|\/\*[\s\S]*?\*\//g;
+
+// The query without its string literals and comments, so `WHERE note = 'from v.Nope'` names nothing.
+export function sqlCode(text: string): string {
+  return text.replace(NOT_CODE, (match) => (match.startsWith("'") ? "''" : " "));
+}
 
 // The tables and views after FROM and JOIN, as written, with their aliases, without the query's own CTEs.
-export function tableAliases(text: string): TableAlias[] {
+export function tableAliases(query: string): TableAlias[] {
+  const text = sqlCode(query);
   const cteNames = new Set([...text.matchAll(CTE_NAME)].map((match) => match[1].toLowerCase()));
   const written = [...text.matchAll(TABLE_AFTER_FROM_OR_JOIN)].map((match) => ({ table: match[1].replace(/\s+/g, ""), alias: unbracketed(match[2] ?? "") }));
 
