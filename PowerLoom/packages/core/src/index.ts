@@ -110,6 +110,7 @@ export { deleteTrashCommand } from "./commands/deleteTrashCommand";
 export { runCleanupCommand } from "./commands/runCleanupCommand";
 export { replayDeadLetterCommand } from "./commands/replayDeadLetterCommand";
 export { discardDeadLetterCommand } from "./commands/discardDeadLetterCommand";
+export { getSettingsCommand } from "./commands/getSettingsCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
