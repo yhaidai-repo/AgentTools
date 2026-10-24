@@ -11,6 +11,8 @@ namespace PowerLoom.Api.Tests.Continue;
 [Collection(PowerLoomCollection.Name)]
 public sealed class OpenChatTests(PowerLoomHost host)
 {
+    private static string PromptOf(ChatLink link) => Uri.UnescapeDataString(link.Url.Split("&q=")[1]);
+
     [Fact]
     public async Task The_launcher_is_available_for_every_button()
     {
@@ -32,6 +34,8 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("## Setup", note);
         Assert.Contains("CLAUDE.md", note);
         Assert.EndsWith("## Notes\n", note);
+        Assert.Contains("## Setup", PromptOf(link));
+        Assert.EndsWith("Also in the note: Rules, Notes.", PromptOf(link));
     }
 
     [Fact]
@@ -57,6 +61,8 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.DoesNotContain("pbi.read", note);
         Assert.EndsWith("## Notes\nMy own remark.\n", note);
         Assert.DoesNotContain("stale", note);
+        Assert.Contains("## The item", PromptOf(link));
+        Assert.Contains("## At the end", PromptOf(link));
     }
 
     [Fact]

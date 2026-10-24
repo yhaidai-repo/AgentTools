@@ -11,7 +11,9 @@ public static class ChatNote
     public const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
 
     private const string SectionStart = "\n## ";
-    private static readonly string[] ShownSections = ["Start", "Read first", "Context"];
+    // Every kind's steps, reading and context, and each kind's own key section: an item's text and how it ends, a review's
+    // pull request, a vault setup's steps (user decision 2026-10-24). The headings differ per kind, so one list serves all.
+    private static readonly string[] ShownSections = ["Start", "Read first", "Context", "The item", "At the end", "Pull request", "Setup"];
 
     private static readonly string[] SharedRules =
     [
