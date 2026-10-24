@@ -7,24 +7,27 @@ import type { z } from "zod";
 const NO_POWERLOOM = new Proxy({}, { get: (_target, name) => () => Promise.reject(new Error(`agents can't run PowerLoom's ${String(name)}`)) }) as PowerLoomPort;
 
 // A PowerLoom command as a tool (user decision 2026-10-13): one contract for the agents and for the chats, which run
-// the same command through the MCP server.
-export function createCommandTool<I>(name: string, command: Command<I, unknown>, context: CommandContext): ToolDefinition<any> {
+// the same command through the MCP server. `fixed` inputs aren't the caller's to choose: they leave the tool's input
+// and are set on every call (a chat's vault for the tools that write into it).
+export function createCommandTool<I>(name: string, command: Command<I, unknown>, context: CommandContext, fixed: Record<string, unknown> = {}): ToolDefinition<any> {
+  const shape = (command.input as unknown as z.ZodObject<z.ZodRawShape>).shape;
+
   return defineTool({
     name,
     description: command.description,
-    input: (command.input as unknown as z.ZodObject<z.ZodRawShape>).shape,
+    input: Object.fromEntries(Object.entries(shape).filter(([key]) => !(key in fixed))),
     annotations: annotationsOf(command),
     handler: async (input) => {
-      const outcome = await runCommand(command, context, input);
+      const outcome = await runCommand(command, context, { ...input, ...fixed });
 
       return outcome.ok ? { text: resultText(outcome.value) } : { text: outcome.error, isError: true };
     },
   });
 }
 
-/** Every command as a tool, named for a tool catalogue (`pbi.read` → `pbi_read`). */
-export function commandTools(context: CommandContext): ToolDefinition<any>[] {
-  return COMMANDS.map((command) => createCommandTool(commandToolName(command.name), command, context));
+/** Every command as a tool, named for a tool catalogue (`pbi.read` → `pbi_read`); `fixedOf` gives a command's fixed inputs. */
+export function commandTools(context: CommandContext, fixedOf: (command: Command<unknown, unknown>) => Record<string, unknown> = () => ({})): ToolDefinition<any>[] {
+  return COMMANDS.map((command) => createCommandTool(commandToolName(command.name), command, context, fixedOf(command)));
 }
 
 // MCP tool names allow no dot.

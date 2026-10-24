@@ -34,10 +34,10 @@ function fakeDeps(): AgentDeps {
   } as unknown as AgentDeps;
 }
 
-function sessionTools() {
+function sessionTools(commands = {} as CommandContext) {
   const chat = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
 
-  return chatTools(fakeDeps(), chat, { vault: "work", client: "test", sessionId: "s1" }, {} as CommandContext);
+  return chatTools(fakeDeps(), chat, { vault: "work", client: "test", sessionId: "s1" }, commands);
 }
 
 describe("a chat session's tools", () => {
@@ -64,6 +64,19 @@ describe("a chat session's tools", () => {
     const named = [...(await readFile(POWERLOOM_MD, "utf8")).matchAll(/`([a-z][a-zA-Z]*(?:_[a-zA-Z]+)+)`/g)].map((match) => match[1]);
 
     assert.deepEqual([...new Set(named)].filter((name) => !names.has(name)), []);
+  });
+
+  it("write notes into the session's vault only, whatever vault the call names", async () => {
+    const vaults: string[] = [];
+    const powerloom = { addRegisterRecord: async (vault: string) => (vaults.push(vault), { ok: true, value: "KI-001" }) };
+    const tool = sessionTools({ powerloom } as unknown as CommandContext).find((candidate) => candidate.name === "register_add")!;
+
+    const result = await tool.handler({ vault: "other", project: "pvs", kind: "issues", title: "Wrong total", text: "Sums twice." });
+    const inputs = ["vault_capture", "register_add", "register_close"].map((name) => Object.keys(sessionTools().find((candidate) => candidate.name === name)!.input));
+
+    assert.equal(result.isError, undefined);
+    assert.deepEqual(vaults, ["work"]);
+    assert.deepEqual(inputs.filter((keys) => keys.includes("vault")), []);
   });
 
   it("that change PowerLoom are all in POWERLOOM.md's list of tools to ask first about", async () => {
