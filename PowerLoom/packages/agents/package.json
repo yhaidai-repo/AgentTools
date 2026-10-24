@@ -11,6 +11,7 @@
     "@agenttools/config": "*",
     "@agenttools/runtime": "*",
     "@agenttools/usage": "*",
+    "@openai/codex": "0.164.0",
     "@powerloom/ado": "*",
     "@powerloom/attachments": "*",
     "@powerloom/azure": "*",

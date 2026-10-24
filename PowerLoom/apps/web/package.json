@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc -p . --noEmit",
-    "test": "tsx --test \"lib/**/*.test.ts\"",
+    "test": "tsx --test \"lib/**/*.test.ts\" \"app/**/*.test.ts\"",
     "openapi": "npm run openapi -w @powerloom/client"
   },
   "dependencies": {

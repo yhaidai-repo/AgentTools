@@ -1,15 +1,25 @@
+import type { ProviderStatus } from "@/lib/aiProviders";
 import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
 import { SCHEME_NODES } from "./architecture";
 
 export type NodeHealth = StateLevel | "off";
 
+/** What the web asks beside PowerLoom's status: the AI providers (null while PowerLoom can't say) and the MCP server. */
+export interface SchemeExtras {
+  providers: ProviderStatus[] | null;
+  mcpAnswers: boolean;
+}
+
+// The provider nodes of the scheme, by the provider ids of Settings → AI providers.
+const PROVIDER_NODES: Record<string, string> = { anthropic: "claude", "openai-codex": "codex" };
+
 const ORDER: Record<NodeHealth, number> = { off: 0, ok: 1, degraded: 2, failed: 3 };
 
 // What color each node gets: the status of the components PowerLoom reports, the outside systems the agents read (and
-// their tool nodes), the attention entries' components, and for every parent the worst of its children (so a problem
-// shows from the top level down).
-export function schemeHealth(status: SystemStatus | null): Record<string, NodeHealth> {
-  const health: Record<string, NodeHealth> = status ? ownStates(status) : { powerloom: "failed", "pl-http": "failed" };
+// their tool nodes), the attention entries' components, the providers (connected or off) and the MCP server, and for
+// every parent the worst of its children (so a problem shows from the top level down).
+export function schemeHealth(status: SystemStatus | null, extras: SchemeExtras = { providers: null, mcpAnswers: false }): Record<string, NodeHealth> {
+  const health: Record<string, NodeHealth> = { ...(status ? ownStates(status) : { powerloom: "failed", "pl-http": "failed" }), ...extraStates(extras) };
 
   for (const node of SCHEME_NODES) {
     for (let parent = node.parent; parent; parent = SCHEME_NODES.find((candidate) => candidate.id === parent)?.parent) {
@@ -46,6 +56,17 @@ function ownStates(status: SystemStatus): Record<string, NodeHealth> {
 
   for (const item of status.attention) {
     states[item.component] = worse(states[item.component], item.severity);
+  }
+
+  return states;
+}
+
+// A provider that isn't connected is off, not a failure: Codex is optional (owner's decision 2026-10-24).
+function extraStates(extras: SchemeExtras): Record<string, NodeHealth> {
+  const states: Record<string, NodeHealth> = { mcp: extras.mcpAnswers ? "ok" : "failed" };
+
+  for (const provider of extras.providers ?? []) {
+    states[PROVIDER_NODES[provider.provider] ?? provider.provider] = provider.connected ? "ok" : "off";
   }
 
   return states;

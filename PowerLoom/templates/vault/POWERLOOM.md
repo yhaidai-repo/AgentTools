@@ -2,9 +2,10 @@
 # PowerLoom tools
 
 PowerLoom keeps the PBIs of this vault ({{vaultPath}}), what its agents found, and the user's own notes. A chat reaches
-it through the `powerloom` MCP server this vault's MCP entry lists (PowerLoom writes it): every PowerLoom command is a
-tool there, named with `_` (`pbi_read`, `item_close`), next to the readers the agents have (vault docs, Read SQL, Read
-Azure, Azure DevOps, the whole system: `task_list`, `run_get`, `agent_list`, `settings_get`, …).
+it through the `powerloom` MCP server this vault lists, in `.mcp.json` for Claude Code and in `.codex/config.toml` for
+Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, named with `_` (`pbi_read`,
+`item_close`), next to the readers the agents have (vault docs, Read SQL, Read Azure, Azure DevOps, the whole system:
+`task_list`, `run_get`, `agent_list`, `settings_get`, …).
 
 - Each tool says what it needs. A tool that changes PowerLoom says what to ask or confirm first: ask for what the user
   didn't say (never invent it), confirm a delete or a close naming the item, and show the final text before a submit.

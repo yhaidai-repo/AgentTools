@@ -15,7 +15,7 @@ agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `
 | `src/PowerLoom.Contracts` | messages and types shared across projects |
 | `src/PowerLoom.AdoIntegration`, `src/PowerLoom.ConfluenceIntegration` | the Azure DevOps and Confluence libraries |
 | `tests/PowerLoom.Api.Tests` | Alba + Testcontainers (one host and Postgres per run) |
-| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback); skills read-only, docs vault writable for the tech-writer's merges |
+| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback) and Codex's login in `agent-homes/codex` (mounted at `/codex-home`); skills read-only, docs vault writable for the tech-writer's merges |
 | `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) |
 | `packages/*` | the TypeScript libraries the two apps share (`db`, `core`, `agents`, `notes`, `ado`, `confluence`, `attachments`, `vault`) |
 | `skills/` | PowerLoom's own skills for agents (`powerloom-*`) |
@@ -28,7 +28,10 @@ builds the TypeScript image from there, `Dockerfile` the backend from this folde
 
 ## Run
 First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault path>,…` (full paths in one parent folder; optional `-ReposRoot`, `-SkillsPath`) (`.env`, folders,
-database volume, stack, vaults with their vault review schedule; safe to run again). By hand:
+database volume, stack, vaults with their vault review schedule; safe to run again). Its last step,
+`scripts/Set-AiProviders.ps1`, optionally sets the AI providers through the API: the Claude token, Connect Codex, the
+chat app (`-ClaudeToken`, `-ConnectCodex`, `-ChatApp`, `-SkipProviders`; run it alone any time; a connected provider is
+left as it is). By hand:
 ```bash
 cp .env.example .env               # passwords, paths (the Claude token goes in Settings → AI providers)
 docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it (the name predates the rename)
@@ -41,6 +44,15 @@ docker compose up -d --build
   chat app "Continue with …" opens (`chatApp`; else `CONTINUE_LAUNCHER`, else Claude). An agent whose provider isn't
   connected is blocked at once with "Connect <provider> in Settings → AI providers"; the Agents page offers only
   connected providers' models.
+- Codex (provider `openai-codex`, the ChatGPT plan): **Connect Codex** in Settings → AI providers has the agent-runner run
+  `codex login --device-auth` in `PowerLoom/agent-homes/codex` (git-ignored, created by the install script, mounted at
+  `/codex-home`; never your `~/.codex`) and shows the link and code. Switch on "Device code authorization" in ChatGPT →
+  Settings → Security first. Fallback: upload an `auth.json` from a PC where `codex login` worked. Disconnect removes the
+  login. Codex is connected while that file is there. Its built-in tools can't all be switched off: runs use a read-only
+  sandbox and the trace shows every built-in step. The chat app can be Codex once it is connected; each vault gets both
+  MCP entries (`.mcp.json` for Claude Code, `.codex/config.toml` for Codex), and "Configure with Codex" also copies
+  `~/.claude/CLAUDE.md` into `~/.codex/AGENTS.md` and `~/.claude/skills` into `~/.agents/skills`, asking before
+  overwriting.
 - Rebuild only after checking `agent_run` for a run without `ended_at`.
 
 ## Backups

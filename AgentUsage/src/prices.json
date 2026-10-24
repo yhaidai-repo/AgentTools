@@ -1,5 +1,5 @@
 {
-  "source": "Anthropic published API prices ($ per million tokens), as of 2026-06-24. Cache write = 1-hour TTL (2x input), which Claude Code agents use; 5-minute writes cost 1.25x, so budgets slightly over-estimate. Override or extend from the host app.",
+  "source": "Anthropic published API prices ($ per million tokens), as of 2026-06-24. Cache write = 1-hour TTL (2x input), which Claude Code agents use; 5-minute writes cost 1.25x, so budgets slightly over-estimate. OpenAI rows (gpt-6.1-sol, gpt-6-astra): OpenAI's model pages, 2026-10-24, standard tier only (long-context and speed tiers aren't represented); nominal API-equivalent prices for budgets, since runs on the ChatGPT plan aren't charged per token. Override or extend from the host app.",
   "prices": [
     {
       "model": "claude-fable-5-1",
@@ -56,6 +56,22 @@
       "outputPerMTok": 5,
       "cacheReadPerMTok": 0.1,
       "cacheWritePerMTok": 2
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "from": "2026-10-24",
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.1,
+      "cacheWritePerMTok": 2.5
+    },
+    {
+      "model": "gpt-6-astra",
+      "from": "2026-10-24",
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "cacheReadPerMTok": 1,
+      "cacheWritePerMTok": 12.5
     }
   ]
 }

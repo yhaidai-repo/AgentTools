@@ -1,6 +1,7 @@
 using System.Net;
 using Alba;
 using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Features.AiProviders;
 using PowerLoom.Features.AiProviders.Models;
 using PowerLoom.Persistence;
@@ -13,6 +14,11 @@ public sealed class AiProvidersTests(PowerLoomHost host) : IAsyncLifetime
 {
     private const string TokenPath = "/api/ai-providers/claude/token";
     private const string Token = "sk-ant-oat01-test-token";
+    private const string CodexLoginPath = "/api/ai-providers/codex/login";
+
+    private static readonly ProviderStatus CodexNotConnected = new("openai-codex", "Codex", false, null);
+
+    private FakeCodexLogin Codex => host.Host.Services.GetRequiredService<FakeCodexLogin>();
 
     public Task InitializeAsync() => ResetAsync();
 
@@ -23,7 +29,7 @@ public sealed class AiProvidersTests(PowerLoomHost host) : IAsyncLifetime
     {
         var providers = await host.Host.GetAsJson<ProviderStatus[]>("/api/ai-providers");
 
-        Assert.Equal([new ProviderStatus("anthropic", "Claude", false, null)], providers!);
+        Assert.Equal([new ProviderStatus("anthropic", "Claude", false, null), CodexNotConnected], providers!);
     }
 
     [Fact]
@@ -70,8 +76,71 @@ public sealed class AiProvidersTests(PowerLoomHost host) : IAsyncLifetime
         Assert.Contains("claude setup-token", await refused.ReadAsTextAsync());
     }
 
+    [Fact]
+    public async Task Codex_is_connected_while_the_runner_s_Codex_home_holds_a_login_and_not_while_the_runner_is_away()
+    {
+        Codex.Connected = true;
+        var connected = await host.Host.GetAsJson<ProviderStatus[]>("/api/ai-providers");
+
+        Codex.Unreachable = true;
+        var away = await host.Host.GetAsJson<ProviderStatus[]>("/api/ai-providers");
+
+        Assert.Equal(new ProviderStatus("openai-codex", "Codex", true, ProviderSource.Settings), connected![1]);
+        Assert.Equal(CodexNotConnected, away![1]);
+    }
+
+    [Fact]
+    public async Task Connect_Codex_relays_the_link_and_code_and_the_sign_in_s_status()
+    {
+        var started = await host.Host.PostJson(new { }, CodexLoginPath).Receive<CodexLoginStart>();
+        var pending = await host.Host.GetAsJson<CodexLoginStatus>(CodexLoginPath);
+
+        Codex.Connected = true;
+        var done = await host.Host.GetAsJson<CodexLoginStatus>(CodexLoginPath);
+
+        Assert.Equal(Codex.Start, started);
+        Assert.Equal("pending", pending!.Status);
+        Assert.Equal("done", done!.Status);
+    }
+
+    [Fact]
+    public async Task A_login_file_connects_Codex_and_Disconnect_removes_the_login()
+    {
+        var saved = await host.Host.PutJson(new SaveCodexLoginFileRequest("{\"tokens\":{}}"), $"{CodexLoginPath}-file").Receive<ProviderStatus>();
+        var disconnected = await host.Host.Scenario(scenario =>
+        {
+            scenario.Delete.Url(CodexLoginPath);
+            scenario.StatusCodeShouldBeOk();
+        });
+
+        Assert.True(saved!.Connected);
+        Assert.Equal("{\"tokens\":{}}", Codex.SavedLoginFile);
+        Assert.Equal(CodexNotConnected, disconnected.ReadAsJson<ProviderStatus>());
+    }
+
+    [Fact]
+    public async Task An_empty_login_file_is_refused_and_an_unreachable_runner_is_a_problem_not_a_crash()
+    {
+        var empty = await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(new SaveCodexLoginFileRequest(" ")).ToUrl($"{CodexLoginPath}-file");
+            scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
+        });
+
+        Codex.Unreachable = true;
+        var away = await host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new { }).ToUrl(CodexLoginPath);
+            scenario.StatusCodeShouldBe(HttpStatusCode.ServiceUnavailable);
+        });
+
+        Assert.Contains("auth.json", await empty.ReadAsTextAsync());
+        Assert.Contains("can't be reached", await away.ReadAsTextAsync());
+    }
+
     private Task ResetAsync() => WithDbAsync(async db =>
     {
+        Codex.Reset();
         await GlobalSettings.DeleteAsync(db, ClaudeConnection.TokenKey, CancellationToken.None);
         await GlobalSettings.DeleteAsync(db, ClaudeConnection.EnvTokenKey, CancellationToken.None);
     });

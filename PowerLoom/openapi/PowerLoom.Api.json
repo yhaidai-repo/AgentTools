@@ -2230,6 +2230,100 @@
         }
       }
     },
+    "/api/ai-providers/codex/login": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "POST_api_ai_providers_codex_login",
+        "description": "POST_api_ai_providers_codex_login",
+        "operationId": "POST_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStart"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "GET_api_ai_providers_codex_login",
+        "description": "GET_api_ai_providers_codex_login",
+        "operationId": "GET_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexLoginStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "DELETE_api_ai_providers_codex_login",
+        "description": "DELETE_api_ai_providers_codex_login",
+        "operationId": "DELETE_api_ai_providers_codex_login",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-providers/codex/login-file": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "PUT_api_ai_providers_codex_login_file",
+        "description": "PUT_api_ai_providers_codex_login_file",
+        "operationId": "PUT_api_ai_providers_codex_login_file",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCodexLoginFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents/{agentId}/run": {
       "post": {
         "tags": [
@@ -3820,7 +3914,8 @@
       "ChatApp": {
         "required": [
           "id",
-          "label"
+          "label",
+          "connected"
         ],
         "type": "object",
         "properties": {
@@ -3829,6 +3924,9 @@
           },
           "label": {
             "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
           }
         }
       },
@@ -4157,6 +4255,53 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CodexLoginStart": {
+        "required": [
+          "verificationUri",
+          "userCode",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "verificationUri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      },
+      "CodexLoginStatus": {
+        "required": [
+          "status",
+          "error",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "output": {
             "type": "string"
           }
         }
@@ -5348,6 +5493,20 @@
           "failedRunBrowserArtefactDays": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SaveCodexLoginFileRequest": {
+        "required": [
+          "authJson"
+        ],
+        "type": "object",
+        "properties": {
+          "authJson": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

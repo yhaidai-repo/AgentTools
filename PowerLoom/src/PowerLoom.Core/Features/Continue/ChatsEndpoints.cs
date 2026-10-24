@@ -26,22 +26,15 @@ public static class ChatsEndpoints
         return new LauncherAvailability(await launchers.LabelAsync(cancellation), current.Ok ? null : current.Problem.Detail);
     }
 
-    // Settings → AI providers: the apps a chat can open in, and the chosen one.
+    // Settings → AI providers: the apps a chat can open in, whether each is connected, and the chosen one.
     [WolverineGet("/api/chats/apps")]
-    public static Task<ChatApps> Apps(ChatLaunchers launchers, CancellationToken cancellation) => AppsOf(launchers, cancellation);
+    public static Task<ChatApps> Apps(ChatAppChoices choices, CancellationToken cancellation) => choices.AppsAsync(cancellation);
 
     [WolverinePut("/api/chats/app")]
-    public static async Task<Results<Ok<ChatApps>, ProblemHttpResult>> ChooseApp(ChooseChatAppRequest request, ChatLaunchers launchers, CancellationToken cancellation)
+    public static async Task<Results<Ok<ChatApps>, ProblemHttpResult>> ChooseApp(ChooseChatAppRequest request, ChatAppChoices choices, CancellationToken cancellation)
     {
-        var chosen = await launchers.ChooseAsync(request.Launcher, cancellation);
+        var chosen = await choices.ChooseAsync(request.Launcher, cancellation);
 
-        return chosen.Ok ? TypedResults.Ok(await AppsOf(launchers, cancellation)) : chosen.Problem.ToProblemResult();
-    }
-
-    private static async Task<ChatApps> AppsOf(ChatLaunchers launchers, CancellationToken cancellation)
-    {
-        var apps = launchers.Registered.Select(launcher => new ChatApp(launcher.Id, launcher.Label)).ToList();
-
-        return new ChatApps(await launchers.ChosenIdAsync(cancellation), apps);
+        return chosen.Ok ? TypedResults.Ok(chosen.Value) : chosen.Problem.ToProblemResult();
     }
 }

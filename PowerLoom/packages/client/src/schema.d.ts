@@ -1032,6 +1032,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai-providers/codex/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_ai_providers_codex_login
+         * @description GET_api_ai_providers_codex_login
+         */
+        get: operations["GET_api_ai_providers_codex_login"];
+        put?: never;
+        /**
+         * POST_api_ai_providers_codex_login
+         * @description POST_api_ai_providers_codex_login
+         */
+        post: operations["POST_api_ai_providers_codex_login"];
+        /**
+         * DELETE_api_ai_providers_codex_login
+         * @description DELETE_api_ai_providers_codex_login
+         */
+        delete: operations["DELETE_api_ai_providers_codex_login"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers/codex/login-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_ai_providers_codex_login_file
+         * @description PUT_api_ai_providers_codex_login_file
+         */
+        put: operations["PUT_api_ai_providers_codex_login_file"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents/{agentId}/run": {
         parameters: {
             query?: never;
@@ -1650,6 +1698,7 @@ export interface components {
         ChatApp: {
             id: string;
             label: string;
+            connected: boolean;
         };
         ChatApps: {
             current: string;
@@ -1737,6 +1786,16 @@ export interface components {
             path: string;
             id: string;
             status: string;
+        };
+        CodexLoginStart: {
+            verificationUri: null | string;
+            userCode: null | string;
+            output: string;
+        };
+        CodexLoginStatus: {
+            status: string;
+            error: null | string;
+            output: string;
         };
         CompletedRunRequest: {
             /** Format: int64 */
@@ -2029,6 +2088,9 @@ export interface components {
             browserArtefactDays: number;
             /** Format: int32 */
             failedRunBrowserArtefactDays: number;
+        };
+        SaveCodexLoginFileRequest: {
+            authJson: null | string;
         };
         SaveConnectionRequest: {
             enabled: boolean;
@@ -3803,6 +3865,90 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GET_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStatus"];
+                };
+            };
+        };
+    };
+    POST_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodexLoginStart"];
+                };
+            };
+        };
+    };
+    DELETE_api_ai_providers_codex_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+        };
+    };
+    PUT_api_ai_providers_codex_login_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCodexLoginFileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
             };
         };
     };

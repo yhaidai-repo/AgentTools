@@ -4,6 +4,7 @@
 # the code when it starts. Each vault added here gets the vault review schedule (every 6 hours) from Add vault.
 #
 #   pwsh scripts/install.ps1 -Vaults <folder>/<vault>[,<folder>/<other vault>] [-ReposRoot <folder>] [-SkillsPath <folder>]
+#       [-ClaudeToken <token>] [-ConnectCodex] [-ChatApp claude-desktop|codex-desktop] [-SkipProviders]
 #
 # No path is assumed: every one comes from a parameter or from where this repository was cloned.
 # -Vaults: the vault folders, full paths. PowerLoom mounts one vaults root, so they must share one parent folder; it
@@ -12,11 +13,18 @@
 # -ReposRoot: the folder with the code repos agents may read; default: the folder this repository was cloned into.
 # -SkillsPath: extra skills agents may load; default: Claude Code's skills folder if there is one, else an empty
 #   PowerLoom/local-skills.
-# No AI provider is set up here: the Claude token is saved in Settings -> AI providers once PowerLoom runs.
+# AI providers are optional here (user request 2026-10-24): once PowerLoom answers, Set-AiProviders.ps1 asks for the
+#   Claude token (-ClaudeToken or $env:CLAUDE_CODE_OAUTH_TOKEN skip the question), offers to connect Codex with a device
+#   code (-ConnectCodex) and the chat app (-ChatApp). Enter skips each; -SkipProviders skips the step. Settings -> AI
+#   providers sets and changes the same later.
 param(
     [Parameter(Mandatory)][string[]]$Vaults,
     [string]$ReposRoot,
-    [string]$SkillsPath
+    [string]$SkillsPath,
+    [string]$ClaudeToken,
+    [switch]$ConnectCodex,
+    [ValidateSet("claude-desktop", "codex-desktop")][string]$ChatApp,
+    [switch]$SkipProviders
 )
 
 $ErrorActionPreference = "Stop"
@@ -144,7 +152,8 @@ function New-HostFolders {
         (Read-EnvValue "REPOS_ROOT"),
         (Join-Path $AgentToolsRoot "DevSecrets/skills"),
         (Join-Path $PowerLoomRoot "backups"),
-        (Join-Path $PowerLoomRoot "import-inbox")
+        (Join-Path $PowerLoomRoot "import-inbox"),
+        (Join-Path $PowerLoomRoot "agent-homes/codex")
     )
 
     foreach ($folder in $folders) {
@@ -221,12 +230,27 @@ function Add-Vault([string]$api, [string]$path) {
     }
 }
 
+# Optional; a provider that can't be set up here (no token, Codex sign-in failed) is set in Settings later.
+function Set-Providers([string]$api) {
+    if ($SkipProviders) {
+        return
+    }
+
+    $options = @{ Api = $api; ClaudeToken = $ClaudeToken; ConnectCodex = $ConnectCodex }
+
+    if ($ChatApp) {
+        $options.ChatApp = $ChatApp
+    }
+
+    & (Join-Path $PSScriptRoot "Set-AiProviders.ps1") @options
+}
+
 function Show-NextSteps {
     Write-Host ""
     Write-Host "PowerLoom runs: http://localhost:$(Read-EnvValue 'WEB_PORT')"
-    Write-Host "Next: Settings -> AI providers: the Claude token (claude setup-token prints one); agents run once it is saved."
+    Write-Host "Next: Settings -> AI providers: what you skipped above (agents run once their provider is connected)."
     Write-Host "      Settings -> per vault: Azure DevOps (org, project, team, user, token) and the features to switch on;"
-    Write-Host "      'Configure with Claude' on each vault (CLAUDE.md, the VaultUsage/VaultCapture hooks, the MCP server)."
+    Write-Host "      'Configure with Claude' or 'Configure with Codex' on each vault (rules, hooks, the MCP server)."
 }
 
 $VaultPaths = @($Vaults | ForEach-Object { ConvertTo-HostPath $_ })
@@ -247,4 +271,5 @@ foreach ($path in $VaultPaths) {
     Add-Vault $api $path
 }
 
+Set-Providers $api
 Show-NextSteps

@@ -25,11 +25,12 @@ const link = (from: string, to: string, label?: string): SchemeLink => ({ from, 
 
 // The top level as a hub: agent-runner in the middle with what only the agents read around it, what both services use
 // (web, Confluence, Azure DevOps, the vaults) in the row below it, and PowerLoom under that, so no two links cross and
-// no link runs through a node. Check a new top-level node or link for crossings before placing it.
+// no link runs through a node; mcp and the chat apps it serves sit left of PowerLoom, below web. schemeLayout.test.ts
+// checks every hand-placed level for overlaps, links through nodes and crossing links.
 const topLevel: SchemeNode[] = [
   node("ado", "Azure DevOps", "external", undefined, "work items, pull requests, repositories", 3.5, 2),
   node("confluence", "Confluence", "external", undefined, "linked pages", 2.5, 2),
-  node("claude", "Claude", "external", undefined, "the agents' model", 2.5, 0),
+  node("ai-providers", "AI providers", "external", undefined, "the agents' models: Claude, Codex on your ChatGPT plan", 2.5, 0),
   node("vaults", "Obsidian vaults", "external", undefined, "docs vaults and the backlog vault on disk", 4.5, 2),
   node("repos", "Repositories", "external", undefined, "git checkouts on disk", 4.5, 0),
   node("web", "web", "service", undefined, "Next.js UI and CLI", 1.5, 2),
@@ -38,14 +39,20 @@ const topLevel: SchemeNode[] = [
   node("database", "Postgres", "service", undefined, "state, queues, usage, config", 0, 2),
   node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 4.5, 3),
   node("backup", "backup", "service", undefined, "daily pg_dump", 0, 1),
-  // Desktop chats reach PowerLoom through the MCP server: every command is a tool there.
+  // Desktop chats: "Continue with …" opens one in the chosen app; it reaches PowerLoom through the MCP server.
   node("mcp", "mcp", "service", undefined, "PowerLoom's tools for desktop chats (port 3110)", 1.5, 3),
+  node("chat-apps", "Chat apps", "external", undefined, "Claude Desktop or Codex on this PC", 1.5, 4),
   // What the agents read outside on their own (per-agent switches), around agent-runner; their colors come from the
   // agents' recent reads and open access requests.
   node("mongo", "Mongo", "external", undefined, "Cosmos DB for MongoDB, and servers by connection string (Read Azure)", 1.5, 1),
   node("sql-server", "SQL Server", "external", undefined, "Read SQL connections, read only", 4.5, 1),
   node("azure", "Azure", "external", undefined, "App Insights, logs, metrics, Service Bus, Cosmos DB, with your sign-in (Read Azure)", 3.5, 0),
   node("devhub", "DevHub", "external", undefined, "DevSecrets: services on the Windows host", 1.5, 0),
+];
+
+const aiProviders: SchemeNode[] = [
+  node("claude", "Claude", "component", "ai-providers", "a claude setup-token token (Settings, or .env as the fallback)", 0, 0),
+  node("codex", "Codex", "component", "ai-providers", "ChatGPT plan, signed in to PowerLoom's own agent-homes/codex", 1, 0),
 ];
 
 const powerloomModules: SchemeNode[] = [
@@ -65,10 +72,11 @@ const powerloomFeatures: SchemeNode[] = [
   node("agent-runs", "Agents: run saga", "component", "pl-features", "StartAgentRun → runner, the callback, timeout"),
   node("reviews", "Reviews", "component", "pl-features", "queue, close, answers"),
   node("docs", "Docs / Records", "component", "pl-features", "www log, registers, chat notes"),
-  node("continue", "Continue", "component", "pl-features", "chats with Claude"),
+  node("continue", "Continue", "component", "pl-features", "chats in the chosen app: Claude or Codex"),
+  node("ai-providers-feature", "AI providers", "component", "pl-features", "Claude token, Connect Codex, chat app"),
   node("drafts", "Drafts", "component", "pl-features", "the drafts scan every 10 minutes"),
   node("import-sources", "Import sources", "component", "pl-features", "Outlook, inbox, meeting recordings (tools/audio-capture)"),
-  node("vault-features", "Vaults", "component", "pl-features", "add, trash, features, POWERLOOM.md"),
+  node("vault-features", "Vaults", "component", "pl-features", "add, trash, features, POWERLOOM.md, .mcp.json and .codex/config.toml"),
   node("skills", "Skills", "component", "pl-features", "edits, revisions"),
   node("status", "Status", "component", "pl-features", "GET /api/status, the dashboard"),
   node("dead-letters", "Dead letters", "component", "pl-features", "list, replay, discard"),
@@ -100,17 +108,17 @@ const infrastructureParts: SchemeNode[] = [
   node("vault-capture", "VaultCapture", "component", "pl-infrastructure", "pwsh module: drafts, registers"),
   node("vault-scan", "Vault scan", "component", "pl-infrastructure", "notes, links, usage"),
   node("attachments", "Attachments", "component", "pl-infrastructure", "text extraction, storage"),
-  node("runner-client", "Runner client", "component", "pl-infrastructure", "POST /runs, GET /health"),
+  node("runner-client", "Runner client", "component", "pl-infrastructure", "POST /runs, GET /health, the sign-ins"),
   node("telemetry", "Telemetry", "component", "pl-infrastructure", "OpenTelemetry → otel-lgtm"),
 ];
 
 const runnerModules: SchemeNode[] = [
-  node("runner-server", "HTTP port", "module", "agent-runner", "POST /runs, GET /health, the Azure sign-in and its tokens", 0, 0),
+  node("runner-server", "HTTP port", "module", "agent-runner", "POST /runs, GET /health, the Azure and Codex sign-ins", 0, 0),
   node("runner-agents", "Agents", "module", "agent-runner", "the pipeline's agents", 1, 0),
   node("runner-tools", "Tools", "module", "agent-runner", "what an agent can do", 2, 0),
   node("agent-config", "AgentConfig", "module", "agent-runner", "definitions, pause, budgets", 0, 1),
   node("budget", "AgentUsage", "module", "agent-runner", "tokens, cost, budgets", 1, 1),
-  node("agent-runtime", "AgentRuntime", "module", "agent-runner", "Claude Agent SDK, repo cache", 2, 1),
+  node("agent-runtime", "AgentRuntime", "module", "agent-runner", "Claude Agent SDK, Codex SDK, repo cache", 2, 1),
 ];
 
 const runnerAgents: SchemeNode[] = [
@@ -121,6 +129,8 @@ const runnerAgents: SchemeNode[] = [
   node("agent-better-refinement", "better-refinement", "component", "runner-agents"),
   node("agent-better-research", "better-research", "component", "runner-agents"),
   node("agent-better-review", "better-review", "component", "runner-agents"),
+  node("agent-autotest", "autotest", "component", "runner-agents", "Playwright through DevHub"),
+  node("agent-custom", "your agents", "component", "runner-agents", "made on the Agents page; the generic executor"),
 ];
 
 const runnerTools: SchemeNode[] = [
@@ -154,7 +164,7 @@ const databaseParts: SchemeNode[] = [
 ];
 
 export const SCHEME_NODES: SchemeNode[] = [
-  ...topLevel, ...powerloomModules, ...powerloomFeatures, ...adoLibrary, ...confluenceLibrary, ...messagingParts, ...infrastructureParts,
+  ...topLevel, ...aiProviders, ...powerloomModules, ...powerloomFeatures, ...adoLibrary, ...confluenceLibrary, ...messagingParts, ...infrastructureParts,
   ...runnerModules, ...runnerAgents, ...runnerTools, ...webParts, ...databaseParts,
 ];
 
@@ -178,6 +188,12 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("pbis", "vaults", "backlog notes"),
   link("telemetry", "otel-lgtm"),
   link("agent-runtime", "claude"),
+  link("agent-runtime", "codex"),
+  link("ai-providers-feature", "runner-client", "Codex sign-in"),
+  link("continue", "chat-apps", "Continue with …"),
+  link("chat-apps", "mcp", "MCP"),
+  link("mcp", "schema-public", "reads"),
+  link("mcp", "pl-http", "writes"),
   link("tool-repos", "repos"),
   link("tool-vault-capture", "vaults"),
   link("tool-confluence", "confluence"),
