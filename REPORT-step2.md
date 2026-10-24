@@ -36,6 +36,20 @@ Also changed:
   refusal of an unconnected chat app on. That live run caught a bug the mocks hid (a JSON array answer read as one
   object), now fixed and covered by a test.
 
+## Added after the brief: the dashboard's architecture map
+- `apps/web/app/dashboard/application/architecture.ts`:
+  - **AI providers:** the "Claude" node became "AI providers", which opens to Claude and Codex.
+  - **New top-level nodes:** `mcp`, PowerLoom's tools for desktop chats, and "Chat apps", Claude Desktop or Codex.
+    Their links are Continue with …, MCP, reads and writes.
+  - **Inside the services:** PowerLoom gains the AI providers feature. The runner's agents gain autotest and the agents
+    made on the Agents page. The Codex sign-in and the Codex SDK appear in the runner's details.
+- Colours: Claude and Codex are green when connected and grey when not. `mcp` is green while its `/health` answers.
+  The web asks `http://mcp:3110` over the compose network; `MCP_INTERNAL_URL` overrides it.
+- `schemeLayout.test.ts` checks every hand-placed level for overlapping nodes, links through nodes and crossing links.
+  The old comment only asked for that. It found the first placement of the chat apps crossing two links, and the
+  final placement passes. `schemeHealth.test.ts` covers the new colours. The web's `test` script now also runs `app/**`.
+- Screenshot check: the rebuilt web was rendered here against a live API.
+
 ## Checks run here
 
 | Check | Result |

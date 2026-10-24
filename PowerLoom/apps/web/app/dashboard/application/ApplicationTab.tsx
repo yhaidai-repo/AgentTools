@@ -1,4 +1,6 @@
 import { Panel } from "@/components/Panel";
+import { loadAiProviders } from "@/lib/aiProviders";
+import { mcpAnswers } from "@/lib/mcpHealth";
 import { grafanaExploreUrl } from "@/lib/prometheus";
 import type { SystemStatus } from "@/lib/systemStatus";
 import { ArchitectureScheme } from "./ArchitectureScheme";
@@ -30,7 +32,7 @@ export async function ApplicationTab({ status, vault, focus, mark }: Application
       <div className="section-label">Last 24 h</div>
       <RatesSection rates={rates} grafana={grafanaExploreUrl()} />
       <div className="section-label">Architecture</div>
-      <ArchitectureScheme health={schemeHealth(status)} focus={level} highlight={mark} />
+      <ArchitectureScheme health={schemeHealth(status, { providers: await loadAiProviders(), mcpAnswers: await mcpAnswers() })} focus={level} highlight={mark} />
     </>
   );
 }
