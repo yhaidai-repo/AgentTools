@@ -10,6 +10,10 @@ public static class ChatNote
     // PowerLoom's commands on the command line (user decision 2026-10-09: no MCP yet); the vault's POWERLOOM.md lists them.
     public const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
 
+    // A command as the powerloom MCP server names its tool (`item.close` → `item_close`). The vault's MCP entry gives every
+    // chat app the same server, so a note names the tool alone, without a client's prefix (stage 4 of the powerloom-mcp design).
+    public static string Tool(string command) => command.Replace('.', '_');
+
     private const string SectionStart = "\n## ";
     // Every kind's steps, reading and context, and each kind's own key section: an item's text and how it ends, a review's
     // pull request, a vault setup's steps (user decision 2026-10-24). The headings differ per kind, so one list serves all.
@@ -107,13 +111,13 @@ public static class ChatNote
     }
 
     // The same prepared context the agents get, the user's own notes included; the notes under Read first stay the
-    // fallback when PowerLoom's command line can't be reached.
+    // fallback when the chat has no powerloom MCP server.
     private static string PbiContextStep(IReadOnlyList<int> pbis)
     {
-        var commands = pbis.Select(adoId => $"`{PowerLoomCli} pbi.read '{{\"ref\":\"PBI-{adoId}\"}}'`");
+        var calls = pbis.Select(adoId => $"`{Tool("pbi.read")}` with `{{\"ref\":\"PBI-{adoId}\"}}`");
 
-        return $"Load the PBI's prepared context, the same the agents get (with the user's own notes): {string.Join(", ", commands)}. "
-            + "Read any reference it lists the same way (`pbi.read` with that ref; see POWERLOOM.md). If the command fails, say so and go on with the notes.";
+        return $"Load the PBI's prepared context, the same the agents get (with the user's own notes): {string.Join(", ", calls)}. "
+            + $"Read any reference it lists the same way (`{Tool("pbi.read")}` with that ref; see POWERLOOM.md). If the powerloom tools aren't there, say so and go on with the notes.";
     }
 
     private static string Context(ChatBrief brief)

@@ -7,13 +7,13 @@ using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Continue.Targets;
 
-// The "At the end" section of an item's chat (user decision 2026-10-21): the PowerLoom commands that close the item,
-// with its ids filled in, so the chat ends the session in PowerLoom instead of handing text over to paste.
+// The "At the end" section of an item's chat (user decision 2026-10-21): the PowerLoom tools that close the item, with
+// its ids filled in, so the chat ends the session in PowerLoom instead of handing text over to paste.
 public static class ItemChatEndings
 {
     public const string Heading = "At the end";
 
-    private const string AskFirst = "Show the user the exact input first and run the command only after their yes. The input goes on stdin (a heredoc), so the text needs no shell quoting.";
+    private const string AskFirst = "Show the user the exact input first and call the tool only after their yes.";
 
     // Placeholders like <the answer> stay readable: no < escapes in a note for a person.
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -48,7 +48,7 @@ public static class ItemChatEndings
         var answers = Enumerable.Range(1, steps).Select(step => $"<result of step {step}>").ToArray();
         var done = new { itemId = item.Id, adoId = item.PbiId, decision = "done", answers, resolution = "<note, or empty>" };
 
-        yield return $"Task done: `{Command("item.close")}` with {Serialize(done)}: one entry per step in order, \"\" for a step without a result.";
+        yield return $"Task done: `{Tool("item.close")}` with {Serialize(done)}: one entry per step in order, \"\" for a step without a result.";
         yield return Close(item, "Cancel the task", "cancel", "<why>");
     }
 
@@ -59,8 +59,8 @@ public static class ItemChatEndings
         var question = new { itemId = item.Id, adoId = item.PbiId, type = "question", project, title = "<final title>", text = "<final text>", @default = new[] { "<default, one per entry>" }, options = new[] { "<option 1>", "<option 2>" } };
         var issue = new { itemId = item.Id, adoId = item.PbiId, type = "issue", project, title = "<final title>", text = "<final text>", @default = new[] { "<workaround or default, one per entry>" } };
 
-        yield return $"Submit to the vault as an open question: `{Command("finding.submit")}` with {Serialize(question)}.";
-        yield return $"Submit as a known issue: `{Command("finding.submit")}` with {Serialize(issue)}.";
+        yield return $"Submit to the vault as an open question: `{Tool("finding.submit")}` with {Serialize(question)}.";
+        yield return $"Submit as a known issue: `{Tool("finding.submit")}` with {Serialize(issue)}.";
         yield return Close(item, "Answer it without a record", "answer", "<the answer>");
         yield return Close(item, "Dismiss it", "dismiss", "<why>");
     }
@@ -69,17 +69,17 @@ public static class ItemChatEndings
     {
         var rerun = new { itemId = item.Id, adoId = item.PbiId, startOver = false };
 
-        yield return $"Run the task again: `{Command("task.rerun")}` with {Serialize(rerun)} (`startOver: true` drops the last run's conversation). Anything else for PowerLoom (an answer to a question it raised) goes through that item's own page.";
+        yield return $"Run the task again: `{Tool("task.rerun")}` with {Serialize(rerun)} (`startOver: true` drops the last run's conversation). Anything else for PowerLoom (an answer to a question it raised) goes through that item's own page.";
     }
 
     private static string Close(LocalItem item, string label, string decision, string resolution)
     {
         var input = new { itemId = item.Id, adoId = item.PbiId, decision, resolution };
 
-        return $"{label}: `{Command("item.close")}` with {Serialize(input)}.";
+        return $"{label}: `{Tool("item.close")}` with {Serialize(input)}.";
     }
 
-    private static string Command(string name) => $"{ChatNote.PowerLoomCli} {name}";
+    private static string Tool(string command) => ChatNote.Tool(command);
 
     private static string Serialize(object input) => $"`{JsonSerializer.Serialize(input, Json)}`";
 

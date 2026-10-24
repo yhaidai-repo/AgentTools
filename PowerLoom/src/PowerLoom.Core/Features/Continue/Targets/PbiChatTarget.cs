@@ -63,7 +63,7 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
             Rules =
             [
                 $"Done when the acceptance criteria in [[{BacklogPaths.PbiNoteName(adoId)}]] and the tests pass.",
-                $"An issue found in this PBI's implementation that the plan doesn't cover is a bug: after the user's yes, report it with `{ChatNote.PowerLoomCli} bug.report` and `{{\"parent\": \"{adoId}\", \"title\": \"…\", \"descriptionMd\": \"steps, expected, actual\"}}` on stdin. PowerLoom's agents refine and design the fix as a child item.",
+                $"An issue found in this PBI's implementation that the plan doesn't cover is a bug: after the user's yes, report it with `{ChatNote.Tool("bug.report")}` and `{{\"parent\": \"{adoId}\", \"title\": \"…\", \"descriptionMd\": \"steps, expected, actual\"}}`. PowerLoom's agents refine and design the fix as a child item.",
             ],
         };
 
