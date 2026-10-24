@@ -107,6 +107,7 @@ export { addVaultCommand } from "./commands/addVaultCommand";
 export { removeVaultCommand } from "./commands/removeVaultCommand";
 export { restoreTrashCommand } from "./commands/restoreTrashCommand";
 export { deleteTrashCommand } from "./commands/deleteTrashCommand";
+export { runCleanupCommand } from "./commands/runCleanupCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";

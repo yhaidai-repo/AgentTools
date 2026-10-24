@@ -1,6 +1,6 @@
 "use server";
 
-import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand } from "@powerloom/core";
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
@@ -77,10 +77,9 @@ export async function saveCleanupSettingsAction(_previous: ActionResult | null, 
 
 // Starts the vault's cleanup now (with the saved settings); the report lands on the dashboard's Application tab.
 export async function runCleanupAction(_previous: ActionResult | null, _form: FormData): Promise<ActionResult> {
-  const vault = await requireVault();
-  const started = await powerloom.POST("/api/vaults/{vault}/cleanup/run", { params: { path: { vault } } });
+  const started = await runWebCommand(runCleanupCommand, { vault: await requireVault() });
 
-  return powerloomResult(started, "Cleanup started; see the dashboard's Application tab for its report.");
+  return started.ok ? { ok: true, message: started.value.message } : { ok: false, message: started.error };
 }
 
 export async function savePullRequestSettingsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
