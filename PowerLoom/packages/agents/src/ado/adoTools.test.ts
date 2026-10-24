@@ -7,7 +7,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import { ADO_INTEGRATION, createAdoTools } from "./adoTools";
 
-const context = { vault: "work-projects", agentId: "better-research", runId: 1275, taskId: "GT-002", pbiId: 36973 };
+const context = { vault: "work-projects", agentId: "better-research", runId: 1275, owner: "powerloom-run-1275", taskId: "GT-002", pbiId: 36973 };
 
 const PULL_REQUEST: AdoPullRequest = {
   id: 6400,

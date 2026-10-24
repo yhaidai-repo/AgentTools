@@ -7,7 +7,7 @@ import { DEVHUB_INTEGRATION, createDevHubTools, stackOwner } from "./devHubTools
 import type { AgentDeps } from "./models/AgentDeps";
 import type { DataAccessEntry } from "./models/DataAccessEntry";
 
-const context = { vault: "work-projects", agentId: "tester", runId: 7, taskId: "AT-1-001", pbiId: 1 };
+const context = { vault: "work-projects", agentId: "tester", runId: 7, owner: "powerloom-run-7", taskId: "AT-1-001", pbiId: 1 };
 
 function agentWith(devHub: boolean): AgentDefinition {
   return { capabilities: { webAccess: false, integrations: { [DEVHUB_INTEGRATION]: devHub } }, limits: { maxTurns: 40, timeoutMinutes: 20 } } as unknown as AgentDefinition;

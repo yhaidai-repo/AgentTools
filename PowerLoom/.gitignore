@@ -14,6 +14,7 @@ next-env.d.ts
 *.log
 /backups/
 /import-inbox/
+/local-skills/
 /tools/outlook-export/state.json
 /tools/audio-capture/home/
 /tools/audio-capture/bin/

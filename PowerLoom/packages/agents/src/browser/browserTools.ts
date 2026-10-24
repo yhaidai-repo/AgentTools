@@ -80,7 +80,11 @@ function browserCloseTool(deps: AgentDeps, context: OutsideAccessContext, access
       }
 
       open.name = null;
-      await addRunOutputs(deps.db, context.runId, closed.value.artifacts);
+
+      if (context.runId !== null) {
+        await addRunOutputs(deps.db, context.runId, closed.value.artifacts);
+      }
+
 
       return { text: `Closed ${closed.value.case}. Recording on the host:\n${closed.value.artifacts.join("\n")}`, rows: closed.value.artifacts.length };
     },

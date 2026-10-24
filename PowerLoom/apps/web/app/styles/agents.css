@@ -9,6 +9,11 @@
   margin-left: auto;
 }
 
+/* After the page's own button (New agent) the switch sits beside it; one auto margin pushes both right. */
+.page-action + .pause-switch-form {
+  margin-left: 0;
+}
+
 .pause-switch {
   display: inline-flex;
   align-items: center;

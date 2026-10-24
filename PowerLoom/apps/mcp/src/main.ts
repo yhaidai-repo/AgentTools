@@ -43,7 +43,7 @@ process.once("SIGINT", stop);
 
 async function stop(): Promise<void> {
   clearInterval(sweep);
-  await sessions.closeAll("aborted");
+  await sessions.closeAll();
   await server.close();
   await pool.end();
   process.exit(0);

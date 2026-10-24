@@ -64,6 +64,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Vaults__HostRoot", HostRoot);
         Environment.SetEnvironmentVariable("Vaults__TemplateHome", WriteTemplates());
         Environment.SetEnvironmentVariable("Vaults__Exclude", "powerloom-backlog");
+        Environment.SetEnvironmentVariable("Mcp__Url", "http://127.0.0.1:3110/mcp");
+        Environment.SetEnvironmentVariable("Mcp__Token", "test-token");
         Environment.SetEnvironmentVariable("Backlog__Root", BacklogRoot);
         Environment.SetEnvironmentVariable("Import__InboxRoot", ImportRoot);
         Environment.SetEnvironmentVariable("Repos__Mount", ReposRoot);

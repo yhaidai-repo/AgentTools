@@ -2,7 +2,10 @@
 # PowerLoom tools
 
 PowerLoom keeps the PBIs of this vault ({{vaultPath}}), what its agents found, and the user's own notes. A Claude chat
-reaches it through PowerLoom's command line (no MCP server yet):
+reaches it through the `powerloom` MCP server this vault's `.mcp.json` lists (PowerLoom writes that entry): every
+command below is a tool there, named with `_` instead of `.` (`pbi_read`, `item_close`), next to the readers the agents
+have (vault docs, Read SQL, Read Azure, Azure DevOps, the whole system: `task_list`, `run_get`, `agent_list`, …).
+Prefer the tools; each one says what to ask or confirm before a change. Without the MCP, the command line does the same:
 
 ```bash
 docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- <command> '<json input>'

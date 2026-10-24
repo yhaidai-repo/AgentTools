@@ -179,6 +179,9 @@ services:
       Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … PowerLoom's backlog vault
       Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"
       Runner__Url: http://agent-runner:3200  # the agents' dispatch starts the runs there
+      # The MCP server as the PC sees it and its token: written into every vault's .mcp.json (Add vault, every start).
+      Mcp__Url: http://127.0.0.1:${MCP_PORT:-3110}/mcp
+      Mcp__Token: ${MCP_TOKEN:-}
     ports:
       - "127.0.0.1:${POWERLOOM_PORT:-5180}:8080"
     volumes:

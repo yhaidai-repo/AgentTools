@@ -14,6 +14,7 @@ import type { RunOpening } from "./resume/models/RunOpening";
 import { clearStartOver, planConversation } from "./resume/planConversation";
 import { replayDraft } from "./resume/replayDraft";
 import { RunObserver } from "./RunObserver";
+import { stackOwner } from "./devHubTools";
 import { ToolCallLogger } from "./ToolCallLogger";
 
 const MISSING_OUTPUT = "Run ended without its required output";
@@ -98,7 +99,7 @@ export class AgentRunSession {
 
   private async runAgent(info: AgentRunInfo, input: AgentRunInput): Promise<AgentRunResult> {
     const guard = new BudgetGuard({ perRunUsd: input.perRunBudgetUsd, daily: [] }, this.deps.usageStore);
-    const tools = new ToolCallLogger(this.deps.accessLog, { vault: this.deps.docsVaultName, agentId: String(info.labels.agent ?? info.stage), runId: this.runId, taskId: info.itemId ?? null, pbiId: info.pbiId });
+    const tools = new ToolCallLogger(this.deps.accessLog, { vault: this.deps.docsVaultName, agentId: String(info.labels.agent ?? info.stage), runId: this.runId, owner: stackOwner(this.runId), taskId: info.itemId ?? null, pbiId: info.pbiId });
     const observer = new RunObserver(this.tracker, guard, (event) => this.record(event), tools);
 
     const runtime = this.deps.runtimes.get(info.model.provider);

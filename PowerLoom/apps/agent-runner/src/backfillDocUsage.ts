@@ -36,7 +36,7 @@ async function backfillRun(runId: number, agentId: string): Promise<number> {
   const docReads = (await usageStore.trace(String(runId))).filter(isDocRead);
 
   for (const event of docReads) {
-    await log.record([docPath(event)], "read", agentId, runId, event.at);
+    await log.record([docPath(event)], "read", agentId, `RUN-${runId}`, event.at);
   }
 
   return docReads.length;

@@ -7,7 +7,7 @@ import { createAzureTools } from "../azure/azureTools";
 import { commandTools } from "../commandTool";
 import { chatTestCaseTools } from "../testCases/testCaseTools";
 import { createConfluenceTools } from "../confluenceTools";
-import { createDevHubTools } from "../devHubTools";
+import { chatOwner, createDevHubTools } from "../devHubTools";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import { listReposTool } from "../refinement/refinementTools";
@@ -20,8 +20,8 @@ import type { ChatPrincipal } from "./models/ChatPrincipal";
 // the same builders with the `chat` agent's grants, plus every PowerLoom command (pbi_read, item_close, …). Outside
 // reads are logged like an agent's; a denied read raises an access request, without a task to re-run.
 export function chatTools(deps: AgentDeps, agent: AgentDefinition, principal: ChatPrincipal, commands: CommandContext): ToolDefinition<any>[] {
-  const access: OutsideAccessContext = { vault: principal.vault, agentId: agent.id, runId: principal.runId, taskId: null, pbiId: null };
-  const readers = readingTools(deps, agent, access);
+  const access: OutsideAccessContext = { vault: principal.vault, agentId: agent.id, runId: null, owner: chatOwner(principal.sessionId), taskId: null, pbiId: null };
+  const readers = readingTools(deps, agent, access, `CHAT-${principal.sessionId}`);
 
   return withChatLogging([...readers, ...withoutTaken(commandTools(commands), readers)], deps.accessLog, access);
 }
@@ -39,9 +39,9 @@ const WRITING_READERS = new Set(["start_stack", "stop_stack", "http_request"]);
 
 // read_pbi is left out: the chat has the same command as pbi_read. The tools a run binds to its task's PBI
 // (read_attachment, read_test_cases) take the PBI as an argument here.
-function readingTools(deps: AgentDeps, agent: AgentDefinition, access: OutsideAccessContext): ToolDefinition<any>[] {
+function readingTools(deps: AgentDeps, agent: AgentDefinition, access: OutsideAccessContext, session: string): ToolDefinition<any>[] {
   const tools: ToolDefinition<any>[] = [
-    ...createAgentDocTools(deps, agent.id, access.runId),
+    ...createAgentDocTools(deps, agent.id, session),
     listReposTool(deps.db, access.vault),
     createChatAttachmentTool(deps.db),
     ...createConfluenceTools(deps, agent, access),
