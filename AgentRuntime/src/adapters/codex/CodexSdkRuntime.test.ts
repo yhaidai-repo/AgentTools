@@ -150,6 +150,8 @@ test("configures isolated read-only execution and removes its working folder", a
     assert.equal((options.config?.features as Record<string, unknown>).shell_tool, false);
     assert.equal(threadOptions.sandboxMode, "read-only");
     assert.equal(threadOptions.approvalPolicy, "never");
+    // With approval policy never, a tool Codex would ask about is refused: the run's own tools are pre-approved.
+    assert.equal(((options.config?.mcp_servers as Record<string, Record<string, unknown>>).agent).default_tools_approval_mode, "approve");
     assert.equal(threadOptions.networkAccessEnabled, false);
     assert.equal(threadOptions.webSearchMode, "live");
     assert.equal(threadOptions.modelReasoningEffort, "high");
