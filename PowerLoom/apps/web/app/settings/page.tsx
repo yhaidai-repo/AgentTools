@@ -2,6 +2,7 @@ import { isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, read
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
+import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProviders";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -11,6 +12,8 @@ import type { AzureResourceRow } from "@/models/AzureResourceRow";
 import type { SettingsTabMark } from "@/models/SettingsTabMark";
 import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
+import { ChatAppForm } from "./ChatAppForm";
+import { ClaudeTokenForm } from "./ClaudeTokenForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
@@ -44,7 +47,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
   const readSql = await readReadSqlSettings(db, current);
   const readAzure = await readReadAzureSettings(db, current);
   const devHub = await readDevHubSettings(db, current);
-  const marks = await tabMarks(db, current, { adoActive: isAdoActive(ado), repos, readSql, readAzure, devHubOn: devHub.enabled });
+  const providers = await loadAiProviders();
+  const marks = await tabMarks(db, current, { adoActive: isAdoActive(ado), repos, readSql, readAzure, devHubOn: devHub.enabled, providers });
 
   return (
     <>
@@ -56,6 +60,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
       {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
       {tab === "agents" && <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />}
+      {tab === "ai" && <AiProvidersTab providers={providers} />}
       <p className="env-line">From .env, restart to change: backlog vault <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence <ConfluenceAccess status={await readConfluenceStatus(db)} /></p>
     </>
   );
@@ -67,6 +72,7 @@ interface MarkInputs {
   readSql: ReadSqlSettings;
   readAzure: ReadAzureSettings;
   devHubOn: boolean;
+  providers: ProviderStatus[] | null;
 }
 
 // Each tab's dot and count; Sync pulses amber while a mail source has been quiet for over a day.
@@ -80,6 +86,7 @@ async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): P
     repos: { count: `${inputs.repos.filter((row) => !row.excluded).length}/${inputs.repos.length}` },
     data: { dot: dataOn ? "ok" : "off" },
     devhub: { dot: inputs.devHubOn ? "ok" : "off" },
+    ai: { dot: inputs.providers?.some((provider) => provider.connected) ? "ok" : "warn" },
   };
 }
 
@@ -95,6 +102,17 @@ async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: 
       <ImportSettingsForm key={`import-${current}`} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} status={importStatus} />
       <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
       <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
+    </>
+  );
+}
+
+// One section for the whole PowerLoom, the same on every vault's page (nothing about providers at installation).
+async function AiProvidersTab({ providers }: { providers: ProviderStatus[] | null }) {
+  return (
+    <>
+      <p className="quiet-line">These settings are for the whole PowerLoom, not only this vault.</p>
+      <ClaudeTokenForm status={providers?.find((provider) => provider.provider === "anthropic") ?? null} />
+      <ChatAppForm apps={await loadChatApps()} />
     </>
   );
 }

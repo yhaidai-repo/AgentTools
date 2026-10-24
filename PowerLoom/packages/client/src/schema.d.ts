@@ -844,6 +844,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chats/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_chats_apps
+         * @description GET_api_chats_apps
+         */
+        get: operations["GET_api_chats_apps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chats/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_chats_app
+         * @description PUT_api_chats_app
+         */
+        put: operations["PUT_api_chats_app"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/cleanup": {
         parameters: {
             query?: never;
@@ -883,6 +923,50 @@ export interface paths {
          */
         post: operations["POST_api_vaults_vault_cleanup_run"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_ai_providers
+         * @description GET_api_ai_providers
+         */
+        get: operations["GET_api_ai_providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-providers/claude/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_ai_providers_claude_token
+         * @description PUT_api_ai_providers_claude_token
+         */
+        put: operations["PUT_api_ai_providers_claude_token"];
+        post?: never;
+        /**
+         * DELETE_api_ai_providers_claude_token
+         * @description DELETE_api_ai_providers_claude_token
+         */
+        delete: operations["DELETE_api_ai_providers_claude_token"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1482,10 +1566,21 @@ export interface components {
             spentTodayUsd: number;
             agents: components["schemas"]["AgentBudget"][];
         };
+        ChatApp: {
+            id: string;
+            label: string;
+        };
+        ChatApps: {
+            current: string;
+            apps: components["schemas"]["ChatApp"][];
+        };
         /** @enum {unknown} */
         ChatKind: "pbi" | "item" | "review" | "vault";
         ChatLink: {
             url: string;
+        };
+        ChooseChatAppRequest: {
+            launcher: string;
         };
         CleanupReport: {
             /** Format: date-time */
@@ -1731,6 +1826,14 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        /** @enum {unknown} */
+        ProviderSource: "settings" | "env" | null;
+        ProviderStatus: {
+            provider: string;
+            label: string;
+            connected: boolean;
+            source: null | components["schemas"]["ProviderSource"];
+        };
         PullRequestSettingsRequest: {
             enabled: boolean;
             cron: string;
@@ -1804,6 +1907,9 @@ export interface components {
             runningTask: null | string;
             url: string;
             detail: null | string;
+        };
+        SaveClaudeTokenRequest: {
+            token: null | string;
         };
         SaveCleanupSettingsRequest: {
             dryRun: boolean;
@@ -3253,6 +3359,57 @@ export interface operations {
             };
         };
     };
+    GET_api_chats_apps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatApps"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PUT_api_chats_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChooseChatAppRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatApps"];
+                };
+            };
+        };
+    };
     GET_api_vaults_vault_cleanup: {
         parameters: {
             query?: never;
@@ -3352,6 +3509,84 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    GET_api_ai_providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PUT_api_ai_providers_claude_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveClaudeTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+        };
+    };
+    DELETE_api_ai_providers_claude_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderStatus"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

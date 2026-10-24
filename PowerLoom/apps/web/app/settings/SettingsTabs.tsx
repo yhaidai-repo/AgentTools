@@ -8,6 +8,7 @@ export const SETTINGS_TABS = [
   { key: "data", label: "Data access" },
   { key: "devhub", label: "DevHub" },
   { key: "agents", label: "Agents" },
+  { key: "ai", label: "AI providers" },
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];

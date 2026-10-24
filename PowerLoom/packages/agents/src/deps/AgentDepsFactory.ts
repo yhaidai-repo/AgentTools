@@ -17,6 +17,7 @@ import { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "../azure/azureTools";
 import { DataAccessLog } from "../DataAccessLog";
 import { DocUsageLog } from "../DocUsageLog";
 import type { AgentDeps } from "../models/AgentDeps";
+import { ProviderConnections } from "../providerConnections";
 import { loadCaptureRules } from "../vaultCapture";
 import { adoAuthHeader } from "./env";
 import type { DepsEnv } from "./models/DepsEnv";
@@ -51,6 +52,7 @@ export class AgentDepsFactory {
       db,
       config: this.config,
       runtimes,
+      connections: ProviderConnections.forRunner(db, () => runtimes.providers()),
       usageStore: this.usageStore,
       prices: new PriceBook(),
       docsExclude: env.docsExclude,
