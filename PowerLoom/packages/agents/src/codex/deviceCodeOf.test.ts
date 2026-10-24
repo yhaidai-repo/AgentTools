@@ -13,6 +13,16 @@ describe("the link and code of codex login --device-auth", () => {
     assert.deepEqual(deviceCodeOf("Open https://auth.openai.com/codex/device. Code: WXYZ-9876"), { verificationUri: "https://auth.openai.com/codex/device", userCode: "WXYZ-9876" });
   });
 
+  it("take OpenAI's device page, not the first link printed", () => {
+    const output = "See https://github.com/openai/codex/releases for news.\nOpen https://auth.openai.com/help then https://auth.openai.com/codex/device and enter WXYZ-9876";
+
+    assert.deepEqual(deviceCodeOf(output), { verificationUri: "https://auth.openai.com/codex/device", userCode: "WXYZ-9876" });
+  });
+
+  it("offer no link that isn't OpenAI's, so the CLI's own text shows instead", () => {
+    assert.equal(deviceCodeOf("Open https://auth.openai.com.evil.example/codex/device and enter WXYZ-9876"), null);
+  });
+
   it("are missing until both were printed", () => {
     assert.equal(deviceCodeOf("Open https://auth.openai.com/codex/device"), null);
     assert.equal(deviceCodeOf("Code: WXYZ-9876"), null);
