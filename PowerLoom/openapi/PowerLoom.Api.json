@@ -1607,6 +1607,165 @@
         }
       }
     },
+    "/api/vaults/{vault}/drafts": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_drafts",
+        "description": "POST_api_vaults_vault_drafts",
+        "operationId": "POST_api_vaults_vault_drafts",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCaptureResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/register-records": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_register_records",
+        "description": "POST_api_vaults_vault_register_records",
+        "operationId": "POST_api_vaults_vault_register_records",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRegisterRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedRegisterRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/register-records/close": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_register_records_close",
+        "description": "POST_api_vaults_vault_register_records_close",
+        "operationId": "POST_api_vaults_vault_register_records_close",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRegisterRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedRegisterRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/records": {
       "post": {
         "tags": [
@@ -3269,6 +3428,49 @@
           }
         }
       },
+      "AddRegisterRecordRequest": {
+        "required": [
+          "project",
+          "kind",
+          "title",
+          "text",
+          "default",
+          "options"
+        ],
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "default": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "AddReviewRequest": {
         "required": [
           "vault",
@@ -3324,6 +3526,17 @@
         "type": "object",
         "properties": {
           "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedRegisterRecord": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "string"
           }
         }
@@ -3550,6 +3763,60 @@
           }
         }
       },
+      "CaptureDraftRequest": {
+        "required": [
+          "project",
+          "name",
+          "title",
+          "target",
+          "captured",
+          "assumptions",
+          "toFill",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "captured": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assumptions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "toFill": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
       "ChatApp": {
         "required": [
           "id",
@@ -3745,6 +4012,44 @@
           "cancel"
         ]
       },
+      "CloseRegisterRecordRequest": {
+        "required": [
+          "path",
+          "id",
+          "status",
+          "duplicateOf",
+          "decision",
+          "decidedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "duplicateOf": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordRef"
+              }
+            ]
+          },
+          "decision": {
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          }
+        }
+      },
       "CloseRequest": {
         "required": [
           "adoId",
@@ -3834,6 +4139,25 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "ClosedRegisterRecord": {
+        "required": [
+          "path",
+          "id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -4234,6 +4558,35 @@
         "properties": {
           "agentId": {
             "type": "string"
+          }
+        }
+      },
+      "DraftCaptureResult": {
+        "required": [
+          "ok",
+          "mode",
+          "path",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -4655,6 +5008,21 @@
           "open-question",
           "known-issue"
         ]
+      },
+      "RecordRef": {
+        "required": [
+          "path",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
       },
       "RemoveLinkRequest": {
         "required": [
@@ -5935,6 +6303,9 @@
     },
     {
       "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"
     },
     {
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"

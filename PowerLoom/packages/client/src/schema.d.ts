@@ -724,6 +724,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_drafts
+         * @description POST_api_vaults_vault_drafts
+         */
+        post: operations["POST_api_vaults_vault_drafts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/register-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_register_records
+         * @description POST_api_vaults_vault_register_records
+         */
+        post: operations["POST_api_vaults_vault_register_records"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/register-records/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_register_records_close
+         * @description POST_api_vaults_vault_register_records_close
+         */
+        post: operations["POST_api_vaults_vault_register_records_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records": {
         parameters: {
             query?: never;
@@ -1493,6 +1553,14 @@ export interface components {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
         };
+        AddRegisterRecordRequest: {
+            project: string;
+            kind: string;
+            title: string;
+            text: string;
+            default: null | string[];
+            options: null | string[];
+        };
         AddReviewRequest: {
             vault: string;
             repo: string;
@@ -1506,6 +1574,9 @@ export interface components {
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedRegisterRecord: {
+            id: string;
         };
         AddedReview: {
             /** Format: int32 */
@@ -1566,6 +1637,16 @@ export interface components {
             spentTodayUsd: number;
             agents: components["schemas"]["AgentBudget"][];
         };
+        CaptureDraftRequest: {
+            project: string;
+            name: string;
+            title: string;
+            target: string;
+            captured: string[];
+            assumptions: null | string[];
+            toFill: null | string[];
+            source: string;
+        };
         ChatApp: {
             id: string;
             label: string;
@@ -1623,6 +1704,14 @@ export interface components {
         };
         /** @enum {unknown} */
         CloseDecision: "answer" | "dismiss" | "done" | "cancel";
+        CloseRegisterRecordRequest: {
+            path: string;
+            id: string;
+            status: string;
+            duplicateOf: null | components["schemas"]["RecordRef"];
+            decision: string;
+            decidedBy: string;
+        };
         CloseRequest: {
             /** Format: int32 */
             adoId: null | number;
@@ -1643,6 +1732,11 @@ export interface components {
         ClosedPbis: {
             done: string[];
             refused: string[];
+        };
+        ClosedRegisterRecord: {
+            path: string;
+            id: string;
+            status: string;
         };
         CompletedRunRequest: {
             /** Format: int64 */
@@ -1739,6 +1833,12 @@ export interface components {
         };
         DispatchedAgent: {
             agentId: string;
+        };
+        DraftCaptureResult: {
+            ok: boolean;
+            mode: string;
+            path: null | string;
+            errors: string[];
         };
         EnabledRequest: {
             enabled: boolean;
@@ -1843,6 +1943,10 @@ export interface components {
         };
         /** @enum {unknown} */
         RecordKind: "www" | "open-question" | "known-issue";
+        RecordRef: {
+            path: string;
+            id: string;
+        };
         RemoveLinkRequest: {
             url: string;
         };
@@ -3199,6 +3303,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedSourceSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_drafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaptureDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCaptureResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    POST_api_vaults_vault_register_records: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRegisterRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedRegisterRecord"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_register_records_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseRegisterRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosedRegisterRecord"];
                 };
             };
             /** @description Bad Request */
