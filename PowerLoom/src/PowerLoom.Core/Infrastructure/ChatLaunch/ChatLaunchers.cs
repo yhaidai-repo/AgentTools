@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using PowerLoom.Contracts;
+using PowerLoom.Infrastructure.ChatLaunch.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Settings;
 
@@ -53,9 +54,4 @@ public sealed class ChatLaunchers(IEnumerable<IChatLauncher> launchers, IOptions
     }
 
     private IChatLauncher? Find(string id) => Registered.SingleOrDefault(candidate => candidate.Id == id);
-
-    private sealed class ChatAppSetting
-    {
-        public string Launcher { get; set; } = "";
-    }
 }
