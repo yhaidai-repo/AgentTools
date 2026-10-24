@@ -27,16 +27,9 @@ export const pipelineStatus = pgEnum("pipeline_status", [
   "ready-for-design", "designing", "ready-for-dev", "development", "ready-for-test", "testing", "tested", "test-failed", "done", "stale", "closed",
 ]);
 
-export const itemKind = pgEnum("item_kind", [
-  "research", "design", "human", "question", "research-result", "refinement",
-  "docs", "finding", // tech-writer task (one per vault draft), and what it found for the vault registers
-  "review", // code-review task: one review of one pull request
-  "vault-review", // one review pass over the selected vaults: stale notes, invalid links
-  "goal", // unused since 2026-10-22 (goal tasks removed; a user task of any kind replaces them); Postgres enums can't drop a value
-  "meeting", // a recorded meeting to turn into notes and follow-ups (tools/audio-capture, 2026-10-14)
-  "test", // Autotest task: prove a PBI's acceptance criteria end to end (design 2026-10-20)
-  "test-report", // what an Autotest run found and planned (TR)
-]);
+// An item's kind (local_item.kind, text since 2026-10-24 so agents made in the UI can add task types): research, design,
+// human, question, research-result, refinement, docs, finding, review, vault-review, meeting, test, test-report, or a
+// custom task type an agent handles.
 
 // Allowed statuses per kind are enforced in core, not here.
 export const itemStatus = pgEnum("item_status", [
@@ -190,7 +183,7 @@ export const agentRun = pgTable("agent_run", {
 
 export const localItem = pgTable("local_item", {
   id: text("id").primaryKey(),
-  kind: itemKind("kind").notNull(),
+  kind: text("kind").notNull(),
   pbiId: integer("pbi_id").references(() => workItem.adoId), // null for items no PBI is behind (e.g. a chat draft's tech-writer task)
   parentId: text("parent_id").references((): AnyPgColumn => localItem.id),
   title: text("title").notNull(),

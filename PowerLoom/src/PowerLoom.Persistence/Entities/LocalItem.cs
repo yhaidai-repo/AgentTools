@@ -43,7 +43,7 @@ public partial class LocalItem
 
     public string Vault { get; set; } = null!;
 
-    public ItemKind Kind { get; set; }
+    public string Kind { get; set; } = null!;
 
     public ItemStatus Status { get; set; }
 

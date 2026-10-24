@@ -2,6 +2,7 @@
 export { RESULT_KINDS, isOpen, isResultKind } from "./items";
 export { TASK_BUCKETS, isHumanWork, taskBucket } from "./taskLooks";
 export { TASK_KINDS, bucketOf, countBy, loadTaskList, matchesTask, sortTasks, toTaskListRow } from "./taskList";
+export { TASK_TYPE_PATTERN, customTaskTypes, isCustomTaskType, taskTypeTitle } from "./customTaskTypes";
 export { ATTACHMENT_SUMMARY_COLUMNS } from "./attachmentColumns";
 export { loadItemDetail } from "./itemDetail";
 export { listTestCases } from "./testCases";

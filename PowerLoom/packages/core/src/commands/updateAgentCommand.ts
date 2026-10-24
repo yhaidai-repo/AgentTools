@@ -1,6 +1,6 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
-import { AGENT_TASK_TYPES } from "../agentStages";
+import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { insertPromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
 import type { Command } from "../models/Command";
@@ -8,7 +8,8 @@ import type { CommandContext } from "../models/CommandContext";
 import type { UpdateAgentInput } from "../models/UpdateAgentInput";
 
 const CRON = /^(\S+\s+){4}\S+$/;
-const TASK_TYPE = z.enum(AGENT_TASK_TYPES as [string, ...string[]]);
+// A built-in task type or a new one the agent brings (user decision 2026-10-24).
+const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower-case letters, digits and dashes");
 
 const input = z.object({
   id: z.string().trim().min(1).describe("The agent's id, e.g. better-research (agent.list)"),

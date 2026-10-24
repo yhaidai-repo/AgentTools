@@ -9,6 +9,7 @@ using PowerLoom.Infrastructure.ChatLaunch;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using PbiSkill = PowerLoom.Features.Continue.Models.PbiSkill;
 
 namespace PowerLoom.Features.Continue.Targets;
@@ -24,12 +25,12 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
 
     // What the chat reads besides the PBI, refinement and design: final research results, the user's answers, and the
     // findings still waiting for review (the briefing's risks).
-    private static readonly Dictionary<ItemKind, (ItemStatus Status, string About)> ReadFirstItems = new()
+    private static readonly Dictionary<string, (ItemStatus Status, string About)> ReadFirstItems = new()
     {
-        [ItemKind.ResearchResult] = (ItemStatus.Final, "research result"),
-        [ItemKind.Question] = (ItemStatus.Answered, "answered question"),
-        [ItemKind.Human] = (ItemStatus.Done, "done human task"),
-        [ItemKind.Finding] = (ItemStatus.Open, "open finding"),
+        [ItemKinds.ResearchResult] = (ItemStatus.Final, "research result"),
+        [ItemKinds.Question] = (ItemStatus.Answered, "answered question"),
+        [ItemKinds.Human] = (ItemStatus.Done, "done human task"),
+        [ItemKinds.Finding] = (ItemStatus.Open, "open finding"),
     };
 
     public ChatKind Kind => ChatKind.Pbi;

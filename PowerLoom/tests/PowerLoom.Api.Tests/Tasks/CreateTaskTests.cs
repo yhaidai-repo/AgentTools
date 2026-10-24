@@ -7,6 +7,7 @@ using PowerLoom.Features.Tasks.CreateTask.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Tasks;
 
@@ -31,7 +32,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
 
         Assert.Contains("Not among the vault's enabled repositories: Nope.", refused);
         Assert.StartsWith("GT-", task.Id);
-        Assert.Equal((ItemKind.Research, "agent:*", "Find out why", ItemStatus.Open, (int?)null), (task.Kind, task.Assignee, task.Body, task.Status, task.PbiId));
+        Assert.Equal((ItemKinds.Research, "agent:*", "Find out why", ItemStatus.Open, (int?)null), (task.Kind, task.Assignee, task.Body, task.Status, task.PbiId));
         Assert.Equal(("user", Criteria, Criteria), (data.GetProperty("createdBy").GetString(), data.GetProperty("doneWhen").GetString(), data.GetProperty("goal").GetString()));
         Assert.Equal(["CreateRepo"], data.GetProperty("repos").EnumerateArray().Select(repo => repo.GetString()!));
     }
@@ -50,7 +51,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
         Assert.Contains("A refinement task needs a PBI.", withoutPbi);
         Assert.Contains("PBI-999999 isn't in test-vault.", unknownPbi);
         Assert.Equal(($"RT-{AdoId}-001", AdoId), (created.Id, created.PbiId));
-        Assert.Equal((ItemKind.Refinement, "agent:*", (int?)AdoId), (task.Kind, task.Assignee, task.PbiId));
+        Assert.Equal((ItemKinds.Refinement, "agent:*", (int?)AdoId), (task.Kind, task.Assignee, task.PbiId));
         Assert.Contains($"RT-{AdoId}-001 is still open on PBI-{AdoId}.", second);
     }
 
@@ -64,7 +65,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
 
         Assert.Contains("A docs task takes no PBI.", withPbi);
         Assert.StartsWith("WT-", task.Id);
-        Assert.Equal((ItemKind.Docs, "agent:*", "Find out why"), (task.Kind, task.Assignee, task.Body));
+        Assert.Equal((ItemKinds.Docs, "agent:*", "Find out why"), (task.Kind, task.Assignee, task.Body));
         Assert.Equal(("request", PowerLoomHost.Vault, Criteria), (data.GetProperty("mode").GetString(), data.GetProperty("vault").GetString(), data.GetProperty("doneWhen").GetString()));
         Assert.False(data.TryGetProperty("path", out _));
     }
@@ -79,7 +80,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
 
         Assert.Contains("A test task needs a PBI.", withoutPbi);
         Assert.Equal($"TT-{AdoId}-001", task.Id);
-        Assert.Equal((ItemKind.Test, "agent:*", AdoId), (task.Kind, task.Assignee, task.PbiId));
+        Assert.Equal((ItemKinds.Test, "agent:*", AdoId), (task.Kind, task.Assignee, task.PbiId));
     }
 
     // A test task's own notes (user decision 2026-10-21): kept in its data, refused when they changed meanwhile.
@@ -112,7 +113,7 @@ public sealed class CreateTaskTests(PowerLoomHost host)
 
         Assert.Contains("A vault-review task takes no PBI.", withPbi);
         Assert.StartsWith("VR-", task.Id);
-        Assert.Equal((ItemKind.VaultReview, "agent:*", PowerLoomHost.Vault, (int?)null), (task.Kind, task.Assignee, task.Vault, task.PbiId));
+        Assert.Equal((ItemKinds.VaultReview, "agent:*", PowerLoomHost.Vault, (int?)null), (task.Kind, task.Assignee, task.Vault, task.PbiId));
     }
 
     [Fact]

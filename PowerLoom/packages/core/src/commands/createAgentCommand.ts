@@ -1,7 +1,7 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { agentPromptVersion } from "@powerloom/db";
 import { z } from "zod";
-import { AGENT_TASK_TYPES } from "../agentStages";
+import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { newAgentTemplate } from "../agents/newAgentTemplate";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
@@ -10,7 +10,8 @@ import type { Outcome } from "../models/Outcome";
 
 const AGENT_ID = /^[a-z][a-z0-9-]*$/;
 const CRON = /^(\S+\s+){4}\S+$/;
-const TASK_TYPE = z.enum(AGENT_TASK_TYPES as [string, ...string[]]);
+// A built-in task type or a new one the agent brings (user decision 2026-10-24).
+const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower-case letters, digits and dashes");
 
 // An agent made from a description (user decision 2026-10-23): its prompt, skills and task types on the template's
 // defaults, saved disabled unless asked otherwise; it runs on the generic executor. The caller has asked the user what the

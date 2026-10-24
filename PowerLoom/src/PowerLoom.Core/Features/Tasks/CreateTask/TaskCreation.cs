@@ -9,13 +9,14 @@ using PowerLoom.Features.Tasks.Schedules;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Tasks.CreateTask;
 
 // Tasks the user creates (user decision 2026-10-14): any enabled agent that takes the type works on it, like the tasks
 // agents create for each other. The description is the body; the acceptance criteria are `doneWhen`, and `goal` too,
 // which research reads as the task's goal (as on agent-created tasks).
-public sealed class TaskCreation(PowerLoomDbContext db)
+public sealed class TaskCreation(PowerLoomDbContext db, CustomTaskTypes customTypes)
 {
     private const int TitleMax = 120;
     private const int TextMax = 4_000;
@@ -27,22 +28,27 @@ public sealed class TaskCreation(PowerLoomDbContext db)
     // without a PBI keeps the GT prefix. The vault review works on the task's vault (user decision 2026-10-18).
     public static readonly IReadOnlyList<UserTaskType> Types =
     [
-        new("refinement", ItemKind.Refinement, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
-        new("research", ItemKind.Research, PbiUse.Optional, OnePerPbi: false, NoPbiPrefix: "GT"),
-        new("design", ItemKind.Design, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
-        new("docs", ItemKind.Docs, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "WT"),
-        new("vault-review", ItemKind.VaultReview, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "VR"),
-        new("test", ItemKind.Test, PbiUse.Required, OnePerPbi: false, NoPbiPrefix: null),
+        new("refinement", ItemKinds.Refinement, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
+        new("research", ItemKinds.Research, PbiUse.Optional, OnePerPbi: false, NoPbiPrefix: "GT"),
+        new("design", ItemKinds.Design, PbiUse.Required, OnePerPbi: true, NoPbiPrefix: null),
+        new("docs", ItemKinds.Docs, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "WT"),
+        new("vault-review", ItemKinds.VaultReview, PbiUse.None, OnePerPbi: false, NoPbiPrefix: "VR"),
+        new("test", ItemKinds.Test, PbiUse.Required, OnePerPbi: false, NoPbiPrefix: null),
     ];
 
     public async Task<Outcome<CreatedTask>> CreateAsync(NewTask task, CancellationToken cancellation)
     {
-        var problem = await ProblemAsync(task, cancellation) ?? await OpenTaskProblemAsync(task, cancellation);
+        var types = await TypesAsync(cancellation);
+        var type = TypeOf(types, task);
+
+        if (type is null)
+            return Outcome<CreatedTask>.Failure(UnknownType(task, types));
+
+        var problem = await TypeProblemAsync(task, type, cancellation) ?? await OpenTaskProblemAsync(task, type, cancellation);
 
         if (problem is not null)
             return Outcome<CreatedTask>.Failure(problem);
 
-        var type = TypeOf(task)!;
         var id = await NextIdAsync(task, type, cancellation);
 
         db.LocalItems.Add(new LocalItem { Id = id, Kind = type.Kind, PbiId = task.PbiId, Vault = task.Vault, Title = task.Title.Trim(), Status = ItemStatus.Open, Assignee = AgentStages.AnyAgent, Body = task.Description.Trim(), Data = DataOf(task, type), HeldBy = "[]" });
@@ -54,15 +60,25 @@ public sealed class TaskCreation(PowerLoomDbContext db)
     // Everything but a waiting task of the same type on the PBI: a schedule is saved before its ticks meet one.
     public async Task<Problem?> ProblemAsync(NewTask task, CancellationToken cancellation)
     {
-        var type = TypeOf(task);
+        var types = await TypesAsync(cancellation);
+        var type = TypeOf(types, task);
 
-        if (type is null)
-            return Problem.Invalid($"Unknown task type {task.Type}; one of: {string.Join(", ", Types.Select(known => known.Name))}.");
-
-        return FieldsProblem(task, type) ?? await ContextProblemAsync(task, type, cancellation);
+        return type is null ? UnknownType(task, types) : await TypeProblemAsync(task, type, cancellation);
     }
 
-    private static UserTaskType? TypeOf(NewTask task) => Types.FirstOrDefault(candidate => candidate.Name == task.Type);
+    private static Problem UnknownType(NewTask task, IReadOnlyList<UserTaskType> types) => Problem.Invalid($"Unknown task type {task.Type}; one of: {string.Join(", ", types.Select(known => known.Name))}.");
+
+    private async Task<Problem?> TypeProblemAsync(NewTask task, UserTaskType type, CancellationToken cancellation) => FieldsProblem(task, type) ?? await ContextProblemAsync(task, type, cancellation);
+
+    // The built-in types, then the ones of their own that agents created in the UI handle (user decision 2026-10-24).
+    private async Task<IReadOnlyList<UserTaskType>> TypesAsync(CancellationToken cancellation)
+    {
+        var custom = await customTypes.ListAsync(cancellation);
+
+        return Types.Concat(custom).ToList();
+    }
+
+    private static UserTaskType? TypeOf(IReadOnlyList<UserTaskType> types, NewTask task) => types.FirstOrDefault(candidate => candidate.Name == task.Type);
 
     private static Problem? FieldsProblem(NewTask task, UserTaskType type)
     {
@@ -105,10 +121,8 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         return isInVault ? null : Problem.NotFound($"PBI-{adoId} isn't in {vault}.");
     }
 
-    private async Task<Problem?> OpenTaskProblemAsync(NewTask task, CancellationToken cancellation)
+    private async Task<Problem?> OpenTaskProblemAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
-        var type = TypeOf(task)!;
-
         if (task.PbiId is null || !type.OnePerPbi)
             return null;
 
@@ -117,19 +131,20 @@ public sealed class TaskCreation(PowerLoomDbContext db)
         return open is null ? null : Problem.Conflict($"{open} is still open on PBI-{task.PbiId}.");
     }
 
-    // PBI tasks are numbered per PBI like the pipeline's; a type that needs a PBI always has one here.
+    // PBI tasks are numbered per PBI like the pipeline's; a type that needs a PBI always has one here. A type without a
+    // pipeline stage (an agent's own type) keeps its prefix on a PBI too: XT-<pbi>-001.
     private Task<string> NextIdAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
         if (task.PbiId is null)
             return ItemIds.NextGlobalAsync(db, type.NoPbiPrefix!, cancellation);
 
-        return ItemIds.NextAsync(db, AgentStages.PbiPrefixOf(type.Kind)!, task.PbiId.Value, cancellation);
+        return ItemIds.NextAsync(db, AgentStages.PbiPrefixOf(type.Kind) ?? type.NoPbiPrefix!, task.PbiId.Value, cancellation);
     }
 
     // A schedule's task carries the schedule, so its next tick sees it still waiting.
     private static string DataOf(NewTask task, UserTaskType type)
     {
-        var data = type.Kind == ItemKind.Docs ? DocsData(task) : AgentData(task);
+        var data = type.Kind == ItemKinds.Docs ? DocsData(task) : AgentData(task);
 
         data["createdBy"] = CreatedBy;
         data["doneWhen"] = task.AcceptanceCriteria.Trim();

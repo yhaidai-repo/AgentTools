@@ -94,7 +94,7 @@ describe("better-research prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
     const prompt = await loadPrompt("better-research", { team: "Signals" });
 
-    assert.equal(prompt.version, "v6+framework.v3");
+    assert.equal(prompt.version, "v6+framework.v4");
     assert.match(prompt.text, /^## How you work/);
     assert.match(prompt.text, /You are Better Research of the Signals team/);
   });

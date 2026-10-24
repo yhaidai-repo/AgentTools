@@ -11,6 +11,7 @@ using PowerLoom.Domain.Tasks;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -104,7 +105,7 @@ public sealed class LinkedDocumentsTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var task = new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKind.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Open, Assignee = "agent:*", HeldBy = "[]" };
+        var task = new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKinds.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Open, Assignee = "agent:*", HeldBy = "[]" };
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.NeedsResearch, SyncedAt = DateTime.UtcNow, DescriptionMd = description });
         db.LocalItems.Add(task);
@@ -141,6 +142,6 @@ public sealed class LinkedDocumentsTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKind.Human).ToListAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKinds.Human).ToListAsync();
     }
 }

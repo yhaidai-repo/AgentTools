@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Infrastructure.Backlog;
 
@@ -29,7 +29,7 @@ public static partial class BacklogPaths
 
     public static string ImplementNotePath(string pbiNotePath, int adoId) => $"{FolderOf(pbiNotePath)}/{ImplementNoteName(adoId)}.md";
 
-    public static string ItemNotePath(string pbiNotePath, string itemId, ItemKind kind) => $"{FolderOf(pbiNotePath)}/{ItemFolder(kind)}/{itemId}.md";
+    public static string ItemNotePath(string pbiNotePath, string itemId, string kind) => $"{FolderOf(pbiNotePath)}/{ItemFolder(kind)}/{itemId}.md";
 
     // A run's result is named by its run (unique across the vault); by its row once the run is deleted.
     public static string ResultNoteName(int resultId, long? runId) => runId is null ? $"RESULT-{resultId}" : $"RUN-{runId}";
@@ -51,7 +51,7 @@ public static partial class BacklogPaths
 
     public static string FolderOf(string path) => path[..path.LastIndexOf('/')];
 
-    private static string ItemFolder(ItemKind kind) => kind switch { ItemKind.Question => "questions", ItemKind.ResearchResult => "research", _ => "tasks" };
+    private static string ItemFolder(string kind) => kind switch { ItemKinds.Question => "questions", ItemKinds.ResearchResult => "research", _ => "tasks" };
 
     private static string Slugify(string title)
     {

@@ -15,7 +15,7 @@ public static class TaskRerun
 {
     private const string Actor = "human";
 
-    public static bool IsRerunnable(LocalItem item) => AgentStages.AgentIdOf(item.Assignee) is not null && item.Kind != ItemKind.ResearchResult && item.Status is ItemStatus.Done or ItemStatus.Blocked;
+    public static bool IsRerunnable(LocalItem item) => AgentStages.AgentIdOf(item.Assignee) is not null && item.Kind != ItemKinds.ResearchResult && item.Status is ItemStatus.Done or ItemStatus.Blocked;
 
     public static async Task<Outcome<string>> RerunAsync(PowerLoomDbContext db, int? adoId, string itemId, bool startOver, CancellationToken cancellation)
     {

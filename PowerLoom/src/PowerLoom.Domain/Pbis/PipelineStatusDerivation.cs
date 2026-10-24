@@ -1,6 +1,7 @@
 using PowerLoom.Domain.Tasks;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Pbis;
 
@@ -22,7 +23,7 @@ public static class PipelineStatusDerivation
         if (running is not null)
             return AgentStages.StageOfKind(running.Kind)!.Running;
 
-        if (blockers.Any(item => item.Assignee == Human && item.Kind != ItemKind.Finding && IsOpen(item)))
+        if (blockers.Any(item => item.Assignee == Human && item.Kind != ItemKinds.Finding && IsOpen(item)))
             return PipelineStatus.WaitingHuman;
 
         var waiting = AgentStages.Pipeline.FirstOrDefault(stage => agentTasks.Any(task => task.Kind == stage.Kind && task.Status == ItemStatus.Open));
@@ -41,7 +42,7 @@ public static class PipelineStatusDerivation
     // running, or its outcome; nothing else moves it.
     public static PipelineStatus? DeriveTestStage(IReadOnlyList<LocalItem> items)
     {
-        var tests = items.Where(item => item.Kind == ItemKind.Test && AgentStages.IsAgentTask(item.Assignee)).ToList();
+        var tests = items.Where(item => item.Kind == ItemKinds.Test && AgentStages.IsAgentTask(item.Assignee)).ToList();
 
         if (tests.Any(task => task.Status == ItemStatus.InProgress))
             return PipelineStatus.Testing;
@@ -55,12 +56,12 @@ public static class PipelineStatusDerivation
     // The latest finished test task's report: a failed case makes the PBI test-failed, none makes it tested.
     private static PipelineStatus? TestOutcome(IReadOnlyList<LocalItem> items, IReadOnlyList<LocalItem> agentTasks)
     {
-        var test = agentTasks.Where(task => task.Kind == ItemKind.Test && task.Status == ItemStatus.Done).MaxBy(task => task.Id, StringComparer.Ordinal);
+        var test = agentTasks.Where(task => task.Kind == ItemKinds.Test && task.Status == ItemStatus.Done).MaxBy(task => task.Id, StringComparer.Ordinal);
 
         if (test is null)
             return null;
 
-        var report = items.Where(item => item.Kind == ItemKind.TestReport && item.ParentId == test.Id).MaxBy(item => item.Id, StringComparer.Ordinal);
+        var report = items.Where(item => item.Kind == ItemKinds.TestReport && item.ParentId == test.Id).MaxBy(item => item.Id, StringComparer.Ordinal);
 
         if (report is null)
             return null;
@@ -73,5 +74,5 @@ public static class PipelineStatusDerivation
     // Agents mark what they create; an item without the mark (everything before chaining v2) counts as a blocker.
     private static bool IsBlocker(LocalItem item) => ItemData.BoolOf(item.Data, Blocking) != false;
 
-    private static bool IsFinishedPlanStage(LocalItem task) => task.Kind is ItemKind.Refinement or ItemKind.Design && task.Status == ItemStatus.Done;
+    private static bool IsFinishedPlanStage(LocalItem task) => task.Kind is ItemKinds.Refinement or ItemKinds.Design && task.Status == ItemStatus.Done;
 }

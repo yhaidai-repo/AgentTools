@@ -36,7 +36,7 @@ public static partial class DraftTasks
         db.LocalItems.Add(new LocalItem
         {
             Id = id,
-            Kind = ItemKind.Docs,
+            Kind = ItemKinds.Docs,
             PbiId = await PbiOfDraftAsync(db, draft.Name, cancellation),
             Vault = vault,
             Title = title[..Math.Min(title.Length, TitleMax)],

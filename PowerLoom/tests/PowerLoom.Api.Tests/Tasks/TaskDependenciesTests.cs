@@ -4,6 +4,7 @@ using PowerLoom.Domain.Tasks;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Tasks;
 
@@ -56,9 +57,9 @@ public sealed class TaskDependenciesTests(PowerLoomHost host)
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
         db.WorkItems.Add(new WorkItem { AdoId = AdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Dependencies PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.ReadyForDesign, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(new LocalItem { Id = Question, Kind = ItemKind.Question, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Which field is the End Date?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = Cancelled, Kind = ItemKind.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Cancelled, Assignee = "agent:research", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = Design, Kind = ItemKind.Design, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Design", Status = ItemStatus.Open, Assignee = "agent:design", Data = $$$"""{"dependsOn":["{{{Question}}}","{{{Cancelled}}}"]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Question, Kind = ItemKinds.Question, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Which field is the End Date?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Cancelled, Kind = ItemKinds.Research, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Cancelled, Assignee = "agent:research", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = Design, Kind = ItemKinds.Design, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Design", Status = ItemStatus.Open, Assignee = "agent:design", Data = $$$"""{"dependsOn":["{{{Question}}}","{{{Cancelled}}}"]}""", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }

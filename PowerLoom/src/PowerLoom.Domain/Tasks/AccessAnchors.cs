@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Tasks;
 
@@ -32,7 +33,7 @@ public static class AccessAnchors
     // After a human task closed: done → every finished agent task anchored to it runs again; cancelled → the anchor goes.
     public static async Task<List<string>> AfterCloseAsync(PowerLoomDbContext db, LocalItem closed, ItemStatus status, CancellationToken cancellation)
     {
-        if (closed.Kind != ItemKind.Human)
+        if (closed.Kind != ItemKinds.Human)
             return [];
 
         var anchored = await AnchoredTasksAsync(db, closed.Id, cancellation);

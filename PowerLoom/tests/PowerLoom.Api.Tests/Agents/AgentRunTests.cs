@@ -12,6 +12,7 @@ using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine.Tracking;
 
 namespace PowerLoom.Api.Tests.Agents;
@@ -116,10 +117,10 @@ public sealed class AgentRunTests(PowerLoomHost host)
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.NeedsResearch, SyncedAt = DateTime.UtcNow });
 
         if (withResearchTask)
-            db.LocalItems.Add(new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKind.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research the PBI", Status = ItemStatus.Open, Assignee = $"agent:{Agent}", HeldBy = "[]" });
+            db.LocalItems.Add(new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKinds.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research the PBI", Status = ItemStatus.Open, Assignee = $"agent:{Agent}", HeldBy = "[]" });
 
         if (withOpenQuestion)
-            db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+            db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKinds.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }
@@ -129,7 +130,7 @@ public sealed class AgentRunTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.LocalItems.Add(new LocalItem { Id = taskId, Kind = ItemKind.Design, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Design the implementation", Status = ItemStatus.Open, Assignee = "agent:design", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = taskId, Kind = ItemKinds.Design, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Design the implementation", Status = ItemStatus.Open, Assignee = "agent:design", HeldBy = "[]" });
         await db.SaveChangesAsync();
     }
 

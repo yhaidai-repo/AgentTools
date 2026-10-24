@@ -13,7 +13,7 @@ public static class AgentTasks
 
     // A pipeline task of this type on a PBI, for any agent that takes the type, unless one is open there. Returns its id,
     // or null when nothing was created (an open one exists, or the type has no pipeline stage).
-    public static async Task<string?> EnsureAsync(PowerLoomDbContext db, ItemKind kind, int adoId, long? createdByRun, CancellationToken cancellation)
+    public static async Task<string?> EnsureAsync(PowerLoomDbContext db, string kind, int adoId, long? createdByRun, CancellationToken cancellation)
     {
         var stage = AgentStages.StageOfKind(kind);
 
@@ -42,17 +42,17 @@ public static class AgentTasks
     }
 
     // The PBI's open or running agent task of this type, if any.
-    public static Task<string?> OpenTaskIdAsync(PowerLoomDbContext db, ItemKind kind, int adoId, CancellationToken cancellation)
+    public static Task<string?> OpenTaskIdAsync(PowerLoomDbContext db, string kind, int adoId, CancellationToken cancellation)
     {
         return OpenTasks(db, kind, adoId).Select(item => item.Id).FirstOrDefaultAsync(cancellation);
     }
 
-    private static Task<bool> HasOpenTaskAsync(PowerLoomDbContext db, ItemKind kind, int adoId, CancellationToken cancellation)
+    private static Task<bool> HasOpenTaskAsync(PowerLoomDbContext db, string kind, int adoId, CancellationToken cancellation)
     {
         return OpenTasks(db, kind, adoId).AnyAsync(cancellation);
     }
 
-    private static IQueryable<LocalItem> OpenTasks(PowerLoomDbContext db, ItemKind kind, int adoId)
+    private static IQueryable<LocalItem> OpenTasks(PowerLoomDbContext db, string kind, int adoId)
     {
         return db.LocalItems.Where(item => item.PbiId == adoId && item.Kind == kind && item.Assignee.StartsWith("agent:") && (item.Status == ItemStatus.Open || item.Status == ItemStatus.InProgress));
     }

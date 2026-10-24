@@ -6,6 +6,7 @@ using PowerLoom.Features.Tasks.CloseItem.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -60,15 +61,15 @@ public sealed class CancelAgentTaskTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.LocalItems.Add(AgentTask("MT-9101", ItemKind.Meeting, ItemStatus.Open));
-        db.LocalItems.Add(AgentTask("WT-9101", ItemKind.Docs, ItemStatus.Blocked));
-        db.LocalItems.Add(AgentTask("AT-9101", ItemKind.Research, ItemStatus.InProgress));
-        db.LocalItems.Add(AgentTask("AT-9102", ItemKind.Research, ItemStatus.Open));
+        db.LocalItems.Add(AgentTask("MT-9101", ItemKinds.Meeting, ItemStatus.Open));
+        db.LocalItems.Add(AgentTask("WT-9101", ItemKinds.Docs, ItemStatus.Blocked));
+        db.LocalItems.Add(AgentTask("AT-9101", ItemKinds.Research, ItemStatus.InProgress));
+        db.LocalItems.Add(AgentTask("AT-9102", ItemKinds.Research, ItemStatus.Open));
 
         await db.SaveChangesAsync();
     }
 
-    private static LocalItem AgentTask(string id, ItemKind kind, ItemStatus status)
+    private static LocalItem AgentTask(string id, string kind, ItemStatus status)
     {
         return new LocalItem { Id = id, Kind = kind, Vault = PowerLoomHost.Vault, Title = id, Status = status, Assignee = "agent:*", HeldBy = "[]" };
     }

@@ -3,7 +3,7 @@ using System.Text.Json;
 using PowerLoom.Domain.Pbis;
 using PowerLoom.Features.Docs.Records.Models;
 using PowerLoom.Persistence.Entities;
-using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Continue.Targets;
 
@@ -29,9 +29,9 @@ public static class ItemChatEndings
     {
         return item.Kind switch
         {
-            ItemKind.Question => Question(item),
-            ItemKind.Human => HumanTask(item),
-            ItemKind.Finding => Finding(item),
+            ItemKinds.Question => Question(item),
+            ItemKinds.Human => HumanTask(item),
+            ItemKinds.Finding => Finding(item),
             _ => [],
         };
     }

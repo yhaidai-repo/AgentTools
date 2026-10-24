@@ -5,6 +5,7 @@ import type { ResultOwner } from "../models/ResultOwner";
 import type { ResultSet } from "../models/ResultSet";
 import type { ResultVersion } from "../models/ResultVersion";
 import { reviewTaskPrId, reviewTasksOf } from "../reviews/reviews";
+import { isCustomTaskType, taskTypeTitle } from "../tasks/customTaskTypes";
 import { RESULT_KINDS } from "../tasks/items";
 import { versionKey } from "./resultLinks";
 
@@ -19,13 +20,14 @@ const RUN_RESULTS_TITLE = "Run results";
 // nothing else shown here (user decision 2026-10-24: decided by the run, not the task type, so an agent made in the UI
 // without a refinement or research writer still shows its result).
 export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise<ResultSet[]> {
-  const [estimates, refinements, designs, items, runResults, shown] = await Promise.all([
+  const [estimates, refinements, designs, items, runResults, shown, kinds] = await Promise.all([
     estimateVersions(db, eq(pbiEstimate.pbiId, adoId)),
     refinementVersions(db, eq(refinement.pbiId, adoId)),
     designVersions(db, eq(design.pbiId, adoId)),
     itemRows(db, eq(localItem.pbiId, adoId)),
     runResultRows(db, eq(runResult.pbiId, adoId)),
     runsWithShownResults(db, adoId),
+    taskKinds(db, adoId),
   ]);
   const ownOnly = runResults.filter((row) => row.taskId !== null && (row.runId === null || !shown.has(row.runId)));
 
@@ -34,8 +36,29 @@ export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise
     { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "Not refined yet." },
     { key: "design", title: "Design", task: null, versions: designs, empty: "Not designed yet." },
     ...itemSets(items),
-    ...runResultSets(ownOnly),
+    ...customTypeSets(ownOnly.filter((row) => isCustomTaskType(kinds.get(row.taskId!) ?? "")), kinds),
+    ...runResultSets(ownOnly.filter((row) => !isCustomTaskType(kinds.get(row.taskId!) ?? ""))),
   ];
+}
+
+async function taskKinds(db: PowerLoomDb, adoId: number): Promise<Map<string, string>> {
+  const rows = await db.select({ id: localItem.id, kind: localItem.kind }).from(localItem).where(eq(localItem.pbiId, adoId));
+
+  return new Map(rows.map((row) => [row.id, row.kind]));
+}
+
+// A custom task type's results, shown like a built-in agent's (user decision 2026-10-24): one set per type, titled by it,
+// every run's result a version of it, as Refinement or Design are.
+function customTypeSets(rows: RunResultRow[], kinds: Map<string, string>): ResultSet[] {
+  const byType = new Map<string, RunResultRow[]>();
+
+  for (const row of rows) {
+    const type = kinds.get(row.taskId!)!;
+
+    byType.set(type, [...(byType.get(type) ?? []), row]);
+  }
+
+  return [...byType].map(([type, own]) => ({ key: `type-${type}`, title: taskTypeTitle(type), task: null, versions: own.map(runResultVersion), empty: "" }));
 }
 
 // The runs on a PBI that produced a result the page shows on its own: a refinement or design version, a research result
@@ -75,7 +98,7 @@ export async function loadTaskResultSets(db: PowerLoomDb, task: { id: string; pb
   ]);
   const sets: ResultSet[] = [
     ...(reviews ? [reviews] : []),
-    { key: "run", title: RUN_RESULTS_TITLE, task: null, versions: runResults, empty: "" },
+    { key: "run", title: isCustomTaskType(task.kind) ? taskTypeTitle(task.kind) : RUN_RESULTS_TITLE, task: null, versions: runResults, empty: "" },
     { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "" },
     { key: "design", title: "Design", task: null, versions: designs, empty: "" },
     { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "" },
