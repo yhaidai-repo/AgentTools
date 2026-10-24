@@ -1,6 +1,8 @@
 "use server";
 
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
+import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
@@ -112,20 +114,20 @@ export async function testConnection(_previous: ActionResult | null, form: FormD
 
 // Repository configuration (user decision 2026-10-06), kept by PowerLoom.
 export async function setRepoEnabledAction(id: string, enabled: boolean): Promise<void> {
-  await powerloom.PUT("/api/vaults/{vault}/repos/{id}/enabled", { params: { path: { vault: await requireVault(), id } }, body: { enabled } });
+  await runWebCommand(enableRepoCommand, { vault: await requireVault(), id, enabled });
   revalidatePath("/settings");
 }
 
 export async function addLocalRepoAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const added = await powerloom.POST("/api/vaults/{vault}/repos/local", { params: { path: { vault: await requireVault() } }, body: { name: field(form, "name") } });
+  const added = await runWebCommand(addLocalRepoCommand, { vault: await requireVault(), name: field(form, "name") });
 
   revalidatePath("/settings");
 
-  return added.data ? { ok: true, message: `${added.data.name} added and enabled.` } : powerloomResult(added, "");
+  return added.ok ? { ok: true, message: `${added.value.name} added and enabled.` } : { ok: false, message: added.error };
 }
 
 export async function removeLocalRepoAction(id: string): Promise<void> {
-  await powerloom.DELETE("/api/vaults/{vault}/repos/{id}", { params: { path: { vault: await requireVault(), id } } });
+  await runWebCommand(removeRepoCommand, { vault: await requireVault(), id });
   revalidatePath("/settings");
 }
 
