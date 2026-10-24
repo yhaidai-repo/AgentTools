@@ -49,7 +49,7 @@ function queryTool(deps: AgentDeps, context: OutsideAccessContext, connection: z
 
   return defineOutsideTool(deps.outside, context, {
     name: "sql_query",
-    description: "Run one read-only SQL Server query (SELECT or WITH … SELECT; T-SQL) and get the rows as a table, at most 200. Writes, EXEC, SET and several statements are refused. Find tables and columns with sql_describe first.",
+    description: "Run one read-only SQL Server query (SELECT or WITH … SELECT; T-SQL) and get the rows as a table, at most 200. Writes, EXEC, SET and several statements are refused. Find tables and columns with sql_describe first; a wrong table or column name answers with what the database has instead, so fix every name it lists before the next try.",
     input: {
       connection,
       database: databaseInput,
