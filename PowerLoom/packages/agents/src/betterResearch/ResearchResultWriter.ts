@@ -12,6 +12,8 @@ export const RESEARCH_RESULT_INTEGRATION = "researchResult";
 // write_research_result as a granted writer (stage 2b, 2026-10-23): the research result item (RR) of the run's task, its
 // relevant pages, the task closed. Any agent with the grant gets it; Better Research no longer needs code of its own.
 export class ResearchResultWriter implements RunWriter {
+  readonly integration = RESEARCH_RESULT_INTEGRATION;
+
   private readonly draft: BetterResearchDraft = { result: null, tasks: [], captures: [], pages: [] };
 
   tools(log: ReadLog): ToolDefinition<any>[] {

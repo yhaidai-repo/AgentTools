@@ -22,6 +22,8 @@ export const AUTOTEST_INTEGRATION = "writeTestReports";
 // carries the PBI's test cases, its design and refinement and the previous report. The report (TR) and the bugs are
 // written once the run succeeds; a report that waits for an answer sends the task back to open.
 export class AutotestWriter implements RunWriter {
+  readonly integration = AUTOTEST_INTEGRATION;
+
   private readonly draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
   private pbi: WorkItemRow | null = null;
 

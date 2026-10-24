@@ -24,6 +24,8 @@ export const WRITE_REFINEMENT_INTEGRATION = "writeRefinement";
 // recommend; the first message carries the PBI as the refinement agents read it. Refinement must estimate when its
 // Config grants it (user decision 2026-10-18): write_refinement refuses until record_estimate was called.
 export class RefinementWriter implements RunWriter {
+  readonly integration = WRITE_REFINEMENT_INTEGRATION;
+
   private readonly draft: BetterRefinementDraft = { refinement: null, tasks: [], captures: [], pages: [] };
   private recommendable: string[] | null = null;
 

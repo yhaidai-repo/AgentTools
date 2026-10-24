@@ -28,6 +28,8 @@ export const VAULT_REVIEW_INTEGRATION = "reviewVault";
 // The vault review's tools as a granted writer (stage 2b, 2026-10-23): the task's vault is listed for stale and unlinked
 // notes, dead links and open records; the decisions, link fixes and record closings are applied once the run succeeds.
 export class VaultReviewWriter implements RunWriter {
+  readonly integration = VAULT_REVIEW_INTEGRATION;
+
   private readonly draft: VaultReviewDraft = { decisions: [], linkFixes: [], records: [], findings: [], summary: null };
   private readonly limits: ReviewLimits;
   private scope: ReviewScope | null = null;

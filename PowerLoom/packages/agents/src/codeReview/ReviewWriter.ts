@@ -30,6 +30,8 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // (the repo tools read it), its diff within the agent's size cap, earlier comments whose code changed; the comments and
 // the review's version are written once the run succeeds. The worktree is removed whatever happens.
 export class ReviewWriter implements RunWriter {
+  readonly integration = CODE_REVIEW_INTEGRATION;
+
   private readonly run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepoAccess(), toolset: null, draft: { summary: null, comments: [], updates: [] } };
 
   constructor(private readonly context: TaskContext) {}

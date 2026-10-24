@@ -30,6 +30,8 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // other reviewers' threads, research tasks, and a follow-up anchored to the last reviewed commit; the PR is checked out
 // as a worktree the repo tools read. The comments, the review's version and the rules are written once the run succeeds.
 export class BetterReviewWriter implements RunWriter {
+  readonly integration = BETTER_REVIEW_INTEGRATION;
+
   private readonly run: BetterReviewRun = {
     context: null,
     checkout: null,

@@ -17,6 +17,7 @@ import { acceptanceCriteriaBlock } from "../tasks/userTasks";
 import { recordWaiting } from "../tasks/waiting";
 import { noteVault } from "../techWriter/taskVault";
 import { AgentToolset, grantedWriters } from "../toolset/AgentToolset";
+import { recordToolOffer } from "../toolset/recordToolOffer";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
 
@@ -82,6 +83,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const tools = toolset.tools(firstMessage);
 
   run.toolset = toolset;
+  await recordToolOffer(deps.db, task.vault, agent.id, toolset.offered);
   await session.phase("first-message", { chars: firstMessage.length });
 
   return {

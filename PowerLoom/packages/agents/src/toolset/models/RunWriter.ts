@@ -10,6 +10,8 @@ import type { WriterTarget } from "./WriterTarget";
 // An output tool any agent can be granted (user decision 2026-10-22: writers are shared and granted like readers), with
 // the commit that stores what it recorded once the run succeeds. Returns the ids it wrote, for the run's outputs.
 export interface RunWriter {
+  /** The Config grant (integration key) that gives this writer. */
+  readonly integration: string;
   tools(log: ReadLog, shared: SharedRunState): ToolDefinition<any>[];
   commit(target: WriterTarget): Promise<string[]>;
   /** Blocks the writer adds to the first message: what its tools work on (a draft, a note, a PR checked out here). */

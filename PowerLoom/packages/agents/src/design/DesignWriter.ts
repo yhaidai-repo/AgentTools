@@ -22,6 +22,8 @@ export const WRITE_DESIGN_INTEGRATION = "writeDesign";
 // design; the first message carries the PBI, its refinement and every research result. With a design the task is
 // done; without one it waits, open, until its gaps close (commitDesign). Drafts go through the toolset's vault_capture.
 export class DesignWriter implements RunWriter {
+  readonly integration = WRITE_DESIGN_INTEGRATION;
+
   private readonly draft: DesignDraft = { design: null, gaps: [], captures: [], pages: [] };
   private guard: DuplicateGuard | null = null;
 

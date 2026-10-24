@@ -6,7 +6,8 @@ import type { SqlReader } from "@powerloom/sql";
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { commandToolName } from "../commandTool";
 import type { AgentDeps } from "../models/AgentDeps";
-import { chatTools } from "./chatTools";
+import { COMMANDS_SOURCE } from "../toolset/toolSources";
+import { chatSessionTools, chatTools } from "./chatTools";
 import { CHAT_AGENT_ID } from "./models/ChatPrincipal";
 
 // What the owner's rule asks of a changing tool (2026-10-24): it replaces a page or dialog, so it says what to ask for,
@@ -45,6 +46,17 @@ describe("a chat session's tools", () => {
     const names = sessionTools().map((tool) => tool.name);
 
     assert.deepEqual(names.filter((name, index) => names.indexOf(name) !== index), []);
+  });
+
+  it("are offered to the Tools tab each once, with what gave it", () => {
+    const chat = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const { tools, offered } = chatSessionTools(fakeDeps(), chat, { vault: "work", client: "test", sessionId: "s1" }, {} as CommandContext);
+    const sourceOf = (name: string) => offered.find((tool) => tool.name === name)?.source;
+
+    assert.deepEqual(offered.map((tool) => tool.name), tools.map((tool) => tool.name));
+    assert.equal(sourceOf("pbi_read"), COMMANDS_SOURCE);
+    assert.equal(sourceOf("list_repos"), "Every agent");
+    assert.equal(sourceOf("sql_query"), "Read SQL (SQL Server)");
   });
 
   it("include every command, the session's own reader standing in for one of the same name", () => {

@@ -24,6 +24,8 @@ export const WRITE_NOTES_INTEGRATION = "writeNotes";
 // task's vault; the notes are applied once the run succeeds. A run that handed work on with create_task merges nothing
 // (user decision 2026-10-14): the generic executor puts the task back to open, and it runs again with the results.
 export class TechWriterWriter implements RunWriter {
+  readonly integration = WRITE_NOTES_INTEGRATION;
+
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
 
   constructor(private readonly deps: AgentDeps) {}
