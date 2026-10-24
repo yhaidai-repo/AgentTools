@@ -11,10 +11,14 @@ public sealed class RunnerHttp(IHttpClientFactory clients, IOptions<RunnerOption
 {
     private static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(40);
 
-    public Task<Outcome<T>> GetAsync<T>(string path, CancellationToken cancellation)
+    // A status a page shows on load: a runner that doesn't answer in this long counts as unreachable, so a stalled
+    // runner never holds the page.
+    public static readonly TimeSpan StatusTimeout = TimeSpan.FromSeconds(3);
+
+    public Task<Outcome<T>> GetAsync<T>(string path, CancellationToken cancellation, TimeSpan? timeout = null)
         where T : notnull
     {
-        return CallAsync<T>(http => http.GetAsync(UrlOf(path), cancellation), cancellation);
+        return CallAsync<T>(http => http.GetAsync(UrlOf(path), cancellation), cancellation, timeout);
     }
 
     public Task<Outcome<T>> PostAsync<T>(string path, object body, CancellationToken cancellation)
@@ -37,13 +41,13 @@ public sealed class RunnerHttp(IHttpClientFactory clients, IOptions<RunnerOption
 
     private string UrlOf(string path) => $"{options.Value.Url.TrimEnd('/')}{path}";
 
-    private async Task<Outcome<T>> CallAsync<T>(Func<HttpClient, Task<HttpResponseMessage>> call, CancellationToken cancellation)
+    private async Task<Outcome<T>> CallAsync<T>(Func<HttpClient, Task<HttpResponseMessage>> call, CancellationToken cancellation, TimeSpan? timeout = null)
         where T : notnull
     {
         try
         {
             using var http = clients.CreateClient(RunnerClient.HttpClientName);
-            http.Timeout = CallTimeout;
+            http.Timeout = timeout ?? CallTimeout;
 
             using var response = await call(http);
 
