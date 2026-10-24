@@ -1,27 +1,19 @@
 "use server";
 
-import { answerReviewCommentCommand, deleteReviewCommand, isAdoActive, readAdoSettings } from "@powerloom/core";
+import { addReviewCommand, answerReviewCommentCommand, closeReviewCommand, deleteReviewCommand, queueReviewCommand, syncPullRequestsCommand, type Outcome } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
-import { getDb } from "@/lib/db";
 import { formText } from "@/lib/formFields";
-import { getAgentConfig } from "@/lib/agentConfig";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
-
-// The task type review agents take (an agent's `handles`).
-const REVIEW_TASK_TYPE = "review";
 
 // PowerLoom checks the vault's pull requests; one vault's checks run one after the other.
 export async function checkPullRequestsNow(): Promise<ActionResult> {
-  const vault = await requireVault();
+  return messageOf(await runWebCommand(syncPullRequestsCommand, { vault: await requireVault() }));
+}
 
-  if (!isAdoActive(await readAdoSettings(getDb(), vault))) {
-    return { ok: false, message: `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.` };
-  }
-
-  return powerloomResult(await powerloom.POST("/api/ado/pull-requests/sync", { body: { vault } }), "Checking Azure DevOps; new PRs appear in a few seconds.");
+function messageOf(outcome: Outcome<{ message: string }>): ActionResult {
+  return outcome.ok ? { ok: true, message: outcome.value.message } : { ok: false, message: outcome.error };
 }
 
 // The answer feeds the agent's next run on this PR (user decision 2026-10-02). An empty answer takes it back.
@@ -40,7 +32,7 @@ export async function answerComment(_previous: ActionResult | null, form: FormDa
 // Local only: ADO isn't told (user decision 2026-10-02). Rerun reopens it.
 export async function closeReviewAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const prId = Number(form.get("prId"));
-  const result = powerloomResult(await powerloom.POST("/api/reviews/close", { body: { prIds: [prId], reason: formText(form, "reason") } }), "Review closed.");
+  const result = messageOf(await runWebCommand(closeReviewCommand, { prId, reason: formText(form, "reason") }));
 
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
@@ -55,13 +47,11 @@ export async function queueSelected(_previous: ActionResult | null, form: FormDa
 
 // Add review (user decision 2026-10-21): the active PR of the branch, or a branch review without one.
 export async function addReview(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const vault = await requireVault();
-  const body = { vault, repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", targetBranch: formText(form, "targetBranch") || null, pbi: formText(form, "pbi") || null };
-  const added = await powerloom.POST("/api/reviews", { body });
+  const added = await runWebCommand(addReviewCommand, { vault: await requireVault(), repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", targetBranch: formText(form, "targetBranch"), pbi: formText(form, "pbi") });
 
   revalidatePath("/reviews");
 
-  return powerloomResult(added, added.data?.message ?? "Review added.");
+  return added.ok ? { ok: true, message: added.value.message } : { ok: false, message: added.error };
 }
 
 export async function closeSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -87,7 +77,7 @@ async function forSelected(form: FormData, done: string, act: (prId: number) => 
 
 // The review page's Close (no reason) and Delete (user decision 2026-10-06: the same actions on the grid and the review page).
 export async function closeReview(prId: number): Promise<ActionResult> {
-  const result = powerloomResult(await powerloom.POST("/api/reviews/close", { body: { prIds: [prId], reason: null } }), "Review closed.");
+  const result = messageOf(await runWebCommand(closeReviewCommand, { prId, reason: null }));
 
   revalidatePath("/reviews");
 
@@ -106,24 +96,10 @@ export async function deleteReview(prId: number): Promise<ActionResult> {
 // answers included. The task goes to the pool; every enabled agent taking review tasks is started now (same as its
 // schedule or "Run now"), and one of them claims it.
 export async function queueReview(prId: number): Promise<ActionResult> {
-  const queued = await powerloom.POST("/api/reviews/queue", { body: { prIds: [prId] } });
-
-  if (!queued.response.ok || !queued.data) {
-    return powerloomResult(queued, "");
-  }
-
-  if (queued.data.refused.length > 0) {
-    return { ok: false, message: queued.data.refused[0] };
-  }
-
-  const reviewers = (await getAgentConfig().list()).filter((agent) => agent.enabled && agent.handles.includes(REVIEW_TASK_TYPE));
-
-  for (const agent of reviewers) {
-    await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId: agent.id } } });
-  }
+  const queued = await runWebCommand(queueReviewCommand, { prId });
 
   revalidatePath(`/reviews/${prId}`);
   revalidatePath("/reviews");
 
-  return { ok: true, message: `${queued.data.done[0].value} queued; ${reviewers.length > 0 ? "it starts now" : "no enabled agent takes review tasks yet (Agents page)"}.` };
+  return messageOf(queued);
 }
