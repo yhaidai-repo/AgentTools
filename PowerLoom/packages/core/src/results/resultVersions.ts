@@ -13,23 +13,21 @@ type RunResultRow = Awaited<ReturnType<typeof runResultRows>>[number];
 
 const ITEM_TITLES: Record<string, string> = { "research-result": "Research results", "test-report": "Test reports" };
 const RUN_RESULTS_TITLE = "Run results";
-// Tasks whose results the PBI page shows as their own kind (the Refinement, Design, research-result and test-report
-// sets, the review page): their run results would show the same thing twice.
-const KINDS_WITH_OWN_RESULTS = new Set(["refinement", "design", "research", "test", "review"]);
 
 // A PBI's results on its page (user decision 2026-10-21: every version under its task, one shown): its estimates,
-// refinements and designs, then each research or test task's results, and the run results of the other tasks (docs,
-// vault review, agents made in the UI), whose only result they are.
+// refinements and designs, then each research or test task's results, and each task's run results whose run produced
+// nothing else shown here (user decision 2026-10-24: decided by the run, not the task type, so an agent made in the UI
+// without a refinement or research writer still shows its result).
 export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise<ResultSet[]> {
-  const [estimates, refinements, designs, items, runResults, kinds] = await Promise.all([
+  const [estimates, refinements, designs, items, runResults, shown] = await Promise.all([
     estimateVersions(db, eq(pbiEstimate.pbiId, adoId)),
     refinementVersions(db, eq(refinement.pbiId, adoId)),
     designVersions(db, eq(design.pbiId, adoId)),
     itemRows(db, eq(localItem.pbiId, adoId)),
     runResultRows(db, eq(runResult.pbiId, adoId)),
-    taskKinds(db, adoId),
+    runsWithShownResults(db, adoId),
   ]);
-  const ownOnly = runResults.filter((row) => row.taskId !== null && !KINDS_WITH_OWN_RESULTS.has(kinds.get(row.taskId) ?? ""));
+  const ownOnly = runResults.filter((row) => row.taskId !== null && (row.runId === null || !shown.has(row.runId)));
 
   return [
     { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "No agent has estimated it yet." },
@@ -40,10 +38,17 @@ export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise
   ];
 }
 
-async function taskKinds(db: PowerLoomDb, adoId: number): Promise<Map<string, string>> {
-  const rows = await db.select({ id: localItem.id, kind: localItem.kind }).from(localItem).where(eq(localItem.pbiId, adoId));
+// The runs on a PBI that produced a result the page shows on its own: a refinement or design version, a research result
+// or test report, a review version. Their run results would show the same thing twice.
+async function runsWithShownResults(db: PowerLoomDb, adoId: number): Promise<Set<number>> {
+  const [refinements, designs, items, reviews] = await Promise.all([
+    db.select({ runId: refinement.runId }).from(refinement).where(eq(refinement.pbiId, adoId)),
+    db.select({ runId: design.runId }).from(design).where(eq(design.pbiId, adoId)),
+    db.select({ runId: localItem.createdByRun }).from(localItem).where(and(eq(localItem.pbiId, adoId), inArray(localItem.kind, RESULT_KINDS))),
+    db.select({ runId: codeReviewVersion.runId }).from(codeReviewVersion).innerJoin(agentRun, eq(agentRun.id, codeReviewVersion.runId)).where(eq(agentRun.pbiId, adoId)),
+  ]);
 
-  return new Map(rows.map((row) => [row.id, row.kind]));
+  return new Set([...refinements, ...designs, ...items, ...reviews].map((row) => row.runId).filter((runId): runId is number => runId !== null));
 }
 
 // A pull request's reviews (user decision 2026-10-21): one version per successful review run, each rerun being a new
