@@ -1,6 +1,6 @@
 import type { MetricSeries } from "@/models/MetricSeries";
+import { isObservabilityOn } from "./observability";
 
-const DEFAULT_URL = "http://otel-lgtm:9090";
 const TIMEOUT_MS = 5_000;
 
 interface RangeAnswer {
@@ -9,8 +9,13 @@ interface RangeAnswer {
 }
 
 // The web asks Prometheus in otel-lgtm directly over the compose network (user decision 2026-10-11). An expression
-// that aggregates to one series; null when Prometheus doesn't answer, so the page says so instead of failing.
+// that aggregates to one series; null when Prometheus doesn't answer or observability is off, so the page says so
+// instead of failing.
 export async function queryRange(expression: string, from: Date, to: Date, stepSeconds: number): Promise<MetricSeries | null> {
+  if (!isObservabilityOn()) {
+    return null;
+  }
+
   const start = Math.floor(seconds(from) / stepSeconds) * stepSeconds;
   const end = seconds(to);
   const url = `${baseUrl()}/api/v1/query_range?${new URLSearchParams({ query: expression, start: String(start), end: String(end), step: String(stepSeconds) })}`;
@@ -33,7 +38,7 @@ export function grafanaExploreUrl(): string | null {
 }
 
 function baseUrl(): string {
-  return (process.env.PROMETHEUS_URL ?? DEFAULT_URL).replace(/\/+$/, "");
+  return (process.env.PROMETHEUS_URL ?? "").trim().replace(/\/+$/, "");
 }
 
 function seconds(date: Date): number {

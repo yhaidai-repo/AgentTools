@@ -96,8 +96,8 @@ services:
       CONTINUE_LAUNCHER: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
       POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
-      PROMETHEUS_URL: http://otel-lgtm:9090  # the dashboard's Delivery tab asks Prometheus for PowerLoom's rates
-      GRAFANA_URL: http://127.0.0.1:${GRAFANA_PORT:-3200}  # the dashboard's link to the logs (Grafana Explore), as the PC reaches it
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-}  # observability on (.env): the dashboard asks Prometheus for PowerLoom's rates; empty = off
+      GRAFANA_URL: ${GRAFANA_URL:-}  # observability on (.env): the dashboard's link to the logs (Grafana Explore), as the PC reaches it
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:
@@ -161,7 +161,7 @@ services:
     environment:
       ConnectionStrings__PowerLoom: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Vaults__Root: /vaults
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}  # observability on (.env): traces, metrics, logs to otel-lgtm; empty = none
       VaultCapture__Home: /app/VaultCapture  # findings into a project's registers go through the module
       Vaults__HostRoot: ${VAULTS_ROOT:?set in .env}  # the vaults root as the PC sees it: new vaults' files, chat links
       Vaults__TemplateHome: /app/templates/vault  # root files of a new vault (Settings → Add vault)
@@ -206,9 +206,12 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Traces, metrics and logs of PowerLoom: Grafana with Tempo, Prometheus and Loki in one container.
+  # Traces, metrics and logs of PowerLoom: Grafana with Tempo, Prometheus and Loki in one container. Development only (its
+  # image is about 1 GB): started only with the `observability` profile (COMPOSE_PROFILES in .env). Pinned, so a rebuild
+  # doesn't pull a new gigabyte.
   otel-lgtm:
-    image: grafana/otel-lgtm:latest
+    image: grafana/otel-lgtm:0.36.0
+    profiles: ["observability"]
     ports:
       - "127.0.0.1:${GRAFANA_PORT:-3200}:3000"  # Grafana: admin / admin
     volumes:

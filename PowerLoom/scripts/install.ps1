@@ -6,7 +6,7 @@
 #   pwsh scripts/install.ps1 -Vaults <folder>/<vault>[,<folder>/<other vault>] [-ReposRoot <folder>] [-SkillsPath <folder>]
 #
 # No path is assumed: every one comes from a parameter or from where this repository was cloned.
-# -Vaults: the vault folders, full paths. PowerLoom mounts one vaults root, so they must share one parent folder; it
+# -Vaults: the vault folders, full paths. PowerLoom mounts one vaults root, so they must share one parent folder (not a drive root); it
 #   becomes VAULTS_ROOT, and PowerLoom's own backlog vault is created next to them. A missing folder is created from
 #   PowerLoom's templates (your notes aren't copied).
 # -ReposRoot: the folder with the code repos agents may read; default: the folder this repository was cloned into.
@@ -33,8 +33,25 @@ function ConvertTo-HostPath([string]$path) {
     return [System.IO.Path]::GetFullPath($path).Replace('\', '/').TrimEnd('/')
 }
 
+# A folder compose mounts into the containers. A whole drive is refused: PowerLoom would get read-write access to all of
+# it, and "E:" (the drive root without its slash) is read by compose as a relative folder (`E::/vaults`, "too many colons").
+function ConvertTo-MountPath([string]$path, [string]$refusal) {
+    $hostPath = ConvertTo-HostPath $path
+
+    if (Test-DriveRoot $hostPath) {
+        throw $refusal
+    }
+
+    return $hostPath
+}
+
+function Test-DriveRoot([string]$hostPath) {
+    return $hostPath -match '^[A-Za-z]:$'
+}
+
 function Get-VaultsRoot([string[]]$paths) {
-    $parents = @($paths | ForEach-Object { ConvertTo-HostPath (Split-Path -Parent $_) } | Sort-Object -Unique)
+    $refusal = "The vaults are directly on a drive. PowerLoom mounts their parent folder into its containers, and a whole drive is too much: move them into a folder (e.g. E:/Vaults/<vault>) and pass those paths."
+    $parents = @($paths | ForEach-Object { ConvertTo-MountPath (Split-Path -Parent $_) $refusal } | Sort-Object -Unique)
 
     if ($parents.Count -ne 1) {
         throw "The vaults must be folders of one parent folder (PowerLoom mounts one vaults root); got: $($parents -join ', ')."
@@ -69,16 +86,18 @@ function New-Secret {
 }
 
 function Get-ReposRoot {
+    $refusal = "The repos folder can't be a whole drive (PowerLoom mounts it into its containers): pass -ReposRoot <folder with your repos>."
+
     if ($ReposRoot) {
-        return ConvertTo-HostPath $ReposRoot
+        return ConvertTo-MountPath $ReposRoot $refusal
     }
 
-    return ConvertTo-HostPath (Split-Path -Parent $AgentToolsRoot)
+    return ConvertTo-MountPath (Split-Path -Parent $AgentToolsRoot) $refusal
 }
 
 function Get-SkillsPath {
     if ($SkillsPath) {
-        return ConvertTo-HostPath $SkillsPath
+        return ConvertTo-MountPath $SkillsPath "The skills folder can't be a whole drive (PowerLoom mounts it into its containers): pass -SkillsPath <folder>."
     }
 
     if (Test-Path $ClaudeSkills) {
