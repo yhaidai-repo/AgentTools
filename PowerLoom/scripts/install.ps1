@@ -3,14 +3,21 @@
 # The agents and their prompts need no step: the agent-runner adds every built-in agent with the prompt files shipped in
 # the code when it starts. Each vault added here gets the vault review schedule (every 6 hours) from Add vault.
 #
-#   pwsh scripts/install.ps1 -Vaults D:/Claude/work-projects,D:/Claude/personal-projects
+#   pwsh scripts/install.ps1 -Vaults <folder>/<vault>[,<folder>/<other vault>] [-ReposRoot <folder>] [-SkillsPath <folder>]
 #
+# No path is assumed: every one comes from a parameter or from where this repository was cloned.
 # -Vaults: the vault folders, full paths. PowerLoom mounts one vaults root, so they must share one parent folder; it
-# becomes VAULTS_ROOT. A missing folder is created from PowerLoom's templates (your notes aren't copied).
-# The Claude token comes from $env:CLAUDE_CODE_OAUTH_TOKEN, or is asked once (`claude setup-token` prints one).
+#   becomes VAULTS_ROOT, and PowerLoom's own backlog vault is created next to them. A missing folder is created from
+#   PowerLoom's templates (your notes aren't copied).
+# -ReposRoot: the folder with the code repos agents may read; default: the folder this repository was cloned into.
+# -SkillsPath: extra skills agents may load; default: Claude Code's skills folder if there is one, else an empty
+#   PowerLoom/local-skills.
+# The Claude token comes from $env:CLAUDE_CODE_OAUTH_TOKEN, or is asked once (`claude setup-token` prints one); without
+#   one PowerLoom runs, but agents can't until it is set in .env.
 param(
     [Parameter(Mandatory)][string[]]$Vaults,
-    [string]$ReposRoot = "D:/Projects"
+    [string]$ReposRoot,
+    [string]$SkillsPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +28,7 @@ $EnvFile = Join-Path $PowerLoomRoot ".env"
 $DatabaseVolume = "adoa_pgdata"
 $BacklogVault = "powerloom-backlog"
 $HealthAttempts = 60
+$ClaudeSkills = Join-Path $HOME ".claude/skills"
 
 function ConvertTo-HostPath([string]$path) {
     return [System.IO.Path]::GetFullPath($path).Replace('\', '/').TrimEnd('/')
@@ -66,9 +74,34 @@ function Get-ClaudeToken {
         return $env:CLAUDE_CODE_OAUTH_TOKEN
     }
 
-    $secure = Read-Host "Claude token (claude setup-token)" -AsSecureString
+    $secure = Read-Host "Claude token (claude setup-token; Enter to skip)" -AsSecureString
+    $token = [System.Net.NetworkCredential]::new("", $secure).Password
 
-    return [System.Net.NetworkCredential]::new("", $secure).Password
+    if (-not $token) {
+        Write-Warning "No Claude token: agents can't run until CLAUDE_CODE_OAUTH_TOKEN is set in .env (then docker compose up -d)."
+    }
+
+    return $token
+}
+
+function Get-ReposRoot {
+    if ($ReposRoot) {
+        return ConvertTo-HostPath $ReposRoot
+    }
+
+    return ConvertTo-HostPath (Split-Path -Parent $AgentToolsRoot)
+}
+
+function Get-SkillsPath {
+    if ($SkillsPath) {
+        return ConvertTo-HostPath $SkillsPath
+    }
+
+    if (Test-Path $ClaudeSkills) {
+        return ConvertTo-HostPath $ClaudeSkills
+    }
+
+    return ConvertTo-HostPath (Join-Path $PowerLoomRoot "local-skills")
 }
 
 # The PC's values for a new .env; everything else keeps the example's defaults.
@@ -77,9 +110,9 @@ function Get-InstallValues {
         POSTGRES_PASSWORD       = New-Secret
         VAULT_PATH              = "$VaultsRoot/$BacklogVault"
         VAULTS_ROOT             = $VaultsRoot
-        SKILLS_PATH             = "$($HOME -replace '\\', '/')/.claude/skills"
-        REPOS_ROOT              = $ReposRoot
-        AGENTTOOLS_PATH         = $AgentToolsRoot -replace '\\', '/'
+        SKILLS_PATH             = Get-SkillsPath
+        REPOS_ROOT              = Get-ReposRoot
+        AGENTTOOLS_PATH         = ConvertTo-HostPath $AgentToolsRoot
         CLAUDE_CODE_OAUTH_TOKEN = Get-ClaudeToken
         MCP_TOKEN               = New-Secret
     }
@@ -125,6 +158,7 @@ function New-HostFolders {
         (Read-EnvValue "VAULTS_ROOT"),
         (Read-EnvValue "VAULT_PATH"),
         (Read-EnvValue "SKILLS_PATH"),
+        (Read-EnvValue "REPOS_ROOT"),
         (Join-Path $AgentToolsRoot "DevSecrets/skills"),
         (Join-Path $PowerLoomRoot "backups"),
         (Join-Path $PowerLoomRoot "import-inbox")
