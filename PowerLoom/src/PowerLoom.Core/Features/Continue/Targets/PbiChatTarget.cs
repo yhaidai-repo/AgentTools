@@ -56,7 +56,7 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
                 "Then the matching outline under Briefing outlines below, in its order.",
             ],
             Ending = "End the briefing by asking: \"Implement this plan?\" Change no file before the user says yes.",
-            AfterYes = [AfterYes(adoId, pbi.Title, design is not null)],
+            AfterYes = [AfterYes(adoId, pbi.Title, design is not null), FinishStep(adoId)],
             Repos = repos,
             Skills = Skills(pbi),
             Sections = Sections(pbi, plan, tests, design is not null),
@@ -97,6 +97,14 @@ public sealed class PbiChatTarget(PowerLoomDbContext db, HostPaths hostPaths, Pb
     private static IReadOnlyList<ChatSkill> Skills(WorkItem pbi)
     {
         return (JsonSerializer.Deserialize<List<PbiSkill>>(pbi.Skills, Json) ?? []).Select(skill => new ChatSkill(skill.Name, skill.Reason)).ToList();
+    }
+
+    // The Finish dialog as the chat's last step (stage 4 of the powerloom-mcp design): the user's own feedback, never guessed.
+    private static string FinishStep(int adoId)
+    {
+        var input = $"{{\"adoId\": {adoId}, \"rating\": <1–10>, \"effortHours\": <hours>, \"whatWentWrong\": \"<or empty>\", \"fault\": \"Agent\" or \"Human\"}}";
+
+        return $"When the acceptance criteria and the tests pass, offer to finish the PBI in PowerLoom with `{ChatNote.Tool("pbi.finish")}`: ask the user for their rating of the agents' work (1–10), the hours they spent, and what went wrong and whose fault it was, as the Finish dialog does; never estimate them. Call it with `{input}` after their yes.";
     }
 
     private static string AfterYes(int adoId, string title, bool hasDesign)

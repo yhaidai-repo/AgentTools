@@ -29,6 +29,8 @@ public sealed class PbiChatTests(PowerLoomHost host)
         Assert.Contains("- Skills: `sync-skill` (it knows the sync)", note);
         Assert.Contains("`bug_report` and `{\"parent\": \"31001\"", note);
         Assert.DoesNotContain("docker exec", note);
+        Assert.Contains("offer to finish the PBI in PowerLoom with `pbi_finish`: ask the user for their rating", note);
+        Assert.Contains("never estimate them. Call it with `{\"adoId\": 31001, \"rating\": <1–10>", note);
         Assert.Contains("1. Load the PBI's prepared context, the same the agents get (with the user's own notes): `pbi_read` with `{\"ref\":\"PBI-31001\"}`", note);
     }
 
