@@ -16,6 +16,8 @@ import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter
 import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
 import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
+import { LiveTestRun } from "../liveTest/LiveTestRun";
+import { LIVE_TEST_INTEGRATION } from "../liveTest/liveTestTools";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { commitEstimate } from "../estimate/commitEstimate";
 import { createEstimateTools, ESTIMATE_INTEGRATION, offersEstimate } from "../estimate/estimateTool";
@@ -68,6 +70,8 @@ export class AgentToolset {
   readonly result = new RunResult();
   /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
   private readonly writers: RunWriter[];
+  /** PowerLoom's commands against the live system, when the Config grants powerloomLiveTest. */
+  private readonly liveTest: LiveTestRun | null;
   private log: ReadLog | null = null;
   private offer: OfferedTool[] = [];
 
@@ -84,6 +88,7 @@ export class AgentToolset {
     this.captures = input.captures ?? [];
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
     this.writers = input.writers ?? grantedWriters(context);
+    this.liveTest = input.liveTest === undefined ? LiveTestRun.granted(context.agent, context.deps) : input.liveTest;
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -106,15 +111,30 @@ export class AgentToolset {
 
     const reading = this.readingGroups();
     const writing = [{ source: SKILLS_SOURCE, tools: this.context.skills.tools }, ...this.writingGroups(this.log)];
+    const live = this.liveTestGroups([...toolsOf(reading), ...toolsOf(writing)]);
 
-    this.offer = offeredTools([...reading, ...writing]);
+    this.offer = offeredTools([...reading, live.reads, ...writing, live.writes]);
 
-    return [...recordReads(toolsOf(reading), this.log), ...toolsOf(writing)];
+    return [...recordReads(toolsOf([...reading, live.reads]), this.log), ...toolsOf([...writing, live.writes])];
   }
 
   /** What tools() gave the run, each with what gave it, for the Tools tab. */
   get offered(): OfferedTool[] {
     return this.offer;
+  }
+
+  /** Removes what the live test created and records it in the trace; a no-op without a live test or once it holds
+   *  nothing. Never throws: the run's own outcome stands. */
+  async cleanUpLiveTest(): Promise<void> {
+    if (!this.liveTest?.holdsData) {
+      return;
+    }
+
+    try {
+      await this.session.phase("live-test-cleanup", { ...(await this.liveTest.cleanUp()) });
+    } catch (error) {
+      console.error(`live-test cleanup of RUN-${this.session.runId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /** What the run has read, for the runner's own result tools; exists once tools() was called. */
@@ -194,6 +214,14 @@ export class AgentToolset {
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments) },
     ];
+  }
+
+  // The live test's command tools, minus the names the run already has.
+  private liveTestGroups(existing: ToolDefinition<any>[]): { reads: ToolGroup; writes: ToolGroup } {
+    const source = grantSource(this.context.agent, LIVE_TEST_INTEGRATION);
+    const tools = this.liveTest ? this.liveTest.tools(new Set(existing.map((tool) => tool.name))) : { reads: [], writes: [] };
+
+    return { reads: { source, tools: tools.reads }, writes: { source, tools: tools.writes } };
   }
 
   // The vault's catalog of enabled repos: what open_repo can add, and what refinement names in its repos.

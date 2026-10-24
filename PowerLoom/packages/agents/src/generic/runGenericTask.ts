@@ -45,6 +45,9 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
 
+    // Before finish, so the cleanup lands in the run's trace; again in finally for a run that failed before it.
+    await run.toolset?.cleanUpLiveTest();
+
     // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
     const committed: { createdIds: string[] | null } = { createdIds: null };
     const final = await session.finish(ran, async () => { committed.createdIds = (await run.toolset?.commit(session.runId, ran.outcome === "budget-exceeded"))?.taskIds ?? []; }, run.toolset?.result.isWritten ?? false);
@@ -56,6 +59,7 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
     return final;
   } finally {
+    await run.toolset?.cleanUpLiveTest();
     await cleanUpWriters(run);
     closeRepos(deps, run.repos);
   }

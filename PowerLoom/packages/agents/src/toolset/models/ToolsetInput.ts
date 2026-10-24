@@ -1,4 +1,5 @@
 import type { DuplicateGuard } from "../../DuplicateGuard";
+import type { LiveTestRun } from "../../liveTest/LiveTestRun";
 import type { CaptureDraft } from "../../models/CaptureDraft";
 import type { RepoAccess } from "../../models/RepoAccess";
 import type { RunWriter } from "./RunWriter";
@@ -20,4 +21,6 @@ export interface ToolsetInput {
   captures?: CaptureDraft[];
   /** The granted writers, when the runner built them first (to open their repos); by default the Config's. */
   writers?: RunWriter[];
+  /** The run's live test (PowerLoom's commands, guarded); by default the Config's powerloomLiveTest grant decides. */
+  liveTest?: LiveTestRun | null;
 }
