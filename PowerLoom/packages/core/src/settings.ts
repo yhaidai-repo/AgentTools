@@ -95,6 +95,11 @@ export function isAdoActive(settings: AdoSettings | null): settings is AdoSettin
   return isAdoConfigured(settings) && settings.enabled;
 }
 
+// What a sync, an import or a pull request check says while the vault's integration can't run one.
+export async function adoIntegrationProblem(db: PowerLoomDb, vault: string): Promise<string | null> {
+  return isAdoActive(await readAdoSettings(db, vault)) ? null : `The Azure DevOps integration of ${vault} is off or incomplete: see Settings.`;
+}
+
 export async function saveConfluenceStatus(db: PowerLoomDb, status: ConfluenceStatus): Promise<void> {
   await saveValue(db, CONFLUENCE_KEY, status);
 }

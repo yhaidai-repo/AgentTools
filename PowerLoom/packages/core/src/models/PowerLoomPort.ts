@@ -11,10 +11,14 @@ import type { DeadLetter } from "./DeadLetter";
 import type { Outcome } from "./Outcome";
 import type { SavedSkill } from "./SavedSkill";
 import type { SystemStatus } from "./SystemStatus";
+import type { PbiWorkPort } from "./PbiWorkPort";
+import type { ReviewWorkPort } from "./ReviewWorkPort";
+import type { TaskWorkPort } from "./TaskWorkPort";
+import type { VaultWorkPort } from "./VaultWorkPort";
 
 // PowerLoom, the .NET backend taking over the worker's jobs (the vault's adoa-backend-delivery note). The caller (the
 // web, the CLI) supplies the client; core stays free of HTTP.
-export interface PowerLoomPort {
+export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort {
   // Queues a stored record for its vault's file: the WWW log, or a finding into a project's register.
   addRecord(kind: "www" | "open-question" | "known-issue", sourceId: string): Promise<void>;
   // "Continue with <agent>": writes the chat note and returns the link that opens the chat.
