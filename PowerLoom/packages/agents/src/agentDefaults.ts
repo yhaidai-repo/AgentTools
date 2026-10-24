@@ -15,6 +15,7 @@ import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWrite
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
 import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
+import { LIVE_TEST_INTEGRATION } from "./liveTest/liveTestTools";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -311,6 +312,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     key: AUTOTEST_INTEGRATION,
     label: "Write test reports",
     description: "The agent proves its PBI's acceptance criteria: the test cases, design and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
+  },
+  // PowerLoom testing itself (owner, 2026-10-25): the commands against the running system, guarded to the run's own data.
+  {
+    key: LIVE_TEST_INTEGRATION,
+    label: "PowerLoom tools (live test)",
+    description: "The agent may call PowerLoom's commands against the live system: every read, and the writes a test needs (create a PBI, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs or writes real vaults, and everything it created is removed when the run ends.",
   },
 ];
 
