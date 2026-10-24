@@ -5,7 +5,8 @@
 #   pwsh scripts/Set-AiProviders.ps1 [-Api <url>] [-ClaudeToken <token>] [-ConnectCodex] [-ChatApp claude-desktop|codex-desktop] [-NonInteractive]
 #
 # -Api: PowerLoom's API; default http://127.0.0.1:<POWERLOOM_PORT from .env>.
-# -ClaudeToken: the token `claude setup-token` prints; else $env:CLAUDE_CODE_OAUTH_TOKEN; else asked (Enter skips).
+# -ClaudeToken: the token `claude setup-token` prints; else asked (Enter skips), offering $env:CLAUDE_CODE_OAUTH_TOKEN
+#   first when this shell has one (it is saved only on a yes).
 # -ConnectCodex: connect Codex with the ChatGPT plan without asking (a device code: open the link, enter the code).
 # -ChatApp: the app "Continue with ..." opens; asked only when more than one is connected.
 # -NonInteractive: ask nothing; only what the parameters give is set.
@@ -75,12 +76,12 @@ function Get-ClaudeTokenToSave {
         return $ClaudeToken
     }
 
-    if ($env:CLAUDE_CODE_OAUTH_TOKEN) {
-        return $env:CLAUDE_CODE_OAUTH_TOKEN
-    }
-
     if ($NonInteractive) {
         return ""
+    }
+
+    if ($env:CLAUDE_CODE_OAUTH_TOKEN -and (Test-Yes "This shell has CLAUDE_CODE_OAUTH_TOKEN. Save it as PowerLoom's Claude token?")) {
+        return $env:CLAUDE_CODE_OAUTH_TOKEN
     }
 
     return Read-Secret "Claude token (run claude setup-token and paste what it prints; Enter skips)"

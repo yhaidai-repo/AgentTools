@@ -45,15 +45,31 @@ Describe "Set-AiProviders" {
             Should -Invoke Write-Host -ParameterFilter { $Object -eq "Claude: connected with the token saved in Settings." }
         }
 
-        It "takes CLAUDE_CODE_OAUTH_TOKEN from the environment without asking" {
+        It "saves CLAUDE_CODE_OAUTH_TOKEN from the shell only after a yes" {
             $env:CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat01-env"
             Mock Invoke-PowerLoom { New-Providers $false $false } -ParameterFilter { $path -eq "/api/ai-providers" }
             Mock Invoke-PowerLoom {} -ParameterFilter { $path -eq "/api/ai-providers/claude/token" }
+            Mock Read-Host { "y" }
             Mock Read-Secret { throw "asked" }
 
             Set-Claude
 
             Should -Invoke Invoke-PowerLoom -ParameterFilter { $body.token -eq "sk-ant-oat01-env" } -Times 1 -Exactly
+        }
+
+        It "asks for a token instead when the shell's CLAUDE_CODE_OAUTH_TOKEN is declined, and never saves it unasked" {
+            $env:CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat01-env"
+            Mock Invoke-PowerLoom { New-Providers $false $false } -ParameterFilter { $path -eq "/api/ai-providers" }
+            Mock Invoke-PowerLoom {} -ParameterFilter { $path -eq "/api/ai-providers/claude/token" }
+            Mock Read-Host { "n" }
+            Mock Read-Secret { "" }
+
+            Set-Claude
+            $NonInteractive = $true
+            Set-Claude
+
+            Should -Invoke Read-Secret -Times 1 -Exactly
+            Should -Invoke Invoke-PowerLoom -ParameterFilter { $path -eq "/api/ai-providers/claude/token" } -Times 0 -Exactly
         }
 
         It "leaves a connected Claude as it is and asks nothing" {
