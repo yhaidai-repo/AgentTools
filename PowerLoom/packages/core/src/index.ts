@@ -103,6 +103,8 @@ export { syncPullRequestsCommand } from "./commands/syncPullRequestsCommand";
 export { enableRepoCommand } from "./commands/enableRepoCommand";
 export { addLocalRepoCommand } from "./commands/addLocalRepoCommand";
 export { removeRepoCommand } from "./commands/removeRepoCommand";
+export { addVaultCommand } from "./commands/addVaultCommand";
+export { removeVaultCommand } from "./commands/removeVaultCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";
