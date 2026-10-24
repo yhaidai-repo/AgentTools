@@ -47,6 +47,7 @@ export type { CreateSkillInput } from "./models/CreateSkillInput";
 export { createAgentCommand } from "./commands/createAgentCommand";
 export { createSkillCommand } from "./commands/createSkillCommand";
 export { newAgentTemplate } from "./agents/newAgentTemplate";
+export { providerOfModel, withModelProvider } from "./agents/modelProvider";
 export { readPromptFile } from "./agents/promptFiles";
 export { deletePromptVersions, insertPromptVersion, loadPromptVersions } from "./agents/promptVersions";
 export type { PromptVersionRow } from "./agents/promptVersions";

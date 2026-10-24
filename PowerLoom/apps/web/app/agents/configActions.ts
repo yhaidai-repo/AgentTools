@@ -3,7 +3,7 @@
 import type { AgentDefinition, AgentOptionValue } from "@agenttools/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, saveAgentsGlobalCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
+import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, providerOfModel, saveAgentsGlobalCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
@@ -141,6 +141,7 @@ function updateInputFromForm(form: FormData, current: AgentDefinition): UpdateAg
 
 function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinition {
   const effort = text(form, "effort");
+  const model = text(form, "model");
 
   return {
     ...current,
@@ -148,7 +149,8 @@ function readAgentForm(form: FormData, current: AgentDefinition): AgentDefinitio
     description: text(form, "description"),
     enabled: form.get("enabled") === "on",
     schedule: text(form, "schedule") || null,
-    model: { provider: text(form, "provider"), model: text(form, "model"), ...(effort ? { effort: effort as AgentDefinition["model"]["effort"] } : {}) },
+    // The provider follows the chosen model (a Codex model runs on Codex), so the form has no provider field.
+    model: { provider: providerOfModel(model, current.model.provider), model, ...(effort ? { effort: effort as AgentDefinition["model"]["effort"] } : {}) },
     limits: { maxTurns: Number(text(form, "maxTurns")), timeoutMinutes: Number(text(form, "timeoutMinutes")) },
     budgets: { perRunUsd: Number(text(form, "perRunUsd")), dailyUsd: Number(text(form, "dailyUsd")) },
     capabilities: { webAccess: form.get("webAccess") === "on", integrations: readIntegrations(form, current) },

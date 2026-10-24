@@ -85,11 +85,8 @@ export function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog
       <SwitchField name="enabled" label="Enabled" hint="off = it takes no task and its schedule doesn't fire" defaultChecked={agent.enabled} />
       <CronField label="Schedule" name="schedule" value={agent.schedule ?? ""} hint="cron; empty = on demand only" required={false} />
       <div className="field">
-        <span>Model<small>provider and model</small></span>
-        <div className="field-row">
-          <input name="provider" defaultValue={agent.model.provider} required aria-label="Provider" />
-          <FormPicker name="model" label="Model" value={agent.model.model} options={modelChoices(catalog, agent).map((entry) => ({ value: entry.model, label: entry.label, note: entry.model }))} />
-        </div>
+        <span>Model<small>the provider follows the model</small></span>
+        <FormPicker name="model" label="Model" value={agent.model.model} options={modelChoices(catalog, agent).map((entry) => ({ value: entry.model, label: entry.label, note: `${entry.provider} · ${entry.model}` }))} />
       </div>
       <div className="field">
         <span>Effort</span>
