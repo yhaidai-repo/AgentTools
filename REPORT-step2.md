@@ -22,6 +22,20 @@ Also changed:
 - `@powerloom/agents` depends on `@openai/codex` `0.164.0` directly, since it spawns the CLI. The lock gains one line. The local npm rewrote unrelated `libc` fields, so that rewrite was reverted and the line added by hand. `npm ci` accepts the lock.
 - `apps/agent-runner` and `apps/web` already had or now have a `test` script. The web one came from Step 1.
 
+## Added after the brief: AI providers at installation (owner's request)
+- `PowerLoom/scripts/Set-AiProviders.ps1`, run by `install.ps1` once PowerLoom answers and runnable alone any time. Each
+  part is optional (Enter skips) and a connected provider is left as it is:
+  - **Claude:** the token from `-ClaudeToken`, `$env:CLAUDE_CODE_OAUTH_TOKEN`, or a hidden prompt, saved through
+    `PUT /api/ai-providers/claude/token`.
+  - **Codex:** `-ConnectCodex` or a yes/no prompt. It reminds you of the ChatGPT setting, shows the link and code (or
+    the CLI's text) and waits up to 15 minutes for the sign-in.
+  - **Chat app:** `-ChatApp`, or a numbered prompt when more than one app is connected.
+- `install.ps1` takes `-ClaudeToken`, `-ConnectCodex`, `-ChatApp` and `-SkipProviders` and passes them on.
+- Tests: `PowerLoom/scripts/Tests/Set-AiProviders.Tests.ps1` (Pester, 14 pass). The script also ran against a live API
+  here: it saved the Claude token, reported an unreachable runner as "Codex: not connected", and passed the API's
+  refusal of an unconnected chat app on. That live run caught a bug the mocks hid (a JSON array answer read as one
+  object), now fixed and covered by a test.
+
 ## Checks run here
 
 | Check | Result |
@@ -37,7 +51,10 @@ Also changed:
 | `dotnet test PowerLoom/tests/PowerLoom.Api.Tests` | 206 pass, 1 fail: `AddRecordTests.A_submitted_finding_goes_into_the_register_closes_and_renders_its_pbi`, which fails on `main` too |
 
 ## Not run here
-- **Pester** for VaultUsage and VaultCapture: no `pwsh` in this container. Neither module was changed.
+- **Pester** for VaultUsage and VaultCapture ran here after all (PowerShell 7.6 as a .NET tool, Pester 5.7.1): 90 pass,
+  1 fails. The failure is `CodexToolUsage.Tests.ps1`, "records a real Bash payload through stdin with a Unicode working
+  directory". Its note file starts with a dot, which Linux treats as hidden, so `Get-Item` without `-Force` doesn't find
+  it. It should pass on Windows. Neither module was changed here.
 - **The device sign-in itself**: `auth.openai.com` is blocked from this container, so the real `codex login --device-auth` output was never seen. The parser looks for an https link and a code like `ABCD-12345`, and the page shows the CLI's raw text when either is missing.
 - **A Codex run in the runner, the docker image build, the deploy, and the desktop apps.**
 
@@ -51,7 +68,8 @@ Also changed:
 None. Nothing under `AgentRuntime/src/adapters/**`, `AgentRuntime/src/models/**`, `IChatLauncher`, `ChatRequest`, the hook adapters or `agentDefaults.ts` was changed.
 
 ## What to do on the PC
-1. Bring the branch over as a patch and apply it on a branch off `main`.
+1. Bring the branch over as a patch and apply it on a branch off `main`. On a fresh PC, `install.ps1` now offers the
+   providers at its end, which covers steps 4 to 6 below.
 2. Create `PowerLoom/agent-homes/codex` if it is missing (`install.ps1` does it on a fresh install).
 3. Rebuild: `pwsh PowerLoom/scripts/deploy-web.ps1 -WithApi -WithRunner`. The image build now stops if the Codex Linux binary is missing.
 4. In ChatGPT → Settings → Security, switch on **Device code authorization**.

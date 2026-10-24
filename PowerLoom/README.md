@@ -28,7 +28,10 @@ builds the TypeScript image from there, `Dockerfile` the backend from this folde
 
 ## Run
 First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault path>,…` (full paths in one parent folder; optional `-ReposRoot`, `-SkillsPath`) (`.env`, folders,
-database volume, stack, vaults with their vault review schedule; safe to run again). By hand:
+database volume, stack, vaults with their vault review schedule; safe to run again). Its last step,
+`scripts/Set-AiProviders.ps1`, optionally sets the AI providers through the API: the Claude token, Connect Codex, the
+chat app (`-ClaudeToken`, `-ConnectCodex`, `-ChatApp`, `-SkipProviders`; run it alone any time; a connected provider is
+left as it is). By hand:
 ```bash
 cp .env.example .env               # passwords, paths (the Claude token goes in Settings → AI providers)
 docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it (the name predates the rename)

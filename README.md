@@ -56,10 +56,13 @@ folders and the database volume, starts the stack, and adds the vaults. No path 
 folders as full paths (they must share one parent folder; a missing one is created empty from the templates, so copy
 your notes first), `-ReposRoot` the folder with your code repos (default: where AgentTools was cloned), `-SkillsPath`
 extra agent skills (default: Claude Code's skills folder if there is one, else an empty `PowerLoom/local-skills`).
-The agents come with the prompts in the code. Then open the web UI the script prints → Settings → AI providers: paste the
-Claude token `claude setup-token` prints (agents run once it is saved); for Codex, switch on "Device code authorization"
-in ChatGPT → Settings → Security, then Connect Codex; pick the chat app. Then Settings for Azure DevOps per vault, and
-"Configure with Claude" (or Codex) on each vault.
+The agents come with the prompts in the code. At the end the script offers the AI providers, each optional (Enter
+skips): the Claude token `claude setup-token` prints, connecting Codex with a device code (switch on "Device code
+authorization" in ChatGPT → Settings → Security first), and the chat app. `-ClaudeToken`, `-ConnectCodex` and
+`-ChatApp` answer without asking; `-SkipProviders` skips the step. Agents run once their provider is connected.
+Whatever you skip, set it in the web UI the script prints → Settings → AI providers, or run
+`pwsh scripts/Set-AiProviders.ps1` again. Then Settings for Azure DevOps per vault, and "Configure with Claude" (or
+Codex) on each vault.
 Details: [`PowerLoom/README.md`](PowerLoom/README.md).
 
 ## Future plans
