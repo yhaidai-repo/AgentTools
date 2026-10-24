@@ -27,7 +27,7 @@ export function PromptField({ stored, storedVersion, file, versions }: PromptFie
   const source = stored ? `your version ${storedVersion}` : file ? `code version ${file.version}` : "";
 
   return (
-    <section className="config-section">
+    <section className="panel config-section">
       <h2>Prompt {source && <small className="muted">{source}</small>}</h2>
       <label className="field">
         <span>Instructions</span>
