@@ -60,6 +60,9 @@ import { importNowCommand } from "./importNowCommand";
 import { getPbiUserNotesCommand } from "./getPbiUserNotesCommand";
 import { savePbiUserNotesCommand } from "./savePbiUserNotesCommand";
 import { attachToPbiCommand } from "./attachToPbiCommand";
+import { addConfluenceLinkCommand } from "./addConfluenceLinkCommand";
+import { removeConfluenceLinkCommand } from "./removeConfluenceLinkCommand";
+import { loadConfluencePageCommand } from "./loadConfluencePageCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -100,6 +103,9 @@ export const COMMANDS: readonly Command<any, any>[] = [
   getPbiUserNotesCommand,
   savePbiUserNotesCommand,
   attachToPbiCommand,
+  addConfluenceLinkCommand,
+  removeConfluenceLinkCommand,
+  loadConfluencePageCommand,
   // The read commands (stage 2 of the powerloom-mcp design, 2026-10-23): what the pages show, for the chats.
   listPbisCommand,
   listTasksCommand,

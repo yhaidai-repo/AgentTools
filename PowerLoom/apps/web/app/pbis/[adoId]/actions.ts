@@ -1,11 +1,10 @@
 "use server";
 
-import { savePbiReposCommand, savePbiSkillsCommand, savePbiUserNotesCommand } from "@powerloom/core";
+import { addConfluenceLinkCommand, loadConfluencePageCommand, removeConfluenceLinkCommand, savePbiReposCommand, savePbiSkillsCommand, savePbiUserNotesCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { afterItemChange } from "@/lib/afterItemChange";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
 import { formText, readUploads } from "@/lib/formFields";
-import { powerloom, powerloomResult } from "@/lib/powerloom";
 import type { ActionResult } from "@/models/ActionResult";
 
 // One or more files, chosen, pasted or dropped (user decision 2026-10-09).
@@ -41,22 +40,24 @@ export async function saveRepos(_previous: ActionResult | null, form: FormData):
 // "Load from Confluence" for a linked page whose content is missing: PowerLoom holds the token, so it fetches the page;
 // it also closes the task asking for the content, and a failure becomes (or stays) that task with the reason.
 export async function loadFromConfluence(adoId: number, url: string): Promise<ActionResult> {
-  return powerloomResult(await powerloom.POST("/api/pbis/{adoId}/confluence-pages/load", { params: { path: { adoId } }, body: { url } }), "Loading from Confluence; reload in a few seconds.");
+  const loading = await runWebCommand(loadConfluencePageCommand, { adoId, url });
+
+  return loading.ok ? { ok: true, message: "Loading from Confluence; reload in a few seconds." } : { ok: false, message: loading.error };
 }
 
 // A Confluence page added to the PBI's attachments as a link (user decision 2026-10-02): listed for the later agents with
 // why, opened by agents with the Confluence tools; not fetched. A page already listed keeps its entry.
 export async function addConfluenceLink(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoId = Number(form.get("adoId"));
-  const added = await powerloom.POST("/api/pbis/{adoId}/confluence-links", { params: { path: { adoId } }, body: { url: formText(form, "url") ?? "", why: formText(form, "why") } });
+  const added = await runWebCommand(addConfluenceLinkCommand, { adoId, url: formText(form, "url") ?? "", why: formText(form, "why") });
 
   revalidatePath(`/pbis/${adoId}`);
 
-  return powerloomResult(added, "Link added. Later agents on this PBI get it with why.");
+  return added.ok ? { ok: true, message: "Link added. Later agents on this PBI get it with why." } : { ok: false, message: added.error };
 }
 
 export async function removeConfluenceLink(adoId: number, url: string): Promise<void> {
-  await powerloom.DELETE("/api/pbis/{adoId}/confluence-links", { params: { path: { adoId } }, body: { url } });
+  await runWebCommand(removeConfluenceLinkCommand, { adoId, url });
   revalidatePath(`/pbis/${adoId}`);
 }
 
