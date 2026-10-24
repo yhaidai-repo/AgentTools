@@ -58,7 +58,11 @@ export function latestRate(series: MetricSeries | null): number | null {
 
 // PowerLoom's request, database, messaging and memory rates as small trend tiles: the latest value large, the day's
 // line under it; the logs of the same hours are in Grafana (Loki).
-export function RatesSection({ rates, grafana }: { rates: Rates; grafana: string | null }) {
+export function RatesSection({ rates, grafana, observabilityOn }: { rates: Rates; grafana: string | null; observabilityOn: boolean }) {
+  if (!observabilityOn) {
+    return <Panel><p className="text-faint">Observability is off: Grafana, Tempo, Prometheus and Loki (otel-lgtm) run for development only, switched on in .env.</p></Panel>;
+  }
+
   if (!hasRates(rates)) {
     return <Panel tone="warn"><p className="text-warn">Prometheus (otel-lgtm) doesn&apos;t answer: no rates.</p></Panel>;
   }
