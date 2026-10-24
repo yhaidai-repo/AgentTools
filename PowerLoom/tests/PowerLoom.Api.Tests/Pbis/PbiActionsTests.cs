@@ -14,6 +14,7 @@ using PowerLoom.Features.Pbis.Skills.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -145,10 +146,10 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
         await db.WorkItems.Where(row => row.AdoId == adoId).ExecuteUpdateAsync(set => set.SetProperty(row => row.PipelineStatus, PipelineStatus.Refining));
-        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Repos?", Status = ItemStatus.Open, Assignee = "human", Data = """{"key":"repos:ActRepo"}""", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKind.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Open, Assignee = "agent:research", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"HT-{adoId}-001", Kind = ItemKind.Human, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Attach it", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKind.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKinds.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Repos?", Status = ItemStatus.Open, Assignee = "human", Data = """{"key":"repos:ActRepo"}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"AT-{adoId}-001", Kind = ItemKinds.Research, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Research", Status = ItemStatus.Open, Assignee = "agent:research", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"HT-{adoId}-001", Kind = ItemKinds.Human, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Attach it", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKinds.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }

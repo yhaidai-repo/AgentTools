@@ -13,7 +13,6 @@ public static class PowerLoomEnumMapping
         npgsql.MapEnum<AttachmentOrigin>("attachment_origin", nameTranslator: kebab);
         npgsql.MapEnum<BugSource>("bug_source", nameTranslator: kebab);
         npgsql.MapEnum<EntityKind>("entity_kind", nameTranslator: kebab);
-        npgsql.MapEnum<ItemKind>("item_kind", nameTranslator: kebab);
         npgsql.MapEnum<ItemStatus>("item_status", nameTranslator: kebab);
         npgsql.MapEnum<NoteWriteAction>("note_write_action", nameTranslator: kebab);
         npgsql.MapEnum<PipelineStatus>("pipeline_status", nameTranslator: kebab);

@@ -6,7 +6,7 @@ public static class ChatLaunchSetup
     {
         builder.Services.AddOptions<ChatOptions>().BindConfiguration(ChatOptions.Section);
         builder.Services.AddSingleton<IChatLauncher, ClaudeDesktopLauncher>();
-        builder.Services.AddSingleton<ChatLaunchers>();
+        builder.Services.AddScoped<ChatLaunchers>();
         builder.Services.AddSingleton<HostPaths>();
 
         return builder;

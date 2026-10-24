@@ -63,7 +63,7 @@ export async function releaseTask(db: PowerLoomDb, task: ItemRow, reason: string
 }
 
 // Blocked with the reason on the task's and the PBI's pages; Re-run clears it.
-async function blockTask(db: PowerLoomDb, task: ItemRow, reason: string, runId: number | undefined): Promise<void> {
+export async function blockTask(db: PowerLoomDb, task: ItemRow, reason: string, runId: number | undefined): Promise<void> {
   await db.update(localItem).set({ heldBy: [reason] }).where(eq(localItem.id, task.id));
   await setItemStatus(db, task.id, "in-progress", "blocked", ACTOR, runId);
 }

@@ -10,6 +10,7 @@ using PowerLoom.Contracts;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
 
@@ -258,9 +259,9 @@ public sealed class SyncPbisTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKind.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which way?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"WT-{adoId}", Kind = ItemKind.Docs, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Merge draft", Status = ItemStatus.Blocked, Assignee = "agent:tech-writer", HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKind.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKinds.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which way?", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"WT-{adoId}", Kind = ItemKinds.Docs, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Merge draft", Status = ItemStatus.Blocked, Assignee = "agent:tech-writer", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"F-{adoId}", Kind = ItemKinds.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "A known issue", Status = ItemStatus.Open, Assignee = "human", HeldBy = "[]" });
 
         await db.SaveChangesAsync();
     }

@@ -18,7 +18,7 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
 
     public Outcome<OpenedChat> Open(ChatRequest request)
     {
-        var prompt = Prompt(request);
+        var prompt = ChatPrompt.Build(request, "Add these folders to this session", PromptMax);
 
         if (prompt.Length > PromptMax)
             return Outcome<OpenedChat>.Failure(Problem.Invalid($"The prompt has {prompt.Length} characters; a claude:// link takes about {PromptMax}."));
@@ -39,11 +39,4 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
         ];
     }
 
-    private static string Prompt(ChatRequest request)
-    {
-        var addFolders = request.ExtraFolders.Count > 0 ? [$"Add these folders to this session: {string.Join(", ", request.ExtraFolders)}."] : Array.Empty<string>();
-        var steps = addFolders.Concat(request.Steps).Select((step, index) => $"{index + 1}. {step}");
-
-        return string.Join("\n", new[] { request.Title }.Concat(request.Intro).Concat(steps));
-    }
 }

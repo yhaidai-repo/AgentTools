@@ -27,15 +27,17 @@ const REQUIRED_FIELDS = [
 // after its action, to the defaults rendered then. Laid out like New PBI (user decision 2026-10-18): what the task says
 // on the left, its type, PBI, repos and schedule on the right, Create in a bar that stays on screen; an empty field is
 // told inline.
-export function TaskForm({ values, types, repos }: { values: TaskFormValues; types: string[]; repos: string[] }) {
+// `customTypes`: the types agents made in the UI brought (user decision 2026-10-24); like research, they read repos when
+// the task has no PBI.
+export function TaskForm({ values, types, customTypes = [], repos }: { values: TaskFormValues; types: string[]; customTypes?: string[]; repos: string[] }) {
   const [result, action, isSaving] = useActionState<TaskActionResult | null, FormData>(saveTaskAction, null);
   const shown = result?.values ?? values;
   const [type, setType] = useState(values.type);
   const [pbi, setPbi] = useState(values.pbi);
   const [cron, setCron] = useState(values.cron);
   const [problems, setProblems] = useState<Record<string, string>>({});
-  const pbiHint = PBI_HINTS[type];
-  const readsRepos = type === "research" && pbi.trim() === "";
+  const pbiHint = PBI_HINTS[type] ?? (customTypes.includes(type) ? PBI_HINTS.research : undefined);
+  const readsRepos = (type === "research" || customTypes.includes(type)) && pbi.trim() === "";
   const isEditing = values.scheduleId !== null;
   const isScheduled = isEditing || cron.trim() !== "";
 

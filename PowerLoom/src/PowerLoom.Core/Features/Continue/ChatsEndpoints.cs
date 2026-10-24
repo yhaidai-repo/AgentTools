@@ -19,10 +19,29 @@ public static class ChatsEndpoints
 
     // Every button's label and, when no chat can open, the reason; checking changes nothing.
     [WolverineGet("/api/chats/launcher")]
-    public static LauncherAvailability Launcher(ChatLaunchers launchers)
+    public static async Task<LauncherAvailability> Launcher(ChatLaunchers launchers, CancellationToken cancellation)
     {
-        var current = launchers.Current();
+        var current = await launchers.CurrentAsync(cancellation);
 
-        return new LauncherAvailability(launchers.Label(), current.Ok ? null : current.Problem.Detail);
+        return new LauncherAvailability(await launchers.LabelAsync(cancellation), current.Ok ? null : current.Problem.Detail);
+    }
+
+    // Settings → AI providers: the apps a chat can open in, and the chosen one.
+    [WolverineGet("/api/chats/apps")]
+    public static Task<ChatApps> Apps(ChatLaunchers launchers, CancellationToken cancellation) => AppsOf(launchers, cancellation);
+
+    [WolverinePut("/api/chats/app")]
+    public static async Task<Results<Ok<ChatApps>, ProblemHttpResult>> ChooseApp(ChooseChatAppRequest request, ChatLaunchers launchers, CancellationToken cancellation)
+    {
+        var chosen = await launchers.ChooseAsync(request.Launcher, cancellation);
+
+        return chosen.Ok ? TypedResults.Ok(await AppsOf(launchers, cancellation)) : chosen.Problem.ToProblemResult();
+    }
+
+    private static async Task<ChatApps> AppsOf(ChatLaunchers launchers, CancellationToken cancellation)
+    {
+        var apps = launchers.Registered.Select(launcher => new ChatApp(launcher.Id, launcher.Label)).ToList();
+
+        return new ChatApps(await launchers.ChosenIdAsync(cancellation), apps);
     }
 }

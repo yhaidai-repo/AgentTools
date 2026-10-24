@@ -1,6 +1,7 @@
 namespace PowerLoom.Persistence.Enums;
 
-// PostgreSQL enum `item_kind`; the labels are the kebab-case of the member names (KebabCaseNameTranslator).
+// History only: the PostgreSQL enum `item_kind` that local_item.kind had until 2026-10-24, kept for the migrations that
+// created it. The column is text now (any task type, also one an agent created in the UI handles); code uses ItemKinds.
 public enum ItemKind
 {
     Research,

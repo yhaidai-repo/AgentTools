@@ -76,7 +76,7 @@ public static class PipelineRegions
         if (items.Count == 0)
             return "None yet.";
 
-        var lines = items.Select(item => $"| [[{item.Id}]] | {Label(item.Kind)} | {Label(item.Status)} | {NoteText.EscapeCell(item.Title)} |");
+        var lines = items.Select(item => $"| [[{item.Id}]] | {item.Kind} | {Label(item.Status)} | {NoteText.EscapeCell(item.Title)} |");
 
         return string.Join("\n", new[] { "| Item | Kind | Status | Title |", "|---|---|---|---|" }.Concat(lines));
     }

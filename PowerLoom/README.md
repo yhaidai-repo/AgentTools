@@ -15,7 +15,7 @@ agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `
 | `src/PowerLoom.Contracts` | messages and types shared across projects |
 | `src/PowerLoom.AdoIntegration`, `src/PowerLoom.ConfluenceIntegration` | the Azure DevOps and Confluence libraries |
 | `tests/PowerLoom.Api.Tests` | Alba + Testcontainers (one host and Postgres per run) |
-| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; Claude token; skills read-only, docs vault writable for the tech-writer's merges |
+| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback); skills read-only, docs vault writable for the tech-writer's merges |
 | `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) and the CLI (`cli/powerloomCli.ts`) |
 | `packages/*` | the TypeScript libraries the two apps share (`db`, `core`, `agents`, `notes`, `ado`, `confluence`, `attachments`, `vault`) |
 | `skills/` | PowerLoom's own skills for agents (`powerloom-*`) |
@@ -30,12 +30,17 @@ builds the TypeScript image from there, `Dockerfile` the backend from this folde
 First installation on a Windows PC with Docker Desktop: `pwsh scripts/install.ps1 -Vaults <vault path>,…` (full paths in one parent folder; optional `-ReposRoot`, `-SkillsPath`) (`.env`, folders,
 database volume, stack, vaults with their vault review schedule; safe to run again). By hand:
 ```bash
-cp .env.example .env               # passwords, paths, CLAUDE_CODE_OAUTH_TOKEN
+cp .env.example .env               # passwords, paths (the Claude token goes in Settings → AI providers)
 docker volume create adoa_pgdata   # first time only; external, so `compose down -v` can't delete it (the name predates the rename)
 docker compose up -d --build
 ```
 - Web UI: http://localhost:3100 (`WEB_PORT`); backend: http://127.0.0.1:5180 (`POWERLOOM_PORT`, `/health`, `/openapi/v1.json`); Grafana: `GRAFANA_PORT`.
 - DB on `127.0.0.1:${DB_PORT}` (default 5442). ADO org/project/team/user and tokens live in the DB, per vault (Settings).
+- Settings → AI providers, one for the whole PowerLoom (global `config` rows): the Claude token (`claudeToken`; without it
+  the agent-runner uses `CLAUDE_CODE_OAUTH_TOKEN` from `.env` and reports that at start-up as `claudeEnvToken`) and the
+  chat app "Continue with …" opens (`chatApp`; else `CONTINUE_LAUNCHER`, else Claude). An agent whose provider isn't
+  connected is blocked at once with "Connect <provider> in Settings → AI providers"; the Agents page offers only
+  connected providers' models.
 - Rebuild only after checking `agent_run` for a run without `ended_at`.
 
 ## Backups

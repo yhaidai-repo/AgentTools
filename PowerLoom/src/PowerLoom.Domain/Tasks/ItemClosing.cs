@@ -20,11 +20,11 @@ public static class ItemClosing
 
     // Which decisions each human item kind takes, and the status each one leads to. A finding is closed with an answer
     // here; "submit to vault" goes through Docs / Records.
-    private static readonly Dictionary<ItemKind, Dictionary<CloseDecision, ItemStatus>> Decisions = new()
+    private static readonly Dictionary<string, Dictionary<CloseDecision, ItemStatus>> Decisions = new()
     {
-        [ItemKind.Question] = new() { [CloseDecision.Answer] = ItemStatus.Answered, [CloseDecision.Dismiss] = ItemStatus.Dismissed },
-        [ItemKind.Finding] = new() { [CloseDecision.Answer] = ItemStatus.Answered, [CloseDecision.Dismiss] = ItemStatus.Dismissed },
-        [ItemKind.Human] = new() { [CloseDecision.Done] = ItemStatus.Done, [CloseDecision.Cancel] = ItemStatus.Cancelled },
+        [ItemKinds.Question] = new() { [CloseDecision.Answer] = ItemStatus.Answered, [CloseDecision.Dismiss] = ItemStatus.Dismissed },
+        [ItemKinds.Finding] = new() { [CloseDecision.Answer] = ItemStatus.Answered, [CloseDecision.Dismiss] = ItemStatus.Dismissed },
+        [ItemKinds.Human] = new() { [CloseDecision.Done] = ItemStatus.Done, [CloseDecision.Cancel] = ItemStatus.Cancelled },
     };
 
     public static async Task<Outcome<LocalItem>> FindClosableAsync(PowerLoomDbContext db, CloseItemRequest request, CancellationToken cancellation)
@@ -68,7 +68,7 @@ public static class ItemClosing
             return Problem.Conflict($"{item.Id} is already {Label(item.Status)}.");
 
         if (!Decisions.TryGetValue(item.Kind, out var decisions) || !decisions.ContainsKey(request.Decision))
-            return Problem.Invalid($"\"{Label(request.Decision)}\" doesn't apply to a {Label(item.Kind)}.");
+            return Problem.Invalid($"\"{Label(request.Decision)}\" doesn't apply to a {item.Kind}.");
 
         if (request.Decision == CloseDecision.Answer && string.IsNullOrWhiteSpace(request.Resolution) && !request.HasAttachment)
             return Problem.Invalid("Write an answer or attach a file.");

@@ -10,6 +10,11 @@ public static class ChatNote
     // PowerLoom's commands on the command line (user decision 2026-10-09: no MCP yet); the vault's POWERLOOM.md lists them.
     public const string PowerLoomCli = "docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web --";
 
+    private const string SectionStart = "\n## ";
+    // Every kind's steps, reading and context, and each kind's own key section: an item's text and how it ends, a review's
+    // pull request, a vault setup's steps (user decision 2026-10-24). The headings differ per kind, so one list serves all.
+    private static readonly string[] ShownSections = ["Start", "Read first", "Context", "The item", "At the end", "Pull request", "Setup"];
+
     private static readonly string[] SharedRules =
     [
         "Azure DevOps is never written; nothing is pushed.",
@@ -41,6 +46,42 @@ public static class ChatNote
     }
 
     public static string NotesSectionOf(string? existing) => NotesSection.Of(existing);
+
+    // What the chat shows the user (user decision 2026-10-24): the title and what the chat is told to do and read; the
+    // other sections are only named, the chat reads them in the file.
+    public static string ShortVersion(string note)
+    {
+        var sections = SplitSections(WithoutFrontmatter(note));
+        var shown = sections.Skip(1).Where(section => ShownSections.Contains(Heading(section))).ToList();
+        var others = sections.Skip(1).Select(Heading).Where(heading => !ShownSections.Contains(heading)).ToList();
+        var othersLine = others.Count > 0 ? $"\n\nAlso in the note: {string.Join(", ", others)}." : "";
+
+        return string.Concat(new[] { sections[0] }.Concat(shown)).TrimEnd() + othersLine;
+    }
+
+    private static string WithoutFrontmatter(string note)
+    {
+        var end = note.StartsWith("---\n") ? note.IndexOf("\n---\n", 4, StringComparison.Ordinal) : -1;
+
+        return end < 0 ? note : note[(end + 5)..].TrimStart('\n');
+    }
+
+    // The part before the first heading, then each section with its leading newline, so they join back as they were.
+    private static List<string> SplitSections(string note)
+    {
+        var starts = new List<int> { 0 };
+        var next = note.IndexOf(SectionStart, StringComparison.Ordinal);
+
+        while (next >= 0)
+        {
+            starts.Add(next);
+            next = note.IndexOf(SectionStart, next + 1, StringComparison.Ordinal);
+        }
+
+        return starts.Select((start, index) => note[start..(index + 1 < starts.Count ? starts[index + 1] : note.Length)]).ToList();
+    }
+
+    private static string Heading(string section) => section.TrimStart('\n').Split('\n')[0].TrimStart('#', ' ');
 
     public static string KindLabel(ChatKind kind) => kind.ToString().ToLowerInvariant();
 

@@ -31,6 +31,25 @@ public sealed class PbiChatTests(PowerLoomHost host)
         Assert.Contains("1. Load the PBI's prepared context, the same the agents get (with the user's own notes): `docker exec -i powerloom-web-1 npm run -s cli -w @powerloom/web -- pbi.read '{\"ref\":\"PBI-31001\"}'`", note);
     }
 
+    // The user sees in the chat what it was told: the note's title, Start, Read first and Context (user decision 2026-10-24).
+    [Fact]
+    public async Task The_chat_s_prompt_shows_the_note_s_short_version()
+    {
+        await StorePbiAsync(31005, "Shown note", withDesign: true);
+
+        var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Pbi, "31005"), "/api/chats").Receive<ChatLink>();
+        var prompt = Uri.UnescapeDataString(link!.Url.Split("&q=")[1]);
+
+        Assert.Contains("and follow its Start section. Its short version, for you and me:", prompt);
+        Assert.Contains("# Implement PBI-31005: Shown note", prompt);
+        Assert.Contains("## Start", prompt);
+        Assert.Contains("## Read first", prompt);
+        Assert.Contains("## Context", prompt);
+        Assert.DoesNotContain("## Plan", prompt);
+        Assert.DoesNotContain("created_by:", prompt);
+        Assert.EndsWith("Also in the note: Briefing outlines, Plan, Tests, Rules, Notes.", prompt);
+    }
+
     [Fact]
     public async Task Without_a_design_the_note_says_so_and_the_chat_still_opens()
     {

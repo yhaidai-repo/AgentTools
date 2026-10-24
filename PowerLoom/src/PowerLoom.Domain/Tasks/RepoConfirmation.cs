@@ -6,6 +6,7 @@ using PowerLoom.Domain.Tasks.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Tasks;
 
@@ -51,7 +52,7 @@ public static partial class RepoConfirmation
         await DropAsync(db, item.PbiId.Value, asked.Where(repo => chosen.All(choice => choice.Id != repo.Id)).ToList(), cancellation);
     }
 
-    private static bool IsRepoQuestion(LocalItem item) => item.Kind == ItemKind.Question && KeyOf(item).StartsWith(KeyPrefix, StringComparison.Ordinal);
+    private static bool IsRepoQuestion(LocalItem item) => item.Kind == ItemKinds.Question && KeyOf(item).StartsWith(KeyPrefix, StringComparison.Ordinal);
 
     // The question's key lists the repos it asked about, e.g. "repos:AA-Automation-Tests,PVS.Internal".
     private static List<string> AskedRepos(LocalItem item) => KeyOf(item)[KeyPrefix.Length..].Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();

@@ -1,18 +1,9 @@
-using PowerLoom.Persistence.Enums;
-
 namespace PowerLoom.Domain.Tasks;
 
-// Task types as AgentConfig names them (an agent's `handles`): the item kinds' labels in the database, e.g. "vault-review".
+// Task types as AgentConfig names them (an agent's `handles`): the item kinds in the database, e.g. "vault-review".
+// A type of its own an agent created in the UI handles is kept too (user decision 2026-10-24); AgentConfig has already
+// checked each is kebab-case.
 public static class TaskKinds
 {
-    private static readonly KebabCaseNameTranslator Labels = new();
-
-    public static string Label(ItemKind kind) => Labels.TranslateMemberName(kind.ToString());
-
-    public static IReadOnlyList<ItemKind> Parse(IEnumerable<string> labels)
-    {
-        var wanted = labels.ToHashSet();
-
-        return Enum.GetValues<ItemKind>().Where(kind => wanted.Contains(Label(kind))).ToList();
-    }
+    public static IReadOnlyList<string> Parse(IEnumerable<string> labels) => labels.Distinct(StringComparer.Ordinal).ToList();
 }

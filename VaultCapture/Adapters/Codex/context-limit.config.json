@@ -1,0 +1,6 @@
+{
+  "warnAtPercent": 70,
+  "transcriptTailLines": 400,
+  "markerTtlMinutes": 1440,
+  "stateFolder": "~/.vault-capture/codex-context-limit"
+}

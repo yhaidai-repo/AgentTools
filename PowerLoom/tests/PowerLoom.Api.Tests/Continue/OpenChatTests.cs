@@ -5,12 +5,15 @@ using PowerLoom.Features.Continue.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Api.Tests.Continue;
 
 [Collection(PowerLoomCollection.Name)]
 public sealed class OpenChatTests(PowerLoomHost host)
 {
+    private static string PromptOf(ChatLink link) => Uri.UnescapeDataString(link.Url.Split("&q=")[1]);
+
     [Fact]
     public async Task The_launcher_is_available_for_every_button()
     {
@@ -32,6 +35,8 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.Contains("## Setup", note);
         Assert.Contains("CLAUDE.md", note);
         Assert.EndsWith("## Notes\n", note);
+        Assert.Contains("## Setup", PromptOf(link));
+        Assert.EndsWith("Also in the note: Rules, Notes.", PromptOf(link));
     }
 
     [Fact]
@@ -57,6 +62,8 @@ public sealed class OpenChatTests(PowerLoomHost host)
         Assert.DoesNotContain("pbi.read", note);
         Assert.EndsWith("## Notes\nMy own remark.\n", note);
         Assert.DoesNotContain("stale", note);
+        Assert.Contains("## The item", PromptOf(link));
+        Assert.Contains("## At the end", PromptOf(link));
     }
 
     [Fact]
@@ -108,7 +115,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Sync drops the last page",
             Assignee = "human",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Finding,
+            Kind = ItemKinds.Finding,
             Status = ItemStatus.Open,
             Body = "the finding's full text",
             Data = """{"type":"question","project":"adoa","default":[],"options":[]}""",
@@ -127,7 +134,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Check the queue",
             Assignee = "human",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Human,
+            Kind = ItemKinds.Human,
             Status = ItemStatus.Open,
             Body = "Two steps.",
             Data = """{"why":"w","solves":"s","steps":[{"action":"Count","source":"sql","resource":"db","reportBack":"n"},{"action":"Clear","source":"sql","resource":"db","reportBack":"ok"}]}""",
@@ -146,7 +153,7 @@ public sealed class OpenChatTests(PowerLoomHost host)
             Title = "Map the payers",
             Assignee = "agent:better-research",
             Vault = PowerLoomHost.Vault,
-            Kind = ItemKind.Research,
+            Kind = ItemKinds.Research,
             Status = ItemStatus.Done,
             Body = "Find how payers map to codes.",
             Resolution = "Three payers map to one code.",

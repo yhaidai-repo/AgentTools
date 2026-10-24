@@ -1,0 +1,16 @@
+{
+  "session_id": "captured-session",
+  "turn_id": "captured-turn",
+  "transcript_path": "C:/probe/rollout.jsonl",
+  "cwd": "C:/probe/Документи",
+  "hook_event_name": "PostToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "mcp__codex_apps__github__search_repositories",
+  "tool_use_id": "captured-call",
+  "tool_input": {
+    "query": "[omitted]",
+    "per_page": 1
+  },
+  "tool_response": "[omitted]"
+}

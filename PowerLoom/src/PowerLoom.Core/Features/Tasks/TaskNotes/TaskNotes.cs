@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
 using PowerLoom.Features.Tasks.TaskNotes.Models;
 using PowerLoom.Persistence;
-using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Tasks.TaskNotes;
 
@@ -37,9 +37,9 @@ public sealed class TaskNotes(PowerLoomDbContext db)
         return Outcome<TaskUserNotes>.Success(new TaskUserNotes(id, text));
     }
 
-    private static Problem? RequestProblem(ItemKind kind, SaveTaskNotesRequest request)
+    private static Problem? RequestProblem(string kind, SaveTaskNotesRequest request)
     {
-        if (kind != ItemKind.Test)
+        if (kind != ItemKinds.Test)
             return Problem.Invalid("Notes are kept on test tasks only.");
 
         return request.Text.Length > TextMax ? Problem.Invalid($"Notes: at most {TextMax} characters.") : null;

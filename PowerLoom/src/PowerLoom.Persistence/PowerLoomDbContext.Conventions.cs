@@ -30,7 +30,6 @@ public partial class PowerLoomDbContext
             .HasPostgresEnum("attachment_origin", LabelsOf<AttachmentOrigin>())
             .HasPostgresEnum("bug_source", LabelsOf<BugSource>())
             .HasPostgresEnum("entity_kind", LabelsOf<EntityKind>())
-            .HasPostgresEnum("item_kind", LabelsOf<ItemKind>())
             .HasPostgresEnum("item_status", LabelsOf<ItemStatus>())
             .HasPostgresEnum("note_write_action", LabelsOf<NoteWriteAction>())
             .HasPostgresEnum("pipeline_status", LabelsOf<PipelineStatus>())

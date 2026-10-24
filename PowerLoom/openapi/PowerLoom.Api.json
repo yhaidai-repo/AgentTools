@@ -1801,6 +1801,63 @@
         }
       }
     },
+    "/api/chats/apps": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "GET_api_chats_apps",
+        "description": "GET_api_chats_apps",
+        "operationId": "GET_api_chats_apps",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatApps"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/chats/app": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "PUT_api_chats_app",
+        "description": "PUT_api_chats_app",
+        "operationId": "PUT_api_chats_app",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseChatAppRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatApps"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/cleanup": {
       "get": {
         "tags": [
@@ -1927,6 +1984,89 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/ai-providers": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "GET_api_ai_providers",
+        "description": "GET_api_ai_providers",
+        "operationId": "GET_api_ai_providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderStatus"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/ai-providers/claude/token": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "PUT_api_ai_providers_claude_token",
+        "description": "PUT_api_ai_providers_claude_token",
+        "operationId": "PUT_api_ai_providers_claude_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveClaudeTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+        ],
+        "summary": "DELETE_api_ai_providers_claude_token",
+        "description": "DELETE_api_ai_providers_claude_token",
+        "operationId": "DELETE_api_ai_providers_claude_token",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -3410,6 +3550,39 @@
           }
         }
       },
+      "ChatApp": {
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "ChatApps": {
+        "required": [
+          "current",
+          "apps"
+        ],
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "string"
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatApp"
+            }
+          }
+        }
+      },
       "ChatKind": {
         "enum": [
           "pbi",
@@ -3425,6 +3598,17 @@
         "type": "object",
         "properties": {
           "url": {
+            "type": "string"
+          }
+        }
+      },
+      "ChooseChatAppRequest": {
+        "required": [
+          "launcher"
+        ],
+        "type": "object",
+        "properties": {
+          "launcher": {
             "type": "string"
           }
         }
@@ -4398,6 +4582,43 @@
           }
         }
       },
+      "ProviderSource": {
+        "enum": [
+          "settings",
+          "env",
+          null
+        ]
+      },
+      "ProviderStatus": {
+        "required": [
+          "provider",
+          "label",
+          "connected",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderSource"
+              }
+            ]
+          }
+        }
+      },
       "PullRequestSettingsRequest": {
         "required": [
           "enabled",
@@ -4700,6 +4921,20 @@
             "type": "string"
           },
           "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveClaudeTokenRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
             "type": [
               "null",
               "string"
@@ -5712,6 +5947,9 @@
     },
     {
       "name": "PowerLoom.Features.Cleanup.CleanupEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
     },
     {
       "name": "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"

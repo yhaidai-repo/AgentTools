@@ -163,6 +163,20 @@ export function readAzureUserAccount(db: PowerLoomDb, vault: string): Promise<Az
   return readValue<AzureUserAccount>(db, vaultSettingKey(vault, AZURE_USER_KEY));
 }
 
+// Settings → AI providers, one for the whole PowerLoom (PowerLoom's API saves them; the agent-runner reads them): the Claude
+// token, and the runner's report whether .env gave it the fallback CLAUDE_CODE_OAUTH_TOKEN (never the token itself).
+export const CLAUDE_TOKEN_KEY = "claudeToken";
+export const CLAUDE_ENV_TOKEN_KEY = "claudeEnvToken";
+
+// Null until a token was saved in Settings.
+export async function readClaudeToken(db: PowerLoomDb): Promise<string | null> {
+  return (await readValue<{ token?: string }>(db, CLAUDE_TOKEN_KEY))?.token || null;
+}
+
+export async function saveClaudeEnvTokenReport(db: PowerLoomDb, present: boolean): Promise<void> {
+  await saveValue(db, CLAUDE_ENV_TOKEN_KEY, { present });
+}
+
 export async function readValue<T>(db: PowerLoomDb, key: string): Promise<T | null> {
   const rows = await db.select().from(config).where(eq(config.key, key));
 

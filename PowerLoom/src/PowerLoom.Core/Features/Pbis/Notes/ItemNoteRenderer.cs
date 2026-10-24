@@ -1,28 +1,26 @@
 using System.Text.Json;
 using PowerLoom.Features.Pbis.Notes.Models;
 using PowerLoom.Infrastructure.Backlog;
-using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Features.Pbis.Notes;
 
 public static class ItemNoteRenderer
 {
-    private static readonly KebabCaseNameTranslator Labels = new();
-
-    private static readonly Dictionary<ItemKind, string> NoteTypes = new()
+    private static readonly Dictionary<string, string> NoteTypes = new()
     {
-        [ItemKind.Research] = "research-task",
-        [ItemKind.Design] = "design-task",
-        [ItemKind.Human] = "human-task",
-        [ItemKind.Question] = "question",
-        [ItemKind.ResearchResult] = "research-result",
+        [ItemKinds.Research] = "research-task",
+        [ItemKinds.Design] = "design-task",
+        [ItemKinds.Human] = "human-task",
+        [ItemKinds.Question] = "question",
+        [ItemKinds.ResearchResult] = "research-result",
     };
 
     public static string Render(ItemNote item, string notesSection)
     {
         var pbi = $"[[{BacklogPaths.PbiNoteName(item.AdoId)}]]";
         var parentLink = item.ParentId is null ? "" : $" · From: [[{item.ParentId}]]";
-        var noteType = NoteTypes.GetValueOrDefault(item.Kind, Labels.TranslateMemberName(item.Kind.ToString()));
+        var noteType = NoteTypes.GetValueOrDefault(item.Kind, item.Kind);
         var parts = new List<string>
         {
             NoteText.Frontmatter(
@@ -55,9 +53,9 @@ public static class ItemNoteRenderer
     {
         return item.Kind switch
         {
-            ItemKind.Question => QuestionSections(item),
-            ItemKind.Human => HumanTaskSections(item),
-            ItemKind.ResearchResult => ResearchResultSections(item),
+            ItemKinds.Question => QuestionSections(item),
+            ItemKinds.Human => HumanTaskSections(item),
+            ItemKinds.ResearchResult => ResearchResultSections(item),
             _ => TaskSections(item),
         };
     }

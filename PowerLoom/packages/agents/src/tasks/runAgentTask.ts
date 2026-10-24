@@ -9,7 +9,7 @@ import type { TaskExecutor } from "../models/TaskExecutor";
 import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
-import { endTask, failAfterError, releaseTask } from "./endTask";
+import { blockTask, endTask, failAfterError, releaseTask } from "./endTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -42,6 +42,17 @@ async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Prom
 
   if (refusal) {
     await releaseTask(deps.db, task, refusal);
+
+    return null;
+  }
+
+  // Not connected (Settings → AI providers): the task ends at once with what to do, not as a failed attempt; a retry
+  // would only fail the same way.
+  const notConnected = await deps.connections.prepare(context.agent.model.provider);
+
+  if (notConnected) {
+    console.log(`${agentId} ${task.id}: ${notConnected}`);
+    await blockTask(deps.db, task, notConnected, undefined);
 
     return null;
   }

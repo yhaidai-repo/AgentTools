@@ -3,6 +3,7 @@ using PowerLoom.Domain.Tasks.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
 
 namespace PowerLoom.Domain.Tasks;
 
@@ -21,7 +22,7 @@ public static class HumanTasks
         db.LocalItems.Add(new LocalItem
         {
             Id = id,
-            Kind = ItemKind.Human,
+            Kind = ItemKinds.Human,
             PbiId = task.AdoId,
             Vault = vault,
             Title = task.Title[..Math.Min(task.Title.Length, TitleMax)],
