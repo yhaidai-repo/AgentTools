@@ -133,6 +133,9 @@ services:
       VAULT_CAPTURE_HOME: /app/VaultCapture
       VAULTS_DIR: /vaults
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
+      # PC paths of the two mounts below: pbi_attach takes a file by its PC path and reads it through them.
+      VAULTS_HOST_ROOT: ${VAULTS_ROOT:-}
+      REPOS_HOST_ROOT: ${REPOS_ROOT:-}
     ports:
       - "127.0.0.1:${MCP_PORT:-3110}:3110"
     volumes:

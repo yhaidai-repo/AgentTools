@@ -86,6 +86,7 @@ export { syncPbisCommand } from "./commands/syncPbisCommand";
 export { importNowCommand } from "./commands/importNowCommand";
 export { getPbiUserNotesCommand } from "./commands/getPbiUserNotesCommand";
 export { savePbiUserNotesCommand } from "./commands/savePbiUserNotesCommand";
+export { attachToPbiCommand } from "./commands/attachToPbiCommand";
 export { COMMANDS, findCommand } from "./commands/commandRegistry";
 export { runCommand } from "./commands/runCommand";
 export { describeCommands } from "./commands/describeCommands";

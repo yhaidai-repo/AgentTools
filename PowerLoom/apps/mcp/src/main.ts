@@ -1,7 +1,7 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
 import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, createAzureUserLogin, depsEnvFromProcess, requireEnv } from "@powerloom/agents";
 import { createPowerLoomClient, createPowerLoomPort } from "@powerloom/client";
-import { readVaults } from "@powerloom/core";
+import { readVaults, type HostFolder } from "@powerloom/core";
 import { createDb } from "@powerloom/db";
 import { RuntimeRegistry } from "@agenttools/runtime";
 import { skillCatalogOf } from "@agenttools/runtime/skills";
@@ -29,6 +29,7 @@ const sessions = new ChatSessions({
   backlogMount: env.backlogMount,
   agents: deps.config,
   usage: deps.usageStore,
+  hostFolders: hostFolders(),
   // PowerLoom's own skills folder is the first one (SKILL_FOLDERS), the only one the commands may edit.
   skills: skillCatalogOf(env.skillFolders, env.skillFolders[0] ?? null),
 });
@@ -40,6 +41,17 @@ console.log(`powerloom-mcp listening on :${port}`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
+
+// The vaults root and the repos folder as the PC names them (compose passes VAULTS_ROOT and REPOS_ROOT), where this
+// container mounts them; a root that isn't set is left out, so its files can't be attached.
+function hostFolders(): HostFolder[] {
+  const folders = [
+    { hostRoot: process.env.VAULTS_HOST_ROOT ?? "", mount: env.vaultsRoot },
+    { hostRoot: process.env.REPOS_HOST_ROOT ?? "", mount: process.env.REPOS_MOUNT ?? "/repos" },
+  ];
+
+  return folders.filter((folder) => folder.hostRoot.trim().length > 0);
+}
 
 async function stop(): Promise<void> {
   clearInterval(sweep);
