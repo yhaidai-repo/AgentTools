@@ -41,6 +41,14 @@ describe("decideSettlement", () => {
     assert.deepEqual(settled, { kind: "wait", ids: ["Q-1-001"], reason: "The test waits for its blocking items" });
   });
 
+  it("holds the task for a writer's blockers even when write_result says complete", () => {
+    const designGaps = decideSettlement(input({ writers: [{ kind: "waits", ids: ["Q-1-006"], reason: "Design needs input first" }] }));
+    const blockedTest = decideSettlement(input({ createdIds: ["Q-1-001"], writers: [{ kind: "waits", ids: ["Q-1-001"], reason: "The test waits for its blocking items" }] }));
+
+    assert.deepEqual(designGaps, { kind: "wait", ids: ["Q-1-006"], reason: "Design needs input first" });
+    assert.deepEqual(blockedTest, { kind: "wait", ids: ["Q-1-001"], reason: "The test waits for its blocking items" });
+  });
+
   it("waits for every created task when no writer says otherwise", () => {
     assert.deepEqual(decideSettlement(input({ result: result("partial"), createdIds: ["AT-1-002"] })), { kind: "wait", ids: ["AT-1-002"], reason: null });
   });

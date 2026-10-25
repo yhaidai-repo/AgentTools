@@ -52,7 +52,11 @@ export class TechWriterWriter implements RunWriter {
   }
 
   async commit(target: WriterTarget): Promise<string[]> {
-    if (target.taskIds.length > 0) {
+    this.isDraftTask = modeOf(target.task) === "draft";
+
+    // Handed work on, or nothing to merge the draft into: the draft and its capture stay as they are (removing them is
+    // the commit's last step, only once the facts have a note to live in).
+    if (target.taskIds.length > 0 || (this.isDraftTask && this.draft.edits.length === 0)) {
       return [];
     }
 

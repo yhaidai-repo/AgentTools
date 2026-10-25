@@ -30,9 +30,10 @@ export type Settlement =
   | { kind: "block"; reason: string };
 
 // The one decision how a committed run ends its task (user decision 2026-10-25). A budget stop stays blocked whatever
-// it handed on (its dependencies are kept for the Re-run). A follow-up that carries the work on ends it done. Complete
-// is done only with every output the task promised. Anything else waits for what it handed on or named, or is blocked
-// for a person: nothing would run it again.
+// it handed on (its dependencies are kept for the Re-run). A follow-up that carries the work on ends it done. A writer's
+// own blockers (design's gaps, a test's blocking items) hold the task whatever write_result says: its outputs say the
+// work isn't done. Complete is done only with every output the task promised. Anything else waits for what it handed on
+// or named, or is blocked for a person: nothing would run it again.
 export function decideSettlement(input: SettlementInput): Settlement {
   const waits = input.writers.flatMap((writer) => (writer.kind === "waits" ? [writer] : []));
   const missing = input.writers.flatMap((writer) => (writer.kind === "missing" ? [writer.output] : []));
@@ -48,12 +49,16 @@ export function decideSettlement(input: SettlementInput): Settlement {
     return { kind: "done" };
   }
 
+  if (waits.length > 0) {
+    return { kind: "wait", ids: waitFor, reason: waits.map((writer) => writer.reason).join("; ") };
+  }
+
   if (input.result?.status === "complete") {
     return missing.length > 0 ? { kind: "block", reason: `The run reported complete without ${missing.join(" and ")}. Check its result, then Re-run.` } : { kind: "done" };
   }
 
   if (waitFor.length > 0) {
-    return { kind: "wait", ids: waitFor, reason: waits.map((writer) => writer.reason).join("; ") || null };
+    return { kind: "wait", ids: waitFor, reason: null };
   }
 
   return { kind: "block", reason: unfinishedReason(input.result) };

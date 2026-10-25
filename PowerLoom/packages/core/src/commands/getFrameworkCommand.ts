@@ -9,7 +9,8 @@ interface FrameworkView {
   source: "settings" | "file";
   /** As runs record it: ui-v<N> for the stored one, the file's v<N> otherwise. */
   version: string;
-  text: string;
+  /** The framework's Markdown; not `text`, which the tool wrapper would show alone, dropping the version and history. */
+  framework: string;
   fileVersion: string | null;
   /** The saved versions, newest first; one in full with `version`. */
   history: { version: number; savedAt: string }[];
@@ -19,7 +20,7 @@ interface FrameworkView {
 export const getFrameworkCommand: Command<{ version?: number }, FrameworkView> = {
   name: "agent.framework",
   effect: "read",
-  description: "Read the shared framework the agents run on now (every agent prompt with {{framework}} pulls it in): its text, whether it is the code's file or the version edited in Settings, the file's version and the saved versions. With version, the text is that saved version's. agent_saveFramework changes it.",
+  description: "Read the shared framework the agents run on now (every agent prompt with {{framework}} pulls it in): its text (framework), whether it is the code's file or the version edited in Settings, the file's version and the saved versions. With version, framework is that saved version's text. agent_saveFramework changes it.",
   input: z.object({ version: z.number().int().positive().optional().describe("A saved version to read instead of the one in effect") }),
   async run(context, input) {
     if (!context.agents) {
@@ -35,13 +36,13 @@ export const getFrameworkCommand: Command<{ version?: number }, FrameworkView> =
     if (input.version !== undefined) {
       const saved = versions.find((row) => row.version === input.version);
 
-      return saved ? { ok: true, value: { source: "settings", version: `ui-v${saved.version}`, text: saved.text, fileVersion: file?.version ?? null, history } } : { ok: false, error: `No saved framework version ${input.version}; history lists the saved ones.` };
+      return saved ? { ok: true, value: { source: "settings", version: `ui-v${saved.version}`, framework: saved.text, fileVersion: file?.version ?? null, history } } : { ok: false, error: `No saved framework version ${input.version}; history lists the saved ones.` };
     }
 
     if (stored) {
-      return { ok: true, value: { source: "settings", version: `ui-v${global.frameworkVersion ?? 0}`, text: stored, fileVersion: file?.version ?? null, history } };
+      return { ok: true, value: { source: "settings", version: `ui-v${global.frameworkVersion ?? 0}`, framework: stored, fileVersion: file?.version ?? null, history } };
     }
 
-    return { ok: true, value: { source: "file", version: file?.version ?? "none", text: file?.text ?? "", fileVersion: file?.version ?? null, history } };
+    return { ok: true, value: { source: "file", version: file?.version ?? "none", framework: file?.text ?? "", fileVersion: file?.version ?? null, history } };
   },
 };

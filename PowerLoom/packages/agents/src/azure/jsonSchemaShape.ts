@@ -38,10 +38,9 @@ function shapeOf(schema: JsonSchemaProperty, omit: string[] = []): Record<string
       continue;
     }
 
-    const nullable = isNullable(property);
-    const field = nullable ? fieldOf(property).nullable() : fieldOf(property);
+    const field = fieldOf(property);
 
-    shape[name] = !required.includes(name) ? field.optional() : nullable ? field.default(null) : field;
+    shape[name] = !required.includes(name) ? field.optional() : isNullable(property) ? field.default(null) : field;
   }
 
   return shape;
@@ -54,7 +53,9 @@ function fieldOf(property: JsonSchemaProperty): z.ZodType {
     return z.unknown().describe(`${property.description ?? ""} (not checked before the call: the schema uses ${unsupported})`.trim());
   }
 
-  const field = typeOf(property);
+  // Nullable wherever the schema says so: a property, an array's items, a map's values.
+  const typed = typeOf(property);
+  const field = isNullable(property) ? typed.nullable() : typed;
 
   return property.description ? field.describe(property.description) : field;
 }

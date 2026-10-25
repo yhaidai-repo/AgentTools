@@ -60,6 +60,13 @@ describe("jsonSchemaShape", () => {
     assert.equal(input.safeParse({ limit: 1.5 }).success, false);
   });
 
+  it("lets nullable array items be null", () => {
+    const input = z.object(jsonSchemaShape({ properties: { ids: { type: "array", items: { type: ["integer", "null"] } } }, required: ["ids"] } as never));
+
+    assert.ok(input.safeParse({ ids: [1, null] }).success);
+    assert.equal(input.safeParse({ ids: [1, "x"] }).success, false);
+  });
+
   it("keeps the extra properties an object allows, checked against their schema", () => {
     const shape = jsonSchemaShape({ properties: { filter: { type: "object", properties: { known: { type: "string" } }, additionalProperties: { type: "number" } } }, required: [] } as never);
     const input = z.object(shape);
