@@ -1,43 +1,52 @@
 "use server";
 
-import { closeItemCommand, isCancellableFromTaskList } from "@powerloom/core";
+import { closeItemCommand, rerunTaskCommand } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import { getDb } from "@/lib/db";
+import { ACTION_WORDS, taskListActionOf, taskListRefusal } from "@/lib/taskListActions";
 import type { ActionResult } from "@/models/ActionResult";
+import type { TaskListAction } from "@/models/TaskListAction";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// "Cancel" on the Tasks list (user request 2026-10-22): each selected task that still waits is closed as cancelled, the
-// same close as its own page's; no agent takes it again. One that started or ended meanwhile is reported, not changed.
-export async function cancelSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+// The Tasks list's selection bar (user requests 2026-10-22, 2026-10-25): Cancel closes each selected task that still
+// waits, so no agent takes it again; Re-run and Start over reopen each finished or failed agent task, as its own page's
+// buttons do. A task that started or ended meanwhile is reported, not changed.
+export async function actOnSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const ids = [...new Set(form.getAll("taskId").map(String))];
+  const action = taskListActionOf(form.get("action"));
 
-  if (ids.length === 0) {
+  if (ids.length === 0 || action === null) {
     return { ok: false, message: "Select at least one task." };
   }
 
   const tasks = await getDb().select().from(localItem).where(inArray(localItem.id, ids));
-  const outcomes = await Promise.all(tasks.map(cancelOne));
-  const cancelled = outcomes.filter((outcome) => outcome === null).length;
+  const outcomes = await Promise.all(tasks.map((task) => actOnOne(task, action)));
+  const done = outcomes.filter((outcome) => outcome === null).length;
   const problems = outcomes.filter((outcome): outcome is string => outcome !== null);
+  const words = ACTION_WORDS[action];
 
   revalidatePath("/", "layout");
 
-  const summary = `${cancelled} task(s) cancelled.`;
+  const summary = `${done} task(s) ${words.done}.`;
 
-  return problems.length > 0 ? { ok: false, message: `${summary} Not cancelled: ${problems.join(" ")}` } : { ok: true, message: summary };
+  return problems.length > 0 ? { ok: false, message: `${summary} ${words.notDone}: ${problems.join(" ")}` } : { ok: true, message: summary };
 }
 
-// null when cancelled, else why not.
-async function cancelOne(task: ItemRow): Promise<string | null> {
-  if (!isCancellableFromTaskList(task)) {
-    return `${task.id} no longer waits (${task.status}).`;
+// null when done, else why not.
+async function actOnOne(task: ItemRow, action: TaskListAction): Promise<string | null> {
+  const refusal = taskListRefusal(task, action);
+
+  if (refusal) {
+    return refusal;
   }
 
-  const closed = await runWebCommand(closeItemCommand, { adoId: task.pbiId, itemId: task.id, decision: "cancel" });
+  const changed = action === "cancel"
+    ? await runWebCommand(closeItemCommand, { adoId: task.pbiId, itemId: task.id, decision: "cancel" })
+    : await runWebCommand(rerunTaskCommand, { adoId: task.pbiId, itemId: task.id, startOver: action === "start-over" });
 
-  return closed.ok ? null : `${task.id}: ${closed.error}`;
+  return changed.ok ? null : `${task.id}: ${changed.error}`;
 }

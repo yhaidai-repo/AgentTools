@@ -2,14 +2,14 @@
 
 import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ActionResult } from "@/models/ActionResult";
-import { cancelSelected } from "./actions";
+import { actOnSelected } from "./actions";
 
-// Wraps the server-rendered task table so its row checkboxes submit with this form. Cancel lives in a bar that shows
-// only while rows are ticked, like the Backlog's and the Runs page's (user request 2026-10-22).
-export function CancelTasksForm({ children }: { children: ReactNode }) {
+// Wraps the server-rendered task table so its row checkboxes submit with this form. The actions live in a bar that
+// shows only while rows are ticked, like the Backlog's and the Runs page's (user requests 2026-10-22, 2026-10-25).
+export function TaskSelectionForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
   const [selected, setSelected] = useState(0);
-  const [result, action, isPending] = useActionState<ActionResult | null, FormData>(cancelSelected, null);
+  const [result, action, isPending] = useActionState<ActionResult | null, FormData>(actOnSelected, null);
 
   function onClear() {
     form.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(untick);
@@ -20,8 +20,11 @@ export function CancelTasksForm({ children }: { children: ReactNode }) {
     <form ref={form} action={action} onChange={() => setSelected(selectedCount(form.current))}>
       <div className={`selection-bar${selected > 0 ? " show" : ""}`} aria-hidden={selected === 0}>
         <span key={selected} className="selection-count">{selected} selected</span>
-        <button type="submit" className="danger" disabled={isPending} onClick={confirmCancel} title="Cancels the selected tasks that still wait; no agent takes them again">{isPending ? "Cancelling…" : "Cancel tasks"}</button>
+        <button type="submit" name="action" value="rerun" className="secondary" disabled={isPending} title="Reopens the selected finished or failed agent tasks; a run continues the last run's conversation if it didn't finish">Re-run</button>
+        <button type="submit" name="action" value="start-over" className="secondary" disabled={isPending} title="Reopens the selected finished or failed agent tasks to run again from the start">Start over</button>
+        <button type="submit" name="action" value="cancel" className="danger" disabled={isPending} onClick={confirmCancel} title="Cancels the selected tasks that still wait; no agent takes them again">Cancel tasks</button>
         <button type="button" className="link-button selection-clear" onClick={onClear}>Clear</button>
+        {isPending && <span className="muted">Working…</span>}
       </div>
       {result && <p className="action-results"><span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span></p>}
       {children}
