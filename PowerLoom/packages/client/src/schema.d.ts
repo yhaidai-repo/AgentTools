@@ -1912,6 +1912,9 @@ export interface components {
         };
         DispatchedAgent: {
             agentId: string;
+            /** Format: int32 */
+            openTasks: number;
+            message: string;
         };
         DraftCaptureResult: {
             ok: boolean;

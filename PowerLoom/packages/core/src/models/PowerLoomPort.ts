@@ -59,7 +59,7 @@ export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort
   // Puts a revision's text back as the skill (the current text becomes a revision too).
   restoreSkill(name: string, revisionId: number, hash: string): Promise<Outcome<SavedSkill>>;
   // Dispatches the agent now, as its schedule would: its open tasks are validated and the valid ones started.
-  runAgent(agentId: string): Promise<Outcome<{ agentId: string }>>;
+  runAgent(agentId: string): Promise<Outcome<{ agentId: string; openTasks: number; message: string }>>;
 
   // PowerLoom's view of the running system (the dashboard's Application tab); a failure when PowerLoom itself doesn't answer.
   status(): Promise<Outcome<SystemStatus>>;

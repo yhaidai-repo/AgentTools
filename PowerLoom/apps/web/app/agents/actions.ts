@@ -4,6 +4,7 @@ import { discardDeadLetterCommand, pauseAgentsCommand, replayDeadLetterCommand, 
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
+import { messageResult } from "@/lib/messageResult";
 
 // Kill switch through agent.pause (the command a chat uses too); resuming also clears a rate-limit pause.
 export async function setAgentsPaused(paused: boolean): Promise<ActionResult> {
@@ -39,5 +40,5 @@ export async function discardDeadLetter(id: string): Promise<ActionResult> {
 export async function runAgentNow(agentId: string): Promise<ActionResult> {
   const dispatched = await runWebCommand(runAgentCommand, { id: agentId });
 
-  return dispatched.ok ? { ok: true, message: `${dispatched.value.message} Held tasks show their reasons on the PBI page.` } : { ok: false, message: dispatched.error };
+  return messageResult(dispatched);
 }

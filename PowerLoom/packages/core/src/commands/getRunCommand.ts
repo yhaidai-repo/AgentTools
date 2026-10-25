@@ -3,7 +3,10 @@ import { z } from "zod";
 import { conversationChain, conversationCostUsd } from "../agentRuns/conversationChain";
 import { loadRun, loadRunUsage, tokensOf } from "../agentRuns/runDetail";
 import { runRef } from "../agentRuns/vaultRuns";
+import { readLogEntriesAbout } from "../logs/logEntries";
+import { logEntryView } from "../logs/logEntryView";
 import type { AgentRunRow } from "../models/AgentRunRow";
+import type { LogEntryView } from "../models/LogEntryView";
 import type { Command } from "../models/Command";
 import type { RunListRow } from "../models/RunListRow";
 import { vaultInput } from "./inputs";
@@ -36,6 +39,8 @@ interface RunDetail {
   task: { id: string; kind: string; title: string; status: string } | null;
   usage: { costUsd: number; tokens: number; turns: number; durationMs: number } | null;
   outputs: string[];
+  /** What the services logged about the run or its task since it started. */
+  errors: LogEntryView[];
 }
 
 // A first message carries the whole PBI context (tens of thousands of characters); a chat reads its head here and the
@@ -46,7 +51,7 @@ const INPUT_CHARS = 4000;
 export const getRunCommand: Command<RunInput, RunDetail> = {
   name: "run.get",
   effect: "read",
-  description: "Read one agent run of a vault: agent, PBI, task, outcome and error, first message, tokens and cost once ended, the outputs it made (item ids, notes) and the runs it continued or was continued by. run_events gives its trace.",
+  description: "Read one agent run of a vault: agent, PBI, task, outcome and error, first message, tokens and cost once ended, the outputs it made (item ids, notes), the runs it continued or was continued by, and the errors logged about it or its task since it started. run_events gives its trace.",
   input,
   async run(context, input) {
     if (!context.usage) {
@@ -62,12 +67,13 @@ export const getRunCommand: Command<RunInput, RunDetail> = {
     const chain = await conversationChain(context.db, found.run);
     const conversation = chain.length > 1 ? { runs: chain.length, costUsd: await conversationCostUsd(context.usage, chain) } : null;
     const usage = await loadRunUsage(context.usage, found.run.id);
+    const errors = await readLogEntriesAbout(context.db, { taskId: found.task?.id ?? null, runId: found.run.id }, found.run.startedAt);
 
-    return { ok: true, value: detailOf(found, chain, conversation, usage) };
+    return { ok: true, value: { ...detailOf(found, chain, conversation, usage), errors: errors.map(logEntryView) } };
   },
 };
 
-function detailOf({ run, task }: Pick<RunListRow, "run" | "task">, chain: AgentRunRow[], conversation: RunDetail["conversation"], usage: UsageRecord | null): RunDetail {
+function detailOf({ run, task }: Pick<RunListRow, "run" | "task">, chain: AgentRunRow[], conversation: RunDetail["conversation"], usage: UsageRecord | null): Omit<RunDetail, "errors"> {
   const next = chain[chain.indexOf(run) + 1];
 
   return {

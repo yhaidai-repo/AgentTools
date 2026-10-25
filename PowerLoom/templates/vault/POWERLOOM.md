@@ -5,7 +5,8 @@ PowerLoom keeps the PBIs of this vault ({{vaultPath}}), what its agents found, a
 it through the `powerloom` MCP server this vault lists, in `.mcp.json` for Claude Code and in `.codex/config.toml` for
 Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, named with `_` (`pbi_read`,
 `item_close`), next to the readers the agents have (vault docs, Read SQL, Read Azure, Azure DevOps, the whole system:
-`task_list`, `run_get`, `agent_list`, `settings_get`, …).
+`task_list`, `run_get`, `agent_list`, `settings_get`, …). Why something failed: `run_events` for a run's own steps,
+`logs_read` for what the services logged (a task that failed before its run started, a dispatch or sync that broke).
 
 - Each tool says what it needs. A tool that changes PowerLoom says what to ask or confirm first: ask for what the user
   didn't say (never invent it), confirm a delete or a close naming the item, and show the final text before a submit.

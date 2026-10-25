@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
+import { readLogEntriesAbout } from "../logs/logEntries";
+import { logEntryView } from "../logs/logEntryView";
 import type { ItemDetail } from "../models/ItemDetail";
+import type { LogEntryView } from "../models/LogEntryView";
 import { loadItemDetail } from "../tasks/itemDetail";
 import { vaultInput } from "./inputs";
 
@@ -11,10 +14,13 @@ const input = z.object({
 
 type GetTaskInput = z.infer<typeof input>;
 
-export const getTaskCommand: Command<GetTaskInput, ItemDetail> = {
+// What the error log holds about the task (a failure before a run started), over its retention.
+const ERRORS_SINCE_MS = 14 * 24 * 60 * 60 * 1000;
+
+export const getTaskCommand: Command<GetTaskInput, ItemDetail & { errors: LogEntryView[] }> = {
   name: "task.get",
   effect: "read",
-  description: "Read one task, question or finding by its id: its body and data (held-by reasons, resolution, answers), its uploads (without bytes), the findings it raised and its runs with their outputs. Pass a run's id to run_get for its trace.",
+  description: "Read one task, question or finding by its id: its body and data (held-by reasons, resolution, answers), its uploads (without bytes), the findings it raised, its runs with their outputs, and the errors logged about it (e.g. a failure before a run could start). Pass a run's id to run_get for its trace.",
   input,
   async run(context, input) {
     const detail = await loadItemDetail(context.db, input.id);
@@ -27,6 +33,8 @@ export const getTaskCommand: Command<GetTaskInput, ItemDetail> = {
       return { ok: false, error: `${input.id} isn't in vault ${input.vault}: it belongs to ${detail.item.vault}.` };
     }
 
-    return { ok: true, value: detail };
+    const errors = await readLogEntriesAbout(context.db, { taskId: detail.item.id }, new Date(Date.now() - ERRORS_SINCE_MS));
+
+    return { ok: true, value: { ...detail, errors: errors.map(logEntryView) } };
   },
 };

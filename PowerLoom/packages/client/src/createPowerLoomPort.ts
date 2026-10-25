@@ -127,7 +127,7 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
     async runAgent(agentId) {
       const { data, error, response } = await powerloom.POST("/api/agents/{agentId}/run", { params: { path: { agentId } } });
 
-      return data ? { ok: true, value: { agentId: data.agentId } } : powerloomFailure(error, response);
+      return data ? { ok: true, value: { agentId: data.agentId, openTasks: data.openTasks, message: data.message } } : powerloomFailure(error, response);
     },
     // PowerLoom not answering at all is the status's expected miss (the page shows that), not a crash of the caller.
     async status(): Promise<Outcome<SystemStatus>> {

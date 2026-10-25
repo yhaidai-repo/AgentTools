@@ -36,6 +36,7 @@ import { listSchedulesCommand } from "./listSchedulesCommand";
 import { getScheduleCommand } from "./getScheduleCommand";
 import { listRunsCommand } from "./listRunsCommand";
 import { getRunCommand } from "./getRunCommand";
+import { readLogsCommand } from "./readLogsCommand";
 import { getRunEventsCommand } from "./getRunEventsCommand";
 import { listAgentsCommand } from "./listAgentsCommand";
 import { getAgentCommand } from "./getAgentCommand";
@@ -163,6 +164,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   getScheduleCommand,
   listRunsCommand,
   getRunCommand,
+  readLogsCommand,
   getRunEventsCommand,
   listAgentsCommand,
   getAgentCommand,

@@ -1,5 +1,5 @@
 import { logEntry, type PowerLoomDb } from "@powerloom/db";
-import { and, desc, eq, gte, ilike, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, or, sql, type SQL } from "drizzle-orm";
 import type { LogEntryQuery } from "../models/LogEntryQuery";
 import type { LogEntryRow } from "../models/LogEntryRow";
 import type { NewLogEntry } from "../models/NewLogEntry";
@@ -18,6 +18,19 @@ export async function recordLogEntry(db: PowerLoomDb, entry: NewLogEntry): Promi
 
 export function readLogEntries(db: PowerLoomDb, query: LogEntryQuery): Promise<LogEntryRow[]> {
   return db.select().from(logEntry).where(and(...conditionsOf(query))).orderBy(desc(logEntry.lastAt)).limit(query.limit);
+}
+
+const ABOUT_LIMIT = 20;
+
+/** What was logged about a task, or a run of it, since a time: for task_get and run_get. */
+export function readLogEntriesAbout(db: PowerLoomDb, about: { taskId: string | null; runId?: number | null }, since: Date): Promise<LogEntryRow[]> {
+  const subjects = [about.taskId ? eq(logEntry.taskId, about.taskId) : null, about.runId ? eq(logEntry.runId, about.runId) : null].filter((condition): condition is SQL => condition !== null);
+
+  if (subjects.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  return db.select().from(logEntry).where(and(gte(logEntry.lastAt, since), or(...subjects))).orderBy(desc(logEntry.lastAt)).limit(ABOUT_LIMIT);
 }
 
 function conditionsOf(query: LogEntryQuery): SQL[] {

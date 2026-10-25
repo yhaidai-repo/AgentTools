@@ -4719,11 +4719,20 @@
       },
       "DispatchedAgent": {
         "required": [
-          "agentId"
+          "agentId",
+          "openTasks",
+          "message"
         ],
         "type": "object",
         "properties": {
           "agentId": {
+            "type": "string"
+          },
+          "openTasks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
             "type": "string"
           }
         }
