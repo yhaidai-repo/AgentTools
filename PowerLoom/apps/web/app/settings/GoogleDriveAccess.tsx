@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useTransition } from "react";
+import { KeptForm } from "@/components/KeptForm";
 import { ResultLine } from "@/components/ResultLine";
 import type { ActionResult } from "@/models/ActionResult";
 import type { GoogleDriveValues } from "@/models/GoogleDriveValues";
@@ -29,11 +30,11 @@ export function GoogleDriveAccess({ values, message }: { values: GoogleDriveValu
         </div>
       ))}
       {values.account && (
-        <form action={addAction} className="actions">
+        <KeptForm action={addAction} clearOn={result} className="actions">
           <input name="folder" required placeholder="Folder link, e.g. https://drive.google.com/drive/folders/…" aria-label="Drive folder" />
           <button type="submit" className="secondary" disabled={isAdding}>{isAdding ? "Checking…" : "Add folder"}</button>
           <ResultLine result={result} />
-        </form>
+        </KeptForm>
       )}
     </div>
   );

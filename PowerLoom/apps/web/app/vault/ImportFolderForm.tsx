@@ -1,5 +1,6 @@
 "use client";
 
+import { KeptForm } from "@/components/KeptForm";
 import { useOpenChat } from "@/components/useOpenChat";
 import type { ChatLauncherState } from "@/models/ChatLauncherState";
 
@@ -13,7 +14,7 @@ export function ImportFolderForm({ vault, launcher }: { vault: string; launcher:
   }
 
   return (
-    <form action={onImport}>
+    <KeptForm action={onImport}>
       <label>
         Import a folder: its path on this PC (read only; the chat writes into {vault} and keeps a report in import-reports/)
         <input name="folder" placeholder="D:/Docs/Old specs" required />
@@ -23,6 +24,6 @@ export function ImportFolderForm({ vault, launcher }: { vault: string; launcher:
         {launcher.problem && <span className="muted">{launcher.problem}</span>}
         {message && <span className="result-error">{message}</span>}
       </div>
-    </form>
+    </KeptForm>
   );
 }

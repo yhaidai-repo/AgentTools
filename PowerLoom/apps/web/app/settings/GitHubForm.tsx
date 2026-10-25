@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { KeptForm } from "@/components/KeptForm";
 import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
@@ -17,7 +18,7 @@ export function GitHubForm({ values }: { values: GitHubValues }) {
   const signedIn = values.login ? ` · signed in as ${values.login}` : "";
 
   return (
-    <form className="panel settings-card">
+    <KeptForm action={saveAction} actions={{ test: testAction, sync: syncAction }} clearOn={saveResult} className="panel settings-card">
       <SettingsHead title="GitHub" description="The owner's GitHub repos come into this vault's repositories; agents clone the enabled ones with this token, and pull requests you review or wrote come to Reviews." enabled={values.enabled} />
       <div className="settings-body">
         <p className="hint">A fine-grained personal access token with Contents and Pull requests: read, on the repos agents should read.</p>
@@ -28,10 +29,10 @@ export function GitHubForm({ values }: { values: GitHubValues }) {
       </div>
       <div className="settings-foot">
         <ResultLine result={saveResult ?? testResult ?? syncResult} />
-        {values.enabled && values.hasToken && <button type="submit" formAction={syncAction} disabled={isSyncing} className="secondary">{isSyncing ? "Listing…" : "List repos now"}</button>}
-        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test GitHub"}</button>
-        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+        {values.enabled && values.hasToken && <button type="submit" data-action="sync" disabled={isSyncing} className="secondary">{isSyncing ? "Listing…" : "List repos now"}</button>}
+        <button type="submit" data-action="test" disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test GitHub"}</button>
+        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

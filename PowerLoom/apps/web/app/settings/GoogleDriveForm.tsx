@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { KeptForm } from "@/components/KeptForm";
 import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
@@ -13,7 +14,7 @@ export function GoogleDriveForm({ values }: { values: GoogleDriveValues }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveGoogleDriveAction, null);
 
   return (
-    <form action={action}>
+    <KeptForm action={action} clearOn={result}>
       <SettingsHead title="Google Drive" description="Agents with Google Drive switched on may search and read files in the folders below, and nothing else of the Drive. Read-only: the sign-in only allows reading." enabled={values.enabled} />
       <div className="settings-body">
         <details className="hint">
@@ -33,6 +34,6 @@ export function GoogleDriveForm({ values }: { values: GoogleDriveValues }) {
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }
