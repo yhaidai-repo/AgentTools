@@ -1,11 +1,10 @@
 import type { ChatTarget } from "@powerloom/core";
 import { ContinueButton } from "@/components/ContinueButton";
-import { powerloom } from "@/lib/powerloom";
+import { chatLauncher } from "@/lib/chatLauncher";
 
-// The button with its label and, when no chat can open, the reason; checking changes nothing (one answer for every
-// button: the chat has no per-target checks).
+// The button with its label and, when no chat can open, the reason.
 export async function ContinueChat({ target, verb = "Continue" }: { target: ChatTarget; verb?: string }) {
-  const { data } = await powerloom.GET("/api/chats/launcher");
+  const launcher = await chatLauncher();
 
-  return <ContinueButton target={target} label={data?.label ?? "agent"} problem={data ? data.problem ?? null : "PowerLoom isn't reachable."} verb={verb} />;
+  return <ContinueButton target={target} label={launcher.label} problem={launcher.problem} verb={verb} />;
 }

@@ -1725,7 +1725,7 @@ export interface components {
             apps: components["schemas"]["ChatApp"][];
         };
         /** @enum {unknown} */
-        ChatKind: "pbi" | "item" | "review" | "vault";
+        ChatKind: "pbi" | "item" | "review" | "vault" | "import";
         ChatLink: {
             url: string;
         };
@@ -1965,6 +1965,7 @@ export interface components {
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
             id: string;
+            folder?: null | string;
         };
         OutsideComponentState: {
             component: string;

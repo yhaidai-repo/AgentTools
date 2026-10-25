@@ -6,12 +6,13 @@ using PowerLoom.Persistence;
 namespace PowerLoom.Features.Vaults.Add;
 
 // Every vault is reviewed on a schedule (user decision 2026-10-24: a fresh install reviews its vaults as this PC does):
-// the schedule the Tasks page would save, every 6 hours. A vault that has one (a restored vault) keeps it as it is.
+// the schedule the Tasks page would save, twice a week (user decision 2026-10-25: Monday and Thursday at 06:00; the
+// vault-review agent's own schedule takes the task 15 minutes later). A vault that has one (a restored vault) keeps it.
 public sealed class VaultReviewSchedule(PowerLoomDbContext db, TaskScheduling scheduling)
 {
     private const string TaskType = "vault-review";
     private const string Name = "Vault review schedule";
-    private const string Cron = "0 */6 * * *";
+    private const string Cron = "0 6 * * 1,4";
     private const string Description = "Review the vault: decide each stale or unlinked note, fix invalid links, and close or keep each open WWW/KI/OQ record.";
     private const string AcceptanceCriteria = "Each candidate taken this run has a decision with its reasons; the summary lists what changed and what is left.";
 

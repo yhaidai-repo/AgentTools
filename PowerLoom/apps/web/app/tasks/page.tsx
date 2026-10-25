@@ -1,4 +1,4 @@
-import { TASK_TYPE_PATTERN, isCancellableFromTaskList, isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
+import { TASK_TYPE_PATTERN, isFailedOutcome, listVaultTaskSchedules } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
@@ -13,12 +13,13 @@ import { itemPath } from "@/lib/items";
 import { periodOf } from "@/lib/ranges";
 import { rememberedParams } from "@/lib/rememberedFilters";
 import { TASK_KINDS, TASK_PAGE_SIZES, bucketOf, countBy, loadTaskList, matchesTask, sortTasks, type TaskRow } from "@/lib/taskList";
+import { isSelectableTask } from "@/lib/taskListActions";
 import { isHumanWork } from "@/lib/taskLooks";
 import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
 import type { TaskFilter } from "@/models/TaskFilter";
-import { CancelTasksForm } from "./CancelTasksForm";
 import { ScheduleTable } from "./ScheduleTable";
 import { TaskFilters } from "./TaskFilters";
+import { TaskSelectionForm } from "./TaskSelectionForm";
 import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
       </div>
       <RememberFilters vault={vault} />
       <TaskFilters filter={filter} total={ofKind.length} buckets={countBy(ofKind, bucketOf)} kinds={withChosenKind(countBy(ofStatus, (row) => row.kind), filter.kind)} />
-      {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <CancelTasksForm><TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></CancelTasksForm>}
+      {shown.length === 0 ? <p className="empty-note">Nothing matches.</p> : <TaskSelectionForm><TaskTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></TaskSelectionForm>}
       {shown.length > 0 && <Pager page={page} size={filter.size} sizes={TASK_PAGE_SIZES} pages={pages} total={shown.length} noun="tasks" hrefOf={(change) => tasksUrl({ ...filter, page: change.page, size: change.size ?? filter.size })} />}
       <div className="section-label">Scheduled tasks</div>
       <ScheduleTable schedules={await listVaultTaskSchedules(getDb(), vault)} />
@@ -103,7 +104,7 @@ function TaskRowView({ row }: { row: TaskRow }) {
 
   return (
     <tr className={classes || undefined}>
-      <td className="col-select">{isCancellableFromTaskList(row) && <input type="checkbox" name="taskId" value={row.id} aria-label={`Select ${row.id}`} />}</td>
+      <td className="col-select">{isSelectableTask(row) && <input type="checkbox" name="taskId" value={row.id} aria-label={`Select ${row.id}`} />}</td>
       <td className="col-id"><Link href={itemPath(row)} className="id">{row.id}</Link></td>
       <td className="title">
         <Link href={itemPath(row)} className="row-title" title={row.title}>{row.title}</Link>

@@ -3975,7 +3975,8 @@
           "pbi",
           "item",
           "review",
-          "vault"
+          "vault",
+          "import"
         ]
       },
       "ChatLink": {
@@ -4920,6 +4921,12 @@
           },
           "id": {
             "type": "string"
+          },
+          "folder": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

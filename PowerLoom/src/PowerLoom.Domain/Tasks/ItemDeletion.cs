@@ -12,8 +12,9 @@ public static class ItemDeletion
 {
     private const string Actor = "human";
 
-    // Questions and tasks the user may delete; results and refinements are agent output, not work items.
-    private static readonly string[] Deletable = [ItemKinds.Question, ItemKinds.Human, ItemKinds.Finding, ItemKinds.Research, ItemKinds.Refinement, ItemKinds.Design, ItemKinds.Docs];
+    // Every question and task may be deleted, a test, meeting or vault-review task and a task type of its own too; results
+    // are agent output, not work items, and a review has its own delete.
+    private static readonly string[] NotDeletable = [ItemKinds.ResearchResult, ItemKinds.TestReport, ItemKinds.Review];
 
     public static bool IsDeletable(LocalItem item) => IsDeletableKind(item.Kind) && item.Status is not (ItemStatus.InProgress or ItemStatus.Deleted);
 
@@ -36,5 +37,5 @@ public static class ItemDeletion
     }
 
     // A task of a type an agent created in the UI handles is deleted like research (user decision 2026-10-24).
-    private static bool IsDeletableKind(string kind) => Deletable.Contains(kind) || !ItemKinds.IsBuiltIn(kind);
+    private static bool IsDeletableKind(string kind) => !NotDeletable.Contains(kind);
 }

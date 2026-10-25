@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { rerunTaskAction } from "./actions";
 
 // Reopens a finished agent task; it runs on the agent's next dispatch or "Run now". Re-run continues the last run's
-// conversation when that run didn't succeed; Start over begins a fresh one (user decision 2026-10-19).
+// conversation when that run didn't succeed; Start over begins a fresh one, without the last result either (user decisions 2026-10-19, 2026-10-25).
 export function RerunTaskButton({ adoId, itemId }: { adoId: number | null; itemId: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -20,7 +20,7 @@ export function RerunTaskButton({ adoId, itemId }: { adoId: number | null; itemI
   return (
     <span className="actions">
       <button type="button" className="secondary" onClick={() => onRerun(false)} disabled={isPending} title="Continues the last run's conversation if it didn't finish">{isPending ? "Reopening…" : "Re-run"}</button>
-      <button type="button" className="secondary" onClick={() => onRerun(true)} disabled={isPending} title="Runs again from the start, without the last run's conversation">Start over</button>
+      <button type="button" className="secondary" onClick={() => onRerun(true)} disabled={isPending} title="Runs again from the start, without the last run's conversation or result">Start over</button>
       {message && <span className="muted">{message}</span>}
     </span>
   );

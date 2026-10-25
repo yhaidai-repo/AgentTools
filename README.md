@@ -64,7 +64,3 @@ Whatever you skip, set it in the web UI the script prints → Settings → AI pr
 `pwsh scripts/Set-AiProviders.ps1` again. Then Settings for Azure DevOps per vault, and "Configure with Claude" (or
 Codex) on each vault.
 Details: [`PowerLoom/README.md`](PowerLoom/README.md).
-
-## Future plans
-
-- **Audio capture** (meeting notes agent) and **DevHub**-driven autotests, once those tools are published.

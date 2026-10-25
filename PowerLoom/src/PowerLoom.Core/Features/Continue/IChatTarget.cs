@@ -12,6 +12,9 @@ public interface IChatTarget
 
     Task<Outcome<ChatBrief>> BriefAsync(string id, IChatLauncher launcher, CancellationToken cancellation);
 
+    // The whole request, for a kind that needs more than the id (an import's folder).
+    Task<Outcome<ChatBrief>> BriefAsync(OpenChatRequest request, IChatLauncher launcher, CancellationToken cancellation) => BriefAsync(request.Id, launcher, cancellation);
+
     // What opening the chat changes, once its link is ready.
     Task OpenedAsync(string id, CancellationToken cancellation) => Task.CompletedTask;
 }

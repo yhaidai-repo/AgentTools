@@ -78,7 +78,7 @@ public sealed class AddVaultTests(PowerLoomHost host)
 
         var schedules = await SchedulesOfAsync("reviewed-vault");
 
-        Assert.Equal([("vault-review", "0 */6 * * *", true)], schedules.Select(schedule => (schedule.TaskType, schedule.Cron, schedule.Enabled)));
+        Assert.Equal([("vault-review", "0 6 * * 1,4", true)], schedules.Select(schedule => (schedule.TaskType, schedule.Cron, schedule.Enabled)));
         Assert.Equal("Vault review schedule", schedules[0].Name);
     }
 
