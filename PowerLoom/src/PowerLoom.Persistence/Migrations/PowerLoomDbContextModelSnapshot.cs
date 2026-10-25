@@ -795,6 +795,84 @@ namespace PowerLoom.Persistence.Migrations
                     b.ToTable("local_item", (string)null);
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.LogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseSerialColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Count")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("count");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<DateTime>("FirstAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("LastAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<int?>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<long?>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("Service")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("service");
+
+                    b.Property<string>("TaskId")
+                        .HasColumnType("text")
+                        .HasColumnName("task_id");
+
+                    b.Property<string>("Vault")
+                        .HasColumnType("text")
+                        .HasColumnName("vault");
+
+                    b.HasKey("Id")
+                        .HasName("log_entry_pkey");
+
+                    b.HasIndex(new[] { "Fingerprint" }, "log_entry_fingerprint_uq")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "LastAt" }, "log_entry_last_at_idx");
+
+                    b.HasIndex(new[] { "RunId" }, "log_entry_run_idx");
+
+                    b.HasIndex(new[] { "TaskId" }, "log_entry_task_idx");
+
+                    b.ToTable("log_entry", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.PbiEstimate", b =>
                 {
                     b.Property<int>("Id")

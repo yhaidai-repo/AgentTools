@@ -19,6 +19,7 @@ using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
 using PowerLoom.Infrastructure.ChatLaunch;
 using PowerLoom.Infrastructure.Mcp;
+using PowerLoom.Infrastructure.ErrorLog;
 using PowerLoom.Infrastructure.Health;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Infrastructure.Messaging;
@@ -40,6 +41,7 @@ public static class PowerLoomSetup
     {
         builder.AddPowerLoomJson();
         builder.AddPowerLoomTelemetry();
+        builder.AddPowerLoomErrorLog();
         builder.AddPowerLoomPersistence();
         builder.AddPowerLoomMessaging(applicationAssembly);
         builder.AddPowerLoomScheduling();

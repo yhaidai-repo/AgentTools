@@ -212,3 +212,4 @@ export type { DraftOutcome } from "./models/DraftOutcome";
 export type { RegisterRecordInput } from "./models/RegisterRecordInput";
 export type { RecordClosingInput } from "./models/RecordClosingInput";
 export type { CaptureWorkPort } from "./models/CaptureWorkPort";
+export * from "./logs";

@@ -1,4 +1,4 @@
-import { setItemStatus } from "@powerloom/core";
+import { recordLogEntry, setItemStatus } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import type { AgentDefinition } from "@agenttools/config";
 import { eq } from "drizzle-orm";
@@ -69,12 +69,15 @@ export async function blockTask(db: PowerLoomDb, task: ItemRow, reason: string, 
 }
 
 // An unexpected error (e.g. before the run started, so no run records it): counted like a failed run, unless the task
-// was already ended.
+// was already ended. No run keeps its error, so the error log does, on the task (task_get and logs_read show it).
 export async function failAfterError(db: PowerLoomDb, task: ItemRow, maxFailures: number, error: unknown): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error);
   const [current] = await db.select({ status: localItem.status }).from(localItem).where(eq(localItem.id, task.id));
 
+  await recordLogEntry(db, { service: "runner", level: "error", message: `${task.id} failed before its run could start: ${message}`, taskId: task.id, pbiId: task.pbiId, vault: task.vault }).catch(() => undefined);
+
   if (current?.status === "in-progress") {
-    await countFailure(db, task, maxFailures, undefined, error instanceof Error ? error.message : String(error));
+    await countFailure(db, task, maxFailures, undefined, message);
   }
 }
 
