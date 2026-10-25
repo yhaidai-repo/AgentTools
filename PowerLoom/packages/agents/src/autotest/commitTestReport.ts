@@ -18,7 +18,7 @@ type WorkItemRow = typeof workItem.$inferSelect;
 // Writes a successful run (stage 2b, 2026-10-23: a granted writer, so the toolset has written the tasks and drafts
 // already): the bugs it found (through PowerLoom's bug endpoint) and the report (TR). A complete report closes the
 // task; one that waits for an answer (the plan's approval, missing test data) sends the task back to open, held by the
-// blocking items it created, so the next run goes on once they close.
+// blocking items it created, so the next run goes on once they close; anything else is left to the generic executor.
 export async function commitTestReport(
   deps: Pick<AgentDeps, "db" | "powerloomUrl">,
   task: ItemRow,
@@ -50,12 +50,17 @@ async function insertReport(db: PowerLoomDb, task: ItemRow, pbiId: number, runId
   return id;
 }
 
-// Done when the report is complete or nothing it created can change it; otherwise open again, waiting for the
-// blocking items (data.dependsOn, checked by the dispatcher's validation).
+// Done when the report is complete; open again, waiting for the blocking items it created (data.dependsOn, checked by
+// the dispatcher's validation), when it has any. Otherwise the generic executor settles it from write_result: it waits
+// for the other tasks it created or the open items it names, or it is blocked, never done while cases are unproven.
 async function settleTask(db: PowerLoomDb, task: ItemRow, runId: number, report: TestReport, blocking: string[]): Promise<void> {
-  if (report.status === "complete" || blocking.length === 0) {
+  if (report.status === "complete") {
     await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
 
+    return;
+  }
+
+  if (blocking.length === 0) {
     return;
   }
 

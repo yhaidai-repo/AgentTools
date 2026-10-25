@@ -107,15 +107,16 @@ describe("better-refinement prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
     const prompt = await loadPrompt("better-refinement", { team: "Signals" });
 
-    assert.equal(prompt.version, "v7+framework.v4");
+    assert.equal(prompt.version, "v8+framework.v5");
     assert.match(prompt.text, /^## How you work/);
     assert.match(prompt.text, /You are Better Refinement for one PBI of the Signals team/);
   });
 
-  it("asks for both estimate values with record_estimate", async () => {
+  it("asks for both estimate values with record_estimate, before write_refinement", async () => {
     const prompt = await loadPrompt("better-refinement", { team: "Signals" });
 
-    assert.match(prompt.text, /`record_estimate`, required/);
+    assert.match(prompt.text, /`record_estimate`, when your tools include it, first: `write_refinement` refuses until it is recorded/);
+    assert.ok(prompt.text.indexOf("- `record_estimate`") < prompt.text.indexOf("- `write_refinement`"));
     assert.match(prompt.text, /without an agent .*hours for an agent implementing it/);
   });
 });

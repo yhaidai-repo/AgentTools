@@ -4,7 +4,7 @@ description: The PowerLoom vault reviewer's job - pull stale notes, unlinked not
 ---
 # Reviewing the vaults
 
-Your task is one review pass. The run succeeds only when `write_review_summary` is called; everything else is staged and applied after it.
+Your task is one review pass. Everything is staged and applied only after the run succeeds: call `write_review_summary` last of the review tools, then `write_result` (the run's record), then stop.
 
 ## Rules
 Each vault's `AGENTS.md` (in your instructions) is the only rule source: one fact one place, links, frontmatter, statuses. When this skill and `AGENTS.md` differ, `AGENTS.md` wins.

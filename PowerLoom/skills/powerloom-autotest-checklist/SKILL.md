@@ -14,7 +14,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - An answered question is the decision; a test case that still contradicts it goes into `ado_edits`, with the decision it follows. Never a task for ADO edits.
 
 ## Plan
-- One case per criterion; split a criterion with several observable results into several cases.
+- One or more cases per criterion: one per observable result, each with its own title; no criterion without a case.
 - Steps name the screen, the action and the value; the expected result is something a person sees or a query returns.
 - Data per case: which existing records, which user, which environment; never invent ids.
 - A blocked case keeps its steps so it runs as soon as its task closes.
@@ -42,7 +42,8 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Never select credential columns (`ApiKey`, `Password`, keys, tokens) with `sql_query`; look up the value name instead and use it by name.
 - Act on the snapshot's refs; after each action read the new snapshot before the next step.
 - Take a screenshot at the step where the criterion is visible; it is evidence for the verdict and the bug.
-- A step that fails once: take a snapshot, retry once; then decide the verdict.
+- A read or a repeat-safe step that fails once: take a snapshot, retry once; then decide the verdict.
+- A submit, save or payer call that timed out or answered unclearly: check its record or status (SQL, the screen) before anything else; repeat it only when it clearly did not happen, and count the repeat in the 5-per-run cap above.
 
 ## Verdicts and bugs
 - `pass` only when the observable result matches the expected one; "looks fine" is not a pass.
@@ -52,10 +53,10 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 - Bug retests: every bug in `<bugs-to-retest>` gets a case (ref `PBI-<id>`) or rides on the planned case that proves it; its result's `bug` is `PBI-<id>` whatever the verdict. A done bug that fails again is "still failing", not a new bug; never change a bug's state.
 
 ## Continuing from a previous report
-- The `<previous-report>` block is the plan: run the cases without a `pass`; keep the passed verdicts with the earlier report as their evidence unless the branch changed.
+- The `<previous-report>` block is the plan: run the cases without a `pass`; keep a passed verdict with the earlier report as its evidence only while the commit under test (a new commit on the same branch counts), the services and config, the data and the expected result are the same, and the user didn't ask for a rerun.
 - A blocked case runs when its item closed; one whose item was cancelled stays blocked with that id in `observed`, without a new task.
 
 ## Before writing
-- Every criterion appears exactly once in the cases (planned or blocked) and, after a run, once in the results.
+- Every criterion has at least one case (planned or blocked); after a run, every case has exactly one result.
 - Every finding has a resolution; every failed result names its bug.
 - `stop_stack` and `browser_close` are done; the report lists the recordings per case.

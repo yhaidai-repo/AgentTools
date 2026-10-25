@@ -34,20 +34,22 @@ describe("loadPrompt", () => {
   it("keeps today's prompts unchanged", async () => {
     const prompt = await loadPrompt("design", { team: "Signals" });
 
-    assert.equal(prompt.version, "v8");
+    assert.equal(prompt.version, "v9");
     assert.doesNotMatch(prompt.text, /How you work/);
   });
 
   it("gives the autotest prompt the continue and create_task rules", async () => {
     const prompt = await loadPrompt("autotest", { team: "Signals" });
 
-    assert.match(prompt.version, /^v10\+framework\./);
+    assert.match(prompt.version, /^v11\+framework\./);
     assert.match(prompt.text, /Each bug in `<bugs-to-retest>` is a case too/);
     assert.match(prompt.text, /Before asking the user for test data, search the database/);
     assert.match(prompt.text, /## Continuing from a previous report/);
     assert.match(prompt.text, /An API criterion is proven with `http_request` alone/);
     assert.match(prompt.text, /a cancelled one is the user's decision not to do it/);
     assert.match(prompt.text, /The branch the task names is started as named/);
+    assert.match(prompt.text, /An action that may have changed state or cost money \(a submit, a save, a payer call\) is never simply repeated/);
+    assert.match(prompt.text, /a new commit on the same branch is a change/);
     assert.match(prompt.text, /The background host runs \*\*no\*\* worker unless `start_stack`'s `config` names it/);
   });
 });
@@ -64,7 +66,7 @@ describe("loadAgentPrompt", () => {
   it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
     const prompt = await loadAgentPrompt("design", { text: "  ", version: 0 }, { team: "Signals" });
 
-    assert.equal(prompt.version, "v8");
+    assert.equal(prompt.version, "v9");
   });
 
   it("gives an agent with neither the framework alone", async () => {

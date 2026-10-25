@@ -1,6 +1,6 @@
 import { setItemStatus } from "@powerloom/core";
 import { localItem, runResult, type PowerLoomDb } from "@powerloom/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { AgentRunSession } from "../AgentRunSession";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
 import type { AgentRunInput } from "../models/AgentRunInput";
@@ -8,11 +8,13 @@ import type { AgentRunResult } from "../models/AgentRunResult";
 import type { RepoSource } from "../models/RepoSource";
 import type { TaskContext } from "../models/TaskContext";
 import type { OpenReposOptions } from "../models/OpenReposOptions";
+import type { ResultDraft } from "../result/models/ResultDraft";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
+import { blockTask } from "../tasks/endTask";
 import { acceptanceCriteriaBlock } from "../tasks/userTasks";
 import { recordWaiting } from "../tasks/waiting";
 import { noteVault } from "../techWriter/taskVault";
@@ -28,7 +30,8 @@ const ACTOR = "agent-runner";
 // One task of an agent without code of its own (user decision 2026-10-22): its prompt, the framework and its skills as
 // instructions; the task, the PBI's context (AgentRunSession adds it) and the task's latest result as the first message;
 // whatever its Config grants as tools; write_result as the run's required output. A result that isn't complete and
-// handed work on puts the task back to open until that work closes.
+// handed work on, or named open items it waits for, puts the task back to open until they close; one with nothing to
+// wait for is blocked with its summary, never done (nothing would run it again).
 export async function runGenericTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps, agent } = context;
   const info: AgentRunInfo = {
@@ -46,7 +49,13 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     const ran = await session.execute(info, () => prepare(context, session, task, run));
 
     // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
-    return await session.finish(ran, () => commit(deps.db, task, session.runId, run), run.toolset?.result.isWritten ?? false);
+    const final = await session.finish(ran, () => commit(deps.db, task, session.runId, run), run.toolset?.result.isWritten ?? false);
+
+    if (final.outcome === "success") {
+      await blockIfUnfinished(deps.db, task, final.runId, run.toolset?.result.latest ?? null);
+    }
+
+    return final;
   } finally {
     await cleanUpWriters(run);
     closeRepos(deps, run.repos);
@@ -161,14 +170,65 @@ async function previousResultBlock(db: PowerLoomDb, taskId: string): Promise<str
   return [`<previous-result run="${run}" status="${previous.status}">`, previous.body, "</previous-result>", "Continue from it: don't redo what it settled; write the whole result again as this run's."].join("\n");
 }
 
-// What the shared tools created becomes items; a result that isn't complete waits for the tasks it handed on.
+// What the shared tools created becomes items; a result that isn't complete waits for the tasks it handed on and the
+// open items it names (waiting_for). Read again first: a writer may have settled the task already (Autotest's report),
+// and the user may have saved notes on it while the run worked.
 async function commit(db: PowerLoomDb, task: ItemRow, runId: number, run: GenericRun): Promise<void> {
   const created = await run.toolset?.commit(runId);
   const result = run.toolset?.result.latest;
-  const handedOn = created !== undefined && created.taskIds.length > 0;
 
-  if (result?.status !== "complete" && handedOn) {
-    await setItemStatus(db, task.id, "in-progress", "open", ACTOR);
-    await recordWaiting(db, task, runId, created.taskIds);
+  if (!result || result.status === "complete") {
+    return;
   }
+
+  const [current] = await db.select().from(localItem).where(eq(localItem.id, task.id));
+  const waitFor = [...new Set([...(created?.taskIds ?? []), ...(await openItems(db, result.waitingFor, task.id))])];
+
+  if (!current || waitFor.length === 0 || (current.status !== "in-progress" && current.status !== "open")) {
+    return;
+  }
+
+  if (current.status === "in-progress") {
+    await setItemStatus(db, task.id, "in-progress", "open", ACTOR);
+  }
+
+  await recordWaiting(db, current, runId, waitFor);
+}
+
+// The named items that exist and aren't closed; the dispatcher would start the task at once for any other.
+async function openItems(db: PowerLoomDb, ids: string[], taskId: string): Promise<string[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const rows = await db.select({ id: localItem.id }).from(localItem)
+    .where(and(inArray(localItem.id, ids), ne(localItem.id, taskId), inArray(localItem.status, ["open", "in-progress", "blocked", "draft"])));
+
+  return rows.map((row) => row.id);
+}
+
+// A successful run whose result isn't complete and that nothing waits on (the commit left the task in progress) would
+// otherwise end done: it is blocked with the result's summary, so a person sees it and Re-runs it.
+async function blockIfUnfinished(db: PowerLoomDb, task: ItemRow, runId: number, result: ResultDraft | null): Promise<void> {
+  const reason = unfinishedReason(result);
+
+  if (!reason) {
+    return;
+  }
+
+  const [current] = await db.select({ status: localItem.status }).from(localItem).where(eq(localItem.id, task.id));
+
+  if (current?.status === "in-progress") {
+    await blockTask(db, task, reason, runId);
+  }
+}
+
+export function unfinishedReason(result: ResultDraft | null): string | null {
+  if (!result || result.status === "complete") {
+    return null;
+  }
+
+  const summary = result.body.split("\n").find((line) => line.trim().length > 0)?.trim().replace(/^#+\s*/, "") ?? "";
+
+  return `The run ended ${result.status} with nothing to wait for: ${summary.slice(0, 300)}. Settle what it names, then Re-run.`;
 }
