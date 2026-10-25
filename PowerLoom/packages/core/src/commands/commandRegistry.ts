@@ -42,6 +42,7 @@ import { getRunEventsCommand } from "./getRunEventsCommand";
 import { listAgentsCommand } from "./listAgentsCommand";
 import { getAgentCommand } from "./getAgentCommand";
 import { getAgentsGlobalCommand } from "./getAgentsGlobalCommand";
+import { getFrameworkCommand } from "./getFrameworkCommand";
 import { getUsageSummaryCommand } from "./getUsageSummaryCommand";
 import { listDataAccessCommand } from "./listDataAccessCommand";
 import { listDeadLettersCommand } from "./listDeadLettersCommand";
@@ -171,6 +172,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   listAgentsCommand,
   getAgentCommand,
   getAgentsGlobalCommand,
+  getFrameworkCommand,
   getUsageSummaryCommand,
   listDataAccessCommand,
   listDeadLettersCommand,

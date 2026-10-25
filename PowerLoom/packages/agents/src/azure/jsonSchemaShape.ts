@@ -23,7 +23,8 @@ const UNSUPPORTED = ["oneOf", "allOf", "not", "$ref", "if"];
 
 // The MCP servers (Azure MCP, Playwright MCP) describe a tool's input as JSON Schema; the runtime wants a zod shape.
 // Nested objects keep their properties, required fields and descriptions, so the agent sees the whole contract and a
-// wrong call fails here instead of at the server. A nullable or non-required property is optional for the agent.
+// wrong call fails here instead of at the server. A non-required property is optional; a nullable one takes null, and
+// when it is also required an omitted value is sent as null, so the server still gets the key it requires.
 export function jsonSchemaShape(schema: AzureMcpInputSchema, omit: string[] = []): z.ZodRawShape {
   return shapeOf(schema as unknown as JsonSchemaProperty, omit);
 }
@@ -37,9 +38,10 @@ function shapeOf(schema: JsonSchemaProperty, omit: string[] = []): Record<string
       continue;
     }
 
-    const field = fieldOf(property);
+    const nullable = isNullable(property);
+    const field = nullable ? fieldOf(property).nullable() : fieldOf(property);
 
-    shape[name] = required.includes(name) && !isNullable(property) ? field : field.optional();
+    shape[name] = !required.includes(name) ? field.optional() : nullable ? field.default(null) : field;
   }
 
   return shape;
@@ -97,16 +99,18 @@ function enumOf(values: unknown[]): z.ZodType {
   return strings.length === values.length ? z.enum(strings as [string, ...string[]]) : z.union(values.map((value) => z.literal(value as string | number | boolean)) as unknown as [z.ZodType, z.ZodType]);
 }
 
-// An object with properties keeps them (and rejects others when the schema says so); one without is a map, typed when
-// the schema types its values.
+// An object with properties keeps them, and keeps other properties as the schema allows them: rejected for
+// additionalProperties false, checked against its schema when it gives one, kept as they are otherwise. One without
+// properties is a map, typed when the schema types its values.
 function objectOf(property: JsonSchemaProperty): z.ZodType {
+  const extra = property.additionalProperties;
+  const values = typeof extra === "object" ? fieldOf(extra) : z.unknown();
+
   if (property.properties && Object.keys(property.properties).length > 0) {
     const object = z.object(shapeOf(property));
 
-    return property.additionalProperties === false ? object.strict() : object;
+    return extra === false ? object.strict() : object.catchall(values);
   }
-
-  const values = typeof property.additionalProperties === "object" ? fieldOf(property.additionalProperties) : z.unknown();
 
   return z.record(z.string(), values);
 }

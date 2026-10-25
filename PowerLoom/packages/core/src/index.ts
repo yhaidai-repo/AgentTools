@@ -58,6 +58,7 @@ export { pauseAgentsCommand } from "./commands/pauseAgentsCommand";
 export { runAgentCommand } from "./commands/runAgentCommand";
 export { saveAgentsGlobalCommand } from "./commands/saveAgentsGlobalCommand";
 export { saveFrameworkCommand } from "./commands/saveFrameworkCommand";
+export { getFrameworkCommand } from "./commands/getFrameworkCommand";
 export { FRAMEWORK_ID } from "./agents/frameworkVersioning";
 export { saveSkillCommand } from "./commands/saveSkillCommand";
 export { restoreSkillCommand } from "./commands/restoreSkillCommand";

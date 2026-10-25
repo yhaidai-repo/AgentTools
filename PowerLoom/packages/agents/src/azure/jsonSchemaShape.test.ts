@@ -52,6 +52,22 @@ describe("jsonSchemaShape", () => {
     assert.equal(input.safeParse({ colorScheme: "blue" }).success, false);
   });
 
+  it("lets a required nullable field be null, and sends null for it when left out", () => {
+    const input = z.object(jsonSchemaShape({ properties: { limit: { type: ["integer", "null"] } }, required: ["limit"] } as never));
+
+    assert.deepEqual(input.safeParse({ limit: null }).data, { limit: null });
+    assert.deepEqual(input.safeParse({}).data, { limit: null });
+    assert.equal(input.safeParse({ limit: 1.5 }).success, false);
+  });
+
+  it("keeps the extra properties an object allows, checked against their schema", () => {
+    const shape = jsonSchemaShape({ properties: { filter: { type: "object", properties: { known: { type: "string" } }, additionalProperties: { type: "number" } } }, required: [] } as never);
+    const input = z.object(shape);
+
+    assert.deepEqual(input.safeParse({ filter: { known: "x", extra: 42 } }).data, { filter: { known: "x", extra: 42 } });
+    assert.equal(input.safeParse({ filter: { known: "x", extra: "many" } }).success, false);
+  });
+
   it("passes on what it can't check instead of narrowing it", () => {
     const shape = jsonSchemaShape({ properties: { pick: { oneOf: [{ type: "string" }, { type: "integer" }], description: "One" } }, required: ["pick"] } as never);
 

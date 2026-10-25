@@ -12,7 +12,7 @@ public sealed class ImportRequestTests
     [Fact]
     public void Only_work_item_links_of_the_project_count_and_safe_links_are_unwrapped()
     {
-        const string html = """<a href="https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fdev.azure.com%2Fcontoso%2FAA%2F_workitems%2Fedit%2F30001&amp;data=x">PBI</a> and https://dev.azure.com/other/ZZ/_workitems/edit/30002 and [587484]""";
+        const string html = """<a href="https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fdev.azure.com%2Fcontoso%2FZZ%2F_workitems%2Fedit%2F30001&amp;data=x">PBI</a> and https://dev.azure.com/other/ZZ/_workitems/edit/30002 and [587484]""";
         const string text = "See https://contoso.visualstudio.com/ZZ/_workitems/edit/30003. Again https://dev.azure.com/contoso/ZZ/_workitems/edit/30001";
 
         Assert.Equal([30001, 30003], PbiLinks.Extract(Ado, html, text));
