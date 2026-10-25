@@ -2,7 +2,10 @@ import type { SplitNote } from "./models/SplitNote";
 
 const NOTES_HEADING = "## Notes";
 const EMPTY_NOTES = `${NOTES_HEADING}\n`;
-const NOTES_LINE = /^## Notes[ \t]*$/m;
+// A heading line, also with a Windows line ending.
+const NOTES_LINE = /^## Notes[ \t]*\r?$/m;
+// Empty `## Notes` headings stacked above the last one (left by a template saved on Windows): one heading stays.
+const REPEATED_HEADINGS = /^(?:## Notes[ \t]*\r?\n\s*)+(?=## Notes[ \t]*\r?(?:\n|$))/;
 
 // `## Notes` is the only human-owned part of a note; it must survive every re-render.
 export function extractNotesSection(existing: string | null): string {
@@ -16,7 +19,7 @@ export function extractNotesSection(existing: string | null): string {
     return EMPTY_NOTES;
   }
 
-  return existing.slice(start).trimEnd() + "\n";
+  return existing.slice(start).replace(REPEATED_HEADINGS, "").trimEnd() + "\n";
 }
 
 // The generated part of a note and the user's text under `## Notes` (without the heading).

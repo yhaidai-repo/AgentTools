@@ -12,7 +12,8 @@ public static class PbiNoteRenderer
 
     public static string Render(string template, PbiNote note, string notesSection, IReadOnlyDictionary<string, string> regions)
     {
-        var body = NoteText.ReplaceRegions(PbiTemplate.Fill(template, Placeholders(note)), regions);
+        // A template edited on Windows has CRLF line endings; the note is written with LF throughout.
+        var body = NoteText.ReplaceRegions(PbiTemplate.Fill(template.ReplaceLineEndings("\n"), Placeholders(note)), regions);
 
         return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{ExtraFieldsSection(note.ExtraFieldsMd)}{DiscussionSection(note.DiscussionMd)}{notesSection}";
     }
