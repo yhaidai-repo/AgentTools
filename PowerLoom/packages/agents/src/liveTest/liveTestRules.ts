@@ -69,7 +69,11 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   pbiOnly("pbi.saveRepos"),
   pbiOnly("pbi.saveSkills"),
   pbiOnly("pbi.userNotes.save"),
-  { command: "pbi.attach", targets: (input) => [...pbiTarget(input.adoId), ...itemTarget(input.itemId)] },
+  {
+    command: "pbi.attach",
+    targets: (input) => [...pbiTarget(input.adoId), ...itemTarget(input.itemId)],
+    note: "A live test has no PC paths: attach a file that exists under the vaults root as this run mounts it, e.g. <vaults root>/<vault>/index.md (the vault's docs tools list its notes). A PBI's own note (pbi_get's notePath) is in PowerLoom's backlog, not under the vaults root, so it can't be attached.",
+  },
   pbiOnly("pbi.confluenceLink.add"),
   pbiOnly("pbi.confluenceLink.remove"),
   pbiOnly("pbi.confluenceLoad"),

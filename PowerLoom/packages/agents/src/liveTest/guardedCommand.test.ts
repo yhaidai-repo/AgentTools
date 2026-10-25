@@ -89,4 +89,11 @@ describe("the live-test guard", () => {
 
     assert.deepEqual(writes.filter((command) => !command.description.includes("only on data this test run created")).map((command) => command.name), []);
   });
+
+  it("tells the agent to attach a file under the vaults root, not a PBI's note from the backlog", () => {
+    const attach = setUp().commands.find((command) => command.name === "pbi.attach");
+
+    assert.match(attach?.description ?? "", /under the vaults root/);
+    assert.match(attach?.description ?? "", /notePath\) is in PowerLoom's backlog/);
+  });
 });
