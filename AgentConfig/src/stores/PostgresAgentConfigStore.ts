@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { FALLBACK_GLOBAL, mergeGlobal, mergeWithDefaults } from "../defaults";
+import { FALLBACK_GLOBAL, mergeGlobal, mergeWithDefaults, refreshUserAgents } from "../defaults";
 import type { AgentConfigStore } from "../models/AgentConfigStore";
 import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
@@ -21,6 +21,10 @@ export class PostgresAgentConfigStore implements AgentConfigStore {
       const stored = await this.get(defaults.id);
 
       await this.write(mergeWithDefaults(stored ?? {}, defaults));
+    }
+
+    for (const agent of refreshUserAgents(await this.list(), agents)) {
+      await this.write(agent);
     }
 
     await this.writeGlobal(mergeGlobal(await this.readGlobal(), global));
