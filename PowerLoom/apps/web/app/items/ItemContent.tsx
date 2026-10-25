@@ -4,6 +4,7 @@ import { isOpen } from "@/lib/items";
 import type { ItemRow } from "@/lib/pbiDetail";
 import { HumanTaskContent } from "./HumanTaskContent";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
+import { MarkdownText } from "@/components/MarkdownText";
 
 type ItemData = {
   why?: string;
@@ -72,9 +73,18 @@ function QuestionContent(item: ItemRow, data: ItemData) {
   );
 }
 
-// Agents' tasks are structured since 2026-10-05; older ones and the app's own document tasks are free text.
+// Agents' tasks are structured since 2026-10-05; older ones and the app's own document tasks are free text, markdown too.
 function HumanContent(item: ItemRow) {
-  return isHumanTaskData(item.data) ? <HumanTaskContent data={item.data} withSteps={!isOpen(item)} /> : <Section title="Task" text={item.body} />;
+  return isHumanTaskData(item.data) ? <HumanTaskContent data={item.data} withSteps={!isOpen(item)} /> : <HumanTaskText text={item.body} />;
+}
+
+function HumanTaskText({ text }: { text: string | null }) {
+  return (
+    <>
+      <h2>Task</h2>
+      {text ? <MarkdownText text={text} /> : <p className="muted">–</p>}
+    </>
+  );
 }
 
 function ResearchTaskContent(item: ItemRow, data: ItemData) {
