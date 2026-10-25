@@ -1,5 +1,6 @@
 import { agentRun, codeReview, codeReviewVersion, reviewComment, type PowerLoomDb } from "@powerloom/db";
 import { eq, inArray, like } from "drizzle-orm";
+import { recordLocalRepoHead } from "./localRepoHead";
 import type { CommentUpdateDraft } from "./models/CommentUpdateDraft";
 import type { NewCommentDraft } from "./models/NewCommentDraft";
 import type { ReviewRun } from "./models/ReviewRun";
@@ -10,8 +11,8 @@ const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open" 
 // new comments are added, and the review records the reviewed commit and summary, also as this run's version. Returns
 // the run's outputs.
 export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: number): Promise<string[]> {
-  const { pr } = run.context!;
   const checkout = run.checkout!;
+  const pr = await recordLocalRepoHead(db, run.context!.pr, checkout.sourceCommit);
 
   await markOutdated(db, run.outdatedIds);
   await applyUpdates(db, run.draft.updates);

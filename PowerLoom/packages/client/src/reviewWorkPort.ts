@@ -11,6 +11,11 @@ export function reviewWorkPort(powerloom: PowerLoomClient): ReviewWorkPort {
 
       return data ? { ok: true, value: data } : powerloomFailure(error, response);
     },
+    async addLocalReview(review) {
+      const { data, error, response } = await powerloom.POST("/api/reviews/local", { body: review });
+
+      return data ? { ok: true, value: data } : powerloomFailure(error, response);
+    },
     async queueReview(prId) {
       const { data, error, response } = await powerloom.POST("/api/reviews/queue", { body: { prIds: [prId] } });
 

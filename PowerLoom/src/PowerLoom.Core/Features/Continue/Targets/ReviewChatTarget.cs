@@ -7,6 +7,7 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.PullRequests;
+using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Features.Continue.Targets;
 
@@ -47,12 +48,13 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
             .ToListAsync(cancellation);
         var source = BranchName(pr.SourceRef);
         var target = BranchName(pr.TargetRef);
-        var brief = ChatBrief.For(pr.Vault, $"Review PR {prId}: {pr.Title}") with
+        var isLocalRepo = pr.Origin == PullRequestOrigin.LocalRepo;
+        var brief = ChatBrief.For(pr.Vault, isLocalRepo ? $"Review local branch {source} of {pr.RepoName}" : $"Review PR {prId}: {pr.Title}") with
         {
             Pbis = LinkedPbis(pr),
             Before =
             [
-                $"Read the PR in the {pr.RepoName} repo without changing it: `git fetch origin`, then `git diff origin/{target}...origin/{source}`. No checkout, no file changes: review only.",
+                isLocalRepo ? LocalDiffStep(pr.RepoName, source, target) : RemoteDiffStep(pr.RepoName, source, target),
                 "Read the Summary and Comments below, and the code around them.",
             ],
             Briefing = Briefing,
@@ -73,11 +75,18 @@ public sealed class ReviewChatTarget(PowerLoomDbContext db) : IChatTarget
 
     private static List<int> LinkedPbis(PullRequest pr) => PullRequestWorkItems.Parse(pr.WorkItemIds);
 
+    private static string RemoteDiffStep(string repo, string source, string target) => $"Read the PR in the {repo} repo without changing it: `git fetch origin`, then `git diff origin/{target}...origin/{source}`. No checkout, no file changes: review only.";
+
+    // A local repo's branches are in the checkout itself: nothing to fetch.
+    private static string LocalDiffStep(string repo, string source, string target) => $"Read the branch in the {repo} repo without changing it: `git diff {target}...{source}` (both are local branches). No checkout, no file changes: review only.";
+
     private static string PullRequestMarkdown(PullRequest pr, CodeReview review, string source, string target)
     {
         var pbis = LinkedPbis(pr).Select(adoId => $"[[{BacklogPaths.PbiNoteName(adoId)}]]").ToList();
 
-        return $"[Open in Azure DevOps]({pr.Url}) · {pr.RepoName} · `{source}` → `{target}` · by {pr.Author ?? "–"}\n\n"
+        var link = pr.Url.Length > 0 ? $"[Open in Azure DevOps]({pr.Url}) · " : "";
+
+        return $"{link}{pr.RepoName} · `{source}` → `{target}` · by {pr.Author ?? "–"}\n\n"
             + $"Latest commit `{pr.SourceCommit}`; reviewed commit `{review.ReviewedCommit ?? "none"}`. PBIs: {(pbis.Count > 0 ? string.Join(", ", pbis) : "none")}.";
     }
 

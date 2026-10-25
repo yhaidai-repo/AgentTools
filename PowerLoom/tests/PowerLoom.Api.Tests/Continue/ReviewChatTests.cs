@@ -4,6 +4,7 @@ using PowerLoom.Features.Continue.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Api.Tests.Continue;
 
@@ -32,6 +33,36 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         Assert.Contains("review_answerComment` with `{\"commentId\":\"<id from Comments>\"", note);
         Assert.Contains("## Pull request", Uri.UnescapeDataString(link.Url));
         Assert.DoesNotContain("### RC-501-1", Uri.UnescapeDataString(link.Url));
+    }
+
+    [Fact]
+    public async Task A_local_review_diffs_its_local_branches_and_has_no_Azure_DevOps_link()
+    {
+        await StoreLocalReviewAsync(9_100_502);
+
+        await host.Host.PostJson(new OpenChatRequest(ChatKind.Review, "9100502"), "/api/chats").Receive<ChatLink>();
+        var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "review-9100502.md"));
+
+        Assert.Contains("# Review local branch feature/login of shop-app", note);
+        Assert.Contains("`git diff develop...feature/login` (both are local branches)", note);
+        Assert.DoesNotContain("git fetch", note);
+        Assert.DoesNotContain("Open in Azure DevOps", note);
+        Assert.Contains("shop-app · `feature/login` → `develop`", note);
+    }
+
+    private async Task StoreLocalReviewAsync(int prId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.PullRequests.Add(new PullRequest
+        {
+            Id = prId, RepoId = "local:test-vault:shop-app", RepoName = "shop-app", Title = "Branch feature/login", SourceRef = "refs/heads/feature/login", TargetRef = "refs/heads/develop",
+            SourceCommit = "def5678", Iteration = 1, WorkItemIds = "[]", Url = "", Vault = PowerLoomHost.Vault, Origin = PullRequestOrigin.LocalRepo,
+        });
+        db.CodeReviews.Add(new CodeReview { PrId = prId });
+
+        await db.SaveChangesAsync();
     }
 
     private async Task StoreReviewAsync(int prId)

@@ -1,6 +1,6 @@
 "use server";
 
-import { addReviewCommand, answerReviewCommentCommand, closeReviewCommand, deleteReviewCommand, queueReviewCommand, syncPullRequestsCommand } from "@powerloom/core";
+import { addLocalReviewCommand, addReviewCommand, answerReviewCommentCommand, closeReviewCommand, deleteReviewCommand, queueReviewCommand, syncPullRequestsCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { requireVault } from "@/lib/currentVault";
 import { runWebCommand } from "@/lib/commandContext";
@@ -45,6 +45,15 @@ export async function queueSelected(_previous: ActionResult | null, form: FormDa
 // Add review (user decision 2026-10-21): the active PR of the branch, or a branch review without one.
 export async function addReview(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const added = await runWebCommand(addReviewCommand, { vault: await requireVault(), repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", targetBranch: formText(form, "targetBranch"), pbi: formText(form, "pbi") });
+
+  revalidatePath("/reviews");
+
+  return messageResult(added);
+}
+
+// Add local review (user decision 2026-10-25): a branch of a local repo against a base, without Azure DevOps.
+export async function addLocalReview(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const added = await runWebCommand(addLocalReviewCommand, { vault: await requireVault(), repo: formText(form, "repo") ?? "", branch: formText(form, "branch") ?? "", baseBranch: formText(form, "baseBranch"), pbi: formText(form, "pbi") });
 
   revalidatePath("/reviews");
 

@@ -432,6 +432,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/local": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_reviews_local
+         * @description POST_api_reviews_local
+         */
+        post: operations["POST_api_reviews_local"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/repos/{id}/enabled": {
         parameters: {
             query?: never;
@@ -1617,6 +1637,13 @@ export interface components {
         AddLocalRepoRequest: {
             name: string;
         };
+        AddLocalReviewRequest: {
+            vault: string;
+            repo: string;
+            branch: string;
+            baseBranch: null | string;
+            pbi: null | string;
+        };
         AddRecordRequest: {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
@@ -1642,6 +1669,11 @@ export interface components {
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedLocalReview: {
+            /** Format: int32 */
+            prId: number;
+            message: string;
         };
         AddedRegisterRecord: {
             id: string;
@@ -2927,6 +2959,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnsweredComment"];
+                };
+            };
+        };
+    };
+    POST_api_reviews_local: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLocalReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedLocalReview"];
                 };
             };
         };

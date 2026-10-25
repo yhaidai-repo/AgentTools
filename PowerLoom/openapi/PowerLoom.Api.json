@@ -850,6 +850,38 @@
         }
       }
     },
+    "/api/reviews/local": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Reviews.AddLocal.AddLocalReviewEndpoint"
+        ],
+        "summary": "POST_api_reviews_local",
+        "description": "POST_api_reviews_local",
+        "operationId": "POST_api_reviews_local",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLocalReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedLocalReview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/repos/{id}/enabled": {
       "put": {
         "tags": [
@@ -3529,6 +3561,39 @@
           }
         }
       },
+      "AddLocalReviewRequest": {
+        "required": [
+          "vault",
+          "repo",
+          "branch",
+          "baseBranch",
+          "pbi"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "baseBranch": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pbi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AddRecordRequest": {
         "required": [
           "kind",
@@ -3642,6 +3707,22 @@
         "type": "object",
         "properties": {
           "folder": {
+            "type": "string"
+          }
+        }
+      },
+      "AddedLocalReview": {
+        "required": [
+          "prId",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "prId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
             "type": "string"
           }
         }
@@ -6461,6 +6542,9 @@
     },
     {
       "name": "PowerLoom.AdoIntegration.Features.AddReview.AddReviewEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Reviews.AddLocal.AddLocalReviewEndpoint"
     },
     {
       "name": "PowerLoom.Features.Repos.CatalogEndpoints"

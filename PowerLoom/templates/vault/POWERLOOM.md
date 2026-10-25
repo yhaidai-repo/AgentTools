@@ -41,7 +41,7 @@ at most 200 rows. Every read goes to the data access log.
 | `item_close` | answers or dismisses a question or finding, finishes (`answers`: one per step) or cancels a human task |
 | `item_delete`, `task_rerun`, `task_notes_save` | deletes a question or task, runs a finished agent task again, saves a test task's notes |
 | `finding_submit` | records a finding in a project's register (open question or known issue) and closes it |
-| `review_add`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds, starts, closes or deletes (from PowerLoom only) a review, answers a comment, checks for new pull requests |
+| `review_add`, `review_addLocal`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds a review (of an Azure DevOps branch, or of a local repo's branch without Azure DevOps), starts, closes or deletes (from PowerLoom only) one, answers a comment, checks for new pull requests |
 | `pbi_create`, `pbi_delete`, `pbi_finish`, `pbi_close`, `pbi_reopen` | creates, deletes, finishes, closes or reopens a PBI in PowerLoom |
 | `pbi_prepare`, `pbi_sync`, `pbi_importNow` | prepares PBIs for the agents, syncs from Azure DevOps, imports the inbox |
 | `pbi_saveRepos`, `pbi_saveSkills`, `pbi_userNotes_save`, `pbi_attach` | sets a PBI's repos, skills or the user's notes; attaches a file by its path on this PC |

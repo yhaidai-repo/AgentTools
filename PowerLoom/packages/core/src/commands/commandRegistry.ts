@@ -72,6 +72,7 @@ import { deleteScheduleCommand } from "./deleteScheduleCommand";
 import { tickScheduleCommand } from "./tickScheduleCommand";
 import { deleteItemCommand } from "./deleteItemCommand";
 import { saveTaskNotesCommand } from "./saveTaskNotesCommand";
+import { addLocalReviewCommand } from "./addLocalReviewCommand";
 import { addReviewCommand } from "./addReviewCommand";
 import { queueReviewCommand } from "./queueReviewCommand";
 import { closeReviewCommand } from "./closeReviewCommand";
@@ -141,6 +142,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   deleteItemCommand,
   saveTaskNotesCommand,
   addReviewCommand,
+  addLocalReviewCommand,
   queueReviewCommand,
   closeReviewCommand,
   syncPullRequestsCommand,

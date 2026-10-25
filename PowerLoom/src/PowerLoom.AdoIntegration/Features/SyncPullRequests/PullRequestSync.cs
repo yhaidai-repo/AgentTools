@@ -204,12 +204,12 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     }
 
     // A PR that left the list: completed or abandoned, no longer yours to review, or its repo was deselected or disabled
-    // (`mine`: your PRs before the repo filter, so the reason says which).
+    // (`mine`: your PRs before the repo filter, so the reason says which). Branch reviews have no PR to leave it.
     private async Task<int> CloseUnlistedAsync(List<AdoPullRequest> listed, List<AdoPullRequest> mine, CancellationToken cancellation)
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();
         var mineIds = mine.Select(pr => pr.Id).ToHashSet();
-        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && row.Origin != PullRequestOrigin.Local && row.Origin != PullRequestOrigin.Pc).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && row.Origin != PullRequestOrigin.Local && row.Origin != PullRequestOrigin.Pc && row.Origin != PullRequestOrigin.LocalRepo).ToListAsync(cancellation);
 
         foreach (var pr in gone)
             await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation);
