@@ -3,32 +3,32 @@ import { describe, it } from "node:test";
 import { mergedWrongNames, unknownQualifiedColumns } from "./qualifiedColumns";
 
 const FOUND = [
-  { table: "dbo.Verification", columns: [{ name: "Id", type: "int", key: "PK", references: "" }, { name: "Status", type: "nvarchar", key: "", references: "" }] },
+  { table: "dbo.Subscription", columns: [{ name: "Id", type: "int", key: "PK", references: "" }, { name: "Status", type: "nvarchar", key: "", references: "" }] },
   { table: "membership.Tenant", columns: [{ name: "TenantId", type: "int", key: "PK", references: "" }] },
 ];
 
 describe("unknownQualifiedColumns", () => {
   it("names every alias.column the alias's table lacks, ignoring case and brackets", () => {
-    const text = "SELECT v.status, [v].[VerificationStatus], v.*, t.Id FROM dbo.Verification v JOIN membership.Tenant t ON t.Id = v.TenantId";
-    const aliases = [{ table: "dbo.Verification", alias: "v" }, { table: "membership.Tenant", alias: "t" }];
+    const text = "SELECT v.status, [v].[SubscriptionStatus], v.*, t.Id FROM dbo.Subscription v JOIN membership.Tenant t ON t.Id = v.TenantId";
+    const aliases = [{ table: "dbo.Subscription", alias: "v" }, { table: "membership.Tenant", alias: "t" }];
 
     assert.deepEqual(unknownQualifiedColumns(text, aliases, FOUND), [
-      { kind: "column", name: "v.VerificationStatus" },
+      { kind: "column", name: "v.SubscriptionStatus" },
       { kind: "column", name: "v.TenantId" },
       { kind: "column", name: "t.Id" },
     ]);
   });
 
   it("doesn't take a string literal or a comment for a column", () => {
-    const text = "SELECT v.Status FROM dbo.Verification v WHERE v.Status <> 'see v.Nope' -- v.Other";
+    const text = "SELECT v.Status FROM dbo.Subscription v WHERE v.Status <> 'see v.Nope' -- v.Other";
 
-    assert.deepEqual(unknownQualifiedColumns(text, [{ table: "dbo.Verification", alias: "v" }], FOUND), []);
+    assert.deepEqual(unknownQualifiedColumns(text, [{ table: "dbo.Subscription", alias: "v" }], FOUND), []);
   });
 
   it("checks a table without an alias by its own name, and not inside a longer name", () => {
-    const text = "SELECT Verification.Stat, dbo.Verification.Other FROM dbo.Verification";
+    const text = "SELECT Subscription.Stat, dbo.Subscription.Other FROM dbo.Subscription";
 
-    assert.deepEqual(unknownQualifiedColumns(text, [{ table: "dbo.Verification", alias: "" }], FOUND), [{ kind: "column", name: "Verification.Stat" }]);
+    assert.deepEqual(unknownQualifiedColumns(text, [{ table: "dbo.Subscription", alias: "" }], FOUND), [{ kind: "column", name: "Subscription.Stat" }]);
   });
 });
 

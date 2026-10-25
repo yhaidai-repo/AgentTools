@@ -28,7 +28,7 @@ public static partial class ConfluencePageLinks
         return isConfluence && PageId(url) is not null ? null : $"not a Confluence page link (…/wiki/spaces/<space>/pages/<id>/…): {url}";
     }
 
-    // The title in a page link (`…/pages/<id>/Patient+Signal+-+X`), for pages added without one.
+    // The title in a page link (`…/pages/<id>/Account+Credit+-+X`), for pages added without one.
     public static string TitleFromUrl(string url)
     {
         var slug = new Uri(url).AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "";

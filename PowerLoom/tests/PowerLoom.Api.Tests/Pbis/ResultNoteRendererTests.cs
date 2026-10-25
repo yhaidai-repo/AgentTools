@@ -11,7 +11,7 @@ public sealed class ResultNoteRendererTests
     [Fact]
     public void A_result_is_named_by_its_run_under_its_task_with_its_evidence()
     {
-        var evidence = new[] { new ResultEvidence("S3", "PVS/Vendors/VendorList.tsx:42", "the raw key is rendered", "{vendor.key}") };
+        var evidence = new[] { new ResultEvidence("S3", "POS/Vendors/VendorList.tsx:42", "the raw key is rendered", "{vendor.key}") };
         var note = new ResultNote(30474, 7, 2085, "AT-30474-001", "better-research", "complete", "# The key is shown raw\n\nDetails.", evidence, Created);
 
         var text = ResultNoteRenderer.Render(note, "");
@@ -22,7 +22,7 @@ public sealed class ResultNoteRendererTests
         Assert.Contains("task: \"[[AT-30474-001]]\"", text);
         Assert.Contains("# RUN-2085 The key is shown raw", text);
         Assert.Contains("Agent: better-research · Status: complete", text);
-        Assert.Contains("- `PVS/Vendors/VendorList.tsx:42`: the raw key is rendered — \"{vendor.key}\"", text);
+        Assert.Contains("- `POS/Vendors/VendorList.tsx:42`: the raw key is rendered — \"{vendor.key}\"", text);
     }
 
     [Fact]
@@ -41,12 +41,12 @@ public sealed class ResultNoteRendererTests
     [Fact]
     public void A_body_that_starts_with_a_paragraph_gives_a_capped_title()
     {
-        var paragraph = string.Join(" ", Enumerable.Repeat("Signals reads rules from Cosmos on every event", 6));
+        var paragraph = string.Join(" ", Enumerable.Repeat("Catalog reads rules from Cosmos on every event", 6));
         var note = new ResultNote(30474, 8, 2676, "AT-30474-002", "better-research", "complete", paragraph, [], Created);
 
         var text = ResultNoteRenderer.Render(note, "");
 
-        Assert.Contains("title: \"Signals reads rules from Cosmos on every event Signals reads rules from Cosmos on every event Signals reads rules from C\\u2026\"", text);
+        Assert.Contains("title: \"Catalog reads rules from Cosmos on every event Catalog reads rules from Cosmos on every event Catalog reads rules from C\\u2026\"", text);
         Assert.Contains($"\n\n{paragraph}\n\n", text);
     }
 }

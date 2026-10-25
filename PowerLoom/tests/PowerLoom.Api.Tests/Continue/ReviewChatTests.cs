@@ -18,10 +18,10 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Review, "501"), "/api/chats").Receive<ChatLink>();
         var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "review-501.md"));
 
-        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/PVS"), link!.Url);
+        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/POS"), link!.Url);
         Assert.Contains("# Review PR 501: Cache the lookups", note);
         Assert.Contains("`git diff origin/development...origin/feature/501-cache`", note);
-        Assert.Contains("[Open in Azure DevOps](https://dev.azure.com/x/pr/501) · PVS · `feature/501-cache` → `development` · by Sam", note);
+        Assert.Contains("[Open in Azure DevOps](https://dev.azure.com/x/pr/501) · POS · `feature/501-cache` → `development` · by Sam", note);
         Assert.Contains("PBIs: [[PBI-31001]]", note);
         Assert.Contains("`pbi_read` with `{\"ref\":\"PBI-31001\"}`", note);
         Assert.Contains("## Summary\n\nLooks fine, one risk.", note);
@@ -39,12 +39,12 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.Repos.Add(new Repo { Id = "repo-pvs", AdoProject = "proj", Name = "PVS", RemoteUrl = "https://dev.azure.com/x/_git/PVS", Vault = PowerLoomHost.Vault });
+        db.Repos.Add(new Repo { Id = "repo-pos", AdoProject = "proj", Name = "POS", RemoteUrl = "https://dev.azure.com/x/_git/POS", Vault = PowerLoomHost.Vault });
         db.PullRequests.Add(new PullRequest
         {
             Id = prId,
-            RepoId = "repo-pvs",
-            RepoName = "PVS",
+            RepoId = "repo-pos",
+            RepoName = "POS",
             Title = "Cache the lookups",
             Author = "Sam",
             SourceRef = "refs/heads/feature/501-cache",

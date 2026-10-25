@@ -18,12 +18,12 @@ describe("DevHubClient", () => {
     const seen: { url?: string; init?: RequestInit } = {};
     const client = clientAnswering(202, "", seen);
 
-    const answer = await client.start({ services: ["signals"], owner: "powerloom-run-7" });
+    const answer = await client.start({ services: ["catalog"], owner: "powerloom-run-7" });
 
     assert.deepEqual(answer, { ok: true, value: null });
     assert.equal(seen.url, "http://devhub:1/stack");
     assert.equal((seen.init?.headers as Record<string, string>).Authorization, "Bearer secret");
-    assert.equal(seen.init?.body, JSON.stringify({ services: ["signals"], owner: "powerloom-run-7" }));
+    assert.equal(seen.init?.body, JSON.stringify({ services: ["catalog"], owner: "powerloom-run-7" }));
   });
 
   it("opens a browser case and closes it as its owner", async () => {
@@ -50,7 +50,7 @@ describe("DevHubClient", () => {
   });
 
   it("gives the problem's detail for a refused request", async () => {
-    const answer = await clientAnswering(409, JSON.stringify({ title: "Conflict", detail: "A local stack is running." })).start({ services: ["signals"], owner: "x" });
+    const answer = await clientAnswering(409, JSON.stringify({ title: "Conflict", detail: "A local stack is running." })).start({ services: ["catalog"], owner: "x" });
 
     assert.deepEqual(answer, { ok: false, message: "A local stack is running.", denied: false });
   });

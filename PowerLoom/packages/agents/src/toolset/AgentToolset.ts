@@ -46,6 +46,7 @@ import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments"
 import type { CommittedToolset } from "./models/CommittedToolset";
 import type { ToolGroup } from "./models/ToolGroup";
 import type { RunWriter } from "./models/RunWriter";
+import type { WriterSettlement } from "./models/WriterSettlement";
 import type { WriterTarget } from "./models/WriterTarget";
 import type { ToolsetInput } from "./models/ToolsetInput";
 import { depthOf, taskLimits } from "./taskLimits";
@@ -131,20 +132,25 @@ export class AgentToolset {
 
   /** Writes what the shared tools noted into arrays of its own (a runner that lent its draft's arrays commits those with
    *  the draft): the tasks created, the drafts captured, the result, all listed in the run's outputs; and the estimate. */
-  async commit(runId: number): Promise<CommittedToolset> {
+  async commit(runId: number, budgetStopped = false): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
     const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest });
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, budgetStopped });
     const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
 
     await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
     await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
+  }
+
+  /** What the granted writers' outputs say about the task's end (see WriterSettlement). */
+  settlements(): WriterSettlement[] {
+    return this.writers.map((writer) => writer.settlement?.() ?? null).filter((settlement): settlement is WriterSettlement => settlement !== null);
   }
 
   /** What the granted writers add to the first message (a draft, a note to actualize). */
@@ -210,7 +216,7 @@ export class AgentToolset {
       { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];
     // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
-    const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate }), toolsOf(shared)) }));
+    const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate, tasks: this.tasks }), toolsOf(shared)) }));
 
     return [...shared, ...own, { source: EVERY_AGENT, tools: [createResultTool(this.result, log)] }];
   }

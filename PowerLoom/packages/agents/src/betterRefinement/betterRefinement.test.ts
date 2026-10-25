@@ -13,8 +13,8 @@ type Input = Parameters<ReturnType<typeof createRefinementTool>["handler"]>[0];
 
 const PBI = [{ source: "S0", ref: "PBI-36756 description", note: "the vendor shows as SexOffendersSearchProvider" }];
 
-function emptyDraft(tasks: CreatedTask[] = []): BetterRefinementDraft {
-  return { refinement: null, tasks, captures: [], pages: [] };
+function emptyDraft(): BetterRefinementDraft {
+  return { refinement: null, captures: [], pages: [] };
 }
 
 function input(overrides: Record<string, unknown> = {}): Input {
@@ -24,7 +24,7 @@ function input(overrides: Record<string, unknown> = {}): Input {
     scope_out: ["Other sheets"],
     ac_gaps: [],
     sources: [{ what: "PBI description and notes", evidence: PBI }],
-    repos: [{ name: "PVS", reason: "the report SP lives there", evidence: PBI }, { name: "VAPI v2", reason: "provider keys come from it", evidence: [] }],
+    repos: [{ name: "POS", reason: "the report SP lives there", evidence: PBI }, { name: "VAPI v2", reason: "provider keys come from it", evidence: [] }],
     affected_areas: [{ area: "Billable Features report", change: "vendor column", evidence: PBI }],
     test_data: { applicable: true, given: [], missing: ["A tenant with SO transactions before June 2026, on QA2"], reason: "the symptom shows only in old data" },
     dependencies: [],
@@ -43,8 +43,8 @@ const userTask = { assignee: "user", kind: "task" } as CreatedTask;
 
 describe("write_refinement (Better Refinement)", () => {
   it("saves the readable columns and the details, marking unverified repos and listing blockers as dependencies", async () => {
-    const draft = emptyDraft([userTask]);
-    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), []);
+    const draft = emptyDraft();
+    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]);
 
     const result = await tool.handler(input());
 
@@ -55,7 +55,7 @@ describe("write_refinement (Better Refinement)", () => {
   });
 
   it("leaves the estimate to record_estimate", () => {
-    const tool = createRefinementTool(emptyDraft(), new ReadLog("PBI-36756"), []);
+    const tool = createRefinementTool(emptyDraft(), new ReadLog("PBI-36756"), [], [userTask]);
 
     assert.equal("estimate" in tool.input, false);
     assert.match(tool.description, /record_estimate: the run isn't complete without it/);
@@ -63,8 +63,8 @@ describe("write_refinement (Better Refinement)", () => {
 
   it("refuses a blocker whose task wasn't created and evidence the run never read", async () => {
     const draft = emptyDraft();
-    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), []);
-    const invented = [{ area: "Report SP", change: "join", evidence: [{ source: "S9", ref: "PVS/Database/report.sql", note: "assumed" }] }];
+    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), [], []);
+    const invented = [{ area: "Report SP", change: "join", evidence: [{ source: "S9", ref: "POS/Database/report.sql", note: "assumed" }] }];
 
     const result = await tool.handler(input({ affected_areas: invented }));
 
@@ -77,9 +77,9 @@ describe("write_refinement (Better Refinement)", () => {
 
 describe("withTaskIds", () => {
   it("gives blockers the ids their tasks got at the commit", async () => {
-    const draft = emptyDraft([userTask]);
+    const draft = emptyDraft();
 
-    await createRefinementTool(draft, new ReadLog("PBI-36756"), []).handler(input());
+    await createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]).handler(input());
 
     const resolved = withTaskIds(draft.refinement!, ["HT-36756-004"]);
 
@@ -90,9 +90,9 @@ describe("withTaskIds", () => {
 
 describe("refinementBlock", () => {
   it("adds Better Refinement's details for research and design", async () => {
-    const draft = emptyDraft([userTask]);
+    const draft = emptyDraft();
 
-    await createRefinementTool(draft, new ReadLog("PBI-36756"), []).handler(input());
+    await createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]).handler(input());
 
     const row = { ...draft.refinement!, version: 3, docsRead: [], details: draft.refinement!.details } as unknown as typeof refinement.$inferSelect;
     const block = refinementBlock(row);
@@ -105,17 +105,18 @@ describe("refinementBlock", () => {
 
 describe("better-refinement prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
-    const prompt = await loadPrompt("better-refinement", { team: "Signals" });
+    const prompt = await loadPrompt("better-refinement", { team: "Catalog" });
 
-    assert.equal(prompt.version, "v7+framework.v4");
+    assert.equal(prompt.version, "v8+framework.v6");
     assert.match(prompt.text, /^## How you work/);
-    assert.match(prompt.text, /You are Better Refinement for one PBI of the Signals team/);
+    assert.match(prompt.text, /You are Better Refinement for one PBI of the Catalog team/);
   });
 
-  it("asks for both estimate values with record_estimate", async () => {
-    const prompt = await loadPrompt("better-refinement", { team: "Signals" });
+  it("asks for both estimate values with record_estimate, before write_refinement", async () => {
+    const prompt = await loadPrompt("better-refinement", { team: "Catalog" });
 
-    assert.match(prompt.text, /`record_estimate`, required/);
+    assert.match(prompt.text, /`record_estimate`, when your tools include it, first: `write_refinement` refuses until it is recorded/);
+    assert.ok(prompt.text.indexOf("- `record_estimate`") < prompt.text.indexOf("- `write_refinement`"));
     assert.match(prompt.text, /without an agent .*hours for an agent implementing it/);
   });
 });

@@ -1,4 +1,3 @@
-import { setItemStatus } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { AgentRunSession } from "../AgentRunSession";
 import type { AgentRunInfo } from "../models/AgentRunInfo";
@@ -9,26 +8,27 @@ import type { TaskContext } from "../models/TaskContext";
 import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
+import { environmentPromptSection } from "../environment/vaultEnvironment";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
 import { acceptanceCriteriaBlock } from "../tasks/userTasks";
-import { recordWaiting } from "../tasks/waiting";
 import { noteVault } from "../techWriter/taskVault";
 import { AgentToolset, grantedWriters } from "../toolset/AgentToolset";
 import { recordToolOffer } from "../toolset/recordToolOffer";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
 import { loadPreviousResult, previousResultBlock } from "./previousResult";
+import { settleTask } from "./settleTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-const ACTOR = "agent-runner";
 
 // One task of an agent without code of its own (user decision 2026-10-22): its prompt, the framework and its skills as
 // instructions; the task, the PBI's context (AgentRunSession adds it) and the task's latest result (not on Start over)
-// as the first message; whatever its Config grants as tools; write_result as the run's required output. A result that
-// isn't complete and handed work on puts the task back to open until that work closes.
+// as the first message; whatever its Config grants as tools; write_result as the run's required output. Once everything
+// is committed the task is settled in one place (settleTask): done, waiting for what it handed on, or blocked, never
+// done while unfinished.
 export async function runGenericTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
   const { deps, agent } = context;
   const info: AgentRunInfo = {
@@ -46,7 +46,15 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     const ran = await session.execute(info, () => prepare(context, session, task, run));
 
     // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
-    return await session.finish(ran, () => commit(deps.db, task, session.runId, run), run.toolset?.result.isWritten ?? false);
+    const committed: { createdIds: string[] | null } = { createdIds: null };
+    const final = await session.finish(ran, async () => { committed.createdIds = (await run.toolset?.commit(session.runId, ran.outcome === "budget-exceeded"))?.taskIds ?? []; }, run.toolset?.result.isWritten ?? false);
+
+    // Settled once everything is committed, never by a writer; a failed commit is ended by endTask as a failure.
+    if (committed.createdIds && run.toolset && (final.outcome === "success" || final.outcome === "budget-exceeded")) {
+      await settleTask(deps.db, task, final.runId, { outcome: final.outcome, result: run.toolset.result.latest, createdIds: committed.createdIds, writers: run.toolset.settlements() });
+    }
+
+    return final;
   } finally {
     await cleanUpWriters(run);
     closeRepos(deps, run.repos);
@@ -88,7 +96,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, await environmentPromptSection(deps.docsRoot, deps.docsVaultName, agent.id), ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
     tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
@@ -146,16 +154,4 @@ function taskBlock(task: ItemRow): string {
   ];
 
   return ["<task>", ...lines, "", task.body ?? "", "</task>"].join("\n");
-}
-
-// What the shared tools created becomes items; a result that isn't complete waits for the tasks it handed on.
-async function commit(db: PowerLoomDb, task: ItemRow, runId: number, run: GenericRun): Promise<void> {
-  const created = await run.toolset?.commit(runId);
-  const result = run.toolset?.result.latest;
-  const handedOn = created !== undefined && created.taskIds.length > 0;
-
-  if (result?.status !== "complete" && handedOn) {
-    await setItemStatus(db, task.id, "in-progress", "open", ACTOR);
-    await recordWaiting(db, task, runId, created.taskIds);
-  }
 }

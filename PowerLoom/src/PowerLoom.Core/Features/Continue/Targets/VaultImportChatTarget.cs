@@ -69,7 +69,7 @@ public sealed class VaultImportChatTarget(PowerLoomDbContext db, HostPaths hostP
 
         | Source file | Kind | Action | Destination | Status |
         |---|---|---|---|---|
-        | specs/export.pdf | PDF | merged | [[pvs-export]] | done |
+        | specs/export.pdf | PDF | merged | [[app-export]] | done |
 
         ## Assumptions
         ## Open questions

@@ -1,4 +1,4 @@
-import { setItemStatus, vaultOfPbiSql } from "@powerloom/core";
+import { vaultOfPbiSql } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { commitRelevantPages } from "../relevantPages";
 import { supersedeEarlierResults } from "../research/commitResearch";
@@ -12,7 +12,7 @@ const RESULT_VERSION = 2;
 type ItemRow = typeof localItem.$inferSelect;
 
 // Writes the run's research result (stage 2b, 2026-10-23: a granted writer, so the toolset has written the tasks and
-// drafts already): the RR item, the relevant pages, earlier results superseded, the task closed. A task without a PBI
+// drafts already): the RR item, the relevant pages, earlier results superseded. A task without a PBI
 // gets the same result item, numbered across the app; pages belong to a PBI, so it has none. Returns the item's id.
 export async function commitResearchResult(
   db: PowerLoomDb,
@@ -32,7 +32,6 @@ export async function commitResearchResult(
   }
 
   await supersedeEarlierResults(db, task.id, resultId, runId);
-  await setItemStatus(db, task.id, "in-progress", "done", actor, runId);
 
   return [resultId];
 }

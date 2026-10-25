@@ -6,6 +6,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { docsReadInRun } from "../stage";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterRunContext } from "../toolset/models/WriterRunContext";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { createBugTool } from "./bugTool";
 import { commitTestReport } from "./commitTestReport";
@@ -25,6 +26,7 @@ export class AutotestWriter implements RunWriter {
   readonly integration = AUTOTEST_INTEGRATION;
 
   private readonly draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
+  private blocking: string[] = [];
   private pbi: WorkItemRow | null = null;
 
   constructor(private readonly context: TaskContext) {}
@@ -50,9 +52,18 @@ export class AutotestWriter implements RunWriter {
     const { deps } = target;
     const extra = { commits: target.repos.commits, docsRead: await docsReadInRun(deps, target.runId), docsVault: deps.docsVaultName };
 
-    await commitTestReport(deps, target.task, this.pbi, target.runId, { report: this.draft.report, bugs: this.draft.bugs }, { tasks: target.tasks, taskIds: target.taskIds }, extra);
+    this.blocking = (await commitTestReport(deps, target.task, this.pbi, target.runId, { report: this.draft.report, bugs: this.draft.bugs }, { tasks: target.tasks, taskIds: target.taskIds }, extra)).blocking;
 
     return [];
+  }
+
+  // The report is the task's output; one that isn't complete waits for the blocking items it created, when it has any.
+  settlement(): WriterSettlement | null {
+    if (!this.draft.report) {
+      return { kind: "missing", output: "a test report (write_test_report)" };
+    }
+
+    return this.blocking.length > 0 ? { kind: "waits", ids: this.blocking, reason: "The test waits for its blocking items" } : null;
   }
 }
 

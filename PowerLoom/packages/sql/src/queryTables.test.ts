@@ -10,15 +10,15 @@ describe("referencedTables", () => {
   });
 
   it("keeps brackets and database parts, and names each table once", () => {
-    const text = "SELECT 1 FROM [Pvs].[dbo].[Facility] a LEFT JOIN Facility b ON 1 = 1 inner join FACILITY c ON 1 = 1";
+    const text = "SELECT 1 FROM [Pos].[dbo].[Facility] a LEFT JOIN Facility b ON 1 = 1 inner join FACILITY c ON 1 = 1";
 
-    assert.deepEqual(referencedTables(text), ["[Pvs].[dbo].[Facility]", "Facility"]);
+    assert.deepEqual(referencedTables(text), ["[Pos].[dbo].[Facility]", "Facility"]);
   });
 
   it("leaves out the query's own CTEs and subqueries", () => {
-    const text = "WITH recent (Id) AS (SELECT Id FROM dbo.Verification), other AS (SELECT 1 AS x) SELECT * FROM recent JOIN (SELECT 1 AS y) s ON 1 = 1";
+    const text = "WITH recent (Id) AS (SELECT Id FROM dbo.Subscription), other AS (SELECT 1 AS x) SELECT * FROM recent JOIN (SELECT 1 AS y) s ON 1 = 1";
 
-    assert.deepEqual(referencedTables(text), ["dbo.Verification"]);
+    assert.deepEqual(referencedTables(text), ["dbo.Subscription"]);
   });
 
   it("is empty for a query without tables", () => {
@@ -44,10 +44,10 @@ describe("tableAliases", () => {
 
 describe("sqlCode", () => {
   it("drops string literals and comments, quotes inside a literal included", () => {
-    const text = "SELECT v.Id -- from dbo.Old o\nFROM dbo.Verification v /* JOIN dbo.Gone g */ WHERE v.Note = 'it''s from x.Nope'";
+    const text = "SELECT v.Id -- from dbo.Old o\nFROM dbo.Subscription v /* JOIN dbo.Gone g */ WHERE v.Note = 'it''s from x.Nope'";
 
-    assert.equal(sqlCode(text), "SELECT v.Id  \nFROM dbo.Verification v   WHERE v.Note = ''");
-    assert.deepEqual(referencedTables(text), ["dbo.Verification"]);
+    assert.equal(sqlCode(text), "SELECT v.Id  \nFROM dbo.Subscription v   WHERE v.Note = ''");
+    assert.deepEqual(referencedTables(text), ["dbo.Subscription"]);
   });
 });
 

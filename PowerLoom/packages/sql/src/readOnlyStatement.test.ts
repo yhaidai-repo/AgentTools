@@ -5,10 +5,10 @@ import { readOnlyProblem } from "./readOnlyStatement";
 describe("readOnlyProblem", () => {
   it("lets one SELECT or WITH query run, with or without a closing semicolon", () => {
     const queries = [
-      "SELECT TOP 10 * FROM dbo.Patient WHERE Id = 5",
-      "select count(*) from Patient;",
-      "WITH recent AS (SELECT * FROM Verification WHERE CreatedAt > '2026-01-01') SELECT * FROM recent",
-      "  -- latest first\n  SELECT * FROM Verification ORDER BY CreatedAt DESC",
+      "SELECT TOP 10 * FROM dbo.Account WHERE Id = 5",
+      "select count(*) from Account;",
+      "WITH recent AS (SELECT * FROM Subscription WHERE CreatedAt > '2026-01-01') SELECT * FROM recent",
+      "  -- latest first\n  SELECT * FROM Subscription ORDER BY CreatedAt DESC",
     ];
 
     assert.deepEqual(queries.map(readOnlyProblem), [null, null, null, null]);
@@ -28,10 +28,10 @@ describe("readOnlyProblem", () => {
 
   it("refuses writes, schema changes and procedures, also behind a SELECT", () => {
     const queries = [
-      "DELETE FROM Patient",
-      "SELECT 1 DROP TABLE Patient",
-      "WITH x AS (SELECT * FROM Patient) DELETE FROM x",
-      "SELECT * INTO Copy FROM Patient",
+      "DELETE FROM Account",
+      "SELECT 1 DROP TABLE Account",
+      "WITH x AS (SELECT * FROM Account) DELETE FROM x",
+      "SELECT * INTO Copy FROM Account",
       "SELECT 1 EXEC xp_cmdshell 'dir'",
       "SELECT * FROM OPENROWSET('SQLNCLI', 'Server=x', 'SELECT 1')",
     ];
@@ -40,7 +40,7 @@ describe("readOnlyProblem", () => {
   });
 
   it("refuses statements that could lift the caps or end the rolled-back transaction", () => {
-    const queries = ["SELECT 1 SET ROWCOUNT 0 SELECT * FROM Patient", "SELECT 1 COMMIT", "SELECT 1 BEGIN TRAN"];
+    const queries = ["SELECT 1 SET ROWCOUNT 0 SELECT * FROM Account", "SELECT 1 COMMIT", "SELECT 1 BEGIN TRAN"];
 
     assert.deepEqual(queries.map(readOnlyProblem), [
       "Read only: SET isn't allowed in a query (a column or table with that name goes in brackets, e.g. [SET]).",
@@ -55,8 +55,8 @@ describe("readOnlyProblem", () => {
   });
 
   it("refuses table hints that hold locks, but keeps paging and dirty reads", () => {
-    const refused = ["SELECT * FROM Patient WITH (TABLOCKX)", "SELECT * FROM Patient WITH (UPDLOCK, ROWLOCK)", "SELECT * FROM Patient (HOLDLOCK)", "SELECT * FROM Patient WITH (XLOCK)"];
-    const allowed = ["SELECT * FROM Patient WITH (NOLOCK) ORDER BY Id OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY", "SELECT [Next], [Value] FROM Setting"];
+    const refused = ["SELECT * FROM Account WITH (TABLOCKX)", "SELECT * FROM Account WITH (UPDLOCK, ROWLOCK)", "SELECT * FROM Account (HOLDLOCK)", "SELECT * FROM Account WITH (XLOCK)"];
+    const allowed = ["SELECT * FROM Account WITH (NOLOCK) ORDER BY Id OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY", "SELECT [Next], [Value] FROM Setting"];
 
     assert.ok(refused.map(readOnlyProblem).every((problem) => problem !== null));
     assert.deepEqual(allowed.map(readOnlyProblem), [null, null]);

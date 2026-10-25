@@ -1,4 +1,3 @@
-import { setItemStatus } from "@powerloom/core";
 import { agentRun, codeReview, type localItem } from "@powerloom/db";
 import { eq, sql } from "drizzle-orm";
 import { applyUpdates, insertComments, markOutdated, recordReviewVersion } from "../codeReview/commitReview";
@@ -12,7 +11,6 @@ import { commentKeys, lastCommentIds, reviewerNotesWithCarried } from "./threads
 
 type ItemRow = typeof localItem.$inferSelect;
 
-const ACTOR = "agent:better-review";
 const DETAILS_VERSION = 1;
 const NEW_COMMENT = /^new:(\d+)$/;
 
@@ -68,7 +66,6 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
   await recordReviewVersion(deps.db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd, details });
 
   await addRunOutputs(deps.db, runId, rules.ids);
-  await setItemStatus(deps.db, task.id, "in-progress", "done", ACTOR, runId);
 
   return [...outputs, ...taskIds, ...rules.ids];
 }

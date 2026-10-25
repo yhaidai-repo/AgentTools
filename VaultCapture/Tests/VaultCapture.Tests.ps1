@@ -5,11 +5,11 @@ BeforeAll {
         $vaultRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
         $script:RepoRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs' 'feature'), (Join-Path $vaultRoot 'draft'), (Join-Path $vaultRoot 'backlog') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pos' 'feature'), (Join-Path $vaultRoot 'draft'), (Join-Path $vaultRoot 'backlog') -Force | Out-Null
         New-Item -ItemType Directory -Path (Join-Path $script:RepoRoot 'src') -Force | Out-Null
-        @('---', 'project: pvs', "repo: $($script:RepoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        @('---', 'project: pos', "repo: $($script:RepoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pos' 'pos-index.md')
         @('---', 'title: "Backlog"', '---') | Set-Content (Join-Path $vaultRoot 'backlog' 'backlog-index.md')
-        'x' | Set-Content (Join-Path $vaultRoot 'pvs' 'feature' 'pvs-taken.md')
+        'x' | Set-Content (Join-Path $vaultRoot 'pos' 'feature' 'pos-taken.md')
 
         return $vaultRoot
     }
@@ -27,11 +27,11 @@ BeforeAll {
 
         $values = @{
             vault    = $script:VaultName
-            project  = 'pvs'
-            name     = 'pvs-topic'
+            project  = 'pos'
+            name     = 'pos-topic'
             title    = 'Topic'
             source   = 'session finding'
-            target   = '[[pvs-index]]'
+            target   = '[[pos-index]]'
             captured = @('First fact')
         }
 
@@ -48,7 +48,7 @@ Describe 'Save-VaultCapture' {
         $vaultRoot = New-TestVault
         $config = New-TestConfig -VaultRoot $vaultRoot
         $script:VaultName = Split-Path -Leaf $vaultRoot
-        $draftPath = Join-Path $vaultRoot 'draft' 'pvs-topic.md'
+        $draftPath = Join-Path $vaultRoot 'draft' 'pos-topic.md'
     }
 
     It 'creates a draft with the vault template' {
@@ -58,7 +58,7 @@ Describe 'Save-VaultCapture' {
         $result.ok | Should -BeTrue
         $result.mode | Should -Be 'created'
         $content | Should -Contain 'type: draft'
-        $content | Should -Contain 'project: pvs'
+        $content | Should -Contain 'project: pos'
         $content | Should -Contain '## Captured'
         $content | Should -Contain '## To fill'
     }
@@ -85,14 +85,14 @@ Describe 'Save-VaultCapture' {
 
     It 'rejects <Case>' -ForEach @(
         @{ Case = 'an unknown project'; Override = @{ project = 'nope' } }
-        @{ Case = 'a name used by a verified note'; Override = @{ name = 'pvs-taken' } }
-        @{ Case = 'a name that is not kebab-case'; Override = @{ name = 'Pvs Topic' } }
+        @{ Case = 'a name used by a verified note'; Override = @{ name = 'pos-taken' } }
+        @{ Case = 'a name that is not kebab-case'; Override = @{ name = 'Pos Topic' } }
         @{ Case = 'an unknown source'; Override = @{ source = 'web search' } }
         @{ Case = 'a new draft without target'; Override = @{ target = $null } }
         @{ Case = 'no bullets'; Override = @{ captured = @() } }
         @{ Case = 'an unknown vault'; Override = @{ vault = 'other' } }
-        @{ Case = 'a note file path as target'; Override = @{ target = 'pvs/pvs-index.md' } }
-        @{ Case = 'a note file path in a bullet'; Override = @{ captured = @('See D:/vault/pvs/pvs-index.md for details') } }
+        @{ Case = 'a note file path as target'; Override = @{ target = 'pos/pos-index.md' } }
+        @{ Case = 'a note file path in a bullet'; Override = @{ captured = @('See D:/vault/pos/pos-index.md for details') } }
     ) {
         $result = Save-VaultCapture -InputObject (New-TestInput -Override $Override) -Config $config
 
@@ -102,7 +102,7 @@ Describe 'Save-VaultCapture' {
     }
 
     It 'accepts [[note]] links and folder targets' {
-        $captureInput = New-TestInput -Override @{ target = 'pvs/feature'; captured = @('Same as [[pvs-index]]') }
+        $captureInput = New-TestInput -Override @{ target = 'pos/feature'; captured = @('Same as [[pos-index]]') }
 
         $result = Save-VaultCapture -InputObject $captureInput -Config $config
 
@@ -134,14 +134,14 @@ Describe 'Save-VaultCapture in a project repository' {
         $content = Get-Content -LiteralPath $result.path
 
         $result.ok | Should -BeTrue
-        $content | Should -Contain 'project: pvs'
+        $content | Should -Contain 'project: pos'
     }
 
     It 'rejects a capture for another project' {
-        $result = Save-VaultCapture -InputObject (New-TestInput -Override @{ project = 'pvsi' }) -Cwd $cwd -Config $config
+        $result = Save-VaultCapture -InputObject (New-TestInput -Override @{ project = 'posi' }) -Cwd $cwd -Config $config
 
         $result.ok | Should -BeFalse
-        $result.errors | Should -Match "works on project 'pvs'"
+        $result.errors | Should -Match "works on project 'pos'"
     }
 
     It 'resolves a git worktree to its main repository' -Skip:(-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -168,7 +168,7 @@ Describe 'Get-CaptureInstruction' {
         $instruction = Get-CaptureInstruction -Reason 'Test.' -Config $config
 
         $instruction | Should -Match 'Vault rules:'
-        $instruction | Should -Match "(?m)^- $(Split-Path -Leaf $vaultRoot): pvs\r?$"
+        $instruction | Should -Match "(?m)^- $(Split-Path -Leaf $vaultRoot): pos\r?$"
         $instruction | Should -Not -Match 'backlog'
         $instruction | Should -Match 'vault-capture.ps1" capture'
     }
@@ -176,7 +176,7 @@ Describe 'Get-CaptureInstruction' {
     It 'names the session project when the working directory is in its repository' {
         $instruction = Get-CaptureInstruction -Reason 'Test.' -Cwd (Join-Path $script:RepoRoot 'src') -Config $config
 
-        $instruction | Should -Match 'This session works on project pvs'
+        $instruction | Should -Match 'This session works on project pos'
         $instruction | Should -Not -Match '"project":'
     }
 }

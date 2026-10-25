@@ -11,7 +11,7 @@ export function AzureSubscriptionForm({ subscription }: { subscription: string }
 
   return (
     <form action={action} className="inline-form">
-      <label className="field"><span>Default subscription<small>id or name; empty = agents name one per call</small></span><input name="subscription" defaultValue={subscription} placeholder="AA Dev" maxLength={120} /></label>
+      <label className="field"><span>Default subscription<small>id or name; empty = agents name one per call</small></span><input name="subscription" defaultValue={subscription} placeholder="ZZ Dev" maxLength={120} /></label>
       <div className="actions">
         <button type="submit" className="secondary small" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
         <ResultLine result={result} />

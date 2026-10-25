@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import { COMMANDS, type CommandContext } from "@powerloom/core";
 import type { SqlReader } from "@powerloom/sql";
+import { ADO_INTEGRATION } from "../ado/adoTools";
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { commandToolName } from "../commandTool";
+import { DEVHUB_INTEGRATION } from "../devHubTools";
 import type { AgentDeps } from "../models/AgentDeps";
 import { isOutsideTool } from "../outsideAccess";
 import { classifyToolCall } from "../toolKinds";
@@ -20,7 +22,7 @@ const POWERLOOM_MD = new URL("../../../../templates/vault/POWERLOOM.md", import.
 // Deps with every reader that can share a command's name switched on (Read SQL: sql_query, sql_describe, sql_databases).
 function fakeDeps(): AgentDeps {
   const log = { record: async () => {} };
-  const connection = { name: "pvs", server: "sql01", database: "Pvs", connectionString: "Server=sql01", enabled: true };
+  const connection = { name: "pos", server: "sql01", database: "Pos", connectionString: "Server=sql01", enabled: true };
 
   return {
     db: {},
@@ -69,6 +71,16 @@ describe("a chat session's tools", () => {
     assert.deepEqual(other.map((tool) => tool.name), []);
   });
 
+  it("mark the tools that act or save as not read-only, the browser's from its catalog", () => {
+    const base = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const chat = { ...base, capabilities: { ...base.capabilities, integrations: { ...base.capabilities.integrations, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true } } };
+    const deps = { ...fakeDeps(), devHub: { client: {} }, ado: { client: {} } } as unknown as AgentDeps;
+    const readOnly = new Map(chatTools(deps, chat, { vault: "work", client: "test", sessionId: "s1" }, {} as CommandContext).map((tool) => [tool.name, tool.annotations?.readOnly]));
+
+    assert.deepEqual(["browser_click", "browser_type", "browser_fill_form", "browser_open", "browser_type_secret", "http_request", "start_stack", "read_test_cases"].map((name) => [name, readOnly.get(name)]).filter(([, value]) => value !== false), []);
+    assert.deepEqual(["browser_snapshot", "list_services", "stack_logs", "list_secret_names", "sql_query", "list_repos"].map((name) => [name, readOnly.get(name)]).filter(([, value]) => value !== true), []);
+  });
+
   it("include every command, the session's own reader standing in for one of the same name", () => {
     const names = new Set(sessionTools().map((tool) => tool.name));
 
@@ -93,7 +105,7 @@ describe("a chat session's tools", () => {
     const powerloom = { addRegisterRecord: async (vault: string) => (vaults.push(vault), { ok: true, value: "KI-001" }) };
     const tool = sessionTools({ powerloom } as unknown as CommandContext).find((candidate) => candidate.name === "register_add")!;
 
-    const result = await tool.handler({ vault: "other", project: "pvs", kind: "issues", title: "Wrong total", text: "Sums twice." });
+    const result = await tool.handler({ vault: "other", project: "pos", kind: "issues", title: "Wrong total", text: "Sums twice." });
     const inputs = ["vault_capture", "register_add", "register_close"].map((name) => Object.keys(sessionTools().find((candidate) => candidate.name === name)!.input));
 
     assert.equal(result.isError, undefined);

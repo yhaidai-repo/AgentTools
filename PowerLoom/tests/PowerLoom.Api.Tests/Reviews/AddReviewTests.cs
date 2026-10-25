@@ -113,7 +113,7 @@ public sealed class AddReviewTests(PowerLoomHost host)
         Assert.Equal($"https://dev.azure.com/org/proj/_git/{RepoName}?version=GBfeature%2F74501-pc", pushed.Url);
     }
 
-    // A repo in another ADO project than the vault's (AA Core, 2026-10-22): its calls go to its own project, on Add review
+    // A repo in another ADO project than the vault's (ZZ Core, 2026-10-22): its calls go to its own project, on Add review
     // and on the sync's refresh.
     [Fact]
     public async Task A_repo_of_another_ADO_project_is_asked_in_its_own_project()

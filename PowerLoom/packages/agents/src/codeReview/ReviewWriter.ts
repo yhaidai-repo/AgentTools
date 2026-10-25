@@ -11,6 +11,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { numberOption } from "../stage";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterRunContext } from "../toolset/models/WriterRunContext";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { createCodeReviewTools } from "./codeReviewTools";
 import { commitReview } from "./commitReview";
@@ -82,6 +83,11 @@ export class ReviewWriter implements RunWriter {
     await commitReview(target.deps.db, this.run, target.runId);
 
     return [];
+  }
+
+  // The review's summary is the task's output.
+  settlement(): WriterSettlement | null {
+    return this.run.draft.summary ? null : { kind: "missing", output: "the review's summary (write_review_summary)" };
   }
 
   async cleanUp(): Promise<void> {

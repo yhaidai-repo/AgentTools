@@ -28,9 +28,9 @@ Answers in `<existing-items>` are the team's decisions; the user's notes are the
 The vault's Read SQL connections (Settings > Read SQL), with the agents' guards: one `SELECT` or `WITH`, rolled back,
 at most 200 rows. Every read goes to the data access log.
 
-- `sql_describe` with `{"connection": "<name>"}` lists the tables; add `"table": "dbo.Verification"` for its columns.
+- `sql_describe` with `{"connection": "<name>"}` lists the tables; add `"table": "dbo.Subscription"` for its columns.
   Describe first, then query.
-- `sql_query` with `{"connection": "<name>", "sql": "SELECT TOP 20 Id, Status FROM dbo.Verification"}`.
+- `sql_query` with `{"connection": "<name>", "sql": "SELECT TOP 20 Id, Status FROM dbo.Subscription"}`.
 - A connection is a server: `sql_databases` with `{"connection": "<name>"}` lists the databases its login can open; add
   `"database": "<name>"` to `sql_describe` and `sql_query` to read one other than the connection's own.
 - A wrong or disabled connection name answers with the enabled ones. These tools read this chat's vault ({{vaultName}}).
@@ -53,7 +53,7 @@ at most 200 rows. Every read goes to the data access log.
 | `vault_capture` | saves verified facts this vault lacks as a draft in draft/, for a person to verify and merge (always this chat's vault) |
 | `register_add`, `register_close` | records an open question or known issue in a project's register; closes a record the user settled (always this chat's vault) |
 | `www_create` | adds a What-went-wrong record |
-| `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget |
+| `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal`, `agent_saveFramework` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget, replaces the shared framework |
 | `skill_create`, `skill_save`, `skill_restore` | creates a skill, rewrites one of PowerLoom's own skills, puts a revision of one back |
 | `deadletter_replay`, `deadletter_discard` | runs a message PowerLoom gave up on again, or drops it for good |
 | `chat_open` | opens a Continue chat, a vault's setup chat, or a chat that imports a folder of this PC into the vault |

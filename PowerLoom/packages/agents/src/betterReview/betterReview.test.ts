@@ -106,7 +106,7 @@ describe("review rules note", () => {
   });
 
   it("keeps a repo name safe as a file name", () => {
-    assert.equal(reviewRulesPath("PVS Internal/x"), "review-rules/PVS-Internal-x.md");
+    assert.equal(reviewRulesPath("POS Internal/x"), "review-rules/POS-Internal-x.md");
   });
 });
 

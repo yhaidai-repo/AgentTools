@@ -49,7 +49,7 @@ describe("relinkDraft", () => {
   });
 
   it("leaves root files alone, so a link there still stops the run", async () => {
-    const draft = { edits: [{ path: "pvs/pvs-note.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
+    const draft = { edits: [{ path: "pos/pos-note.md", content: "---\n---\n" }], findings: [], home: null, summary: null };
 
     const edits = await relinkDraft(root, "other-draft", draft);
 

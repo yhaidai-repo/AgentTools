@@ -58,7 +58,7 @@ function findTool(deps: AgentDeps, context: OutsideAccessContext, mongo: MongoAc
       account,
       database: z.string().min(1),
       collection: z.string().min(1),
-      filter: document.optional().describe('MongoDB filter, e.g. { "patientId": "42", "status": { "$in": ["open", "pending"] } }; empty = every document'),
+      filter: document.optional().describe('MongoDB filter, e.g. { "customerId": "42", "status": { "$in": ["open", "pending"] } }; empty = every document'),
       projection: document.optional().describe('Fields to return, e.g. { "_id": 0, "status": 1, "updatedAt": 1 }'),
       sort: document.optional().describe('e.g. { "updatedAt": -1 }'),
       limit: z.number().int().min(1).max(200).optional().describe("Documents to return, 1–200 (default 20)"),

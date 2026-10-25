@@ -19,8 +19,8 @@ export function AddSqlConnectionForm() {
       <summary>+ Add a connection</summary>
       <form ref={form} action={addAction}>
         <div className="field-grid">
-          <label className="field"><span>Name<small>agents pick the connection by it: letters, digits, _ and -</small></span><input name="name" placeholder="pvs-local" maxLength={40} required /></label>
-          <label className="field"><span>Connection string<small>a local server is host.docker.internal; a self-signed dev server needs TrustServerCertificate=True</small></span><input name="connectionString" type="password" autoComplete="off" placeholder="Server=host.docker.internal,1433;Database=Pvs;User ID=reader;Password=…" required /></label>
+          <label className="field"><span>Name<small>agents pick the connection by it: letters, digits, _ and -</small></span><input name="name" placeholder="app-local" maxLength={40} required /></label>
+          <label className="field"><span>Connection string<small>a local server is host.docker.internal; a self-signed dev server needs TrustServerCertificate=True</small></span><input name="connectionString" type="password" autoComplete="off" placeholder="Server=host.docker.internal,1433;Database=App;User ID=reader;Password=…" required /></label>
         </div>
         <div className="actions">
           <button type="button" disabled={isTesting} className="secondary" onClick={() => startTest(async () => setTestResult(await testSqlConnectionAction(null, new FormData(form.current!))))}>{isTesting ? "Testing…" : "Test"}</button>

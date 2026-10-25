@@ -30,10 +30,10 @@ export function createVaultCaptureTool(captures: CaptureDraft[], rules: CaptureR
       "Use the same name again to add bullets to your earlier draft on that topic.",
     ].join("\n"),
     input: {
-      name: z.string().describe("Note name: kebab-case, starting with the project key, e.g. 'pvs-medicaid-recipient-facility-delta'"),
+      name: z.string().describe("Note name: kebab-case, starting with the project key, e.g. 'shop-order-returns-delta'"),
       title: z.string().min(1),
-      project: z.string().min(1).describe("Docs vault project key (top-level folder with a <key>-index note), e.g. pvs or pvsi"),
-      target: z.string().min(1).describe("Where the facts belong once verified: '[[note]]' or a folder like 'pvsi/signals'"),
+      project: z.string().min(1).describe("Docs vault project key (top-level folder with a <key>-index note), e.g. shop or crm"),
+      target: z.string().min(1).describe("Where the facts belong once verified: '[[note]]' or a folder like 'shop/orders'"),
       captured: z.array(z.string()).min(1).describe("One fact per bullet; cite symbols, not line numbers; [[note]] links, never .md paths"),
       assumptions: z.array(z.string()).default([]),
       to_fill: z.array(z.string()).default([]).describe("What still needs checking"),

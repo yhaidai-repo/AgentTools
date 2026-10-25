@@ -57,7 +57,7 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
         return output.Drafts ?? [];
     }
 
-    // Draft paths as stored: relative to the docs vault (e.g. draft/pvs-topic.md).
+    // Draft paths as stored: relative to the docs vault (e.g. draft/pos-topic.md).
     private string RelativePath(string vault, string path) => Path.GetRelativePath(roots.RootOf(vault), path).Replace('\\', '/');
 
     private Task<VaultCaptureResult> RunAsync(IEnumerable<string> arguments, string vault, string input, CancellationToken cancellation) => RunAsync<VaultCaptureResult>(arguments, vault, input, cancellation);

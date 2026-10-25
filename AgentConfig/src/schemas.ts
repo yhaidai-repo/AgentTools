@@ -57,6 +57,9 @@ export const agentsGlobalSchema = z.object({
   paused: z.boolean(),
   pausedUntil: z.string().datetime().nullable(),
   dailyBudgetUsd: z.number().nonnegative(),
+  // The shared framework as edited in Settings; empty = the file shipped with the code. Every edit is a new version.
+  framework: z.string().default(""),
+  frameworkVersion: z.number().int().nonnegative().default(0),
 });
 
 // An option the code doesn't read would be saved and silently ignored, so it is rejected instead.

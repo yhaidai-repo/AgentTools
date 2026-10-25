@@ -32,7 +32,7 @@ const INPUT = {
     expected: z.string().min(1).describe("The observable result that proves the criterion"),
     state: z.enum(["planned", "blocked"]).describe("blocked: an open finding stops this case until its task closes"),
     blocked_by: z.string().optional().describe("The task that unblocks a blocked case ('new:1' or an item id)"),
-  })).describe("One case per acceptance criterion; a criterion with an open finding is a blocked case, not a missing one"),
+  })).describe("One or more cases per acceptance criterion (one per observable result), every criterion covered; a criterion with an open finding is a blocked case, not a missing one"),
   services: z.array(z.object({ name: z.string().min(1), why: z.string().min(1) })).default([]).describe("The services the cases need running (names from list_services) and why each"),
   results: z.array(z.object({
     case: z.string().min(1).describe("The planned case's title"),

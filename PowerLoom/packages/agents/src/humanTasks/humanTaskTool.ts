@@ -12,7 +12,7 @@ export const reasonInput = (what: string) => z.string().min(1).max(MAX_REASON_CH
 export const stepInput = z.object({
   action: z.string().min(1).describe("What to do, as an instruction"),
   source: z.enum(SOURCES).describe("Where it is done"),
-  resource: z.string().min(1).describe("The exact resource and environment, e.g. 'App Insights aa-stage-signals-service (stage)'"),
+  resource: z.string().min(1).describe("The exact resource and environment, e.g. 'App Insights orders-api (stage)'"),
   query: z.object({
     language: z.enum(["kql", "cosmos-sql", "sql"]),
     text: z.string().min(1).describe("Runs as written: real names and ids, no placeholders"),

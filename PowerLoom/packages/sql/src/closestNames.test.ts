@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { closestNames, editDistance } from "./closestNames";
 
 describe("closestNames", () => {
-  const columns = ["f.FacilityId", "f.Title", "f.TenantId", "v.VerificationStatus", "v.CreatedAtUtc", "v.Id"];
+  const columns = ["f.FacilityId", "f.Title", "f.TenantId", "v.SubscriptionStatus", "v.CreatedAtUtc", "v.Id"];
 
   it("finds a name that differs in case or underscores first", () => {
     assert.deepEqual(closestNames("FacilityID", columns)[0], "f.FacilityId");
@@ -11,7 +11,7 @@ describe("closestNames", () => {
   });
 
   it("finds a name inside a longer one and a few edits away", () => {
-    assert.deepEqual(closestNames("Status", columns), ["v.VerificationStatus"]);
+    assert.deepEqual(closestNames("Status", columns), ["v.SubscriptionStatus"]);
     assert.deepEqual(closestNames("CreatedAt", columns), ["v.CreatedAtUtc"]);
     assert.deepEqual(closestNames("dbo.Facilities", ["dbo.Facility", "dbo.Tenant"]), ["dbo.Facility"]);
   });
@@ -19,7 +19,7 @@ describe("closestNames", () => {
   it("keeps short names strict and gives nothing for an unrelated name", () => {
     assert.deepEqual(closestNames("Ip", columns), ["v.Id"]);
     assert.deepEqual(closestNames("Xy", columns), []);
-    assert.deepEqual(closestNames("PatientName", columns), []);
+    assert.deepEqual(closestNames("AccountName", columns), []);
   });
 });
 

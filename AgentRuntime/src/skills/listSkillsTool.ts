@@ -7,7 +7,7 @@ import { listSkills } from "./listSkills";
 export function createListSkillsTool(folders: string[], isListed: (name: string) => boolean): ToolDefinition<any> {
   return defineTool({
     name: "list_skills",
-    description: "List the skills agents can load (name and description).",
+    description: "List the skills you may recommend for later runs (name and description). This run loads only the skills use_skill names.",
     input: {},
     handler: async () => {
       const catalog = await listSkills(folders);

@@ -14,7 +14,7 @@ function recordFindingTool(findings: FindingDraft[]) {
     description: "Report something only a person can settle: an open question (business rule, missing spec, docs vs code) or a known issue (a likely defect). The user reviews it and may submit it to the project's register. Don't put it into a note as a guess.",
     input: {
       type: z.enum(["question", "issue"]),
-      project: z.string().min(1).describe("Project key, e.g. pvs or pvsi"),
+      project: z.string().min(1).describe("Project key, e.g. shop or crm"),
       title: z.string().min(1).describe("A question for questions, a short defect name for issues"),
       text: z.string().min(1).describe("1-3 lines: what and why it matters, with the symbols involved"),
       default: z.array(z.string()).default([]).describe("Questions: what holds until it is answered"),

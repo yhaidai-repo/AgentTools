@@ -26,7 +26,7 @@ public sealed class SyncRepositoriesTests(PowerLoomHost host)
 
         ado.Repositories =
         [
-            new AdoRepository("r-old", "PVS", "Proj", "https://x/_git/PVS", "refs/heads/development", false),
+            new AdoRepository("r-old", "POS", "Proj", "https://x/_git/POS", "refs/heads/development", false),
             new AdoRepository("r-new", "VAPI", "Proj", "https://x/_git/VAPI", null, false),
             new AdoRepository("r-off", "Disabled", "Proj", "https://x/_git/Disabled", null, true),
         ];
@@ -39,7 +39,7 @@ public sealed class SyncRepositoriesTests(PowerLoomHost host)
 
         var repos = await LoadReposAsync();
 
-        Assert.Equal(("PVS", true, "refs/heads/development"), (repos["r-old"].Name, repos["r-old"].Excluded, repos["r-old"].DefaultBranch));
+        Assert.Equal(("POS", true, "refs/heads/development"), (repos["r-old"].Name, repos["r-old"].Excluded, repos["r-old"].DefaultBranch));
         Assert.Equal(("VAPI", false), (repos["r-new"].Name, repos["r-new"].Excluded));
         Assert.DoesNotContain("r-off", repos.Keys);
     }

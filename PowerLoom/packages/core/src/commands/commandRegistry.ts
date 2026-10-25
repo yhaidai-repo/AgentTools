@@ -8,6 +8,7 @@ import { deleteAgentCommand } from "./deleteAgentCommand";
 import { pauseAgentsCommand } from "./pauseAgentsCommand";
 import { runAgentCommand } from "./runAgentCommand";
 import { saveAgentsGlobalCommand } from "./saveAgentsGlobalCommand";
+import { saveFrameworkCommand } from "./saveFrameworkCommand";
 import { saveSkillCommand } from "./saveSkillCommand";
 import { restoreSkillCommand } from "./restoreSkillCommand";
 import { createSkillCommand } from "./createSkillCommand";
@@ -41,6 +42,7 @@ import { getRunEventsCommand } from "./getRunEventsCommand";
 import { listAgentsCommand } from "./listAgentsCommand";
 import { getAgentCommand } from "./getAgentCommand";
 import { getAgentsGlobalCommand } from "./getAgentsGlobalCommand";
+import { getFrameworkCommand } from "./getFrameworkCommand";
 import { getUsageSummaryCommand } from "./getUsageSummaryCommand";
 import { listDataAccessCommand } from "./listDataAccessCommand";
 import { listDeadLettersCommand } from "./listDeadLettersCommand";
@@ -117,6 +119,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   pauseAgentsCommand,
   runAgentCommand,
   saveAgentsGlobalCommand,
+  saveFrameworkCommand,
   saveSkillCommand,
   restoreSkillCommand,
   sqlQueryCommand,
@@ -169,6 +172,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   listAgentsCommand,
   getAgentCommand,
   getAgentsGlobalCommand,
+  getFrameworkCommand,
   getUsageSummaryCommand,
   listDataAccessCommand,
   listDeadLettersCommand,

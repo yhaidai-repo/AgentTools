@@ -34,7 +34,7 @@ function readPageTool(deps: AgentDeps, context: OutsideAccessContext, client: Co
   return defineOutsideTool(deps.outside, context, {
     name: "read_confluence_page",
     description: "Read a Confluence page as Markdown: a spec, design or how-to the PBI, a doc or a search result points to. Takes the page's link.",
-    input: { url: z.string().url().describe("The page link, e.g. https://<site>.atlassian.net/wiki/spaces/AA/pages/123/Title") },
+    input: { url: z.string().url().describe("The page link, e.g. https://<site>.atlassian.net/wiki/spaces/ZZ/pages/123/Title") },
     resource: (input) => resourceOf(siteOf(input.url)),
     request: (input) => input.url,
     handler: async (input) => {
@@ -56,8 +56,8 @@ function searchTool(deps: AgentDeps, context: OutsideAccessContext, client: Conf
     name: "search_confluence",
     description: "Find Confluence pages whose text matches, best match first. Returns titles, links and excerpts; read a page with read_confluence_page.",
     input: {
-      text: z.string().min(2).describe("Words to find, e.g. a signal name or a feature"),
-      space: z.string().optional().describe("A space key to search only that space, e.g. AA"),
+      text: z.string().min(2).describe("Words to find, e.g. a term or a feature"),
+      space: z.string().optional().describe("A space key to search only that space, e.g. ZZ"),
     },
     resource: () => resourceOf(site),
     request: (input) => (input.space ? `search "${input.text}" in ${input.space}` : `search "${input.text}"`),

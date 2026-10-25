@@ -3,7 +3,7 @@
 import type { AgentDefinition, AgentOptionValue } from "@agenttools/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, providerOfModel, saveAgentsGlobalCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
+import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, providerOfModel, saveAgentsGlobalCommand, saveFrameworkCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
@@ -113,6 +113,19 @@ export async function saveGlobalAction(_previous: ActionResult | null, form: For
   revalidatePath("/settings");
 
   return { ok: true, message: "Saved." };
+}
+
+// Settings → Agents: the shared framework; the code's text again puts the agents back on the file.
+export async function saveFrameworkAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const saved = await runWebCommand(saveFrameworkCommand, { text: text(form, "prompt") });
+
+  if (!saved.ok) {
+    return { ok: false, message: saved.error };
+  }
+
+  revalidatePath("/settings");
+
+  return { ok: true, message: saved.value.onFile ? "Saved: the agents use the code's framework." : `Saved as version ${saved.value.version}.` };
 }
 
 // The whole form as agent.update takes it: every field is sent, so the command replaces them all.

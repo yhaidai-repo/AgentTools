@@ -13,34 +13,34 @@ public sealed class ReadSqlEndpointsTests(PowerLoomHost host)
 {
     private const string ReadSql = $"/api/vaults/{PowerLoomHost.Vault}/read-sql";
 
-    private const string Pvs = "Server=tcp:host.docker.internal,1433;Database=Pvs;User ID=reader;Password=secret-1;TrustServerCertificate=True";
+    private const string Pos = "Server=tcp:host.docker.internal,1433;Database=Pos;User ID=reader;Password=secret-1;TrustServerCertificate=True";
 
     [Fact]
     public async Task An_added_connection_keeps_its_string_and_returns_only_server_and_database()
     {
-        var summary = await host.Host.PostJson(new AddSqlConnectionRequest("pvs-local", Pvs), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
+        var summary = await host.Host.PostJson(new AddSqlConnectionRequest("pos-local", Pos), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
 
-        var saved = (await ReadSettingsAsync()).Find("pvs-local");
+        var saved = (await ReadSettingsAsync()).Find("pos-local");
 
-        Assert.Equal(new SqlConnectionSummary("pvs-local", "tcp:host.docker.internal,1433", "Pvs", true), summary);
-        Assert.Equal(Pvs, saved!.ConnectionString);
+        Assert.Equal(new SqlConnectionSummary("pos-local", "tcp:host.docker.internal,1433", "Pos", true), summary);
+        Assert.Equal(Pos, saved!.ConnectionString);
     }
 
     [Fact]
     public async Task A_taken_name_an_invalid_name_and_a_string_without_a_server_are_refused()
     {
-        await host.Host.PostJson(new AddSqlConnectionRequest("taken", Pvs), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
+        await host.Host.PostJson(new AddSqlConnectionRequest("taken", Pos), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
 
-        await AddShouldFailAsync(new AddSqlConnectionRequest("TAKEN", Pvs), HttpStatusCode.Conflict);
-        await AddShouldFailAsync(new AddSqlConnectionRequest("has space", Pvs), HttpStatusCode.BadRequest);
-        await AddShouldFailAsync(new AddSqlConnectionRequest("no-server", "Database=Pvs"), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddSqlConnectionRequest("TAKEN", Pos), HttpStatusCode.Conflict);
+        await AddShouldFailAsync(new AddSqlConnectionRequest("has space", Pos), HttpStatusCode.BadRequest);
+        await AddShouldFailAsync(new AddSqlConnectionRequest("no-server", "Database=Pos"), HttpStatusCode.BadRequest);
         await AddShouldFailAsync(new AddSqlConnectionRequest("not-a-string", "just words"), HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task The_vault_switch_and_a_connection_switch_are_saved_and_a_removed_connection_is_gone()
     {
-        await host.Host.PostJson(new AddSqlConnectionRequest("switched", Pvs), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
+        await host.Host.PostJson(new AddSqlConnectionRequest("switched", Pos), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
         await host.Host.Scenario(scenario => scenario.Put.Json(new EnabledRequest(true)).ToUrl(ReadSql));
 
         var off = await host.Host.PutJson(new EnabledRequest(false), $"{ReadSql}/connections/switched/enabled").Receive<SqlConnectionSummary>();
@@ -78,14 +78,14 @@ public sealed class ReadSqlEndpointsTests(PowerLoomHost host)
         var tester = host.Host.Services.GetRequiredService<FakeSqlConnectionTester>();
         const string typed = "Server=db2;Database=Vapi";
 
-        await host.Host.PostJson(new AddSqlConnectionRequest("tested", Pvs), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
+        await host.Host.PostJson(new AddSqlConnectionRequest("tested", Pos), $"{ReadSql}/connections").Receive<SqlConnectionSummary>();
 
         var saved = await host.Host.PostJson(new TestSqlConnectionRequest("tested", null), $"{ReadSql}/test").Receive<SqlConnectionCheck>();
         var savedString = tester.LastConnectionString;
         var fromForm = await host.Host.PostJson(new TestSqlConnectionRequest("tested", typed), $"{ReadSql}/test").Receive<SqlConnectionCheck>();
 
         Assert.Equal(tester.Answer, saved);
-        Assert.Equal(Pvs, savedString);
+        Assert.Equal(Pos, savedString);
         Assert.Equal(tester.Answer, fromForm);
         Assert.Equal(typed, tester.LastConnectionString);
     }

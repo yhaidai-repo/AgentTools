@@ -34,7 +34,7 @@ pwsh -NoProfile -File vault-capture.ps1 rules -Format json
 ```
 
 ```bash
-echo '{"vault":"work-projects","project":"pvs","name":"pvs-topic","title":"Topic","source":"session finding","target":"[[pvs-index]]","captured":["fact"]}' | pwsh -NoProfile -File vault-capture.ps1 capture
+echo '{"vault":"work-projects","project":"pos","name":"pos-topic","title":"Topic","source":"session finding","target":"[[pos-index]]","captured":["fact"]}' | pwsh -NoProfile -File vault-capture.ps1 capture
 ```
 
 Input JSON (stdin, or `-InputFile <path>`). `rules` and `capture` take `-Cwd` (default: where the command runs).
@@ -55,18 +55,18 @@ An existing draft with the same name gets only the new bullets, in place. Reject
 
 ```bash
 pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: powerloom"
-pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
+pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pos-topic -Name pos-other
 ```
 
 - `drafts`: every note in the vault's `draft/` folder (name, title, project, captured, source, target, path, preferred), for a writer to verify and merge. Drafts whose `source` starts with `-PreferSource` come first, then the oldest `captured` first.
-- `is-draft`: `{"ok":true,"drafts":{"pvs-topic":true,"pvs-other":false}}`. `false` = no longer in `draft/` (merged or deleted). A caller waiting for drafts polls this.
+- `is-draft`: `{"ok":true,"drafts":{"pos-topic":true,"pos-other":false}}`. `false` = no longer in `draft/` (merged or deleted). A caller waiting for drafts polls this.
 - Both return `{"ok":false,"errors":[…]}` with exit code 1 for an unknown vault or a name that isn't a note name.
 
 ### Registers (open questions, known issues)
 
 ```bash
-pwsh -NoProfile -File vault-capture.ps1 register -Vault work-projects -Project pvs -Kind questions
-echo '{"vault":"work-projects","project":"pvs","kind":"issues","title":"Short title","text":"1-3 lines","default":["bullet"]}' | pwsh -NoProfile -File vault-capture.ps1 register-add
+pwsh -NoProfile -File vault-capture.ps1 register -Vault work-projects -Project pos -Kind questions
+echo '{"vault":"work-projects","project":"pos","kind":"issues","title":"Short title","text":"1-3 lines","default":["bullet"]}' | pwsh -NoProfile -File vault-capture.ps1 register-add
 ```
 
 - `register`: `{"ok":true,"records":[{"id":"OQ-001","title":"…","status":"Open","resolved":false}],"path":"…"}` from `<project>/<project>-open-questions.md` or `-known-issues.md`. Reads the AGENTS.md record layout and the older one (title as a bold line under `## OQ-001`).

@@ -4,7 +4,7 @@ using PowerLoom.Persistence;
 
 namespace PowerLoom.Domain.Pbis;
 
-// The docs-vault project a PBI belongs to: the folder most of refinement's relevant docs are in ("pvs/…" → pvs).
+// The docs-vault project a PBI belongs to: the folder most of refinement's relevant docs are in ("pos/…" → pos).
 public static class PbiDocsProject
 {
     public const string NoProject = "common";

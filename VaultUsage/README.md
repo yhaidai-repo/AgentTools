@@ -52,7 +52,7 @@ Sections: used notes (reads, searches, shell, writes, sessions, last used, last 
 One JSON object per line in `<vault>/.usage/usage.jsonl`. Adapters depend only on this shape.
 
 ```json
-{"ts":"2026-09-30T11:35:08Z","file":"pvs/pvs-index.md","kind":"read","agent":"claude-code","subagent":"Explore","session":"…","source":"hook","eventId":"toolu_…"}
+{"ts":"2026-09-30T11:35:08Z","file":"pos/pos-index.md","kind":"read","agent":"claude-code","subagent":"Explore","session":"…","source":"hook","eventId":"toolu_…"}
 ```
 
 `file` is relative to the vault root with `/` separators.

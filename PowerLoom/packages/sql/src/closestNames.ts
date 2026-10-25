@@ -4,7 +4,7 @@ const MAX_CLOSEST = 3;
 const MIN_CONTAINED = 4;
 
 // The candidates whose last part is close enough to be the name the agent meant: the same but for case and
-// underscores, one inside the other (Status in VerificationStatus), or a few edits apart (Facilities for Facility).
+// underscores, one inside the other (Status in SubscriptionStatus), or a few edits apart (Facilities for Facility).
 // Candidates are as the hint shows them (dbo.Facility.FacilityId); the closest come first.
 export function closestNames(wanted: string, candidates: string[]): string[] {
   const target = comparable(bareName(wanted));

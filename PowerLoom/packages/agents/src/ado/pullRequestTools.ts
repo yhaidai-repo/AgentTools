@@ -13,7 +13,7 @@ const DEFAULT_PULL_REQUESTS = 25;
 const MAX_PULL_REQUESTS = 100;
 
 const listInput = {
-  repo: z.string().optional().describe("Only this repository, by name, e.g. PVS"),
+  repo: z.string().optional().describe("Only this repository, by name, e.g. Shop.Web"),
   status: z.enum(["active", "completed", "abandoned", "all"]).optional().describe("Default active"),
   sourceBranch: z.string().optional().describe("Only PRs from this branch, e.g. feature/32071-medicare-hcpcs-codes"),
   targetBranch: z.string().optional().describe("Only PRs into this branch, e.g. development"),

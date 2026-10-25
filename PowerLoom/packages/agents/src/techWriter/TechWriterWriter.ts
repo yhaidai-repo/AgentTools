@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { ReadLog } from "../evidence/ReadLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { RunWriter } from "../toolset/models/RunWriter";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
 import { dependenciesBlock } from "./dependenciesBlock";
@@ -27,6 +28,9 @@ export class TechWriterWriter implements RunWriter {
   readonly integration = WRITE_NOTES_INTEGRATION;
 
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
+  private isDraftTask = false;
+  private handedOn: string[] = [];
+  private committedNotes = 0;
 
   constructor(private readonly deps: AgentDeps) {}
 
@@ -35,6 +39,7 @@ export class TechWriterWriter implements RunWriter {
   }
 
   async contextBlocks(task: ItemRow): Promise<string[]> {
+    this.isDraftTask = modeOf(task) === "draft";
     const vault = taskVault(this.deps, task);
 
     return [await techWriterMessage(vault, task), await dependenciesBlock(this.deps.db, task)].filter(Boolean);
@@ -49,7 +54,18 @@ export class TechWriterWriter implements RunWriter {
   }
 
   async commit(target: WriterTarget): Promise<string[]> {
+    this.isDraftTask = modeOf(target.task) === "draft";
+
+    // A run that handed work on merges nothing (its notes wait for the answers); one with nothing to merge the draft into
+    // leaves it alone. Either way the draft and its capture stay as they are (removing them is the commit's last step,
+    // only once the facts have a note to live in).
     if (target.taskIds.length > 0) {
+      this.handedOn = target.taskIds;
+
+      return [];
+    }
+
+    if (this.isDraftTask && this.draft.edits.length === 0) {
       return [];
     }
 
@@ -57,7 +73,21 @@ export class TechWriterWriter implements RunWriter {
 
     this.draft.summary = target.result?.body ?? null;
 
-    return this.commitNotes(vault, target.task, target.runId);
+    const outputs = await this.commitNotes(vault, target.task, target.runId);
+
+    this.committedNotes = this.draft.edits.length;
+
+    return outputs;
+  }
+
+  // Settled on what was written, not on what was staged: a run that handed work on waits for it (its staged notes were
+  // not written), and a draft task is done only once its draft went into at least one note.
+  settlement(): WriterSettlement | null {
+    if (this.handedOn.length > 0) {
+      return { kind: "waits", ids: this.handedOn, reason: "The notes wait for what the tech-writer handed on" };
+    }
+
+    return this.isDraftTask && this.committedNotes === 0 ? { kind: "missing", output: "the draft merged into a note (write_note)" } : null;
   }
 
   // The commits list the notes written as the run's outputs themselves, so nothing is returned to list twice.

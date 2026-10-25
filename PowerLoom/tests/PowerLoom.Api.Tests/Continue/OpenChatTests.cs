@@ -76,9 +76,9 @@ public sealed class OpenChatTests(PowerLoomHost host)
         var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "item-GT-7002.md"));
 
         Assert.StartsWith("claude://code/new?", link!.Url);
-        Assert.Contains("# Help me follow up on agent task GT-7002: Map the payers", note);
+        Assert.Contains("# Help me follow up on agent task GT-7002: Map the buyers", note);
         Assert.Contains("**What the agent did**", note);
-        Assert.Contains("Result:\n\nThree payers map to one code.", note);
+        Assert.Contains("Result:\n\nThree buyers map to one code.", note);
         Assert.Contains("task_rerun` with `{\"itemId\":\"GT-7002\",\"adoId\":null,\"startOver\":false}`", note);
     }
 
@@ -151,13 +151,13 @@ public sealed class OpenChatTests(PowerLoomHost host)
         db.LocalItems.Add(new LocalItem
         {
             Id = id,
-            Title = "Map the payers",
+            Title = "Map the buyers",
             Assignee = "agent:better-research",
             Vault = PowerLoomHost.Vault,
             Kind = ItemKinds.Research,
             Status = ItemStatus.Done,
-            Body = "Find how payers map to codes.",
-            Resolution = "Three payers map to one code.",
+            Body = "Find how buyers map to codes.",
+            Resolution = "Three buyers map to one code.",
             HeldBy = "[]",
         });
         await db.SaveChangesAsync();

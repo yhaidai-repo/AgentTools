@@ -11,7 +11,7 @@ export const addReviewCommand: Command<{ vault: string; repo: string; branch: st
   input: z.object({
     vault: vaultInput,
     repo: z.string().trim().min(1).describe("An enabled Azure DevOps repo of the vault"),
-    branch: z.string().trim().min(1).describe("The branch, e.g. feature/30474-other-payer"),
+    branch: z.string().trim().min(1).describe("The branch, e.g. feature/30474-new-report"),
     targetBranch: z.string().trim().min(1).nullable().default(null).describe("What a branch review is compared with; null: the repo's default. A PR keeps its own target"),
     pbi: z.string().trim().min(1).nullable().default(null).describe("A branch review's PBI; null: the number in the branch name"),
   }),

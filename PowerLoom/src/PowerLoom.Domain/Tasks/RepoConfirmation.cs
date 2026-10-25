@@ -54,7 +54,7 @@ public static partial class RepoConfirmation
 
     private static bool IsRepoQuestion(LocalItem item) => item.Kind == ItemKinds.Question && KeyOf(item).StartsWith(KeyPrefix, StringComparison.Ordinal);
 
-    // The question's key lists the repos it asked about, e.g. "repos:AA-Automation-Tests,PVS.Internal".
+    // The question's key lists the repos it asked about, e.g. "repos:QA-Automation-Tests,POS.Internal".
     private static List<string> AskedRepos(LocalItem item) => KeyOf(item)[KeyPrefix.Length..].Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
     private static string KeyOf(LocalItem item)
