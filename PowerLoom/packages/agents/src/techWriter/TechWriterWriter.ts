@@ -29,6 +29,8 @@ export class TechWriterWriter implements RunWriter {
 
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
   private isDraftTask = false;
+  private handedOn: string[] = [];
+  private committedNotes = 0;
 
   constructor(private readonly deps: AgentDeps) {}
 
@@ -54,9 +56,16 @@ export class TechWriterWriter implements RunWriter {
   async commit(target: WriterTarget): Promise<string[]> {
     this.isDraftTask = modeOf(target.task) === "draft";
 
-    // Handed work on, or nothing to merge the draft into: the draft and its capture stay as they are (removing them is
-    // the commit's last step, only once the facts have a note to live in).
-    if (target.taskIds.length > 0 || (this.isDraftTask && this.draft.edits.length === 0)) {
+    // A run that handed work on merges nothing (its notes wait for the answers); one with nothing to merge the draft into
+    // leaves it alone. Either way the draft and its capture stay as they are (removing them is the commit's last step,
+    // only once the facts have a note to live in).
+    if (target.taskIds.length > 0) {
+      this.handedOn = target.taskIds;
+
+      return [];
+    }
+
+    if (this.isDraftTask && this.draft.edits.length === 0) {
       return [];
     }
 
@@ -64,12 +73,21 @@ export class TechWriterWriter implements RunWriter {
 
     this.draft.summary = target.result?.body ?? null;
 
-    return this.commitNotes(vault, target.task, target.runId);
+    const outputs = await this.commitNotes(vault, target.task, target.runId);
+
+    this.committedNotes = this.draft.edits.length;
+
+    return outputs;
   }
 
-  // A draft is merged into at least one note (a run that handed work on merges nothing and waits instead).
+  // Settled on what was written, not on what was staged: a run that handed work on waits for it (its staged notes were
+  // not written), and a draft task is done only once its draft went into at least one note.
   settlement(): WriterSettlement | null {
-    return this.isDraftTask && this.draft.edits.length === 0 ? { kind: "missing", output: "the draft merged into a note (write_note)" } : null;
+    if (this.handedOn.length > 0) {
+      return { kind: "waits", ids: this.handedOn, reason: "The notes wait for what the tech-writer handed on" };
+    }
+
+    return this.isDraftTask && this.committedNotes === 0 ? { kind: "missing", output: "the draft merged into a note (write_note)" } : null;
   }
 
   // The commits list the notes written as the run's outputs themselves, so nothing is returned to list twice.

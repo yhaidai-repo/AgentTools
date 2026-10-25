@@ -57,6 +57,15 @@ describe("decideSettlement", () => {
     assert.deepEqual(decideSettlement(input({ result: result("partial"), createdIds: ["HT-1-003"], writers: [{ kind: "handedOn", id: "RF-1-005" }] })), { kind: "done" });
   });
 
+  it("lets a refinement follow-up carry only the refinement, not another writer's output or blockers", () => {
+    const followUp = { kind: "handedOn" as const, id: "RF-1-005" };
+    const noReport = decideSettlement(input({ writers: [followUp, { kind: "missing", output: "a test report (write_test_report)" }] }));
+    const designGaps = decideSettlement(input({ writers: [followUp, { kind: "waits", ids: ["Q-1-006"], reason: "Design needs input first" }] }));
+
+    assert.equal(noReport.kind, "block");
+    assert.deepEqual(designGaps, { kind: "wait", ids: ["Q-1-006"], reason: "Design needs input first" });
+  });
+
   it("blocks an unfinished run with nothing to wait for, with its one-line summary", () => {
     const settled = decideSettlement(input({ result: result("blocked", "\n# Waits for the facility list\n\nDetails") }));
 
