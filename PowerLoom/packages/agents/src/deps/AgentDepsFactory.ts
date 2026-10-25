@@ -116,7 +116,7 @@ export class AgentDepsFactory {
   }
 
   // The Azure MCP server runs for the run with the vault's sign-in: its `az` shim asks this host for tokens
-  // (POWERLOOM_RUNNER_URL, the vault), the tenant is the signed-in account's. The Mongo reads take the same sign-in's
+  // (POWERLOOM_RUNNER_URL with this start's secret, the vault), the tenant is the signed-in account's. The Mongo reads take the same sign-in's
   // tokens; the Service Bus peeks use each namespace's own connection string from Settings. Nobody signed in = every
   // call answers `denied`, which asks the user to sign in.
   private async azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
@@ -130,7 +130,7 @@ export class AgentDepsFactory {
     }
 
     const account = await readAzureUserAccount(this.db, vault);
-    const env = { POWERLOOM_RUNNER_URL: this.env.azureTokenUrl, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
+    const env = { POWERLOOM_RUNNER_URL: this.env.azureTokenUrl, POWERLOOM_AZURE_TOKEN_SECRET: this.env.azureTokenSecret, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
     const token = (resource: string) => this.azureLogin.token(vault, resource, account?.tenantId ?? null);
 
     return {

@@ -21,12 +21,13 @@ case "$command" in
   *) echo "ERROR: this az only answers 'account get-access-token' (the agent-runner's Azure sign-in)." >&2; exit 1 ;;
 esac
 
-if [ -z "$POWERLOOM_RUNNER_URL" ] || [ -z "$POWERLOOM_AZURE_VAULT" ]; then
-  echo "ERROR: POWERLOOM_RUNNER_URL and POWERLOOM_AZURE_VAULT must be set." >&2
+if [ -z "$POWERLOOM_RUNNER_URL" ] || [ -z "$POWERLOOM_AZURE_VAULT" ] || [ -z "$POWERLOOM_AZURE_TOKEN_SECRET" ]; then
+  echo "ERROR: POWERLOOM_RUNNER_URL, POWERLOOM_AZURE_VAULT and POWERLOOM_AZURE_TOKEN_SECRET must be set." >&2
   exit 1
 fi
 
-answer=$(wget -qO- "$POWERLOOM_RUNNER_URL/azure/token?vault=$POWERLOOM_AZURE_VAULT&resource=$resource&tenant=$tenant" 2>&1)
+# The host's secret for this start: without it the route answers 403 (only the shim may ask for tokens).
+answer=$(wget -qO- --header "Authorization: Bearer $POWERLOOM_AZURE_TOKEN_SECRET" "$POWERLOOM_RUNNER_URL/azure/token?vault=$POWERLOOM_AZURE_VAULT&resource=$resource&tenant=$tenant" 2>&1)
 
 if [ $? -ne 0 ]; then
   # Azure.Identity reads this sentence as "not signed in" and reports it as such.

@@ -10,7 +10,7 @@ import { RunnerServer } from "./runnerServer";
 const NOT_USED = (async () => { throw new Error("not used here"); }) as never;
 
 function serverWith(codex: RunnerCodex | null): RunnerServer {
-  return new RunnerServer(NOT_USED, NOT_USED, NOT_USED, {} as never, codex);
+  return new RunnerServer(NOT_USED, NOT_USED, NOT_USED, {} as never, "not used", codex);
 }
 
 async function call(port: number, method: string, path: string, body?: object): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -75,5 +75,24 @@ describe("the runner's Codex routes", async () => {
 
     assert.equal(cancelled.body.status, "none");
     assert.equal(status.body.status, "none");
+  });
+});
+
+describe("the runner's Azure token route", () => {
+  const login = { token: async () => ({ accessToken: "eyJ.token" }) } as never;
+  const server = new RunnerServer(NOT_USED, NOT_USED, NOT_USED, login, "runner-secret");
+  const path = "/azure/token?vault=work&resource=https://management.azure.com";
+
+  before(() => server.listen(32413));
+  after(() => server.close());
+
+  it("gives a token only to the az shim, which sends the runner's secret", async () => {
+    const shim = await fetch(`http://127.0.0.1:32413${path}`, { headers: { authorization: "Bearer runner-secret" } });
+    const other = await fetch(`http://127.0.0.1:32413${path}`);
+
+    assert.equal(shim.status, 200);
+    assert.deepEqual(await shim.json(), { accessToken: "eyJ.token" });
+    assert.equal(other.status, 403);
+    assert.doesNotMatch(await other.text(), /eyJ/);
   });
 });
