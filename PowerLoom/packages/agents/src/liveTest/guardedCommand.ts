@@ -25,10 +25,14 @@ async function runGuarded<I, O>(command: Command<I, O>, rule: LiveTestRule, scop
 
   const outcome = await command.run(context, input);
 
-  if (outcome.ok) {
-    scope.record(rule.created?.(outcome.value, input) ?? []);
-    scope.forget(rule.removed?.(input) ?? []);
+  if (!outcome.ok) {
+    return outcome;
   }
 
-  return outcome;
+  scope.record(rule.created?.(outcome.value, input) ?? []);
+  scope.forget(rule.removed?.(input) ?? []);
+
+  const unsettled = (await rule.settle?.(context, input)) ?? null;
+
+  return unsettled ? { ok: false, error: `${command.name} ran, but ${unsettled}` } : outcome;
 }

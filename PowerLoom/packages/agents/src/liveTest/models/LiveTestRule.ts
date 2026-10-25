@@ -1,3 +1,4 @@
+import type { CommandContext } from "@powerloom/core";
 import type { LiveTestEntity } from "./LiveTestEntity";
 import type { LiveTestTarget } from "./LiveTestTarget";
 
@@ -12,6 +13,8 @@ export interface LiveTestRule {
   created?(output: any, input: any): LiveTestEntity[];
   /** What a successful call removed. */
   removed?(input: any): LiveTestEntity[];
+  /** Undoes what a successful call starts besides its own change (a queued agent task); a problem fails the call. */
+  settle?(context: CommandContext, input: any): Promise<string | null>;
   /** What the test must do besides, added to the tool's description. */
   note?: string;
 }

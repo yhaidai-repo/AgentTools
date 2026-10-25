@@ -1,4 +1,5 @@
 import type { LiveTestRule } from "./models/LiveTestRule";
+import { deleteQueuedRefinement } from "./queuedRefinement";
 import { agentEntity, agentTarget, itemTarget, pbiEntity, pbiReferenceTarget, pbiTarget, scheduleEntity, scheduleTarget, taskEntity } from "./liveTestTargets";
 
 // The write commands a live test may call, each with what it creates, what it changes and what it refuses. A test
@@ -52,6 +53,12 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   { command: "agent.delete", targets: (input) => agentTarget(input.id), removed: (input) => agentEntity(input.id) },
   { command: "schedule.delete", targets: (input) => scheduleTarget(input.id), removed: (input) => scheduleEntity(input.id) },
   { command: "pbi.delete", targets: (input) => pbiTarget(input.adoId), removed: (input) => pbiEntity(input.adoId) },
+  {
+    command: "pbi.prepare",
+    targets: (input) => input.adoIds.flatMap((adoId: number) => pbiTarget(adoId)),
+    settle: (context, input) => deleteQueuedRefinement(context, input.adoIds),
+    note: "Prepare a PBI before testing its notes or pages: it writes the PBI's note. The refinement task it queues is deleted here at once, so no refinement agent starts; the note is written by the time this answers.",
+  },
   pbiOnly("pbi.close"),
   pbiOnly("pbi.reopen"),
   {
@@ -72,12 +79,11 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   { command: "task.notes.save", targets: (input) => itemTarget(input.itemId) },
 ];
 
-// The changing commands a live test never gets: they start agent runs that cost budget (pbi.prepare, schedule.tick,
+// The changing commands a live test never gets: they start agent runs that cost budget (schedule.tick,
 // agent.run, review.queue), change what every agent shares (agent.pause, agent.saveGlobal, skill.*), or write into real
 // vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW, findings, PR syncs, repos,
 // cleanup, dead letters); chat.open opens a desktop chat.
 export const LIVE_TEST_EXCLUDED = [
-  "pbi.prepare",
   "pbi.sync",
   "pbi.importNow",
   "schedule.tick",
