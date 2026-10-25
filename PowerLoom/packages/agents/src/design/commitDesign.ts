@@ -1,4 +1,3 @@
-import { setItemStatus } from "@powerloom/core";
 import { agentRun, design, localItem, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
@@ -9,11 +8,10 @@ import type { DesignOutput } from "./models/DesignOutput";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-const ACTOR = "agent:design";
-
-// Writes a successful run: the design (when there is one), questions and tasks for the user, drafts, pages. With a
-// design the task is done; without one it waits, open, until its gaps close, then design runs again (user decision 2026-10-02).
-export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number, runId: number, draft: DesignDraft): Promise<string[]> {
+// Writes a successful run: the design (when there is one), questions and tasks for the user, drafts, pages. Returns the
+// gap items: without a design the task waits until they close, then design runs again (user decision 2026-10-02; the
+// generic executor settles the task).
+export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number, runId: number, draft: DesignDraft): Promise<{ gapIds: string[] }> {
   const designIds = draft.design ? [await insertDesign(db, adoId, runId, draft.design)] : [];
   const gapIds = await insertGapItems(db, adoId, task.id, runId, draft.gaps);
   const captureIds = await commitCaptures(db, runId, adoId, task.id, draft.captures);
@@ -22,16 +20,7 @@ export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number
   await commitRelevantPages(db, adoId, draft.pages, "design");
   await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
 
-  if (draft.design) {
-    await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
-
-    return outputs;
-  }
-
-  await db.update(localItem).set({ heldBy: [`Design needs input first: ${gapIds.join(", ")}`] }).where(eq(localItem.id, task.id));
-  await setItemStatus(db, task.id, "in-progress", "open", ACTOR, runId);
-
-  return outputs;
+  return { gapIds };
 }
 
 async function insertDesign(db: PowerLoomDb, adoId: number, runId: number, output: DesignOutput): Promise<string> {

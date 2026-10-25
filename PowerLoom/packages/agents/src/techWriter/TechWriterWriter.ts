@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { ReadLog } from "../evidence/ReadLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { RunWriter } from "../toolset/models/RunWriter";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { commitActualize, commitTechWriter } from "./commitTechWriter";
 import { dependenciesBlock } from "./dependenciesBlock";
@@ -27,6 +28,7 @@ export class TechWriterWriter implements RunWriter {
   readonly integration = WRITE_NOTES_INTEGRATION;
 
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
+  private isDraftTask = false;
 
   constructor(private readonly deps: AgentDeps) {}
 
@@ -35,6 +37,7 @@ export class TechWriterWriter implements RunWriter {
   }
 
   async contextBlocks(task: ItemRow): Promise<string[]> {
+    this.isDraftTask = modeOf(task) === "draft";
     const vault = taskVault(this.deps, task);
 
     return [await techWriterMessage(vault, task), await dependenciesBlock(this.deps.db, task)].filter(Boolean);
@@ -58,6 +61,11 @@ export class TechWriterWriter implements RunWriter {
     this.draft.summary = target.result?.body ?? null;
 
     return this.commitNotes(vault, target.task, target.runId);
+  }
+
+  // A draft is merged into at least one note (a run that handed work on merges nothing and waits instead).
+  settlement(): WriterSettlement | null {
+    return this.isDraftTask && this.draft.edits.length === 0 ? { kind: "missing", output: "the draft merged into a note (write_note)" } : null;
   }
 
   // The commits list the notes written as the run's outputs themselves, so nothing is returned to list twice.

@@ -5,6 +5,7 @@ import type { RepoSource } from "../../models/RepoSource";
 import type { OpenReposOptions } from "../../models/OpenReposOptions";
 import type { SharedRunState } from "./SharedRunState";
 import type { WriterRunContext } from "./WriterRunContext";
+import type { WriterSettlement } from "./WriterSettlement";
 import type { WriterTarget } from "./WriterTarget";
 
 // An output tool any agent can be granted (user decision 2026-10-22: writers are shared and granted like readers), with
@@ -14,6 +15,9 @@ export interface RunWriter {
   readonly integration: string;
   tools(log: ReadLog, shared: SharedRunState): ToolDefinition<any>[];
   commit(target: WriterTarget): Promise<string[]>;
+  /** After the commit (or without one): what the writer's own output says about the task's end; the generic executor
+   *  settles the task, a writer never sets its status. Null when write_result's status alone decides. */
+  settlement?(): WriterSettlement | null;
   /** Blocks the writer adds to the first message: what its tools work on (a draft, a note, a PR checked out here). */
   contextBlocks?(task: typeof localItem.$inferSelect, run: WriterRunContext): Promise<string[]>;
   /** Sections the writer adds to the instructions (a vault's rules). */
