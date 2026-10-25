@@ -6,6 +6,7 @@ import { SettingsHead } from "@/components/SettingsHead";
 import type { ProviderStatus } from "@/lib/aiProviders";
 import type { ActionResult } from "@/models/ActionResult";
 import { removeClaudeTokenAction, saveClaudeTokenAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // Claude for every agent run (Settings → AI providers): the token is written, never shown again. Without one the
 // agent-runner uses CLAUDE_CODE_OAUTH_TOKEN from .env.
@@ -15,7 +16,7 @@ export function ClaudeTokenForm({ status }: { status: ProviderStatus | null }) {
   const hasSaved = status?.source === "settings";
 
   return (
-    <form className="panel settings-card">
+    <KeptForm action={saveAction} actions={{ remove: removeAction }} clearOn={saveResult ?? removeResult} className="panel settings-card">
       <SettingsHead title="Claude" description="Agents on Claude models run with this token. Run claude setup-token on this PC and paste the token it prints." />
       <div className="settings-body">
         <p className={status?.connected ? "hint" : "hint text-warn"}>{statusLine(status)}</p>
@@ -23,10 +24,10 @@ export function ClaudeTokenForm({ status }: { status: ProviderStatus | null }) {
       </div>
       <div className="settings-foot">
         <ResultLine result={saveResult ?? removeResult} />
-        {hasSaved && <button type="submit" formAction={removeAction} disabled={isRemoving} className="secondary">{isRemoving ? "Removing…" : "Remove token"}</button>}
-        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+        {hasSaved && <button type="submit" data-action="remove" disabled={isRemoving} className="secondary">{isRemoving ? "Removing…" : "Remove token"}</button>}
+        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }
 

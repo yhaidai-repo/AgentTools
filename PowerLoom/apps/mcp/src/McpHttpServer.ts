@@ -13,12 +13,15 @@ interface McpHttpOptions {
   token: string;
   sessions: ChatSessions;
   azureLogin: AzureUserLogin;
+  /** The secret only this host's `az` shims send to `/azure/token`. */
+  azureTokenSecret: string;
   /** The vaults' names, the first being the default. */
   vaults: () => Promise<string[]>;
 }
 
 // The MCP server's port (decision MCPQ-001, 2026-10-23): streamable HTTP at `/mcp`, loopback only through compose, a
 // bearer token from .env for every call. `GET /azure/token` serves the `az` shim of the sessions' Azure MCP servers,
+// which sends this start's own secret instead (the port is on the PC's loopback, where any process could ask),
 // `GET /health` compose's health check.
 export class McpHttpServer {
   private readonly server: Server;
@@ -54,7 +57,7 @@ export class McpHttpServer {
     }
 
     if (request.method === "GET" && url.pathname === "/azure/token") {
-      const { status, body } = await azureTokenAnswer(this.options.azureLogin, url);
+      const { status, body } = await azureTokenAnswer(this.options.azureLogin, url, request.headers.authorization, this.options.azureTokenSecret);
 
       answer(response, status, body);
 

@@ -37,7 +37,7 @@ const sessions = new ChatSessions({
   // PowerLoom's own skills folder is the first one (SKILL_FOLDERS), the only one the commands may edit.
   skills: skillCatalogOf(env.skillFolders, env.skillFolders[0] ?? null),
 });
-const server = new McpHttpServer({ token, sessions, azureLogin, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
+const server = new McpHttpServer({ token, sessions, azureLogin, azureTokenSecret: env.azureTokenSecret, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
 const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000), SWEEP_MS);
 
 server.listen(port);

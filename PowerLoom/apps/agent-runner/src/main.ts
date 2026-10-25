@@ -55,7 +55,7 @@ await stopOrphanedStacks();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, codex);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex);
 
 server.listen(runnerPort);
 console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}`);

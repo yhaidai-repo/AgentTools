@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { DepsEnv } from "./models/DepsEnv";
 
 export function requireEnv(name: string): string {
@@ -34,6 +35,7 @@ export function depsEnvFromProcess(azureTokenUrl: string): DepsEnv {
     skillFolders: skillFolders(),
     powerloomUrl: requireEnv("POWERLOOM_URL").replace(/\/+$/, ""),
     azureTokenUrl,
+    azureTokenSecret: randomBytes(32).toString("hex"),
     confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
     captureHome: process.env.VAULT_CAPTURE_HOME,
   };

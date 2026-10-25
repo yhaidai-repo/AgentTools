@@ -6,6 +6,7 @@ import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import type { DevHubValues } from "@/models/DevHubValues";
 import { saveDevHubAction, testDevHubAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // DevHub (user decision 2026-10-13): agents start chains of this vault's services on this PC through DevHub
 // (DevSecrets). The token is written, never shown again; an empty token field keeps the saved one. Once one is saved, the
@@ -15,7 +16,7 @@ export function DevHubForm({ values }: { values: DevHubValues }) {
   const [testResult, testAction, isTesting] = useActionState<ActionResult | null, FormData>(testDevHubAction, null);
 
   return (
-    <form className="panel settings-card">
+    <KeptForm action={saveAction} actions={{ test: testAction }} clearOn={saveResult} className="panel settings-card">
       <SettingsHead title="DevHub" description="Agents with DevHub switched on may start, inspect and stop this vault's services on this PC. One stack at a time; a run's stack stops when the run ends. Service logs go to the model provider." enabled={values.enabled} />
       <div className="settings-body">
         <p className="hint">Runs on Windows: <code>D:/Projects/AgentTools/DevSecrets/Start-DevHub.ps1</code></p>
@@ -27,10 +28,10 @@ export function DevHubForm({ values }: { values: DevHubValues }) {
       <div className="settings-foot">
         <ResultLine result={saveResult ?? testResult} />
         {values.hasToken && <a className="button secondary" href={browserUrl(values.url)} target="_blank" rel="noreferrer" title="Sign in there with the same token">Open DevHub ↗</a>}
-        <button type="submit" formAction={testAction} disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test DevHub"}</button>
-        <button type="submit" formAction={saveAction} disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
+        <button type="submit" data-action="test" disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test DevHub"}</button>
+        <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }
 

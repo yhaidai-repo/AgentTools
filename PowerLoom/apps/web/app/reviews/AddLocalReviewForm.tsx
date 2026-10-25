@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { addLocalReview } from "./actions";
 import type { AddReviewRepo } from "./AddReviewForm";
+import { KeptForm } from "@/components/KeptForm";
 
 // Reviews → Add local review (user decision 2026-10-25): a branch of a local repo against a base branch, like a pull
 // request without one; no Azure DevOps needed. Each run reviews the branch's head at its start.
@@ -18,7 +19,7 @@ export function AddLocalReviewForm({ repos }: { repos: AddReviewRepo[] }) {
   }
 
   return (
-    <form action={action} className="add-review-form">
+    <KeptForm action={action} clearOn={result} className="add-review-form">
       <select name="repo" value={repo} onChange={(event) => setRepo(event.target.value)} aria-label="Local repository">
         {repos.map((entry) => <option key={entry.name} value={entry.name}>{entry.name}</option>)}
       </select>
@@ -28,6 +29,6 @@ export function AddLocalReviewForm({ repos }: { repos: AddReviewRepo[] }) {
       <button type="submit" disabled={isPending}>{isPending ? "Adding…" : "Add"}</button>
       <button type="button" className="link-button" onClick={() => setOpen(false)}>Cancel</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
-    </form>
+    </KeptForm>
   );
 }

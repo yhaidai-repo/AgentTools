@@ -8,13 +8,14 @@ import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import { saveGlobalAction } from "../agents/configActions";
+import { KeptForm } from "@/components/KeptForm";
 
 // The daily budget of all agents together; each agent's own model, schedule and limits are on its config page.
 export function GlobalAgentForm({ global, spentTodayUsd }: { global: AgentsGlobal; spentTodayUsd: number }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveGlobalAction, null);
 
   return (
-    <form action={action} className="panel settings-card">
+    <KeptForm action={action} className="panel settings-card">
       <SettingsHead title="Daily budget" description={<>All agents together, API-price estimate. Each agent&apos;s own model, schedule and limits are on <Link href="/agents">Agents</Link>.</>} />
       <div className="settings-body field-grid">
         <label className="field"><span>Budget per day, $</span><input name="dailyBudgetUsd" type="number" step="0.5" min={0} defaultValue={global.dailyBudgetUsd} required /></label>
@@ -24,6 +25,6 @@ export function GlobalAgentForm({ global, spentTodayUsd }: { global: AgentsGloba
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

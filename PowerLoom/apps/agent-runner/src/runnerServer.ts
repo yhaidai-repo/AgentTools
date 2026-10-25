@@ -14,7 +14,7 @@ const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set
 // signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
 // 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for Azure (start, status, sign out); the runner keeps the token cache. `GET /azure/token`: the `az` shim's
-// question for the Azure MCP server, a token of that sign-in for one API. `/codex/*`: Connect Codex in Settings → AI providers
+// question for the Azure MCP server, a token of that sign-in for one API; only with the secret the shim was given. `/codex/*`: Connect Codex in Settings → AI providers
 // (status, device sign-in start and status, disconnect, a login file upload); the runner owns PowerLoom's Codex home.
 // `GET /health` for PowerLoom's health check and Docker's.
 export class RunnerServer {
@@ -26,6 +26,7 @@ export class RunnerServer {
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
     private readonly testDevHub: (url: string, token: string) => Promise<DevHubCheck>,
     private readonly azureLogin: AzureUserLogin,
+    private readonly azureTokenSecret: string,
     private readonly codex: RunnerCodex | null = null,
   ) {
     this.server = createServer((request, response) => this.handle(request, response));
@@ -67,7 +68,7 @@ export class RunnerServer {
     const url = new URL(request.url ?? "/", "http://runner");
 
     if (request.method === "GET" && url.pathname === "/azure/token") {
-      await this.token(response, url);
+      await this.token(request, response, url);
 
       return;
     }
@@ -186,8 +187,8 @@ export class RunnerServer {
   }
 
   // The `az` shim's question for the Azure MCP server a run started: answered from the vault's sign-in.
-  private async token(response: ServerResponse, url: URL): Promise<void> {
-    const { status, body } = await azureTokenAnswer(this.azureLogin, url);
+  private async token(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
+    const { status, body } = await azureTokenAnswer(this.azureLogin, url, request.headers.authorization, this.azureTokenSecret);
 
     answer(response, status, body);
   }

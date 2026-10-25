@@ -5,6 +5,7 @@ import { useActionState, type ReactNode } from "react";
 import { FileInput } from "@/components/FileInput";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeItem } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 const BUTTONS: Record<string, { decision: string; label: string; secondary?: boolean }[]> = {
   question: [{ decision: "answer", label: "Answer" }, { decision: "dismiss", label: "Dismiss", secondary: true }],
@@ -20,7 +21,7 @@ export function CloseItemForm({ adoId, itemId, kind, accept, steps = [], stepVie
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(closeItem, null);
 
   return (
-    <form action={action} className="close-item">
+    <KeptForm action={action} clearOn={result} className="close-item">
       <input type="hidden" name="adoId" value={adoId ?? ""} />
       <input type="hidden" name="itemId" value={itemId} />
       {steps.map((step, index) => (
@@ -43,7 +44,7 @@ export function CloseItemForm({ adoId, itemId, kind, accept, steps = [], stepVie
         {isPending && <span className="muted">Saving…</span>}
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
       </div>
-    </form>
+    </KeptForm>
   );
 }
 
