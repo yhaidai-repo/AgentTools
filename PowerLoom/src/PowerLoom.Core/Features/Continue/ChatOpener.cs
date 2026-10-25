@@ -9,15 +9,16 @@ namespace PowerLoom.Features.Continue;
 // One flow for every kind: the launcher, the kind's brief, the chat note written into the vault's backlog, the link.
 public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers launchers, BacklogFiles backlog, HostPaths hostPaths, TimeProvider clock)
 {
-    public async Task<Outcome<ChatLink>> OpenAsync(ChatKind kind, string id, CancellationToken cancellation)
+    public async Task<Outcome<ChatLink>> OpenAsync(OpenChatRequest request, CancellationToken cancellation)
     {
+        var (kind, id) = (request.Kind, request.Id);
         var launcher = await launchers.CurrentAsync(cancellation);
 
         if (!launcher.Ok)
             return Outcome<ChatLink>.Failure(launcher.Problem);
 
         var target = targets.Single(target => target.Kind == kind);
-        var brief = await target.BriefAsync(id, launcher.Value, cancellation);
+        var brief = await target.BriefAsync(request, launcher.Value, cancellation);
 
         if (!brief.Ok)
             return Outcome<ChatLink>.Failure(brief.Problem);

@@ -156,7 +156,7 @@ function oneChanged(data: { done: string[]; refused: string[] }): Outcome<string
   return data.refused.length === 0 ? { ok: true, value: data.done[0] ?? "" } : { ok: false, error: data.refused[0] };
 }
 
-function chatRequest(target: ChatTarget): { kind: "pbi" | "item" | "review" | "vault"; id: string } {
+function chatRequest(target: ChatTarget): components["schemas"]["OpenChatRequest"] {
   switch (target.kind) {
     case "pbi":
       return { kind: "pbi", id: String(target.adoId) };
@@ -166,5 +166,7 @@ function chatRequest(target: ChatTarget): { kind: "pbi" | "item" | "review" | "v
       return { kind: "review", id: String(target.prId) };
     case "vault":
       return { kind: "vault", id: target.vault };
+    case "import":
+      return { kind: "import", id: target.vault, folder: target.folder };
   }
 }

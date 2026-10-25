@@ -10,6 +10,7 @@ public static class ContinueFeature
         services.AddScoped<ChatAppChoices>();
         services.AddScoped<PbiRepos>();
         services.AddScoped<IChatTarget, VaultSetupChatTarget>();
+        services.AddScoped<IChatTarget, VaultImportChatTarget>();
         services.AddScoped<IChatTarget, ItemChatTarget>();
         services.AddScoped<IChatTarget, PbiChatTarget>();
         services.AddScoped<IChatTarget, ReviewChatTarget>();

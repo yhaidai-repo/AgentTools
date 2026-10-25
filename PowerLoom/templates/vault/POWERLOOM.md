@@ -56,6 +56,6 @@ at most 200 rows. Every read goes to the data access log.
 | `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget |
 | `skill_create`, `skill_save`, `skill_restore` | creates a skill, rewrites one of PowerLoom's own skills, puts a revision of one back |
 | `deadletter_replay`, `deadletter_discard` | runs a message PowerLoom gave up on again, or drops it for good |
-| `chat_open` | opens a Continue chat |
+| `chat_open` | opens a Continue chat, a vault's setup chat, or a chat that imports a folder of this PC into the vault |
 
 Settings themselves (tokens, connections, switches) are changed on PowerLoom's Settings page; `settings_get` reads them.
