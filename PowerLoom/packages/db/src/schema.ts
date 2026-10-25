@@ -56,7 +56,7 @@ export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "c
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 
 // Where a catalog repo comes from: the vault's ADO integration, or a local checkout the user added (2026-10-06).
-export const repoKind = pgEnum("repo_kind", ["ado", "local"]);
+export const repoKind = pgEnum("repo_kind", ["ado", "local", "github"]);
 
 // Whether a write made a docs-vault note (it didn't exist) or changed one.
 export const noteWriteAction = pgEnum("note_write_action", ["created", "updated"]);

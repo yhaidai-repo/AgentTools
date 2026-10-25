@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -19,7 +19,7 @@ import { DocUsageLog } from "../DocUsageLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
 import { loadCaptureRules } from "../vaultCapture";
-import { adoAuthHeader } from "./env";
+import { repoGitAuth } from "./env";
 import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
@@ -37,6 +37,8 @@ export class AgentDepsFactory {
   private readonly mongoReader = new MongoReader();
   // One cache per vault (it remembers when each repo was fetched).
   private readonly repoCaches = new Map<string, RepoCache>();
+  // Each vault's git sign-in as its last run read it; its cache reads it on every git command.
+  private readonly repoAuth = new Map<string, string[]>();
 
   private constructor(
     private readonly db: PowerLoomDb,
@@ -162,20 +164,28 @@ export class AgentDepsFactory {
     return settings.enabled && connections.length > 0 ? { reader: this.sqlReader, connections } : null;
   }
 
-  // Cloning with the vault's ADO token; the vault's local repos are plain paths under the repos mount and need no token.
+  // Cloning with the vault's ADO and GitHub tokens, read again for every run so a token saved in Settings counts from
+  // the next one; the vault's local repos are plain paths under the repos mount and need no token.
   private async repoCacheOf(vault: string): Promise<RepoCache> {
+    this.repoAuth.set(vault, await this.repoGitAuthOf(vault));
+
     const cached = this.repoCaches.get(vault);
 
     if (cached) {
       return cached;
     }
 
-    const pat = (await readAdoSettings(this.db, vault))?.pat ?? "";
-    const cache = new RepoCache({ root: `${this.env.repoCacheRoot}/${vault}`, authHeader: adoAuthHeader(pat), refreshMinutes: REPO_REFRESH_MINUTES });
+    const cache = new RepoCache({ root: `${this.env.repoCacheRoot}/${vault}`, gitAuth: () => this.repoAuth.get(vault) ?? [], refreshMinutes: REPO_REFRESH_MINUTES });
 
     this.repoCaches.set(vault, cache);
 
     return cache;
+  }
+
+  private async repoGitAuthOf(vault: string): Promise<string[]> {
+    const github = await readGitHubSettings(this.db, vault);
+
+    return repoGitAuth((await readAdoSettings(this.db, vault))?.pat ?? "", github.enabled ? github.token : "");
   }
 }
 

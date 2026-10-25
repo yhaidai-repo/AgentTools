@@ -1,0 +1,46 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using PowerLoom.GitHubIntegration.Features.Connection.Models;
+using PowerLoom.GitHubIntegration.Features.SyncRepositories;
+using PowerLoom.Infrastructure.Http;
+using PowerLoom.Infrastructure.Vaults;
+using PowerLoom.Persistence;
+using Wolverine;
+using Wolverine.Http;
+
+namespace PowerLoom.GitHubIntegration.Features.Connection;
+
+// Settings → Repositories → GitHub (user decision 2026-10-25): the vault's switch, token and owner, the test, and the
+// catalog sync (also on save).
+public static class GitHubEndpoints
+{
+    public static Task<ProblemDetails> ValidateAsync(string vault, PowerLoomDbContext db, CancellationToken cancellation) => VaultChecks.NotAVaultAsync(vault, db, cancellation);
+
+    [WolverinePut("/api/vaults/{vault}/github")]
+    public static async Task<Results<Ok<GitHubSummary>, ProblemHttpResult>> Save(string vault, SaveGitHubRequest request, GitHubConnection connection, IMessageBus bus, CancellationToken cancellation)
+    {
+        var saved = await connection.SaveAsync(vault, request, cancellation);
+
+        if (!saved.Ok)
+            return saved.Problem!.ToProblemResult();
+
+        if (saved.Value!.IsActive)
+            await bus.PublishAsync(new SyncGitHubRepositories(vault));
+
+        return TypedResults.Ok(GitHubConnection.SummaryOf(saved.Value));
+    }
+
+    [WolverinePost("/api/vaults/{vault}/github/test")]
+    public static async Task<Ok<GitHubCheck>> Test(string vault, TestGitHubRequest request, GitHubConnection connection, CancellationToken cancellation)
+    {
+        return TypedResults.Ok(await connection.TestAsync(vault, request, cancellation));
+    }
+
+    [WolverinePost("/api/vaults/{vault}/github/sync")]
+    public static async Task<Accepted> Sync(string vault, IMessageBus bus)
+    {
+        await bus.PublishAsync(new SyncGitHubRepositories(vault));
+
+        return TypedResults.Accepted((string?)null);
+    }
+}

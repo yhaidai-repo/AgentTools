@@ -8,6 +8,7 @@
     <Project Path="src/PowerLoom.Core/PowerLoom.Core.csproj" />
     <Project Path="src/PowerLoom.Domain/PowerLoom.Domain.csproj" />
     <Project Path="src/PowerLoom.DevHubIntegration/PowerLoom.DevHubIntegration.csproj" />
+    <Project Path="src/PowerLoom.GitHubIntegration/PowerLoom.GitHubIntegration.csproj" />
     <Project Path="src/PowerLoom.Persistence/PowerLoom.Persistence.csproj" />
     <Project Path="src/PowerLoom.SqlIntegration/PowerLoom.SqlIntegration.csproj" />
   </Folder>

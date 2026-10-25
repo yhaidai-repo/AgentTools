@@ -7,6 +7,7 @@ using JasperFx.CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client;
+using PowerLoom.GitHubIntegration.Client;
 using PowerLoom.AzureIntegration.Features.Resources;
 using PowerLoom.ConfluenceIntegration.Client;
 using PowerLoom.Infrastructure.Runner;
@@ -96,6 +97,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<FakeLocalBranches>();
         services.AddSingleton<ILocalBranches>(provider => provider.GetRequiredService<FakeLocalBranches>());
         services.AddSingleton<IAdoClientFactory>(provider => provider.GetRequiredService<FakeAdoClientFactory>());
+        services.AddSingleton<FakeGitHubClientFactory>();
+        services.AddSingleton<IGitHubClientFactory>(provider => provider.GetRequiredService<FakeGitHubClientFactory>());
         services.AddSingleton<FakeConfluenceClientFactory>();
         services.AddSingleton<IConfluenceClientFactory>(provider => provider.GetRequiredService<FakeConfluenceClientFactory>());
         services.AddSingleton<IVaultCapture>(provider => provider.GetRequiredService<FakeVaultCapture>());

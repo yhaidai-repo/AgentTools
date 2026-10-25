@@ -6,6 +6,7 @@ import type { ConfluenceStatus } from "./models/ConfluenceStatus";
 import type { ImportRunStatus } from "./models/ImportRunStatus";
 import type { ImportSettings } from "./models/ImportSettings";
 import type { DevHubSettings } from "./models/DevHubSettings";
+import type { GitHubSettings } from "./models/GitHubSettings";
 import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
@@ -22,6 +23,7 @@ const CLEANUP_KEY = "cleanup";
 const PULL_REQUESTS_KEY = "pullRequests";
 const READ_SQL_KEY = "readSql";
 const READ_AZURE_KEY = "readAzure";
+const GITHUB_KEY = "github";
 // "localStack": the stored key from before the rename to DevHub (2026-10-14): saved settings keep working.
 const DEVHUB_KEY = "localStack";
 // DevHub on the Windows host, as Docker containers reach it (DevSecrets Start-DevHub.ps1).
@@ -155,6 +157,17 @@ export async function readDevHubSettings(db: PowerLoomDb, vault: string): Promis
   const stored = await readValue<Partial<DevHubSettings>>(db, vaultSettingKey(vault, DEVHUB_KEY));
 
   return { enabled: stored?.enabled ?? false, url: stored?.url || DEFAULT_DEVHUB_URL, token: stored?.token ?? "" };
+}
+
+export async function readGitHubSettings(db: PowerLoomDb, vault: string): Promise<GitHubSettings> {
+  const stored = await readValue<Partial<GitHubSettings>>(db, vaultSettingKey(vault, GITHUB_KEY));
+
+  return { enabled: stored?.enabled ?? false, token: stored?.token ?? "", owner: stored?.owner ?? "", login: stored?.login ?? "", pullRequestsCron: stored?.pullRequestsCron ?? "*/30 * * * *" };
+}
+
+// Like the backend's GitHubSettings.IsActive: switched on, with a token GitHub accepted.
+export function isGitHubActive(settings: GitHubSettings): boolean {
+  return settings.enabled && settings.token.length > 0 && settings.login.length > 0;
 }
 
 export async function readReadAzureSettings(db: PowerLoomDb, vault: string): Promise<ReadAzureSettings> {

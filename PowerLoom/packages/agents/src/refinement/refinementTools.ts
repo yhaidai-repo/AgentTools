@@ -22,14 +22,21 @@ function getPbiTool(pbiMessage: string) {
   });
 }
 
+// Where a catalog repo lives; `adoProject` holds a GitHub repo's owner.
+const REPO_ORIGINS: Record<"ado" | "local" | "github", (project: string) => string> = {
+  ado: (project) => `project ${project}`,
+  local: () => "local",
+  github: (owner) => `GitHub ${owner}`,
+};
+
 export function listReposTool(db: PowerLoomDb, vault: string) {
   return defineTool({
     name: "list_repos",
-    description: "List the code repositories configured for this vault: name, Azure DevOps project (or local), summary.",
+    description: "List the code repositories configured for this vault: name, where it lives (Azure DevOps project, GitHub owner, or local), summary.",
     input: {},
     handler: async () => {
       const rows = await enabledRepos(db, vault);
-      const lines = rows.map((row) => `- ${row.name} (${row.kind === "local" ? "local" : `project ${row.adoProject}`})${row.summary ? `: ${row.summary}` : ""}`);
+      const lines = rows.map((row) => `- ${row.name} (${REPO_ORIGINS[row.kind](row.adoProject)})${row.summary ? `: ${row.summary}` : ""}`);
 
       return { text: lines.join("\n") || "No repositories known." };
     },

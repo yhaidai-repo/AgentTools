@@ -1,4 +1,4 @@
-import { FRAMEWORK_ID, isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { FRAMEWORK_ID, isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -10,6 +10,7 @@ import { readPromptFile } from "@/lib/promptFiles";
 import { loadPromptVersions } from "@/lib/promptVersions";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import type { GitHubValues } from "@/models/GitHubValues";
 import type { AzureResourceRow } from "@/models/AzureResourceRow";
 import type { SettingsTabMark } from "@/models/SettingsTabMark";
 import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
@@ -60,7 +61,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
       <SettingsTabs active={tab} marks={marks} />
       {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
       {tab === "sync" && (isAdoActive(ado) ? <SyncTab db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and pull requests need the Azure DevOps integration: switch it on in the Azure DevOps tab.</p>)}
-      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
+      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} github={gitHubValues(await readGitHubSettings(db, current))} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
       {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
       {tab === "agents" && <AgentsTab />}
@@ -134,6 +135,10 @@ async function DataTab({ db, current, readSql, readAzure }: { db: PowerLoomDb; c
 }
 
 // The browser never gets the token, only whether one is saved.
+function gitHubValues(github: GitHubSettings): GitHubValues {
+  return { enabled: github.enabled, owner: github.owner, login: github.login, hasToken: github.token.length > 0 };
+}
+
 function integrationValues(ado: AdoSettings | null): AdoIntegrationValues {
   return { enabled: ado?.enabled ?? false, orgUrl: ado?.orgUrl ?? "", project: ado?.project ?? "", team: ado?.team ?? "", user: ado?.user ?? "", hasPat: !!ado?.pat };
 }

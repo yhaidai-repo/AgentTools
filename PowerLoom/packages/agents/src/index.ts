@@ -25,7 +25,7 @@ export { spawnCodexLogin } from "./codex/spawnCodexLogin";
 export { devHubsOfVaults } from "./devHubsOfVaults";
 export { createAzureUserLogin } from "./deps/createAzureUserLogin";
 export { azureTokenAnswer } from "./deps/azureTokenAnswer";
-export { adoAuthHeader, depsEnvFromProcess, docsExclude, requireEnv, skillFolders } from "./deps/env";
+export { adoAuthHeader, depsEnvFromProcess, docsExclude, repoGitAuth, requireEnv, skillFolders } from "./deps/env";
 export { chatSessionTools, chatTools } from "./chat/chatTools";
 export { recordToolOffer } from "./toolset/recordToolOffer";
 export { CHAT_AGENT_ID } from "./chat/models/ChatPrincipal";

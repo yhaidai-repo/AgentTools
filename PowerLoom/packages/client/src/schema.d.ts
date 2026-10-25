@@ -1620,6 +1620,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_github
+         * @description PUT_api_vaults_vault_github
+         */
+        put: operations["PUT_api_vaults_vault_github"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/github/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_github_test
+         * @description POST_api_vaults_vault_github_test
+         */
+        post: operations["POST_api_vaults_vault_github_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/github/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_github_sync
+         * @description POST_api_vaults_vault_github_sync
+         */
+        post: operations["POST_api_vaults_vault_github_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1971,6 +2031,16 @@ export interface components {
             /** Format: int32 */
             wwwRecordId: null | number;
         };
+        GitHubCheck: {
+            ok: boolean;
+            message: string;
+        };
+        GitHubSummary: {
+            enabled: boolean;
+            owner: string;
+            login: string;
+            hasToken: boolean;
+        };
         /** Format: binary */
         IFormFile: string;
         IFormFileCollection: components["schemas"]["IFormFile"][];
@@ -2161,6 +2231,11 @@ export interface components {
             url: null | string;
             token: null | string;
         };
+        SaveGitHubRequest: {
+            enabled: boolean;
+            token: null | string;
+            owner: null | string;
+        };
         SaveReposRequest: {
             repos: string[];
         };
@@ -2322,6 +2397,10 @@ export interface components {
         TestDevHubRequest: {
             url: null | string;
             token: null | string;
+        };
+        TestGitHubRequest: {
+            token: null | string;
+            owner: null | string;
         };
         TestSqlConnectionRequest: {
             name: null | string;
@@ -4815,6 +4894,105 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DevHubCheck"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_github: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveGitHubRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitHubSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_github_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestGitHubRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitHubCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_github_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

@@ -6,9 +6,10 @@ const MAX_OUTPUT = 20 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 15 * 60_000;
 
 // git without a shell: arguments are passed as-is, so paths and queries can't inject commands.
-// Never interactive (no credential prompt can hang it), and killed after `timeoutMs` with a clear error.
-export async function git(args: string[], cwd?: string, authHeader?: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
-  const auth = authHeader ? ["-c", `http.extraHeader=${authHeader}`] : [];
+// Never interactive (no credential prompt can hang it), and killed after `timeoutMs` with a clear error. `config`:
+// `key=value` settings for this command only (e.g. a sign-in header), never stored and left out of error messages.
+export async function git(args: string[], cwd?: string, config: string[] = [], timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
+  const auth = config.flatMap((setting) => ["-c", setting]);
 
   try {
     const { stdout } = await run("git", [...auth, ...args], { cwd, maxBuffer: MAX_OUTPUT, timeout: timeoutMs, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });

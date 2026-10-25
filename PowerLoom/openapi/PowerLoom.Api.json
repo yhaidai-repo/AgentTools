@@ -3499,6 +3499,145 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/github": {
+      "put": {
+        "tags": [
+          "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_github",
+        "description": "PUT_api_vaults_vault_github",
+        "operationId": "PUT_api_vaults_vault_github",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveGitHubRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/github/test": {
+      "post": {
+        "tags": [
+          "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_github_test",
+        "description": "POST_api_vaults_vault_github_test",
+        "operationId": "POST_api_vaults_vault_github_test",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestGitHubRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/github/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_github_sync",
+        "description": "POST_api_vaults_vault_github_sync",
+        "operationId": "POST_api_vaults_vault_github_sync",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4916,6 +5055,44 @@
           }
         }
       },
+      "GitHubCheck": {
+        "required": [
+          "ok",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "GitHubSummary": {
+        "required": [
+          "enabled",
+          "owner",
+          "login",
+          "hasToken"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          },
+          "hasToken": {
+            "type": "boolean"
+          }
+        }
+      },
       "IFormFile": {
         "type": "string",
         "format": "binary"
@@ -5688,6 +5865,31 @@
           }
         }
       },
+      "SaveGitHubRequest": {
+        "required": [
+          "enabled",
+          "token",
+          "owner"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SaveReposRequest": {
         "required": [
           "repos"
@@ -6361,6 +6563,27 @@
           }
         }
       },
+      "TestGitHubRequest": {
+        "required": [
+          "token",
+          "owner"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TestSqlConnectionRequest": {
         "required": [
           "name",
@@ -6635,6 +6858,9 @@
     },
     {
       "name": "PowerLoom.DevHubIntegration.Features.DevHub.DevHubEndpoints"
+    },
+    {
+      "name": "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
     }
   ]
 }

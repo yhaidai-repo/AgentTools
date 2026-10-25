@@ -154,7 +154,15 @@ export class RepoCache {
   }
 
   private git(args: string[], cwd?: string, needsAuth = false): Promise<string> {
-    return git(args, cwd, needsAuth ? this.options.authHeader : undefined, (this.options.gitTimeoutMinutes ?? 15) * 60_000);
+    return git(args, cwd, needsAuth ? this.authConfig() : [], (this.options.gitTimeoutMinutes ?? 15) * 60_000);
+  }
+
+  private authConfig(): string[] {
+    if (this.options.gitAuth) {
+      return this.options.gitAuth();
+    }
+
+    return this.options.authHeader ? [`http.extraHeader=${this.options.authHeader}`] : [];
   }
 
   private path(repo: RepoRef): string {
