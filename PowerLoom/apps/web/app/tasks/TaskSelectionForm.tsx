@@ -21,7 +21,7 @@ export function TaskSelectionForm({ children }: { children: ReactNode }) {
       <div className={`selection-bar${selected > 0 ? " show" : ""}`} aria-hidden={selected === 0}>
         <span key={selected} className="selection-count">{selected} selected</span>
         <button type="submit" name="action" value="rerun" className="secondary" disabled={isPending} title="Reopens the selected finished or failed agent tasks; a run continues the last run's conversation if it didn't finish">Re-run</button>
-        <button type="submit" name="action" value="start-over" className="secondary" disabled={isPending} title="Reopens the selected finished or failed agent tasks to run again from the start">Start over</button>
+        <button type="submit" name="action" value="start-over" className="secondary" disabled={isPending} title="Reopens the selected finished or failed agent tasks to run again from the start, without the last run's conversation or result">Start over</button>
         <button type="submit" name="action" value="cancel" className="danger" disabled={isPending} onClick={confirmCancel} title="Cancels the selected tasks that still wait; no agent takes them again">Cancel tasks</button>
         <button type="button" className="link-button selection-clear" onClick={onClear}>Clear</button>
         {isPending && <span className="muted">Working…</span>}
