@@ -7,6 +7,7 @@ import { SettingsHead } from "@/components/SettingsHead";
 import { SwitchField } from "@/components/SwitchField";
 import type { ActionResult } from "@/models/ActionResult";
 import { runCleanupAction, saveCleanupSettingsAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface CleanupSettingsFormProps {
   settings: CleanupSettings;
@@ -30,7 +31,7 @@ export function CleanupSettingsForm({ settings }: CleanupSettingsFormProps) {
   const [runResult, run, isRunning] = useActionState<ActionResult | null, FormData>(runCleanupAction, null);
 
   return (
-    <form action={action} className="panel settings-card">
+    <KeptForm action={action} actions={{ run }} className="panel settings-card">
       <SettingsHead title="Artefact cleanup" description="Daily at 03:00 UTC: closed PBI folders, trash, failed imports, run events and browser recordings past their buffer. Statistics (runs, tokens, cost, reports) stay in the database." />
       <div className="settings-body">
         <SwitchField name="dryRun" label="Dry run" hint="only report what would go" defaultChecked={settings.dryRun} />
@@ -43,9 +44,9 @@ export function CleanupSettingsForm({ settings }: CleanupSettingsFormProps) {
       <div className="settings-foot">
         <span className="settings-note">The last report is on the dashboard&apos;s Application tab.</span>
         <ResultLine result={runResult ?? result} />
-        <button type="submit" formAction={run} disabled={isRunning} className="secondary">{isRunning ? "Starting…" : "Run now"}</button>
+        <button type="submit" data-action="run" disabled={isRunning} className="secondary">{isRunning ? "Starting…" : "Run now"}</button>
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

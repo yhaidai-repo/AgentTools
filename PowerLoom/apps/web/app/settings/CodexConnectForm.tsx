@@ -7,6 +7,7 @@ import { SettingsHead } from "@/components/SettingsHead";
 import type { CodexLoginStart, ProviderStatus } from "@/lib/aiProviders";
 import type { ActionResult } from "@/models/ActionResult";
 import { cancelCodexLoginAction, codexLoginStatusAction, disconnectCodexAction, saveCodexLoginFileAction, startCodexLoginAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // How often the page asks whether the user finished at the link.
 const POLL_MS = 3000;
@@ -65,11 +66,11 @@ export function CodexConnectForm({ status }: { status: ProviderStatus | null }) 
         <p className="hint">Codex&apos;s own built-in tools can&apos;t all be switched off: runs use a read-only sandbox and every built-in step shows in the run trace, but agents may see more than PowerLoom&apos;s tools.</p>
         {started && <LoginSteps started={started} />}
         {error && <p className="result-error">{error}</p>}
-        <form action={fileAction} className="field">
+        <KeptForm action={fileAction} clearOn={fileResult} className="field">
           <span>Or upload a Codex login file<small>auth.json from a PC where codex login worked</small></span>
           <input name="authJson" type="file" accept=".json,application/json" />
           <button type="submit" className="secondary small" disabled={isSaving}>{isSaving ? "Uploading…" : "Upload"}</button>
-        </form>
+        </KeptForm>
       </div>
       <div className="settings-foot">
         <ResultLine result={fileResult ?? disconnected} />

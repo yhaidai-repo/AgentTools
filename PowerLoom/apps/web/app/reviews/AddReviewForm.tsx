@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { addReview } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 export interface AddReviewRepo {
   name: string;
@@ -22,7 +23,7 @@ export function AddReviewForm({ repos }: { repos: AddReviewRepo[] }) {
   }
 
   return (
-    <form action={action} className="add-review-form">
+    <KeptForm action={action} clearOn={result} className="add-review-form">
       <select name="repo" value={repo} onChange={(event) => setRepo(event.target.value)} aria-label="Repository">
         {repos.map((entry) => <option key={entry.name} value={entry.name}>{entry.name}</option>)}
       </select>
@@ -32,6 +33,6 @@ export function AddReviewForm({ repos }: { repos: AddReviewRepo[] }) {
       <button type="submit" disabled={isPending}>{isPending ? "Adding…" : "Add"}</button>
       <button type="button" className="link-button" onClick={() => setOpen(false)}>Cancel</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
-    </form>
+    </KeptForm>
   );
 }

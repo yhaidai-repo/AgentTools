@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import type { FindingData } from "@powerloom/core";
 import { submitFindingAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface FindingFormProps {
   adoId: number | null;
@@ -18,7 +19,7 @@ export function FindingForm({ adoId, itemId, title, text, data }: FindingFormPro
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(submitFindingAction, null);
 
   return (
-    <form action={action} className="close-item">
+    <KeptForm action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId ?? ""} />
       <input type="hidden" name="itemId" value={itemId} />
       <label>
@@ -53,6 +54,6 @@ export function FindingForm({ adoId, itemId, title, text, data }: FindingFormPro
         {isPending && <span className="muted">Submitting…</span>}
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
       </div>
-    </form>
+    </KeptForm>
   );
 }

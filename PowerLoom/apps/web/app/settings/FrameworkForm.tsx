@@ -6,6 +6,7 @@ import type { ActionResult } from "@/models/ActionResult";
 import type { PromptFile } from "@/models/PromptFile";
 import { PromptField, type PromptVersion } from "../agents/[agent]/config/PromptField";
 import { saveFrameworkAction } from "../agents/configActions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface FrameworkFormProps {
   stored: string;
@@ -20,7 +21,7 @@ export function FrameworkForm({ stored, storedVersion, file, versions }: Framewo
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveFrameworkAction, null);
 
   return (
-    <form action={action}>
+    <KeptForm action={action}>
       <PromptField
         title="Shared framework"
         stored={stored}
@@ -33,6 +34,6 @@ export function FrameworkForm({ stored, storedVersion, file, versions }: Framewo
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

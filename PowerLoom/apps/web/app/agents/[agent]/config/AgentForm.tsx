@@ -21,6 +21,7 @@ import { DeleteAgentButton } from "./DeleteAgentButton";
 import { PromptField, type PromptVersion } from "./PromptField";
 import type { PromptFile } from "@/models/PromptFile";
 import { SkillsField } from "./SkillsField";
+import { KeptForm } from "@/components/KeptForm";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
@@ -51,7 +52,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(isNew ? createAgentAction : saveAgentAction, null);
 
   return (
-    <form action={action} className="new-pbi agent-form">
+    <KeptForm action={action} className="new-pbi agent-form">
       <div className="config-columns">
         <div>
           <IdentitySection agent={agent} isNew={isNew} />
@@ -72,7 +73,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         {removable && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
         <button type="submit" disabled={isSaving}>{isNew ? (isSaving ? "Creating…" : "Create") : (isSaving ? "Saving…" : "Save")}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }
 

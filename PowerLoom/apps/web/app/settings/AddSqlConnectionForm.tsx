@@ -4,6 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { ResultLine } from "@/components/ResultLine";
 import type { ActionResult } from "@/models/ActionResult";
 import { addSqlConnectionAction, testSqlConnectionAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // Folded until wanted (user decision 2026-10-18). The string is written once and never shown again (like the ADO
 // token). Test checks the typed string without saving; it isn't a form action, since React clears a form after one and
@@ -17,7 +18,7 @@ export function AddSqlConnectionForm() {
   return (
     <details className="add-form">
       <summary>+ Add a connection</summary>
-      <form ref={form} action={addAction}>
+      <KeptForm ref={form} action={addAction} clearOn={addResult}>
         <div className="field-grid">
           <label className="field"><span>Name<small>agents pick the connection by it: letters, digits, _ and -</small></span><input name="name" placeholder="app-local" maxLength={40} required /></label>
           <label className="field"><span>Connection string<small>a local server is host.docker.internal; a self-signed dev server needs TrustServerCertificate=True</small></span><input name="connectionString" type="password" autoComplete="off" placeholder="Server=host.docker.internal,1433;Database=App;User ID=reader;Password=…" required /></label>
@@ -28,7 +29,7 @@ export function AddSqlConnectionForm() {
           <ResultLine result={testResult} />
           <ResultLine result={addResult} />
         </div>
-      </form>
+      </KeptForm>
     </details>
   );
 }

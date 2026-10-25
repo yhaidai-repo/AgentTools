@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { Dropdown } from "@/components/Dropdown";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeReviewAction, deleteReview } from "../actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // The header's ⋯ menu (user decision 2026-10-18): Close asks for an optional reason in a small form under the actions
 // (the menu closes on a click, so the field can't live in it); Delete asks first, then goes back to the list.
@@ -48,12 +49,12 @@ function CloseForm({ prId, onCancel }: { prId: number; onCancel: () => void }) {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(closeReviewAction, null);
 
   return (
-    <form action={action} className="close-review-form">
+    <KeptForm action={action} clearOn={result} className="close-review-form">
       <input type="hidden" name="prId" value={prId} />
       <input name="reason" placeholder="Reason (optional)" aria-label="Reason for closing" autoFocus />
       <button type="submit" className="secondary" disabled={isPending}>{isPending ? "Closing…" : "Close review"}</button>
       <button type="button" className="link-button" onClick={onCancel}>Cancel</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
-    </form>
+    </KeptForm>
   );
 }

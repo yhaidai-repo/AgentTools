@@ -5,6 +5,7 @@ import type { AzureResourceKind } from "@powerloom/core";
 import { ResultLine } from "@/components/ResultLine";
 import type { ActionResult } from "@/models/ActionResult";
 import { addAzureResourceAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // Cosmos DB and Mongo accounts by name (the keys come with the sign-in at call time); Service Bus namespaces and Mongo
 // servers outside Cosmos by a connection string, written once and never shown again (user decisions 2026-10-14/15).
@@ -26,7 +27,7 @@ export function AddAzureResourceForm({ kind }: { kind: AzureResourceKind }) {
   return (
     <details className="add-form">
       <summary>{ADD_LABELS[kind] ?? "+ Add"}</summary>
-      <form action={action}>
+      <KeptForm action={action} clearOn={result}>
         <input type="hidden" name="kind" value={kind} />
         <div className="field-grid">
           <label className="field"><span>Name<small>agents see it next to the account or namespace: letters, digits, _ and -</small></span><input name="name" placeholder={`app-stage-${kind}`} maxLength={40} required /></label>
@@ -37,7 +38,7 @@ export function AddAzureResourceForm({ kind }: { kind: AzureResourceKind }) {
           <button type="submit" disabled={isAdding}>{isAdding ? "Adding…" : "Add"}</button>
           <ResultLine result={result} />
         </div>
-      </form>
+      </KeptForm>
     </details>
   );
 }
