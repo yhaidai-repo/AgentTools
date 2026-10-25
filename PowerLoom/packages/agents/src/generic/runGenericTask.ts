@@ -11,6 +11,7 @@ import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { ResultDraft } from "../result/models/ResultDraft";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
+import { environmentPromptSection } from "../environment/vaultEnvironment";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
@@ -97,7 +98,7 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
 
   return {
     capabilities: agent.capabilities,
-    systemPrompt: [prompt.text, ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
+    systemPrompt: [prompt.text, await environmentPromptSection(deps.docsRoot, deps.docsVaultName, agent.id), ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
     tools,
     limits: { maxTurns: agent.limits.maxTurns, timeoutMs: agent.limits.timeoutMinutes * 60_000 },
