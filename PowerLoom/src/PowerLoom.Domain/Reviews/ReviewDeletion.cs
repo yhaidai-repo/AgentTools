@@ -3,6 +3,7 @@ using PowerLoom.Contracts;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Domain.Reviews;
 
@@ -55,9 +56,21 @@ public static class ReviewDeletion
         }
 
         await db.CodeReviews.Where(review => review.PrId == prId).ExecuteDeleteAsync(cancellation);
-        await db.PullRequests.Where(row => row.Id == prId).ExecuteDeleteAsync(cancellation);
+        await RemovePullRequestAsync(db, prId, cancellation);
         await RememberAsync(db, prId, title, cancellation);
         await transaction.CommitAsync(cancellation);
+    }
+
+    // A GitHub PR's row stays, unlisted: its id is PowerLoom's own, so the GitHub check finds the PR by its URL and sees the
+    // id among the deleted ones.
+    private static async Task RemovePullRequestAsync(PowerLoomDbContext db, int prId, CancellationToken cancellation)
+    {
+        var rows = db.PullRequests.Where(row => row.Id == prId);
+
+        if (await rows.AnyAsync(row => row.Origin == PullRequestOrigin.Github, cancellation))
+            await rows.ExecuteUpdateAsync(set => set.SetProperty(row => row.IsListed, false), cancellation);
+        else
+            await rows.ExecuteDeleteAsync(cancellation);
     }
 
     private static async Task RememberAsync(PowerLoomDbContext db, int prId, string title, CancellationToken cancellation)

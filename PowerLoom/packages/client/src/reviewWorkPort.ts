@@ -29,6 +29,9 @@ export function reviewWorkPort(powerloom: PowerLoomClient): ReviewWorkPort {
     async syncPullRequests(vault) {
       return accepted(await powerloom.POST("/api/ado/pull-requests/sync", { body: { vault } }));
     },
+    async syncGitHubPullRequests(vault) {
+      return accepted(await powerloom.POST("/api/vaults/{vault}/github/pull-requests/sync", { params: { path: { vault } } }));
+    },
   };
 }
 

@@ -1,4 +1,4 @@
-import { enabledRepos, isAdoActive, readAdoSettings } from "@powerloom/core";
+import { enabledRepos, isAdoActive, isGitHubActive, readAdoSettings, readGitHubSettings } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { FocusRow } from "@/components/FocusRow";
@@ -45,6 +45,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
   const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
   const page = Math.min(pageOf(shown, filter), pages);
   const adoActive = isAdoActive(await readAdoSettings(db, vault));
+  const gitHubActive = isGitHubActive(await readGitHubSettings(db, vault));
   const repos = (await enabledRepos(db, vault)).map((entry) => ({ kind: entry.kind, name: entry.name, defaultBranch: entry.defaultBranch }));
   const localRepos = repos.filter((entry) => entry.kind === "local");
 
@@ -59,7 +60,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
         <StatusPills rows={rows} filter={filter} />
         {adoActive && <AddReviewForm repos={repos.filter((entry) => entry.kind === "ado")} />}
         {localRepos.length > 0 && <AddLocalReviewForm repos={localRepos} />}
-        {adoActive ? <CheckLine rows={rows} /> : <NoAdoLine vault={vault} hasLocalRepos={localRepos.length > 0} />}
+        {adoActive || gitHubActive ? <CheckLine rows={rows} /> : <NoAdoLine vault={vault} hasLocalRepos={localRepos.length > 0} />}
       </div>
       {shown.length === 0 ? <p className="empty-note">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}
       {shown.length > 0 && <Pager page={page} size={filter.size} sizes={REVIEW_PAGE_SIZES} pages={pages} total={shown.length} noun="reviews" hrefOf={(change) => reviewsUrl({ status: filter.status, page: change.page, size: change.size ?? filter.size })} />}
@@ -68,11 +69,11 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
   );
 }
 
-// Without Azure DevOps there are no pull requests to list, but a local repo's branches can still be reviewed.
+// Without Azure DevOps or GitHub there are no pull requests to list, but a local repo's branches can still be reviewed.
 function NoAdoLine({ vault, hasLocalRepos }: { vault: string; hasLocalRepos: boolean }) {
   return (
     <span className="sync-line">
-      No Azure DevOps integration for {vault}: enable it in <Link href="/settings">Settings</Link> to list pull requests.
+      No Azure DevOps or GitHub for {vault}: connect one in <Link href="/settings">Settings</Link> to list pull requests.
       {!hasLocalRepos && <> Local reviews need a local repo: add one in <Link href="/settings?tab=repos">Settings → Repositories</Link>.</>}
     </span>
   );

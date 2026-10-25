@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Features.SyncRepositories;
 using PowerLoom.GitHubIntegration.Settings;
 using PowerLoom.Infrastructure.Scheduling;
@@ -6,7 +7,8 @@ using PowerLoom.Persistence;
 
 namespace PowerLoom.GitHubIntegration.Scheduling;
 
-// The per-vault GitHub schedules for the vaults whose GitHub is on: the repo catalog hourly (new repos show up).
+// The per-vault GitHub schedules for the vaults whose GitHub is on: the repo catalog hourly (new repos show up), and the
+// pull request check on its own cron.
 public sealed class GitHubCronSource(IServiceScopeFactory scopes) : ICronSource
 {
     private const string RepositoriesCron = "23 * * * *";
@@ -30,6 +32,10 @@ public sealed class GitHubCronSource(IServiceScopeFactory scopes) : ICronSource
         if (!github.IsActive)
             return [];
 
-        return [new CronEntry($"github-repositories:{vault}", RepositoriesCron, new SyncGitHubRepositories(vault))];
+        return
+        [
+            new CronEntry($"github-repositories:{vault}", RepositoriesCron, new SyncGitHubRepositories(vault)),
+            new CronEntry($"github-pull-requests:{vault}", github.PullRequestsCron, new SyncGitHubPullRequests(vault)),
+        ];
     }
 }

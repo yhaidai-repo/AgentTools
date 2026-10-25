@@ -12,6 +12,8 @@ export interface ReviewWorkPort {
   queueReview(prId: number): Promise<Outcome<string>>;
   // Closed in PowerLoom only (ADO isn't told); Rerun reopens it. The PR's title.
   closeReview(prId: number, reason: string | null): Promise<Outcome<string>>;
-  // Queues the vault's pull request check.
+  // Queues the vault's pull request check (Azure DevOps).
   syncPullRequests(vault: string): Promise<Outcome<void>>;
+  // Queues the vault's GitHub pull request check.
+  syncGitHubPullRequests(vault: string): Promise<Outcome<void>>;
 }

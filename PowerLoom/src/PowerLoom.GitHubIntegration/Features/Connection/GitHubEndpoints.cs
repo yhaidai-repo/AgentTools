@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using PowerLoom.GitHubIntegration.Features.Connection.Models;
+using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Features.SyncRepositories;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Infrastructure.Vaults;
@@ -40,6 +41,15 @@ public static class GitHubEndpoints
     public static async Task<Accepted> Sync(string vault, IMessageBus bus)
     {
         await bus.PublishAsync(new SyncGitHubRepositories(vault));
+
+        return TypedResults.Accepted((string?)null);
+    }
+
+    // Reviews → Check now: the vault's GitHub pull requests.
+    [WolverinePost("/api/vaults/{vault}/github/pull-requests/sync")]
+    public static async Task<Accepted> SyncPullRequests(string vault, IMessageBus bus)
+    {
+        await bus.PublishAsync(new SyncGitHubPullRequests(vault));
 
         return TypedResults.Accepted((string?)null);
     }

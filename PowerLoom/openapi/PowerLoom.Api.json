@@ -3638,6 +3638,41 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/github/pull-requests/sync": {
+      "post": {
+        "tags": [
+          "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_github_pull_requests_sync",
+        "description": "POST_api_vaults_vault_github_pull_requests_sync",
+        "operationId": "POST_api_vaults_vault_github_pull_requests_sync",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

@@ -1,5 +1,6 @@
 using PowerLoom.GitHubIntegration.Client;
 using PowerLoom.GitHubIntegration.Features.Connection;
+using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Scheduling;
 using PowerLoom.GitHubIntegration.Settings;
 using PowerLoom.Infrastructure.Scheduling;
@@ -16,6 +17,7 @@ public static class GitHubIntegrationSetup
         builder.Services.AddSingleton<IGitHubClientFactory, GitHubClientFactory>();
         builder.Services.AddScoped<GitHubSettingsStore>();
         builder.Services.AddScoped<GitHubConnection>();
+        builder.Services.AddScoped<GitHubPullRequestSync>();
         builder.Services.AddSingleton<ICronSource, GitHubCronSource>();
 
         return builder;

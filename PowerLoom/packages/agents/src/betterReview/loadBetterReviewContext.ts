@@ -8,7 +8,7 @@ import { ADO_INTEGRATION } from "../ado/adoTools";
 import { PULL_REQUESTS, adoResource } from "../ado/adoToolResults";
 import { withoutSystemComments } from "../ado/pullRequestMarkdown";
 import { loadReviewContext } from "../codeReview/loadReviewContext";
-import { LOCAL_REPO_ORIGIN } from "../codeReview/localRepoHead";
+import { GITHUB_ORIGIN, LOCAL_REPO_ORIGIN } from "../codeReview/localRepoHead";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { TaskContext } from "../models/TaskContext";
@@ -63,6 +63,10 @@ async function loadOtherReviews(context: TaskContext, pr: PullRequestRow, access
 
   if (pr.origin === "local" || pr.origin === "pc" || pr.origin === LOCAL_REPO_ORIGIN) {
     return { unavailable: "a branch review has no pull request, so there are no other reviewers' comments" };
+  }
+
+  if (pr.origin === GITHUB_ORIGIN) {
+    return { unavailable: "other reviewers' comments on a GitHub pull request aren't read yet" };
   }
 
   if (agent.capabilities.integrations?.[ADO_INTEGRATION] !== true) {

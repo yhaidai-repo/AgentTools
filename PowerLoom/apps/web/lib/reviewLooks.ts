@@ -8,12 +8,24 @@ const BRANCH_REVIEWS: Record<string, { label: string; title: string; heading: st
   "local-repo": { label: "local", title: "A branch of a local repo: no pull request, no Azure DevOps", heading: "Local review" },
 };
 
-export function reviewIdLabel(pr: { id: number; origin: string }): { text: string; title: string | undefined } {
+export function reviewIdLabel(pr: { id: number; origin: string; sourceRef: string }): { text: string; title: string | undefined } {
   const branch = BRANCH_REVIEWS[pr.origin];
+  const number = gitHubNumber(pr);
+
+  if (number) {
+    return { text: `#${number}`, title: "A GitHub pull request" };
+  }
 
   return branch ? { text: branch.label, title: branch.title } : { text: String(pr.id), title: undefined };
 }
 
-export function reviewHeading(pr: { id: number; origin: string }): string {
-  return BRANCH_REVIEWS[pr.origin]?.heading ?? `PR ${pr.id}`;
+export function reviewHeading(pr: { id: number; origin: string; sourceRef: string }): string {
+  const number = gitHubNumber(pr);
+
+  return number ? `GitHub PR #${number}` : BRANCH_REVIEWS[pr.origin]?.heading ?? `PR ${pr.id}`;
+}
+
+// A GitHub PR's number is in its head ref (`refs/pull/<n>/head`); its id is PowerLoom's own (user decision 2026-10-25).
+function gitHubNumber(pr: { origin: string; sourceRef: string }): string | null {
+  return pr.origin === "github" ? (/^refs\/pull\/(\d+)\//.exec(pr.sourceRef)?.[1] ?? null) : null;
 }

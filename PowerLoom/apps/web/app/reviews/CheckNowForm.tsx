@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { checkPullRequestsNow } from "./actions";
 
-// Lists your active PRs in Azure DevOps now instead of on the job's schedule.
+// Lists your active PRs in Azure DevOps and on GitHub now instead of on the jobs' schedules.
 export function CheckNowForm() {
   const [result, action, isPending] = useActionState<ActionResult | null, FormData>(checkPullRequestsNow, null);
 

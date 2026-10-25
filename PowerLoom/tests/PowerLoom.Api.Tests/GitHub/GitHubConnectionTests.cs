@@ -100,6 +100,6 @@ public sealed class GitHubConnectionTests(PowerLoomHost host)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Repos.AsNoTracking().Where(repo => repo.Kind == RepoKind.Github && repo.Name.StartsWith("gh-")).ToListAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Repos.AsNoTracking().Where(repo => repo.Kind == RepoKind.Github && repo.AdoProject == "acme").ToListAsync();
     }
 }
