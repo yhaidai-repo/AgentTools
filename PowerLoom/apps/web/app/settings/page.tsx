@@ -1,4 +1,4 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { FRAMEWORK_ID, isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -6,6 +6,8 @@ import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProv
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { readPromptFile } from "@/lib/promptFiles";
+import { loadPromptVersions } from "@/lib/promptVersions";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
 import type { AzureResourceRow } from "@/models/AzureResourceRow";
@@ -17,6 +19,7 @@ import { ClaudeTokenForm } from "./ClaudeTokenForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
+import { FrameworkForm } from "./FrameworkForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
@@ -60,7 +63,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
       {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
       {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
-      {tab === "agents" && <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />}
+      {tab === "agents" && <AgentsTab />}
       {tab === "ai" && <AiProvidersTab providers={providers} />}
       <p className="env-line">From .env, restart to change: backlog vault <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence <ConfluenceAccess status={await readConfluenceStatus(db)} /></p>
     </>
@@ -152,4 +155,22 @@ function ConfluenceAccess({ status }: { status: ConfluenceStatus | null }) {
   }
 
   return status.email ? <>set ({status.email})</> : <span className="text-warn">missing (CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN)</span>;
+}
+
+// The agents' shared settings: the daily budget and the shared framework their prompts pull in.
+async function AgentsTab() {
+  const global = await getAgentConfig().getGlobal();
+  const versions = await loadPromptVersions(FRAMEWORK_ID);
+
+  return (
+    <>
+      <GlobalAgentForm global={global} spentTodayUsd={await spentToday()} />
+      <FrameworkForm
+        stored={global.framework ?? ""}
+        storedVersion={global.frameworkVersion ?? 0}
+        file={await readPromptFile(FRAMEWORK_ID)}
+        versions={versions.map((row) => ({ version: row.version, text: row.text, createdAt: row.createdAt }))}
+      />
+    </>
+  );
 }

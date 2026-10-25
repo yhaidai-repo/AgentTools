@@ -8,6 +8,7 @@ import { deleteAgentCommand } from "./deleteAgentCommand";
 import { pauseAgentsCommand } from "./pauseAgentsCommand";
 import { runAgentCommand } from "./runAgentCommand";
 import { saveAgentsGlobalCommand } from "./saveAgentsGlobalCommand";
+import { saveFrameworkCommand } from "./saveFrameworkCommand";
 import { saveSkillCommand } from "./saveSkillCommand";
 import { restoreSkillCommand } from "./restoreSkillCommand";
 import { createSkillCommand } from "./createSkillCommand";
@@ -117,6 +118,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   pauseAgentsCommand,
   runAgentCommand,
   saveAgentsGlobalCommand,
+  saveFrameworkCommand,
   saveSkillCommand,
   restoreSkillCommand,
   sqlQueryCommand,

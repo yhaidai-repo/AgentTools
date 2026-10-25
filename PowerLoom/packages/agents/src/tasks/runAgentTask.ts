@@ -74,12 +74,14 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
   }
 
   const team = (await readAdoSettings(deps.db, task.vault))?.team ?? "";
+  const global = await deps.config.getGlobal();
+  const framework = { text: global.framework ?? "", version: global.frameworkVersion ?? 0 };
 
   return {
     deps,
     agent,
-    global: await deps.config.getGlobal(),
-    prompt: await loadAgentPrompt(agentId, { text: agent.prompt ?? "", version: agent.promptVersion ?? 0 }, { team, agent: agent.label }),
+    global,
+    prompt: await loadAgentPrompt(agentId, { text: agent.prompt ?? "", version: agent.promptVersion ?? 0 }, { team, agent: agent.label }, framework),
     skills: await loadStageSkills(deps, agent, task.pbiId),
   };
 }

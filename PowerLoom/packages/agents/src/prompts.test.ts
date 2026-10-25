@@ -69,6 +69,19 @@ describe("loadAgentPrompt", () => {
     assert.equal(prompt.version, "v9");
   });
 
+  it("pulls in the framework stored in Settings instead of the file", async () => {
+    const prompt = await loadAgentPrompt("autotest", { text: "", version: 0 }, { team: "Signals" }, { text: "## How you work\nOur own way.", version: 2 });
+
+    assert.match(prompt.version, /^v\d+\+framework\.ui-v2$/);
+    assert.match(prompt.text, /^## How you work\nOur own way\./);
+  });
+
+  it("keeps the file's framework while none is stored", async () => {
+    const prompt = await loadAgentPrompt("autotest", { text: "", version: 0 }, { team: "Signals" }, { text: " ", version: 0 });
+
+    assert.match(prompt.version, /\+framework\.v\d+$/);
+  });
+
   it("gives an agent with neither the framework alone", async () => {
     const prompt = await loadAgentPrompt("made-in-the-ui", { text: "", version: 0 }, { team: "Signals" });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { BlockerKind } from "@powerloom/core";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
@@ -60,7 +61,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         </div>
         <div>
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
-          <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} />
+          <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} hint={<><code>{"{{framework}}"}</code> pulls in the <Link href="/settings?tab=agents">shared framework</Link>; the run&apos;s vault adds its <code>POWERLOOM.md</code> rules.</>} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
           <NewSkillFields suggestedName={isNew ? "" : `${agent.id}-checklist`} />
           <OptionsFields agent={agent} />
