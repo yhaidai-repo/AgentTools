@@ -61,7 +61,7 @@ describe("evidenceProblems", () => {
 
     const problems = evidenceProblems([{ source: "S7", ref: "POS/src/Invented.cs:10", note: "made up" }], log);
 
-    assert.deepEqual(problems, ['"POS/src/Invented.cs:10" cites S7, which this run never read: read it first, or drop the claim or mark it (inferred)']);
+    assert.deepEqual(problems, ['"POS/src/Invented.cs:10" cites S7, which this run never read: read it and cite the source id that read ends with, or remove this evidence item (keep the claim only as (inferred), citing the sources you did read that it rests on)']);
   });
 
   it("rejects a quote that isn't in the cited source", async () => {

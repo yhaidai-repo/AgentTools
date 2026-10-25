@@ -18,6 +18,7 @@ export function createSecretTools(deps: AgentDeps, context: OutsideAccessContext
 function listSecretNamesTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "list_secret_names",
+    annotations: { readOnly: true },
     description: "List the names of the dev-secrets values DevHub can use for you (never their values): users, passwords, API keys, URLs. Use a name in browser_type_secret or as {{secret:<name>}} in http_request.",
     input: {},
     resource: () => resourceOf(access, "secret-names"),
@@ -37,7 +38,7 @@ function listSecretNamesTool(deps: AgentDeps, context: OutsideAccessContext, acc
 function httpRequestTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "http_request",
-    description: "Send an HTTP request from the host (local services and the shared environment are reachable there) with secrets filled in: write {{secret:<name>}} where a value goes, or {{secret:<name>|basic}} for a Basic authorization header whose password is the secret (the POS API takes its key that way). The answer's body is redacted and cut at 60k characters.",
+    description: "Send an HTTP request from the host (local services and the shared environment are reachable there) with secrets filled in: write {{secret:<name>}} where a value goes, or {{secret:<name>|basic}} for a Basic authorization header whose password is the secret. Send a secret only to the service it belongs to. The answer's body is cut at 60k characters and has the raw secret values replaced; its headers and encoded forms of a secret (Basic, base64) are not filtered, so never copy them into your output.",
     input: {
       method: z.enum(METHODS),
       url: z.string().url(),

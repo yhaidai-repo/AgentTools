@@ -74,6 +74,7 @@ export function chatOwner(sessionId: string): string {
 function listServicesTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "list_services",
+    annotations: { readOnly: true },
     description: "List the services that can run locally (web apps, background hosts, message consumers, …): name, what it is, local URL, whether it consumes the message bus (then a local RabbitMQ is added), and what start_stack's config may set for it.",
     input: {},
     resource: () => resourceOf(access, "catalog"),
@@ -105,7 +106,7 @@ const CONFIG_INPUT = z.record(z.string().min(1), z.object({
 function startStackTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string, ttlMinutes: number) {
   return defineOutsideTool(deps.outside, context, {
     name: "start_stack",
-    description: "Start a chain of local services pointed at each other (every other dependency stays on the shared environment) and wait until they are ready, up to 6 minutes. Only one stack runs at a time; it stops when your run ends. Pick names with list_services.",
+    description: "Start a chain of local services pointed at each other (every other dependency stays on the shared environment) and wait until they are ready, up to 6 minutes. Only one stack runs at a time; it stops when the run or chat session that started it ends. Pick names with list_services.",
     input: {
       services: z.array(z.string().min(1)).min(1).describe("Service names from list_services, e.g. [\"web\", \"orders-consumer\"]"),
       branch: z.string().optional().describe("Run this branch's code (its worktree per repo); leave out for the main checkouts"),
@@ -135,6 +136,7 @@ function workersRequested(config: z.infer<typeof CONFIG_INPUT>): string {
 function stackStatusTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string) {
   return defineOutsideTool(deps.outside, context, {
     name: "stack_status",
+    annotations: { readOnly: true },
     description: "Show the local stack: phase (starting, ready, failed, …), whose it is, each service with its URL and whether it runs.",
     input: {},
     resource: () => resourceOf(access, "stack"),
@@ -154,6 +156,7 @@ function stackStatusTool(deps: AgentDeps, context: OutsideAccessContext, access:
 function stackLogsTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "stack_logs",
+    annotations: { readOnly: true },
     description: "Read the last lines of a running service's log (or its error log). Logs can hold connection strings: don't copy secrets into your output.",
     input: {
       service: z.string().min(1).describe("A service of the stack, e.g. orders-consumer"),
@@ -177,7 +180,7 @@ function stackLogsTool(deps: AgentDeps, context: OutsideAccessContext, access: D
 function stopStackTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string) {
   return defineOutsideTool(deps.outside, context, {
     name: "stop_stack",
-    description: "Stop the local stack your run started (every service and the local RabbitMQ). Stop it as soon as your checks are done.",
+    description: "Stop the local stack this run or chat session started (every service and the local RabbitMQ). Stop it as soon as your checks are done.",
     input: {},
     resource: () => resourceOf(access, "stack"),
     request: () => "stop",

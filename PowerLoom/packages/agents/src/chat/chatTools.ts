@@ -47,7 +47,8 @@ function withoutTaken(commands: ToolDefinition<any>[], readers: ToolDefinition<a
   return commands.filter((tool) => !taken.has(tool.name));
 }
 
-// The readers that change something outside: a stack on DevHub, a request from the host.
+// The readers that change something outside: a stack on DevHub, a request from the host. DevHub's other tools (the
+// browser, secrets) act on what runs there, so they count as changing unless a tool says otherwise (its annotations).
 const WRITING_READERS = new Set(["start_stack", "stop_stack", "http_request"]);
 
 // read_pbi is left out: the chat has the same command as pbi_read. The tools a run binds to its task's PBI
@@ -58,7 +59,7 @@ function readingGroups(deps: AgentDeps, agent: AgentDefinition, access: OutsideA
     { source: grantSource(agent, CONFLUENCE_INTEGRATION), tools: createConfluenceTools(deps, agent, access) },
     { source: grantSource(agent, READ_SQL_INTEGRATION), tools: createSqlTools(deps, agent, access) },
     { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
-    { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
+    { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access).map(actingUnlessSaid) },
     { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access, chatTestCaseTools) },
   ];
 
@@ -67,4 +68,8 @@ function readingGroups(deps: AgentDeps, agent: AgentDefinition, access: OutsideA
 
 function withReadOnlyHint(tool: ToolDefinition<any>): ToolDefinition<any> {
   return { ...tool, annotations: tool.annotations ?? { readOnly: !WRITING_READERS.has(tool.name) } };
+}
+
+function actingUnlessSaid(tool: ToolDefinition<any>): ToolDefinition<any> {
+  return { ...tool, annotations: tool.annotations ?? { readOnly: false } };
 }

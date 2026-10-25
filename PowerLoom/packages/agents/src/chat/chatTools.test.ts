@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import { COMMANDS, type CommandContext } from "@powerloom/core";
 import type { SqlReader } from "@powerloom/sql";
+import { ADO_INTEGRATION } from "../ado/adoTools";
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { commandToolName } from "../commandTool";
+import { DEVHUB_INTEGRATION } from "../devHubTools";
 import type { AgentDeps } from "../models/AgentDeps";
 import { isOutsideTool } from "../outsideAccess";
 import { classifyToolCall } from "../toolKinds";
@@ -67,6 +69,16 @@ describe("a chat session's tools", () => {
     const other = offered.filter((tool) => !isOutsideTool(tool.name) && classifyToolCall(tool.name, {}).kind === "other");
 
     assert.deepEqual(other.map((tool) => tool.name), []);
+  });
+
+  it("mark the tools that act or save as not read-only, the browser's from its catalog", () => {
+    const base = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const chat = { ...base, capabilities: { ...base.capabilities, integrations: { ...base.capabilities.integrations, [DEVHUB_INTEGRATION]: true, [ADO_INTEGRATION]: true } } };
+    const deps = { ...fakeDeps(), devHub: { client: {} }, ado: { client: {} } } as unknown as AgentDeps;
+    const readOnly = new Map(chatTools(deps, chat, { vault: "work", client: "test", sessionId: "s1" }, {} as CommandContext).map((tool) => [tool.name, tool.annotations?.readOnly]));
+
+    assert.deepEqual(["browser_click", "browser_type", "browser_fill_form", "browser_open", "browser_type_secret", "http_request", "start_stack", "read_test_cases"].map((name) => [name, readOnly.get(name)]).filter(([, value]) => value !== false), []);
+    assert.deepEqual(["browser_snapshot", "list_services", "stack_logs", "list_secret_names", "sql_query", "list_repos"].map((name) => [name, readOnly.get(name)]).filter(([, value]) => value !== true), []);
   });
 
   it("include every command, the session's own reader standing in for one of the same name", () => {

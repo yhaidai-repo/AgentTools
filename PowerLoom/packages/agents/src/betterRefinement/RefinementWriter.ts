@@ -26,7 +26,7 @@ export const WRITE_REFINEMENT_INTEGRATION = "writeRefinement";
 export class RefinementWriter implements RunWriter {
   readonly integration = WRITE_REFINEMENT_INTEGRATION;
 
-  private readonly draft: BetterRefinementDraft = { refinement: null, tasks: [], captures: [], pages: [] };
+  private readonly draft: BetterRefinementDraft = { refinement: null, captures: [], pages: [] };
   private recommendable: string[] | null = null;
 
   constructor(private readonly context: TaskContext) {}
@@ -38,7 +38,7 @@ export class RefinementWriter implements RunWriter {
 
     const { deps } = this.context;
 
-    return [createListSkillsTool(deps.skillFolders, isRecommendableSkill), withEstimateFirst(createRefinementTool(this.draft, log, this.recommendable), shared.estimate)];
+    return [createListSkillsTool(deps.skillFolders, isRecommendableSkill), withEstimateFirst(createRefinementTool(this.draft, log, this.recommendable, shared.tasks), shared.estimate)];
   }
 
   async contextBlocks(task: ItemRow): Promise<string[]> {
@@ -67,6 +67,6 @@ export class RefinementWriter implements RunWriter {
 function withEstimateFirst(tool: ToolDefinition<any>, estimate: RunEstimate): ToolDefinition<any> {
   return {
     ...tool,
-    handler: async (input) => (estimate.isMissing ? { text: "Not saved: record the estimate first (record_estimate, both values), then call write_refinement again." } : tool.handler(input)),
+    handler: async (input) => (estimate.isMissing ? { text: "Not saved: record the estimate first (record_estimate, both values), then call write_refinement again.", isError: true } : tool.handler(input)),
   };
 }

@@ -13,8 +13,8 @@ type Input = Parameters<ReturnType<typeof createRefinementTool>["handler"]>[0];
 
 const PBI = [{ source: "S0", ref: "PBI-36756 description", note: "the vendor shows as SexOffendersSearchProvider" }];
 
-function emptyDraft(tasks: CreatedTask[] = []): BetterRefinementDraft {
-  return { refinement: null, tasks, captures: [], pages: [] };
+function emptyDraft(): BetterRefinementDraft {
+  return { refinement: null, captures: [], pages: [] };
 }
 
 function input(overrides: Record<string, unknown> = {}): Input {
@@ -43,8 +43,8 @@ const userTask = { assignee: "user", kind: "task" } as CreatedTask;
 
 describe("write_refinement (Better Refinement)", () => {
   it("saves the readable columns and the details, marking unverified repos and listing blockers as dependencies", async () => {
-    const draft = emptyDraft([userTask]);
-    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), []);
+    const draft = emptyDraft();
+    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]);
 
     const result = await tool.handler(input());
 
@@ -55,7 +55,7 @@ describe("write_refinement (Better Refinement)", () => {
   });
 
   it("leaves the estimate to record_estimate", () => {
-    const tool = createRefinementTool(emptyDraft(), new ReadLog("PBI-36756"), []);
+    const tool = createRefinementTool(emptyDraft(), new ReadLog("PBI-36756"), [], [userTask]);
 
     assert.equal("estimate" in tool.input, false);
     assert.match(tool.description, /record_estimate: the run isn't complete without it/);
@@ -63,7 +63,7 @@ describe("write_refinement (Better Refinement)", () => {
 
   it("refuses a blocker whose task wasn't created and evidence the run never read", async () => {
     const draft = emptyDraft();
-    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), []);
+    const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), [], []);
     const invented = [{ area: "Report SP", change: "join", evidence: [{ source: "S9", ref: "POS/Database/report.sql", note: "assumed" }] }];
 
     const result = await tool.handler(input({ affected_areas: invented }));
@@ -77,9 +77,9 @@ describe("write_refinement (Better Refinement)", () => {
 
 describe("withTaskIds", () => {
   it("gives blockers the ids their tasks got at the commit", async () => {
-    const draft = emptyDraft([userTask]);
+    const draft = emptyDraft();
 
-    await createRefinementTool(draft, new ReadLog("PBI-36756"), []).handler(input());
+    await createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]).handler(input());
 
     const resolved = withTaskIds(draft.refinement!, ["HT-36756-004"]);
 
@@ -90,9 +90,9 @@ describe("withTaskIds", () => {
 
 describe("refinementBlock", () => {
   it("adds Better Refinement's details for research and design", async () => {
-    const draft = emptyDraft([userTask]);
+    const draft = emptyDraft();
 
-    await createRefinementTool(draft, new ReadLog("PBI-36756"), []).handler(input());
+    await createRefinementTool(draft, new ReadLog("PBI-36756"), [], [userTask]).handler(input());
 
     const row = { ...draft.refinement!, version: 3, docsRead: [], details: draft.refinement!.details } as unknown as typeof refinement.$inferSelect;
     const block = refinementBlock(row);

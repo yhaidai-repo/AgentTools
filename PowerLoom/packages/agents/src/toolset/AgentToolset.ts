@@ -210,7 +210,7 @@ export class AgentToolset {
       { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];
     // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
-    const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate }), toolsOf(shared)) }));
+    const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate, tasks: this.tasks }), toolsOf(shared)) }));
 
     return [...shared, ...own, { source: EVERY_AGENT, tools: [createResultTool(this.result, log)] }];
   }

@@ -39,7 +39,7 @@ export function listReposTool(db: PowerLoomDb, vault: string) {
 function writeRefinementTool(draft: RefinementDraft, availableSkills: string[]) {
   return defineTool({
     name: "write_refinement",
-    description: "Save the refinement of the PBI. Call exactly once; a second call replaces the first. The estimate goes to record_estimate: the run isn't complete without it.",
+    description: "Save or replace the refinement of the PBI: another call replaces the earlier one. The estimate goes to record_estimate: the run isn't complete without it.",
     input: {
       summary: z.string().min(1).describe("2-4 plain sentences: what the PBI asks for and why"),
       scope_in: z.array(z.string()).describe("What is in scope"),

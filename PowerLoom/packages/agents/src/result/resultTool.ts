@@ -13,7 +13,7 @@ export const RESULT_TOOL = "write_result";
 const ITEM_ID = /^[A-Z]{1,3}-\d+(-\d+)?$/;
 
 const INPUT = {
-  status: z.enum(["complete", "partial", "blocked"]).describe("complete: the task is done; partial: what you have so far; blocked: something stops you, named in the result (the question or task you created)"),
+  status: z.enum(["complete", "partial", "blocked"]).describe("complete: the task is done (also when a bounded search found nothing and that answers it: your own result tool's not_found); partial: what you have so far, or a search cut short; blocked: something stops you, named in the result (the question or task you created)"),
   body: z.string().min(1).describe("The result in Markdown, in the sections your instructions ask for; the first line is its one-line summary"),
   data: z.record(z.string(), z.unknown()).optional().describe("The structured result, when your instructions ask for one"),
   evidence: optionalEvidenceInput.describe("Every source the result relies on"),
@@ -25,13 +25,13 @@ const INPUT = {
 export function createResultTool(result: RunResult, readLog: ReadLog): ToolDefinition<any> {
   return defineTool({
     name: RESULT_TOOL,
-    description: "Record your run's result, once, at the end: its status, the result in Markdown and the evidence behind it. Call again to replace it. A question or task you created for what blocks you is reported here with status blocked.",
+    description: "Record this run's result: its status, the result in Markdown and the evidence behind it. Before long work, record it with status partial, so a run cut short keeps what it has; each call replaces the earlier one, and the last one, after your role's own output, is the run's. A question or task you created for what blocks you is reported here with status blocked.",
     input: INPUT,
     handler: async (input: Input) => {
       const problems = evidenceProblems(input.evidence, readLog);
 
       if (problems.length > 0) {
-        return { text: `Result not recorded:\n- ${problems.join("\n- ")}` };
+        return { text: `Result not recorded, fix and call again:\n- ${problems.join("\n- ")}`, isError: true };
       }
 
       result.record(toDraft(input));

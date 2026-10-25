@@ -44,6 +44,7 @@ describe(RESULT_TOOL, () => {
     const reply = await tool.handler({ status: "complete", body: "Bad", evidence: [{ source: "S99", ref: "Nowhere.ts", note: "made up" }] });
 
     assert.match(reply.text, /Result not recorded/);
+    assert.equal(reply.isError, true);
     assert.match(reply.text, /S99, which this run never read/);
     assert.equal(result.latest?.body, "Good");
   });

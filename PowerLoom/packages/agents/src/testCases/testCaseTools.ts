@@ -32,6 +32,8 @@ export function chatTestCaseTools(deps: AgentDeps, context: OutsideAccessContext
       input: { pbiId: z.number().int().positive().describe("The PBI's id, e.g. 38519") },
       resource: () => adoResource(access, TEST_CASES),
       request: (input) => `Tested By of PBI-${input.pbiId}`,
+      // Reads Azure DevOps, but saves what it read to the PBI.
+      annotations: { readOnly: false },
       handler: (input) => readAndSave(deps, access, input.pbiId),
     }),
   ];

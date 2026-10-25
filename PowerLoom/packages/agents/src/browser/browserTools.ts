@@ -124,6 +124,8 @@ function proxiedTool(deps: AgentDeps, context: OutsideAccessContext, access: Dev
     name: tool.name,
     description: tool.name === "browser_type" ? `${tool.description} Never type a password or key here: use browser_type_secret.` : tool.description,
     input: jsonSchemaShape(tool.inputSchema as unknown as AzureMcpInputSchema),
+    // The catalog says which browser tools only look (snapshot, screenshot) and which act (click, type, fill).
+    annotations: { readOnly: tool.readOnly },
     resource: () => resourceOf(access, `browser:${open.name ?? "none"}`),
     request: (input) => requestOf(tool, input),
     handler: async (input) => {
