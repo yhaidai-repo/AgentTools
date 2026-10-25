@@ -8,6 +8,7 @@ import { withPagesRead } from "../relevantPages";
 import { loadResearchContext } from "../research/loadResearchContext";
 import { confluencePagesReadInRun } from "../stage";
 import type { RunWriter } from "../toolset/models/RunWriter";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { commitDesign } from "./commitDesign";
 import { buildDesignMessage } from "./designMessage";
@@ -22,8 +23,11 @@ export const WRITE_DESIGN_INTEGRATION = "writeDesign";
 // design; the first message carries the PBI, its refinement and every research result. With a design the task is
 // done; without one it waits, open, until its gaps close (commitDesign). Drafts go through the toolset's vault_capture.
 export class DesignWriter implements RunWriter {
+  readonly integration = WRITE_DESIGN_INTEGRATION;
+
   private readonly draft: DesignDraft = { design: null, gaps: [], captures: [], pages: [] };
   private guard: DuplicateGuard | null = null;
+  private gapIds: string[] = [];
 
   constructor(private readonly context: TaskContext) {}
 
@@ -48,8 +52,17 @@ export class DesignWriter implements RunWriter {
   async commit(target: WriterTarget): Promise<string[]> {
     const pages = withPagesRead(this.draft.pages, await confluencePagesReadInRun(target.deps, target.runId), "Read by design while designing.");
 
-    await commitDesign(target.deps.db, target.task, requirePbiId(target.task), target.runId, { ...this.draft, pages });
+    this.gapIds = (await commitDesign(target.deps.db, target.task, requirePbiId(target.task), target.runId, { ...this.draft, pages })).gapIds;
 
     return [];
+  }
+
+  // A design is the task's output; without one it waits for the gap items that stop it.
+  settlement(): WriterSettlement | null {
+    if (this.draft.design) {
+      return null;
+    }
+
+    return this.gapIds.length > 0 ? { kind: "waits", ids: this.gapIds, reason: "Design needs input first" } : { kind: "missing", output: "a design (write_design) or the questions that stop it" };
   }
 }

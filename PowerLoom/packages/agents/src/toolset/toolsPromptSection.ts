@@ -10,7 +10,7 @@ export function toolsPromptSection(tools: ToolDefinition<any>[]): string {
   return ["## Your tools", "Every tool of this run, as your Config gives them; nothing else exists. Use any of them when it helps.", ...lines].join("\n");
 }
 
-function summaryOf(description: string): string {
+export function summaryOf(description: string): string {
   const sentence = description.split(/(?<=[.!?])\s/)[0]?.trim() ?? "";
 
   return sentence.length > SUMMARY_CHARS ? `${sentence.slice(0, SUMMARY_CHARS - 1)}…` : sentence;

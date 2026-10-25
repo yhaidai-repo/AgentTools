@@ -692,6 +692,19 @@ ol.human-steps p {
   margin: 4px 0;
 }
 
+/* A short markdown field: its paragraphs as tight as the plain lines it replaced. */
+.markdown-text > :first-child {
+  margin-top: 0;
+}
+
+.markdown-text > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-text.step-action {
+  font-weight: 600;
+}
+
 .query-block .actions {
   align-items: center;
   margin-top: 6px;

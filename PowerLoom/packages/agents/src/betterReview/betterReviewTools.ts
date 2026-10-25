@@ -264,7 +264,7 @@ const criterionInput = z.object({
 function summaryTool(run: BetterReviewRun, readLog: ReadLog) {
   return defineTool({
     name: SUMMARY_TOOL,
-    description: "Save the review's result. Call once you have checked the earlier comments and weighed every other reviewer's thread; a second call replaces the first.",
+    description: "Save or replace the review's result: call it once you have checked the earlier comments and weighed every other reviewer's thread; another call replaces the earlier one, and write_result follows the last.",
     input: {
       verdict: z.enum(["ready", "ready_with_fixes", "not_ready"]),
       assessment: z.string().min(1).describe("2-5 sentences: the verdict and why, the main open comments"),

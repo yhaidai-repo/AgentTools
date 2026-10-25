@@ -7,7 +7,7 @@ import { dependencyBlock } from "./dependenciesBlock";
 type ItemRow = typeof localItem.$inferSelect;
 
 function item(fields: Partial<ItemRow>): ItemRow {
-  return { id: "AT-004", kind: "research", status: "done", title: "Why do expired signals stay active?", body: null, resolution: null, parentId: null, data: null, ...fields } as ItemRow;
+  return { id: "AT-004", kind: "research", status: "done", title: "Why do expired catalog stay active?", body: null, resolution: null, parentId: null, data: null, ...fields } as ItemRow;
 }
 
 const RESULT = item({
@@ -15,8 +15,8 @@ const RESULT = item({
   kind: "research-result",
   status: "final",
   parentId: "AT-004",
-  title: "Result: Why do expired signals stay active?",
-  data: { conclusion: "Nothing archives them.", confidence: "high", findings: ["The job never ran"], evidence: [{ location: "PVS/Jobs/Archive.cs:12", note: "no trigger" }], relevantDocs: [], codeRefs: [] },
+  title: "Result: Why do expired catalog stay active?",
+  data: { conclusion: "Nothing archives them.", confidence: "high", findings: ["The job never ran"], evidence: [{ location: "POS/Jobs/Archive.cs:12", note: "no trigger" }], relevantDocs: [], codeRefs: [] },
 });
 
 describe("dependenciesOf", () => {
@@ -30,7 +30,7 @@ describe("dependencyBlock", () => {
   it("shows a research task with its final results", () => {
     const block = dependencyBlock(item({}), [RESULT, item({ id: "RR-009", kind: "research-result", parentId: "AT-009" })]);
 
-    assert.match(block, /^## AT-004 \(research, done\): Why do expired signals stay active\?\n## RR-004 for AT-004/);
+    assert.match(block, /^## AT-004 \(research, done\): Why do expired catalog stay active\?\n## RR-004 for AT-004/);
     assert.match(block, /Conclusion \(high\): Nothing archives them\./);
     assert.doesNotMatch(block, /RR-009/);
   });
@@ -39,6 +39,6 @@ describe("dependencyBlock", () => {
     const question = item({ id: "Q-002", kind: "question", status: "done", title: "Keep the old names?", resolution: "Yes, keep them." });
 
     assert.equal(dependencyBlock(question, []), "## Q-002 (question, done): Keep the old names?\nAnswer: Yes, keep them.");
-    assert.equal(dependencyBlock(item({ status: "cancelled" }), []), "## AT-004 (research, cancelled): Why do expired signals stay active?\nNo result was recorded.");
+    assert.equal(dependencyBlock(item({ status: "cancelled" }), []), "## AT-004 (research, cancelled): Why do expired catalog stay active?\nNo result was recorded.");
   });
 });

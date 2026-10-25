@@ -23,8 +23,8 @@ Describe 'Invoke-PreCompactHook' {
 
         $repoRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs'), $repoRoot -Force | Out-Null
-        @('---', "repo: $($repoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pos'), $repoRoot -Force | Out-Null
+        @('---', "repo: $($repoRoot.Replace('\', '/'))", '---') | Set-Content (Join-Path $vaultRoot 'pos' 'pos-index.md')
         @{ vaults = @($vaultRoot) } | ConvertTo-Json | Set-Content $captureConfigPath
         @{ blockOn = @('auto'); markerTtlMinutes = 30; stateFolder = $stateFolder } | ConvertTo-Json | Set-Content $hookConfigPath
 
@@ -48,7 +48,7 @@ Describe 'Invoke-PreCompactHook' {
 
         $result = Invoke-Hook -Payload $payload
 
-        $result.Stderr | Should -Match 'This session works on project pvs'
+        $result.Stderr | Should -Match 'This session works on project pos'
     }
 
     It 'asks for the context shrink source' {

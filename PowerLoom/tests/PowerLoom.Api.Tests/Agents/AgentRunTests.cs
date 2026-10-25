@@ -95,6 +95,31 @@ public sealed class AgentRunTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task Run_now_says_why_nothing_starts_for_a_disabled_agent_and_an_agent_without_open_tasks()
+    {
+        using (var scope = host.Host.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().Database.ExecuteSqlRawAsync("""INSERT INTO agent_config.agent (id, definition) VALUES ('switched-off', '{{"id":"switched-off","label":"Switched off","enabled":false}}') ON CONFLICT (id) DO NOTHING""");
+        }
+
+        var disabled = await host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new { }).ToUrl("/api/agents/switched-off/run");
+            scenario.StatusCodeShouldBe(409);
+        });
+        var idle = await host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new { }).ToUrl("/api/agents/vault-review/run");
+            scenario.StatusCodeShouldBe(202);
+        });
+        var answer = idle.ReadAsJson<DispatchedAgent>()!;
+
+        Assert.Contains("Switched off is disabled: switch on Enabled", await disabled.ReadAsTextAsync());
+        Assert.Equal(0, answer.OpenTasks);
+        Assert.StartsWith("Nothing to run: Vault review has no open task", answer.Message);
+    }
+
+    [Fact]
     public async Task An_unknown_agent_is_refused_and_the_schedule_lists_the_enabled_ones()
     {
         await host.Host.Scenario(scenario =>

@@ -19,11 +19,11 @@ public sealed class PbiChatTests(PowerLoomHost host)
         var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Pbi, "31001"), "/api/chats").Receive<ChatLink>();
         var note = await ReadNoteAsync("pbi-31001");
 
-        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/PVS"), link!.Url);
+        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/POS"), link!.Url);
         Assert.Contains("# Implement PBI-31001: Faster sync", note);
         Assert.Contains("[[PBI-31001-design]] `D:/pc/powerloom-backlog/test-vault/pbi/PBI-31001-faster-sync/PBI-31001-design.md`", note);
-        Assert.Contains("## Plan\n\n- [ ] 1. Add the index (PVS; Sync.cs): a covering index", note);
-        Assert.Contains("- [ ] 2. Deploy (PVS; –): release **User step: not for the chat.**", note);
+        Assert.Contains("## Plan\n\n- [ ] 1. Add the index (POS; Sync.cs): a covering index", note);
+        Assert.Contains("- [ ] 2. Deploy (POS; –): release **User step: not for the chat.**", note);
         Assert.Contains("## Tests\n\n- [ ] unit: the sync skips nothing", note);
         Assert.Contains("`create-branch` skill for \"#31001 Faster sync\"", note);
         Assert.Contains("- Skills: `sync-skill` (it knows the sync)", note);
@@ -126,7 +126,7 @@ public sealed class PbiChatTests(PowerLoomHost host)
                 Version = 1,
                 Approach = "index it",
                 Alternatives = "[]",
-                Plan = """[{"step":"Add the index","repo":"PVS","locations":["Sync.cs"],"change":"a covering index","agentDoable":true},{"step":"Deploy","repo":"PVS","locations":[],"change":"release","agentDoable":false}]""",
+                Plan = """[{"step":"Add the index","repo":"POS","locations":["Sync.cs"],"change":"a covering index","agentDoable":true},{"step":"Deploy","repo":"POS","locations":[],"change":"release","agentDoable":false}]""",
                 Risks = "[]",
                 Tests = """[{"kind":"unit","case":"the sync skips nothing"}]""",
                 Assumptions = "[]",

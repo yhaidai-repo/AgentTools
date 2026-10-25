@@ -17,7 +17,8 @@ public static partial class LocalRepos
     }
 
     // A local repo is a git checkout in the repos root, named by its folder (the same name the chats and clones use).
-    // The container sees the root at `reposMount`; null when it isn't mounted, then the folder isn't checked.
+    // The container sees the root at `reposMount`; null when it isn't mounted, then the folder isn't checked. Its default
+    // branch is the one the checkout has out, so the agents' clone doesn't assume main.
     public static async Task<Outcome<Repo>> AddAsync(PowerLoomDbContext db, string vault, string name, string? reposMount, CancellationToken cancellation)
     {
         var folder = name.Trim();
@@ -26,7 +27,8 @@ public static partial class LocalRepos
         if (problem is not null)
             return Outcome<Repo>.Failure(Problem.Invalid(problem));
 
-        var row = new Repo { Id = $"local:{vault}:{folder}", Vault = vault, Kind = RepoKind.Local, AdoProject = "", Name = folder, RemoteUrl = reposMount is null ? folder : Path.Combine(reposMount, folder), DefaultBranch = null, SyncedAt = DateTime.UtcNow };
+        var checkout = reposMount is null ? null : Path.Combine(reposMount, folder);
+        var row = new Repo { Id = $"local:{vault}:{folder}", Vault = vault, Kind = RepoKind.Local, AdoProject = "", Name = folder, RemoteUrl = checkout ?? folder, DefaultBranch = checkout is null ? null : GitRefs.CurrentBranch(checkout), SyncedAt = DateTime.UtcNow };
 
         db.Repos.Add(row);
         await db.SaveChangesAsync(cancellation);

@@ -68,6 +68,8 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<DataAccess> DataAccesses { get; set; }
 
+    public virtual DbSet<LogEntry> LogEntries { get; set; }
+
     public virtual DbSet<TestCase> TestCases { get; set; }
 
     public virtual DbSet<VaultReviewDecision> VaultReviewDecisions { get; set; }

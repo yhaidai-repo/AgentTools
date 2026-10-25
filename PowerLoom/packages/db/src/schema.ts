@@ -56,7 +56,7 @@ export const attachmentOrigin = pgEnum("attachment_origin", ["upload", "ado", "c
 export const repoSource = pgEnum("repo_source", ["agent-assumed", "user-confirmed", "vault-documented"]);
 
 // Where a catalog repo comes from: the vault's ADO integration, or a local checkout the user added (2026-10-06).
-export const repoKind = pgEnum("repo_kind", ["ado", "local"]);
+export const repoKind = pgEnum("repo_kind", ["ado", "local", "github"]);
 
 // Whether a write made a docs-vault note (it didn't exist) or changed one.
 export const noteWriteAction = pgEnum("note_write_action", ["created", "updated"]);
@@ -459,6 +459,29 @@ export const vaultNoteWrite = pgTable("vault_note_write", {
   action: noteWriteAction("action").notNull(),
   writtenAt: ts("written_at").notNull().defaultNow(),
 }, (t) => [index("vault_note_write_path_idx").on(t.path)]);
+
+// Error log (user decision 2026-10-25): the warnings and errors PowerLoom's services logged, for chats and pages without
+// Grafana. A repeat (same service, level, task and message but its numbers) is one row with a count; rows go after 14
+// days and past 20,000 (the backend purges). Written by every service; the backend owns the table.
+export const logEntry = pgTable("log_entry", {
+  id: serial("id").primaryKey(),
+  service: text("service").notNull(),
+  level: text("level").$type<"warn" | "error">().notNull(),
+  message: text("message").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  count: integer("count").notNull().default(1),
+  firstAt: ts("first_at").notNull().defaultNow(),
+  lastAt: ts("last_at").notNull().defaultNow(),
+  runId: bigint("run_id", { mode: "number" }),
+  taskId: text("task_id"),
+  pbiId: integer("pbi_id"),
+  vault: text("vault"),
+}, (t) => [
+  uniqueIndex("log_entry_fingerprint_uq").on(t.fingerprint),
+  index("log_entry_last_at_idx").on(t.lastAt),
+  index("log_entry_task_idx").on(t.taskId),
+  index("log_entry_run_idx").on(t.runId),
+]);
 
 // Data access log (user decision 2026-10-13): one row per outside read an agent made through a tool (Read SQL, Read
 // Azure, Confluence): who, where, the request, the outcome and counts; never the returned data. Written by the

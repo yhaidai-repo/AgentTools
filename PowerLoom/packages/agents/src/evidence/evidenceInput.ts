@@ -15,4 +15,4 @@ export const optionalEvidenceInput = z.array(evidenceItemInput).default([]);
 
 export const resultStatusInput = z
   .enum(["complete", "partial", "not_found", "blocked"])
-  .describe("complete: answered; partial: what you have so far; not_found: looked and it isn't there; blocked: something stops you, named in the result");
+  .describe("complete: answered; partial: what you have so far; not_found: looked and it isn't there (write_result then says complete, or partial when the search was cut short); blocked: something stops you, named in the result");

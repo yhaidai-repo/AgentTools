@@ -5,4 +5,6 @@ public enum RepoKind
 {
     Ado,
     Local,
+    // A GitHub repo (user decision 2026-10-25), listed from GitHub with the vault's token.
+    Github,
 }

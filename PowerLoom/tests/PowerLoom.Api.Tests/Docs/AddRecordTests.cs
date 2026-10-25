@@ -49,8 +49,8 @@ public sealed class AddRecordTests(PowerLoomHost host)
         var finding = await LoadItemAsync(findingId);
         var added = host.Host.Services.GetRequiredService<FakeVaultCapture>().Added.Single(entry => entry.Record.Title == "Found it");
 
-        Assert.Equal((ItemStatus.Done, $"Recorded as {FakeVaultCapture.RecordId} in pvs-known-issues."), (finding.Status, finding.Resolution));
-        Assert.Equal(("pvs", "issues"), (added.Record.Project, added.Record.Kind));
+        Assert.Equal((ItemStatus.Done, $"Recorded as {FakeVaultCapture.RecordId} in pos-known-issues."), (finding.Status, finding.Resolution));
+        Assert.Equal(("pos", "issues"), (added.Record.Project, added.Record.Kind));
         Assert.Equal(adoId, session.Executed.SingleMessage<PbiChanged>().AdoId);
     }
 
@@ -94,7 +94,7 @@ public sealed class AddRecordTests(PowerLoomHost host)
         var id = $"F-{adoId}-001";
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Refining, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(new LocalItem { Id = id, Kind = ItemKinds.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Found it", Body = "The rule is unclear.", Status = ItemStatus.InProgress, Assignee = "human", Data = """{"type":"issue","project":"pvs","default":["Keep it"],"options":[]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = id, Kind = ItemKinds.Finding, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Found it", Body = "The rule is unclear.", Status = ItemStatus.InProgress, Assignee = "human", Data = """{"type":"issue","project":"pos","default":["Keep it"],"options":[]}""", HeldBy = "[]" });
         await db.SaveChangesAsync();
 
         return id;

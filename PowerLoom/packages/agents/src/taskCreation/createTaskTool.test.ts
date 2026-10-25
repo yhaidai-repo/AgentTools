@@ -14,7 +14,7 @@ const noDuplicates = { check: () => null, remember: () => undefined } as unknown
 
 function setup(limits: Partial<TaskCreationLimits> = {}, canAssign = ["research", "docs"]) {
   const tasks: CreatedTask[] = [];
-  const tool = createTaskTool(canAssign, tasks, noDuplicates, new ReadLog("PBI 34881: expired signals stay in the grid"), { ...LIMITS, ...limits });
+  const tool = createTaskTool(canAssign, tasks, noDuplicates, new ReadLog("PBI 34881: expired catalog stay in the grid"), { ...LIMITS, ...limits });
 
   return { tasks, tool };
 }
@@ -23,8 +23,8 @@ function researchTask(overrides: Record<string, unknown> = {}) {
   return {
     assignee: "research",
     kind: "task",
-    title: "Why do expired signals stay active?",
-    goal: "The grid shows signals past their IneffectiveDate.",
+    title: "Why do expired catalog stay active?",
+    goal: "The grid shows catalog past their ExpirationDate.",
     done_when: "The writer that should archive them is named, with evidence.",
     out_of_scope: null,
     effort: "trace",
@@ -39,7 +39,7 @@ function researchTask(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const userStep = { action: "Check the container's TTL", source: "portal", resource: "Cosmos aa-stage (stage)", query: null, timeRange: null, reportBack: "The TTL value" };
+const userStep = { action: "Check the container's TTL", source: "portal", resource: "Cosmos zz-stage (stage)", query: null, timeRange: null, reportBack: "The TTL value" };
 
 describe("create_task", () => {
   it("notes an agent task with its decision fields", async () => {
@@ -77,7 +77,7 @@ describe("create_task", () => {
   it("rejects evidence from a source the run never read", async () => {
     const { tool } = setup();
 
-    const result = await tool.handler(researchTask({ evidence: [{ source: "S4", ref: "PVS/src/Invented.cs", note: "made up" }] }));
+    const result = await tool.handler(researchTask({ evidence: [{ source: "S4", ref: "POS/src/Invented.cs", note: "made up" }] }));
 
     assert.equal(result.isError, true);
     assert.match(result.text, /cites S4, which this run never read/);
@@ -89,7 +89,7 @@ describe("create_task", () => {
     await tool.handler(researchTask());
 
     const later = await tool.handler(researchTask({ title: "Design", goal: "Plan the fix.", depends_on: ["new:2"] }));
-    const earlier = await tool.handler(researchTask({ title: "Count", goal: "How many signals are affected?", depends_on: ["new:1", "Q-34881-001"] }));
+    const earlier = await tool.handler(researchTask({ title: "Count", goal: "How many catalog are affected?", depends_on: ["new:1", "Q-34881-001"] }));
 
     assert.match(later.text, /depends_on "new:2" is neither/);
     assert.equal(earlier.isError, undefined);

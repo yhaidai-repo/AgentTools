@@ -8,6 +8,7 @@ import { deleteAgentCommand } from "./deleteAgentCommand";
 import { pauseAgentsCommand } from "./pauseAgentsCommand";
 import { runAgentCommand } from "./runAgentCommand";
 import { saveAgentsGlobalCommand } from "./saveAgentsGlobalCommand";
+import { saveFrameworkCommand } from "./saveFrameworkCommand";
 import { saveSkillCommand } from "./saveSkillCommand";
 import { restoreSkillCommand } from "./restoreSkillCommand";
 import { createSkillCommand } from "./createSkillCommand";
@@ -36,10 +37,12 @@ import { listSchedulesCommand } from "./listSchedulesCommand";
 import { getScheduleCommand } from "./getScheduleCommand";
 import { listRunsCommand } from "./listRunsCommand";
 import { getRunCommand } from "./getRunCommand";
+import { readLogsCommand } from "./readLogsCommand";
 import { getRunEventsCommand } from "./getRunEventsCommand";
 import { listAgentsCommand } from "./listAgentsCommand";
 import { getAgentCommand } from "./getAgentCommand";
 import { getAgentsGlobalCommand } from "./getAgentsGlobalCommand";
+import { getFrameworkCommand } from "./getFrameworkCommand";
 import { getUsageSummaryCommand } from "./getUsageSummaryCommand";
 import { listDataAccessCommand } from "./listDataAccessCommand";
 import { listDeadLettersCommand } from "./listDeadLettersCommand";
@@ -69,6 +72,7 @@ import { deleteScheduleCommand } from "./deleteScheduleCommand";
 import { tickScheduleCommand } from "./tickScheduleCommand";
 import { deleteItemCommand } from "./deleteItemCommand";
 import { saveTaskNotesCommand } from "./saveTaskNotesCommand";
+import { addLocalReviewCommand } from "./addLocalReviewCommand";
 import { addReviewCommand } from "./addReviewCommand";
 import { queueReviewCommand } from "./queueReviewCommand";
 import { closeReviewCommand } from "./closeReviewCommand";
@@ -116,6 +120,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   pauseAgentsCommand,
   runAgentCommand,
   saveAgentsGlobalCommand,
+  saveFrameworkCommand,
   saveSkillCommand,
   restoreSkillCommand,
   sqlQueryCommand,
@@ -137,6 +142,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   deleteItemCommand,
   saveTaskNotesCommand,
   addReviewCommand,
+  addLocalReviewCommand,
   queueReviewCommand,
   closeReviewCommand,
   syncPullRequestsCommand,
@@ -163,10 +169,12 @@ export const COMMANDS: readonly Command<any, any>[] = [
   getScheduleCommand,
   listRunsCommand,
   getRunCommand,
+  readLogsCommand,
   getRunEventsCommand,
   listAgentsCommand,
   getAgentCommand,
   getAgentsGlobalCommand,
+  getFrameworkCommand,
   getUsageSummaryCommand,
   listDataAccessCommand,
   listDeadLettersCommand,

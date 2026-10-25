@@ -2,7 +2,7 @@
 export interface WikiLink {
   /** The linking note, relative to the vault root. */
   from: string;
-  /** As written, without heading and label, e.g. `pvs-index` or `pvs/pvs-index.md`. */
+  /** As written, without heading and label, e.g. `pos-index` or `pos/pos-index.md`. */
   target: string;
   heading: string | null;
   label: string | null;

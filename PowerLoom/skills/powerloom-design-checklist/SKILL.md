@@ -1,6 +1,6 @@
 ---
 name: powerloom-design-checklist
-description: How the PowerLoom design agent writes an implementation design: plan, alternatives, risks, tests and estimates (record_estimate). Use when starting a design task, before calling write_design.
+description: "How the PowerLoom design agent writes an implementation design: plan, alternatives, risks, tests and estimates (record_estimate). Use when starting a design task, before calling write_design."
 ---
 
 # Design checklist

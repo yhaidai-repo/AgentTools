@@ -7,7 +7,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { noRepos, openRepos, READ_REPOS_INTEGRATION } from "./openRepos";
 import { reposBlock } from "./reposBlock";
 
-const PVS = { name: "PVS", remoteUrl: "https://x/_git/PVS", defaultBranch: "main" };
+const POS = { name: "POS", remoteUrl: "https://x/_git/POS", defaultBranch: "main" };
 
 function contextWith(readRepos: boolean): TaskContext {
   const agent = { options: {}, capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: readRepos } } } as unknown as AgentDefinition;
@@ -19,7 +19,7 @@ function contextWith(readRepos: boolean): TaskContext {
 // Read repositories on, nothing attached: the catalog is still there for open_repo (select().from().where().orderBy()).
 function contextWithCatalog(): TaskContext {
   const agent = { options: {}, capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true } } } as unknown as AgentDefinition;
-  const db = { select: () => ({ from: () => ({ where: () => ({ orderBy: async () => [PVS] }) }) }) };
+  const db = { select: () => ({ from: () => ({ where: () => ({ orderBy: async () => [POS] }) }) }) };
   const repoCache = { acquire: async () => ({}), release: () => {}, root: "/repo-cache/v", refs: {} };
 
   return { deps: { db, repoCache }, agent } as unknown as TaskContext;
@@ -35,7 +35,7 @@ describe("openRepos", () => {
   it("opens nothing and leaves the cache alone while Read repositories is off", async () => {
     const { session, phases } = sessionLog();
 
-    const access = await openRepos(contextWith(false), session, [{ vault: "v", names: ["PVS"] }]);
+    const access = await openRepos(contextWith(false), session, [{ vault: "v", names: ["POS"] }]);
 
     assert.deepEqual(access, noRepos());
     assert.deepEqual(phases, [{ name: "repos", readRepos: false }]);
@@ -62,8 +62,8 @@ describe("reposBlock", () => {
   });
 
   it("lists each repo with its commit and branch", () => {
-    const access: RepoAccess = { isOn: true, repos: [PVS], commits: { PVS: "756b975531234" }, tools: [] };
+    const access: RepoAccess = { isOn: true, repos: [POS], commits: { POS: "756b975531234" }, tools: [] };
 
-    assert.equal(reposBlock(access), "<repos>\n- PVS @ 756b975531 (branch main)\n</repos>");
+    assert.equal(reposBlock(access), "<repos>\n- POS @ 756b975531 (branch main)\n</repos>");
   });
 });

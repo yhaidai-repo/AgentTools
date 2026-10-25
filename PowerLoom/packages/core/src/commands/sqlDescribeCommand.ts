@@ -12,7 +12,7 @@ export const sqlDescribeCommand: Command<{ vault: string; connection: string; da
     vault: sqlVaultInput,
     connection: sqlConnectionInput,
     database: sqlDatabaseInput,
-    table: z.string().trim().min(1).optional().describe("A table or view, e.g. dbo.Verification; leave out to list them all"),
+    table: z.string().trim().min(1).optional().describe("A table or view, e.g. dbo.Subscription; leave out to list them all"),
   }),
   run(context, input) {
     const table = input.table;

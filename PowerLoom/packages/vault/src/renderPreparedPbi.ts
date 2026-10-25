@@ -6,12 +6,13 @@ import { pbiNoteName } from "./paths";
 
 const EMPTY = "–";
 const EMPTY_TEXT = "_Empty in Azure DevOps._";
-const NOTES_HEADING = /^## Notes[ \t]*$/m;
+const NOTES_HEADING = /^## Notes[ \t]*\r?$/m;
 
 // Frontmatter is always written by the app so metadata stays uniform; the body comes from the user's template.
 // `regions` fills generated regions (e.g. refinement, items) with pipeline content.
 export function renderPreparedPbi(template: string, note: PbiNote, notesSection: string, regions: Record<string, string> = {}): string {
-  const body = replaceRegions(fillTemplate(template, placeholderValues(note)), regions);
+  // A template edited on Windows has CRLF line endings; the note is written with LF throughout.
+  const body = replaceRegions(fillTemplate(template.replaceAll("\r\n", "\n"), placeholderValues(note)), regions);
 
   return `${renderFrontmatter(note)}\n\n${withoutNotes(body).trimEnd()}\n\n${notesSection}`;
 }

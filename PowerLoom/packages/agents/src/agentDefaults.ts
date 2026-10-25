@@ -6,6 +6,7 @@ import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
+import { GOOGLE_DRIVE_INTEGRATION } from "./googleDrive/googleDriveTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
@@ -254,11 +255,16 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Read SQL (SQL Server)",
     description: "The agent may run read-only queries on the vault's Read SQL connections (Settings) during its runs. Whatever a query returns goes to the model provider.",
   },
+  {
+    key: GOOGLE_DRIVE_INTEGRATION,
+    label: "Google Drive (read)",
+    description: "The agent may search and read files in the Google Drive folders the vault shares with agents (Settings → Data access) during its runs. Whatever it reads goes to the model provider.",
+  },
   ...AZURE_INTEGRATION_SPECS,
   {
     key: DEVHUB_INTEGRATION,
     label: "DevHub (run services)",
-    description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → DevHub) during its runs, e.g. the PVS portal with Signals for a test. One stack at a time; it stops when the run ends.",
+    description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → DevHub) during its runs, e.g. a web app with the services it calls, for a test. One stack at a time; it stops when the run or chat session that started it ends.",
   },
   {
     key: ADO_INTEGRATION,
@@ -435,13 +441,13 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     label: "Vault review",
     description: "Reviews the vaults chosen in Settings: decides stale and unlinked notes (keep, remove to .trash, actualize via the tech-writer), fixes invalid links, and closes WWW/KI/OQ records the vault already settles or repeats.",
     enabled: true,
-    schedule: "0 6 * * 1",
+    schedule: "15 6 * * 1,4", // 15 minutes after the vault's review schedule creates its task (Monday and Thursday 06:00)
     model: { provider: "anthropic", model: "claude-sonnet-5" },
     limits: { maxTurns: 40, timeoutMinutes: 15 },
     budgets: { perRunUsd: 1, dailyUsd: 3 },
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [VAULT_REVIEW_INTEGRATION]: true } },
     skills: ["powerloom-vault-review", "powerloom-documentation"],
-    options: { batchSize: 1, maxFailures: 3, staleDays: 60, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
+    options: { batchSize: 1, maxFailures: 3, staleDays: 15, maxNotesPerRun: 10, maxLinkFixesPerRun: 30, maxRecordsPerRun: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(VAULT_REVIEW_OPTIONS),
     integrationSpecs: INTEGRATIONS,
     canAssign: [],
@@ -459,7 +465,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 1, timeoutMinutes: 1 },
     budgets: { perRunUsd: 0, dailyUsd: 0 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [GOOGLE_DRIVE_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
     skills: [],
     options: {},
     optionSpecs: [],

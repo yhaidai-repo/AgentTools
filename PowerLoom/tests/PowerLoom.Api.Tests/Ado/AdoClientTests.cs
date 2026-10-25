@@ -77,12 +77,12 @@ public sealed class AdoClientTests
         Assert.Equal(100, pullRequests.Count);
         Assert.Equal(2, handler.Requests.Count);
         Assert.Contains("$skip=100", handler.Requests[1].RequestUri!.ToString());
-        Assert.Equal("https://dev.azure.com/org/Proj/_git/PVS/pullrequest/1", pullRequests[0].Url);
+        Assert.Equal("https://dev.azure.com/org/Proj/_git/POS/pullrequest/1", pullRequests[0].Url);
     }
 
     private static string FullPage()
     {
-        var items = Enumerable.Range(1, 100).Select(id => "{\"pullRequestId\":" + id + ",\"title\":\"t\",\"sourceRefName\":\"refs/heads/f\",\"targetRefName\":\"refs/heads/d\",\"repository\":{\"id\":\"r\",\"name\":\"PVS\"}}");
+        var items = Enumerable.Range(1, 100).Select(id => "{\"pullRequestId\":" + id + ",\"title\":\"t\",\"sourceRefName\":\"refs/heads/f\",\"targetRefName\":\"refs/heads/d\",\"repository\":{\"id\":\"r\",\"name\":\"POS\"}}");
 
         return "{\"value\":[" + string.Join(",", items) + "]}";
     }

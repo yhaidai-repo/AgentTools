@@ -11,6 +11,11 @@ export function reviewWorkPort(powerloom: PowerLoomClient): ReviewWorkPort {
 
       return data ? { ok: true, value: data } : powerloomFailure(error, response);
     },
+    async addLocalReview(review) {
+      const { data, error, response } = await powerloom.POST("/api/reviews/local", { body: review });
+
+      return data ? { ok: true, value: data } : powerloomFailure(error, response);
+    },
     async queueReview(prId) {
       const { data, error, response } = await powerloom.POST("/api/reviews/queue", { body: { prIds: [prId] } });
 
@@ -23,6 +28,9 @@ export function reviewWorkPort(powerloom: PowerLoomClient): ReviewWorkPort {
     },
     async syncPullRequests(vault) {
       return accepted(await powerloom.POST("/api/ado/pull-requests/sync", { body: { vault } }));
+    },
+    async syncGitHubPullRequests(vault) {
+      return accepted(await powerloom.POST("/api/vaults/{vault}/github/pull-requests/sync", { params: { path: { vault } } }));
     },
   };
 }

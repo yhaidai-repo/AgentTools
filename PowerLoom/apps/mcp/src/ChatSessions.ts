@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { CHAT_AGENT_ID, chatOwner, chatTools, closeOwnedBrowser, stopOwnedStack, type AgentDeps } from "@powerloom/agents";
+import { CHAT_AGENT_ID, chatOwner, chatSessionTools, closeOwnedBrowser, recordToolOffer, stopOwnedStack, type AgentDeps } from "@powerloom/agents";
 import type { CommandContext } from "@powerloom/core";
 import type { ChatHost } from "./models/ChatHost";
 import type { ChatSession } from "./models/ChatSession";
@@ -46,7 +46,10 @@ export class ChatSessions {
     const session: ChatSession = { id, vault, client, deps, server, transport, lastUsedAt: Date.now() };
 
     try {
-      registerTools(server, chatTools(deps, await this.chatAgent(deps), { vault, client, sessionId: id }, this.commandContext(client)));
+      const tools = chatSessionTools(deps, await this.chatAgent(deps), { vault, client, sessionId: id }, this.commandContext(client));
+
+      registerTools(server, tools.tools);
+      await recordToolOffer(this.host.db, vault, CHAT_AGENT_ID, tools.offered);
       transport.onclose = () => void this.close(session);
       await server.connect(transport);
     } catch (error) {

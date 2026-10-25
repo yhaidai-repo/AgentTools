@@ -10,7 +10,7 @@ export function notePathProblem(path: string): string | null {
   const [folder, ...rest] = normalized.split("/");
 
   if (normalized.startsWith("/") || normalized.startsWith("..") || !normalized.endsWith(".md")) {
-    return `"${path}" must be a .md path inside the docs vault, relative to its root (e.g. pvs/feature/note.md).`;
+    return `"${path}" must be a .md path inside the docs vault, relative to its root (e.g. shop/feature/note.md).`;
   }
 
   if (rest.length === 0) {

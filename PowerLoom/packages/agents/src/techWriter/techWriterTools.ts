@@ -16,7 +16,7 @@ function writeNoteTool(draft: TechWriterDraft) {
     name: "write_note",
     description: "Write one whole note of the docs vault (frontmatter included): a changed target note or a new note in the target folder. A second call for the same path replaces the first. Applied when the run succeeds.",
     input: {
-      path: z.string().min(1).describe("Relative to the vault root, e.g. pvsi/signals/medicaid-recipient-facility.md"),
+      path: z.string().min(1).describe("Relative to the vault root, e.g. shop/orders/order-returns.md"),
       content: z.string().min(1).describe("The complete note"),
       takesDraftPlace: z.boolean().default(false).describe("True for the note the draft's facts went to: before the draft is deleted, the app points every link to the draft at this note"),
     },

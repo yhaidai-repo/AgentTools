@@ -3,6 +3,7 @@ import { agentPromptVersion } from "@powerloom/db";
 import { z } from "zod";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { newAgentTemplate } from "../agents/newAgentTemplate";
+import { withModelProvider } from "../agents/modelProvider";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
 import type { CreateAgentInput } from "../models/CreateAgentInput";
@@ -91,7 +92,7 @@ async function buildDefinition(agents: NonNullable<CommandContext["agents"]>, in
     description: input.description,
     enabled: input.enabled,
     schedule: input.schedule,
-    model: input.model ?? template.model,
+    model: input.model ? withModelProvider(input.model) : template.model,
     limits: input.limits ?? template.limits,
     budgets: input.budgets ?? template.budgets,
     capabilities: { webAccess: input.webAccess, integrations },

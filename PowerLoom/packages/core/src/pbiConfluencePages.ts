@@ -10,7 +10,7 @@ export function confluencePageProblem(url: string): string | null {
   return isConfluence && confluencePageId(url) ? null : `not a Confluence page link (…/wiki/spaces/<space>/pages/<id>/…): ${url}`;
 }
 
-// The title in a page link (`…/pages/<id>/Patient+Signal+-+X`), for pages added without one.
+// The title in a page link (`…/pages/<id>/Account+Credit+-+X`), for pages added without one.
 export function pageTitleFromUrl(url: string): string {
   const slug = new URL(url).pathname.split("/").filter(Boolean).at(-1) ?? "";
 

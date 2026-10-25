@@ -20,8 +20,8 @@ namespace PowerLoom.Api.Tests.Confluence;
 public sealed class ConfluencePagesTests(PowerLoomHost host)
 {
     private const int AdoId = 64001;
-    private const string PageUrl = "https://org.atlassian.net/wiki/spaces/AA/pages/1234/Signal+Rules";
-    private const string GoneUrl = "https://org.atlassian.net/wiki/spaces/AA/pages/9999/Gone";
+    private const string PageUrl = "https://org.atlassian.net/wiki/spaces/ZZ/pages/1234/Credit+Rules";
+    private const string GoneUrl = "https://org.atlassian.net/wiki/spaces/ZZ/pages/9999/Gone";
 
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
@@ -31,18 +31,18 @@ public sealed class ConfluencePagesTests(PowerLoomHost host)
         await SeedAsync();
         var confluence = host.Host.Services.GetRequiredService<FakeConfluenceClientFactory>();
 
-        confluence.Client.Pages[PageUrl] = new ConfluencePage("1234", "Signal Rules", 3, "<p>Rules v3</p>");
+        confluence.Client.Pages[PageUrl] = new ConfluencePage("1234", "Credit Rules", 3, "<p>Rules v3</p>");
         confluence.Client.Files[PageUrl] = [new ConfluenceFile("f1", "rules.txt", "text/plain", 5, "https://x/f1"), new ConfluenceFile("f2", "big.zip", "application/zip", 5, "https://x/f2")];
         confluence.Client.Downloads["f1"] = new DownloadedFile("rules.txt", "text/plain", Encoding.UTF8.GetBytes("rules"));
 
         var synced = await Tracked(bus => bus.PublishAsync(new SyncPbiPages(PowerLoomHost.Vault, AdoId, PageSyncScope.All)).AsTask());
         var first = await LoadAttachmentsAsync();
 
-        Assert.Equal([("Signal Rules.html", 3, "Rules v3"), ("rules.txt", 3, "rules")], first.Where(row => row.SourceUrl == PageUrl).Select(row => (row.FileName, row.SourceVersion, row.Text)));
+        Assert.Equal([("Credit Rules.html", 3, "Rules v3"), ("rules.txt", 3, "rules")], first.Where(row => row.SourceUrl == PageUrl).Select(row => (row.FileName, row.SourceVersion, row.Text)));
         Assert.Single(synced.Executed.MessagesOf<PbiChanged>());
         Assert.Contains("Attach the content of the linked Confluence page", (await LoadTasksAsync()).Single(task => task.Body!.Contains(GoneUrl)).Title);
 
-        confluence.Client.Pages[PageUrl] = new ConfluencePage("1234", "Signal Rules", 4, "<p>Rules v4</p>");
+        confluence.Client.Pages[PageUrl] = new ConfluencePage("1234", "Credit Rules", 4, "<p>Rules v4</p>");
         confluence.Client.Files[PageUrl] = [];
 
         await Tracked(bus => bus.PublishAsync(new SyncPbiPages(PowerLoomHost.Vault, AdoId, PageSyncScope.Missing)).AsTask());
@@ -56,7 +56,7 @@ public sealed class ConfluencePagesTests(PowerLoomHost host)
         }));
         var reloaded = await LoadAttachmentsAsync();
 
-        Assert.Equal([("Signal Rules.html", 4)], reloaded.Where(row => row.SourceUrl == PageUrl).Select(row => (row.FileName, row.SourceVersion)));
+        Assert.Equal([("Credit Rules.html", 4)], reloaded.Where(row => row.SourceUrl == PageUrl).Select(row => (row.FileName, row.SourceVersion)));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class ConfluencePagesTests(PowerLoomHost host)
         var removed = await RemoveAsync(PageUrl);
 
         Assert.Contains("not a Confluence page link", await refused.ReadAsTextAsync());
-        Assert.Equal([new PbiConfluencePage(PageUrl, "Signal Rules", "the rules", "user")], added);
+        Assert.Equal([new PbiConfluencePage(PageUrl, "Credit Rules", "the rules", "user")], added);
         Assert.Equal(added, again);
         Assert.Empty(removed);
     }

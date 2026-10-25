@@ -432,6 +432,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/local": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_reviews_local
+         * @description POST_api_reviews_local
+         */
+        post: operations["POST_api_reviews_local"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/repos/{id}/enabled": {
         parameters: {
             query?: never;
@@ -1600,6 +1620,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_github
+         * @description PUT_api_vaults_vault_github
+         */
+        put: operations["PUT_api_vaults_vault_github"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/github/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_github_test
+         * @description POST_api_vaults_vault_github_test
+         */
+        post: operations["POST_api_vaults_vault_github_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/github/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_github_sync
+         * @description POST_api_vaults_vault_github_sync
+         */
+        post: operations["POST_api_vaults_vault_github_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/github/pull-requests/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_github_pull_requests_sync
+         * @description POST_api_vaults_vault_github_pull_requests_sync
+         */
+        post: operations["POST_api_vaults_vault_github_pull_requests_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_google_drive
+         * @description PUT_api_vaults_vault_google_drive
+         */
+        put: operations["PUT_api_vaults_vault_google_drive"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_google_drive_sign_in
+         * @description POST_api_vaults_vault_google_drive_sign_in
+         */
+        post: operations["POST_api_vaults_vault_google_drive_sign_in"];
+        /**
+         * DELETE_api_vaults_vault_google_drive_sign_in
+         * @description DELETE_api_vaults_vault_google_drive_sign_in
+         */
+        delete: operations["DELETE_api_vaults_vault_google_drive_sign_in"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_google_drive_folders
+         * @description POST_api_vaults_vault_google_drive_folders
+         */
+        post: operations["POST_api_vaults_vault_google_drive_folders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_google_drive_folders_id
+         * @description DELETE_api_vaults_vault_google_drive_folders_id
+         */
+        delete: operations["DELETE_api_vaults_vault_google_drive_folders_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1610,12 +1794,22 @@ export interface components {
             target: null | string;
             secret: null | string;
         };
+        AddGoogleDriveFolderRequest: {
+            folder: string;
+        };
         AddLinkRequest: {
             url: string;
             why: null | string;
         };
         AddLocalRepoRequest: {
             name: string;
+        };
+        AddLocalReviewRequest: {
+            vault: string;
+            repo: string;
+            branch: string;
+            baseBranch: null | string;
+            pbi: null | string;
         };
         AddRecordRequest: {
             kind: components["schemas"]["RecordKind"];
@@ -1642,6 +1836,11 @@ export interface components {
         };
         AddVaultRequest: {
             folder: string;
+        };
+        AddedLocalReview: {
+            /** Format: int32 */
+            prId: number;
+            message: string;
         };
         AddedRegisterRecord: {
             id: string;
@@ -1725,7 +1924,7 @@ export interface components {
             apps: components["schemas"]["ChatApp"][];
         };
         /** @enum {unknown} */
-        ChatKind: "pbi" | "item" | "review" | "vault";
+        ChatKind: "pbi" | "item" | "review" | "vault" | "import";
         ChatLink: {
             url: string;
         };
@@ -1912,6 +2111,9 @@ export interface components {
         };
         DispatchedAgent: {
             agentId: string;
+            /** Format: int32 */
+            openTasks: number;
+            message: string;
         };
         DraftCaptureResult: {
             ok: boolean;
@@ -1935,6 +2137,32 @@ export interface components {
             message: string;
             /** Format: int32 */
             wwwRecordId: null | number;
+        };
+        GitHubCheck: {
+            ok: boolean;
+            message: string;
+        };
+        GitHubSummary: {
+            enabled: boolean;
+            owner: string;
+            login: string;
+            hasToken: boolean;
+        };
+        GoogleDriveFolderSummary: {
+            id: string;
+            name: string;
+        };
+        GoogleDriveSummary: {
+            enabled: boolean;
+            clientId: string;
+            hasClientSecret: boolean;
+            account: string;
+            folders: components["schemas"]["GoogleDriveFolderSummary"][];
+        };
+        GoogleSignInRequest: {
+            code: string;
+            codeVerifier: string;
+            redirectUri: string;
         };
         /** Format: binary */
         IFormFile: string;
@@ -1962,6 +2190,7 @@ export interface components {
         OpenChatRequest: {
             kind: components["schemas"]["ChatKind"];
             id: string;
+            folder?: null | string;
         };
         OutsideComponentState: {
             component: string;
@@ -2125,6 +2354,16 @@ export interface components {
             url: null | string;
             token: null | string;
         };
+        SaveGitHubRequest: {
+            enabled: boolean;
+            token: null | string;
+            owner: null | string;
+        };
+        SaveGoogleDriveRequest: {
+            enabled: boolean;
+            clientId: null | string;
+            clientSecret: null | string;
+        };
         SaveReposRequest: {
             repos: string[];
         };
@@ -2286,6 +2525,10 @@ export interface components {
         TestDevHubRequest: {
             url: null | string;
             token: null | string;
+        };
+        TestGitHubRequest: {
+            token: null | string;
+            owner: null | string;
         };
         TestSqlConnectionRequest: {
             name: null | string;
@@ -2923,6 +3166,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnsweredComment"];
+                };
+            };
+        };
+    };
+    POST_api_reviews_local: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLocalReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedLocalReview"];
                 };
             };
         };
@@ -4754,6 +5021,302 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DevHubCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_github: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveGitHubRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitHubSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_github_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestGitHubRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitHubCheck"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_github_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_github_pull_requests_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_google_drive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveGoogleDriveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_google_drive_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_google_drive_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_google_drive_folders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddGoogleDriveFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_google_drive_folders_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
                 };
             };
             /** @description Bad Request */

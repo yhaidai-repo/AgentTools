@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.AdoIntegration.Client.Models;
@@ -7,6 +6,7 @@ using PowerLoom.AdoIntegration.Features.AddReview.Models;
 using PowerLoom.AdoIntegration.Features.SyncPullRequests;
 using PowerLoom.AdoIntegration.Settings;
 using PowerLoom.Contracts;
+using PowerLoom.Domain.Reviews;
 using PowerLoom.Infrastructure.LocalBranches;
 using PowerLoom.Infrastructure.LocalBranches.Models;
 using PowerLoom.Persistence;
@@ -20,7 +20,7 @@ namespace PowerLoom.AdoIntegration.Features.AddReview;
 // it is active whoever's it is; without one, a branch review: no PR, the branch diffed against a target branch, its
 // linked PBI named or read from the branch name (feature/30474-…). A branch that isn't pushed is looked up on the PC
 // through DevHub (user, 2026-10-21): that branch review isn't code-reviewed until it is pushed.
-public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILocalBranches localBranches)
+public sealed class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore settings, IAdoClientFactory clients, ILocalBranches localBranches)
 {
     private const string BranchPrefix = BranchRefs.Prefix;
     private const string FallbackTarget = "main";
@@ -111,7 +111,7 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
         if (head is null && onPc!.Head is null)
             return Outcome<AddedReview>.Failure(Problem.NotFound(MissingMessage(repo.Name, branch, onPc)));
 
-        var pbis = await LinkedPbisAsync(request.Vault, request.Pbi, branch, cancellation);
+        var pbis = await BranchPbis.LinkAsync(db, request.Vault, request.Pbi, branch, cancellation);
 
         if (!pbis.Ok)
             return Outcome<AddedReview>.Failure(pbis.Problem!);
@@ -149,29 +149,6 @@ public sealed partial class ReviewAdding(PowerLoomDbContext db, AdoSettingsStore
         };
     }
 
-    // The named PBI, or the number in the branch name when that is a PBI of the vault (create-branch names branches so).
-    private async Task<Outcome<List<int>>> LinkedPbisAsync(string vault, string? pbi, string branch, CancellationToken cancellation)
-    {
-        if (!string.IsNullOrWhiteSpace(pbi))
-        {
-            var named = int.TryParse(pbi.Trim().TrimStart('#'), out var id) && await IsPbiOfAsync(vault, id, cancellation);
-
-            return named ? Outcome<List<int>>.Success([id]) : Outcome<List<int>>.Failure(Problem.NotFound($"{pbi} isn't a PBI of {vault}."));
-        }
-
-        var match = BranchPbi().Match(branch);
-
-        if (match.Success && int.TryParse(match.Groups[1].Value, out var fromBranch) && await IsPbiOfAsync(vault, fromBranch, cancellation))
-            return Outcome<List<int>>.Success([fromBranch]);
-
-        return Outcome<List<int>>.Success([]);
-    }
-
-    private Task<bool> IsPbiOfAsync(string vault, int adoId, CancellationToken cancellation) => db.WorkItems.AnyAsync(item => item.AdoId == adoId && item.Vault == vault, cancellation);
-
     private static string BranchOf(string name) => BranchRefs.NameOf(name);
-
-    [GeneratedRegex(@"(?:^|/)(\d{4,7})(?:[-_/.]|$)")]
-    private static partial Regex BranchPbi();
 
 }

@@ -4,6 +4,7 @@ using PowerLoom.Features.Continue.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Reviews;
 
 namespace PowerLoom.Api.Tests.Continue;
 
@@ -18,10 +19,10 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Review, "501"), "/api/chats").Receive<ChatLink>();
         var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "review-501.md"));
 
-        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/PVS"), link!.Url);
+        Assert.Contains(Uri.EscapeDataString("D:/pc/repos/POS"), link!.Url);
         Assert.Contains("# Review PR 501: Cache the lookups", note);
         Assert.Contains("`git diff origin/development...origin/feature/501-cache`", note);
-        Assert.Contains("[Open in Azure DevOps](https://dev.azure.com/x/pr/501) · PVS · `feature/501-cache` → `development` · by Sam", note);
+        Assert.Contains("[Open in Azure DevOps](https://dev.azure.com/x/pr/501) · POS · `feature/501-cache` → `development` · by Sam", note);
         Assert.Contains("PBIs: [[PBI-31001]]", note);
         Assert.Contains("`pbi_read` with `{\"ref\":\"PBI-31001\"}`", note);
         Assert.Contains("## Summary\n\nLooks fine, one risk.", note);
@@ -34,17 +35,47 @@ public sealed class ReviewChatTests(PowerLoomHost host)
         Assert.DoesNotContain("### RC-501-1", Uri.UnescapeDataString(link.Url));
     }
 
+    [Fact]
+    public async Task A_local_review_diffs_its_local_branches_and_has_no_Azure_DevOps_link()
+    {
+        await StoreLocalReviewAsync(9_100_502);
+
+        await host.Host.PostJson(new OpenChatRequest(ChatKind.Review, "9100502"), "/api/chats").Receive<ChatLink>();
+        var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "review-9100502.md"));
+
+        Assert.Contains("# Review local branch feature/login of shop-app", note);
+        Assert.Contains("`git diff develop...feature/login` (both are local branches)", note);
+        Assert.DoesNotContain("git fetch", note);
+        Assert.DoesNotContain("Open in Azure DevOps", note);
+        Assert.Contains("shop-app · `feature/login` → `develop`", note);
+    }
+
+    private async Task StoreLocalReviewAsync(int prId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.PullRequests.Add(new PullRequest
+        {
+            Id = prId, RepoId = "local:test-vault:shop-app", RepoName = "shop-app", Title = "Branch feature/login", SourceRef = "refs/heads/feature/login", TargetRef = "refs/heads/develop",
+            SourceCommit = "def5678", Iteration = 1, WorkItemIds = "[]", Url = "", Vault = PowerLoomHost.Vault, Origin = PullRequestOrigin.LocalRepo,
+        });
+        db.CodeReviews.Add(new CodeReview { PrId = prId });
+
+        await db.SaveChangesAsync();
+    }
+
     private async Task StoreReviewAsync(int prId)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.Repos.Add(new Repo { Id = "repo-pvs", AdoProject = "proj", Name = "PVS", RemoteUrl = "https://dev.azure.com/x/_git/PVS", Vault = PowerLoomHost.Vault });
+        db.Repos.Add(new Repo { Id = "repo-pos", AdoProject = "proj", Name = "POS", RemoteUrl = "https://dev.azure.com/x/_git/POS", Vault = PowerLoomHost.Vault });
         db.PullRequests.Add(new PullRequest
         {
             Id = prId,
-            RepoId = "repo-pvs",
-            RepoName = "PVS",
+            RepoId = "repo-pos",
+            RepoName = "POS",
             Title = "Cache the lookups",
             Author = "Sam",
             SourceRef = "refs/heads/feature/501-cache",

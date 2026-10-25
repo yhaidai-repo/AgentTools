@@ -66,7 +66,7 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
         "CREATE TYPE stage AS ENUM ('sync', 'refinement', 'research', 'design', 'tech-writer', 'pull-requests', 'code-review', 'vault-review', 'better-research', 'better-refinement', 'meeting-notes', 'better-review', 'autotest')", "ALTER TABLE agent_run ALTER COLUMN stage TYPE stage USING stage::stage",
         "CREATE TYPE item_kind AS ENUM ('research', 'design', 'human', 'question', 'research-result', 'refinement', 'docs', 'finding', 'review', 'vault-review', 'goal', 'meeting', 'test', 'test-report')", "ALTER TABLE local_item ALTER COLUMN kind TYPE item_kind USING kind::item_kind",
         "DROP INDEX IF EXISTS agent_run_item_idx", "ALTER TABLE agent_run DROP COLUMN IF EXISTS continues_run_id", "ALTER TABLE agent_run DROP COLUMN IF EXISTS conversation_id",
-        "ALTER TABLE local_item DROP COLUMN IF EXISTS start_over"];
+        "ALTER TABLE local_item DROP COLUMN IF EXISTS start_over", "DROP TABLE IF EXISTS log_entry"];
 
     // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead; the
     // schema is brought back to the baseline's state, as drizzle left it.

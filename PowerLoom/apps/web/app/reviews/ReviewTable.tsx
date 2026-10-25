@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { AdoTag } from "@/components/AdoTag";
 import { SelectAll } from "@/components/SelectAll";
 import { TimeAgo } from "@/components/TimeAgo";
 import { personName } from "@/lib/personName";
-import { branchName, isReviewClosed, reviewNeedsYou } from "@/lib/reviewLooks";
+import { branchName, isReviewClosed, reviewIdLabel, reviewNeedsYou } from "@/lib/reviewLooks";
 import type { ReviewRow } from "@/models/ReviewRow";
+import { PrSiteTag } from "./PrSiteTag";
 import { NewPushesMark, ReviewStatePill } from "./ReviewBadges";
 
 // Four columns that fit (user, 2026-10-18: no sideways scroll): the facts of a PR go on a quiet line under its title.
@@ -38,7 +38,7 @@ function ReviewRowView({ row }: { row: ReviewRow }) {
   return (
     <tr id={`pr-${pr.id}`} className={classes || undefined}>
       <td className="col-select"><input type="checkbox" name="prId" value={pr.id} aria-label={`Select ${pr.id}`} /></td>
-      <td className="col-id"><Link href={`/reviews/${pr.id}`} className="id" title={pr.origin === "pc" ? "A branch only on this PC: not code-reviewed until pushed" : pr.origin === "local" ? "A branch review: no pull request" : undefined}>{pr.origin === "local" || pr.origin === "pc" ? "branch" : pr.id}</Link><AdoTag url={pr.url} /></td>
+      <td className="col-id"><Link href={`/reviews/${pr.id}`} className="id" title={reviewIdLabel(pr).title}>{reviewIdLabel(pr).text}</Link><PrSiteTag url={pr.url} origin={pr.origin} /></td>
       <td className="title">
         <Link href={`/reviews/${pr.id}`} className="row-title" title={pr.title}>{pr.title}</Link>
         <div className="row-facts">

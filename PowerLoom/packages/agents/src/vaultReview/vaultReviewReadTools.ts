@@ -13,7 +13,7 @@ const SUGGESTIONS = 3;
 const MIN_SUGGESTION_SIMILARITY = 0.3;
 
 const vaultInput = z.string().min(1).describe("Vault folder name, one of the run's vaults (e.g. work-projects)");
-const pathInput = z.string().min(1).describe("Note path relative to the vault root, e.g. pvs/signals/rule.md");
+const pathInput = z.string().min(1).describe("Note path relative to the vault root, e.g. shop/orders/rule.md");
 const pageInput = {
   offset: z.number().int().min(0).default(0).describe("Skip this many entries"),
   limit: z.number().int().min(1).max(50).default(PAGE_SIZE),

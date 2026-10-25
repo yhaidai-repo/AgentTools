@@ -64,10 +64,3 @@ Whatever you skip, set it in the web UI the script prints → Settings → AI pr
 `pwsh scripts/Set-AiProviders.ps1` again. Then Settings for Azure DevOps per vault, and "Configure with Claude" (or
 Codex) on each vault.
 Details: [`PowerLoom/README.md`](PowerLoom/README.md).
-
-## Future plans
-
-- **Access requests**: a refused tool becomes one human task with the fix; the task re-runs when it is closed.
-- **Web documents**: agents with web access read a PBI's web links and save notes.
-- **Create tasks** from the Tasks page for any agent type, with schedules.
-- **Audio capture** (meeting notes agent) and **DevHub**-driven autotests, once those tools are published.

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
 import { addReview } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 export interface AddReviewRepo {
   name: string;
@@ -22,16 +23,16 @@ export function AddReviewForm({ repos }: { repos: AddReviewRepo[] }) {
   }
 
   return (
-    <form action={action} className="add-review-form">
+    <KeptForm action={action} clearOn={result} className="add-review-form">
       <select name="repo" value={repo} onChange={(event) => setRepo(event.target.value)} aria-label="Repository">
         {repos.map((entry) => <option key={entry.name} value={entry.name}>{entry.name}</option>)}
       </select>
-      <input name="branch" required placeholder="Branch, e.g. feature/30474-other-payer" aria-label="Branch" />
+      <input name="branch" required placeholder="Branch, e.g. feature/30474-new-report" aria-label="Branch" />
       <input name="targetBranch" placeholder={`Target (${defaultBranch})`} aria-label="Target branch" title="What a branch review is compared with; a PR keeps its own target" />
       <input name="pbi" placeholder="PBI (optional)" aria-label="PBI" title="A branch review's PBI; empty: the number in the branch name" />
       <button type="submit" disabled={isPending}>{isPending ? "Adding…" : "Add"}</button>
       <button type="button" className="link-button" onClick={() => setOpen(false)}>Cancel</button>
       {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
-    </form>
+    </KeptForm>
   );
 }

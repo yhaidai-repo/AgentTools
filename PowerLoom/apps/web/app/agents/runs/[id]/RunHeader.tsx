@@ -16,7 +16,7 @@ type RunRow = typeof agentRun.$inferSelect;
 type TaskRow = typeof localItem.$inferSelect;
 
 // A run's header, like the PBI page's (user decision 2026-10-18): where it sits, its agent and outcome, the task it
-// worked on, Re-run, its facts and four numbers.
+// worked on, Download (the run as one file) and Re-run, its facts and four numbers.
 export function RunHeader({ run, task, usage, palette }: { run: RunRow; task: TaskRow | null; usage?: UsageRecord; palette: string[] }) {
   return (
     <>
@@ -27,7 +27,7 @@ export function RunHeader({ run, task, usage, palette }: { run: RunRow; task: Ta
             <div className="hero-id"><span className="id">RUN-{run.id}</span><AgentTag agent={run.stage} palette={palette} /><span className="run-outcome"><span className={`dot ${outcomeDot(run.outcome)}`} />{run.outcome}</span></div>
             <h1 className="item-title-head">{task?.title ?? `${run.stage} run`}</h1>
           </div>
-          <div className="hero-actions"><RunRerun task={task} /></div>
+          <div className="hero-actions"><a className="button secondary" href={`/agents/runs/${run.id}/export`} download title="The whole run as one JSON file: input, outcome, task, usage, the uncut trace and its logs">Download</a><RunRerun task={task} /></div>
         </div>
         <div className="hero-facts">
           {task && <span className="fact"><b>Task</b><Link href={itemPath(task)}>{task.id}</Link></span>}

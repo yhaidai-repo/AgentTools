@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { LocalTime } from "@/components/LocalTime";
 import type { PromptFile } from "@/models/PromptFile";
 
@@ -16,23 +16,28 @@ interface PromptFieldProps {
   storedVersion: number;
   file: PromptFile | null;
   versions: PromptVersion[];
+  /** The section's title; the shared framework uses this field too (Settings → Agents). */
+  title?: string;
+  /** Under the editor, e.g. where `{{framework}}` comes from. */
+  hint?: ReactNode;
 }
 
 // The agent's instructions, always visible and editable (user decision 2026-10-23): the stored prompt when there is one,
 // else the prompt file shipped with the code. Saving an edit makes a new version; the earlier ones can be restored, and
 // saving the file's text again puts the agent back on the file.
-export function PromptField({ stored, storedVersion, file, versions }: PromptFieldProps) {
+export function PromptField({ stored, storedVersion, file, versions, title = "Prompt", hint }: PromptFieldProps) {
   const current = stored || file?.text || "";
   const [text, setText] = useState(current);
   const source = stored ? `your version ${storedVersion}` : file ? `code version ${file.version}` : "";
 
   return (
     <section className="panel config-section">
-      <h2>Prompt {source && <small className="muted">{source}</small>}</h2>
+      <h2>{title} {source && <small className="muted">{source}</small>}</h2>
       <label className="field">
         <span>Instructions</span>
         <textarea name="prompt" rows={18} value={text} onChange={(event) => setText(event.target.value)} spellCheck={false} />
       </label>
+      {hint && <p className="field-hint">{hint}</p>}
       {file && stored && <p className="field-hint"><button type="button" className="link" onClick={() => setText(file.text)}>Back to the code&apos;s prompt ({file.version})</button></p>}
       {versions.length > 0 && (
         <details className="prompt-versions">

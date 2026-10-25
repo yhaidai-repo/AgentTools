@@ -7,6 +7,7 @@ import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import { saveImportSettingsAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface ImportSettingsFormProps {
   enabled: boolean;
@@ -23,7 +24,7 @@ export function ImportSettingsForm({ enabled, importFolder, inboxPath, settings,
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveImportSettingsAction, null);
 
   return (
-    <form action={action} className="panel settings-card">
+    <KeptForm action={action} className="panel settings-card">
       <SettingsHead title="Mail import" description="Reads every source (Outlook mails from the exporter, JSON requests in the import inbox); a new PBI is prepared for refinement." enabled={enabled} />
       <div className="settings-body">
         {status}
@@ -38,6 +39,6 @@ export function ImportSettingsForm({ enabled, importFolder, inboxPath, settings,
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

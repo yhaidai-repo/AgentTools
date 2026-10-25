@@ -5,6 +5,7 @@ import { Dropdown } from "@/components/Dropdown";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiRepoEntry } from "@/models/PbiRepoEntry";
 import { saveRepos } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 const SOURCES: Record<string, string> = {
   "vault-documented": "documented in the vault",
@@ -24,7 +25,7 @@ export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: 
   const remaining = catalog.filter((name) => !rows.some((row) => row.name === name));
 
   return (
-    <form action={action} className="close-item">
+    <KeptForm action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId} />
       {rows.length === 0 && <p className="empty">No repos: research and design clone none for this PBI.</p>}
       <div className="chip-list">
@@ -46,6 +47,6 @@ export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: 
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save repos"}</button>
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
       </div>
-    </form>
+    </KeptForm>
   );
 }

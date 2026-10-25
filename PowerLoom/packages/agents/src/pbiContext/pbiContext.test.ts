@@ -33,9 +33,9 @@ describe("splitNotesSection", () => {
 
 describe("relatedBlock", () => {
   it("lists each reference with its kind and status, and the repos", () => {
-    const block = relatedBlock([{ ref: "PBI-7:design", kind: "design", status: "v2", title: "Add a column" }], ["Repos: PVS (user-confirmed)"]);
+    const block = relatedBlock([{ ref: "PBI-7:design", kind: "design", status: "v2", title: "Add a column" }], ["Repos: POS (user-confirmed)"]);
 
-    assert.equal(block, "<pbi-related>\nEverything else this PBI has. Read any of it in full by its ref (agents: read_pbi; Claude chats: the pbi.read command).\n- PBI-7:design (design, v2): Add a column\nRepos: PVS (user-confirmed)\n</pbi-related>");
+    assert.equal(block, "<pbi-related>\nEverything else this PBI has. Read any of it in full by its ref (agents: read_pbi; Claude chats: the pbi.read command).\n- PBI-7:design (design, v2): Add a column\nRepos: POS (user-confirmed)\n</pbi-related>");
   });
 
   it("says none when nothing is related", () => {

@@ -7,6 +7,7 @@ import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ActionResult } from "@/models/ActionResult";
 import { savePullRequestSettingsAction } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 // Lists the PRs you review; the repo list is the catalog (not excluded) as toggle chips, none chosen = every repo (user
 // decision 2026-10-02).
@@ -14,7 +15,7 @@ export function PullRequestSettingsForm({ enabled, settings, repoNames }: { enab
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(savePullRequestSettingsAction, null);
 
   return (
-    <form action={action} className="panel settings-card">
+    <KeptForm action={action} className="panel settings-card">
       <SettingsHead title="Pull requests" description="Lists the active PRs where you're a reviewer or the author; each gets a review on the Reviews page." enabled={enabled} />
       <div className="settings-body">
         <div className="field-grid">
@@ -36,6 +37,6 @@ export function PullRequestSettingsForm({ enabled, settings, repoNames }: { enab
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

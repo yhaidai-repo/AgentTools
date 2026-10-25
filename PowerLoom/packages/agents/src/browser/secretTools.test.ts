@@ -19,11 +19,11 @@ function harness(client: Partial<DevHubClient>) {
 
 describe("createSecretTools", () => {
   it("lists the value names DevHub offers", async () => {
-    const { tool } = harness({ secretNames: async () => ({ ok: true as const, value: { names: ["pvs-dev-user-yhaidai", "pvs-web-api-key"] } }) });
+    const { tool } = harness({ secretNames: async () => ({ ok: true as const, value: { names: ["pos-dev-user-tester1", "pos-web-api-key"] } }) });
 
     const result = await tool("list_secret_names").handler({});
 
-    assert.equal(result.text, "pvs-dev-user-yhaidai\npvs-web-api-key");
+    assert.equal(result.text, "pos-dev-user-tester1\npos-web-api-key");
   });
 
   it("sends a request through DevHub and logs only the method and URL", async () => {
@@ -35,11 +35,11 @@ describe("createSecretTools", () => {
     };
     const { tool, entries } = harness({ httpRequest });
 
-    const result = await tool("http_request").handler({ method: "GET", url: "https://localhost:5002/V1_0/Verifications/1190908", headers: { Authorization: "{{secret:pvs-web-api-key|basic}}" } });
+    const result = await tool("http_request").handler({ method: "GET", url: "https://localhost:5002/V1_0/Subscriptions/1190908", headers: { Authorization: "{{secret:pos-web-api-key|basic}}" } });
 
-    assert.deepEqual(sent, { method: "GET", url: "https://localhost:5002/V1_0/Verifications/1190908", headers: { Authorization: "{{secret:pvs-web-api-key|basic}}" } });
+    assert.deepEqual(sent, { method: "GET", url: "https://localhost:5002/V1_0/Subscriptions/1190908", headers: { Authorization: "{{secret:pos-web-api-key|basic}}" } });
     assert.match(result.text, /^HTTP 200\nContent-Type: application\/json\n\n\{"id":1190908\}$/);
-    assert.equal(entries[0].request, "GET https://localhost:5002/V1_0/Verifications/1190908");
+    assert.equal(entries[0].request, "GET https://localhost:5002/V1_0/Subscriptions/1190908");
     assert.equal(entries[0].resource, "localhost:5002");
   });
 

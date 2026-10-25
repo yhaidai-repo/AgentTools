@@ -8,25 +8,25 @@ describe("messageSummary", () => {
       sequenceNumber: { toString: () => "42" },
       messageId: "m-1",
       enqueuedTimeUtc: new Date("2026-10-14T10:00:00Z"),
-      subject: "VerificationCompleted",
+      subject: "SubscriptionCompleted",
       contentType: "application/json",
       deliveryCount: 2,
       deadLetterReason: "MaxDeliveryCountExceeded",
       applicationProperties: { tenant: 1 },
-      body: Buffer.from('{"patientId":"42"}', "utf8"),
+      body: Buffer.from('{"accountId":"42"}', "utf8"),
     });
 
     assert.deepEqual(summary, {
       sequenceNumber: "42",
       messageId: "m-1",
       enqueuedTime: "2026-10-14T10:00:00.000Z",
-      subject: "VerificationCompleted",
+      subject: "SubscriptionCompleted",
       contentType: "application/json",
       deliveryCount: 2,
       correlationId: null,
       deadLetterReason: "MaxDeliveryCountExceeded",
       applicationProperties: { tenant: 1 },
-      body: { patientId: "42" },
+      body: { accountId: "42" },
     });
   });
 

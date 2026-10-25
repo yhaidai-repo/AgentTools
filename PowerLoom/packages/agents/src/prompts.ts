@@ -9,6 +9,12 @@ const FRAMEWORK_PLACEHOLDER = /\{\{\s*framework\s*\}\}/;
 
 type ReadFragment = (name: string) => Promise<string>;
 
+/** A prompt as stored in the agent store: empty text = the file shipped with the code applies. */
+export interface StoredPrompt {
+  text: string;
+  version: number;
+}
+
 // Prompts are versioned files in the repo; `{{name}}` placeholders are filled from `values`.
 export async function loadPrompt(name: string, values: Record<string, string>): Promise<LoadedPrompt> {
   return composePrompt(await readPromptFile(name), values, readPromptFile);
@@ -17,16 +23,27 @@ export async function loadPrompt(name: string, values: Record<string, string>): 
 // An agent's prompt: the one stored with its definition when it has one (user decision 2026-10-22: editable in the UI;
 // every edit a new version, 2026-10-23), else its prompt file, else nothing (a UI-created agent without instructions
 // runs on the framework alone). A run records the version it ran on: a stored one as ui-v<N>, apart from the files' v<N>.
-export async function loadAgentPrompt(agentId: string, stored: { text: string; version: number }, values: Record<string, string>): Promise<LoadedPrompt> {
+// The framework works the same way (Settings → Agents, user decision 2026-10-25): the stored one, else `_framework.md`.
+export async function loadAgentPrompt(agentId: string, stored: StoredPrompt, values: Record<string, string>, framework?: StoredPrompt): Promise<LoadedPrompt> {
+  const readFragment = withStoredFramework(framework);
+
   if (stored.text.trim()) {
-    return composePrompt(`<!-- prompt: ${agentId} · version: ui-v${stored.version} -->\n${stored.text}`, values, readPromptFile);
+    return composePrompt(`<!-- prompt: ${agentId} · version: ui-v${stored.version} -->\n${stored.text}`, values, readFragment);
   }
 
   if (await hasPromptFile(agentId)) {
-    return loadPrompt(agentId, values);
+    return composePrompt(await readPromptFile(agentId), values, readFragment);
   }
 
-  return composePrompt(`<!-- prompt: ${agentId} · version: none -->\n{{framework}}`, values, readPromptFile);
+  return composePrompt(`<!-- prompt: ${agentId} · version: none -->\n{{framework}}`, values, readFragment);
+}
+
+function withStoredFramework(framework: StoredPrompt | undefined): ReadFragment {
+  if (!framework?.text.trim()) {
+    return readPromptFile;
+  }
+
+  return async (name) => (name === `_${FRAMEWORK}` ? `<!-- prompt: ${FRAMEWORK} · version: ui-v${framework.version} -->\n${framework.text}` : readPromptFile(name));
 }
 
 export async function hasPromptFile(name: string): Promise<boolean> {

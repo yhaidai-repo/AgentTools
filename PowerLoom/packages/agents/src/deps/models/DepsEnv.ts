@@ -11,6 +11,8 @@ export interface DepsEnv {
   powerloomUrl: string;
   /** Where the `az` shim asks for Azure tokens: this host's own /azure/token route. */
   azureTokenUrl: string;
+  /** The bearer secret the `az` shim sends to that route: made at each start, and only the Azure MCP servers' env has it. */
+  azureTokenSecret: string;
   /** CONFLUENCE_SITE; null = no search tool. */
   confluenceSite: string | null;
   /** VAULT_CAPTURE_HOME; unset = no vault_capture tool. */

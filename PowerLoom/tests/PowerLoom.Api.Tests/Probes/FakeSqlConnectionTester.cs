@@ -8,7 +8,7 @@ public sealed class FakeSqlConnectionTester : ISqlConnectionTester
 {
     public string? LastConnectionString { get; private set; }
 
-    public SqlConnectionCheck Answer { get; set; } = new(true, "Connected: server db1, database Pvs, SQL Server 16.0.");
+    public SqlConnectionCheck Answer { get; set; } = new(true, "Connected: server db1, database Pos, SQL Server 16.0.");
 
     public Task<SqlConnectionCheck> TestAsync(string connectionString, CancellationToken cancellation)
     {

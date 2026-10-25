@@ -1,6 +1,6 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
 import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
-import { saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
+import { captureConsoleErrors, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { SqlReader } from "@powerloom/sql";
@@ -17,6 +17,9 @@ const TOOL_CALL_RETENTION_DAYS = Number(process.env.TOOL_CALL_RETENTION_DAYS ?? 
 const INTERRUPTED: CompletedRun = { runId: null, outcome: "aborted", error: "the agent-runner stopped during the run" };
 
 const { db, pool } = createDb(requireEnv("DATABASE_URL"));
+
+// Warnings and errors also go to the error log, which chats read (logs_read) without Grafana.
+captureConsoleErrors(db, "runner");
 // One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
 const runnerPort = Number(process.env.RUNNER_PORT ?? "3200");
 // The Azure MCP server's `az` shim asks this runner for tokens.
@@ -52,7 +55,7 @@ await stopOrphanedStacks();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, codex);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex);
 
 server.listen(runnerPort);
 console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}`);

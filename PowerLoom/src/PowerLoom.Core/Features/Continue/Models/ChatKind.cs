@@ -7,4 +7,5 @@ public enum ChatKind
     Item,
     Review,
     Vault,
+    Import,
 }

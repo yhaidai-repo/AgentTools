@@ -1,4 +1,4 @@
-import { isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { FRAMEWORK_ID, isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type GoogleDriveSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -6,8 +6,12 @@ import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProv
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { readPromptFile } from "@/lib/promptFiles";
+import { loadPromptVersions } from "@/lib/promptVersions";
 import { loadSprintChoices } from "@/lib/sprints";
 import type { AdoIntegrationValues } from "@/models/AdoIntegrationValues";
+import type { GitHubValues } from "@/models/GitHubValues";
+import type { GoogleDriveValues } from "@/models/GoogleDriveValues";
 import type { AzureResourceRow } from "@/models/AzureResourceRow";
 import type { SettingsTabMark } from "@/models/SettingsTabMark";
 import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
@@ -17,6 +21,8 @@ import { ClaudeTokenForm } from "./ClaudeTokenForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
+import { GoogleDrivePanel } from "./GoogleDrivePanel";
+import { FrameworkForm } from "./FrameworkForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
 import { ImportSettingsForm } from "./ImportSettingsForm";
 import { ImportStatus } from "./ImportStatus";
@@ -29,7 +35,7 @@ import { SETTINGS_TABS, SettingsTabs, type SettingsTab } from "./SettingsTabs";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ tab?: string; show?: string }>;
+type SearchParams = Promise<{ tab?: string; show?: string; drive?: string }>;
 
 // The settings of the vault picked at the top, one tab per area (user decision 2026-10-18); each card has its feature's
 // switch in its head and its Save at its foot.
@@ -57,10 +63,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
       <SettingsTabs active={tab} marks={marks} />
       {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
       {tab === "sync" && (isAdoActive(ado) ? <SyncTab db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and pull requests need the Azure DevOps integration: switch it on in the Azure DevOps tab.</p>)}
-      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
-      {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} />}
+      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} github={gitHubValues(await readGitHubSettings(db, current))} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
+      {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} driveMessage={params.drive ?? null} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
-      {tab === "agents" && <GlobalAgentForm global={await getAgentConfig().getGlobal()} spentTodayUsd={await spentToday()} />}
+      {tab === "agents" && <AgentsTab />}
       {tab === "ai" && <AiProvidersTab providers={providers} />}
       <p className="env-line">From .env, restart to change: backlog vault <code>{process.env.VAULT_PATH ?? "not set"}</code> (a folder per vault) · Confluence <ConfluenceAccess status={await readConfluenceStatus(db)} /></p>
     </>
@@ -119,18 +125,28 @@ async function AiProvidersTab({ providers }: { providers: ProviderStatus[] | nul
   );
 }
 
-// Read SQL and the Azure kinds, under one note on where the data goes (user decision 2026-10-18: said once, not five times).
-async function DataTab({ db, current, readSql, readAzure }: { db: PowerLoomDb; current: string; readSql: ReadSqlSettings; readAzure: ReadAzureSettings }) {
+// Read SQL, the Azure kinds and Google Drive, under one note on where the data goes (user decision 2026-10-18: said once, not five times).
+async function DataTab({ db, current, readSql, readAzure, driveMessage }: { db: PowerLoomDb; current: string; readSql: ReadSqlSettings; readAzure: ReadAzureSettings; driveMessage: string | null }) {
   return (
     <>
       <p className="leak-note">Whatever an agent reads here goes to the model provider. Connect only data that may leave this PC, with read-only access. Each agent also needs its own switch on its config page.</p>
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
+      <GoogleDrivePanel key={`drive-${current}`} values={googleDriveValues(await readGoogleDriveSettings(db, current))} message={driveMessage} />
     </>
   );
 }
 
+// The browser never gets the secret or the token, only whether a secret is saved.
+function googleDriveValues(drive: GoogleDriveSettings): GoogleDriveValues {
+  return { enabled: drive.enabled, clientId: drive.clientId, hasClientSecret: drive.clientSecret.length > 0, account: drive.account, folders: drive.folders };
+}
+
 // The browser never gets the token, only whether one is saved.
+function gitHubValues(github: GitHubSettings): GitHubValues {
+  return { enabled: github.enabled, owner: github.owner, login: github.login, hasToken: github.token.length > 0 };
+}
+
 function integrationValues(ado: AdoSettings | null): AdoIntegrationValues {
   return { enabled: ado?.enabled ?? false, orgUrl: ado?.orgUrl ?? "", project: ado?.project ?? "", team: ado?.team ?? "", user: ado?.user ?? "", hasPat: !!ado?.pat };
 }
@@ -152,4 +168,22 @@ function ConfluenceAccess({ status }: { status: ConfluenceStatus | null }) {
   }
 
   return status.email ? <>set ({status.email})</> : <span className="text-warn">missing (CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN)</span>;
+}
+
+// The agents' shared settings: the daily budget and the shared framework their prompts pull in.
+async function AgentsTab() {
+  const global = await getAgentConfig().getGlobal();
+  const versions = await loadPromptVersions(FRAMEWORK_ID);
+
+  return (
+    <>
+      <GlobalAgentForm global={global} spentTodayUsd={await spentToday()} />
+      <FrameworkForm
+        stored={global.framework ?? ""}
+        storedVersion={global.frameworkVersion ?? 0}
+        file={await readPromptFile(FRAMEWORK_ID)}
+        versions={versions.map((row) => ({ version: row.version, text: row.text, createdAt: row.createdAt }))}
+      />
+    </>
+  );
 }

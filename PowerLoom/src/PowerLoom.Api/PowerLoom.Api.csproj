@@ -7,6 +7,8 @@
     <ProjectReference Include="..\PowerLoom.SqlIntegration\PowerLoom.SqlIntegration.csproj" />
     <ProjectReference Include="..\PowerLoom.AzureIntegration\PowerLoom.AzureIntegration.csproj" />
     <ProjectReference Include="..\PowerLoom.DevHubIntegration\PowerLoom.DevHubIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.GitHubIntegration\PowerLoom.GitHubIntegration.csproj" />
+    <ProjectReference Include="..\PowerLoom.GoogleDriveIntegration\PowerLoom.GoogleDriveIntegration.csproj" />
   </ItemGroup>
 
 </Project>

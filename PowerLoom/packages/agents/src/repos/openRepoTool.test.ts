@@ -7,7 +7,7 @@ import { createOpenRepoTool } from "./openRepoTool";
 import { reposBlock } from "./reposBlock";
 
 const CATALOG = [
-  { name: "PVS", remoteUrl: "https://x/_git/PVS", defaultBranch: "refs/heads/development" },
+  { name: "POS", remoteUrl: "https://x/_git/POS", defaultBranch: "refs/heads/development" },
   { name: "VAPI v2", remoteUrl: "https://x/_git/VAPI%20v2", defaultBranch: "main" },
 ];
 
@@ -36,7 +36,7 @@ describe("open_repo", () => {
     assert.deepEqual(names, ["VAPI-v2"]);
     assert.deepEqual(acquired, ["VAPI-v2"]);
     assert.deepEqual(access.repos.map((repo) => repo.name), ["VAPI-v2"]);
-    assert.match(tool.description, /Catalog: PVS, VAPI v2/);
+    assert.match(tool.description, /Catalog: POS, VAPI v2/);
   });
 
   it("refuses a repo the catalog doesn't have and opens nothing", async () => {

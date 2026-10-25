@@ -55,7 +55,7 @@ export class VaultCaptureCli {
     return output.ok ? (output.json as CliResult) : { ok: false, errors: [output.error] };
   }
 
-  // Draft paths as stored: relative to the docs vault (e.g. draft/pvs-topic.md).
+  // Draft paths as stored: relative to the docs vault (e.g. draft/pos-topic.md).
   relativePath(path: string): string {
     return relative(this.vaultRoot(), path);
   }

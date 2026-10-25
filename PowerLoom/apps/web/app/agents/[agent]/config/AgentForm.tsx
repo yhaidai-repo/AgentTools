@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { BlockerKind } from "@powerloom/core";
 import type { AgentDefinition, CatalogModel } from "@agenttools/config";
@@ -20,6 +21,7 @@ import { DeleteAgentButton } from "./DeleteAgentButton";
 import { PromptField, type PromptVersion } from "./PromptField";
 import type { PromptFile } from "@/models/PromptFile";
 import { SkillsField } from "./SkillsField";
+import { KeptForm } from "@/components/KeptForm";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
@@ -50,7 +52,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(isNew ? createAgentAction : saveAgentAction, null);
 
   return (
-    <form action={action} className="new-pbi agent-form">
+    <KeptForm action={action} className="new-pbi agent-form">
       <div className="config-columns">
         <div>
           <IdentitySection agent={agent} isNew={isNew} />
@@ -60,7 +62,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         </div>
         <div>
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
-          <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} />
+          <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} hint={<><code>{"{{framework}}"}</code> pulls in the <Link href="/settings?tab=agents">shared framework</Link>; the run&apos;s vault adds its <code>ENVIRONMENT.md</code> rules.</>} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />
           <NewSkillFields suggestedName={isNew ? "" : `${agent.id}-checklist`} />
           <OptionsFields agent={agent} />
@@ -71,7 +73,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
         {removable && <DeleteAgentButton agentId={agent.id} label={agent.label} />}
         <button type="submit" disabled={isSaving}>{isNew ? (isSaving ? "Creating…" : "Create") : (isSaving ? "Saving…" : "Save")}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }
 
@@ -85,11 +87,8 @@ export function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog
       <SwitchField name="enabled" label="Enabled" hint="off = it takes no task and its schedule doesn't fire" defaultChecked={agent.enabled} />
       <CronField label="Schedule" name="schedule" value={agent.schedule ?? ""} hint="cron; empty = on demand only" required={false} />
       <div className="field">
-        <span>Model<small>provider and model</small></span>
-        <div className="field-row">
-          <input name="provider" defaultValue={agent.model.provider} required aria-label="Provider" />
-          <FormPicker name="model" label="Model" value={agent.model.model} options={modelChoices(catalog, agent).map((entry) => ({ value: entry.model, label: entry.label, note: entry.model }))} />
-        </div>
+        <span>Model<small>the provider follows the model</small></span>
+        <FormPicker name="model" label="Model" value={agent.model.model} options={modelChoices(catalog, agent).map((entry) => ({ value: entry.model, label: entry.label, note: `${entry.provider} · ${entry.model}` }))} />
       </div>
       <div className="field">
         <span>Effort</span>

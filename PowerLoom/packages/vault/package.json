@@ -4,7 +4,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "turndown": "^7.2.4"

@@ -1,7 +1,7 @@
-import { setItemStatus } from "@powerloom/core";
 import { agentRun, codeReview, type localItem } from "@powerloom/db";
 import { eq, sql } from "drizzle-orm";
 import { applyUpdates, insertComments, markOutdated, recordReviewVersion } from "../codeReview/commitReview";
+import { recordLocalRepoHead } from "../codeReview/localRepoHead";
 import type { AgentDeps } from "../models/AgentDeps";
 import { addRunOutputs } from "../tasks/runOutputs";
 import type { BetterReviewRun } from "./models/BetterReviewRun";
@@ -12,7 +12,6 @@ import { commentKeys, lastCommentIds, reviewerNotesWithCarried } from "./threads
 
 type ItemRow = typeof localItem.$inferSelect;
 
-const ACTOR = "agent:better-review";
 const DETAILS_VERSION = 1;
 const NEW_COMMENT = /^new:(\d+)$/;
 
@@ -23,8 +22,8 @@ const NEW_COMMENT = /^new:(\d+)$/;
 // so the PR sync doesn't queue a follow-up for them; the commit, summary and details are also this run's version. New rules go to the repo's review-rules note last, so a failed commit leaves the vault alone. The task closes
 // here, so a run its budget stopped after the summary keeps its review.
 export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: BetterReviewRun, runId: number, taskIds: string[]): Promise<string[]> {
-  const { pr } = run.context!;
   const checkout = run.checkout!;
+  const pr = await recordLocalRepoHead(deps.db, run.context!.pr, checkout.sourceCommit);
   const result = run.draft.result!;
   const decided = new Set(run.draft.updates.map((update) => update.id));
   const outdated = run.outdatedIds.filter((id) => !decided.has(id));
@@ -68,7 +67,6 @@ export async function commitBetterReview(deps: AgentDeps, task: ItemRow, run: Be
   await recordReviewVersion(deps.db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd, details });
 
   await addRunOutputs(deps.db, runId, rules.ids);
-  await setItemStatus(deps.db, task.id, "in-progress", "done", ACTOR, runId);
 
   return [...outputs, ...taskIds, ...rules.ids];
 }

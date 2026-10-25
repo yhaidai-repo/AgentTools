@@ -7,6 +7,7 @@ import type { ReadLog } from "../evidence/ReadLog";
 import type { Evidence } from "../models/Evidence";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
 import type { RefinementOutput } from "../refinement/models/RefinementOutput";
+import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { BetterRefinementDraft } from "./models/BetterRefinementDraft";
 import type { RefinementDetails } from "./models/RefinementDetails";
 
@@ -55,14 +56,15 @@ const INPUT = {
   next_reason: z.string().min(1).describe("Why the tasks you created are needed, or why none is"),
 };
 
-// Better Refinement's result. Each call replaces the previous one; create the tasks a blocker points at first.
-export function createRefinementTool(draft: BetterRefinementDraft, readLog: ReadLog, availableSkills: string[]) {
+// Better Refinement's result. Each call replaces the previous one; create the tasks a blocker points at first. A
+// blocker's `new:<n>` is checked against the tasks create_task noted in this run (the toolset's, shared with writers).
+export function createRefinementTool(draft: BetterRefinementDraft, readLog: ReadLog, availableSkills: string[], createdTasks: readonly CreatedTask[]) {
   return defineTool({
     name: REFINEMENT_TOOL,
     description: "Save the refinement. Write it once you know enough (status partial is fine) and call again to replace it. Every statement cites its sources; create the tasks your blockers point at before you name them here. The estimate goes to record_estimate: the run isn't complete without it.",
     input: INPUT,
     handler: async (input: Input) => {
-      const problems = refinementProblems(input, draft, readLog, availableSkills);
+      const problems = refinementProblems(input, createdTasks.length, readLog, availableSkills);
 
       if (problems.length > 0) {
         return { text: `Not saved, fix and retry: ${problems.join("; ")}.`, isError: true };
@@ -77,12 +79,12 @@ export function createRefinementTool(draft: BetterRefinementDraft, readLog: Read
   });
 }
 
-function refinementProblems(input: Input, draft: BetterRefinementDraft, readLog: ReadLog, availableSkills: string[]): string[] {
+function refinementProblems(input: Input, created: number, readLog: ReadLog, availableSkills: string[]): string[] {
   return [
     ...evidenceProblems(citedEvidence(input), readLog),
     ...pbiSkillProblems(input.skills.map((skill) => skill.name), availableSkills),
     ...relevantPageProblems(input.relevant_pages),
-    ...input.blockers.filter((blocker) => !isKnownTask(blocker.resolved_by, draft.tasks.length)).map((blocker) => `blocker "${blocker.what}" is resolved by "${blocker.resolved_by}", which is neither an item id nor a task you created (new:<n>)`),
+    ...input.blockers.filter((blocker) => !isKnownTask(blocker.resolved_by, created)).map((blocker) => `blocker "${blocker.what}" is resolved by "${blocker.resolved_by}", which is neither an item id nor a task you created (new:<n>)`),
   ];
 }
 

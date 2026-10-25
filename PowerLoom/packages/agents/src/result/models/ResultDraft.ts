@@ -9,4 +9,6 @@ export interface ResultDraft {
   /** The structured result, when the agent's prompt asks for one; null otherwise. */
   data: object | null;
   evidence: Evidence[];
+  /** Existing items (ids) a result that isn't complete waits for, cited instead of creating a duplicate. */
+  waitingFor: string[];
 }

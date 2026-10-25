@@ -29,7 +29,7 @@ export function createSqlTools(deps: AgentDeps, agent: AgentDefinition, context:
   return [databasesTool(deps, context, connection), queryTool(deps, context, connection), describeTool(deps, context, connection)];
 }
 
-const databaseInput = z.string().trim().min(1).optional().describe("Another database of the connection's server, e.g. Pvs_Stage; leave out for the connection's own. sql_databases lists them.");
+const databaseInput = z.string().trim().min(1).optional().describe("Another database of the connection's server, e.g. App_Stage; leave out for the connection's own. sql_databases lists them.");
 
 function databasesTool(deps: AgentDeps, context: OutsideAccessContext, connection: z.ZodEnum<Record<string, string>>) {
   const access = deps.sql!;
@@ -53,7 +53,7 @@ function queryTool(deps: AgentDeps, context: OutsideAccessContext, connection: z
     input: {
       connection,
       database: databaseInput,
-      sql: z.string().min(1).describe("One SELECT, e.g. SELECT TOP 20 Id, Status FROM dbo.Verification WHERE PatientId = 42 ORDER BY CreatedAt DESC"),
+      sql: z.string().min(1).describe("One SELECT, e.g. SELECT TOP 20 Id, Status FROM dbo.Orders WHERE CustomerId = 42 ORDER BY CreatedAt DESC"),
     },
     resource: (input) => resourceOf(access, input.connection, input.database),
     request: (input) => input.sql,
@@ -70,7 +70,7 @@ function describeTool(deps: AgentDeps, context: OutsideAccessContext, connection
     input: {
       connection,
       database: databaseInput,
-      table: z.string().optional().describe("A table or view, e.g. dbo.Verification; leave out to list them all"),
+      table: z.string().optional().describe("A table or view, e.g. dbo.Subscription; leave out to list them all"),
     },
     resource: (input) => resourceOf(access, input.connection, input.database),
     request: (input) => (input.table ? `describe ${input.table}` : "list tables"),

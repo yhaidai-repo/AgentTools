@@ -13,7 +13,7 @@ const ON_PREM = "mongodb://reader:t3st-pw@10.0.0.7:27017/?authMechanism=SCRAM-SH
 const FETCHED = "mongodb://acct:ro@acct.mongo.cosmos.azure.com:10255/?ssl=true";
 
 const resources: AzureResourceSettings[] = [
-  { name: "cosmos-mongo", kind: "mongo", target: "aa-dev-cosmos-mongo", secret: "", display: "aa-dev-cosmos-mongo", enabled: true },
+  { name: "cosmos-mongo", kind: "mongo", target: "zz-dev-cosmos-mongo", secret: "", display: "zz-dev-cosmos-mongo", enabled: true },
   { name: "on-prem", kind: "mongo", target: "10.0.0.7:27017", secret: ON_PREM, display: "10.0.0.7:27017", enabled: true },
 ];
 
@@ -50,10 +50,10 @@ describe("createMongoTools", () => {
     const find = createMongoTools(deps, agent, context).find((tool) => tool.name === "mongo_find")!;
 
     await find.handler({ account: "10.0.0.7:27017", database: "app", collection: "orders" });
-    await find.handler({ account: "aa-dev-cosmos-mongo", database: "Staging", collection: "HmoResponseSummaries" });
+    await find.handler({ account: "zz-dev-cosmos-mongo", database: "Staging", collection: "OrdResponseSummaries" });
 
     assert.deepEqual(used, [ON_PREM, FETCHED]);
-    assert.deepEqual(fetched, ["aa-dev-cosmos-mongo"]);
-    assert.deepEqual(entries.map((entry) => [entry.kind, entry.resource, entry.outcome]), [["mongo", "10.0.0.7:27017", "ok"], ["mongo", "aa-dev-cosmos-mongo", "ok"]]);
+    assert.deepEqual(fetched, ["zz-dev-cosmos-mongo"]);
+    assert.deepEqual(entries.map((entry) => [entry.kind, entry.resource, entry.outcome]), [["mongo", "10.0.0.7:27017", "ok"], ["mongo", "zz-dev-cosmos-mongo", "ok"]]);
   });
 });

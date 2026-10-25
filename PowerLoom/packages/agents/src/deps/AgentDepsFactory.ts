@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -16,15 +16,16 @@ import { AccessRequests } from "../AccessRequests";
 import { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "../azure/azureTools";
 import { DataAccessLog } from "../DataAccessLog";
 import { DocUsageLog } from "../DocUsageLog";
+import { GoogleDriveClient } from "../googleDrive/GoogleDriveClient";
 import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
 import { loadCaptureRules } from "../vaultCapture";
-import { adoAuthHeader } from "./env";
+import { repoGitAuth } from "./env";
 import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
 
-type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "azure" | "devHub" | "ado">;
+type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "googleDrive" | "azure" | "devHub" | "ado">;
 
 // Builds what a run or a chat session needs for one vault (the runner's deps, shared with the MCP server since the
 // powerloom-mcp design, 2026-10-23): the vault's docs and backlog, its repo cache, and every integration the vault has
@@ -37,6 +38,8 @@ export class AgentDepsFactory {
   private readonly mongoReader = new MongoReader();
   // One cache per vault (it remembers when each repo was fetched).
   private readonly repoCaches = new Map<string, RepoCache>();
+  // Each vault's git sign-in as its last run read it; its cache reads it on every git command.
+  private readonly repoAuth = new Map<string, string[]>();
 
   private constructor(
     private readonly db: PowerLoomDb,
@@ -100,6 +103,7 @@ export class AgentDepsFactory {
       listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
       docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
       sql: await this.sqlAccessOf(vault),
+      googleDrive: await this.googleDriveAccessOf(vault),
       azure: await this.azureAccessOf(vault),
       devHub: await this.devHubAccessOf(vault),
       ado: await this.adoAccessOf(vault),
@@ -116,7 +120,7 @@ export class AgentDepsFactory {
   }
 
   // The Azure MCP server runs for the run with the vault's sign-in: its `az` shim asks this host for tokens
-  // (POWERLOOM_RUNNER_URL, the vault), the tenant is the signed-in account's. The Mongo reads take the same sign-in's
+  // (POWERLOOM_RUNNER_URL with this start's secret, the vault), the tenant is the signed-in account's. The Mongo reads take the same sign-in's
   // tokens; the Service Bus peeks use each namespace's own connection string from Settings. Nobody signed in = every
   // call answers `denied`, which asks the user to sign in.
   private async azureAccessOf(vault: string): Promise<AgentDeps["azure"]> {
@@ -130,7 +134,7 @@ export class AgentDepsFactory {
     }
 
     const account = await readAzureUserAccount(this.db, vault);
-    const env = { POWERLOOM_RUNNER_URL: this.env.azureTokenUrl, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
+    const env = { POWERLOOM_RUNNER_URL: this.env.azureTokenUrl, POWERLOOM_AZURE_TOKEN_SECRET: this.env.azureTokenSecret, POWERLOOM_AZURE_VAULT: vault, AZURE_TOKEN_CREDENTIALS: "AzureCliCredential", AZURE_TENANT_ID: account?.tenantId ?? "", AZURE_SUBSCRIPTION_ID: settings.subscription };
     const token = (resource: string) => this.azureLogin.token(vault, resource, account?.tenantId ?? null);
 
     return {
@@ -155,6 +159,13 @@ export class AgentDepsFactory {
     return isAdoActive(settings) ? { client: new AdoClient({ orgUrl: settings.orgUrl, project: settings.project, team: settings.team, pat: settings.pat }), orgUrl: settings.orgUrl } : null;
   }
 
+  // Read fresh per run: a folder added or a new sign-in in Settings counts from the next run.
+  private async googleDriveAccessOf(vault: string): Promise<AgentDeps["googleDrive"]> {
+    const settings = await readGoogleDriveSettings(this.db, vault);
+
+    return isGoogleDriveReady(settings) ? { reader: new GoogleDriveClient(settings), folders: settings.folders } : null;
+  }
+
   private async sqlAccessOf(vault: string): Promise<AgentDeps["sql"]> {
     const settings = await readReadSqlSettings(this.db, vault);
     const connections = settings.connections.filter((connection) => connection.enabled);
@@ -162,20 +173,28 @@ export class AgentDepsFactory {
     return settings.enabled && connections.length > 0 ? { reader: this.sqlReader, connections } : null;
   }
 
-  // Cloning with the vault's ADO token; the vault's local repos are plain paths under the repos mount and need no token.
+  // Cloning with the vault's ADO and GitHub tokens, read again for every run so a token saved in Settings counts from
+  // the next one; the vault's local repos are plain paths under the repos mount and need no token.
   private async repoCacheOf(vault: string): Promise<RepoCache> {
+    this.repoAuth.set(vault, await this.repoGitAuthOf(vault));
+
     const cached = this.repoCaches.get(vault);
 
     if (cached) {
       return cached;
     }
 
-    const pat = (await readAdoSettings(this.db, vault))?.pat ?? "";
-    const cache = new RepoCache({ root: `${this.env.repoCacheRoot}/${vault}`, authHeader: adoAuthHeader(pat), refreshMinutes: REPO_REFRESH_MINUTES });
+    const cache = new RepoCache({ root: `${this.env.repoCacheRoot}/${vault}`, gitAuth: () => this.repoAuth.get(vault) ?? [], refreshMinutes: REPO_REFRESH_MINUTES });
 
     this.repoCaches.set(vault, cache);
 
     return cache;
+  }
+
+  private async repoGitAuthOf(vault: string): Promise<string[]> {
+    const github = await readGitHubSettings(this.db, vault);
+
+    return repoGitAuth((await readAdoSettings(this.db, vault))?.pat ?? "", github.enabled ? github.token : "");
   }
 }
 

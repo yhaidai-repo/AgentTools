@@ -26,6 +26,26 @@ export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: Ag
   };
 }
 
+// Agents made in the UI copied the shared integration switches when they were made; every start brings them the
+// current ones from the agents shipped in code (user request 2026-10-25: an older agent needs a newer switch). A new
+// switch starts off; every switch already set keeps its value; one the code no longer offers goes.
+export function refreshUserAgents(stored: AgentDefinition[], builtins: AgentDefinition[]): AgentDefinition[] {
+  const specs = builtins.find((agent) => agent.integrationSpecs.length > 0)?.integrationSpecs;
+
+  return specs ? stored.filter((agent) => agent.origin === "user").map((agent) => withSwitches(agent, specs)) : [];
+}
+
+function withSwitches(agent: AgentDefinition, specs: AgentDefinition["integrationSpecs"]): AgentDefinition {
+  const offered = new Set(specs.map((spec) => spec.key));
+  const integrations = { ...Object.fromEntries(specs.map((spec) => [spec.key, false])), ...agent.capabilities.integrations };
+
+  return {
+    ...agent,
+    integrationSpecs: specs,
+    capabilities: { ...agent.capabilities, integrations: Object.fromEntries(Object.entries(integrations).filter(([key]) => offered.has(key))) },
+  };
+}
+
 export function mergeGlobal(stored: Partial<AgentsGlobal> | null, defaults: AgentsGlobal): AgentsGlobal {
   return { ...defaults, ...stored };
 }

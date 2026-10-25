@@ -28,11 +28,11 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
 
         ado.PullRequests =
         [
-            PullRequest(7101, "PVS", "sam@x.io", "c1"),
-            PullRequest(7102, "PVS", "sam@x.io", "c1", author: "sam@x.io"),
-            PullRequest(7103, "PVS", "pat@x.io", "c1"),
-            PullRequest(7104, "PVS", "sam@x.io", "c1", draft: true),
-            PullRequest(7105, "PVS", "pat@x.io", "c1", author: "sam@x.io"),
+            PullRequest(7101, "POS", "sam@x.io", "c1"),
+            PullRequest(7102, "POS", "sam@x.io", "c1", author: "sam@x.io"),
+            PullRequest(7103, "POS", "pat@x.io", "c1"),
+            PullRequest(7104, "POS", "sam@x.io", "c1", draft: true),
+            PullRequest(7105, "POS", "pat@x.io", "c1", author: "sam@x.io"),
         ];
         ado.Details[7101] = new AdoPullRequestDetails(2, [51001]);
 
@@ -44,7 +44,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
         Assert.Null(mirrored[7104].CodeReview);
         Assert.Equal(RunOutcome.Success, await LastRunOutcomeAsync());
 
-        ado.PullRequests = [PullRequest(7104, "PVS", "sam@x.io", "c2")];
+        ado.PullRequests = [PullRequest(7104, "POS", "sam@x.io", "c2")];
 
         await Sync();
         var after = await LoadAsync();
@@ -88,7 +88,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
             var reviewedAt = DateTime.UtcNow.AddHours(-1);
 
-            ado.PullRequests = [PullRequest(7401, "PVS", "sam@x.io", "c1")];
+            ado.PullRequests = [PullRequest(7401, "POS", "sam@x.io", "c1")];
             ado.Threads[7401] = [new AdoThreadComment(1, 1, "lee@x.io", reviewedAt.AddHours(-1))];
 
             await Sync();
@@ -121,7 +121,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
             await Sync();
             Assert.Single(await ReviewTasksAsync(7401));
 
-            ado.PullRequests = [PullRequest(7401, "PVS", "sam@x.io", "c2")];
+            ado.PullRequests = [PullRequest(7401, "POS", "sam@x.io", "c2")];
 
             await Sync();
             Assert.Single(await ReviewTasksAsync(7401));
@@ -140,7 +140,7 @@ public sealed class SyncPullRequestsTests(PowerLoomHost host)
 
         var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
 
-        ado.PullRequests = [PullRequest(7311, "PVS", "sam@x.io", "c1")];
+        ado.PullRequests = [PullRequest(7311, "POS", "sam@x.io", "c1")];
 
         await Sync();
         await MarkReviewedAsync(7311, DateTime.UtcNow.AddHours(-1));

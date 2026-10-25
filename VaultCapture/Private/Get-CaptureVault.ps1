@@ -81,7 +81,7 @@ function ConvertFrom-RepoValue {
 
     $folder = if ($Matches.folder) { $Matches.folder.Trim('/', '\') } else { '' }
 
-    # Plain string combine: Join-Path needs the drive to exist, and a host path like "D:/Projects/PVS" has none in a Linux container.
+    # Plain string combine: Join-Path needs the drive to exist, and a host path like "D:/Projects/POS" has none in a Linux container.
     return [IO.Path]::GetFullPath([IO.Path]::Combine($Matches.path.Trim(), $folder)).TrimEnd('\', '/')
 }
 

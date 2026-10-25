@@ -1,5 +1,5 @@
 import type { DataAccessOutcome } from "@powerloom/db";
-import { defineTool, type ToolDefinition } from "@agenttools/runtime";
+import { defineTool, type ToolAnnotations, type ToolDefinition } from "@agenttools/runtime";
 import type { z } from "zod";
 import type { OutsideAccessServices } from "./models/OutsideAccessServices";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
@@ -25,6 +25,8 @@ export interface OutsideTool<TInput extends z.ZodRawShape> {
   /** The request as sent, from its input: the query, the filter, the queue, the link. */
   request: (input: z.infer<z.ZodObject<TInput>>) => string;
   handler: (input: z.infer<z.ZodObject<TInput>>) => Promise<OutsideToolResult>;
+  /** What the call does to the outside system or to PowerLoom; MCP clients show and gate calls by it. */
+  annotations?: ToolAnnotations;
 }
 
 // The one wrapper around every tool that reads an outside system (user decision 2026-10-13): every call becomes a
@@ -37,6 +39,7 @@ export function defineOutsideTool<TInput extends z.ZodRawShape>(services: Outsid
     name: tool.name,
     description: tool.description,
     input: tool.input,
+    ...(tool.annotations ? { annotations: tool.annotations } : {}),
     handler: async (input) => {
       const startedAt = new Date();
       const resource = tool.resource(input);

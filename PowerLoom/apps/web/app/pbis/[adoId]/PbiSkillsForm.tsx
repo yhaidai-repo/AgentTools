@@ -6,6 +6,7 @@ import type { PbiSkill } from "@powerloom/db";
 import type { SkillSummary } from "@agenttools/runtime/skills";
 import type { ActionResult } from "@/models/ActionResult";
 import { saveSkills } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface SkillRow {
   name: string;
@@ -30,7 +31,7 @@ export function PbiSkillsForm({ adoId, skills, catalog }: { adoId: number; skill
   }
 
   return (
-    <form action={action} className="close-item">
+    <KeptForm action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId} />
       {rows.length === 0 && <p className="muted">No skills: later agents use only their configured ones.</p>}
       {rows.map((row) => <SkillOption key={row.name} row={row} onRemove={() => setRows(rows.filter((other) => other.name !== row.name))} />)}
@@ -44,7 +45,7 @@ export function PbiSkillsForm({ adoId, skills, catalog }: { adoId: number; skill
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save skills"}</button>
         {result && <span className={result.ok ? "result-ok" : "result-error"}>{result.message}</span>}
       </div>
-    </form>
+    </KeptForm>
   );
 }
 

@@ -12,7 +12,7 @@ public static class ChatsEndpoints
     [WolverinePost("/api/chats")]
     public static async Task<Results<Ok<ChatLink>, ProblemHttpResult>> Post(OpenChatRequest request, ChatOpener opener, CancellationToken cancellation)
     {
-        var opened = await opener.OpenAsync(request.Kind, request.Id, cancellation);
+        var opened = await opener.OpenAsync(request, cancellation);
 
         return opened.Ok ? TypedResults.Ok(opened.Value) : opened.Problem.ToProblemResult();
     }

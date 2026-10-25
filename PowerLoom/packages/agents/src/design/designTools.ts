@@ -17,7 +17,7 @@ export function createDesignTools(draft: DesignDraft, guard: DuplicateGuard): To
 function writeDesignTool(draft: DesignDraft) {
   return defineTool({
     name: "write_design",
-    description: "Save the implementation design. Call exactly once when you can design; a second call replaces the first. Don't call it when gaps stop you: create the questions or tasks for the user instead.",
+    description: "Save or replace the implementation design: call it when you can design; another call replaces the earlier one. Don't call it when gaps stop you: create the questions or tasks for the user instead.",
     input: {
       approach: z.string().min(1).describe("The solution and why this one, in 3-6 sentences"),
       alternatives: z.array(z.object({

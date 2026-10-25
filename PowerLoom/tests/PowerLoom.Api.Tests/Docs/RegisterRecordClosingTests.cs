@@ -6,7 +6,7 @@ namespace PowerLoom.Api.Tests.Docs;
 
 public sealed class RegisterRecordClosingTests
 {
-    private const string IssuesPath = "pvs/pvs-known-issues.md";
+    private const string IssuesPath = "pos/pos-known-issues.md";
     private static readonly DateOnly Today = new(2026, 10, 24);
     private static readonly RecordClosingEdit Fixed = new("Fixed", "the user in a chat, 2026-10-24", "Fixed by PBI-38519, the retry handles the timeout.");
 
@@ -26,7 +26,7 @@ public sealed class RegisterRecordClosingTests
     public void A_record_without_a_metadata_line_gets_one_under_its_title()
     {
         const string register = "# Open questions\n\n## OQ-003\n**Which rate applies?**\nAsk finance.\n";
-        var record = MaintenanceRecords.Of("pvs/pvs-open-questions.md", register).Single();
+        var record = MaintenanceRecords.Of("pos/pos-open-questions.md", register).Single();
 
         var closed = RegisterRecordClosing.Close(register, record, Fixed with { Status = "Resolved" }, Today);
 

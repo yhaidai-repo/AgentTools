@@ -13,6 +13,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { numberOption, outsideAccessContext } from "../stage";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterRunContext } from "../toolset/models/WriterRunContext";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { buildBetterReviewMessage } from "./betterReviewMessage";
 import { createBetterReviewTools } from "./betterReviewTools";
@@ -30,6 +31,8 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // other reviewers' threads, research tasks, and a follow-up anchored to the last reviewed commit; the PR is checked out
 // as a worktree the repo tools read. The comments, the review's version and the rules are written once the run succeeds.
 export class BetterReviewWriter implements RunWriter {
+  readonly integration = BETTER_REVIEW_INTEGRATION;
+
   private readonly run: BetterReviewRun = {
     context: null,
     checkout: null,
@@ -102,6 +105,11 @@ export class BetterReviewWriter implements RunWriter {
     await commitBetterReview(target.deps, target.task, this.run, target.runId, target.taskIds);
 
     return [];
+  }
+
+  // The review's result is the task's output.
+  settlement(): WriterSettlement | null {
+    return this.run.draft.result ? null : { kind: "missing", output: "the review's result (its summary tool)" };
   }
 
   async cleanUp(): Promise<void> {

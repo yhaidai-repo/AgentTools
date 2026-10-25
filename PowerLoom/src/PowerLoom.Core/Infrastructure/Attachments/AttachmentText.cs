@@ -6,7 +6,7 @@ using PowerLoom.Infrastructure.Text;
 namespace PowerLoom.Infrastructure.Attachments;
 
 // Converts an upload into the text agents read (null for an image). Every reason a file can't be used is returned,
-// never swallowed. A file of another type is read when it is plain text (e.g. an X12 .271 response, JSON, a log),
+// never swallowed. A file of another type is read when it is plain text (e.g. an EDI response, JSON, a log),
 // user decision 2026-10-15.
 public static class AttachmentText
 {

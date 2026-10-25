@@ -11,6 +11,7 @@ import type { TaskContext } from "../models/TaskContext";
 import { numberOption } from "../stage";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterRunContext } from "../toolset/models/WriterRunContext";
+import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { createCodeReviewTools } from "./codeReviewTools";
 import { commitReview } from "./commitReview";
@@ -30,6 +31,8 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // (the repo tools read it), its diff within the agent's size cap, earlier comments whose code changed; the comments and
 // the review's version are written once the run succeeds. The worktree is removed whatever happens.
 export class ReviewWriter implements RunWriter {
+  readonly integration = CODE_REVIEW_INTEGRATION;
+
   private readonly run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepoAccess(), toolset: null, draft: { summary: null, comments: [], updates: [] } };
 
   constructor(private readonly context: TaskContext) {}
@@ -80,6 +83,11 @@ export class ReviewWriter implements RunWriter {
     await commitReview(target.deps.db, this.run, target.runId);
 
     return [];
+  }
+
+  // The review's summary is the task's output.
+  settlement(): WriterSettlement | null {
+    return this.run.draft.summary ? null : { kind: "missing", output: "the review's summary (write_review_summary)" };
   }
 
   async cleanUp(): Promise<void> {

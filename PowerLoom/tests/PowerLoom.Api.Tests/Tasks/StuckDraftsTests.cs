@@ -14,7 +14,7 @@ namespace PowerLoom.Api.Tests.Tasks;
 public sealed class StuckDraftsTests(PowerLoomHost host)
 {
     private const int AdoId = 63004;
-    private const string Draft = "pvs-stuck-draft-63004";
+    private const string Draft = "pos-stuck-draft-63004";
     private const string MergeTask = "WT-63004";
     private const string Design = "DT-63004-001";
 
@@ -62,7 +62,7 @@ public sealed class StuckDraftsTests(PowerLoomHost host)
         db.AgentRuns.Add(run);
         await db.SaveChangesAsync();
 
-        db.VaultCaptures.Add(new VaultCapture { RunId = run.Id, PbiId = AdoId, Title = "Stuck", Project = "pvs", Target = "pvs", Captured = "[]", ToFill = "[]", Name = Draft, Assumptions = "[]", Status = "created", Errors = "[]", CreatedAt = DateTime.UtcNow });
+        db.VaultCaptures.Add(new VaultCapture { RunId = run.Id, PbiId = AdoId, Title = "Stuck", Project = "pos", Target = "pos", Captured = "[]", ToFill = "[]", Name = Draft, Assumptions = "[]", Status = "created", Errors = "[]", CreatedAt = DateTime.UtcNow });
         db.LocalItems.Add(new LocalItem { Id = MergeTask, Kind = ItemKinds.Docs, Vault = PowerLoomHost.Vault, Title = "Merge draft", Status = ItemStatus.Open, Assignee = "agent:tech-writer", Data = $$$"""{"draft":"{{{Draft}}}"}""", HeldBy = "[]" });
         db.LocalItems.Add(new LocalItem { Id = Design, Kind = ItemKinds.Design, PbiId = AdoId, Vault = PowerLoomHost.Vault, Title = "Design", Status = ItemStatus.Open, Assignee = "agent:design", HeldBy = "[]" });
 

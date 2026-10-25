@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AdoTag } from "@/components/AdoTag";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContinueChat } from "@/components/ContinueChat";
 import { HeroStat } from "@/components/HeroStat";
@@ -7,10 +6,11 @@ import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatUsd } from "@/lib/format";
 import { personName } from "@/lib/personName";
-import { branchName, isReviewClosed } from "@/lib/reviewLooks";
+import { branchName, isReviewClosed, reviewHeading } from "@/lib/reviewLooks";
 import { reviewsUrl } from "@/lib/reviewsUrl";
 import type { BetterReviewDetails } from "@/models/BetterReviewDetails";
 import type { ReviewDetail } from "@/models/ReviewDetail";
+import { PrSiteTag } from "../PrSiteTag";
 import { QueueReviewButton } from "../QueueReviewButton";
 import { NewPushesMark, ReviewStatePill, newPushesLabel } from "../ReviewBadges";
 import { betterReviewOf } from "./BetterReviewInfo";
@@ -28,7 +28,7 @@ export function ReviewHeader({ detail }: { detail: ReviewDetail }) {
       <section className="pbi-hero">
         <div className="hero-top">
           <div className="hero-title">
-            <div className="hero-id"><span className="id">PR {pr.id}</span><AdoTag url={pr.url} /><ReviewStatePill row={detail} /><NewPushesMark row={detail} /></div>
+            <div className="hero-id"><span className="id">{reviewHeading(pr)}</span><PrSiteTag url={pr.url} origin={pr.origin} /><ReviewStatePill row={detail} /><NewPushesMark row={detail} /></div>
             <h1 className="item-title-head">{pr.title}</h1>
           </div>
           <div className="hero-actions">

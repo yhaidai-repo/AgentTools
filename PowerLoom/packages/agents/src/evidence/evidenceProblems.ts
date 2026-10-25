@@ -16,7 +16,7 @@ function evidenceProblem(item: Evidence, log: ReadLog): string | null {
   const source = log.find(item.source);
 
   if (!source) {
-    return `"${item.ref}" cites ${item.source}, which this run never read: read it first, or drop the claim or mark it (inferred)`;
+    return `"${item.ref}" cites ${item.source}, which this run never read: read it and cite the source id that read ends with, or remove this evidence item (keep the claim only as (inferred), citing the sources you did read that it rests on)`;
   }
 
   if (item.quote && !containsQuote(source.text, item.quote)) {

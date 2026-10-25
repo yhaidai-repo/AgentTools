@@ -9,6 +9,7 @@ import { SprintField } from "@/components/SprintField";
 import type { ActionResult } from "@/models/ActionResult";
 import type { SprintOption } from "@/models/SprintOption";
 import { saveSettings } from "./actions";
+import { KeptForm } from "@/components/KeptForm";
 
 interface SettingsFormProps {
   enabled: boolean;
@@ -22,7 +23,7 @@ export function SettingsForm({ enabled, sync, sprintOptions, currentSprint }: Se
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveSettings, null);
 
   return (
-    <form action={action} className="panel settings-card">
+    <KeptForm action={action} className="panel settings-card">
       <SettingsHead title="PBI sync" description="Pulls the sprint's PBIs on the schedule." enabled={enabled} />
       <div className="settings-body field-grid">
         <div className="field"><span>Sprint</span><SprintField value={sync.sprint} options={sprintOptions} current={currentSprint} /></div>
@@ -33,6 +34,6 @@ export function SettingsForm({ enabled, sync, sprintOptions, currentSprint }: Se
         <ResultLine result={result} />
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
-    </form>
+    </KeptForm>
   );
 }

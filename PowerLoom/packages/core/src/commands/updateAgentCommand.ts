@@ -3,6 +3,7 @@ import { z } from "zod";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { insertPromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
+import { withModelProvider } from "../agents/modelProvider";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
 import type { UpdateAgentInput } from "../models/UpdateAgentInput";
@@ -92,7 +93,7 @@ function applyChanges(current: AgentDefinition, input: UpdateAgentInput): AgentD
     description: input.description ?? current.description,
     enabled: input.enabled ?? current.enabled,
     schedule: input.schedule === undefined ? current.schedule : input.schedule,
-    model: input.model ?? current.model,
+    model: input.model ? withModelProvider(input.model) : current.model,
     limits: input.limits ?? current.limits,
     budgets: input.budgets ?? current.budgets,
     capabilities: { webAccess: input.webAccess ?? current.capabilities.webAccess, integrations },

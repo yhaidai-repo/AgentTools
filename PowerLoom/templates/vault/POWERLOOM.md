@@ -5,7 +5,8 @@ PowerLoom keeps the PBIs of this vault ({{vaultPath}}), what its agents found, a
 it through the `powerloom` MCP server this vault lists, in `.mcp.json` for Claude Code and in `.codex/config.toml` for
 Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, named with `_` (`pbi_read`,
 `item_close`), next to the readers the agents have (vault docs, Read SQL, Read Azure, Azure DevOps, the whole system:
-`task_list`, `run_get`, `agent_list`, `settings_get`, …).
+`task_list`, `run_get`, `agent_list`, `settings_get`, …). Why something failed: `run_events` for a run's own steps,
+`logs_read` for what the services logged (a task that failed before its run started, a dispatch or sync that broke).
 
 - Each tool says what it needs. A tool that changes PowerLoom says what to ask or confirm first: ask for what the user
   didn't say (never invent it), confirm a delete or a close naming the item, and show the final text before a submit.
@@ -27,9 +28,9 @@ Answers in `<existing-items>` are the team's decisions; the user's notes are the
 The vault's Read SQL connections (Settings > Read SQL), with the agents' guards: one `SELECT` or `WITH`, rolled back,
 at most 200 rows. Every read goes to the data access log.
 
-- `sql_describe` with `{"connection": "<name>"}` lists the tables; add `"table": "dbo.Verification"` for its columns.
+- `sql_describe` with `{"connection": "<name>"}` lists the tables; add `"table": "dbo.Subscription"` for its columns.
   Describe first, then query.
-- `sql_query` with `{"connection": "<name>", "sql": "SELECT TOP 20 Id, Status FROM dbo.Verification"}`.
+- `sql_query` with `{"connection": "<name>", "sql": "SELECT TOP 20 Id, Status FROM dbo.Subscription"}`.
 - A connection is a server: `sql_databases` with `{"connection": "<name>"}` lists the databases its login can open; add
   `"database": "<name>"` to `sql_describe` and `sql_query` to read one other than the connection's own.
 - A wrong or disabled connection name answers with the enabled ones. These tools read this chat's vault ({{vaultName}}).
@@ -40,7 +41,7 @@ at most 200 rows. Every read goes to the data access log.
 | `item_close` | answers or dismisses a question or finding, finishes (`answers`: one per step) or cancels a human task |
 | `item_delete`, `task_rerun`, `task_notes_save` | deletes a question or task, runs a finished agent task again, saves a test task's notes |
 | `finding_submit` | records a finding in a project's register (open question or known issue) and closes it |
-| `review_add`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds, starts, closes or deletes (from PowerLoom only) a review, answers a comment, checks for new pull requests |
+| `review_add`, `review_addLocal`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds a review (of an Azure DevOps branch, or of a local repo's branch without Azure DevOps), starts, closes or deletes (from PowerLoom only) one, answers a comment, checks for new pull requests |
 | `pbi_create`, `pbi_delete`, `pbi_finish`, `pbi_close`, `pbi_reopen` | creates, deletes, finishes, closes or reopens a PBI in PowerLoom |
 | `pbi_prepare`, `pbi_sync`, `pbi_importNow` | prepares PBIs for the agents, syncs from Azure DevOps, imports the inbox |
 | `pbi_saveRepos`, `pbi_saveSkills`, `pbi_userNotes_save`, `pbi_attach` | sets a PBI's repos, skills or the user's notes; attaches a file by its path on this PC |
@@ -52,9 +53,9 @@ at most 200 rows. Every read goes to the data access log.
 | `vault_capture` | saves verified facts this vault lacks as a draft in draft/, for a person to verify and merge (always this chat's vault) |
 | `register_add`, `register_close` | records an open question or known issue in a project's register; closes a record the user settled (always this chat's vault) |
 | `www_create` | adds a What-went-wrong record |
-| `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget |
+| `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal`, `agent_saveFramework` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget, replaces the shared framework |
 | `skill_create`, `skill_save`, `skill_restore` | creates a skill, rewrites one of PowerLoom's own skills, puts a revision of one back |
 | `deadletter_replay`, `deadletter_discard` | runs a message PowerLoom gave up on again, or drops it for good |
-| `chat_open` | opens a Continue chat |
+| `chat_open` | opens a Continue chat, a vault's setup chat, or a chat that imports a folder of this PC into the vault |
 
 Settings themselves (tokens, connections, switches) are changed on PowerLoom's Settings page; `settings_get` reads them.

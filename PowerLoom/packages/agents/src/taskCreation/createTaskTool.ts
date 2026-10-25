@@ -17,8 +17,8 @@ const ITEM_ID = /^[A-Z]{1,3}-\d+(-\d+)?$/;
 const EXAMPLE = JSON.stringify({
   assignee: "research",
   kind: "task",
-  title: "Why do expired signals stay active?",
-  goal: "The grid shows signals past their IneffectiveDate (S0). What should archive them is unknown.",
+  title: "Why do expired orders stay open?",
+  goal: "The grid shows orders past their expiry date (S0). What should archive them is unknown.",
   done_when: "The writer that should change their state is named, with evidence, and why it did not run.",
   out_of_scope: "Where the grid reads them",
   effort: "trace",
@@ -80,7 +80,7 @@ function inputShape(targets: TaskTarget[]) {
     depends_on: z.array(z.string()).default([]).describe("Item ids, or new:<n> for a task you created earlier in this run, that must close first"),
     options: z.array(z.string()).default([]).describe("Questions: the choices you see"),
     steps: z.array(stepInput).default([]).describe("Tasks for the user: what to do, step by step"),
-    doc_path: z.string().nullable().default(null).describe("Docs tasks: the note's path in the docs vault, e.g. pvs/signals/note.md"),
+    doc_path: z.string().nullable().default(null).describe("Docs tasks: the note's path in the docs vault, e.g. shop/orders/note.md"),
   };
 }
 

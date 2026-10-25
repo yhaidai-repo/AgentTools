@@ -15,7 +15,7 @@ public sealed class AttachmentTextTests
         var empty = AttachmentText.Extract(new UploadedFile("empty.txt", "text/plain", []));
         var unknown = AttachmentText.Extract(new UploadedFile("tool.exe", "application/octet-stream", [1]));
         var binary = AttachmentText.Extract(new UploadedFile("fake.txt", "text/plain", [0xFF, 0xFE, 0xC0]));
-        var x12 = AttachmentText.Extract(new UploadedFile("41856275 Commercial (1).271", "application/octet-stream", Encoding.UTF8.GetBytes("ISA*00*~\r\nLS*2120~NM1*TTP*2*UNITEDHEALTHCARE~")));
+        var x12 = AttachmentText.Extract(new UploadedFile("41856275 Commercial (1).271", "application/octet-stream", Encoding.UTF8.GetBytes("ISA*00*~\r\nLS*2120~NM1*TTP*2*ACMEDISTRIBUTION~")));
         var binaryOfOtherType = AttachmentText.Extract(new UploadedFile("data.bin", "application/octet-stream", [0x50, 0x4B, 0x03, 0x04]));
 
         Assert.Equal("# Hi", markdown.Value!.Text);
@@ -24,7 +24,7 @@ public sealed class AttachmentTextTests
         Assert.Equal("empty.txt is empty.", empty.Problem!.Detail);
         Assert.StartsWith("tool.exe: unsupported file type.", unknown.Problem!.Detail);
         Assert.StartsWith("fake.txt could not be read:", binary.Problem!.Detail);
-        Assert.Equal("ISA*00*~\r\nLS*2120~NM1*TTP*2*UNITEDHEALTHCARE~", x12.Value!.Text);
+        Assert.Equal("ISA*00*~\r\nLS*2120~NM1*TTP*2*ACMEDISTRIBUTION~", x12.Value!.Text);
         Assert.StartsWith("data.bin: unsupported file type.", binaryOfOtherType.Problem!.Detail);
     }
 }

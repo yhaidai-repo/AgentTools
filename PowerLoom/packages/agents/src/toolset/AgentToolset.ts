@@ -1,6 +1,7 @@
 import type { AgentEvent, ToolDefinition } from "@agenttools/runtime";
+import type { OfferedTool } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
-import { createAdoTools } from "../ado/adoTools";
+import { ADO_INTEGRATION, createAdoTools } from "../ado/adoTools";
 import type { AgentRunSession } from "../AgentRunSession";
 import { createAttachmentTool } from "../attachmentTools";
 import { createAzureTools } from "../azure/azureTools";
@@ -13,11 +14,11 @@ import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWrite
 import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
 import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter";
 import { ownTools } from "./ownTools";
-import { createConfluenceTools } from "../confluenceTools";
-import { createDevHubTools } from "../devHubTools";
+import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
+import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { commitEstimate } from "../estimate/commitEstimate";
-import { createEstimateTools, offersEstimate } from "../estimate/estimateTool";
+import { createEstimateTools, ESTIMATE_INTEGRATION, offersEstimate } from "../estimate/estimateTool";
 import { RunEstimate } from "../estimate/RunEstimate";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
@@ -28,9 +29,11 @@ import { commitResult } from "../result/commitResult";
 import { createResultTool } from "../result/resultTool";
 import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
-import { createSqlTools } from "../sqlTools";
+import { READ_REPOS_INTEGRATION } from "../repos/openRepos";
+import { createSqlTools, READ_SQL_INTEGRATION } from "../sqlTools";
+import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
-import { runRef } from "@powerloom/core";
+import { EVERY_AGENT, runRef } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
 import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
@@ -42,10 +45,13 @@ import type { WebDocumentRun } from "../webDocuments/models/WebDocumentRun";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
 import type { CommittedToolset } from "./models/CommittedToolset";
+import type { ToolGroup } from "./models/ToolGroup";
 import type { RunWriter } from "./models/RunWriter";
+import type { WriterSettlement } from "./models/WriterSettlement";
 import type { WriterTarget } from "./models/WriterTarget";
 import type { ToolsetInput } from "./models/ToolsetInput";
 import { depthOf, taskLimits } from "./taskLimits";
+import { grantSource, HAND_ON_SOURCE, offeredTools, READ_AZURE_SOURCE, SKILLS_SOURCE, toolsOf } from "./toolSources";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -64,6 +70,7 @@ export class AgentToolset {
   /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
   private readonly writers: RunWriter[];
   private log: ReadLog | null = null;
+  private offer: OfferedTool[] = [];
 
   private constructor(
     private readonly context: TaskContext,
@@ -98,7 +105,17 @@ export class AgentToolset {
   tools(firstMessage: string): ToolDefinition<any>[] {
     this.log = new ReadLog(firstMessage);
 
-    return [...recordReads(this.readingTools(), this.log), ...this.context.skills.tools, ...this.writingTools(this.log)];
+    const reading = this.readingGroups();
+    const writing = [{ source: SKILLS_SOURCE, tools: this.context.skills.tools }, ...this.writingGroups(this.log)];
+
+    this.offer = offeredTools([...reading, ...writing]);
+
+    return [...recordReads(toolsOf(reading), this.log), ...toolsOf(writing)];
+  }
+
+  /** What tools() gave the run, each with what gave it, for the Tools tab. */
+  get offered(): OfferedTool[] {
+    return this.offer;
   }
 
   /** What the run has read, for the runner's own result tools; exists once tools() was called. */
@@ -116,20 +133,25 @@ export class AgentToolset {
 
   /** Writes what the shared tools noted into arrays of its own (a runner that lent its draft's arrays commits those with
    *  the draft): the tasks created, the drafts captured, the result, all listed in the run's outputs; and the estimate. */
-  async commit(runId: number): Promise<CommittedToolset> {
+  async commit(runId: number, budgetStopped = false): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
     const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
     const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
     const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest });
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, budgetStopped });
     const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
 
     await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
     await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
 
     return { taskIds, captureIds };
+  }
+
+  /** What the granted writers' outputs say about the task's end (see WriterSettlement). */
+  settlements(): WriterSettlement[] {
+    return this.writers.map((writer) => writer.settlement?.() ?? null).filter((settlement): settlement is WriterSettlement => settlement !== null);
   }
 
   /** What the granted writers add to the first message (a draft, a note to actualize). */
@@ -158,22 +180,21 @@ export class AgentToolset {
     return ids;
   }
 
-  private readingTools(): ToolDefinition<any>[] {
+  private readingGroups(): ToolGroup[] {
     const { deps, agent } = this.context;
     const access = outsideAccessContext(agent.id, this.session.runId, this.task);
 
     return [
-      ...createAgentDocTools(deps, agent.id, runRef(this.session.runId), this.input.docsRoot),
-      ...this.input.repos.tools,
-      ...this.catalogTools(),
-      ...this.pbiTools(),
-      createReadPbiTool(deps.db, deps.vaultRoot),
-      ...createConfluenceTools(deps, agent, access),
-      ...createSqlTools(deps, agent, access),
-      ...createAzureTools(deps, agent, access),
-      ...createDevHubTools(deps, agent, access),
-      ...createAdoTools(deps, agent, access),
-      ...createFetchDocumentTools(this.webDocuments),
+      { source: EVERY_AGENT, tools: createAgentDocTools(deps, agent.id, runRef(this.session.runId), this.input.docsRoot) },
+      { source: grantSource(agent, READ_REPOS_INTEGRATION), tools: this.input.repos.tools },
+      { source: EVERY_AGENT, tools: [...this.catalogTools(), ...this.pbiTools(), createReadPbiTool(deps.db, deps.vaultRoot)] },
+      { source: grantSource(agent, CONFLUENCE_INTEGRATION), tools: createConfluenceTools(deps, agent, access) },
+      { source: grantSource(agent, READ_SQL_INTEGRATION), tools: createSqlTools(deps, agent, access) },
+      { source: grantSource(agent, GOOGLE_DRIVE_INTEGRATION), tools: createGoogleDriveTools(deps, agent, access) },
+      { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
+      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
+      { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
+      { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments) },
     ];
   }
 
@@ -186,20 +207,20 @@ export class AgentToolset {
     return this.task.pbiId === null ? [] : [createAttachmentTool(this.context.deps.db, this.task.pbiId)];
   }
 
-  private writingTools(log: ReadLog): ToolDefinition<any>[] {
+  private writingGroups(log: ReadLog): ToolGroup[] {
     const { deps, agent } = this.context;
     const hasCreateTask = this.input.createTask ?? agent.canAssign.length > 0;
 
     const shared = [
-      ...(hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : []),
-      ...createWebDocumentTools(deps.db, this.webDocuments),
-      ...(deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : []),
-      ...createEstimateTools(this.estimate),
+      { source: HAND_ON_SOURCE, tools: hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : [] },
+      { source: EVERY_AGENT, tools: createWebDocumentTools(deps.db, this.webDocuments) },
+      { source: EVERY_AGENT, tools: deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : [] },
+      { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];
     // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
-    const own = ownTools(this.writers.flatMap((writer) => writer.tools(log, { estimate: this.estimate })), shared);
+    const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate, tasks: this.tasks }), toolsOf(shared)) }));
 
-    return [...shared, ...own, createResultTool(this.result, log)];
+    return [...shared, ...own, { source: EVERY_AGENT, tools: [createResultTool(this.result, log)] }];
   }
 }
 

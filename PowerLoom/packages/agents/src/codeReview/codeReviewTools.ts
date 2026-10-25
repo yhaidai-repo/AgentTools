@@ -93,7 +93,7 @@ function updateCommentTool(run: ReviewRun) {
 function summaryTool(run: ReviewRun) {
   return defineTool({
     name: "write_review_summary",
-    description: "Save the review's summary: overall assessment, the main risks, what you didn't review and why. Call once at the end; a second call replaces the first.",
+    description: "Save the review's summary: overall assessment, the main risks, what you didn't review and why. Call it when the review is done (write_result follows it); another call replaces the earlier one.",
     input: { summary: z.string().min(1) },
     handler: async ({ summary }) => {
       run.draft.summary = summary;

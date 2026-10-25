@@ -12,7 +12,7 @@ export const sqlQueryCommand: Command<{ vault: string; connection: string; datab
     vault: sqlVaultInput,
     connection: sqlConnectionInput,
     database: sqlDatabaseInput,
-    sql: z.string().min(1).describe("One SELECT, e.g. SELECT TOP 20 Id, Status FROM dbo.Verification WHERE PatientId = 42 ORDER BY CreatedAt DESC"),
+    sql: z.string().min(1).describe("One SELECT, e.g. SELECT TOP 20 Id, Status FROM dbo.Orders WHERE CustomerId = 42 ORDER BY CreatedAt DESC"),
   }),
   run(context, input) {
     return runChatSqlRead(context, {

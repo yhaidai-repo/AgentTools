@@ -204,6 +204,39 @@ export async function testDevHubAction(_previous: ActionResult | null, form: For
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
+// GitHub (user decision 2026-10-25), kept by PowerLoom: the vault's switch, token and owner; an empty token keeps the
+// saved one. Saving asks GitHub who the token is and lists the owner's repos.
+export async function saveGitHubAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/github", {
+    params: { path: { vault: await requireVault() } },
+    body: { enabled, token: field(form, "token") || null, owner: field(form, "owner") || null },
+  });
+  const result = powerloomResult(saved, enabled ? "Saved. The owner's repos are being listed below; switch on the ones agents should read." : "Saved. GitHub is off: no repos are listed or cloned with it.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
+// Asks GitHub with the typed token and owner (the saved ones for empty fields); saves nothing.
+export async function testGitHubAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const checked = await powerloom.POST("/api/vaults/{vault}/github/test", {
+    params: { path: { vault: await requireVault() } },
+    body: { token: field(form, "token") || null, owner: field(form, "owner") || null },
+  });
+
+  return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
+}
+
+export async function syncGitHubAction(): Promise<ActionResult> {
+  const queued = await powerloom.POST("/api/vaults/{vault}/github/sync", { params: { path: { vault: await requireVault() } } });
+
+  revalidatePath("/settings");
+
+  return powerloomResult(queued, "Listing the repos: reload in a moment.");
+}
+
 // Read Azure (user decisions 2026-10-12/14), kept by PowerLoom: one switch per kind here, and each agent's own
 // switches per kind on its Config page.
 export async function saveReadAzureKindAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {

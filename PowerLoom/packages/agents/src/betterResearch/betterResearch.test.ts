@@ -17,11 +17,11 @@ function emptyDraft(): BetterResearchDraft {
 
 function resultInput(overrides: Record<string, unknown> = {}): ResultInput {
   return {
-    question: "Why do expired signals stay active?",
-    conclusion: "The container's TTL is off, so expired signals are never purged and never archived.",
+    question: "Why do expired catalog stay active?",
+    conclusion: "The container's TTL is off, so expired catalog are never purged and never archived.",
     status: "complete",
-    findings: [{ fact: "The grid shows signals past their IneffectiveDate", evidence: EVIDENCE, certainty: "verified" }],
-    bug: { cause: "TTL off on patient-signals-expiration", premise_checked: "Stage, reported by QA", fix_alone_is_enough: "yes", fix_alone_reason: "Archiving already lowers the counter" },
+    findings: [{ fact: "The grid shows catalog past their ExpirationDate", evidence: EVIDENCE, certainty: "verified" }],
+    bug: { cause: "TTL off on account-catalog-expiration", premise_checked: "Stage, reported by QA", fix_alone_is_enough: "yes", fix_alone_reason: "Archiving already lowers the counter" },
     options: [],
     not_found: [],
     confidence: "medium",
@@ -48,7 +48,7 @@ describe("write_research_result (Better Research)", () => {
   it("rejects evidence the run never read and not_found without where it looked", async () => {
     const draft = emptyDraft();
     const tool = createResultTool(draft, new ReadLog("PBI 34881"));
-    const invented = [{ fact: "SignalDbMigrator runs at startup", evidence: [{ source: "S3", ref: "Signals/Program.cs", note: "assumed" }], certainty: "verified" }];
+    const invented = [{ fact: "CreditDbMigrator runs at startup", evidence: [{ source: "S3", ref: "Catalog/Program.cs", note: "assumed" }], certainty: "verified" }];
 
     const result = await tool.handler(resultInput({ status: "not_found", findings: invented }));
 
@@ -70,7 +70,7 @@ describe("readableResult", () => {
       options: [{ option: "Set defaultTtl -1", pros: "one line", cons: "", evidence: EVIDENCE }],
       notFound: [{ what: "A backfill", looked: "deployments/ notes" }],
       confidence: "high",
-      startPoints: [{ location: "Signals/infra/cosmos.bicep", why: "TTL setting" }],
+      startPoints: [{ location: "Catalog/infra/cosmos.bicep", why: "TTL setting" }],
       relevantDocs: [],
       nextReason: "none needed",
     };
@@ -92,10 +92,10 @@ describe("readableResult", () => {
 
 describe("better-research prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
-    const prompt = await loadPrompt("better-research", { team: "Signals" });
+    const prompt = await loadPrompt("better-research", { team: "Catalog" });
 
-    assert.equal(prompt.version, "v6+framework.v4");
+    assert.equal(prompt.version, "v6+framework.v6");
     assert.match(prompt.text, /^## How you work/);
-    assert.match(prompt.text, /You are Better Research of the Signals team/);
+    assert.match(prompt.text, /You are Better Research of the Catalog team/);
   });
 });

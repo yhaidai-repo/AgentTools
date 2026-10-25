@@ -39,8 +39,8 @@ Describe 'Codex context limit Stop hook' {
         $hookConfigPath = Join-Path $TestDrive 'codex-context-limit.json'
         $script:TranscriptPath = Join-Path $TestDrive 'codex-transcript.jsonl'
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs') -Force | Out-Null
-        @('---', 'repo: D:/nowhere', '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pos') -Force | Out-Null
+        @('---', 'repo: D:/nowhere', '---') | Set-Content (Join-Path $vaultRoot 'pos' 'pos-index.md')
         @{ vaults = @($vaultRoot) } | ConvertTo-Json | Set-Content $captureConfigPath
         @{ warnAtPercent = 70; transcriptTailLines = 50; markerTtlMinutes = 30; stateFolder = $stateFolder } | ConvertTo-Json | Set-Content $hookConfigPath
 

@@ -70,7 +70,7 @@ function fixLinkTool(scope: ReviewScope, draft: VaultReviewDraft, limits: Review
 function summaryTool(scope: ReviewScope, draft: VaultReviewDraft) {
   return defineTool({
     name: "write_review_summary",
-    description: "Required, last: one line per decision and link fix, plus what is left for the next run. Refused while a removed note still has links.",
+    description: "Required, the last of the review tools (write_result follows it): one line per decision and link fix, plus what is left for the next run. Refused while a removed note still has links.",
     input: { summary: z.string().min(1) },
     handler: async (input) => {
       const left = await leftoverLinks(scope, draft);

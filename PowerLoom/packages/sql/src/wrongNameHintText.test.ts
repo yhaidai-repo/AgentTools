@@ -63,9 +63,9 @@ describe("namesHintText", () => {
   });
 
   it("says where a column the query's tables lack is in the database", () => {
-    const text = namesHintText(facts({ wrong: [{ kind: "column", name: "PatientId" }], elsewhere: [{ column: "PatientId", tables: ["dbo.Patient"] }] }));
+    const text = namesHintText(facts({ wrong: [{ kind: "column", name: "AccountId" }], elsewhere: [{ column: "AccountId", tables: ["dbo.Account"] }] }));
 
-    assert.deepEqual(wrongLines(text), ["- PatientId: not in this query's tables; a column of that name is in dbo.Patient"]);
+    assert.deepEqual(wrongLines(text), ["- AccountId: not in this query's tables; a column of that name is in dbo.Account"]);
   });
 
   it("names the tables of an ambiguous column", () => {

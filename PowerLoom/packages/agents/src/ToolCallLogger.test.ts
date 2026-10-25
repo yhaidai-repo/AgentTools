@@ -29,13 +29,13 @@ describe("ToolCallLogger", () => {
     const { log, entries } = fakeLog();
     const logger = new ToolCallLogger(log, context);
 
-    await logger.observe(call("c1", "read_file", { repo: "PVS", path: "src/a.cs" }));
+    await logger.observe(call("c1", "read_file", { repo: "POS", path: "src/a.cs" }));
     await logger.observe(call("c2", "brand_new_tool", { anything: 1 }));
     await logger.observe(result("c1", "file text"));
     await logger.observe(result("c2", "boom", true));
 
     assert.equal(entries.length, 2);
-    assert.deepEqual({ ...entries[0], startedAt: undefined }, { ...context, kind: "repo", resource: "PVS", target: "read_file", request: "src/a.cs", tool: "read_file", outcome: "ok", reason: null, rows: null, bytes: 9, truncated: false, startedAt: undefined, durationMs: 2000 });
+    assert.deepEqual({ ...entries[0], startedAt: undefined }, { ...context, kind: "repo", resource: "POS", target: "read_file", request: "src/a.cs", tool: "read_file", outcome: "ok", reason: null, rows: null, bytes: 9, truncated: false, startedAt: undefined, durationMs: 2000 });
     assert.deepEqual([entries[1].kind, entries[1].resource, entries[1].request, entries[1].outcome, entries[1].reason], ["other", "brand_new_tool", '{"anything":1}', "failed", "boom"]);
   });
 
@@ -43,7 +43,7 @@ describe("ToolCallLogger", () => {
     const { log, entries } = fakeLog();
     const logger = new ToolCallLogger(log, context);
 
-    defineOutsideTool({ log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } }, context, { name: "sql_query", description: "t", input: { sql: z.string() }, resource: () => ({ kind: "sql", resource: "pvs-dev", target: "db" }), request: (input) => input.sql, handler: async () => ({ text: "" }) });
+    defineOutsideTool({ log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } }, context, { name: "sql_query", description: "t", input: { sql: z.string() }, resource: () => ({ kind: "sql", resource: "pos-dev", target: "db" }), request: (input) => input.sql, handler: async () => ({ text: "" }) });
 
     await logger.observe(call("s1", "sql_query", { sql: "SELECT 1" }));
     await logger.observe(result("s1", "rows"));
@@ -62,7 +62,7 @@ describe("ToolCallLogger", () => {
     const { log, entries } = fakeLog();
     const logger = new ToolCallLogger(log, context);
 
-    await logger.observe(call("c1", "search_code", { repo: "PVS", pattern: "Signal" }));
+    await logger.observe(call("c1", "search_code", { repo: "POS", pattern: "Credit" }));
     await logger.flush();
 
     assert.equal(entries[0].outcome, "failed");

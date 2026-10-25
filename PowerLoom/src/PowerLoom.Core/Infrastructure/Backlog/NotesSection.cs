@@ -14,7 +14,7 @@ public static partial class NotesSection
         if (match is null || !match.Success)
             return $"{Heading}\n";
 
-        return existing![match.Index..].TrimEnd() + "\n";
+        return RepeatedHeadings().Replace(existing![match.Index..], "", 1).TrimEnd() + "\n";
     }
 
     // The user's text under the heading, as the PBI page edits it.
@@ -40,6 +40,12 @@ public static partial class NotesSection
         return match.Success ? body[..match.Index] : body;
     }
 
-    [GeneratedRegex(@"^## Notes[ \t]*$", RegexOptions.Multiline)]
+    // A heading line, also with a Windows line ending: a template saved on Windows mustn't hide its heading (each render
+    // then kept the template's `## Notes` above the user's section, one more per render).
+    [GeneratedRegex(@"^## Notes[ \t]*\r?$", RegexOptions.Multiline)]
     private static partial Regex Line();
+
+    // Empty `## Notes` headings stacked above the last one (notes that bug left behind): one heading stays.
+    [GeneratedRegex(@"\A(?:## Notes[ \t]*\r?\n\s*)+(?=## Notes[ \t]*\r?(?:\n|\z))")]
+    private static partial Regex RepeatedHeadings();
 }

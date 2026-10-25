@@ -4,7 +4,7 @@ import type { HumanTaskQuery } from "./HumanTaskQuery";
 export interface HumanTaskStep {
   action: string;
   source: "app-insights" | "log-analytics" | "cosmos" | "sql" | "portal" | "ado" | "other";
-  /** The exact resource and environment, e.g. "App Insights aa-stage-signals-service (stage)". */
+  /** The exact resource and environment, e.g. "App Insights orders-api (stage)". */
   resource: string;
   query: HumanTaskQuery | null;
   timeRange: string | null;

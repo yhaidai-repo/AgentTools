@@ -1,7 +1,7 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
 import { AGENT_DEFAULTS, AgentDepsFactory, GLOBAL_DEFAULTS, closeOrphanedChatBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, requireEnv, stopOrphanedChatStack } from "@powerloom/agents";
 import { createPowerLoomClient, createPowerLoomPort } from "@powerloom/client";
-import { readVaults, type HostFolder } from "@powerloom/core";
+import { captureConsoleErrors, readVaults, type HostFolder } from "@powerloom/core";
 import { createDb } from "@powerloom/db";
 import { RuntimeRegistry } from "@agenttools/runtime";
 import { skillCatalogOf } from "@agenttools/runtime/skills";
@@ -15,6 +15,9 @@ const SWEEP_MS = 60_000;
 const port = Number(process.env.MCP_PORT ?? "3110");
 const token = requireEnv("MCP_TOKEN");
 const { db, pool } = createDb(requireEnv("DATABASE_URL"));
+
+// Warnings and errors also go to the error log, which chats read (logs_read) without Grafana.
+captureConsoleErrors(db, "mcp");
 // The Azure MCP server's `az` shim asks this host for tokens; no agent runtime: the chat brings its own model.
 const env = depsEnvFromProcess(`http://127.0.0.1:${port}`);
 const azureLogin = createAzureUserLogin(db);
@@ -34,7 +37,7 @@ const sessions = new ChatSessions({
   // PowerLoom's own skills folder is the first one (SKILL_FOLDERS), the only one the commands may edit.
   skills: skillCatalogOf(env.skillFolders, env.skillFolders[0] ?? null),
 });
-const server = new McpHttpServer({ token, sessions, azureLogin, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
+const server = new McpHttpServer({ token, sessions, azureLogin, azureTokenSecret: env.azureTokenSecret, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
 const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000), SWEEP_MS);
 
 server.listen(port);

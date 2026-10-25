@@ -1,7 +1,7 @@
 import { watch } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { FALLBACK_GLOBAL, mergeGlobal, mergeWithDefaults } from "../defaults";
+import { FALLBACK_GLOBAL, mergeGlobal, mergeWithDefaults, refreshUserAgents } from "../defaults";
 import type { AgentConfigStore } from "../models/AgentConfigStore";
 import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
@@ -20,7 +20,7 @@ export class JsonFileAgentConfigStore implements AgentConfigStore {
 
   async ensureDefaults(agents: AgentDefinition[], global: AgentsGlobal): Promise<void> {
     const file = await this.read();
-    const merged = agents.map((defaults) => mergeWithDefaults(file.agents[defaults.id] ?? {}, defaults));
+    const merged = [...agents.map((defaults) => mergeWithDefaults(file.agents[defaults.id] ?? {}, defaults)), ...refreshUserAgents(Object.values(file.agents), agents)];
 
     await this.write({
       global: mergeGlobal(file.global, global),
