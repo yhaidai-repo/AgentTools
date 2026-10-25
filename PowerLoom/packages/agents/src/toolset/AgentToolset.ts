@@ -31,6 +31,7 @@ import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
 import { READ_REPOS_INTEGRATION } from "../repos/openRepos";
 import { createSqlTools, READ_SQL_INTEGRATION } from "../sqlTools";
+import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { EVERY_AGENT, runRef } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
@@ -189,6 +190,7 @@ export class AgentToolset {
       { source: EVERY_AGENT, tools: [...this.catalogTools(), ...this.pbiTools(), createReadPbiTool(deps.db, deps.vaultRoot)] },
       { source: grantSource(agent, CONFLUENCE_INTEGRATION), tools: createConfluenceTools(deps, agent, access) },
       { source: grantSource(agent, READ_SQL_INTEGRATION), tools: createSqlTools(deps, agent, access) },
+      { source: grantSource(agent, GOOGLE_DRIVE_INTEGRATION), tools: createGoogleDriveTools(deps, agent, access) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },

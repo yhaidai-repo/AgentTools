@@ -11,6 +11,7 @@ COPY src/PowerLoom.SqlIntegration/PowerLoom.SqlIntegration.csproj src/PowerLoom.
 COPY src/PowerLoom.AzureIntegration/PowerLoom.AzureIntegration.csproj src/PowerLoom.AzureIntegration/
 COPY src/PowerLoom.DevHubIntegration/PowerLoom.DevHubIntegration.csproj src/PowerLoom.DevHubIntegration/
 COPY src/PowerLoom.GitHubIntegration/PowerLoom.GitHubIntegration.csproj src/PowerLoom.GitHubIntegration/
+COPY src/PowerLoom.GoogleDriveIntegration/PowerLoom.GoogleDriveIntegration.csproj src/PowerLoom.GoogleDriveIntegration/
 COPY src/PowerLoom.Contracts/PowerLoom.Contracts.csproj src/PowerLoom.Contracts/
 COPY src/PowerLoom.Domain/PowerLoom.Domain.csproj src/PowerLoom.Domain/
 COPY src/PowerLoom.Persistence/PowerLoom.Persistence.csproj src/PowerLoom.Persistence/

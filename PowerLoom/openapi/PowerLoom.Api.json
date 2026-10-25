@@ -3673,6 +3673,252 @@
           }
         }
       }
+    },
+    "/api/vaults/{vault}/google-drive": {
+      "put": {
+        "tags": [
+          "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_google_drive",
+        "description": "PUT_api_vaults_vault_google_drive",
+        "operationId": "PUT_api_vaults_vault_google_drive",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveGoogleDriveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDriveSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/google-drive/sign-in": {
+      "post": {
+        "tags": [
+          "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_google_drive_sign_in",
+        "description": "POST_api_vaults_vault_google_drive_sign_in",
+        "operationId": "POST_api_vaults_vault_google_drive_sign_in",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDriveSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_google_drive_sign_in",
+        "description": "DELETE_api_vaults_vault_google_drive_sign_in",
+        "operationId": "DELETE_api_vaults_vault_google_drive_sign_in",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDriveSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/google-drive/folders": {
+      "post": {
+        "tags": [
+          "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_google_drive_folders",
+        "description": "POST_api_vaults_vault_google_drive_folders",
+        "operationId": "POST_api_vaults_vault_google_drive_folders",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddGoogleDriveFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDriveSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vaults/{vault}/google-drive/folders/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
+        ],
+        "summary": "DELETE_api_vaults_vault_google_drive_folders_id",
+        "description": "DELETE_api_vaults_vault_google_drive_folders_id",
+        "operationId": "DELETE_api_vaults_vault_google_drive_folders_id",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDriveSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3703,6 +3949,17 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "AddGoogleDriveFolderRequest": {
+        "required": [
+          "folder"
+        ],
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string"
           }
         }
       },
@@ -5128,6 +5385,70 @@
           }
         }
       },
+      "GoogleDriveFolderSummary": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleDriveSummary": {
+        "required": [
+          "enabled",
+          "clientId",
+          "hasClientSecret",
+          "account",
+          "folders"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "hasClientSecret": {
+            "type": "boolean"
+          },
+          "account": {
+            "type": "string"
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleDriveFolderSummary"
+            }
+          }
+        }
+      },
+      "GoogleSignInRequest": {
+        "required": [
+          "code",
+          "codeVerifier",
+          "redirectUri"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "codeVerifier": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          }
+        }
+      },
       "IFormFile": {
         "type": "string",
         "format": "binary"
@@ -5918,6 +6239,31 @@
             ]
           },
           "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveGoogleDriveRequest": {
+        "required": [
+          "enabled",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientSecret": {
             "type": [
               "null",
               "string"
@@ -6896,6 +7242,9 @@
     },
     {
       "name": "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
+    },
+    {
+      "name": "PowerLoom.GoogleDriveIntegration.Features.Connection.GoogleDriveEndpoints"
     }
   ]
 }

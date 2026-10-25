@@ -1700,6 +1700,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/google-drive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_vaults_vault_google_drive
+         * @description PUT_api_vaults_vault_google_drive
+         */
+        put: operations["PUT_api_vaults_vault_google_drive"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_google_drive_sign_in
+         * @description POST_api_vaults_vault_google_drive_sign_in
+         */
+        post: operations["POST_api_vaults_vault_google_drive_sign_in"];
+        /**
+         * DELETE_api_vaults_vault_google_drive_sign_in
+         * @description DELETE_api_vaults_vault_google_drive_sign_in
+         */
+        delete: operations["DELETE_api_vaults_vault_google_drive_sign_in"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_google_drive_folders
+         * @description POST_api_vaults_vault_google_drive_folders
+         */
+        post: operations["POST_api_vaults_vault_google_drive_folders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vaults/{vault}/google-drive/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_vaults_vault_google_drive_folders_id
+         * @description DELETE_api_vaults_vault_google_drive_folders_id
+         */
+        delete: operations["DELETE_api_vaults_vault_google_drive_folders_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1709,6 +1793,9 @@ export interface components {
             kind: string;
             target: null | string;
             secret: null | string;
+        };
+        AddGoogleDriveFolderRequest: {
+            folder: string;
         };
         AddLinkRequest: {
             url: string;
@@ -2061,6 +2148,22 @@ export interface components {
             login: string;
             hasToken: boolean;
         };
+        GoogleDriveFolderSummary: {
+            id: string;
+            name: string;
+        };
+        GoogleDriveSummary: {
+            enabled: boolean;
+            clientId: string;
+            hasClientSecret: boolean;
+            account: string;
+            folders: components["schemas"]["GoogleDriveFolderSummary"][];
+        };
+        GoogleSignInRequest: {
+            code: string;
+            codeVerifier: string;
+            redirectUri: string;
+        };
         /** Format: binary */
         IFormFile: string;
         IFormFileCollection: components["schemas"]["IFormFile"][];
@@ -2255,6 +2358,11 @@ export interface components {
             enabled: boolean;
             token: null | string;
             owner: null | string;
+        };
+        SaveGoogleDriveRequest: {
+            enabled: boolean;
+            clientId: null | string;
+            clientSecret: null | string;
         };
         SaveReposRequest: {
             repos: string[];
@@ -5042,6 +5150,174 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_vaults_vault_google_drive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveGoogleDriveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_google_drive_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_google_drive_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    POST_api_vaults_vault_google_drive_folders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddGoogleDriveFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DELETE_api_vaults_vault_google_drive_folders_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleDriveSummary"];
+                };
             };
             /** @description Bad Request */
             400: {

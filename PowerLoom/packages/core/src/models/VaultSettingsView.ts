@@ -18,5 +18,6 @@ export interface VaultSettingsView {
   readAzure: { enabledKinds: Record<string, boolean | undefined>; subscription: string; signedInAs: string | null; resources: { name: string; kind: string; display: string; enabled: boolean }[] };
   devHub: { enabled: boolean; url: string; hasToken: boolean };
   github: { enabled: boolean; owner: string; login: string; hasToken: boolean };
+  googleDrive: { enabled: boolean; account: string; folders: { id: string; name: string }[] };
   cleanup: CleanupSettings;
 }

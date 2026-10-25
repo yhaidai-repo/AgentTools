@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.AdoIntegration.Client;
 using PowerLoom.GitHubIntegration.Client;
+using PowerLoom.GoogleDriveIntegration.Client;
 using PowerLoom.AzureIntegration.Features.Resources;
 using PowerLoom.ConfluenceIntegration.Client;
 using PowerLoom.Infrastructure.Runner;
@@ -99,6 +100,8 @@ public sealed class PowerLoomHost : IAsyncLifetime
         services.AddSingleton<IAdoClientFactory>(provider => provider.GetRequiredService<FakeAdoClientFactory>());
         services.AddSingleton<FakeGitHubClientFactory>();
         services.AddSingleton<IGitHubClientFactory>(provider => provider.GetRequiredService<FakeGitHubClientFactory>());
+        services.AddSingleton<FakeGoogleApi>();
+        services.AddSingleton<IGoogleApi>(provider => provider.GetRequiredService<FakeGoogleApi>());
         services.AddSingleton<FakeConfluenceClientFactory>();
         services.AddSingleton<IConfluenceClientFactory>(provider => provider.GetRequiredService<FakeConfluenceClientFactory>());
         services.AddSingleton<IVaultCapture>(provider => provider.GetRequiredService<FakeVaultCapture>());

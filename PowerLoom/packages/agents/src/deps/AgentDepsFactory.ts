@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -16,6 +16,7 @@ import { AccessRequests } from "../AccessRequests";
 import { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "../azure/azureTools";
 import { DataAccessLog } from "../DataAccessLog";
 import { DocUsageLog } from "../DocUsageLog";
+import { GoogleDriveClient } from "../googleDrive/GoogleDriveClient";
 import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
 import { loadCaptureRules } from "../vaultCapture";
@@ -24,7 +25,7 @@ import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
 
-type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "azure" | "devHub" | "ado">;
+type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "googleDrive" | "azure" | "devHub" | "ado">;
 
 // Builds what a run or a chat session needs for one vault (the runner's deps, shared with the MCP server since the
 // powerloom-mcp design, 2026-10-23): the vault's docs and backlog, its repo cache, and every integration the vault has
@@ -102,6 +103,7 @@ export class AgentDepsFactory {
       listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
       docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
       sql: await this.sqlAccessOf(vault),
+      googleDrive: await this.googleDriveAccessOf(vault),
       azure: await this.azureAccessOf(vault),
       devHub: await this.devHubAccessOf(vault),
       ado: await this.adoAccessOf(vault),
@@ -155,6 +157,13 @@ export class AgentDepsFactory {
     const settings = await readAdoSettings(this.db, vault);
 
     return isAdoActive(settings) ? { client: new AdoClient({ orgUrl: settings.orgUrl, project: settings.project, team: settings.team, pat: settings.pat }), orgUrl: settings.orgUrl } : null;
+  }
+
+  // Read fresh per run: a folder added or a new sign-in in Settings counts from the next run.
+  private async googleDriveAccessOf(vault: string): Promise<AgentDeps["googleDrive"]> {
+    const settings = await readGoogleDriveSettings(this.db, vault);
+
+    return isGoogleDriveReady(settings) ? { reader: new GoogleDriveClient(settings), folders: settings.folders } : null;
   }
 
   private async sqlAccessOf(vault: string): Promise<AgentDeps["sql"]> {

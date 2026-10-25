@@ -6,6 +6,7 @@ import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
+import { GOOGLE_DRIVE_INTEGRATION } from "./googleDrive/googleDriveTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
@@ -254,6 +255,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Read SQL (SQL Server)",
     description: "The agent may run read-only queries on the vault's Read SQL connections (Settings) during its runs. Whatever a query returns goes to the model provider.",
   },
+  {
+    key: GOOGLE_DRIVE_INTEGRATION,
+    label: "Google Drive (read)",
+    description: "The agent may search and read files in the Google Drive folders the vault shares with agents (Settings → Data access) during its runs. Whatever it reads goes to the model provider.",
+  },
   ...AZURE_INTEGRATION_SPECS,
   {
     key: DEVHUB_INTEGRATION,
@@ -459,7 +465,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 1, timeoutMinutes: 1 },
     budgets: { perRunUsd: 0, dailyUsd: 0 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [GOOGLE_DRIVE_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
     skills: [],
     options: {},
     optionSpecs: [],

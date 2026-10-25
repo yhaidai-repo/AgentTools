@@ -3,13 +3,14 @@ import type { VaultSettingsView } from "./models/VaultSettingsView";
 import { readImportSourceActivity } from "./pbiImports";
 import { listVaultRepos } from "./repos";
 import { adoView, azureView, sqlView } from "./settingsViews";
-import { readAdoSettings, readAzureUserAccount, readCleanupSettings, readDevHubSettings, readGitHubSettings, readImportSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings } from "./settings";
+import { readAdoSettings, readAzureUserAccount, readCleanupSettings, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readImportSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings } from "./settings";
 import { readVault } from "./vaults";
 
 // What the Settings page shows for a vault, without its secrets (settings.get).
 export async function readVaultSettingsView(db: PowerLoomDb, vault: string): Promise<VaultSettingsView> {
   const devHub = await readDevHubSettings(db, vault);
   const github = await readGitHubSettings(db, vault);
+  const drive = await readGoogleDriveSettings(db, vault);
 
   return {
     vault,
@@ -23,6 +24,7 @@ export async function readVaultSettingsView(db: PowerLoomDb, vault: string): Pro
     readAzure: azureView(await readReadAzureSettings(db, vault), (await readAzureUserAccount(db, vault))?.username ?? null),
     devHub: { enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 },
     github: { enabled: github.enabled, owner: github.owner, login: github.login, hasToken: github.token.length > 0 },
+    googleDrive: { enabled: drive.enabled, account: drive.account, folders: drive.folders },
     cleanup: await readCleanupSettings(db, vault),
   };
 }
