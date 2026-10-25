@@ -21,6 +21,8 @@ public sealed class ItemActionsTests(PowerLoomHost host)
 {
     private const int AdoId = 63001;
 
+    private const int TestedAdoId = 63093;
+
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     [Fact]
@@ -56,15 +58,43 @@ public sealed class ItemActionsTests(PowerLoomHost host)
         return (value, session);
     }
 
-    private async Task<DeletedItem?> DeleteAsync(string itemId)
+    [Fact]
+    public async Task A_test_task_is_deleted_and_a_test_report_is_not()
+    {
+        await SeedTestTaskAsync();
+
+        await DeleteAsync($"TT-{TestedAdoId}-001", TestedAdoId);
+
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Delete.Json(new DeleteItemRequest(TestedAdoId)).ToUrl($"/api/items/TR-{TestedAdoId}-001");
+            scenario.StatusCodeShouldBe(404);
+        });
+
+        Assert.Equal(ItemStatus.Deleted, (await LoadItemsAsync(TestedAdoId))[$"TT-{TestedAdoId}-001"].Status);
+    }
+
+    private async Task<DeletedItem?> DeleteAsync(string itemId, int adoId = AdoId)
     {
         var response = await host.Host.Scenario(scenario =>
         {
-            scenario.Delete.Json(new DeleteItemRequest(AdoId)).ToUrl($"/api/items/{itemId}");
+            scenario.Delete.Json(new DeleteItemRequest(adoId)).ToUrl($"/api/items/{itemId}");
             scenario.StatusCodeShouldBeOk();
         });
 
         return response.ReadAsJson<DeletedItem>();
+    }
+
+    private async Task SeedTestTaskAsync()
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        db.WorkItems.Add(new WorkItem { AdoId = TestedAdoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Tested PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Testing, SyncedAt = DateTime.UtcNow });
+        db.LocalItems.Add(new LocalItem { Id = $"TT-{TestedAdoId}-001", Kind = ItemKinds.Test, PbiId = TestedAdoId, Vault = PowerLoomHost.Vault, Title = "Test it", Status = ItemStatus.Open, Assignee = "agent:autotest", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = $"TR-{TestedAdoId}-001", Kind = ItemKinds.TestReport, PbiId = TestedAdoId, Vault = PowerLoomHost.Vault, Title = "Report", Status = ItemStatus.Done, Assignee = "agent:autotest", HeldBy = "[]" });
+
+        await db.SaveChangesAsync();
     }
 
     private async Task SeedAsync()
@@ -82,11 +112,11 @@ public sealed class ItemActionsTests(PowerLoomHost host)
         await db.SaveChangesAsync();
     }
 
-    private async Task<Dictionary<string, LocalItem>> LoadItemsAsync()
+    private async Task<Dictionary<string, LocalItem>> LoadItemsAsync(int adoId = AdoId)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == AdoId).ToDictionaryAsync(item => item.Id);
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId).ToDictionaryAsync(item => item.Id);
     }
 
     private async Task<Bug> LoadBugAsync(int workItemId)
