@@ -84,9 +84,9 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
 ];
 
 // The changing commands a live test never gets: they start agent runs that cost budget (schedule.tick,
-// agent.run, review.queue), change what every agent shares (agent.pause, agent.saveGlobal, skill.*), or write into real
-// vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW, findings, PR syncs, repos,
-// cleanup, dead letters); chat.open opens a desktop chat.
+// agent.run, review.queue), change what every agent shares (agent.pause, agent.saveGlobal, agent.saveFramework,
+// skill.*), or write into real vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW,
+// findings, reviews, PR syncs, repos, cleanup, dead letters); chat.open opens a desktop chat.
 export const LIVE_TEST_EXCLUDED = [
   "pbi.sync",
   "pbi.importNow",
@@ -94,6 +94,7 @@ export const LIVE_TEST_EXCLUDED = [
   "agent.run",
   "agent.pause",
   "agent.saveGlobal",
+  "agent.saveFramework",
   "skill.create",
   "skill.save",
   "skill.restore",
@@ -107,6 +108,7 @@ export const LIVE_TEST_EXCLUDED = [
   "www.create",
   "finding.submit",
   "review.add",
+  "review.addLocal",
   "review.queue",
   "review.close",
   "review.delete",
