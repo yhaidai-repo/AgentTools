@@ -72,9 +72,9 @@ describe("createBrowserTools", () => {
     const { tool, calls, devHub } = harness();
     await tool("browser_open").handler({ case: "TC-1234" });
 
-    const result = await tool("browser_type_secret").handler({ element: "Password", target: "e6", valueName: "pvs-dev-password-yhaidai" });
+    const result = await tool("browser_type_secret").handler({ element: "Password", target: "e6", valueName: "pos-dev-password-tester1" });
 
-    assert.deepEqual(devHub.typed, { element: "Password", target: "e6", valueName: "pvs-dev-password-yhaidai" });
+    assert.deepEqual(devHub.typed, { element: "Password", target: "e6", valueName: "pos-dev-password-tester1" });
     assert.ok(!calls.some((call) => call.name === "browser_type"));
     assert.equal(result.text, "Typed.");
   });

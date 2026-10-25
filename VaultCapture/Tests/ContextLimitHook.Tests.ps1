@@ -41,8 +41,8 @@ Describe 'Invoke-ContextLimitHook' {
         $script:TranscriptPath = Join-Path $TestDrive 'transcript.jsonl'
         $windows = @(@{ model = 'claude-big*'; tokens = 1000 }, @{ model = '*'; tokens = 100 })
 
-        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pvs') -Force | Out-Null
-        @('---', 'repo: D:/nowhere', '---') | Set-Content (Join-Path $vaultRoot 'pvs' 'pvs-index.md')
+        New-Item -ItemType Directory -Path (Join-Path $vaultRoot 'pos') -Force | Out-Null
+        @('---', 'repo: D:/nowhere', '---') | Set-Content (Join-Path $vaultRoot 'pos' 'pos-index.md')
         @{ vaults = @($vaultRoot) } | ConvertTo-Json | Set-Content $captureConfigPath
         @{ warnAtPercent = 70; windows = $windows; transcriptTailLines = 50; markerTtlMinutes = 30; stateFolder = $stateFolder } | ConvertTo-Json -Depth 3 | Set-Content $hookConfigPath
 

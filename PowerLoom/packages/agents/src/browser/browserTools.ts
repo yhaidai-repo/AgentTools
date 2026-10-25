@@ -98,7 +98,7 @@ function typeSecretTool(deps: AgentDeps, context: OutsideAccessContext, access: 
     input: {
       element: z.string().min(1).describe("Human-readable description of the field, e.g. 'Password box of the sign-in form'"),
       target: z.string().min(1).describe("The field's ref from the snapshot, e.g. e12"),
-      valueName: z.string().min(1).describe("The dev-secrets value to type, e.g. pvs-dev-password-yhaidai"),
+      valueName: z.string().min(1).describe("The dev-secrets value to type, e.g. app-dev-password"),
       submit: z.boolean().optional().describe("Press Enter after typing"),
     },
     resource: () => resourceOf(access, `browser:${open.name ?? "none"}`),

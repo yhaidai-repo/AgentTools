@@ -6,7 +6,7 @@ import type { StackStatus } from "./models/StackStatus";
 import { waitForStack } from "./waitForStack";
 
 function statusIn(phase: StackPhase): StackStatus {
-  return { phase, running: phase === "ready", requestedServices: ["signals"], branch: null, startedAt: null, expiresAt: null, exitCode: null, owner: "run-1", services: [], output: [] };
+  return { phase, running: phase === "ready", requestedServices: ["catalog"], branch: null, startedAt: null, expiresAt: null, exitCode: null, owner: "run-1", services: [], output: [] };
 }
 
 // Answers the given phases in order, then the last one forever; the clock moves one poll per call.

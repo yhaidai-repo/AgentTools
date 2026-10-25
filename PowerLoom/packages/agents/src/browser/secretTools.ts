@@ -37,11 +37,11 @@ function listSecretNamesTool(deps: AgentDeps, context: OutsideAccessContext, acc
 function httpRequestTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "http_request",
-    description: "Send an HTTP request from the host (local services and Azure dev are reachable there) with secrets filled in: write {{secret:<name>}} where a value goes, or {{secret:<name>|basic}} for a Basic authorization header whose password is the secret (the PVS API takes its key that way). The answer's body is redacted and cut at 60k characters.",
+    description: "Send an HTTP request from the host (local services and the shared environment are reachable there) with secrets filled in: write {{secret:<name>}} where a value goes, or {{secret:<name>|basic}} for a Basic authorization header whose password is the secret (the POS API takes its key that way). The answer's body is redacted and cut at 60k characters.",
     input: {
       method: z.enum(METHODS),
       url: z.string().url(),
-      headers: z.record(z.string(), z.string()).optional().describe('e.g. { "Authorization": "{{secret:pvs-web-api-key|basic}}", "Accept": "application/json" }'),
+      headers: z.record(z.string(), z.string()).optional().describe('e.g. { "Authorization": "{{secret:app-api-key|basic}}", "Accept": "application/json" }'),
       body: z.string().optional().describe("The request body; placeholders allowed"),
       contentType: z.string().optional().describe("Default application/json"),
     },

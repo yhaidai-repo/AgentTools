@@ -50,10 +50,10 @@ describe("missingTables", () => {
 
 describe("columnsElsewhere", () => {
   it("lists the tables that have each column, ignoring case", () => {
-    const rows = [["PatientId", "dbo.Patient"], ["patientid", "dbo.Visit"]];
+    const rows = [["AccountId", "dbo.Account"], ["accountid", "dbo.Visit"]];
 
-    assert.deepEqual(columnsElsewhere(["PatientId", "Nope"], rows), [
-      { column: "PatientId", tables: ["dbo.Patient", "dbo.Visit"] },
+    assert.deepEqual(columnsElsewhere(["AccountId", "Nope"], rows), [
+      { column: "AccountId", tables: ["dbo.Account", "dbo.Visit"] },
       { column: "Nope", tables: [] },
     ]);
   });

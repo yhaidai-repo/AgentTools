@@ -3,7 +3,7 @@ export interface CaptureDraft {
   /** Note name: kebab-case, prefixed with the project key, unique in the vault. */
   name: string;
   title: string;
-  /** Docs vault project key, e.g. "pvs" or "pvsi". */
+  /** Docs vault project key, e.g. "shop" or "crm". */
   project: string;
   /** Where it belongs once verified: "[[note]]" or a folder. */
   target: string;

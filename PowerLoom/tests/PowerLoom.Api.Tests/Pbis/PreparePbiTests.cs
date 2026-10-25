@@ -43,7 +43,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         Assert.Contains("| [[Q-61001-001]] | question | open | Which tenant? |", note);
         Assert.Contains("## Notes\nKeep this.", note);
         Assert.Contains("## Scope in\n\n- Login", await File.ReadAllTextAsync(Path.Combine(folder, $"PBI-{adoId}-refinement.md")));
-        Assert.Contains("| 1 | Add the form | PVS | src/Login.tsx | new component | yes |", await File.ReadAllTextAsync(Path.Combine(folder, $"PBI-{adoId}-design.md")));
+        Assert.Contains("| 1 | Add the form | POS | src/Login.tsx | new component | yes |", await File.ReadAllTextAsync(Path.Combine(folder, $"PBI-{adoId}-design.md")));
         Assert.Contains("## Options\n\n- A\n- B", await File.ReadAllTextAsync(Path.Combine(folder, "questions", $"Q-{adoId}-001.md")));
         Assert.True(File.Exists(Path.Combine(folder, "tasks", $"RT-{adoId}-001.md")));
         Assert.Contains($"| [[PBI-{adoId}]] | The login page | Committed |", index);
@@ -68,7 +68,7 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         await File.WriteAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "pbi", $"PBI-{adoId}-the-login-page", $"PBI-{adoId}.md"), "# old\n\n## Notes\nKeep this.\n");
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "The login page", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
         db.Refinements.Add(new Refinement { PbiId = adoId, Version = 1, Summary = "Scope is clear.", ScopeIn = """["Login"]""", ScopeOut = "[]", AcGaps = "[]", Dependencies = "[]", Repos = "[]", Assumptions = "[]", RelevantDocs = "[]", DocsRead = "[]", Skills = "[]" });
-        db.Designs.Add(new Design { PbiId = adoId, Version = 1, Approach = "Simple.", Alternatives = "[]", Plan = """[{"step":"Add the form","repo":"PVS","locations":["src/Login.tsx"],"change":"new component","agentDoable":true}]""", Risks = "[]", Tests = "[]", Assumptions = "[]", EstimateBasis = "guess", Complexity = 2 });
+        db.Designs.Add(new Design { PbiId = adoId, Version = 1, Approach = "Simple.", Alternatives = "[]", Plan = """[{"step":"Add the form","repo":"POS","locations":["src/Login.tsx"],"change":"new component","agentDoable":true}]""", Risks = "[]", Tests = "[]", Assumptions = "[]", EstimateBasis = "guess", Complexity = 2 });
         db.TestCases.Add(new TestCase { PbiId = adoId, AdoId = 71001, Title = "Login works", State = "Ready", Rev = 1, StepsMd = "1. Open the page" });
         db.LocalItems.Add(new LocalItem { Id = $"Q-{adoId}-001", Kind = ItemKinds.Question, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Which tenant?", Status = ItemStatus.Open, Assignee = "human", Body = "Tenant?", Data = """{"why":"routing","options":["A","B"]}""", HeldBy = "[]" });
 

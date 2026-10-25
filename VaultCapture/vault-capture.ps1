@@ -4,14 +4,14 @@
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 rules
 .EXAMPLE
-    '{"vault":"work-projects","project":"pvs","name":"pvs-topic","title":"Topic","source":"session finding","target":"[[pvs-index]]","captured":["fact"]}' |
+    '{"vault":"work-projects","project":"pos","name":"pos-topic","title":"Topic","source":"session finding","target":"[[pos-index]]","captured":["fact"]}' |
         pwsh -NoProfile -File vault-capture.ps1 capture
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 capture -InputFile capture.json
 .EXAMPLE
     pwsh -NoProfile -File vault-capture.ps1 drafts -Vault work-projects -PreferSource "session finding: powerloom"
 .EXAMPLE
-    pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pvs-topic -Name pvs-other
+    pwsh -NoProfile -File vault-capture.ps1 is-draft -Vault work-projects -Name pos-topic -Name pos-other
 #>
 param([string]$Command)
 
@@ -79,7 +79,7 @@ function Invoke-DraftsCommand {
     Write-QueryResult -Result (Get-VaultDraft -Vault $Vault -PreferSource $PreferSource)
 }
 
-# -Name repeats: is-draft -Vault work-projects -Name pvs-a -Name pvs-b
+# -Name repeats: is-draft -Vault work-projects -Name pos-a -Name pos-b
 function Invoke-IsDraftCommand {
     param(
         [Parameter(Mandatory)][string]$Vault,
@@ -92,7 +92,7 @@ function Invoke-IsDraftCommand {
     Write-QueryResult -Result (Test-VaultDraft -Vault $Vault -Name $Name)
 }
 
-# The records of a project's register: register -Vault work-projects -Project pvs -Kind questions|issues
+# The records of a project's register: register -Vault work-projects -Project pos -Kind questions|issues
 function Invoke-RegisterCommand {
     param(
         [Parameter(Mandatory)][string]$Vault,

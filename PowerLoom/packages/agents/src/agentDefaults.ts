@@ -258,7 +258,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: DEVHUB_INTEGRATION,
     label: "DevHub (run services)",
-    description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → DevHub) during its runs, e.g. the PVS portal with Signals for a test. One stack at a time; it stops when the run ends.",
+    description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → DevHub) during its runs, e.g. a web app with the services it calls, for a test. One stack at a time; it stops when the run ends.",
   },
   {
     key: ADO_INTEGRATION,

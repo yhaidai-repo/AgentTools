@@ -13,8 +13,8 @@ public static partial class AzureTargets
 {
     public static Outcome<AzureResourceTarget> Resolve(string kind, string target, string secret) => kind switch
     {
-        AzureResourceKinds.Cosmos => AccountName(target, "A Cosmos DB resource is the account name (3–44 lowercase letters, digits and hyphens), e.g. aa-stage-signals-cosmos."),
-        AzureResourceKinds.Mongo => secret.Length > 0 ? MongoConnectionString(secret) : AccountName(target, "A Mongo resource is a Cosmos DB for MongoDB account name (3–44 lowercase letters, digits and hyphens), e.g. aa-stage-cosmos-mongo, or the connection string of another Mongo server: mongodb://user:password@host:27017/…"),
+        AzureResourceKinds.Cosmos => AccountName(target, "A Cosmos DB resource is the account name (3–44 lowercase letters, digits and hyphens), e.g. zz-stage-catalog-cosmos."),
+        AzureResourceKinds.Mongo => secret.Length > 0 ? MongoConnectionString(secret) : AccountName(target, "A Mongo resource is a Cosmos DB for MongoDB account name (3–44 lowercase letters, digits and hyphens), e.g. zz-stage-cosmos-mongo, or the connection string of another Mongo server: mongodb://user:password@host:27017/…"),
         AzureResourceKinds.ServiceBus => ServiceBusConnectionString(secret),
         AzureResourceKinds.AzureAccess => Outcome<AzureResourceTarget>.Failure(Problem.Invalid("Azure access has no resources: agents read whatever the signed-in account sees.")),
         _ => Outcome<AzureResourceTarget>.Failure(Problem.Invalid($"Unknown kind {kind}; one of {string.Join(", ", AzureResourceKinds.All)}.")),

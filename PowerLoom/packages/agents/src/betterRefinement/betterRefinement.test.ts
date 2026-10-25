@@ -24,7 +24,7 @@ function input(overrides: Record<string, unknown> = {}): Input {
     scope_out: ["Other sheets"],
     ac_gaps: [],
     sources: [{ what: "PBI description and notes", evidence: PBI }],
-    repos: [{ name: "PVS", reason: "the report SP lives there", evidence: PBI }, { name: "VAPI v2", reason: "provider keys come from it", evidence: [] }],
+    repos: [{ name: "POS", reason: "the report SP lives there", evidence: PBI }, { name: "VAPI v2", reason: "provider keys come from it", evidence: [] }],
     affected_areas: [{ area: "Billable Features report", change: "vendor column", evidence: PBI }],
     test_data: { applicable: true, given: [], missing: ["A tenant with SO transactions before June 2026, on QA2"], reason: "the symptom shows only in old data" },
     dependencies: [],
@@ -64,7 +64,7 @@ describe("write_refinement (Better Refinement)", () => {
   it("refuses a blocker whose task wasn't created and evidence the run never read", async () => {
     const draft = emptyDraft();
     const tool = createRefinementTool(draft, new ReadLog("PBI-36756"), []);
-    const invented = [{ area: "Report SP", change: "join", evidence: [{ source: "S9", ref: "PVS/Database/report.sql", note: "assumed" }] }];
+    const invented = [{ area: "Report SP", change: "join", evidence: [{ source: "S9", ref: "POS/Database/report.sql", note: "assumed" }] }];
 
     const result = await tool.handler(input({ affected_areas: invented }));
 
@@ -105,15 +105,15 @@ describe("refinementBlock", () => {
 
 describe("better-refinement prompt", () => {
   it("starts with the shared framework and records both versions", async () => {
-    const prompt = await loadPrompt("better-refinement", { team: "Signals" });
+    const prompt = await loadPrompt("better-refinement", { team: "Catalog" });
 
-    assert.equal(prompt.version, "v8+framework.v5");
+    assert.equal(prompt.version, "v8+framework.v6");
     assert.match(prompt.text, /^## How you work/);
-    assert.match(prompt.text, /You are Better Refinement for one PBI of the Signals team/);
+    assert.match(prompt.text, /You are Better Refinement for one PBI of the Catalog team/);
   });
 
   it("asks for both estimate values with record_estimate, before write_refinement", async () => {
-    const prompt = await loadPrompt("better-refinement", { team: "Signals" });
+    const prompt = await loadPrompt("better-refinement", { team: "Catalog" });
 
     assert.match(prompt.text, /`record_estimate`, when your tools include it, first: `write_refinement` refuses until it is recorded/);
     assert.ok(prompt.text.indexOf("- `record_estimate`") < prompt.text.indexOf("- `write_refinement`"));

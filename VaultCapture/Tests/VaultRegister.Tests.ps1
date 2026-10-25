@@ -3,16 +3,16 @@ BeforeAll {
 
     function New-RegisterVault {
         $vaultRoot = Join-Path $TestDrive ([guid]::NewGuid().Guid)
-        $projectRoot = Join-Path $vaultRoot 'pvs'
+        $projectRoot = Join-Path $vaultRoot 'pos'
 
         New-Item -ItemType Directory -Path $projectRoot -Force | Out-Null
-        @('---', 'project: pvs', 'repo: D:/Projects/PVS', '---') | Set-Content (Join-Path $projectRoot 'pvs-index.md')
+        @('---', 'project: pos', 'repo: D:/Projects/POS', '---') | Set-Content (Join-Path $projectRoot 'pos-index.md')
         @(
             '---', 'title: Open questions', '---', '# Open questions', '',
             '## OQ-001', '**Older layout title**', '> **Open** · Created 2026-09-23 · Updated 2026-09-23', '',
             '## [RESOLVED] OQ-002 Rule layout title', '> **Resolved** · Created 2026-09-24 · Updated 2026-09-25'
-        ) | Set-Content (Join-Path $projectRoot 'pvs-open-questions.md')
-        @('---', 'title: Known issues', '---', '# Known issues') | Set-Content (Join-Path $projectRoot 'pvs-known-issues.md')
+        ) | Set-Content (Join-Path $projectRoot 'pos-open-questions.md')
+        @('---', 'title: Known issues', '---', '# Known issues') | Set-Content (Join-Path $projectRoot 'pos-known-issues.md')
 
         return $vaultRoot
     }
@@ -26,7 +26,7 @@ Describe 'Get-VaultRegister' {
     }
 
     It 'reads records in both layouts' {
-        $result = Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'questions' -Config $config
+        $result = Get-VaultRegister -Vault $vaultName -Project 'pos' -Kind 'questions' -Config $config
 
         $result.ok | Should -BeTrue
         $result.records.id | Should -Be @('OQ-001', 'OQ-002')
@@ -37,14 +37,14 @@ Describe 'Get-VaultRegister' {
     }
 
     It 'reads an empty register' {
-        $result = Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'issues' -Config $config
+        $result = Get-VaultRegister -Vault $vaultName -Project 'pos' -Kind 'issues' -Config $config
 
         $result.ok | Should -BeTrue
         @($result.records).Count | Should -Be 0
     }
 
     It 'rejects an unknown kind or project' {
-        (Get-VaultRegister -Vault $vaultName -Project 'pvs' -Kind 'todos' -Config $config).ok | Should -BeFalse
+        (Get-VaultRegister -Vault $vaultName -Project 'pos' -Kind 'todos' -Config $config).ok | Should -BeFalse
         (Get-VaultRegister -Vault $vaultName -Project 'nope' -Kind 'issues' -Config $config).errors | Should -Contain "project 'nope' has no known-issues register."
     }
 }
@@ -57,10 +57,10 @@ Describe 'Add-VaultRegisterRecord' {
     }
 
     It 'appends the next question in the rule layout' {
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'questions'; title = 'Which states?'; text = 'Only MA, MD?'; default = @('MA and MD only'); options = @('Keep', 'Extend') }
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'questions'; title = 'Which states?'; text = 'Only MA, MD?'; default = @('MA and MD only'); options = @('Keep', 'Extend') }
 
         $result = Add-VaultRegisterRecord -InputObject $record -Config $config
-        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-open-questions.md')
+        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-open-questions.md')
 
         $result.ok | Should -BeTrue
         $result.id | Should -Be 'OQ-003'
@@ -72,16 +72,16 @@ Describe 'Add-VaultRegisterRecord' {
     }
 
     It 'starts an empty register at 001 with the issue label' {
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
 
         $result = Add-VaultRegisterRecord -InputObject $record -Config $config
 
         $result.id | Should -Be 'KI-001'
-        Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') | Should -Contain '**Issue**: Sums twice.'
+        Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') | Should -Contain '**Issue**: Sums twice.'
     }
 
     It 'rejects a record without title or text' {
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = ''; text = 'x' }
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = ''; text = 'x' }
 
         $result = Add-VaultRegisterRecord -InputObject $record -Config $config
 
@@ -90,7 +90,7 @@ Describe 'Add-VaultRegisterRecord' {
     }
 
     It 'rejects a title, a default or an option over two lines, and a heading line in the text' {
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = "Wrong total`n## KI-999 Fake"; text = "Sums twice.`n## KI-998 Fake"; default = @("a`nb"); options = @() }
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = "Wrong total`n## KI-999 Fake"; text = "Sums twice.`n## KI-998 Fake"; default = @("a`nb"); options = @() }
 
         $result = Add-VaultRegisterRecord -InputObject $record -Config $config
 
@@ -98,11 +98,11 @@ Describe 'Add-VaultRegisterRecord' {
         $result.errors | Should -Contain 'title is one line.'
         $result.errors | Should -Contain 'each default and option is one line.'
         $result.errors | Should -Contain 'text has no heading lines (a line starting with #): it would start a record of its own.'
-        Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') | Should -Not -Contain '## KI-999 Fake'
+        Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') | Should -Not -Contain '## KI-999 Fake'
     }
 
     It 'keeps a text over several lines' {
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = "Sums twice.`nSee #42 in the log." }
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Wrong total'; text = "Sums twice.`nSee #42 in the log." }
 
         (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeTrue
     }
@@ -113,8 +113,8 @@ Describe 'Register lock' {
         $vaultRoot = New-RegisterVault
         $config = [pscustomobject]@{ vaults = @([IO.Path]::GetFullPath($vaultRoot)) }
         $vaultName = Split-Path -Leaf $vaultRoot
-        $lock = Join-Path $vaultRoot 'pvs' '.pvs-known-issues.md.lock'
-        $record = [pscustomobject]@{ vault = $vaultName; project = 'pvs'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
+        $lock = Join-Path $vaultRoot 'pos' '.pos-known-issues.md.lock'
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
     }
 
     It 'leaves no lock file after an add' {
@@ -133,7 +133,7 @@ Describe 'Register lock' {
             }
         }
         $results = @($jobs | Wait-Job | Receive-Job)
-        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md')
+        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-known-issues.md')
 
         @($results | Where-Object ok).Count | Should -Be 4
         ($results.id | Sort-Object) | Should -Be @('KI-001', 'KI-002', 'KI-003', 'KI-004')
@@ -143,12 +143,12 @@ Describe 'Register lock' {
     It 'answers busy while another writer holds the lock, and takes over a stale one' {
         New-Item -ItemType File -Path $lock | Out-Null
 
-        $busy = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') } {
+        $busy = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') } {
             param($Path)
             Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
         }
         (Get-Item -LiteralPath $lock -Force).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(-5)
-        $taken = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pvs' 'pvs-known-issues.md') } {
+        $taken = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') } {
             param($Path)
             Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
         }

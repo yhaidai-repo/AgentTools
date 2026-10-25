@@ -22,7 +22,7 @@ function reportInput(overrides: object = {}) {
       { ref: "TC-1234", title: "Archived rows listed", criterion: "AC 1: archived rows appear greyed", steps: ["Open Transactions", "Filter archived"], data: "facility 42", expected: "Rows greyed", state: "planned" as const },
       { ref: "agent", title: "Warning shown", criterion: "AC 2: a warning appears", steps: ["Archive a row"], data: "none", expected: "Warning banner", state: "blocked" as const, blocked_by: "new:1" },
     ],
-    services: [{ name: "pvs-web", why: "owns the grid" }],
+    services: [{ name: "pos-web", why: "owns the grid" }],
     results: [] as never[],
     ado_edits: [] as string[],
     next_reason: "The user must add the missing test case.",
@@ -76,7 +76,7 @@ describe("renderTestReport", () => {
     assert.match(text, /\*\*missing test case\*\* \(AC 2\): No test case checks the warning → HT-1-003/);
     assert.match(text, /### 2\. Warning shown \(agent\) — blocked by HT-1-003/);
     assert.match(text, /1\. Open Transactions\n2\. Filter archived\nData: facility 42\nExpected: Rows greyed/);
-    assert.match(text, /## Services\n\n- pvs-web: owns the grid/);
+    assert.match(text, /## Services\n\n- pos-web: owns the grid/);
   });
 
   it("resolves new:<n> inside free text too and leaves unknown numbers alone", () => {

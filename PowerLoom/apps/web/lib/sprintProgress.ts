@@ -97,7 +97,7 @@ export function stateColor(state: string): string {
   return STATE_COLORS[state] ?? OTHER_STATE_COLOR;
 }
 
-// The last segment of the iteration path: AA6.4.1 → 26.4.1.
+// The last segment of the iteration path: ZZ6.4.1 → 26.4.1.
 export function sprintName(iterationPath: string): string {
   return iterationPath.split("\\").at(-1) ?? iterationPath;
 }

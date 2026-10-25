@@ -8,7 +8,7 @@ import { createSqlTools } from "./sqlTools";
 
 const context = { vault: "work-projects", agentId: "research", runId: 42, owner: "powerloom-run-42", taskId: "AT-1-001", pbiId: 1 };
 const agent = { capabilities: { integrations: { readSql: true } } } as unknown as AgentDefinition;
-const connection = { name: "pvs", server: "sql01", database: "Pvs_Development", connectionString: "Server=sql01;Database=Pvs_Development", enabled: true };
+const connection = { name: "pos", server: "sql01", database: "Pos_Development", connectionString: "Server=sql01;Database=Pos_Development", enabled: true };
 
 interface Recorded {
   calls: { method: string; args: unknown[] }[];
@@ -60,41 +60,41 @@ describe("createSqlTools", () => {
   it("reads the connection's own database when the call names none, and logs it", async () => {
     const { deps, recorded } = fakeDeps();
 
-    await toolNamed(deps, "sql_query").handler({ connection: "pvs", sql: "SELECT 1" });
+    await toolNamed(deps, "sql_query").handler({ connection: "pos", sql: "SELECT 1" });
 
     assert.deepEqual(recorded.calls, [{ method: "query", args: [connection.connectionString, "SELECT 1", undefined] }]);
-    assert.equal(recorded.entries[0].target, "sql01/Pvs_Development");
+    assert.equal(recorded.entries[0].target, "sql01/Pos_Development");
   });
 
   it("reads the database the call names, and logs that one", async () => {
     const { deps, recorded } = fakeDeps();
 
-    await toolNamed(deps, "sql_query").handler({ connection: "pvs", database: "Pvs_Stage", sql: "SELECT 1" });
+    await toolNamed(deps, "sql_query").handler({ connection: "pos", database: "Pos_Stage", sql: "SELECT 1" });
 
-    assert.deepEqual(recorded.calls, [{ method: "query", args: [connection.connectionString, "SELECT 1", "Pvs_Stage"] }]);
-    assert.equal(recorded.entries[0].target, "sql01/Pvs_Stage");
+    assert.deepEqual(recorded.calls, [{ method: "query", args: [connection.connectionString, "SELECT 1", "Pos_Stage"] }]);
+    assert.equal(recorded.entries[0].target, "sql01/Pos_Stage");
   });
 
   it("describes tables and columns in the named database", async () => {
     const { deps, recorded } = fakeDeps();
     const describe = toolNamed(deps, "sql_describe");
 
-    await describe.handler({ connection: "pvs", database: "Pvs_Stage" });
-    await describe.handler({ connection: "pvs", database: "Pvs_Stage", table: "dbo.Verification" });
+    await describe.handler({ connection: "pos", database: "Pos_Stage" });
+    await describe.handler({ connection: "pos", database: "Pos_Stage", table: "dbo.Subscription" });
 
     assert.deepEqual(recorded.calls, [
-      { method: "listTables", args: [connection.connectionString, "Pvs_Stage"] },
-      { method: "describeTable", args: [connection.connectionString, "dbo.Verification", "Pvs_Stage"] },
+      { method: "listTables", args: [connection.connectionString, "Pos_Stage"] },
+      { method: "describeTable", args: [connection.connectionString, "dbo.Subscription", "Pos_Stage"] },
     ]);
   });
 
   it("lists the server's databases on the connection itself", async () => {
     const { deps, recorded } = fakeDeps();
 
-    await toolNamed(deps, "sql_databases").handler({ connection: "pvs" });
+    await toolNamed(deps, "sql_databases").handler({ connection: "pos" });
 
     assert.deepEqual(recorded.calls, [{ method: "listDatabases", args: [connection.connectionString] }]);
     assert.equal(recorded.entries[0].request, "list databases");
-    assert.equal(recorded.entries[0].target, "sql01/Pvs_Development");
+    assert.equal(recorded.entries[0].target, "sql01/Pos_Development");
   });
 });

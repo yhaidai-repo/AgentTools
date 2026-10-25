@@ -20,7 +20,7 @@ const POWERLOOM_MD = new URL("../../../../templates/vault/POWERLOOM.md", import.
 // Deps with every reader that can share a command's name switched on (Read SQL: sql_query, sql_describe, sql_databases).
 function fakeDeps(): AgentDeps {
   const log = { record: async () => {} };
-  const connection = { name: "pvs", server: "sql01", database: "Pvs", connectionString: "Server=sql01", enabled: true };
+  const connection = { name: "pos", server: "sql01", database: "Pos", connectionString: "Server=sql01", enabled: true };
 
   return {
     db: {},
@@ -93,7 +93,7 @@ describe("a chat session's tools", () => {
     const powerloom = { addRegisterRecord: async (vault: string) => (vaults.push(vault), { ok: true, value: "KI-001" }) };
     const tool = sessionTools({ powerloom } as unknown as CommandContext).find((candidate) => candidate.name === "register_add")!;
 
-    const result = await tool.handler({ vault: "other", project: "pvs", kind: "issues", title: "Wrong total", text: "Sums twice." });
+    const result = await tool.handler({ vault: "other", project: "pos", kind: "issues", title: "Wrong total", text: "Sums twice." });
     const inputs = ["vault_capture", "register_add", "register_close"].map((name) => Object.keys(sessionTools().find((candidate) => candidate.name === name)!.input));
 
     assert.equal(result.isError, undefined);

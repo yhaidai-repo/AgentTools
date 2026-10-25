@@ -17,7 +17,7 @@ BeforeAll {
             [Parameter(Mandatory)][string]$Source
         )
 
-        $lines = @('---', "title: `"$Name`"", 'type: draft', 'project: pvs', "captured: $Captured", "source: `"$Source`"", 'target: "[[pvs-index]]"', '---', "# $Name")
+        $lines = @('---', "title: `"$Name`"", 'type: draft', 'project: pos', "captured: $Captured", "source: `"$Source`"", 'target: "[[pos-index]]"', '---', "# $Name")
 
         $lines | Set-Content (Join-Path $VaultRoot 'draft' "$Name.md")
     }
@@ -31,16 +31,16 @@ Describe 'Get-VaultDraft' {
     }
 
     It 'lists preferred-source drafts first, then the oldest first' {
-        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-chat-old' -Captured '2026-09-01' -Source 'session finding'
-        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-chat-new' -Captured '2026-09-20' -Source 'user message'
-        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-pipeline' -Captured '2026-09-30' -Source 'session finding: powerloom AT-1 run RUN-2 (PBI-3)'
+        Add-TestDraft -VaultRoot $vaultRoot -Name 'pos-chat-old' -Captured '2026-09-01' -Source 'session finding'
+        Add-TestDraft -VaultRoot $vaultRoot -Name 'pos-chat-new' -Captured '2026-09-20' -Source 'user message'
+        Add-TestDraft -VaultRoot $vaultRoot -Name 'pos-pipeline' -Captured '2026-09-30' -Source 'session finding: powerloom AT-1 run RUN-2 (PBI-3)'
 
         $result = Get-VaultDraft -Vault $vaultName -PreferSource 'session finding: powerloom' -Config $config
 
         $result.ok | Should -BeTrue
-        $result.drafts.name | Should -Be @('pvs-pipeline', 'pvs-chat-old', 'pvs-chat-new')
+        $result.drafts.name | Should -Be @('pos-pipeline', 'pos-chat-old', 'pos-chat-new')
         $result.drafts[0].preferred | Should -BeTrue
-        $result.drafts[0].target | Should -Be '[[pvs-index]]'
+        $result.drafts[0].target | Should -Be '[[pos-index]]'
     }
 
     It 'returns no drafts when the draft folder is empty' {
@@ -66,13 +66,13 @@ Describe 'Test-VaultDraft' {
     }
 
     It 'tells which names are still drafts' {
-        Add-TestDraft -VaultRoot $vaultRoot -Name 'pvs-open' -Captured '2026-09-01' -Source 'session finding'
+        Add-TestDraft -VaultRoot $vaultRoot -Name 'pos-open' -Captured '2026-09-01' -Source 'session finding'
 
-        $result = Test-VaultDraft -Vault $vaultName -Name 'pvs-open', 'pvs-merged' -Config $config
+        $result = Test-VaultDraft -Vault $vaultName -Name 'pos-open', 'pos-merged' -Config $config
 
         $result.ok | Should -BeTrue
-        $result.drafts.'pvs-open' | Should -BeTrue
-        $result.drafts.'pvs-merged' | Should -BeFalse
+        $result.drafts.'pos-open' | Should -BeTrue
+        $result.drafts.'pos-merged' | Should -BeFalse
     }
 
     It 'rejects a name that is not a note name' {
@@ -83,7 +83,7 @@ Describe 'Test-VaultDraft' {
     }
 
     It 'rejects an unknown vault' {
-        $result = Test-VaultDraft -Vault 'nope' -Name 'pvs-open' -Config $config
+        $result = Test-VaultDraft -Vault 'nope' -Name 'pos-open' -Config $config
 
         $result.ok | Should -BeFalse
     }

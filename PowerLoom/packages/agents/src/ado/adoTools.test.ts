@@ -12,7 +12,7 @@ const context = { vault: "work-projects", agentId: "better-research", runId: 127
 const PULL_REQUEST: AdoPullRequest = {
   id: 6400,
   repoId: "repo-1",
-  repoName: "PVS",
+  repoName: "POS",
   title: "Medicare HCPCS codes",
   description: "Adds the codes.",
   status: "active",
@@ -27,7 +27,7 @@ const PULL_REQUEST: AdoPullRequest = {
   votes: [{ name: "Lead", vote: -5, isRequired: true }],
   createdAt: "2026-10-12T09:00:00Z",
   closedAt: null,
-  url: "https://dev.azure.com/org/AA/_git/PVS/pullrequest/6400",
+  url: "https://dev.azure.com/org/ZZ/_git/POS/pullrequest/6400",
 };
 
 const THREADS: AdoPrThread[] = [
@@ -134,17 +134,17 @@ describe("pull request tools", () => {
   it("lists pull requests with branch names as git shows them", async () => {
     const result = await toolNamed("list_pull_requests", depsWith(client).deps).handler({ status: "all", sourceBranch: "feature/32071-medicare-hcpcs-codes" });
 
-    assert.equal(result.text, "- PR 6400 [active] PVS: Medicare HCPCS codes – feature/32071-medicare-hcpcs-codes → development, by dev@example.com, created 2026-10-12");
+    assert.equal(result.text, "- PR 6400 [active] POS: Medicare HCPCS codes – feature/32071-medicare-hcpcs-codes → development, by dev@example.com, created 2026-10-12");
   });
 
   it("asks ADO for the full ref of a branch", async () => {
     const searches: unknown[] = [];
     const recording: Partial<AdoClient> = { searchPullRequests: async (search) => { searches.push(search); return []; } };
 
-    const result = await toolNamed("list_pull_requests", depsWith(recording).deps).handler({ repo: "PVS", targetBranch: "development" });
+    const result = await toolNamed("list_pull_requests", depsWith(recording).deps).handler({ repo: "POS", targetBranch: "development" });
 
     assert.equal(result.text, "No pull requests match.");
-    assert.deepEqual(searches, [{ status: "active", repoId: "PVS", sourceRef: undefined, targetRef: "refs/heads/development", top: 25 }]);
+    assert.deepEqual(searches, [{ status: "active", repoId: "POS", sourceRef: undefined, targetRef: "refs/heads/development", top: 25 }]);
   });
 
   it("reads a pull request with votes, linked work items and changed files", async () => {

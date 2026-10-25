@@ -15,7 +15,7 @@ describe("pipelineProblem", () => {
 
 describe("filterProblem", () => {
   it("lets ordinary filters through and refuses $where", () => {
-    assert.equal(filterProblem({ patientId: "42", $or: [{ status: "open" }, { updatedAt: { $gt: "2026-01-01" } }] }), null);
+    assert.equal(filterProblem({ accountId: "42", $or: [{ status: "open" }, { updatedAt: { $gt: "2026-01-01" } }] }), null);
     assert.equal(filterProblem(undefined), null);
     assert.match(filterProblem({ $where: "this.a > 1" })!, /\$where/);
   });

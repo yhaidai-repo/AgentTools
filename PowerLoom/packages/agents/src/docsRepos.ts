@@ -3,7 +3,7 @@ import { basename, join } from "node:path";
 
 const REPOS_COLUMN = "repos";
 
-// The project's repository as its index note names it (`repo: D:/Projects/PVS` or `repo: D:/Projects/AgentTools (folder PowerLoom/)`);
+// The project's repository as its index note names it (`repo: D:/Projects/POS` or `repo: D:/Projects/AgentTools (folder PowerLoom/)`);
 // the folder name is the repo's name in the catalog. Null when the project has no index or no repo.
 export async function projectRepoName(docsRoot: string, project: string): Promise<string | null> {
   const index = await readFile(join(docsRoot, project, `${project}-index.md`), "utf8").catch(() => null);
@@ -13,8 +13,8 @@ export async function projectRepoName(docsRoot: string, project: string): Promis
   return path ? basename(path.replaceAll("\\", "/")) : null;
 }
 
-// Every repo the vault documents, keyed by lower-case repo name, with where it is written (e.g. "pvs.internal" →
-// "pvsi index", "pvs.integrationevents" → "pvsi-repos"): each project's index `repo:` line and its `<key>-repos` note
+// Every repo the vault documents, keyed by lower-case repo name, with where it is written (e.g. "pos.internal" →
+// "posi index", "pos.integrationevents" → "posi-repos"): each project's index `repo:` line and its `<key>-repos` note
 // (user decision 2026-10-02). Projects are the top-level folders.
 export async function documentedRepos(docsRoot: string): Promise<Map<string, string>> {
   const entries = await readdir(docsRoot, { withFileTypes: true }).catch(() => []);

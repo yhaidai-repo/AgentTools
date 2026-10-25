@@ -22,7 +22,7 @@ const report: TestReport = {
     { ref: "agent", title: "API returns 200 for XB", criterion: "AC 3", steps: ["GET /api/requests/1 with the key"], data: "none", expected: "200 with the XB row", state: "blocked", blockedBy: "Q-30474-007" },
     { ref: "TC-101", title: "Export works", criterion: "AC 4", steps: ["Click Export"], data: "", expected: "A file downloads", state: "planned", blockedBy: null },
   ],
-  services: [{ name: "pvs-web", why: "owns the screen" }, { name: "pvs-api", why: "called by the portal" }],
+  services: [{ name: "pos-web", why: "owns the screen" }, { name: "pos-api", why: "called by the portal" }],
   results: [
     { case: "Full Report shows the summary", criterion: "AC 1", verdict: "pass", observed: "Summary visible", artifacts: ["stack/browser/run/case-1/trace.zip"], bug: null },
     { case: "API returns 200 for XB", criterion: "AC 3", verdict: "blocked", observed: "No XB data; waits for Q-30474-007", artifacts: [], bug: null },
@@ -72,7 +72,7 @@ describe("composeTestMessage", () => {
     assert.match(message, /- missing test data \(AC 3\): No request with code XB → Q-30474-007/);
     assert.match(message, /1\. Full Report shows the summary \(TC-100\) — AC 1\n   1\. Open \/Customer\/Request\n   2\. Click Full Report\n   Data: request 1190908\n   Expected: The summary section is shown/);
     assert.match(message, /2\. API returns 200 for XB \(agent\) \[blocked by Q-30474-007\] — AC 3/);
-    assert.match(message, /Services: pvs-web \(owns the screen\); pvs-api \(called by the portal\)/);
+    assert.match(message, /Services: pos-web \(owns the screen\); pos-api \(called by the portal\)/);
     assert.match(message, /Results so far \(1 pass, 0 fail, 1 blocked, 1 not_run\):\n- pass: Full Report shows the summary\n- blocked: API returns 200 for XB: No XB data; waits for Q-30474-007\n- not_run: Export works: Time ran out/);
     assert.match(message, /Next: Q-30474-007 brings the XB data\.\n<\/previous-report>/);
     assert.match(message, /<\/previous-report>\n\n<where-to-look>/);

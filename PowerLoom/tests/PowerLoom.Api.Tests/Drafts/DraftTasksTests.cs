@@ -24,30 +24,30 @@ public sealed class DraftTasksTests(PowerLoomHost host)
     {
         const int adoId = 67001;
         var capture = host.Host.Services.GetRequiredService<FakeVaultCapture>();
-        var captureId = await SeedAsync(adoId, "pvs-topic");
+        var captureId = await SeedAsync(adoId, "pos-topic");
 
         capture.Drafts[PowerLoomHost.Vault] =
         [
-            new VaultDraft("chat-note", "Draft: Chat note", "pvs", "2026-10-11", "chat", "[[pvs-index]]", "draft/chat-note.md", false),
-            new VaultDraft("pvs-topic", "Topic (draft)", "pvs", "2026-10-10", "session finding: powerloom", "[[pvs-index]]", "draft/pvs-topic.md", true),
+            new VaultDraft("chat-note", "Draft: Chat note", "pos", "2026-10-11", "chat", "[[pos-index]]", "draft/chat-note.md", false),
+            new VaultDraft("pos-topic", "Topic (draft)", "pos", "2026-10-10", "session finding: powerloom", "[[pos-index]]", "draft/pos-topic.md", true),
         ];
 
         await ScanAsync();
 
         var tasks = await DraftTasksAsync();
-        var topic = tasks.Single(task => task.Body == "pvs-topic");
+        var topic = tasks.Single(task => task.Body == "pos-topic");
         var chat = tasks.Single(task => task.Body == "chat-note");
 
         Assert.Equal(2, tasks.Count);
         Assert.Equal((ItemKinds.Docs, AgentStages.AnyAgent, ItemStatus.Open, adoId, "Merge draft: Topic"), (topic.Kind, topic.Assignee, topic.Status, topic.PbiId, topic.Title));
         Assert.Equal(("Merge draft: Chat note", (int?)null), (chat.Title, chat.PbiId));
-        Assert.Contains("\"key\": \"merge:pvs-topic:2026-10-10\"", topic.Data);
-        Assert.Contains("\"path\": \"draft/pvs-topic.md\"", topic.Data);
+        Assert.Contains("\"key\": \"merge:pos-topic:2026-10-10\"", topic.Data);
+        Assert.Contains("\"path\": \"draft/pos-topic.md\"", topic.Data);
         Assert.True(string.CompareOrdinal(topic.Id, chat.Id) < 0, "PowerLoom's draft is taken first");
 
         // A second scan creates nothing; then the topic draft is merged by hand.
         await ScanAsync();
-        capture.Drafts[PowerLoomHost.Vault].RemoveAll(draft => draft.Name == "pvs-topic");
+        capture.Drafts[PowerLoomHost.Vault].RemoveAll(draft => draft.Name == "pos-topic");
         await ScanAsync();
 
         var ended = await LoadTaskAsync(topic.Id);
@@ -70,7 +70,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
         var run = new AgentRun { PbiId = adoId, Stage = "research", Outcome = RunOutcome.Success, EndedAt = DateTime.UtcNow };
-        var capture = new VaultCapture { Run = run, PbiId = adoId, Title = "Topic", Project = "pvs", Target = "[[pvs-index]]", Captured = "[]", ToFill = "[]", Name = captureName, Assumptions = "[]", Status = "created", Errors = "[]" };
+        var capture = new VaultCapture { Run = run, PbiId = adoId, Title = "Topic", Project = "pos", Target = "[[pos-index]]", Captured = "[]", ToFill = "[]", Name = captureName, Assumptions = "[]", Status = "created", Errors = "[]" };
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = $"PBI {adoId}", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.Researching, SyncedAt = DateTime.UtcNow });
         db.VaultCaptures.Add(capture);
@@ -84,7 +84,7 @@ public sealed class DraftTasksTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
 
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking()
-            .Where(item => item.Kind == ItemKinds.Docs && item.Vault == PowerLoomHost.Vault && (item.Body == "pvs-topic" || item.Body == "chat-note")).OrderBy(item => item.Id).ToListAsync();
+            .Where(item => item.Kind == ItemKinds.Docs && item.Vault == PowerLoomHost.Vault && (item.Body == "pos-topic" || item.Body == "chat-note")).OrderBy(item => item.Id).ToListAsync();
     }
 
     private async Task<LocalItem> LoadTaskAsync(string id)

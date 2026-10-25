@@ -74,7 +74,7 @@ export function chatOwner(sessionId: string): string {
 function listServicesTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess) {
   return defineOutsideTool(deps.outside, context, {
     name: "list_services",
-    description: "List the services that can run locally (PVS portal, background host, consumers, Signals, …): name, what it is, local URL, whether it consumes the message bus (then a local RabbitMQ is added), and what start_stack's config may set for it.",
+    description: "List the services that can run locally (web apps, background hosts, message consumers, …): name, what it is, local URL, whether it consumes the message bus (then a local RabbitMQ is added), and what start_stack's config may set for it.",
     input: {},
     resource: () => resourceOf(access, "catalog"),
     request: () => "list services",
@@ -105,9 +105,9 @@ const CONFIG_INPUT = z.record(z.string().min(1), z.object({
 function startStackTool(deps: AgentDeps, context: OutsideAccessContext, access: DevHubAccess, owner: string, ttlMinutes: number) {
   return defineOutsideTool(deps.outside, context, {
     name: "start_stack",
-    description: "Start a chain of local services pointed at each other (every other dependency stays on Azure dev) and wait until they are ready, up to 6 minutes. Only one stack runs at a time; it stops when your run ends. Pick names with list_services.",
+    description: "Start a chain of local services pointed at each other (every other dependency stays on the shared environment) and wait until they are ready, up to 6 minutes. Only one stack runs at a time; it stops when your run ends. Pick names with list_services.",
     input: {
-      services: z.array(z.string().min(1)).min(1).describe("Service names from list_services, e.g. [\"pvs-web\", \"pvs-transaction-consumer\", \"signals\"]"),
+      services: z.array(z.string().min(1)).min(1).describe("Service names from list_services, e.g. [\"web\", \"orders-consumer\"]"),
       branch: z.string().optional().describe("Run this branch's code (its worktree per repo); leave out for the main checkouts"),
       config: CONFIG_INPUT,
     },
@@ -156,7 +156,7 @@ function stackLogsTool(deps: AgentDeps, context: OutsideAccessContext, access: D
     name: "stack_logs",
     description: "Read the last lines of a running service's log (or its error log). Logs can hold connection strings: don't copy secrets into your output.",
     input: {
-      service: z.string().min(1).describe("A service of the stack, e.g. pvs-transaction-consumer"),
+      service: z.string().min(1).describe("A service of the stack, e.g. orders-consumer"),
       lines: z.number().int().min(1).max(MAX_LOG_LINES).optional().describe(`How many lines from the end (default ${DEFAULT_LOG_LINES})`),
       error: z.boolean().optional().describe("Read the error log (stderr) instead"),
     },

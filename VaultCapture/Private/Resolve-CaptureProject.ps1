@@ -17,7 +17,7 @@ function Resolve-CaptureProject {
         Select-Object -First 1
 }
 
-# A git worktree (e.g. PVS.Internal-wt/29349) maps back to the same place in its main repository.
+# A git worktree (e.g. POS.Internal-wt/29349) maps back to the same place in its main repository.
 function Resolve-RepoLocation {
     param([Parameter(Mandatory)][string]$Path)
 

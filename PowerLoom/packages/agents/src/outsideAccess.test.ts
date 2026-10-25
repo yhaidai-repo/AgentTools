@@ -21,7 +21,7 @@ function tool(log: DataAccessLog, handler: () => Promise<{ text: string; isError
     name: "sql_query",
     description: "test",
     input: { connection: z.string(), sql: z.string() },
-    resource: (input) => ({ kind: "sql", resource: input.connection, target: "db1/Pvs" }),
+    resource: (input) => ({ kind: "sql", resource: input.connection, target: "db1/Pos" }),
     request: (input) => input.sql,
     handler,
   });
@@ -32,12 +32,12 @@ describe("defineOutsideTool", () => {
     const { log, entries } = fakeLog();
     const defined = tool(log, async () => ({ text: "| a |\n| 1 |", rows: 1, truncated: false }));
 
-    const result = await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" });
+    const result = await defined.handler({ connection: "pos-dev", sql: "SELECT 1" });
 
     assert.deepEqual(result, { text: "| a |\n| 1 |", isError: undefined });
     assert.equal(entries.length, 1);
     assert.deepEqual({ ...entries[0], startedAt: undefined, durationMs: undefined }, {
-      ...context, kind: "sql", resource: "pvs-dev", target: "db1/Pvs", tool: "sql_query", request: "SELECT 1", outcome: "ok", reason: null, rows: 1, bytes: 11, truncated: false, startedAt: undefined, durationMs: undefined,
+      ...context, kind: "sql", resource: "pos-dev", target: "db1/Pos", tool: "sql_query", request: "SELECT 1", outcome: "ok", reason: null, rows: 1, bytes: 11, truncated: false, startedAt: undefined, durationMs: undefined,
     });
   });
 
@@ -45,7 +45,7 @@ describe("defineOutsideTool", () => {
     const { log, entries } = fakeLog();
     const defined = tool(log, async () => { throw new Error("socket hang up"); });
 
-    const result = await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" });
+    const result = await defined.handler({ connection: "pos-dev", sql: "SELECT 1" });
 
     assert.equal(result.isError, true);
     assert.equal(entries[0].outcome, "failed");
@@ -60,7 +60,7 @@ describe("defineOutsideTool", () => {
     console.error = () => undefined;
 
     try {
-      assert.deepEqual(await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" }), { text: "fine", isError: undefined });
+      assert.deepEqual(await defined.handler({ connection: "pos-dev", sql: "SELECT 1" }), { text: "fine", isError: undefined });
     } finally {
       console.error = quiet;
     }
@@ -74,12 +74,12 @@ describe("defineOutsideTool on a denied call", () => {
     const requests = { request: async (...args: unknown[]) => { asked.push(args); return { id: "HT-1-002", created: true }; } };
     const defined = tool(log, async () => ({ text: "Login failed for user 'reader'.", isError: true, denied: true }), requests);
 
-    const result = await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" });
+    const result = await defined.handler({ connection: "pos-dev", sql: "SELECT 1" });
 
     assert.equal(result.isError, true);
     assert.match(result.text, /Task HT-1-002 asks a person to fix it, and your task runs again once it's closed/);
     assert.equal(asked.length, 1);
-    assert.deepEqual(asked[0], [context, { kind: "sql", resource: "pvs-dev", target: "db1/Pvs" }, "sql_query", "Login failed for user 'reader'."]);
+    assert.deepEqual(asked[0], [context, { kind: "sql", resource: "pos-dev", target: "db1/Pos" }, "sql_query", "Login failed for user 'reader'."]);
     assert.equal(entries[0].outcome, "denied");
   });
 
@@ -92,7 +92,7 @@ describe("defineOutsideTool on a denied call", () => {
     console.error = () => undefined;
 
     try {
-      assert.match((await defined.handler({ connection: "pvs-dev", sql: "SELECT 1" })).text, /no task could be created/);
+      assert.match((await defined.handler({ connection: "pos-dev", sql: "SELECT 1" })).text, /no task could be created/);
     } finally {
       console.error = quiet;
     }

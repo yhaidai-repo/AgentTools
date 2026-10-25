@@ -10,12 +10,12 @@ describe("classifyToolCall", () => {
 
   it("reads the commands on the vault as docs and the ones on skills as skills", () => {
     assert.equal(classifyToolCall("vault_registers", {}).kind, "docs");
-    assert.equal(classifyToolCall("vault_notes", { folder: "pvs" }).request, "pvs");
+    assert.equal(classifyToolCall("vault_notes", { folder: "pos" }).request, "pos");
     assert.deepEqual(classifyToolCall("skill_get", { name: "powerloom-code-review" }).resource, "powerloom-code-review");
   });
 
   it("keeps the docs readers as docs and an unknown tool as other", () => {
-    assert.equal(classifyToolCall("read_doc", { path: "pvs/index.md" }).kind, "docs");
+    assert.equal(classifyToolCall("read_doc", { path: "pos/index.md" }).kind, "docs");
     assert.equal(classifyToolCall("some_new_tool", {}).kind, "other");
   });
 });

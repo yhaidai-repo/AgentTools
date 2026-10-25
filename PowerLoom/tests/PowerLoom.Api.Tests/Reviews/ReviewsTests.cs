@@ -55,7 +55,7 @@ public sealed class ReviewsTests(PowerLoomHost host)
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
 
-        db.PullRequests.Add(new PullRequest { Id = PrId, Vault = PowerLoomHost.Vault, RepoId = "r", RepoName = "PVS", Title = "Queue me", SourceRef = "refs/heads/f", TargetRef = "refs/heads/main", SourceCommit = "c1", WorkItemIds = "[]", Url = "https://x", IsListed = true, Iteration = 1 });
+        db.PullRequests.Add(new PullRequest { Id = PrId, Vault = PowerLoomHost.Vault, RepoId = "r", RepoName = "POS", Title = "Queue me", SourceRef = "refs/heads/f", TargetRef = "refs/heads/main", SourceCommit = "c1", WorkItemIds = "[]", Url = "https://x", IsListed = true, Iteration = 1 });
         db.CodeReviews.Add(new CodeReview { PrId = PrId, Status = ReviewStatus.Closed, ClosedReason = "old" });
         db.ReviewComments.Add(new ReviewComment { Id = $"rc-{PrId}-1", PrId = PrId, Commit = "c1", FilePath = "a.cs", StartLine = 1, EndLine = 2, BodyMd = "Why?", CodeSnippet = "x", SnippetStartLine = 1, Severity = ReviewSeverity.Minor, Status = ReviewCommentStatus.Open });
 

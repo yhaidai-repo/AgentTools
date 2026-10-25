@@ -14,11 +14,11 @@ const PR_DTO = {
   sourceRefName: "refs/heads/feature/32071-medicare-hcpcs-codes",
   targetRefName: "refs/heads/development",
   createdBy: { uniqueName: "dev@example.com" },
-  repository: { id: "repo-1", name: "PVS" },
+  repository: { id: "repo-1", name: "POS" },
   lastMergeCommit: { commitId: "abc123" },
   reviewers: [
     { uniqueName: "lead@example.com", displayName: "Lead", vote: 10, isRequired: true },
-    { displayName: "PVS Team", isContainer: true, vote: 0 },
+    { displayName: "POS Team", isContainer: true, vote: 0 },
   ],
 };
 
@@ -81,9 +81,9 @@ describe("AdoClient pull requests", () => {
   it("searches with only the filters given", async () => {
     const urls = answer({ "pullrequests?": { value: [PR_DTO] } });
 
-    const found = await client.searchPullRequests({ status: "all", repoId: "PVS", sourceRef: "refs/heads/feature/x", top: 20 });
+    const found = await client.searchPullRequests({ status: "all", repoId: "POS", sourceRef: "refs/heads/feature/x", top: 20 });
 
-    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/PVS/pullrequests?searchCriteria.status=all&searchCriteria.sourceRefName=refs%2Fheads%2Ffeature%2Fx&$top=20&$skip=0&api-version=7.1`);
+    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/POS/pullrequests?searchCriteria.status=all&searchCriteria.sourceRefName=refs%2Fheads%2Ffeature%2Fx&$top=20&$skip=0&api-version=7.1`);
     assert.equal(found[0].sourceRef, "refs/heads/feature/32071-medicare-hcpcs-codes");
   });
 
@@ -94,8 +94,8 @@ describe("AdoClient pull requests", () => {
 
     assert.equal(pullRequest.mergeCommit, "abc123");
     assert.deepEqual(pullRequest.reviewers, ["lead@example.com"]);
-    assert.deepEqual(pullRequest.votes, [{ name: "Lead", vote: 10, isRequired: true }, { name: "PVS Team", vote: 0, isRequired: false }]);
-    assert.equal(pullRequest.url, `${PROJECT}/_git/PVS/pullrequest/6400`);
+    assert.deepEqual(pullRequest.votes, [{ name: "Lead", vote: 10, isRequired: true }, { name: "POS Team", vote: 0, isRequired: false }]);
+    assert.equal(pullRequest.url, `${PROJECT}/_git/POS/pullrequest/6400`);
   });
 
   it("reads threads without deleted ones, with file and lines", async () => {
@@ -109,9 +109,9 @@ describe("AdoClient pull requests", () => {
       },
     });
 
-    const threads = await client.getPullRequestThreads("PVS", 6400);
+    const threads = await client.getPullRequestThreads("POS", 6400);
 
-    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/PVS/pullRequests/6400/threads?api-version=7.1`);
+    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/POS/pullRequests/6400/threads?api-version=7.1`);
     assert.deepEqual(threads.map((thread) => [thread.id, thread.status, thread.filePath, thread.startLine, thread.endLine]), [[1, "active", "/src/A.cs", 12, 14], [3, "unknown", null, null, null]]);
     assert.equal(threads[1].comments[0].type, "system");
   });

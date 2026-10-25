@@ -13,7 +13,7 @@ public sealed class ClaudeDesktopLauncherTests
     {
         var prompt = PromptOf(new ClaudeDesktopLauncher().Open(RequestWith("# Implement PBI-1\n\n## Start\n\n1. Brief me.")));
 
-        Assert.StartsWith("Implement PBI-1\n1. Add these folders to this session: D:/pc/repos/PVS.\n2. Read " + NotePath + " and follow its Start section. Its short version, for you and me:", prompt);
+        Assert.StartsWith("Implement PBI-1\n1. Add these folders to this session: D:/pc/repos/POS.\n2. Read " + NotePath + " and follow its Start section. Its short version, for you and me:", prompt);
         Assert.EndsWith("\n\n---\n\n# Implement PBI-1\n\n## Start\n\n1. Brief me.", prompt);
     }
 
@@ -28,7 +28,7 @@ public sealed class ClaudeDesktopLauncherTests
 
     private static ChatRequest RequestWith(string noteText)
     {
-        return new ChatRequest("Implement PBI-1", [], "D:/pc/work-projects", ["D:/pc/repos/PVS"], [], new ChatHandoff(NotePath, noteText));
+        return new ChatRequest("Implement PBI-1", [], "D:/pc/work-projects", ["D:/pc/repos/POS"], [], new ChatHandoff(NotePath, noteText));
     }
 
     private static string PromptOf(PowerLoom.Contracts.Outcome<OpenedChat> opened)
