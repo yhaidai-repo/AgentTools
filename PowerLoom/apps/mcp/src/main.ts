@@ -21,7 +21,8 @@ captureConsoleErrors(db, "mcp");
 // The Azure MCP server's `az` shim asks this host for tokens; no agent runtime: the chat brings its own model.
 const env = depsEnvFromProcess(`http://127.0.0.1:${port}`);
 const azureLogin = createAzureUserLogin(db);
-const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes: new RuntimeRegistry() });
+// One Azure MCP server per vault, kept for all sessions: a session no longer starts its own (about a minute) before it can initialize.
+const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes: new RuntimeRegistry(), shareAzureServers: true });
 
 await deps.ensureStores(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
 await stopOrphanedChatStacks();
@@ -38,6 +39,7 @@ const sessions = new ChatSessions({
   skills: skillCatalogOf(env.skillFolders, env.skillFolders[0] ?? null),
 });
 const server = new McpHttpServer({ token, sessions, azureLogin, azureTokenSecret: env.azureTokenSecret, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
+deps.warmUpAzure((await readVaults(db)).map((vault) => vault.name));
 const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000), SWEEP_MS);
 
 server.listen(port);
@@ -75,6 +77,7 @@ function logNote(note: string | null): void {
 async function stop(): Promise<void> {
   clearInterval(sweep);
   await sessions.closeAll();
+  await deps.closeSharedAzure();
   await server.close();
   await pool.end();
   process.exit(0);

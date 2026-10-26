@@ -1,5 +1,5 @@
 import { AdoClient } from "@powerloom/ado";
-import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureUserLogin } from "@powerloom/azure";
+import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureMcpStart, type AzureUserLogin } from "@powerloom/azure";
 import { isAdoActive, isGitHubActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
@@ -20,6 +20,7 @@ import { GitHubApi } from "../github/GitHubApi";
 import { GoogleDriveClient } from "../googleDrive/GoogleDriveClient";
 import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
+import { SharedAzureServers } from "./SharedAzureServers";
 import { loadCaptureRules } from "../vaultCapture";
 import { repoGitAuth } from "./env";
 import type { DepsEnv } from "./models/DepsEnv";
@@ -41,6 +42,8 @@ export class AgentDepsFactory {
   private readonly repoCaches = new Map<string, RepoCache>();
   // Each vault's git sign-in as its last run read it; its cache reads it on every git command.
   private readonly repoAuth = new Map<string, string[]>();
+  // The Azure MCP server per vault when the host serves many short sessions (the MCP server); null: one per run.
+  private readonly sharedAzure: SharedAzureServers<AzureMcpServer> | null;
 
   private constructor(
     private readonly db: PowerLoomDb,
@@ -49,7 +52,9 @@ export class AgentDepsFactory {
     readonly azureLogin: AzureUserLogin,
     runtimes: RuntimeRegistry,
     captureRules: AgentDeps["captureRules"],
+    shareAzureServers: boolean,
   ) {
+    this.sharedAzure = shareAzureServers ? new SharedAzureServers((options) => AzureMcpServer.start(options)) : null;
     this.config = new PostgresAgentConfigStore(pool);
     this.usageStore = new PostgresUsageStore(pool);
     this.shared = {
@@ -72,14 +77,14 @@ export class AgentDepsFactory {
     };
   }
 
-  static async create(db: PowerLoomDb, pool: Pool, env: DepsEnv, hosts: { azureLogin: AzureUserLogin; runtimes: RuntimeRegistry }): Promise<AgentDepsFactory> {
+  static async create(db: PowerLoomDb, pool: Pool, env: DepsEnv, hosts: { azureLogin: AzureUserLogin; runtimes: RuntimeRegistry; shareAzureServers?: boolean }): Promise<AgentDepsFactory> {
     const captureRules = await loadCaptureRules(env.captureHome);
 
     if (!captureRules) {
       console.error("VAULT_CAPTURE_HOME is not set: agents get no vault_capture tool");
     }
 
-    return new AgentDepsFactory(db, pool, env, hosts.azureLogin, hosts.runtimes, captureRules);
+    return new AgentDepsFactory(db, pool, env, hosts.azureLogin, hosts.runtimes, captureRules, hosts.shareAzureServers === true);
   }
 
   /** The usage and config schemas, and every agent the code defines (a new one is added, saved values are kept). */
@@ -114,6 +119,10 @@ export class AgentDepsFactory {
 
   // The deps' Azure MCP server process ends with the run or session; a close that fails is logged, the outcome stands.
   async closeAzure(azure: AgentDeps["azure"]): Promise<void> {
+    if (this.sharedAzure) {
+      return;
+    }
+
     try {
       await azure?.server?.close();
     } catch (error) {
@@ -141,10 +150,27 @@ export class AgentDepsFactory {
 
     return {
       settings,
-      server: namespaces.length > 0 ? await AzureMcpServer.start({ namespaces, env: withoutEmpty(env) }) : null,
+      server: namespaces.length > 0 ? await this.azureServerOf(vault, { namespaces, env: withoutEmpty(env) }) : null,
       serviceBus: serviceBusOn ? { peeker: new ServiceBusPeeker() } : null,
       mongo: mongoOn ? { reader: this.mongoReader, connectionStrings: new CosmosConnectionStrings(token, settings.subscription) } : null,
     };
+  }
+
+  // One process per run (the runner), or the vault's shared one (the MCP server, whose sessions come and go).
+  private azureServerOf(vault: string, options: AzureMcpStart): Promise<AzureMcpServer> {
+    return this.sharedAzure ? this.sharedAzure.of(vault, options) : AzureMcpServer.start(options);
+  }
+
+  /** Starts each vault's shared Azure server now, in the background, so the first chat doesn't wait for it; a vault whose start fails is logged. */
+  warmUpAzure(vaults: string[]): void {
+    for (const vault of vaults) {
+      void this.azureAccessOf(vault).catch((error) => console.error(`the Azure MCP server of ${vault} did not start:`, error));
+    }
+  }
+
+  /** The shared Azure servers end with their host. */
+  async closeSharedAzure(): Promise<void> {
+    await this.sharedAzure?.closeAll();
   }
 
   // Without a token DevHub refuses every call, so the tools stay away until the vault has one.
