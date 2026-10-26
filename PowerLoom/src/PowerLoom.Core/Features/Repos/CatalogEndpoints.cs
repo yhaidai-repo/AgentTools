@@ -19,7 +19,7 @@ public static class CatalogEndpoints
     [WolverinePut("/api/vaults/{vault}/repos/{id}/enabled")]
     public static async Task<Ok> SetEnabled(string vault, string id, EnabledRequest request, PowerLoomDbContext db, CancellationToken cancellation)
     {
-        await LocalRepos.SetEnabledAsync(db, vault, id, request.Enabled, cancellation);
+        await LocalRepos.SetEnabledAsync(db, vault, RepoId(id), request.Enabled, cancellation);
 
         return TypedResults.Ok();
     }
@@ -36,8 +36,11 @@ public static class CatalogEndpoints
     [WolverineDelete("/api/vaults/{vault}/repos/{id}")]
     public static async Task<Ok> RemoveLocal(string vault, string id, [FromServices] PowerLoomDbContext db, CancellationToken cancellation)
     {
-        await LocalRepos.RemoveAsync(db, vault, id, cancellation);
+        await LocalRepos.RemoveAsync(db, vault, RepoId(id), cancellation);
 
         return TypedResults.Ok();
     }
+
+    // A GitHub repo's id holds its `owner/name`: its slash arrives still escaped (%2F), which routing keeps as it is.
+    private static string RepoId(string id) => Uri.UnescapeDataString(id);
 }

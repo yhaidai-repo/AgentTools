@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, isGitHubActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -16,6 +16,7 @@ import { AccessRequests } from "../AccessRequests";
 import { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "../azure/azureTools";
 import { DataAccessLog } from "../DataAccessLog";
 import { DocUsageLog } from "../DocUsageLog";
+import { GitHubApi } from "../github/GitHubApi";
 import { GoogleDriveClient } from "../googleDrive/GoogleDriveClient";
 import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
@@ -25,7 +26,7 @@ import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
 
-type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "googleDrive" | "azure" | "devHub" | "ado">;
+type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "github" | "googleDrive" | "azure" | "devHub" | "ado">;
 
 // Builds what a run or a chat session needs for one vault (the runner's deps, shared with the MCP server since the
 // powerloom-mcp design, 2026-10-23): the vault's docs and backlog, its repo cache, and every integration the vault has
@@ -103,6 +104,7 @@ export class AgentDepsFactory {
       listRegister: async (project, kind) => (await VaultCaptureCli.forVault(vault, "the tech-writer lists a register")).listRegister(project, kind),
       docUsageLog: new DocUsageLog(`${root}/.usage/usage.jsonl`),
       sql: await this.sqlAccessOf(vault),
+      github: await this.gitHubAccessOf(vault),
       googleDrive: await this.googleDriveAccessOf(vault),
       azure: await this.azureAccessOf(vault),
       devHub: await this.devHubAccessOf(vault),
@@ -157,6 +159,13 @@ export class AgentDepsFactory {
     const settings = await readAdoSettings(this.db, vault);
 
     return isAdoActive(settings) ? { client: new AdoClient({ orgUrl: settings.orgUrl, project: settings.project, team: settings.team, pat: settings.pat }), orgUrl: settings.orgUrl } : null;
+  }
+
+  // The vault's GitHub token for the GitHub tools, read fresh per run like the clones' sign-in.
+  private async gitHubAccessOf(vault: string): Promise<AgentDeps["github"]> {
+    const settings = await readGitHubSettings(this.db, vault);
+
+    return isGitHubActive(settings) ? { api: new GitHubApi(settings.token), login: settings.login } : null;
   }
 
   // Read fresh per run: a folder added or a new sign-in in Settings counts from the next run.

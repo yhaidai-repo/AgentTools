@@ -13,7 +13,9 @@ public sealed class GoogleApi(IHttpClientFactory httpClients) : IGoogleApi
     private const string FilesUrl = "https://www.googleapis.com/drive/v3/files";
     private const string FolderType = "application/vnd.google-apps.folder";
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+    // The OAuth token endpoint answers in snake_case (access_token), the Drive API in camelCase (mimeType).
+    private static readonly JsonSerializerOptions TokenJson = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+    private static readonly JsonSerializerOptions DriveJson = new(JsonSerializerDefaults.Web);
 
     public async Task<GoogleSignIn> SignInAsync(GoogleClient client, string code, string codeVerifier, string redirectUri, CancellationToken cancellation)
     {
@@ -39,7 +41,7 @@ public sealed class GoogleApi(IHttpClientFactory httpClients) : IGoogleApi
 
         await EnsureSuccessAsync(response, cancellation);
 
-        var file = await response.Content.ReadFromJsonAsync<FileDto>(Json, cancellation);
+        var file = await response.Content.ReadFromJsonAsync<FileDto>(DriveJson, cancellation);
 
         return file is null ? null : new DriveItem(file.Id, file.Name, file.MimeType == FolderType);
     }
@@ -53,7 +55,7 @@ public sealed class GoogleApi(IHttpClientFactory httpClients) : IGoogleApi
 
         await EnsureSuccessAsync(response, cancellation);
 
-        return await response.Content.ReadFromJsonAsync<TokenDto>(Json, cancellation) ?? throw new GoogleRequestException(502, "Google returned an empty answer");
+        return await response.Content.ReadFromJsonAsync<TokenDto>(TokenJson, cancellation) ?? throw new GoogleRequestException(502, "Google returned an empty answer");
     }
 
     // The account's email from the sign-in's ID token (scope `email`); read only for the page, so not verified here.

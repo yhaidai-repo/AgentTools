@@ -70,6 +70,46 @@ export class RepoCache {
     return { path, sourceCommit, targetCommit, mergeBase };
   }
 
+  /** A branch of its own for a run that writes (user decision 2026-10-25): a worktree at `path` on a new local branch
+   *  started from the remote's `base`, so the shared checkout stays as it is. Acquire the repo first. Returns the base
+   *  commit. */
+  async checkoutNewBranch(repo: RepoRef, base: string, branch: string, path: string): Promise<string> {
+    const cwd = this.path(repo);
+    const remoteBase = `refs/remotes/origin/${base}`;
+
+    await this.git(["fetch", "origin", `+refs/heads/${base}:${remoteBase}`], cwd, true);
+    await rm(path, { recursive: true, force: true });
+    // A partial clone downloads the files it checks out, hence the auth.
+    await this.git(["worktree", "add", "--force", "-B", branch, path, remoteBase], cwd, true);
+
+    return (await this.git(["rev-parse", "HEAD"], path)).trim();
+  }
+
+  /** Commits every change of a worktree as `author`; null when there is nothing to commit. Hooks don't run. */
+  async commitAll(path: string, message: string, author: { name: string; email: string }): Promise<string | null> {
+    await this.git(["add", "--all"], path);
+
+    if (!(await this.git(["diff", "--cached", "--name-only"], path)).trim()) {
+      return null;
+    }
+
+    await this.git(["-c", `user.name=${author.name}`, "-c", `user.email=${author.email}`, "commit", "--no-verify", "--quiet", "-m", message], path);
+
+    return (await this.git(["rev-parse", "HEAD"], path)).trim();
+  }
+
+  /** The worktree's changes since its last commit, new files included (`git add --intent-to-add`). */
+  async workingDiff(path: string): Promise<string> {
+    await this.git(["add", "--all", "--intent-to-add"], path);
+
+    return this.git(["diff", "--no-color", "--no-ext-diff", "--find-renames", "HEAD"], path, true);
+  }
+
+  /** Pushes a worktree's commits to the remote's `branch`; never forced, so it can't overwrite anyone's commits. */
+  async pushBranch(path: string, branch: string): Promise<void> {
+    await this.git(["push", "--quiet", "origin", `HEAD:refs/heads/${branch}`], path, true);
+  }
+
   /** A unified diff between two commits of the repo, optionally limited to `paths`. File contents of a partial clone are
    *  downloaded on demand, hence the auth. */
   diff(repo: RepoRef, base: string, head: string, paths: string[] = []): Promise<string> {

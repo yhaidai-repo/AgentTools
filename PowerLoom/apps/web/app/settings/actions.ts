@@ -229,6 +229,24 @@ export async function testGitHubAction(_previous: ActionResult | null, form: For
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
+// Settings → Sync → GitHub pull requests: the check's switch and schedule.
+export async function saveGitHubPullRequestsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const enabled = isEnabled(form);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/github/pull-requests", { params: { path: { vault: await requireVault() } }, body: { enabled, cron: field(form, "cron") } });
+
+  revalidatePath("/settings");
+
+  return powerloomResult(saved, enabled ? "Saved. The next GitHub pull request check uses this schedule." : "Saved. GitHub pull request sync is off for this vault.");
+}
+
+export async function checkGitHubPullRequestsAction(): Promise<ActionResult> {
+  const queued = await powerloom.POST("/api/vaults/{vault}/github/pull-requests/sync", { params: { path: { vault: await requireVault() } } });
+
+  revalidatePath("/settings");
+
+  return powerloomResult(queued, "Checking GitHub; new PRs appear on Reviews in a few seconds.");
+}
+
 export async function syncGitHubAction(): Promise<ActionResult> {
   const queued = await powerloom.POST("/api/vaults/{vault}/github/sync", { params: { path: { vault: await requireVault() } } });
 

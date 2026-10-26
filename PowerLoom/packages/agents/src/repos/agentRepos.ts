@@ -21,7 +21,7 @@ export async function pbiRepoSources(db: PowerLoomDb, adoId: number): Promise<Re
   return vault ? [{ vault, names: await pbiRepoNames(db, adoId) }] : [];
 }
 
-function toRepoRef(row: typeof repo.$inferSelect): RepoRef {
+export function toRepoRef(row: typeof repo.$inferSelect): RepoRef {
   return {
     name: folderName(row.name),
     remoteUrl: row.remoteUrl,

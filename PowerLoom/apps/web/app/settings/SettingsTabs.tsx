@@ -3,6 +3,7 @@ import type { SettingsTabMark } from "@/models/SettingsTabMark";
 
 export const SETTINGS_TABS = [
   { key: "ado", label: "Azure DevOps" },
+  { key: "github", label: "GitHub" },
   { key: "sync", label: "Sync" },
   { key: "repos", label: "Repositories" },
   { key: "data", label: "Data access" },

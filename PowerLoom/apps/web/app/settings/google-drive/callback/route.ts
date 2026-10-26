@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { GOOGLE_SIGN_IN_COOKIE, redirectUriOf, settingsUrlWith, type PendingSignIn } from "@/lib/googleSignIn";
+import { browserOriginOf, GOOGLE_SIGN_IN_COOKIE, redirectUriOf, settingsUrlWith, type PendingSignIn } from "@/lib/googleSignIn";
 import { powerloom, powerloomResult } from "@/lib/powerloom";
 
 // Google sends the browser back here; PowerLoom trades the code for the account's refresh token (the secret and the
@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const store = await cookies();
   const pending = pendingOf(store.get(GOOGLE_SIGN_IN_COOKIE)?.value);
-  const back = (message: string) => NextResponse.redirect(new URL(settingsUrlWith(message), request.url));
+  const origin = browserOriginOf(request.headers);
+  const back = (message: string) => NextResponse.redirect(settingsUrlWith(origin, message));
 
   store.delete(GOOGLE_SIGN_IN_COOKIE);
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
 
   const signedIn = await powerloom.POST("/api/vaults/{vault}/google-drive/sign-in", {
     params: { path: { vault: pending.vault } },
-    body: { code: url.searchParams.get("code") ?? "", codeVerifier: pending.verifier, redirectUri: redirectUriOf(request.headers.get("host") ?? "127.0.0.1:3100") },
+    body: { code: url.searchParams.get("code") ?? "", codeVerifier: pending.verifier, redirectUri: redirectUriOf(origin) },
   });
 
   return back(powerloomResult(signedIn, `Signed in as ${signedIn.data?.account ?? "your account"}: add the folders agents may read.`).message);

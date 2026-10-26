@@ -31,6 +31,9 @@ import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
 import { READ_REPOS_INTEGRATION } from "../repos/openRepos";
 import { createSqlTools, READ_SQL_INTEGRATION } from "../sqlTools";
+import { createGitHubReadTools, GITHUB_READ_INTEGRATION } from "../github/githubReadTools";
+import { createGitHubWriteTools, GITHUB_WRITE_INTEGRATION } from "../github/githubWriteTools";
+import { GitHubWorkspace } from "../github/GitHubWorkspace";
 import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { EVERY_AGENT, runRef } from "@powerloom/core";
@@ -71,6 +74,8 @@ export class AgentToolset {
   private readonly writers: RunWriter[];
   private log: ReadLog | null = null;
   private offer: OfferedTool[] = [];
+  /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
+  private readonly gitHub: GitHubWorkspace | null;
 
   private constructor(
     private readonly context: TaskContext,
@@ -85,6 +90,12 @@ export class AgentToolset {
     this.captures = input.captures ?? [];
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
     this.writers = input.writers ?? grantedWriters(context);
+    this.gitHub = context.agent.capabilities.integrations?.[GITHUB_WRITE_INTEGRATION] === true ? new GitHubWorkspace(context.deps.repoCache, session.runId, task.id, `PowerLoom (${context.agent.label})`) : null;
+  }
+
+  /** Removes what the run left on this PC (its GitHub working copies); what it pushed stays on GitHub. */
+  async cleanUp(): Promise<void> {
+    await this.gitHub?.cleanUp();
   }
 
   static async open(context: TaskContext, session: AgentRunSession, task: ItemRow, input: ToolsetInput): Promise<AgentToolset> {
@@ -191,6 +202,8 @@ export class AgentToolset {
       { source: grantSource(agent, CONFLUENCE_INTEGRATION), tools: createConfluenceTools(deps, agent, access) },
       { source: grantSource(agent, READ_SQL_INTEGRATION), tools: createSqlTools(deps, agent, access) },
       { source: grantSource(agent, GOOGLE_DRIVE_INTEGRATION), tools: createGoogleDriveTools(deps, agent, access) },
+      { source: grantSource(agent, GITHUB_READ_INTEGRATION), tools: createGitHubReadTools(deps, agent, access) },
+      { source: grantSource(agent, GITHUB_WRITE_INTEGRATION), tools: createGitHubWriteTools(deps, agent, access, this.gitHub) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
