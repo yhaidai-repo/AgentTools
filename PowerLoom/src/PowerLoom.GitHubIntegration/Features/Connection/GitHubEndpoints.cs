@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using PowerLoom.GitHubIntegration.Features.Connection.Models;
 using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Features.SyncRepositories;
+using PowerLoom.Contracts;
+using PowerLoom.GitHubIntegration.Settings;
 using PowerLoom.Infrastructure.Http;
+using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Persistence;
 using Wolverine;
@@ -43,6 +46,22 @@ public static class GitHubEndpoints
         await bus.PublishAsync(new SyncGitHubRepositories(vault));
 
         return TypedResults.Accepted((string?)null);
+    }
+
+    // Settings → Sync: the pull request check's switch and schedule.
+    [WolverinePut("/api/vaults/{vault}/github/pull-requests")]
+    public static async Task<Results<Ok<GitHubSummary>, ProblemHttpResult>> SavePullRequests(string vault, SaveGitHubPullRequestsRequest request, GitHubSettingsStore store, CancellationToken cancellation)
+    {
+        if (!CronDue.IsValid(request.Cron.Trim()))
+            return Problem.Invalid($"\"{request.Cron}\" isn't a cron expression (five fields, e.g. */30 * * * *).").ToProblemResult();
+
+        var settings = await store.ReadAsync(vault, cancellation);
+
+        settings.PullRequestsEnabled = request.Enabled;
+        settings.PullRequestsCron = request.Cron.Trim();
+        await store.SaveAsync(vault, settings, cancellation);
+
+        return TypedResults.Ok(GitHubConnection.SummaryOf(settings));
     }
 
     // Reviews → Check now: the vault's GitHub pull requests.

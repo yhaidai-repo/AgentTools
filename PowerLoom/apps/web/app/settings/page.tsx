@@ -1,4 +1,4 @@
-import { FRAMEWORK_ID, isAdoActive, listVaultRepos, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type GoogleDriveSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { FRAMEWORK_ID, isAdoActive, isGitHubActive, listVaultRepos, readGitHubCheckStatus, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type GoogleDriveSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -21,6 +21,8 @@ import { ClaudeTokenForm } from "./ClaudeTokenForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
+import { GitHubForm } from "./GitHubForm";
+import { GitHubPullRequestsForm } from "./GitHubPullRequestsForm";
 import { GoogleDrivePanel } from "./GoogleDrivePanel";
 import { FrameworkForm } from "./FrameworkForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
@@ -54,16 +56,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
   const readSql = await readReadSqlSettings(db, current);
   const readAzure = await readReadAzureSettings(db, current);
   const devHub = await readDevHubSettings(db, current);
+  const github = await readGitHubSettings(db, current);
   const providers = await loadAiProviders();
-  const marks = await tabMarks(db, current, { adoActive: isAdoActive(ado), repos, readSql, readAzure, devHubOn: devHub.enabled, providers });
+  const marks = await tabMarks(db, current, { adoActive: isAdoActive(ado), gitHubActive: isGitHubActive(github), repos, readSql, readAzure, devHubOn: devHub.enabled, providers });
 
   return (
     <>
       <div className="page-head"><h1>Settings</h1><span className="hint">of <code>{current}</code></span></div>
       <SettingsTabs active={tab} marks={marks} />
       {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
-      {tab === "sync" && (isAdoActive(ado) ? <SyncTab db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and pull requests need the Azure DevOps integration: switch it on in the Azure DevOps tab.</p>)}
-      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} github={gitHubValues(await readGitHubSettings(db, current))} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
+      {tab === "github" && <GitHubForm key={`github-${current}-${github.owner}-${github.login}`} values={gitHubValues(github)} />}
+      {tab === "sync" && <SyncTab db={db} current={current} ado={isAdoActive(ado) ? ado : null} github={isGitHubActive(github) ? github : null} repos={repos} />}
+      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
       {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} driveMessage={params.drive ?? null} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
       {tab === "agents" && <AgentsTab />}
@@ -75,6 +79,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
 
 interface MarkInputs {
   adoActive: boolean;
+  gitHubActive: boolean;
   repos: RepoRow[];
   readSql: ReadSqlSettings;
   readAzure: ReadAzureSettings;
@@ -89,7 +94,8 @@ async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): P
 
   return {
     ado: { dot: inputs.adoActive ? "ok" : "off" },
-    sync: { dot: !inputs.adoActive ? "off" : isQuiet ? "warn" : "ok" },
+    github: { dot: inputs.gitHubActive ? "ok" : "off" },
+    sync: { dot: !inputs.adoActive && !inputs.gitHubActive ? "off" : isQuiet ? "warn" : "ok" },
     repos: { count: `${inputs.repos.filter((row) => !row.excluded).length}/${inputs.repos.length}` },
     data: { dot: dataOn ? "ok" : "off" },
     devhub: { dot: inputs.devHubOn ? "ok" : "off" },
@@ -97,8 +103,19 @@ async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): P
   };
 }
 
-// The three syncs of an active integration (user decision 2026-10-06: not offered without one), and the artefact cleanup.
-async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {
+// Each sync of an integration that is configured (user decisions 2026-10-06, 2026-10-25: Azure DevOps' three, GitHub's
+// pull requests), and the artefact cleanup, which needs neither.
+async function SyncTab({ db, current, ado, github, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings | null; github: GitHubSettings | null; repos: RepoRow[] }) {
+  return (
+    <>
+      {ado ? <AdoSyncs db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and Azure DevOps pull requests need the Azure DevOps integration: set it up in the Azure DevOps tab.</p>}
+      {github ? <GitHubPullRequestsForm key={`github-prs-${current}`} values={{ enabled: github.pullRequestsEnabled, cron: github.pullRequestsCron, login: github.login, status: await readGitHubCheckStatus(db, current) }} /> : <p className="quiet-line">GitHub pull requests need GitHub: connect it in the GitHub tab.</p>}
+      <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
+    </>
+  );
+}
+
+async function AdoSyncs({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {
   const vault = (await readVault(db, current))!;
   const sync = await readSyncSettings(db, current);
   const importStatus = <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />;
@@ -108,7 +125,6 @@ async function SyncTab({ db, current, ado, repos }: { db: PowerLoomDb; current: 
       <SettingsForm key={current} enabled={vault.features.adoSync} sync={sync} sprintOptions={await loadSprintChoices(ado)} currentSprint={await readCurrentSprint(db, current)} />
       <ImportSettingsForm key={`import-${current}`} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} status={importStatus} />
       <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
-      <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
     </>
   );
 }
