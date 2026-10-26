@@ -21,7 +21,7 @@ export function GitHubForm({ values }: { values: GitHubValues }) {
     <KeptForm action={saveAction} actions={{ test: testAction, sync: syncAction }} clearOn={saveResult} className="panel settings-card">
       <SettingsHead title="GitHub" description="The owner's GitHub repos come into this vault's repositories; agents clone the enabled ones with this token, and pull requests you review or wrote come to Reviews." enabled={values.enabled} />
       <div className="settings-body">
-        <p className="hint">A fine-grained personal access token with Contents and Pull requests: read, on the repos agents should read.</p>
+        <p className="hint">A fine-grained personal access token with Contents and Pull requests: Read-only on the repos agents should read; Read and write if an agent has GitHub (write) on its Config page (it pushes only its own powerloom/… branches and opens draft pull requests).</p>
         <div className="field-grid">
           <label className="field"><span>Owner<small>a user or organization; empty: every repo the token reads</small></span><input name="owner" defaultValue={values.owner} placeholder="acme" /></label>
           <label className="field"><span>Token<small>{values.hasToken ? `set${signedIn}; type a new one to replace it` : "github_pat_…"}</small></span><input name="token" type="password" autoComplete="off" placeholder={values.hasToken ? "•••••••• unchanged" : ""} /></label>

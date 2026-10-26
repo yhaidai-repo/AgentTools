@@ -12,6 +12,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import { listReposTool } from "../refinement/refinementTools";
 import { createSqlTools, READ_SQL_INTEGRATION } from "../sqlTools";
+import { createGitHubReadTools, GITHUB_READ_INTEGRATION } from "../github/githubReadTools";
 import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools } from "../stage";
 import type { ToolGroup } from "../toolset/models/ToolGroup";
@@ -60,6 +61,7 @@ function readingGroups(deps: AgentDeps, agent: AgentDefinition, access: OutsideA
     { source: grantSource(agent, CONFLUENCE_INTEGRATION), tools: createConfluenceTools(deps, agent, access) },
     { source: grantSource(agent, READ_SQL_INTEGRATION), tools: createSqlTools(deps, agent, access) },
     { source: grantSource(agent, GOOGLE_DRIVE_INTEGRATION), tools: createGoogleDriveTools(deps, agent, access) },
+    { source: grantSource(agent, GITHUB_READ_INTEGRATION), tools: createGitHubReadTools(deps, agent, access) },
     { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
     { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access).map(actingUnlessSaid) },
     { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access, chatTestCaseTools) },
