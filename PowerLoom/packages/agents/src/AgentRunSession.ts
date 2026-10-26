@@ -78,9 +78,9 @@ export class AgentRunSession {
 
   /** Commits a successful run's output, then stores the final outcome and usage. A failing commit fails the run.
    *  `keepOnLimitStop`: a run stopped by a limit (budget, turns, time) still commits what it has (a partial result); the
-   *  outcome stays. */
-  async finish(result: AgentRunResult, commit: Commit | null, keepOnLimitStop = false): Promise<AgentRunResult> {
-    const final = await this.commitIfSuccess(result, commit, keepOnLimitStop);
+   *  outcome stays. `phase` names the commit in the trace: a continued run replays the draft unless it was "commit". */
+  async finish(result: AgentRunResult, commit: Commit | null, keepOnLimitStop = false, phase = "commit"): Promise<AgentRunResult> {
+    const final = await this.commitIfSuccess(result, commit, keepOnLimitStop, phase);
     const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd });
 
     await this.trace.flush();
@@ -181,7 +181,7 @@ export class AgentRunSession {
     }
   }
 
-  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnLimitStop: boolean): Promise<AgentRunResult> {
+  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnLimitStop: boolean, phase: string): Promise<AgentRunResult> {
     const isKept = result.outcome === "success" || (keepOnLimitStop && isLimitStop(result.outcome));
 
     if (!isKept || !commit) {
@@ -189,7 +189,7 @@ export class AgentRunSession {
     }
 
     try {
-      await this.phase("commit");
+      await this.phase(phase);
       await commit();
 
       return result;

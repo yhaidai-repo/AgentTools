@@ -16,6 +16,6 @@ export interface WriterTarget {
   repos: RepoAccess;
   /** What write_result recorded, when it was called before the commit. */
   result: ResultDraft | null;
-  /** A limit (budget, turns, time) stopped the run: its work is kept, but nothing may queue more runs. */
+  /** The budget stopped the run: its work is kept, but nothing may queue more runs. */
   stoppedEarly: boolean;
 }

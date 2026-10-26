@@ -173,6 +173,15 @@ export class AgentToolset {
     return { turns: this.meter.toolCalls, maxTurns: agent.limits.maxTurns, spentUsd: this.session.spentUsd, budgetUsd: agent.budgets.perRunUsd };
   }
 
+  /** A run its turns or time stopped: only its result, as a checkpoint. What it staged (tasks, captures, the writers'
+   *  outputs, the estimate) isn't committed; the next run continues the conversation and makes those calls again. */
+  async commitCheckpoint(runId: number): Promise<void> {
+    const { deps } = this.context;
+    const output = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
+
+    await addRunOutputs(deps.db, runId, output ? [output] : []);
+  }
+
   /** What the granted writers' outputs say about the task's end (see WriterSettlement). */
   settlements(): WriterSettlement[] {
     return this.writers.map((writer) => writer.settlement?.() ?? null).filter((settlement): settlement is WriterSettlement => settlement !== null);

@@ -9,7 +9,7 @@ import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { environmentPromptSection } from "../environment/vaultEnvironment";
-import { isLimitStop, stoppedResult } from "../limits/limitStops";
+import { isLimitStop, keepsOnlyResult, stoppedResult } from "../limits/limitStops";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
@@ -46,11 +46,17 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
     const stoppedEarly = isLimitStop(ran.outcome);
+    // Turns or time ran out: only the result is kept, as a checkpoint. What the run staged (tasks, drafts, its role's
+    // outputs) isn't committed for a run that didn't finish; the next run makes those calls again from the conversation.
+    const isCheckpoint = keepsOnlyResult(ran.outcome);
 
     keepWhatTheStopLeft(ran.outcome, run);
 
     const committed: { createdIds: string[] | null } = { createdIds: null };
-    const final = await session.finish(ran, async () => { committed.createdIds = (await run.toolset?.commit(session.runId, stoppedEarly))?.taskIds ?? []; }, stoppedEarly);
+    const commit = isCheckpoint
+      ? async () => { await run.toolset?.commitCheckpoint(session.runId); }
+      : async () => { committed.createdIds = (await run.toolset?.commit(session.runId, stoppedEarly))?.taskIds ?? []; };
+    const final = await session.finish(ran, commit, stoppedEarly, isCheckpoint ? "checkpoint" : "commit");
 
     // Settled once everything is committed, never by a writer; a failed commit is ended by endTask as a failure.
     if (committed.createdIds && run.toolset && (final.outcome === "success" || final.outcome === "budget-exceeded")) {
@@ -160,7 +166,7 @@ async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun
     previousResultBlock(await loadPreviousResult(db, task.id), task.startOver),
     webDocuments,
     reposBlock(run.repos),
-    "Work on the task, then call write_result once with the result.",
+    "Work on the task. Record what you have early with write_result (status partial), then call it again with the final result: each call replaces the last, and the last one is the run's result.",
   ].filter(Boolean).join("\n\n");
 }
 
