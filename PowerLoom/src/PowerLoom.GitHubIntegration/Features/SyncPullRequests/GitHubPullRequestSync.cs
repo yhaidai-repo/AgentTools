@@ -8,6 +8,7 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Reviews;
+using PowerLoom.Persistence.Settings;
 
 namespace PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 
@@ -22,7 +23,7 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
 
     public async Task<string> RunAsync(string vault, GitHubSettings github, IGitHubClient client, CancellationToken cancellation)
     {
-        var mine = await MineAsync(vault, github, client, cancellation);
+        var mine = await MineAsync(vault, github.Login, await PullRequestSettings.ReadAsync(db, vault, cancellation), client, cancellation);
         var deleted = (await db.DeletedPullRequests.Select(row => row.Id).ToListAsync(cancellation)).ToHashSet();
         var listed = new List<int>();
         var added = 0;
@@ -45,11 +46,11 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
         return Same(pr.Author, login) || pr.RequestedReviewers.Any(reviewer => Same(reviewer, login)) || reviewed.Contains(pr.Key);
     }
 
-    private async Task<List<(Repo Repo, GitHubPullRequest Pr)>> MineAsync(string vault, GitHubSettings github, IGitHubClient client, CancellationToken cancellation)
+    // The enabled GitHub repos the Pull requests card checks (chosen as owner/name; none chosen = all).
+    private async Task<List<(Repo Repo, GitHubPullRequest Pr)>> MineAsync(string vault, string login, PullRequestSettings settings, IGitHubClient client, CancellationToken cancellation)
     {
-        var login = github.Login;
         var enabled = await db.Repos.AsNoTracking().Where(repo => repo.Vault == vault && repo.Kind == RepoKind.Github && !repo.Excluded).ToListAsync(cancellation);
-        var repos = enabled.Where(repo => github.ChecksPullRequestsOf(repo.AdoProject, repo.Name)).ToList();
+        var repos = enabled.Where(repo => settings.ChecksRepo($"{repo.AdoProject}/{repo.Name}")).ToList();
         var reviewed = (await client.ListReviewedPullRequestsAsync(login, cancellation)).ToHashSet();
         var mine = new List<(Repo, GitHubPullRequest)>();
 

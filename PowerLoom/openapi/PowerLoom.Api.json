@@ -3639,58 +3639,6 @@
         }
       }
     },
-    "/api/vaults/{vault}/github/pull-requests": {
-      "put": {
-        "tags": [
-          "PowerLoom.GitHubIntegration.Features.Connection.GitHubEndpoints"
-        ],
-        "summary": "PUT_api_vaults_vault_github_pull_requests",
-        "description": "PUT_api_vaults_vault_github_pull_requests",
-        "operationId": "PUT_api_vaults_vault_github_pull_requests",
-        "parameters": [
-          {
-            "name": "vault",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveGitHubPullRequestsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GitHubSummary"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/vaults/{vault}/github/pull-requests/sync": {
       "post": {
         "tags": [
@@ -6270,30 +6218,6 @@
               "null",
               "string"
             ]
-          }
-        }
-      },
-      "SaveGitHubPullRequestsRequest": {
-        "required": [
-          "enabled",
-          "cron"
-        ],
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "cron": {
-            "type": "string"
-          },
-          "repos": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
           }
         }
       },

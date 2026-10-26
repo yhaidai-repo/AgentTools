@@ -1,8 +1,7 @@
-using System.Net;
 using Alba;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Api.Tests.Probes;
-using PowerLoom.GitHubIntegration.Features.Connection.Models;
+using PowerLoom.AdoIntegration.Features.Settings.Models;
 using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Scheduling;
 using PowerLoom.GitHubIntegration.Settings;
@@ -14,35 +13,28 @@ using Wolverine.Tracking;
 
 namespace PowerLoom.Api.Tests.GitHub;
 
-// Settings → Sync → GitHub pull requests (user decision 2026-10-25): on once GitHub is connected, its own schedule, and
-// how the last check went.
+// Settings → Sync → Pull requests (user decision 2026-10-26: one card for Azure DevOps and GitHub): GitHub's check runs on
+// the card's switch and schedule, and records how the last check went.
 [Collection(PowerLoomCollection.Name)]
 public sealed class GitHubPullRequestSyncSettingsTests(PowerLoomHost host)
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
-    private static readonly string Url = $"/api/vaults/{PowerLoomHost.Vault}/github/pull-requests";
+    private static readonly string Url = $"/api/vaults/{PowerLoomHost.Vault}/ado/pull-request-settings";
 
     private FakeGitHubClient GitHub => host.Host.Services.GetRequiredService<FakeGitHubClientFactory>().Client;
 
     [Fact]
-    public async Task The_check_runs_on_its_own_schedule_while_on_and_a_bad_cron_is_refused()
+    public async Task The_check_runs_on_the_pull_requests_card_s_switch_and_schedule()
     {
         await ConnectAsync();
 
-        var on = await EntriesAsync();
-        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(false, "*/10 * * * *"), Url).Receive<GitHubSummary>();
+        await host.Host.PutJson(new PullRequestSettingsRequest(false, "*/10 * * * *", 50, null), Url).Receive<SavedSettings>();
         var off = await EntriesAsync();
-        await host.Host.Scenario(scenario =>
-        {
-            scenario.Put.Json(new SaveGitHubPullRequestsRequest(true, "every minute")).ToUrl(Url);
-            scenario.StatusCodeShouldBe(HttpStatusCode.BadRequest);
-        });
-        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(true, "*/10 * * * *"), Url).Receive<GitHubSummary>();
-        var again = await EntriesAsync();
+        await host.Host.PutJson(new PullRequestSettingsRequest(true, "*/10 * * * *", 50, null), Url).Receive<SavedSettings>();
+        var on = await EntriesAsync();
 
-        Assert.Contains(on, entry => entry.Key == $"github-pull-requests:{PowerLoomHost.Vault}" && entry.Cron == GitHubSettings.DefaultPullRequestsCron);
         Assert.DoesNotContain(off, entry => entry.Key.StartsWith("github-pull-requests:"));
-        Assert.Contains(again, entry => entry.Key == $"github-pull-requests:{PowerLoomHost.Vault}" && entry.Cron == "*/10 * * * *");
+        Assert.Contains(on, entry => entry.Key == $"github-pull-requests:{PowerLoomHost.Vault}" && entry.Cron == "*/10 * * * *");
     }
 
     [Fact]
