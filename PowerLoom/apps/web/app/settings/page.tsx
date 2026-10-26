@@ -23,6 +23,7 @@ import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
 import { GitHubForm } from "./GitHubForm";
 import { GitHubPullRequestsForm } from "./GitHubPullRequestsForm";
+import type { GitHubPullRequestsValues } from "@/models/GitHubPullRequestsValues";
 import { GoogleDrivePanel } from "./GoogleDrivePanel";
 import { FrameworkForm } from "./FrameworkForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
@@ -109,10 +110,16 @@ async function SyncTab({ db, current, ado, github, repos }: { db: PowerLoomDb; c
   return (
     <>
       {ado ? <AdoSyncs db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and Azure DevOps pull requests need the Azure DevOps integration: set it up in the Azure DevOps tab.</p>}
-      {github ? <GitHubPullRequestsForm key={`github-prs-${current}`} values={{ enabled: github.pullRequestsEnabled, cron: github.pullRequestsCron, login: github.login, status: await readGitHubCheckStatus(db, current) }} /> : <p className="quiet-line">GitHub pull requests need GitHub: connect it in the GitHub tab.</p>}
+      {github ? <GitHubPullRequestsForm key={`github-prs-${current}`} values={await gitHubPullRequestsValues(db, current, github, repos)} /> : <p className="quiet-line">GitHub pull requests need GitHub: connect it in the GitHub tab.</p>}
       <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
     </>
   );
+}
+
+async function gitHubPullRequestsValues(db: PowerLoomDb, current: string, github: GitHubSettings, repos: RepoRow[]): Promise<GitHubPullRequestsValues> {
+  const repoNames = repos.filter((row) => row.kind === "github" && !row.excluded).map((row) => `${row.adoProject}/${row.name}`);
+
+  return { enabled: github.pullRequestsEnabled, cron: github.pullRequestsCron, login: github.login, repos: github.pullRequestsRepos, repoNames, status: await readGitHubCheckStatus(db, current) };
 }
 
 async function AdoSyncs({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {

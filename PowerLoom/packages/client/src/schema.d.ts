@@ -2377,6 +2377,7 @@ export interface components {
         SaveGitHubPullRequestsRequest: {
             enabled: boolean;
             cron: string;
+            repos?: null | string[];
         };
         SaveGitHubRequest: {
             enabled: boolean;

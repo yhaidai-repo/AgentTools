@@ -48,7 +48,7 @@ public static class GitHubEndpoints
         return TypedResults.Accepted((string?)null);
     }
 
-    // Settings → Sync: the pull request check's switch and schedule.
+    // Settings → Sync: the pull request check's switch, schedule and repos.
     [WolverinePut("/api/vaults/{vault}/github/pull-requests")]
     public static async Task<Results<Ok<GitHubSummary>, ProblemHttpResult>> SavePullRequests(string vault, SaveGitHubPullRequestsRequest request, GitHubSettingsStore store, CancellationToken cancellation)
     {
@@ -59,6 +59,7 @@ public static class GitHubEndpoints
 
         settings.PullRequestsEnabled = request.Enabled;
         settings.PullRequestsCron = request.Cron.Trim();
+        settings.PullRequestsRepos = (request.Repos ?? []).Select(repo => repo.Trim()).Where(repo => repo.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         await store.SaveAsync(vault, settings, cancellation);
 
         return TypedResults.Ok(GitHubConnection.SummaryOf(settings));

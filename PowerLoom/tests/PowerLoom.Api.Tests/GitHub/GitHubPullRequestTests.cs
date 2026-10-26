@@ -7,6 +7,7 @@ using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Features.Continue.Models;
 using PowerLoom.Features.Reviews.Models;
 using PowerLoom.GitHubIntegration.Client.Models;
+using PowerLoom.GitHubIntegration.Features.Connection.Models;
 using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Settings;
 using PowerLoom.Persistence;
@@ -83,6 +84,26 @@ public sealed class GitHubPullRequestTests(PowerLoomHost host)
 
         Assert.True(note.Contains("`git fetch origin main +refs/pull/21/head:refs/powerloom/pull-21`, then `git diff origin/main...refs/powerloom/pull-21`"), note);
         Assert.Contains($"[Open on GitHub](https://github.com/{Owner}/{Repo}/pull/21)", note);
+    }
+
+    [Fact]
+    public async Task Only_the_chosen_repos_are_checked_and_none_chosen_checks_them_all()
+    {
+        const string Chosen = "prs-chosen";
+        const string Other = "prs-other";
+        await SeedAsync(Chosen);
+        await SeedAsync(Other);
+        GitHub.Pulls[$"{Owner}/{Chosen}"] = [Pr(Chosen, 31, "sam", [], "h31")];
+        GitHub.Pulls[$"{Owner}/{Other}"] = [Pr(Other, 32, "sam", [], "h32")];
+
+        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(true, "*/30 * * * *", [$" {Owner}/PRS-Chosen "]), $"/api/vaults/{PowerLoomHost.Vault}/github/pull-requests").Receive<GitHubSummary>();
+        await SyncAsync();
+        var chosenOnly = ((await RowsAsync(Chosen)).Count, (await RowsAsync(Other)).Count);
+        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(true, "*/30 * * * *", []), $"/api/vaults/{PowerLoomHost.Vault}/github/pull-requests").Receive<GitHubSummary>();
+        await SyncAsync();
+
+        Assert.Equal((1, 0), chosenOnly);
+        Assert.Single(await RowsAsync(Other));
     }
 
     private static GitHubPullRequest Pr(string repo, int number, string author, string[] reviewers, string head, bool draft = false)
