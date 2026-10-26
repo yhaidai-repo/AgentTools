@@ -6,6 +6,8 @@ import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
+import { GITHUB_READ_INTEGRATION } from "./github/githubReadTools";
+import { GITHUB_WRITE_INTEGRATION } from "./github/githubWriteTools";
 import { GOOGLE_DRIVE_INTEGRATION } from "./googleDrive/googleDriveTools";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
@@ -256,6 +258,16 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent may run read-only queries on the vault's Read SQL connections (Settings) during its runs. Whatever a query returns goes to the model provider.",
   },
   {
+    key: GITHUB_READ_INTEGRATION,
+    label: "GitHub (read)",
+    description: "The agent may read the vault's GitHub repos' pull requests (with their reviews and comments), issues and CI checks during its runs (Settings → Repositories → GitHub). The code itself is Read repositories.",
+  },
+  {
+    key: GITHUB_WRITE_INTEGRATION,
+    label: "GitHub (write)",
+    description: "The agent may change a GitHub repo on a branch of its own (powerloom/<task>-r<run>, from the default branch): write and commit files, push that branch and open a draft pull request. It never pushes another branch, never forces a push and never merges. The GitHub token needs Contents and Pull requests: Read and write.",
+  },
+  {
     key: GOOGLE_DRIVE_INTEGRATION,
     label: "Google Drive (read)",
     description: "The agent may search and read files in the Google Drive folders the vault shares with agents (Settings → Data access) during its runs. Whatever it reads goes to the model provider.",
@@ -465,7 +477,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 1, timeoutMinutes: 1 },
     budgets: { perRunUsd: 0, dailyUsd: 0 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [GOOGLE_DRIVE_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: false, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: true, [GOOGLE_DRIVE_INTEGRATION]: true, [GITHUB_READ_INTEGRATION]: true, [AZURE_ACCESS_INTEGRATION]: true, [READ_COSMOS_INTEGRATION]: true, [READ_MONGO_INTEGRATION]: true, [READ_SERVICE_BUS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false } },
     skills: [],
     options: {},
     optionSpecs: [],

@@ -16,6 +16,7 @@ const FIXES: Record<string, string> = {
   serviceBus: "Settings → Read Azure → Service Bus: the namespace refused its connection string (a rotated key or a policy without Listen); remove the namespace and add it again with a current Listen-only connection string.",
   mongo: "Settings → Read Azure: sign in again with your account, or the account may not list the Cosmos DB for MongoDB account's connection strings: ask an Azure admin for Cosmos DB Account Reader on it. A server added by connection string: its user or password was refused; remove it and add it again with a current read-only user's string.",
   ado: "Settings → Azure DevOps: check that the PAT has Work Items (Read) and Code (Read) and hasn't expired; save a new one if it lacks a scope or has expired.",
+  github: "Settings → Repositories → GitHub: the token was refused or lacks a permission. Give it Contents and Pull requests (Read; Read and write for an agent with GitHub (write)) on the repo, or save a new one if it expired.",
   googleDrive: "Settings → Data access → Google Drive: sign in with Google again (the sign-in expired or was revoked), or the signed-in account may not see the file: share its folder with that account.",
 };
 

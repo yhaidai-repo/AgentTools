@@ -15,6 +15,7 @@ import type { DevHubAccess } from "./DevHubAccess";
 import type { ProviderConnections } from "../providerConnections";
 import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
+import type { GitHubAccess } from "../github/models/GitHubAccess";
 import type { GoogleDriveAccess } from "../googleDrive/models/GoogleDriveAccess";
 
 export interface AgentDeps {
@@ -55,6 +56,8 @@ export interface AgentDeps {
   outside: OutsideAccessServices;
   /** The run's vault's Read SQL connections for agents with the integration on; null while the vault's Read SQL is off. */
   sql: SqlAccess | null;
+  /** The run's vault's GitHub API with its token (GitHub (read) and (write)); null while its GitHub isn't connected. */
+  github: GitHubAccess | null;
   /** The run's vault's Google Drive (its sign-in and chosen folders); null while it is off, signed out or has no folder. */
   googleDrive: GoogleDriveAccess | null;
   /** The run's vault's Read Azure (switches per kind, resources, the readers); null where no kind is on. */

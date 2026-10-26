@@ -57,6 +57,7 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     return final;
   } finally {
     await cleanUpWriters(run);
+    await cleanUpToolset(run);
     closeRepos(deps, run.repos);
   }
 }
@@ -69,6 +70,15 @@ async function cleanUpWriters(run: GenericRun): Promise<void> {
     } catch (error) {
       console.error(`cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+}
+
+// The toolset's own leftovers (GitHub working copies); a failure is logged, never thrown over the run's outcome.
+async function cleanUpToolset(run: GenericRun): Promise<void> {
+  try {
+    await run.toolset?.cleanUp();
+  } catch (error) {
+    console.error(`toolset cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
