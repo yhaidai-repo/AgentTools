@@ -22,8 +22,6 @@ import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
 import { GitHubForm } from "./GitHubForm";
-import { GitHubPullRequestsForm } from "./GitHubPullRequestsForm";
-import type { GitHubPullRequestsValues } from "@/models/GitHubPullRequestsValues";
 import { GoogleDrivePanel } from "./GoogleDrivePanel";
 import { FrameworkForm } from "./FrameworkForm";
 import { GlobalAgentForm } from "./GlobalAgentForm";
@@ -104,25 +102,30 @@ async function tabMarks(db: PowerLoomDb, current: string, inputs: MarkInputs): P
   };
 }
 
-// Each sync of an integration that is configured (user decisions 2026-10-06, 2026-10-25: Azure DevOps' three, GitHub's
-// pull requests), and the artefact cleanup, which needs neither.
+// Each sync of an integration that is configured (user decisions 2026-10-06, 2026-10-26: Azure DevOps' PBI sync and mail
+// import; one Pull requests card for Azure DevOps and GitHub, their enabled repos as chips), and the artefact cleanup,
+// which needs neither.
 async function SyncTab({ db, current, ado, github, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings | null; github: GitHubSettings | null; repos: RepoRow[] }) {
   return (
     <>
-      {ado ? <AdoSyncs db={db} current={current} ado={ado} repos={repos} /> : <p className="quiet-line">PBI sync, mail import and Azure DevOps pull requests need the Azure DevOps integration: set it up in the Azure DevOps tab.</p>}
-      {github ? <GitHubPullRequestsForm key={`github-prs-${current}`} values={await gitHubPullRequestsValues(db, current, github, repos)} /> : <p className="quiet-line">GitHub pull requests need GitHub: connect it in the GitHub tab.</p>}
+      {ado ? <AdoSyncs db={db} current={current} ado={ado} /> : <p className="quiet-line">PBI sync and mail import need the Azure DevOps integration: set it up in the Azure DevOps tab.</p>}
+      {ado || github ? <PullRequestsCard db={db} current={current} ado={ado} github={github} repos={repos} /> : <p className="quiet-line">Pull requests need Azure DevOps or GitHub: set one up in its tab.</p>}
       <CleanupSettingsForm key={`cleanup-${current}`} settings={await readCleanupSettings(db, current)} />
     </>
   );
 }
 
-async function gitHubPullRequestsValues(db: PowerLoomDb, current: string, github: GitHubSettings, repos: RepoRow[]): Promise<GitHubPullRequestsValues> {
-  const repoNames = repos.filter((row) => row.kind === "github" && !row.excluded).map((row) => `${row.adoProject}/${row.name}`);
+async function PullRequestsCard({ db, current, ado, github, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings | null; github: GitHubSettings | null; repos: RepoRow[] }) {
+  const vault = (await readVault(db, current))!;
+  const enabled = repos.filter((row) => !row.excluded);
+  const adoNames = ado ? enabled.filter((row) => row.kind === "ado").map((row) => row.name) : [];
+  const gitHubNames = github ? enabled.filter((row) => row.kind === "github").map((row) => `${row.adoProject}/${row.name}`) : [];
+  const gitHubCheck = github ? { status: await readGitHubCheckStatus(db, current) } : null;
 
-  return { enabled: github.pullRequestsEnabled, cron: github.pullRequestsCron, login: github.login, repos: github.pullRequestsRepos, repoNames, status: await readGitHubCheckStatus(db, current) };
+  return <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={[...adoNames, ...gitHubNames]} gitHubCheck={gitHubCheck} />;
 }
 
-async function AdoSyncs({ db, current, ado, repos }: { db: PowerLoomDb; current: string; ado: AdoSettings; repos: RepoRow[] }) {
+async function AdoSyncs({ db, current, ado }: { db: PowerLoomDb; current: string; ado: AdoSettings }) {
   const vault = (await readVault(db, current))!;
   const sync = await readSyncSettings(db, current);
   const importStatus = <ImportStatus status={await readImportStatus(db, current)} activity={await readImportSourceActivity(db, current)} />;
@@ -131,7 +134,6 @@ async function AdoSyncs({ db, current, ado, repos }: { db: PowerLoomDb; current:
     <>
       <SettingsForm key={current} enabled={vault.features.adoSync} sync={sync} sprintOptions={await loadSprintChoices(ado)} currentSprint={await readCurrentSprint(db, current)} />
       <ImportSettingsForm key={`import-${current}`} enabled={vault.features.mailSync} importFolder={vault.importFolder} inboxPath={process.env.IMPORT_INBOX_PATH ?? "the import inbox"} settings={await readImportSettings(db, current)} status={importStatus} />
-      <PullRequestSettingsForm key={`prs-${current}`} enabled={vault.features.pullRequests} settings={await readPullRequestSettings(db, current)} repoNames={repos.filter((row) => row.kind === "ado" && !row.excluded).map((row) => row.name)} />
     </>
   );
 }

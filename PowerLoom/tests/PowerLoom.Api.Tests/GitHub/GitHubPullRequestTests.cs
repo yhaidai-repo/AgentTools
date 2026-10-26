@@ -7,7 +7,7 @@ using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Features.Continue.Models;
 using PowerLoom.Features.Reviews.Models;
 using PowerLoom.GitHubIntegration.Client.Models;
-using PowerLoom.GitHubIntegration.Features.Connection.Models;
+using PowerLoom.AdoIntegration.Features.Settings.Models;
 using PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 using PowerLoom.GitHubIntegration.Settings;
 using PowerLoom.Persistence;
@@ -25,6 +25,7 @@ public sealed class GitHubPullRequestTests(PowerLoomHost host)
 {
     private const string Owner = "prs";
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    private static readonly string SettingsUrl = $"/api/vaults/{PowerLoomHost.Vault}/ado/pull-request-settings";
 
     private FakeGitHubClient GitHub => host.Host.Services.GetRequiredService<FakeGitHubClientFactory>().Client;
 
@@ -96,10 +97,10 @@ public sealed class GitHubPullRequestTests(PowerLoomHost host)
         GitHub.Pulls[$"{Owner}/{Chosen}"] = [Pr(Chosen, 31, "sam", [], "h31")];
         GitHub.Pulls[$"{Owner}/{Other}"] = [Pr(Other, 32, "sam", [], "h32")];
 
-        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(true, "*/30 * * * *", [$" {Owner}/PRS-Chosen "]), $"/api/vaults/{PowerLoomHost.Vault}/github/pull-requests").Receive<GitHubSummary>();
+        await host.Host.PutJson(new PullRequestSettingsRequest(true, "*/15 * * * *", 50, [$" {Owner}/PRS-Chosen ", "SomeAdoRepo"]), SettingsUrl).Receive<SavedSettings>();
         await SyncAsync();
         var chosenOnly = ((await RowsAsync(Chosen)).Count, (await RowsAsync(Other)).Count);
-        await host.Host.PutJson(new SaveGitHubPullRequestsRequest(true, "*/30 * * * *", []), $"/api/vaults/{PowerLoomHost.Vault}/github/pull-requests").Receive<GitHubSummary>();
+        await host.Host.PutJson(new PullRequestSettingsRequest(true, "*/15 * * * *", 50, []), SettingsUrl).Receive<SavedSettings>();
         await SyncAsync();
 
         Assert.Equal((1, 0), chosenOnly);

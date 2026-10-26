@@ -48,23 +48,6 @@ public static class GitHubEndpoints
         return TypedResults.Accepted((string?)null);
     }
 
-    // Settings → Sync: the pull request check's switch, schedule and repos.
-    [WolverinePut("/api/vaults/{vault}/github/pull-requests")]
-    public static async Task<Results<Ok<GitHubSummary>, ProblemHttpResult>> SavePullRequests(string vault, SaveGitHubPullRequestsRequest request, GitHubSettingsStore store, CancellationToken cancellation)
-    {
-        if (!CronDue.IsValid(request.Cron.Trim()))
-            return Problem.Invalid($"\"{request.Cron}\" isn't a cron expression (five fields, e.g. */30 * * * *).").ToProblemResult();
-
-        var settings = await store.ReadAsync(vault, cancellation);
-
-        settings.PullRequestsEnabled = request.Enabled;
-        settings.PullRequestsCron = request.Cron.Trim();
-        settings.PullRequestsRepos = (request.Repos ?? []).Select(repo => repo.Trim()).Where(repo => repo.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        await store.SaveAsync(vault, settings, cancellation);
-
-        return TypedResults.Ok(GitHubConnection.SummaryOf(settings));
-    }
-
     // Reviews → Check now: the vault's GitHub pull requests.
     [WolverinePost("/api/vaults/{vault}/github/pull-requests/sync")]
     public static async Task<Accepted> SyncPullRequests(string vault, IMessageBus bus)

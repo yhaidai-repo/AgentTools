@@ -7,6 +7,7 @@ using PowerLoom.Infrastructure.Http;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Persistence;
+using PowerLoom.Persistence.Settings;
 using PowerLoom.Persistence.Vaults;
 using Wolverine.Http;
 

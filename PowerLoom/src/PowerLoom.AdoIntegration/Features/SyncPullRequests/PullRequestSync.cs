@@ -11,6 +11,7 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Reviews;
+using PowerLoom.Persistence.Settings;
 
 namespace PowerLoom.AdoIntegration.Features.SyncPullRequests;
 

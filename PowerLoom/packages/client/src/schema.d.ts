@@ -1680,26 +1680,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vaults/{vault}/github/pull-requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * PUT_api_vaults_vault_github_pull_requests
-         * @description PUT_api_vaults_vault_github_pull_requests
-         */
-        put: operations["PUT_api_vaults_vault_github_pull_requests"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/vaults/{vault}/github/pull-requests/sync": {
         parameters: {
             query?: never;
@@ -2373,11 +2353,6 @@ export interface components {
             enabled: boolean;
             url: null | string;
             token: null | string;
-        };
-        SaveGitHubPullRequestsRequest: {
-            enabled: boolean;
-            cron: string;
-            repos?: null | string[];
         };
         SaveGitHubRequest: {
             enabled: boolean;
@@ -5146,41 +5121,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    PUT_api_vaults_vault_github_pull_requests: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                vault: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SaveGitHubPullRequestsRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GitHubSummary"];
-                };
             };
             /** @description Bad Request */
             400: {

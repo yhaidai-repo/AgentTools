@@ -172,9 +172,6 @@ export async function readGitHubSettings(db: PowerLoomDb, vault: string): Promis
     token: stored?.token ?? "",
     owner: stored?.owner ?? "",
     login: stored?.login ?? "",
-    pullRequestsEnabled: stored?.pullRequestsEnabled ?? true,
-    pullRequestsCron: stored?.pullRequestsCron ?? "*/30 * * * *",
-    pullRequestsRepos: stored?.pullRequestsRepos ?? [],
   };
 }
 
