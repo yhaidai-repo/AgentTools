@@ -24,6 +24,7 @@ import { reopenPbiCommand } from "./reopenPbiCommand";
 import { reportBugCommand } from "./reportBugCommand";
 import { rerunTaskCommand } from "./rerunTaskCommand";
 import { stopTaskCommand } from "./stopTaskCommand";
+import { editTaskCommand } from "./editTaskCommand";
 import { savePbiReposCommand } from "./savePbiReposCommand";
 import { savePbiSkillsCommand } from "./savePbiSkillsCommand";
 import { sqlDatabasesCommand } from "./sqlDatabasesCommand";
@@ -112,6 +113,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   submitFindingCommand,
   rerunTaskCommand,
   stopTaskCommand,
+  editTaskCommand,
   answerReviewCommentCommand,
   createWwwRecordCommand,
   openChatCommand,

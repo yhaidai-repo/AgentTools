@@ -28,5 +28,10 @@ export function taskWorkPort(powerloom: PowerLoomClient): TaskWorkPort {
 
       return data ? { ok: true, value: data.text } : powerloomFailure(error, response);
     },
+    async editTask({ itemId, ...edit }) {
+      const { data, error, response } = await powerloom.PUT("/api/tasks/{id}", { params: { path: { id: itemId } }, body: edit });
+
+      return data ? { ok: true, value: data.id } : powerloomFailure(error, response);
+    },
   };
 }

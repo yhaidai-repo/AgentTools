@@ -39,7 +39,7 @@ at most 200 rows. Every read goes to the data access log.
 | Tool | Does |
 |---|---|
 | `item_close` | answers or dismisses a question or finding, finishes (`answers`: one per step) or cancels a human task |
-| `item_delete`, `task_rerun`, `task_stop`, `task_notes_save` | deletes a question or task, runs a finished agent task again, stops one that is running, saves a test task's notes |
+| `item_delete`, `task_rerun`, `task_stop`, `task_edit`, `task_notes_save` | deletes a question or task, runs a finished agent task again, stops one that is running, edits a task's text, saves a test task's notes |
 | `finding_submit` | records a finding in a project's register (open question or known issue) and closes it |
 | `review_add`, `review_addLocal`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds a review (of an Azure DevOps branch, or of a local repo's branch without Azure DevOps), starts, closes or deletes (from PowerLoom only) one, answers a comment, checks for new pull requests |
 | `pbi_create`, `pbi_delete`, `pbi_finish`, `pbi_close`, `pbi_reopen` | creates, deletes, finishes, closes or reopens a PBI in PowerLoom |

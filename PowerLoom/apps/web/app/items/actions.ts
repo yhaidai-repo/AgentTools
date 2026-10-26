@@ -1,6 +1,6 @@
 "use server";
 
-import { closeItemCommand, deleteItemCommand, linkedUrlOf, rerunTaskCommand, saveTaskNotesCommand, stopTaskCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
+import { closeItemCommand, deleteItemCommand, editTaskCommand, linkedUrlOf, rerunTaskCommand, saveTaskNotesCommand, stopTaskCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { UploadedFile } from "@powerloom/attachments";
@@ -150,6 +150,27 @@ function revalidateItemPages(adoId: number | null): void {
 
 // A test task's own notes (user decision 2026-10-21): the Autotest agent reads them on every run. `loaded` is what the
 // page showed, so a save never overwrites notes changed meanwhile.
+// Edit on an agent task's page: its title, description and acceptance criteria, while it isn't running.
+export async function editTaskAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoId = formAdoId(form);
+  const edited = await runWebCommand(editTaskCommand, {
+    adoId,
+    itemId: String(form.get("itemId") ?? ""),
+    title: formText(form, "title") ?? "",
+    description: formText(form, "description") ?? "",
+    acceptanceCriteria: formText(form, "acceptanceCriteria") ?? "",
+  });
+
+  if (!edited.ok) {
+    return { ok: false, message: edited.error };
+  }
+
+  revalidateItemPages(adoId);
+  revalidatePath(String(form.get("path") ?? "/tasks"));
+
+  return { ok: true, message: "Saved. Re-run the task for an agent to work on the new text." };
+}
+
 export async function saveTaskNotes(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const id = String(form.get("itemId") ?? "");
   const saved = await runWebCommand(saveTaskNotesCommand, { itemId: id, text: String(form.get("text") ?? ""), loadedText: String(form.get("loaded") ?? "") });

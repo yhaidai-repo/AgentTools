@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_tasks_id
+         * @description PUT_api_tasks_id
+         */
+        put: operations["PUT_api_tasks_id"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}": {
         parameters: {
             query?: never;
@@ -2207,6 +2227,16 @@ export interface components {
             path: null | string;
             errors: string[];
         };
+        EditTaskRequest: {
+            /** Format: int32 */
+            adoId: null | number;
+            title: string;
+            description: string;
+            acceptanceCriteria: string;
+        };
+        EditedTask: {
+            id: string;
+        };
         EnabledRequest: {
             enabled: boolean;
         };
@@ -2975,6 +3005,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportedBug"];
+                };
+            };
+        };
+    };
+    PUT_api_tasks_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditedTask"];
                 };
             };
         };

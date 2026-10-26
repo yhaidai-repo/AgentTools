@@ -448,6 +448,48 @@
         }
       }
     },
+    "/api/tasks/{id}": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Tasks.EditTask.EditTaskEndpoint"
+        ],
+        "summary": "PUT_api_tasks_id",
+        "description": "PUT_api_tasks_id",
+        "operationId": "PUT_api_tasks_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditedTask"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}": {
       "delete": {
         "tags": [
@@ -5512,6 +5554,44 @@
           }
         }
       },
+      "EditTaskRequest": {
+        "required": [
+          "adoId",
+          "title",
+          "description",
+          "acceptanceCriteria"
+        ],
+        "type": "object",
+        "properties": {
+          "adoId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "acceptanceCriteria": {
+            "type": "string"
+          }
+        }
+      },
+      "EditedTask": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
       "EnabledRequest": {
         "required": [
           "enabled"
@@ -7372,6 +7452,9 @@
     },
     {
       "name": "PowerLoom.Features.Tasks.ReportBug.ReportBugEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.EditTask.EditTaskEndpoint"
     },
     {
       "name": "PowerLoom.Features.Tasks.DeleteItem.DeleteItemEndpoint"
