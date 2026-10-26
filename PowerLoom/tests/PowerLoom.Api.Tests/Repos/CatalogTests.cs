@@ -57,6 +57,33 @@ public sealed class CatalogTests(PowerLoomHost host)
         await db.SaveChangesAsync();
     }
 
+    [Fact]
+    public async Task A_GitHub_repo_s_switch_finds_it_by_its_id_sent_as_the_web_sends_it()
+    {
+        const string id = "github:test-vault:koffcheg/switch-app";
+
+        await SeedAsync(new Repo { Id = id, AdoProject = "koffcheg", Name = "switch-app", RemoteUrl = "https://github.com/koffcheg/switch-app.git", Kind = RepoKind.Github, Vault = PowerLoomHost.Vault });
+
+        await host.Host.Scenario(scenario =>
+        {
+            scenario.Put.Json(new EnabledRequest(false)).ToUrl($"/api/vaults/{PowerLoomHost.Vault}/repos/{Uri.EscapeDataString(id)}/enabled");
+            scenario.StatusCodeShouldBeOk();
+        });
+
+        Assert.True((await LoadAsync())[id].Excluded);
+    }
+
+    private async Task SeedAsync(Repo repo)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+
+        if (!await db.Repos.AnyAsync(row => row.Id == repo.Id))
+            db.Repos.Add(repo);
+
+        await db.SaveChangesAsync();
+    }
+
     private async Task<Dictionary<string, Repo>> LoadAsync()
     {
         using var scope = host.Host.Services.CreateScope();
