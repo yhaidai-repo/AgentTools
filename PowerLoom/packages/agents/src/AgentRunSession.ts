@@ -6,6 +6,7 @@ import type { AgentDeps } from "./models/AgentDeps";
 import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
+import { isLimitStop } from "./limits/limitStops";
 import { withPbiContext } from "./pbiContext/withPbiContext";
 import { continuationMessage, loadPreviousRunFacts } from "./resume/continuationMessage";
 import type { ConversationPlan } from "./resume/models/ConversationPlan";
@@ -76,9 +77,10 @@ export class AgentRunSession {
   }
 
   /** Commits a successful run's output, then stores the final outcome and usage. A failing commit fails the run.
-   *  `keepOnBudgetStop`: a run stopped by its budget still commits what it saved (a partial result); the outcome stays. */
-  async finish(result: AgentRunResult, commit: Commit | null, keepOnBudgetStop = false): Promise<AgentRunResult> {
-    const final = await this.commitIfSuccess(result, commit, keepOnBudgetStop);
+   *  `keepOnLimitStop`: a run stopped by a limit (budget, turns, time) still commits what it has (a partial result); the
+   *  outcome stays. */
+  async finish(result: AgentRunResult, commit: Commit | null, keepOnLimitStop = false): Promise<AgentRunResult> {
+    const final = await this.commitIfSuccess(result, commit, keepOnLimitStop);
     const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd });
 
     await this.trace.flush();
@@ -179,8 +181,8 @@ export class AgentRunSession {
     }
   }
 
-  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnBudgetStop: boolean): Promise<AgentRunResult> {
-    const isKept = result.outcome === "success" || (keepOnBudgetStop && result.outcome === "budget-exceeded");
+  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnLimitStop: boolean): Promise<AgentRunResult> {
+    const isKept = result.outcome === "success" || (keepOnLimitStop && isLimitStop(result.outcome));
 
     if (!isKept || !commit) {
       return result;

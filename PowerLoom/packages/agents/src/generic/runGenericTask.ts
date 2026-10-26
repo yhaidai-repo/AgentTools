@@ -9,6 +9,7 @@ import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { environmentPromptSection } from "../environment/vaultEnvironment";
+import { isLimitStop, stoppedResult } from "../limits/limitStops";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
@@ -44,10 +45,12 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
+    const stoppedEarly = isLimitStop(ran.outcome);
 
-    // A run stopped by its budget keeps the result it wrote (status partial), so the work so far isn't lost.
+    keepWhatTheStopLeft(ran.outcome, run);
+
     const committed: { createdIds: string[] | null } = { createdIds: null };
-    const final = await session.finish(ran, async () => { committed.createdIds = (await run.toolset?.commit(session.runId, ran.outcome === "budget-exceeded"))?.taskIds ?? []; }, run.toolset?.result.isWritten ?? false);
+    const final = await session.finish(ran, async () => { committed.createdIds = (await run.toolset?.commit(session.runId, stoppedEarly))?.taskIds ?? []; }, stoppedEarly);
 
     // Settled once everything is committed, never by a writer; a failed commit is ended by endTask as a failure.
     if (committed.createdIds && run.toolset && (final.outcome === "success" || final.outcome === "budget-exceeded")) {
@@ -59,6 +62,14 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
     await cleanUpWriters(run);
     await cleanUpToolset(run);
     closeRepos(deps, run.repos);
+  }
+}
+
+// A run a limit stopped (budget, turns, time) keeps its result, or its last words as a partial one when it wrote none, so
+// the work so far isn't lost and the next run starts from it.
+function keepWhatTheStopLeft(outcome: AgentRunResult["outcome"], run: GenericRun): void {
+  if (isLimitStop(outcome) && run.toolset && !run.toolset.result.isWritten) {
+    run.toolset.result.record(stoppedResult(outcome, run.toolset.meter.lastWords));
   }
 }
 

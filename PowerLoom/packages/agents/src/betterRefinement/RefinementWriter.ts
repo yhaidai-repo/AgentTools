@@ -59,7 +59,7 @@ export class RefinementWriter implements RunWriter {
 
     const { deps } = target;
     const pages = withPagesRead(this.draft.pages, await confluencePagesReadInRun(deps, target.runId), "Read by Better Refinement while refining.");
-    const extra = { docsRead: await docsReadInRun(deps, target.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName, budgetStopped: target.budgetStopped };
+    const extra = { docsRead: await docsReadInRun(deps, target.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName, stoppedEarly: target.stoppedEarly };
     const task = { id: target.task.id, pbiId: requirePbiId(target.task), vault: target.task.vault };
     const committed = await commitBetterRefinement(deps.db, task, target.runId, { refinement: this.draft.refinement, pages }, { tasks: target.tasks, taskIds: target.taskIds }, extra);
 

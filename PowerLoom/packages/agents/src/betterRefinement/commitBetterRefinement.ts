@@ -25,14 +25,14 @@ export async function commitBetterRefinement(
   runId: number,
   draft: { refinement: Refinement; pages: BetterRefinementDraft["pages"] },
   created: { tasks: CreatedTask[]; taskIds: string[] },
-  extra: { docsRead: string[]; documented: Map<string, string>; docsVault: string; budgetStopped: boolean },
+  extra: { docsRead: string[]; documented: Map<string, string>; docsVault: string; stoppedEarly: boolean },
 ): Promise<{ outputs: string[]; carriedOnBy: string | null }> {
   const refinement = withTaskIds(draft.refinement, created.taskIds);
   const version = await insertRefinement(db, task.pbiId, runId, refinement, extra.docsRead);
   const repoQuestionIds = await confirmRepos(db, task.pbiId, runId, refinement.repos.map((repo) => repo.name), extra.documented);
   const followUp = followUpOf(task, runId, created.tasks, created.taskIds);
-  const followUpId = extra.budgetStopped ? null : await queueRefinementFollowUp(db, followUp);
-  const carriedOnBy = followUpId ?? (!extra.budgetStopped && followUpDependsOn(followUp).length > 0 ? "the refinement already open on the PBI" : null);
+  const followUpId = extra.stoppedEarly ? null : await queueRefinementFollowUp(db, followUp);
+  const carriedOnBy = followUpId ?? (!extra.stoppedEarly && followUpDependsOn(followUp).length > 0 ? "the refinement already open on the PBI" : null);
 
   await recommendPbiSkills(db, task.pbiId, refinement.skills);
   await commitRelevantPages(db, task.pbiId, draft.pages, "refinement");

@@ -5,7 +5,8 @@ import type { ReplayReport } from "./models/ReplayReport";
 
 type Observe = (event: AgentEvent) => void;
 
-const REPLAY_RUN = "replay";
+// The run id on the events a replay shows, so observers can tell them from the run's own.
+export const REPLAY_RUN = "replay";
 
 // A run keeps its draft (decisions, created tasks, captures…) and what it read in memory until its commit, so a
 // continued conversation starts with neither. The earlier successful calls are taken again in order, since a draft call
