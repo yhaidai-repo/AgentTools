@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Command } from "../models/Command";
 import type { NewWwwRecord } from "../models/NewWwwRecord";
-import { createWwwRecord } from "../www/createWwwRecord";
 
 const optionalText = z.string().trim().min(1).nullable().default(null);
 
@@ -23,6 +22,8 @@ export const createWwwRecordCommand: Command<NewWwwRecord, { id: number }> = {
     assumptions: optionalText,
   }),
   async run(context, input) {
-    return { ok: true, value: { id: await createWwwRecord(context, input) } };
+    const created = await context.powerloom.createWwwRecord(input);
+
+    return created.ok ? { ok: true, value: { id: created.value } } : created;
   },
 };

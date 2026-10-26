@@ -1,5 +1,4 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
-import { agentPromptVersion } from "@powerloom/db";
 import { z } from "zod";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { newAgentTemplate } from "../agents/newAgentTemplate";
@@ -62,8 +61,14 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
       return { ok: false, error: checked.errors.join("; ") };
     }
 
+    // The history first: an agent is never saved without its first prompt version.
+    const history = await context.powerloom.addPromptVersion(input.id, 1, input.prompt);
+
+    if (!history.ok) {
+      return history;
+    }
+
     await agents.save(checked.value);
-    await context.db.insert(agentPromptVersion).values({ agentId: input.id, version: 1, text: input.prompt });
 
     return { ok: true, value: { id: input.id, promptVersion: 1, enabled: input.enabled } };
   },

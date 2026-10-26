@@ -1,4 +1,5 @@
 import type { DraftOutcome } from "./DraftOutcome";
+import type { NewWwwRecord } from "./NewWwwRecord";
 import type { Outcome } from "./Outcome";
 import type { RecordClosingInput } from "./RecordClosingInput";
 import type { RegisterRecordInput } from "./RegisterRecordInput";
@@ -10,4 +11,6 @@ export interface CaptureWorkPort {
   // The new record's id (e.g. OQ-007).
   addRegisterRecord(vault: string, record: RegisterRecordInput): Promise<Outcome<string>>;
   closeRegisterRecord(vault: string, closing: RecordClosingInput): Promise<Outcome<{ path: string; id: string; status: string }>>;
+  // A What-went-wrong record, stored and appended to the vault's www-log.md; the stored record's id.
+  createWwwRecord(record: NewWwwRecord): Promise<Outcome<number>>;
 }

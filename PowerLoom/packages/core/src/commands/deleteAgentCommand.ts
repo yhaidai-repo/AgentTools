@@ -1,6 +1,5 @@
 import { isRemovable } from "@agenttools/config";
 import { z } from "zod";
-import { deletePromptVersions } from "../agents/promptVersions";
 import type { Command } from "../models/Command";
 
 // Only an agent made in the UI or by agent.create goes (origin `user`); the ones shipped with the code stay.
@@ -27,7 +26,12 @@ export const deleteAgentCommand: Command<{ id: string }, { id: string; label: st
     }
 
     await agents.remove(agent.id);
-    await deletePromptVersions(context.db, agent.id);
+
+    const history = await context.powerloom.deletePromptVersions(agent.id);
+
+    if (!history.ok) {
+      return { ok: false, error: `${agent.label} is deleted, but its prompt history wasn't: ${history.error}` };
+    }
 
     return { ok: true, value: { id: agent.id, label: agent.label } };
   },

@@ -844,6 +844,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vaults/{vault}/www-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_vaults_vault_www_records
+         * @description POST_api_vaults_vault_www_records
+         */
+        post: operations["POST_api_vaults_vault_www_records"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dead-letters": {
         parameters: {
             query?: never;
@@ -1135,6 +1155,30 @@ export interface paths {
         put: operations["PUT_api_ai_providers_codex_login_file"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/{agentId}/prompt-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_agents_agentId_prompt_versions
+         * @description POST_api_agents_agentId_prompt_versions
+         */
+        post: operations["POST_api_agents_agentId_prompt_versions"];
+        /**
+         * DELETE_api_agents_agentId_prompt_versions
+         * @description DELETE_api_agents_agentId_prompt_versions
+         */
+        delete: operations["DELETE_api_agents_agentId_prompt_versions"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1831,6 +1875,11 @@ export interface components {
             baseBranch: null | string;
             pbi: null | string;
         };
+        AddPromptVersionRequest: {
+            /** Format: int32 */
+            version: number;
+            text: string;
+        };
         AddRecordRequest: {
             kind: components["schemas"]["RecordKind"];
             sourceId: string;
@@ -2076,6 +2125,19 @@ export interface components {
             repos: null | string[];
             actor: null | string;
         };
+        CreateWwwRecordRequest: {
+            title: string;
+            kind: string;
+            project: string;
+            planned: string;
+            happened: string;
+            fault: string;
+            rootCause: null | string;
+            resolution: null | string;
+            preventiveAction: null | string;
+            assumptions: null | string;
+            source: string;
+        };
         CreatedPbi: {
             /** Format: int32 */
             adoId: number;
@@ -2085,6 +2147,10 @@ export interface components {
             id: string;
             /** Format: int32 */
             pbiId: null | number;
+        };
+        CreatedWwwRecord: {
+            /** Format: int32 */
+            id: number;
         };
         DeadLetterAction: {
             /** Format: uuid */
@@ -3844,6 +3910,41 @@ export interface operations {
             };
         };
     };
+    POST_api_vaults_vault_www_records: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWwwRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedWwwRecord"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GET_api_dead_letters: {
         parameters: {
             query?: {
@@ -4301,6 +4402,50 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProviderStatus"];
                 };
+            };
+        };
+    };
+    POST_api_agents_agentId_prompt_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPromptVersionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DELETE_api_agents_agentId_prompt_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

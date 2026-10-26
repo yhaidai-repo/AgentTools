@@ -1,11 +1,11 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
-import { insertPromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
 import { withModelProvider } from "../agents/modelProvider";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
+import type { Outcome } from "../models/Outcome";
 import type { UpdateAgentInput } from "../models/UpdateAgentInput";
 
 const CRON = /^(\S+\s+){4}\S+$/;
@@ -62,7 +62,11 @@ export const updateAgentCommand: Command<UpdateAgentInput, { id: string; promptV
       return { ok: false, error: checked.errors.join("; ") };
     }
 
-    await save(context, current, checked.value);
+    const saved = await save(context, current, checked.value);
+
+    if (!saved.ok) {
+      return saved;
+    }
 
     return { ok: true, value: { id: checked.value.id, promptVersion: checked.value.promptVersion ?? 0, enabled: checked.value.enabled, changed: changedFields(input) } };
   },
@@ -106,12 +110,19 @@ function applyChanges(current: AgentDefinition, input: UpdateAgentInput): AgentD
   };
 }
 
-async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<void> {
+// A new prompt version goes into the history first, so the agent never names a version the history lacks.
+async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<Outcome<number>> {
   if (next.promptVersion !== (current.promptVersion ?? 0)) {
-    await insertPromptVersion(context.db, next.id, next.promptVersion ?? 0, next.prompt ?? "");
+    const history = await context.powerloom.addPromptVersion(next.id, next.promptVersion ?? 0, next.prompt ?? "");
+
+    if (!history.ok) {
+      return history;
+    }
   }
 
   await context.agents!.save(next);
+
+  return { ok: true, value: next.promptVersion ?? 0 };
 }
 
 function changedFields(input: UpdateAgentInput): string[] {

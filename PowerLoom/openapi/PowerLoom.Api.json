@@ -1855,6 +1855,58 @@
         }
       }
     },
+    "/api/vaults/{vault}/www-records": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Docs.Records.WwwRecordsEndpoints"
+        ],
+        "summary": "POST_api_vaults_vault_www_records",
+        "description": "POST_api_vaults_vault_www_records",
+        "operationId": "POST_api_vaults_vault_www_records",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWwwRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedWwwRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dead-letters": {
       "get": {
         "tags": [
@@ -2406,6 +2458,64 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/agents/{agentId}/prompt-versions": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Agents.PromptVersions.PromptVersionsEndpoints"
+        ],
+        "summary": "POST_api_agents_agentId_prompt_versions",
+        "description": "POST_api_agents_agentId_prompt_versions",
+        "operationId": "POST_api_agents_agentId_prompt_versions",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPromptVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Agents.PromptVersions.PromptVersionsEndpoints"
+        ],
+        "summary": "DELETE_api_agents_agentId_prompt_versions",
+        "description": "DELETE_api_agents_agentId_prompt_versions",
+        "operationId": "DELETE_api_agents_agentId_prompt_versions",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -4057,6 +4167,22 @@
           }
         }
       },
+      "AddPromptVersionRequest": {
+        "required": [
+          "version",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "AddRecordRequest": {
         "required": [
           "kind",
@@ -5057,6 +5183,69 @@
           }
         }
       },
+      "CreateWwwRecordRequest": {
+        "required": [
+          "title",
+          "kind",
+          "project",
+          "planned",
+          "happened",
+          "fault",
+          "rootCause",
+          "resolution",
+          "preventiveAction",
+          "assumptions",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "planned": {
+            "type": "string"
+          },
+          "happened": {
+            "type": "string"
+          },
+          "fault": {
+            "type": "string"
+          },
+          "rootCause": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resolution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "preventiveAction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assumptions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
       "CreatedPbi": {
         "required": [
           "adoId",
@@ -5088,6 +5277,18 @@
               "null",
               "integer"
             ],
+            "format": "int32"
+          }
+        }
+      },
+      "CreatedWwwRecord": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -7242,6 +7443,9 @@
       "name": "PowerLoom.Features.Docs.Records.RecordsEndpoints"
     },
     {
+      "name": "PowerLoom.Features.Docs.Records.WwwRecordsEndpoints"
+    },
+    {
       "name": "PowerLoom.Features.DeadLetters.DeadLettersEndpoints"
     },
     {
@@ -7252,6 +7456,9 @@
     },
     {
       "name": "PowerLoom.Features.AiProviders.AiProvidersEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Agents.PromptVersions.PromptVersionsEndpoints"
     },
     {
       "name": "PowerLoom.Features.Agents.Dispatch.RunAgentEndpoint"
