@@ -1,8 +1,6 @@
 import type { RepoRow } from "@powerloom/core";
 import Link from "next/link";
-import type { GitHubValues } from "@/models/GitHubValues";
 import { AddLocalRepoForm } from "./AddLocalRepoForm";
-import { GitHubForm } from "./GitHubForm";
 import { RepoRowForm } from "./RepoRowForm";
 
 const SHOWS = [
@@ -14,7 +12,7 @@ const SHOWS = [
 // Repository configuration (user decision 2026-10-06): the vault's ADO integration and GitHub (user decision 2026-10-25)
 // fill it with their repos, local checkouts are added by hand; the enabled ones are what agents clone and the PBI page
 // offers. One row each with its switch, and All / On / Off pills (user decision 2026-10-18).
-export function RepositoriesPanel({ repos, reposRoot, adoActive, github, show }: { repos: RepoRow[]; reposRoot: string | null; adoActive: boolean; github: GitHubValues; show: string }) {
+export function RepositoriesPanel({ repos, reposRoot, adoActive, show }: { repos: RepoRow[]; reposRoot: string | null; adoActive: boolean; show: string }) {
   const shown = repos.filter((row) => show === "all" || (show === "on") === !row.excluded);
 
   return (
@@ -26,11 +24,10 @@ export function RepositoriesPanel({ repos, reposRoot, adoActive, github, show }:
         <span className="tab-filters hint">What agents clone and the PBI page offers</span>
       </div>
       <div className="panel">
-        {repos.length === 0 && <p className="panel-body hint">{adoActive ? "No repositories yet: the next PBI sync lists the ADO repositories." : "No repositories yet: add local ones below, connect GitHub, or enable the Azure DevOps integration."}</p>}
+        {repos.length === 0 && <p className="panel-body hint">{adoActive ? "No repositories yet: the next PBI sync lists the ADO repositories." : "No repositories yet: add local ones below, or connect GitHub or Azure DevOps in their tabs."}</p>}
         {shown.map((row) => <RepoRowForm key={row.id} repo={row} />)}
       </div>
       <AddLocalRepoForm reposRoot={reposRoot} />
-      <GitHubForm key={`github-${github.owner}-${github.login}`} values={github} />
     </>
   );
 }

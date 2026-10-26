@@ -32,10 +32,8 @@ public sealed class GitHubCronSource(IServiceScopeFactory scopes) : ICronSource
         if (!github.IsActive)
             return [];
 
-        return
-        [
-            new CronEntry($"github-repositories:{vault}", RepositoriesCron, new SyncGitHubRepositories(vault)),
-            new CronEntry($"github-pull-requests:{vault}", github.PullRequestsCron, new SyncGitHubPullRequests(vault)),
-        ];
+        var repositories = new CronEntry($"github-repositories:{vault}", RepositoriesCron, new SyncGitHubRepositories(vault));
+
+        return github.PullRequestsEnabled ? [repositories, new CronEntry($"github-pull-requests:{vault}", github.PullRequestsCron, new SyncGitHubPullRequests(vault))] : [repositories];
     }
 }

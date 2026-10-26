@@ -17,6 +17,9 @@ public sealed class GitHubSettings
     // The token's user as GitHub answered when the settings were saved.
     public string Login { get; set; } = "";
 
+    // The pull request check (user decision 2026-10-25: like Azure DevOps'); on as soon as GitHub is connected.
+    public bool PullRequestsEnabled { get; set; } = true;
+
     public string PullRequestsCron { get; set; } = DefaultPullRequestsCron;
 
     public bool IsActive => Enabled && Token.Length > 0 && Login.Length > 0;
