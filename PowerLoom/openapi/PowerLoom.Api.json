@@ -261,6 +261,38 @@
         }
       }
     },
+    "/api/tasks/{id}/stop": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Tasks.StopTask.StopTaskEndpoint"
+        ],
+        "summary": "POST_api_tasks_id_stop",
+        "description": "POST_api_tasks_id_stop",
+        "operationId": "POST_api_tasks_id_stop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoppedTask"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/task-schedules": {
       "put": {
         "tags": [
@@ -6653,6 +6685,17 @@
           "failed"
         ]
       },
+      "StoppedTask": {
+        "required": [
+          "taskId"
+        ],
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          }
+        }
+      },
       "StoredAttachments": {
         "required": [
           "ids",
@@ -7116,6 +7159,9 @@
     },
     {
       "name": "PowerLoom.Features.Tasks.TaskNotes.TaskNotesEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Tasks.StopTask.StopTaskEndpoint"
     },
     {
       "name": "PowerLoom.Features.Tasks.Schedules.SchedulesEndpoints"

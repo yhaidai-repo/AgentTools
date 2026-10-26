@@ -63,8 +63,8 @@ console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
-// Every run ends with the callback, also a failed one and a task the runner refused: PowerLoom waits for it.
-async function runAndReport(job: AgentRunJob): Promise<void> {
+// Every run ends with the callback, also a failed one, a stopped one and a task the runner refused: PowerLoom waits for it.
+async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> {
   await purgeOldTraces();
 
   let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
@@ -77,7 +77,7 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
     devHub = runDeps.devHub;
     azure = runDeps.azure;
 
-    const result = await runAgentTask(runDeps, job);
+    const result = await runAgentTask({ ...runDeps, stop }, job);
 
     completed = result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : completed;
   } catch (error) {

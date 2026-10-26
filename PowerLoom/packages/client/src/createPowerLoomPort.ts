@@ -65,6 +65,11 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
 
       return data.reopened.length === 1 ? { ok: true, value: data.reopened[0] } : { ok: false, error: data.refused[0] ?? "Not reopened." };
     },
+    async stopTask(itemId) {
+      const { data, error, response } = await powerloom.POST("/api/tasks/{id}/stop", { params: { path: { id: itemId } } });
+
+      return data ? { ok: true, value: data.taskId } : powerloomFailure(error, response);
+    },
     async deleteItem(adoId, itemId) {
       const { data, error, response } = await powerloom.DELETE("/api/items/{id}", { params: { path: { id: itemId } }, body: { adoId } });
 

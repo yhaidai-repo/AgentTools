@@ -108,6 +108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_tasks_id_stop
+         * @description POST_api_tasks_id_stop
+         */
+        post: operations["POST_api_tasks_id_stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/task-schedules": {
         parameters: {
             query?: never;
@@ -2459,6 +2479,9 @@ export interface components {
         };
         /** @enum {unknown} */
         StateLevel: "ok" | "degraded" | "failed";
+        StoppedTask: {
+            taskId: string;
+        };
         StoredAttachments: {
             ids: number[];
             refs: string[];
@@ -2750,6 +2773,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskUserNotes"];
+                };
+            };
+        };
+    };
+    POST_api_tasks_id_stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoppedTask"];
                 };
             };
         };

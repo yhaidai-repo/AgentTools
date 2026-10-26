@@ -34,6 +34,8 @@ export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort
   closeItem(request: CloseItemRequest, dryRun?: boolean): Promise<Outcome<{ status: ItemStatus }>>;
   // Opens a finished, failed or blocked agent task again; `startOver`: its next run neither continues the last run's conversation nor gets its result.
   rerunTask(adoId: number | null, itemId: string, startOver: boolean): Promise<Outcome<string>>;
+  // Stops the agent task's run in progress; the run keeps what it has and the task is blocked until it is Re-run.
+  stopTask(itemId: string): Promise<Outcome<string>>;
   // Soft-deletes a question or task.
   deleteItem(adoId: number | null, itemId: string): Promise<Outcome<string>>;
   // Files a bug under a PBI as a [BUG] child item, prepared right away.
