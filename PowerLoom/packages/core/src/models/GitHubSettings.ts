@@ -9,4 +9,6 @@ export interface GitHubSettings {
   /** The pull request check (on once GitHub is connected) and its schedule. */
   pullRequestsEnabled: boolean;
   pullRequestsCron: string;
+  /** The repos the check covers, as owner/name; empty: every enabled GitHub repo. */
+  pullRequestsRepos: string[];
 }

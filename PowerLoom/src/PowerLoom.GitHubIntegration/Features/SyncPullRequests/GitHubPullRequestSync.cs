@@ -18,11 +18,11 @@ namespace PowerLoom.GitHubIntegration.Features.SyncPullRequests;
 public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
 {
     private const string Actor = "pull-requests";
-    private const string UnlistedReason = "The PR was merged or closed on GitHub, you're no longer its author or a reviewer, or its repo is switched off.";
+    private const string UnlistedReason = "The PR was merged or closed on GitHub, you're no longer its author or a reviewer, or its repo is switched off or not checked.";
 
     public async Task<string> RunAsync(string vault, GitHubSettings github, IGitHubClient client, CancellationToken cancellation)
     {
-        var mine = await MineAsync(vault, github.Login, client, cancellation);
+        var mine = await MineAsync(vault, github, client, cancellation);
         var deleted = (await db.DeletedPullRequests.Select(row => row.Id).ToListAsync(cancellation)).ToHashSet();
         var listed = new List<int>();
         var added = 0;
@@ -45,9 +45,11 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
         return Same(pr.Author, login) || pr.RequestedReviewers.Any(reviewer => Same(reviewer, login)) || reviewed.Contains(pr.Key);
     }
 
-    private async Task<List<(Repo Repo, GitHubPullRequest Pr)>> MineAsync(string vault, string login, IGitHubClient client, CancellationToken cancellation)
+    private async Task<List<(Repo Repo, GitHubPullRequest Pr)>> MineAsync(string vault, GitHubSettings github, IGitHubClient client, CancellationToken cancellation)
     {
-        var repos = await db.Repos.AsNoTracking().Where(repo => repo.Vault == vault && repo.Kind == RepoKind.Github && !repo.Excluded).ToListAsync(cancellation);
+        var login = github.Login;
+        var enabled = await db.Repos.AsNoTracking().Where(repo => repo.Vault == vault && repo.Kind == RepoKind.Github && !repo.Excluded).ToListAsync(cancellation);
+        var repos = enabled.Where(repo => github.ChecksPullRequestsOf(repo.AdoProject, repo.Name)).ToList();
         var reviewed = (await client.ListReviewedPullRequestsAsync(login, cancellation)).ToHashSet();
         var mine = new List<(Repo, GitHubPullRequest)>();
 

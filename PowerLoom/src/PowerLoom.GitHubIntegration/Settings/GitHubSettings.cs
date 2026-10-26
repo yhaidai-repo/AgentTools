@@ -22,5 +22,13 @@ public sealed class GitHubSettings
 
     public string PullRequestsCron { get; set; } = DefaultPullRequestsCron;
 
+    // The repos the check covers, as owner/name, like Azure DevOps' repo chips; none chosen: every enabled GitHub repo.
+    public List<string> PullRequestsRepos { get; set; } = [];
+
+    public bool ChecksPullRequestsOf(string owner, string name)
+    {
+        return PullRequestsRepos.Count == 0 || PullRequestsRepos.Contains($"{owner}/{name}", StringComparer.OrdinalIgnoreCase);
+    }
+
     public bool IsActive => Enabled && Token.Length > 0 && Login.Length > 0;
 }
