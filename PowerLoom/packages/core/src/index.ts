@@ -145,6 +145,7 @@ export { closeItemCommand } from "./commands/closeItemCommand";
 export { submitFindingCommand } from "./commands/submitFindingCommand";
 export type { CloseItemInput } from "./models/CloseItemInput";
 export { rerunTaskCommand } from "./commands/rerunTaskCommand";
+export { stopTaskCommand } from "./commands/stopTaskCommand";
 export { answerReviewCommentCommand } from "./commands/answerReviewCommentCommand";
 export { createWwwRecordCommand } from "./commands/createWwwRecordCommand";
 export { openChatCommand } from "./commands/openChatCommand";

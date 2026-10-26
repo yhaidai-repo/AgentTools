@@ -1,6 +1,6 @@
 "use server";
 
-import { closeItemCommand, deleteItemCommand, linkedUrlOf, rerunTaskCommand, saveTaskNotesCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
+import { closeItemCommand, deleteItemCommand, linkedUrlOf, rerunTaskCommand, saveTaskNotesCommand, stopTaskCommand, submitFindingCommand, type CloseDecision, type CloseItemRequest, type SubmitFindingRequest } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { UploadedFile } from "@powerloom/attachments";
@@ -62,6 +62,21 @@ export async function deleteItemAction(adoId: number | null, itemId: string): Pr
 
   await afterItemChange(adoId);
   redirect(adoId === null ? "/tasks" : `/pbis/${adoId}`);
+}
+
+// Stop on a running run: the runner ends the agent at once; the run keeps what it has and blocks its task.
+export async function stopTaskAction(adoId: number | null, itemId: string): Promise<ActionResult> {
+  const stopped = await runWebCommand(stopTaskCommand, { itemId });
+
+  if (!stopped.ok) {
+    return { ok: false, message: stopped.error };
+  }
+
+  revalidateItemPages(adoId);
+  revalidatePath("/agents");
+  revalidatePath("/agents/runs", "layout");
+
+  return { ok: true, message: "Stopping: the run keeps what it has, and the task waits for Re-run." };
 }
 
 export async function rerunTaskAction(adoId: number | null, itemId: string, startOver: boolean): Promise<ActionResult> {

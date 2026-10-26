@@ -9,7 +9,7 @@ import type { OpenReposOptions } from "../models/OpenReposOptions";
 import type { RunWriter } from "../toolset/models/RunWriter";
 import { projectRepoName } from "../docsRepos";
 import { environmentPromptSection } from "../environment/vaultEnvironment";
-import { isLimitStop, keepsOnlyResult, stoppedResult } from "../limits/limitStops";
+import { isEarlyStop, keepsOnlyResult, stoppedResult } from "../limits/earlyStops";
 import { pbiRepoSources } from "../repos/agentRepos";
 import { closeRepos, noRepos, openRepos } from "../repos/openRepos";
 import { reposBlock } from "../repos/reposBlock";
@@ -45,9 +45,10 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
   try {
     const ran = await session.execute(info, () => prepare(context, session, task, run));
-    const stoppedEarly = isLimitStop(ran.outcome);
-    // Turns or time ran out: only the result is kept, as a checkpoint. What the run staged (tasks, drafts, its role's
-    // outputs) isn't committed for a run that didn't finish; the next run makes those calls again from the conversation.
+    const stoppedEarly = isEarlyStop(ran.outcome);
+    // Turns or time ran out, or Stop: only the result is kept, as a checkpoint. What the run staged (tasks, drafts, its
+    // role's outputs) isn't committed for a run that didn't finish; the next run makes those calls again from the
+    // conversation.
     const isCheckpoint = keepsOnlyResult(ran.outcome);
 
     keepWhatTheStopLeft(ran.outcome, run);
@@ -71,10 +72,10 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
   }
 }
 
-// A run a limit stopped (budget, turns, time) keeps its result, or its last words as a partial one when it wrote none, so
+// A run stopped early (budget, turns, time, Stop) keeps its result, or its last words as a partial one when it wrote none, so
 // the work so far isn't lost and the next run starts from it.
 function keepWhatTheStopLeft(outcome: AgentRunResult["outcome"], run: GenericRun): void {
-  if (isLimitStop(outcome) && run.toolset && !run.toolset.result.isWritten) {
+  if (isEarlyStop(outcome) && run.toolset && !run.toolset.result.isWritten) {
     run.toolset.result.record(stoppedResult(outcome, run.toolset.meter.lastWords));
   }
 }

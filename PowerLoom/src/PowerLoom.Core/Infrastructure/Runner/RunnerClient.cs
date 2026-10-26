@@ -26,6 +26,19 @@ public sealed class RunnerClient(IHttpClientFactory clients, IOptions<RunnerOpti
         return RunnerAnswer.Accepted;
     }
 
+    public async Task<bool> StopAsync(string taskId, CancellationToken cancellation)
+    {
+        using var http = clients.CreateClient(HttpClientName);
+        using var response = await http.PostAsJsonAsync($"{BaseUrl}/runs/stop", new { taskId }, cancellation);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            return false;
+
+        response.EnsureSuccessStatusCode();
+
+        return true;
+    }
+
     public async Task<RunnerHealth> HealthAsync(CancellationToken cancellation)
     {
         try

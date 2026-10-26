@@ -5,12 +5,13 @@ import type { ToolCallLogger } from "./ToolCallLogger";
 type Record = (entry: { type: string; [field: string]: unknown }) => Promise<void>;
 
 // Watches one run's agent events: traces them, logs every tool call, adds usage, and aborts when the per-run budget is
-// used up.
+// used up or the user stops the run.
 export class RunObserver {
   readonly abort = new AbortController();
   private result: ResultEvent | null = null;
   private resetsAt: Date | null = null;
   private wasAbortedForBudget = false;
+  private wasStoppedByUser = false;
 
   constructor(
     private readonly tracker: UsageTracker,
@@ -29,6 +30,20 @@ export class RunObserver {
 
   get isBudgetAbort(): boolean {
     return this.wasAbortedForBudget;
+  }
+
+  get isUserStop(): boolean {
+    return this.wasStoppedByUser;
+  }
+
+  /** Stop on the run page: the runtime ends the run as aborted. */
+  stopByUser(): void {
+    if (this.abort.signal.aborted) {
+      return;
+    }
+
+    this.wasStoppedByUser = true;
+    this.abort.abort("stopped");
   }
 
   async observe(event: AgentEvent): Promise<void> {

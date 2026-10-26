@@ -6,7 +6,7 @@ import type { AgentDeps } from "./models/AgentDeps";
 import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
-import { isLimitStop } from "./limits/limitStops";
+import { isEarlyStop } from "./limits/earlyStops";
 import { withPbiContext } from "./pbiContext/withPbiContext";
 import { continuationMessage, loadPreviousRunFacts } from "./resume/continuationMessage";
 import type { ConversationPlan } from "./resume/models/ConversationPlan";
@@ -19,6 +19,7 @@ import { stackOwner } from "./devHubTools";
 import { ToolCallLogger } from "./ToolCallLogger";
 
 const MISSING_OUTPUT = "Run ended without its required output";
+const STOPPED = "Stopped in PowerLoom";
 const LIVE_TRACE_BATCH = 1;
 
 type Commit = () => Promise<void>;
@@ -77,10 +78,10 @@ export class AgentRunSession {
   }
 
   /** Commits a successful run's output, then stores the final outcome and usage. A failing commit fails the run.
-   *  `keepOnLimitStop`: a run stopped by a limit (budget, turns, time) still commits what it has (a partial result); the
+   *  `keepOnEarlyStop`: a run stopped early (budget, turns, time, Stop) still commits what it has (a partial result); the
    *  outcome stays. `phase` names the commit in the trace: a continued run replays the draft unless it was "commit". */
-  async finish(result: AgentRunResult, commit: Commit | null, keepOnLimitStop = false, phase = "commit"): Promise<AgentRunResult> {
-    const final = await this.commitIfSuccess(result, commit, keepOnLimitStop, phase);
+  async finish(result: AgentRunResult, commit: Commit | null, keepOnEarlyStop = false, phase = "commit"): Promise<AgentRunResult> {
+    const final = await this.commitIfSuccess(result, commit, keepOnEarlyStop, phase);
     const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd });
 
     await this.trace.flush();
@@ -108,6 +109,13 @@ export class AgentRunSession {
     const opening = await this.opening(runtime.conversations, input);
 
     this.observer = observer;
+    this.deps.stop?.addEventListener("abort", () => observer.stopByUser(), { once: true });
+
+    // Stopped while it was being prepared: the agent doesn't start.
+    if (this.deps.stop?.aborted) {
+      return this.result("aborted", STOPPED);
+    }
+
     await this.deps.db.update(agentRun).set({ input: opening.firstMessage }).where(eq(agentRun.id, this.runId));
     await this.phase("agent", { turnsLimit: input.limits.maxTurns, timeoutMs: input.limits.timeoutMs, budgetUsd: input.perRunBudgetUsd, conversation: opening.conversation ?? null });
     await this.sampleSubscription(runtime);
@@ -157,6 +165,11 @@ export class AgentRunSession {
 
   private agentResult(observer: RunObserver, input: AgentRunInput): AgentRunResult {
     const result = observer.resultEvent;
+
+    if (observer.isUserStop) {
+      return this.result("aborted", STOPPED, observer.rateLimitResetsAt);
+    }
+
     const reported = toOutcome(result?.reason ?? "failed", observer.isBudgetAbort);
     const isMissingOutput = reported === "success" && !input.hasRequiredOutput();
 
@@ -181,8 +194,8 @@ export class AgentRunSession {
     }
   }
 
-  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnLimitStop: boolean, phase: string): Promise<AgentRunResult> {
-    const isKept = result.outcome === "success" || (keepOnLimitStop && isLimitStop(result.outcome));
+  private async commitIfSuccess(result: AgentRunResult, commit: Commit | null, keepOnEarlyStop: boolean, phase: string): Promise<AgentRunResult> {
+    const isKept = result.outcome === "success" || (keepOnEarlyStop && isEarlyStop(result.outcome));
 
     if (!isKept || !commit) {
       return result;
