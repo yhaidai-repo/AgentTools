@@ -1,5 +1,6 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
+import { AGENT_DESCRIPTION_MAX } from "../agents/agentText";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { withPromptVersion } from "../agents/promptVersioning";
 import { withModelProvider } from "../agents/modelProvider";
@@ -15,7 +16,7 @@ const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower
 const input = z.object({
   id: z.string().trim().min(1).describe("The agent's id, e.g. better-research (agent_list)"),
   label: z.string().trim().min(1).max(80).optional(),
-  description: z.string().trim().max(300).optional(),
+  description: z.string().trim().max(AGENT_DESCRIPTION_MAX).optional(),
   enabled: z.boolean().optional(),
   schedule: z.string().trim().regex(CRON, "cron needs 5 fields").nullable().optional().describe("A cron (5 fields), or null for manual runs only"),
   model: z.object({ provider: z.string().min(1), model: z.string().min(1), effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional() }).optional(),

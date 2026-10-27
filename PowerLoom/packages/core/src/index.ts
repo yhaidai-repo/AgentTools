@@ -53,6 +53,7 @@ export { newAgentTemplate } from "./agents/newAgentTemplate";
 export { providerOfModel, withModelProvider } from "./agents/modelProvider";
 export { readPromptFile } from "./agents/promptFiles";
 export { loadPromptVersions } from "./agents/promptVersions";
+export { AGENT_DESCRIPTION_MAX } from "./agents/agentText";
 export type { PromptVersionRow } from "./agents/promptVersions";
 export { withPromptVersion } from "./agents/promptVersioning";
 export { updateAgentCommand } from "./commands/updateAgentCommand";
