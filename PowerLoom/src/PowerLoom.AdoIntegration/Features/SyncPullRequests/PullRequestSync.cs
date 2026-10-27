@@ -211,7 +211,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();
         var mineIds = mine.Select(pr => pr.Id).ToHashSet();
-        var gone = await db.PullRequests.Where(row => row.Vault == vault && row.IsListed && !listedIds.Contains(row.Id) && (row.Origin == PullRequestOrigin.Sync || row.Origin == PullRequestOrigin.User)).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.Vault == vault && (row.IsListed || row.CodeReview != null && row.CodeReview.Status == ReviewStatus.Active) && !listedIds.Contains(row.Id) && (row.Origin == PullRequestOrigin.Sync || row.Origin == PullRequestOrigin.User)).ToListAsync(cancellation);
 
         var closed = 0;
         foreach (var pr in gone)

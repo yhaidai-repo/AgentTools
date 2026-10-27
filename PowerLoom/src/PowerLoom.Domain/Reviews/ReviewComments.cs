@@ -20,6 +20,9 @@ public static class ReviewComments
         var review = await db.CodeReviews.FromSqlInterpolated($"SELECT * FROM code_review WHERE pr_id = {prId.Value} FOR UPDATE").SingleOrDefaultAsync(cancellation);
         if (review is null)
             return Outcome<int>.Failure(Problem.NotFound("Unknown review."));
+        await db.Entry(review).ReloadAsync(cancellation);
+        if (review.Status == ReviewStatus.Closed)
+            return Outcome<int>.Failure(Problem.Conflict("This review is closed; start a new review before answering comments."));
         var comment = await db.ReviewComments.SingleOrDefaultAsync(row => row.Id == commentId, cancellation);
 
         if (comment is null)

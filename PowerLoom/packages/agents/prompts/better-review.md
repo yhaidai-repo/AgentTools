@@ -33,4 +33,4 @@ A rule is one short instruction that holds beyond this PR. Don't add one that on
 
 Then stop.
 
-All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.
+All unresolved comments, including nits and answered comments, block merge approval. Closing a review archives its unresolved comments and cancels unfinished review tasks; closing is not approval. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

@@ -77,7 +77,7 @@ function addCommentTool(run: BetterReviewRun) {
       path: z.string().describe("The changed file, as get_pr_diff lists it"),
       start_line: z.number().int().min(1),
       end_line: z.number().int().min(1),
-      severity: z.enum(reviewSeverity.enumValues).describe("blocker: critical; major: a real bug or risk; minor: smaller issue; nit: polish. Every unresolved comment, including a nit, blocks approval and closure."),
+      severity: z.enum(reviewSeverity.enumValues).describe("blocker: critical; major: a real bug or risk; minor: smaller issue; nit: polish. Every unresolved comment, including a nit, blocks approval."),
       category: z.enum(COMMENT_CATEGORIES).describe("business-logic: the change does something the PBI or the domain doesn't want; correctness: a bug in what it does; style: the repo's own conventions; data, performance, security, tests, design"),
       body: z.string().min(1).describe("The problem, why it matters (the PBI rule, the convention with an example of it in the repo, the failing case), and what to do instead"),
     },

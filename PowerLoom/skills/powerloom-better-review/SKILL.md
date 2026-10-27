@@ -40,4 +40,4 @@ description: How Better Review reviews one pull request against its PBIs, the re
 - Lesson: another reviewer caught a real issue you missed. Write the check: "Check that new endpoints in Api/Admin have the AdminOnly policy."
 - One instruction each, beyond this PR, scoped (`applies_to`). Not for one-off fixes; not when an active rule already says it.
 
-All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.
+All unresolved comments, including nits and answered comments, block merge approval. Closing a review archives its unresolved comments and cancels unfinished review tasks; closing is not approval. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

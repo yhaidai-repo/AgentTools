@@ -2,7 +2,7 @@ import type { ReviewListStatus } from "../models/ReviewListStatus";
 import type { ReviewRow } from "../models/ReviewRow";
 
 export function isReviewClosed(row: ReviewRow): boolean {
-  return row.review.status === "closed" && unresolvedReviewComments(row) === 0;
+  return row.review.status === "closed";
 }
 
 export function unresolvedReviewComments(row: ReviewRow): number {

@@ -116,7 +116,7 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
 
     private async Task<int> CloseUnlistedAsync(string vault, List<int> listed, CancellationToken cancellation)
     {
-        var gone = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.Github && row.IsListed && !listed.Contains(row.Id)).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.Github && (row.IsListed || row.CodeReview != null && row.CodeReview.Status == ReviewStatus.Active) && !listed.Contains(row.Id)).ToListAsync(cancellation);
 
         var closed = 0;
         foreach (var pr in gone)

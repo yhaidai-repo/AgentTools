@@ -29,7 +29,7 @@ public sealed class ReviewSyncClosureGateTests(PowerLoomHost host)
     [InlineData(true, "answered")]
     [InlineData(true, "running")]
     [InlineData(true, "clear")]
-    public async Task Provider_unlisting_reports_only_accepted_closure_and_preserves_unfinished_work(bool github, string scenario)
+    public async Task Provider_unlisting_archives_comments_and_cancels_tasks_after_the_writer_finishes(bool github, string scenario)
     {
         var id = Interlocked.Increment(ref nextId);
         var vault = $"sync-gate-{id}";
@@ -52,7 +52,7 @@ public sealed class ReviewSyncClosureGateTests(PowerLoomHost host)
         if (scenario is "open" or "answered")
             db.ReviewComments.Add(new ReviewComment { Id = commentId, PrId = id, Commit = "c1", FilePath = "synthetic.cs", StartLine = 1, EndLine = 1, Severity = ReviewSeverity.Nit, Status = scenario == "open" ? ReviewCommentStatus.Open : ReviewCommentStatus.Answered, BodyMd = "Unsettled synthetic nit", CodeSnippet = "x", SnippetStartLine = 1, AnswerMd = scenario == "answered" ? "Please keep it" : null });
         await db.SaveChangesAsync();
-        var expectedClose = scenario == "clear";
+        var expectedClose = scenario != "running";
         var summary = github
             ? await new GitHubPullRequestSync(db).RunAsync(vault, new GitHubSettings { Enabled = true, Login = "synthetic" }, new FakeGitHubClient(), CancellationToken.None)
             : await ActivatorUtilities.CreateInstance<PullRequestSync>(scope.ServiceProvider).RunAsync(vault, new AdoSettings { User = "synthetic" }, new PullRequestSettings(), new FakeAdoClient(), CancellationToken.None);
@@ -69,9 +69,22 @@ public sealed class ReviewSyncClosureGateTests(PowerLoomHost host)
         if (scenario is "open" or "answered")
         {
             var comment = await db.ReviewComments.SingleAsync(row => row.Id == commentId);
-            Assert.Equal(scenario == "open" ? ReviewCommentStatus.Open : ReviewCommentStatus.Answered, comment.Status);
+            Assert.Equal(ReviewCommentStatus.Withdrawn, comment.Status);
             Assert.Equal("Unsettled synthetic nit", comment.BodyMd);
             Assert.Equal(scenario == "answered" ? "Please keep it" : null, comment.AnswerMd);
+        }
+        if (scenario == "running")
+        {
+            await db.LocalItems.Where(row => row.Id == runningId).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ItemStatus.Done));
+            // The first check already unlisted the PR; retry must still finish closing its review.
+            var retried = github
+                ? await new GitHubPullRequestSync(db).RunAsync(vault, new GitHubSettings { Enabled = true, Login = "synthetic" }, new FakeGitHubClient(), CancellationToken.None)
+                : await ActivatorUtilities.CreateInstance<PullRequestSync>(scope.ServiceProvider).RunAsync(vault, new AdoSettings { User = "synthetic" }, new PullRequestSettings(), new FakeAdoClient(), CancellationToken.None);
+            Assert.Contains("1 closed", retried);
+            db.ChangeTracker.Clear();
+            Assert.Equal(ReviewStatus.Closed, (await db.CodeReviews.SingleAsync(row => row.PrId == id)).Status);
+            Assert.Equal(ItemStatus.Cancelled, (await db.LocalItems.SingleAsync(row => row.Id == queuedId)).Status);
+            Assert.Equal(ItemStatus.Done, (await db.LocalItems.SingleAsync(row => row.Id == runningId)).Status);
         }
     }
 }

@@ -24,8 +24,14 @@ it("serializes real review publishers and gates late, concurrent and legacy find
     const db = drizzle(pool) as unknown as PowerLoomDb;
     const run = (comments = true): any => ({ context: { pr: { id: 7, sourceCommit: "head", origin: "github", iteration: 1 }, otherReviews: {}, previous: null, rules: { path: "review-rules/Synthetic.md" } }, checkout: { sourceCommit: "head" }, outdatedIds: [], draft: { updates: [], comments: comments ? [{ path: "a.ts", startLine: 1, endLine: 1, severity: "nit", body: "Synthetic finding", snippet: "x", snippetStartLine: 1 }] : [], rules: [], reviewerNotes: [], summary: "Ready to merge", result: { verdict: "ready", assessment: "Before a later draft mutation", goals: [], criteria: [], risks: [], notReviewed: [], businessLogic: "Synthetic" } } });
     const better = (r: any, id: number) => commitBetterReview({ db } as any, { id: "synthetic" } as any, r, id, []);
-    // Summary was ready before a later draft mutation; publication preserves the finding and downgrades approval.
+    // Closing cannot be undone by either publisher after it finishes running against an older context.
     await pool.query("update code_review set status='closed'");
+    await assert.rejects(better(run(), 1), /is closed; publication refused/);
+    await assert.rejects(commitReview(db, run(), 1), /is closed; publication refused/);
+    assert.equal((await pool.query("select count(*)::int as n from review_comment")).rows[0].n, 0);
+    assert.equal((await pool.query("select status from code_review")).rows[0].status, "closed");
+    // An explicitly started new review reopens it; findings still downgrade approval.
+    await pool.query("update code_review set status='active'");
     await better(run(), 1);
     let row = (await pool.query("select * from code_review")).rows[0];
     assert.equal(row.status, "active"); assert.equal(row.details.result.verdict, "not_ready");

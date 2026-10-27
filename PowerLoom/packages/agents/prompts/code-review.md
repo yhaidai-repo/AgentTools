@@ -24,4 +24,4 @@ Then end with `write_result` (below) and stop.
 - Prefer few, important comments over many small ones.
 - End with `write_result`, always, after `write_review_summary`: its body is the summary; the run counts only once it is written.
 
-All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.
+All unresolved comments, including nits and answered comments, block merge approval. Closing a review archives its unresolved comments and cancels unfinished review tasks; closing is not approval. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.
