@@ -815,3 +815,13 @@ tbody[data-folded] tr.child-row {
   border-color: var(--accent);
   outline: none;
 }
+
+/* A task's Edit form (the header's Edit button opens it). */
+details.edit-task {
+  margin: 12px 0;
+}
+
+details.edit-task > summary {
+  font-weight: 600;
+  cursor: pointer;
+}

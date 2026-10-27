@@ -1,4 +1,4 @@
-import { agentIdOf, attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/core";
+import { attachmentRef, isEditableTask, isHumanTaskData, type FindingData } from "@powerloom/core";
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
@@ -37,15 +37,13 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
   );
 }
 
-const EDITABLE = ["open", "blocked", "done"];
-
 // An agent task's text, while it isn't running (user decision 2026-10-26); the criteria are `doneWhen`, or `goal` on
 // tasks older than the field.
 function EditTask({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
   const data = (item.data ?? {}) as { doneWhen?: string; goal?: string };
 
-  if (agentIdOf(item.assignee) === null || item.kind === "research-result" || !EDITABLE.includes(item.status)) {
+  if (!isEditableTask(item)) {
     return null;
   }
 

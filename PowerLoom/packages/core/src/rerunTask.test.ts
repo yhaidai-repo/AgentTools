@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { localItem } from "@powerloom/db";
-import { isRerunnableTask } from "./rerunTask";
+import { isEditableTask, isRerunnableTask } from "./rerunTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -22,5 +22,13 @@ describe("isRerunnableTask", () => {
     assert.equal(isRerunnableTask(task({ status: "in-progress", attempts: 1 })), false);
     assert.equal(isRerunnableTask(task({ assignee: "human", status: "done" })), false);
     assert.equal(isRerunnableTask(task({ kind: "research-result", status: "done" })), false);
+  });
+});
+
+describe("isEditableTask", () => {
+  it("is an agent task that no run works on: open, blocked or done", () => {
+    assert.deepEqual(["open", "blocked", "done", "in-progress", "cancelled"].map((status) => isEditableTask(task({ status: status as ItemRow["status"] }))), [true, true, true, false, false]);
+    assert.equal(isEditableTask(task({ assignee: "human" })), false);
+    assert.equal(isEditableTask(task({ kind: "research-result" })), false);
   });
 });
