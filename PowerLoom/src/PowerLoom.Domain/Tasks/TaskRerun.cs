@@ -20,7 +20,7 @@ public static class TaskRerun
 
     public static bool IsRerunnable(LocalItem item) => IsAgentTask(item) && (item.Status is ItemStatus.Done or ItemStatus.Blocked || HasFailed(item));
 
-    private static bool IsAgentTask(LocalItem item) => AgentStages.AgentIdOf(item.Assignee) is not null && item.Kind != ItemKinds.ResearchResult;
+    public static bool IsAgentTask(LocalItem item) => AgentStages.AgentIdOf(item.Assignee) is not null && item.Kind != ItemKinds.ResearchResult;
 
     // Open again after a failed run (an attempt counted) or held with a reason (a rate limit, a check that failed).
     private static bool HasFailed(LocalItem item) => item.Status == ItemStatus.Open && (item.Attempts > 0 || item.HeldBy != EmptyHeldBy);

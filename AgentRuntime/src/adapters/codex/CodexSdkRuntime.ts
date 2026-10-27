@@ -2,7 +2,7 @@ import { Codex, type ThreadEvent } from "@openai/codex-sdk";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { EventSequence } from "../../EventSequence";
+import { EventSequence, type EventBody } from "../../EventSequence";
 import type { AgentEvent } from "../../models/AgentEvent";
 import type { AgentRequest } from "../../models/AgentRequest";
 import type { AgentRuntime } from "../../models/AgentRuntime";
@@ -11,6 +11,8 @@ import type { SubscriptionReport } from "../../models/SubscriptionReport";
 import { RunAbort } from "../../RunAbort";
 import { CodexConversations } from "./CodexConversations";
 import { CodexEventMapper, isCodexRateLimit } from "./CodexEventMapper";
+import { CodexRollouts } from "./CodexRollouts";
+import { CodexUsageMeter } from "./CodexUsageMeter";
 import { codexOptions, codexThreadOptions } from "./codexOptions";
 import { CodexSubscription } from "./CodexSubscription";
 import { codexToolNamer } from "./codexToolNames";
@@ -24,17 +26,20 @@ export class CodexSdkRuntime implements AgentRuntime {
   readonly conversations: CodexConversations | null;
   private readonly codexHome: string;
   private readonly subscription: CodexSubscription;
+  private readonly rollouts: CodexRollouts;
 
   constructor(options: CodexRuntimeOptions, private readonly createClient: CodexClientFactory = (config) => new Codex(config)) {
     this.codexHome = resolve(options.codexHome);
     this.conversations = options.keepConversations ? new CodexConversations(this.codexHome) : null;
     this.subscription = new CodexSubscription(this.codexHome);
+    this.rollouts = new CodexRollouts(this.codexHome);
   }
 
   async *run(request: AgentRequest): AsyncIterable<AgentEvent> {
     const sequence = new EventSequence(request.runId);
     const abort = new RunAbort(request.limits.timeoutMs, request.signal);
     const mapper = new CodexEventMapper(request.model.model);
+    const meter = new CodexUsageMeter(this.rollouts, request.model.model);
     const started = Date.now();
     let directory: string | null = null;
     let server: CodexToolServer | null = null;
@@ -46,8 +51,8 @@ export class CodexSdkRuntime implements AgentRuntime {
       directory = await mkdtemp(join(tmpdir(), "powerloom-codex-"));
       server = await CodexToolServer.start(request.tools, abort.controller.signal);
 
-      for await (const event of this.stream(request, directory, server, abort.controller.signal, () => { requested = true; })) {
-        yield* mapper.map(event).map((body) => sequence.next(body));
+      for await (const event of this.stream(request, directory, server, abort.controller.signal, meter, () => { requested = true; })) {
+        yield* (await this.metered(event, mapper.map(event), mapper, meter)).map((body) => sequence.next(body));
         await this.remember(request, event);
 
         if (this.exceeded(request, mapper, abort)) {
@@ -64,6 +69,8 @@ export class CodexSdkRuntime implements AgentRuntime {
       await this.cleanup(server, directory);
     }
 
+    // A run cut off before its turn completed: what the rollout counted since the last report.
+    yield* (await meter.usage(mapper.threadId)).map((body) => sequence.next(body));
     yield sequence.next({
       type: "result",
       reason: abort.stopReason ?? mapper.reason,
@@ -79,10 +86,12 @@ export class CodexSdkRuntime implements AgentRuntime {
     return this.subscription.usage();
   }
 
-  private async *stream(request: AgentRequest, directory: string, server: CodexToolServer, signal: AbortSignal, onRequest: () => void): AsyncIterable<ThreadEvent> {
+  private async *stream(request: AgentRequest, directory: string, server: CodexToolServer, signal: AbortSignal, meter: CodexUsageMeter, onRequest: () => void): AsyncIterable<ThreadEvent> {
     const client = this.createClient(codexOptions(request, this.codexHome, server));
     const options = codexThreadOptions(request, directory);
     const resume = await this.resumedThread(request);
+
+    await meter.begin(resume);
     const thread = resume ? client.resumeThread(resume, options) : client.startThread(options);
 
     signal.throwIfAborted();
@@ -95,6 +104,20 @@ export class CodexSdkRuntime implements AgentRuntime {
 
       yield event;
     }
+  }
+
+  // Tokens as the run goes (the budget sees them), not only when its turn completes: after each tool call or message from
+  // the rollout, and at the turn's end the rollout's remainder (or the turn's own usage when the rollout has none).
+  private async metered(event: ThreadEvent, bodies: EventBody[], mapper: CodexEventMapper, meter: CodexUsageMeter): Promise<EventBody[]> {
+    if (event.type === "turn.completed") {
+      return [...bodies.filter((body) => body.type !== "usage"), ...(await meter.atTurnEnd(mapper.threadId, bodies.filter((body) => body.type === "usage")))];
+    }
+
+    if (event.type === "item.completed" && (event.item.type === "agent_message" || event.item.type === "mcp_tool_call")) {
+      return [...bodies, ...(await meter.usage(mapper.threadId))];
+    }
+
+    return bodies;
   }
 
   private exceeded(request: AgentRequest, mapper: CodexEventMapper, abort: RunAbort): boolean {

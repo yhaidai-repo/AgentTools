@@ -17,7 +17,7 @@ function draftTarget(deps: AgentDeps, taskIds: string[] = []): WriterTarget {
   const task = { id: "DT-001", kind: "draft-merge", pbiId: null, vault: "docs", data: { draft: "pos-topic", path: "draft/pos-topic.md" } };
   const result = { status: "complete", body: "Merged", data: null, evidence: [], waitingFor: [] };
 
-  return { deps, task, runId: 7, agentId: "tech-writer", tasks: [], taskIds, result, budgetStopped: false } as unknown as WriterTarget;
+  return { deps, task, runId: 7, agentId: "tech-writer", tasks: [], taskIds, result, stoppedEarly: false } as unknown as WriterTarget;
 }
 
 describe("TechWriterWriter.commit", () => {

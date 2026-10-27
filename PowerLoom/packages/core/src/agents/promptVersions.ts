@@ -1,5 +1,7 @@
 import { agentPromptVersion, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
+import type { AgentWorkPort } from "../models/AgentWorkPort";
+import type { Outcome } from "../models/Outcome";
 
 export type PromptVersionRow = typeof agentPromptVersion.$inferSelect;
 
@@ -7,24 +9,17 @@ export async function loadPromptVersions(db: PowerLoomDb, agentId: string): Prom
   return db.select().from(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId)).orderBy(desc(agentPromptVersion.version));
 }
 
-// Every edit is a new version (user decision 2026-10-23); the number follows the agent's current one.
-export async function insertPromptVersion(db: PowerLoomDb, agentId: string, version: number, text: string): Promise<void> {
-  await db.insert(agentPromptVersion).values({ agentId, version, text });
-}
-
 // History can outlive a failed definition save. Reuse an identical orphaned version, or reserve a newer
-// version with the unique key as the concurrency guard. Never overwrite another edit's history.
-export async function reservePromptVersion(db: PowerLoomDb, agentId: string, currentVersion: number, text: string): Promise<number> {
-  for (;;) {
+// version through PowerLoom's API. Reads stay local; every history write stays behind the API's unique key.
+export async function reservePromptVersion(db: PowerLoomDb, work: AgentWorkPort, agentId: string, currentVersion: number, text: string): Promise<Outcome<number>> {
+  for (let attempt = 0; attempt < 8; attempt++) {
     const [latest] = await db.select().from(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId)).orderBy(desc(agentPromptVersion.version)).limit(1);
-    if (latest && latest.version > currentVersion && latest.text === text) return latest.version;
+    if (latest && latest.version > currentVersion && latest.text === text) return { ok: true, value: latest.version };
     const version = Math.max(currentVersion, latest?.version ?? 0) + 1;
-    const inserted = await db.insert(agentPromptVersion).values({ agentId, version, text }).onConflictDoNothing().returning({ version: agentPromptVersion.version });
-    if (inserted.length > 0) return version;
+    const saved = await work.addPromptVersion(agentId, version, text);
+    if (saved.ok) return saved;
+    const [after] = await db.select().from(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId)).orderBy(desc(agentPromptVersion.version)).limit(1);
+    if (!after || after.version < version) return saved;
   }
-}
-
-// A deleted agent takes its prompt history with it.
-export async function deletePromptVersions(db: PowerLoomDb, agentId: string): Promise<void> {
-  await db.delete(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId));
+  return { ok: false, error: "Prompt history changed repeatedly; read the agent again and retry." };
 }

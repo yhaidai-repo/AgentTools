@@ -70,4 +70,6 @@ export interface AgentDeps {
   ado: AdoAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
   docUsageLog: DocUsageLog | null;
+  /** The runner's Stop for this run (the run page's Stop); aborted, the agent ends at once and the run keeps what it has. */
+  stop?: AbortSignal;
 }

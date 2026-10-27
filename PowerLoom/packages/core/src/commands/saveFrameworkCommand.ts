@@ -2,7 +2,7 @@ import { validateGlobal } from "@agenttools/config";
 import { z } from "zod";
 import { FRAMEWORK_ID, withFrameworkVersion } from "../agents/frameworkVersioning";
 import { readPromptFile } from "../agents/promptFiles";
-import { insertPromptVersion, loadPromptVersions } from "../agents/promptVersions";
+import { loadPromptVersions } from "../agents/promptVersions";
 import type { Command } from "../models/Command";
 
 // Settings → Agents: the shared framework every `{{framework}}` prompt pulls in. Every edit is a new version, kept with
@@ -37,8 +37,10 @@ export const saveFrameworkCommand: Command<{ text?: string; reset?: boolean }, {
 
     const version = checked.value.frameworkVersion ?? 0;
 
-    if (next.writesHistory) {
-      await insertPromptVersion(context.db, FRAMEWORK_ID, version, checked.value.framework ?? "");
+    const history = next.writesHistory ? await context.powerloom.addPromptVersion(FRAMEWORK_ID, version, checked.value.framework ?? "") : null;
+
+    if (history && !history.ok) {
+      return history;
     }
 
     await agents.saveGlobal(checked.value);

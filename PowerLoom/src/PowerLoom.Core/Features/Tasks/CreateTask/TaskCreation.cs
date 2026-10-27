@@ -19,8 +19,8 @@ namespace PowerLoom.Features.Tasks.CreateTask;
 // which research reads as the task's goal (as on agent-created tasks).
 public sealed class TaskCreation(PowerLoomDbContext db, CustomTaskTypes customTypes)
 {
-    private const int TitleMax = 120;
-    private const int TextMax = 4_000;
+    public const int TitleMax = 120;
+    public const int TextMax = 4_000;
     private const string CreatedBy = "user";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -89,7 +89,7 @@ public sealed class TaskCreation(PowerLoomDbContext db, CustomTaskTypes customTy
             ?? PbiProblem(task, type);
     }
 
-    private static Problem? LengthProblem(string field, string text, int max)
+    internal static Problem? LengthProblem(string field, string text, int max)
     {
         var length = text.Trim().Length;
 

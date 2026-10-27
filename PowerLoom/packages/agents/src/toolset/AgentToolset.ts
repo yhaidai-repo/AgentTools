@@ -20,13 +20,16 @@ import { DuplicateGuard } from "../DuplicateGuard";
 import { commitEstimate } from "../estimate/commitEstimate";
 import { createEstimateTools, ESTIMATE_INTEGRATION, offersEstimate } from "../estimate/estimateTool";
 import { RunEstimate } from "../estimate/RunEstimate";
+import { withLimitNotes } from "../limits/limitNotes";
+import type { RunUse } from "../limits/models/RunUse";
+import { RunMeter } from "../limits/RunMeter";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
 import type { CaptureDraft } from "../models/CaptureDraft";
 import type { TaskContext } from "../models/TaskContext";
 import { createReadPbiTool } from "../pbiContext/readPbiTool";
 import { commitResult } from "../result/commitResult";
-import { createResultTool } from "../result/resultTool";
+import { createResultTool, RESULT_TOOL } from "../result/resultTool";
 import { RunResult } from "../result/RunResult";
 import { listReposTool } from "../refinement/refinementTools";
 import { READ_REPOS_INTEGRATION } from "../repos/openRepos";
@@ -71,6 +74,8 @@ export class AgentToolset {
   readonly estimate: RunEstimate;
   /** What write_result recorded; committed with commit(). */
   readonly result = new RunResult();
+  /** The turns the run has used and its latest words (a limit stop's partial result). */
+  readonly meter = new RunMeter();
   /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
   private readonly writers: RunWriter[];
   private log: ReadLog | null = null;
@@ -114,7 +119,8 @@ export class AgentToolset {
     return webDocumentsBlock(this.webDocuments);
   }
 
-  /** The shared tools, once the first message is final: it is source S0 of the read log. */
+  /** The shared tools, once the first message is final: it is source S0 of the read log. Each result ends with what the
+   *  run has used of its turns and budget. */
   tools(firstMessage: string): ToolDefinition<any>[] {
     this.log = new ReadLog(firstMessage);
 
@@ -123,7 +129,7 @@ export class AgentToolset {
 
     this.offer = offeredTools([...reading, ...writing]);
 
-    return [...recordReads(toolsOf(reading), this.log), ...toolsOf(writing)];
+    return withLimitNotes([...recordReads(toolsOf(reading), this.log), ...toolsOf(writing)], () => this.use(), RESULT_TOOL);
   }
 
   /** What tools() gave the run, each with what gave it, for the Tools tab. */
@@ -142,11 +148,12 @@ export class AgentToolset {
 
   observe(event: AgentEvent): void {
     this.log?.observe(event);
+    this.meter.observe(event);
   }
 
   /** Writes what the shared tools noted into arrays of its own (a runner that lent its draft's arrays commits those with
    *  the draft): the tasks created, the drafts captured, the result, all listed in the run's outputs; and the estimate. */
-  async commit(runId: number, budgetStopped = false): Promise<CommittedToolset> {
+  async commit(runId: number, stoppedEarly = false): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
     const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
@@ -170,7 +177,7 @@ export class AgentToolset {
       }));
     }
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, budgetStopped });
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, stoppedEarly });
     const resultOutput = await commitStep(deps.db, root, runId, "result", this.result.latest, async tx => {
       const output = await commitResult(tx, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
       if (output) await addRunOutputs(tx, runId, [output]);
@@ -184,6 +191,21 @@ export class AgentToolset {
     });
 
     return { taskIds, captureIds };
+  }
+
+  private use(): RunUse {
+    const { agent } = this.context;
+
+    return { turns: this.meter.toolCalls, maxTurns: agent.limits.maxTurns, spentUsd: this.session.spentUsd, budgetUsd: agent.budgets.perRunUsd };
+  }
+
+  /** A run its turns or time stopped: only its result, as a checkpoint. What it staged (tasks, captures, the writers'
+   *  outputs, the estimate) isn't committed; the next run continues the conversation and makes those calls again. */
+  async commitCheckpoint(runId: number): Promise<void> {
+    const { deps } = this.context;
+    const output = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
+
+    await addRunOutputs(deps.db, runId, output ? [output] : []);
   }
 
   /** What the granted writers' outputs say about the task's end (see WriterSettlement). */

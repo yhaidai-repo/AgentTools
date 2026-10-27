@@ -15,3 +15,10 @@ export function isRerunnableTask(item: ItemRow): boolean {
 function hasFailed(item: ItemRow): boolean {
   return item.status === "open" && (item.attempts > 0 || item.heldBy.length > 0);
 }
+
+const EDITABLE: string[] = ["open", "blocked", "done"];
+
+// Edit on an agent task (user decision 2026-10-26): its text, whenever no run works on it (TaskEdit decides).
+export function isEditableTask(item: ItemRow): boolean {
+  return agentIdOf(item.assignee) !== null && item.kind !== "research-result" && EDITABLE.includes(item.status);
+}

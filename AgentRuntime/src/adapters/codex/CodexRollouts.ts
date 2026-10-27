@@ -3,6 +3,7 @@ import { readdir, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
 import type { CodexTokenCount } from "./models/CodexTokenCount";
+import type { CodexTokenTotals } from "./models/CodexTokenTotals";
 import { objectOf } from "./codexWindows";
 
 export class CodexRollouts {
@@ -47,6 +48,21 @@ export class CodexRollouts {
       // Usage is optional: a rotating, partially written or unfamiliar rollout never fails a run.
       return null;
     }
+  }
+
+  /** The thread's latest running token totals in one rollout; null when it has none (yet) or can't be read. */
+  async latestTotals(path: string): Promise<CodexTokenTotals | null> {
+    let latest: CodexTokenTotals | null = null;
+
+    try {
+      for await (const entry of this.entries(path)) {
+        latest = tokenTotalsOf(entry) ?? latest;
+      }
+    } catch {
+      return null;
+    }
+
+    return latest;
   }
 
   private async readLatest(threadId?: string): Promise<CodexTokenCount | null> {
@@ -97,4 +113,15 @@ function tokenCountOf(entry: Record<string, unknown>): CodexTokenCount | null {
   const at = typeof entry.timestamp === "string" ? new Date(entry.timestamp) : new Date(0);
 
   return { rateLimits: payload.rate_limits, at: Number.isFinite(at.getTime()) ? at : new Date(0) };
+}
+
+function tokenTotalsOf(entry: Record<string, unknown>): CodexTokenTotals | null {
+  const payload = objectOf(entry.payload);
+  const totals = objectOf(objectOf(payload.info).total_token_usage);
+
+  if (entry.type !== "event_msg" || payload.type !== "token_count" || typeof totals.input_tokens !== "number" || typeof totals.output_tokens !== "number") {
+    return null;
+  }
+
+  return { input: totals.input_tokens, cachedInput: typeof totals.cached_input_tokens === "number" ? totals.cached_input_tokens : 0, output: totals.output_tokens };
 }

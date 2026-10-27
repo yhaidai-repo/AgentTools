@@ -23,9 +23,16 @@ function fixture() {
         return true;
       },
     },
+    powerloom: {
+      addPromptVersion: async (_agentId: string, version: number, text: string) => {
+        if (history.has(version)) return { ok: false, error: "Version already exists" };
+        history.set(version, { version, text });
+        return { ok: true, value: version };
+      },
+    },
     db: {
       select: () => ({ from: () => ({ where: () => ({ orderBy: () => ({ limit: async () => [...history.values()].sort((a, b) => b.version - a.version).slice(0, 1) }) }) }) }),
-      insert: () => ({ values: (row: { version: number; text: string }) => ({ onConflictDoNothing: () => ({ returning: async () => { if (history.has(row.version)) return []; history.set(row.version, row); return [{ version: row.version }]; } }) }) }),
+      insert: () => { throw new Error("Prompt history must be written through the API"); },
     },
   } as unknown as CommandContext;
   return { context, history, definition: () => definition, secondContext: () => ({ ...context, agents: { ...context.agents! } }), failNextSave: () => { failSave = true; } };
@@ -40,6 +47,15 @@ it("S3-04 recovers from a history insert followed by a failed definition save", 
   assert.ok(result.ok);
   assert.equal(result.value.promptVersion, 2);
   assert.equal(f.history.size, 2);
+});
+
+it("an API refusal preserves the agent definition and prompt history", async () => {
+  const f = fixture();
+  f.context.powerloom.addPromptVersion = async () => ({ ok: false, error: "PowerLoom is unavailable" });
+  const result = await updateAgentCommand.run(f.context, { id: "review-repair-test", prompt: "new prompt" });
+  assert.deepEqual(result, { ok: false, error: "PowerLoom is unavailable" });
+  assert.equal(f.definition().prompt, "v1");
+  assert.equal(f.history.size, 1);
 });
 
 it("S3-04 concurrent different prompt edits reserve distinct history versions", async () => {

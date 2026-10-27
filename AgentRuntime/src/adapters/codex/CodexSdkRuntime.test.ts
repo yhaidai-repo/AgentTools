@@ -103,6 +103,30 @@ for (const mode of ["aborted", "timeout", "max-turns", "crashed"] as const) {
   });
 }
 
+test("reports the tokens of a run cut off at its turn limit, from the rollout", async () => {
+  const home = await mkdtemp(join(tmpdir(), "codex-runtime-test-"));
+  const total = (input: number, output: number) => JSON.stringify({ type: "event_msg", payload: { type: "token_count", info: { total_token_usage: { input_tokens: input, cached_input_tokens: 0, output_tokens: output } } } });
+  const messages: ThreadEvent[] = [
+    { type: "thread.started", thread_id: "thread-cut" },
+    { type: "item.completed", item: { id: "m1", type: "agent_message", text: "reading" } },
+    { type: "item.completed", item: { id: "m2", type: "agent_message", text: "still reading" } },
+  ];
+
+  try {
+    await mkdir(join(home, "sessions"), { recursive: true });
+    await writeFile(join(home, "sessions", "rollout-date-thread-cut.jsonl"), [total(800, 40), total(2_000, 90)].join("\n"));
+
+    const runtime = new CodexSdkRuntime({ codexHome: home }, fake(messages, true));
+    const events = await collect(runtime.run({ ...request(), limits: { maxTurns: 1, timeoutMs: 2000 } }));
+    const usage = events.filter((event) => event.type === "usage");
+
+    assert.equal((events.at(-1) as { reason: string }).reason, "max-turns");
+    assert.deepEqual(usage.map((event) => [event.inputTokens, event.outputTokens]), [[2_000, 90]]);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test("does not start a child for an already aborted request", async () => {
   const home = await mkdtemp(join(tmpdir(), "codex-runtime-test-"));
 

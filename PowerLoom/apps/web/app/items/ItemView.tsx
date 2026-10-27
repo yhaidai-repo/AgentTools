@@ -1,4 +1,4 @@
-import { attachmentRef, isHumanTaskData, type FindingData } from "@powerloom/core";
+import { attachmentRef, isEditableTask, isHumanTaskData, type FindingData } from "@powerloom/core";
 import { ACCEPTED_EXTENSIONS } from "@powerloom/attachments";
 import Link from "next/link";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
@@ -7,6 +7,7 @@ import type { ItemDetail } from "@/lib/pbiDetail";
 import { writtenNotes } from "@/lib/writtenNotes";
 import { DocLink } from "../vault/DocLink";
 import { CloseItemForm } from "./CloseItemForm";
+import { EditTaskForm } from "./EditTaskForm";
 import { ItemHeader } from "./ItemHeader";
 import { FindingForm } from "./FindingForm";
 import { StepView } from "./HumanTaskContent";
@@ -24,7 +25,8 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
     <>
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
-      <ItemContent item={item} />
+      <EditTask detail={detail} />
+      <ItemContent item={item} editable={isEditableTask(item)} />
       <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
@@ -33,6 +35,19 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
       <Resolution detail={detail} />
     </>
   );
+}
+
+// An agent task's text as fields, while it isn't running (user decision 2026-10-26); the criteria are `doneWhen`, or
+// `goal` on tasks older than the field. ItemContent leaves those sections out then.
+function EditTask({ detail }: { detail: ItemDetail }) {
+  const { item } = detail;
+  const data = (item.data ?? {}) as { doneWhen?: string; goal?: string };
+
+  if (!isEditableTask(item)) {
+    return null;
+  }
+
+  return <EditTaskForm adoId={item.pbiId} itemId={item.id} path={itemPath(item)} text={{ title: item.title, description: item.body ?? "", acceptanceCriteria: data.doneWhen ?? data.goal ?? "" }} />;
 }
 
 // A test task's own notes (user decision 2026-10-21): editable at any time, read by the agent on every run.

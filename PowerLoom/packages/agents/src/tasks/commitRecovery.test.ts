@@ -29,7 +29,7 @@ it("restores drafts after commit starts, rolls back failed outputs and reuses on
     await pool.query("create table agent_run(id bigint primary key, outputs jsonb, outcome text, error text, ended_at timestamptz, commit_started_at timestamptz, commit_completed_at timestamptz)");
     await pool.query("create table agent_commit_step(root_run_id bigint, step_key text, result jsonb, primary key(root_run_id,step_key))");
     await pool.query("create table synthetic_output(name text primary key)");
-    await pool.query("insert into agent_run(id) values (1),(2),(3)");
+    await pool.query("insert into agent_run(id) values (1),(2),(3),(4),(5)");
     const db = drizzle(pool) as unknown as PowerLoomDb;
     const store = new JsonlUsageStore(folder);
     const deps = { db, usageStore: store, prices: new PriceBook() };
@@ -63,6 +63,29 @@ it("restores drafts after commit starts, rolls back failed outputs and reuses on
     const beforeAny = await session(3).finish(success(3), async () => { throw new Error("synthetic before output"); });
     assert.equal(beforeAny.outcome, "failed");
     assert.equal((await pool.query("select commit_completed_at from agent_run where id=3")).rows[0].commit_completed_at, null);
+    // An upstream early-stop checkpoint is durable but does not complete the staged-output commit.
+    const checkpoint = await session(4).finish({ ...success(4), outcome: "max-turns" }, async () => { await addRunOutputs(db, 4, ["partial-result"]); }, true, "checkpoint");
+    assert.equal(checkpoint.outcome, "max-turns");
+    const partial = (await pool.query("select * from agent_run where id=4")).rows[0];
+    assert.ok(partial.commit_started_at);
+    assert.equal(partial.commit_completed_at, null);
+    const checkpointFacts = await loadPreviousRunFacts(store, { id: 4, startedAt: started, outputs: partial.outputs, commitStartedAt: partial.commit_started_at, commitCompletedAt: partial.commit_completed_at } as any);
+    assert.equal(checkpointFacts.committed, false);
+    let replayedCheckpointDraft = 0;
+    await replayDraft({ toolCalls: async () => [{ name: "write_result", input: {}, output: "Noted", isError: false }] } as any, "checkpoint", [{ name: "write_result", replayOnResume: true, handler: async () => { replayedCheckpointDraft++; return { text: "Noted" }; } }] as any, { withDrafts: !checkpointFacts.committed });
+    assert.equal(replayedCheckpointDraft, 1);
+    const continued = Reflect.construct(AgentRunSession, [deps, 5, { labels: {} }, { continues: { id: 4, commitRootRunId: 4, commitCompletedAt: null } }]) as AgentRunSession;
+    assert.equal(continued.commitRootRunId, 4);
+    const restoredOutput = () => commitStep(db, continued.commitRootRunId, 5, "restored-task", { body: "restored" }, async tx => {
+      await tx.execute(sql`insert into synthetic_output values ('checkpoint-restored')`);
+      await addRunOutputs(tx, 5, ["checkpoint-restored"]);
+      return "checkpoint-restored";
+    });
+    assert.equal((await continued.finish(success(5), async () => { await restoredOutput(); })).outcome, "success");
+    await restoredOutput();
+    assert.equal((await pool.query("select count(*)::int as n from synthetic_output where name='checkpoint-restored'")).rows[0].n, 1);
+    assert.deepEqual((await pool.query("select outputs from agent_run where id=4")).rows[0].outputs, ["partial-result"]);
+    assert.ok((await pool.query("select commit_completed_at from agent_run where id=5")).rows[0].commit_completed_at);
   } finally {
     await pool.end();
     await admin.query(`drop schema if exists ${namespace} cascade`).finally(() => admin.end());

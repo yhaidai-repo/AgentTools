@@ -14,7 +14,7 @@ const ACTOR = "agent-runner";
 
 // After the run: success → done (if the commit didn't close it already); rate limit → back to open and every agent
 // paused; budget exceeded → blocked at once, since a retry would cost the same again (user decision 2026-10-13: Re-run
-// after raising the budget); any other failure → one more attempt counted, back to open or, after `maxFailures`,
+// after raising the budget); stopped in PowerLoom → blocked until the user Re-runs it; any other failure → one more attempt counted, back to open or, after `maxFailures`,
 // blocked with its last error as the reason. A blocked draft-merge task also gives the user a task for its draft.
 export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: ItemRow, result: AgentRunResult): Promise<void> {
   if (result.outcome === "success") {
@@ -36,6 +36,13 @@ export async function endTask(deps: AgentDeps, agent: AgentDefinition, task: Ite
   if (result.outcome === "rate-limited") {
     await releaseTask(deps.db, task, "rate limited; agents are paused until the limit resets");
     await pauseForRateLimit(deps, result.rateLimitResetsAt);
+
+    return;
+  }
+
+  // Stopped in PowerLoom: held for the user, who Re-runs it (the next run continues from what this one kept).
+  if (result.outcome === "aborted") {
+    await blockTask(deps.db, task, "Stopped in PowerLoom. Re-run it to continue from what the run kept, or Start over.", result.runId);
 
     return;
   }

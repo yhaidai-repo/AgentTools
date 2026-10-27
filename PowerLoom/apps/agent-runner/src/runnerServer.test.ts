@@ -96,3 +96,36 @@ describe("the runner's Azure token route", () => {
     assert.doesNotMatch(await other.text(), /eyJ/);
   });
 });
+
+describe("the runner's stop route", () => {
+  const stopped: string[] = [];
+  let release = () => {};
+  const run = (job: { taskId: string }, stop: AbortSignal) => new Promise<void>((resolve) => {
+    release = resolve;
+    stop.addEventListener("abort", () => {
+      stopped.push(job.taskId);
+      resolve();
+    });
+  });
+  const server = new RunnerServer(run as never, NOT_USED, NOT_USED, {} as never, "not used", null);
+
+  before(() => server.listen(32414));
+  after(async () => {
+    release();
+    await server.close();
+  });
+
+  it("stops the task that runs and refuses any other", async () => {
+    const idle = await call(32414, "POST", "/runs/stop", { taskId: "T-1" });
+
+    await call(32414, "POST", "/runs", { taskId: "T-1", agentId: "coder", pbiId: null });
+
+    const other = await call(32414, "POST", "/runs/stop", { taskId: "T-2" });
+    const mine = await call(32414, "POST", "/runs/stop", { taskId: "T-1" });
+
+    assert.equal(idle.status, 409);
+    assert.equal(other.status, 409);
+    assert.equal(mine.status, 202);
+    assert.deepEqual(stopped, ["T-1"]);
+  });
+});

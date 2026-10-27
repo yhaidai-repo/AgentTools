@@ -1,5 +1,6 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
+import { AGENT_DESCRIPTION_MAX } from "../agents/agentText";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { reservePromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
@@ -7,8 +8,8 @@ import { withModelProvider } from "../agents/modelProvider";
 import { serializeAgentEdit } from "../agents/serializeAgentEdit";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
-import type { UpdateAgentInput } from "../models/UpdateAgentInput";
 import type { Outcome } from "../models/Outcome";
+import type { UpdateAgentInput } from "../models/UpdateAgentInput";
 
 const CRON = /^(\S+\s+){4}\S+$/;
 // A built-in task type or a new one the agent brings (user decision 2026-10-24).
@@ -17,7 +18,7 @@ const TASK_TYPE = z.string().trim().regex(TASK_TYPE_PATTERN, "a task type: lower
 const input = z.object({
   id: z.string().trim().min(1).describe("The agent's id, e.g. better-research (agent_list)"),
   label: z.string().trim().min(1).max(80).optional(),
-  description: z.string().trim().max(300).optional(),
+  description: z.string().trim().max(AGENT_DESCRIPTION_MAX).optional(),
   enabled: z.boolean().optional(),
   schedule: z.string().trim().regex(CRON, "cron needs 5 fields").nullable().optional().describe("A cron (5 fields), or null for manual runs only"),
   model: z.object({ provider: z.string().min(1), model: z.string().min(1), effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional() }).optional(),
@@ -61,7 +62,9 @@ async function update(context: CommandContext, input: UpdateAgentInput) {
   const prepared = await prepareAgentUpdate(context, input);
   if (!prepared.ok) return prepared;
   const { current, next } = prepared.value;
-  if (!await save(context, current, next)) return null;
+  const saved = await save(context, current, next);
+  if (!saved.ok) return saved;
+  if (!saved.value) return null;
   return { ok: true as const, value: { id: next.id, promptVersion: next.promptVersion ?? 0, enabled: next.enabled, changed: changedFields(input) } };
 }
 
@@ -125,14 +128,16 @@ function applyChanges(current: AgentDefinition, input: UpdateAgentInput): AgentD
   };
 }
 
-async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<boolean> {
+async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<Outcome<boolean>> {
   if (next.promptVersion !== (current.promptVersion ?? 0)) {
-    next.promptVersion = await reservePromptVersion(context.db, next.id, current.promptVersion ?? 0, next.prompt ?? "");
+    const history = await reservePromptVersion(context.db, context.powerloom, next.id, current.promptVersion ?? 0, next.prompt ?? "");
+    if (!history.ok) return history;
+    next.promptVersion = history.value;
   }
 
-  if (context.agents!.saveIfUnchanged) return context.agents!.saveIfUnchanged(current, next);
+  if (context.agents!.saveIfUnchanged) return { ok: true, value: await context.agents!.saveIfUnchanged(current, next) };
   await context.agents!.save(next);
-  return true;
+  return { ok: true, value: true };
 }
 
 function changedFields(input: UpdateAgentInput): string[] {

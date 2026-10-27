@@ -11,6 +11,7 @@ import type { DeadLetter } from "./DeadLetter";
 import type { Outcome } from "./Outcome";
 import type { SavedSkill } from "./SavedSkill";
 import type { SystemStatus } from "./SystemStatus";
+import type { AgentWorkPort } from "./AgentWorkPort";
 import type { CaptureWorkPort } from "./CaptureWorkPort";
 import type { PbiWorkPort } from "./PbiWorkPort";
 import type { ReviewWorkPort } from "./ReviewWorkPort";
@@ -19,7 +20,7 @@ import type { VaultWorkPort } from "./VaultWorkPort";
 
 // PowerLoom, the .NET backend taking over the worker's jobs (the vault's adoa-backend-delivery note). The caller (the
 // web, the MCP server) supplies the client; core stays free of HTTP.
-export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort, CaptureWorkPort {
+export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort, CaptureWorkPort, AgentWorkPort {
   // Queues a stored record for its vault's file: the WWW log, or a finding into a project's register.
   addRecord(kind: "www" | "open-question" | "known-issue", sourceId: string): Promise<void>;
   // "Continue with <agent>": writes the chat note and returns the link that opens the chat.
@@ -34,6 +35,8 @@ export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort
   closeItem(request: CloseItemRequest, dryRun?: boolean): Promise<Outcome<{ status: ItemStatus }>>;
   // Opens a finished, failed or blocked agent task again; `startOver`: its next run neither continues the last run's conversation nor gets its result.
   rerunTask(adoId: number | null, itemId: string, startOver: boolean): Promise<Outcome<string>>;
+  // Stops the agent task's run in progress; the run keeps what it has and the task is blocked until it is Re-run.
+  stopTask(itemId: string): Promise<Outcome<string>>;
   // Soft-deletes a question or task.
   deleteItem(adoId: number | null, itemId: string): Promise<Outcome<string>>;
   // Files a bug under a PBI as a [BUG] child item, prepared right away.

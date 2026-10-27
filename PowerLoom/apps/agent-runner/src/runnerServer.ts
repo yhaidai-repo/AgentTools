@@ -11,7 +11,8 @@ const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
 // `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
-// time; PowerLoom asks again later. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
+// time; PowerLoom asks again later. `POST /runs/stop {taskId}` → 202 and the task's run stops (keeping what it has), or
+// 409 when that task isn't the one running. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
 // signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
 // 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for Azure (start, status, sign out); the runner keeps the token cache. `GET /azure/token`: the `az` shim's
@@ -20,10 +21,11 @@ const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set
 // `GET /health` for PowerLoom's health check and Docker's.
 export class RunnerServer {
   private running: string | null = null;
+  private stopper: AbortController | null = null;
   private readonly server: Server;
 
   constructor(
-    private readonly run: (job: AgentRunJob) => Promise<void>,
+    private readonly run: (job: AgentRunJob, stop: AbortSignal) => Promise<void>,
     private readonly testSql: (connectionString: string) => Promise<SqlConnectionCheck>,
     private readonly testDevHub: (url: string, token: string) => Promise<DevHubCheck>,
     private readonly azureLogin: AzureUserLogin,
@@ -59,6 +61,11 @@ export class RunnerServer {
 
     if ((request.method === "PUT" || request.method === "DELETE") && request.url === "/maintenance") {
       await this.setMaintenance(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/runs/stop") {
+      await this.stop(request, response);
       return;
     }
 
@@ -240,8 +247,23 @@ export class RunnerServer {
     }
 
     this.running = job.taskId;
+    this.stopper = new AbortController();
     try { answer(response, 202, { taskId: job.taskId }); }
-    finally { void this.runThenFree(job); }
+    finally { void this.runThenFree(job, this.stopper.signal); }
+  }
+
+  private async stop(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const body = await readBody(request) as { taskId?: unknown } | null;
+    if (typeof body?.taskId !== "string" || body.taskId.length === 0) {
+      answer(response, 400, { error: "expected {taskId}" });
+      return;
+    }
+    if (this.running !== body.taskId || !this.stopper) {
+      answer(response, 409, { error: this.running ? `running ${this.running}, not ${body.taskId}` : "no run in progress" });
+      return;
+    }
+    this.stopper.abort();
+    answer(response, 202, { taskId: body.taskId });
   }
 
   private async setMaintenance(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -284,13 +306,14 @@ export class RunnerServer {
     answer(response, 200, await this.testDevHub(body.url, body.token));
   }
 
-  private async runThenFree(job: AgentRunJob): Promise<void> {
+  private async runThenFree(job: AgentRunJob, stop: AbortSignal): Promise<void> {
     try {
-      await this.run(job);
+      await this.run(job, stop);
     } catch (error) {
       console.error(`${job.taskId}: background run failed:`, error);
     } finally {
       this.running = null;
+      this.stopper = null;
     }
   }
 

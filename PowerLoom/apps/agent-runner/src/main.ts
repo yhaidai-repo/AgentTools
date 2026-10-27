@@ -68,7 +68,7 @@ process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
 
 // Every run ends with the callback, also a failed one and a task the runner refused: PowerLoom waits for it.
-async function runAndReport(job: AgentRunJob): Promise<void> {
+async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> {
   let devHub: AgentDeps["devHub"] = null;
   let azure: AgentDeps["azure"] = null;
 
@@ -78,7 +78,7 @@ async function runAndReport(job: AgentRunJob): Promise<void> {
       const runDeps = await deps.forVault(await vaultOfJob(job));
       devHub = runDeps.devHub;
       azure = runDeps.azure;
-      const result = await runAgentTask(runDeps, job);
+      const result = await runAgentTask({ ...runDeps, stop }, job);
       return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
     },
     cleanups: [

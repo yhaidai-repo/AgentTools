@@ -1,6 +1,7 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
-import { agentPromptVersion } from "@powerloom/db";
 import { z } from "zod";
+import { AGENT_DESCRIPTION_MAX } from "../agents/agentText";
+import { reservePromptVersion } from "../agents/promptVersions";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { newAgentTemplate } from "../agents/newAgentTemplate";
 import { withModelProvider } from "../agents/modelProvider";
@@ -23,7 +24,7 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
   input: z.object({
     id: z.string().trim().regex(AGENT_ID, "lower-case letters, digits and dashes").max(60),
     label: z.string().trim().min(1).max(80),
-    description: z.string().trim().max(300).default(""),
+    description: z.string().trim().max(AGENT_DESCRIPTION_MAX).default(""),
     prompt: z.string().trim().min(20),
     handles: z.array(TASK_TYPE).min(1),
     skills: z.array(z.string().trim().min(1)).default([]),
@@ -41,9 +42,11 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
   async run(context, input) {
     const prepared = await prepareAgentCreation(context, input);
     if (!prepared.ok) return prepared;
+    const history = await reservePromptVersion(context.db, context.powerloom, input.id, 0, prepared.value.prompt ?? "");
+    if (!history.ok) return history;
+    prepared.value.promptVersion = history.value;
     await context.agents!.save(prepared.value);
-    await context.db.insert(agentPromptVersion).values({ agentId: input.id, version: 1, text: input.prompt });
-    return { ok: true, value: { id: input.id, promptVersion: 1, enabled: input.enabled } };
+    return { ok: true, value: { id: input.id, promptVersion: history.value, enabled: input.enabled } };
   },
 };
 

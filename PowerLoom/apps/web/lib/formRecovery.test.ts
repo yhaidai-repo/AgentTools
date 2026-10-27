@@ -71,6 +71,7 @@ it("schedule edits with empty or invalid cron preserve fields and never create i
 
 async function agentFixture(existing = false) {
   const definitions = new Map<string, AgentDefinition>();
+  const history = new Map<number, { version: number; text: string }>();
   const skills = new Map<string, string>();
   let skillWrites = 0, agentWrites = 0, failSave = false, loseResponse = false;
   const agents = {
@@ -80,13 +81,18 @@ async function agentFixture(existing = false) {
   const template = await core.newAgentTemplate(agents as any, "synthetic-agent");
   const prompt = "Review ordinary changes with this complete prompt.";
   if (existing) definitions.set(template.id, { ...template, prompt, promptVersion: 1, handles: ["research"] });
+  if (existing) history.set(1, { version: 1, text: prompt });
   const context = {
     agents, skills: { names: async () => [...skills.keys()], read: async (name: string) => skills.has(name) ? { name, folder: "synthetic", editable: true, content: skills.get(name)! } : null },
-    powerloom: { createSkill: async (name: string, content: string) => {
+    powerloom: { addPromptVersion: async (_id: string, version: number, text: string) => {
+      if (history.has(version)) return { ok: false, error: "Version already exists" };
+      history.set(version, { version, text });
+      return { ok: true, value: version };
+    }, createSkill: async (name: string, content: string) => {
       if (skills.has(name)) return { ok: false, error: "exists already" };
       skillWrites++; skills.set(name, content);
       return loseResponse ? { ok: false, error: "response lost" } : { ok: true, value: name };
-    } }, db: { insert: () => ({ values: async () => {} }) },
+    } }, db: { select: () => ({ from: () => ({ where: () => ({ orderBy: () => ({ limit: async () => [...history.values()].sort((a, b) => b.version - a.version).slice(0, 1) }) }) }) }) },
   } as unknown as core.CommandContext;
   const actions = await source("../app/agents/configActions.ts", {
     "@powerloom/core": core, "next/cache": { revalidatePath() {} }, "next/navigation": { redirect() { throw new Redirect(); } },
