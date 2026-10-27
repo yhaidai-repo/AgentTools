@@ -13,7 +13,7 @@ public sealed class ClaudeDesktopLauncherTests
     {
         var prompt = PromptOf(new ClaudeDesktopLauncher().Open(RequestWith("# Implement PBI-1\n\n## Start\n\n1. Brief me.")));
 
-        Assert.StartsWith("Implement PBI-1\n1. Add these folders to this session: D:/pc/repos/POS.\n2. Read " + NotePath + " and follow its Start section. Its short version, for you and me:", prompt);
+        Assert.StartsWith("Implement PBI-1\n1. Work in the vault D:/pc/work-projects: if it isn't this session's working folder, add it to the session. Read its AGENTS.md and follow it.\n2. Add these folders to this session: D:/pc/repos/POS.\n3. Read " + NotePath + " and follow its Start section. Its short version, for you and me:", prompt);
         Assert.EndsWith("\n\n---\n\n# Implement PBI-1\n\n## Start\n\n1. Brief me.", prompt);
     }
 
@@ -22,7 +22,7 @@ public sealed class ClaudeDesktopLauncherTests
     {
         var prompt = PromptOf(new ClaudeDesktopLauncher().Open(RequestWith(new string('x', 20_000))));
 
-        Assert.EndsWith($"2. Read {NotePath} and follow its Start section.", prompt);
+        Assert.EndsWith($"3. Read {NotePath} and follow its Start section.", prompt);
         Assert.DoesNotContain("xxx", prompt);
     }
 
