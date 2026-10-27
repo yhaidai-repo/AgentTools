@@ -40,9 +40,9 @@ ${COLUMN_FACT_JOINS}
 WHERE c.object_id = OBJECT_ID(@table)
 ORDER BY c.column_id`;
 
-// Reads SQL Server for agents (Read SQL, user decision 2026-10-12). Read only twice: the statement check refuses
-// anything but one SELECT, and every query runs in a transaction that is rolled back, so even a write login changes
-// nothing. One connection per call; nothing is kept between calls. `database` opens another database of the same server
+// Reads SQL Server for agents (Read SQL, user decision 2026-10-12). The statement guard rejects write operations;
+// rollback and read-only intent are extra precautions, not substitutes for database read-only permissions.
+// One connection per call; nothing is kept between calls. `database` opens another database of the same server
 // than the connection string's (the login's default when the string names none).
 export class SqlReader {
   async query(connectionString: string, text: string, database?: string): Promise<SqlAnswer> {

@@ -16,7 +16,7 @@ interface AgentsTableProps {
   agents: AgentDefinition[];
   totals: Map<string, AgentTotals>;
   counts: Map<string, RunCounts>;
-  spentToday: Map<string, number>;
+  spentToday: Map<string, number | null>;
   range: string;
   paused: boolean;
 }
@@ -41,7 +41,7 @@ export function AgentsTable({ agents, totals, counts, spentToday, range, paused 
             <tr><th>Agent</th><th className="col-runs num">Runs</th><th className="col-cost num">Cost</th><th className="col-last num">Last run</th><th className="col-act" aria-label="Actions" /></tr>
           </thead>
           <tbody>
-            {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} spentToday={spentToday.get(agent.id) ?? 0} range={range} paused={paused} />)}
+            {sorted.map((agent) => <AgentRow key={agent.id} agent={agent} color={agentColor(slots.get(agent.id) ?? 0)} totals={totals.get(agent.id)} counts={counts.get(agent.id)} spentToday={spentToday.has(agent.id) ? spentToday.get(agent.id)! : 0} range={range} paused={paused} />)}
           </tbody>
         </table>
       </RunNowResults>
@@ -55,7 +55,7 @@ interface AgentRowProps {
   color: string;
   totals?: AgentTotals;
   counts?: RunCounts;
-  spentToday: number;
+  spentToday: number | null;
   range: string;
   paused: boolean;
 }
@@ -82,7 +82,7 @@ function AgentRow({ agent, color, totals, counts, spentToday, range, paused }: A
         <RunsNote counts={counts} />
       </td>
       <td className="col-cost num">
-        {formatUsd(cost)}
+        {formatUsd(cost, totals?.accountingComplete)}
         {runs > 0 && <small className="cost-per-run">{formatUsd(average(cost, runs))} a run</small>}
         <div className="cost-bar" title={`Today ${formatUsd(spentToday)} of ${formatUsd(agent.budgets.dailyUsd)}`}><b style={{ width: `${budgetFill(spentToday, agent.budgets.dailyUsd) * 100}%` }} /></div>
       </td>

@@ -18,7 +18,7 @@ export function ReviewRuns({ detail }: { detail: ReviewDetail }) {
   const costUsd = detail.runs.reduce((sum, row) => sum + (row.usage?.costUsd ?? 0), 0);
 
   return (
-    <Panel title="Runs" aside={<small>{detail.runs.length} · {formatUsd(costUsd)}</small>}>
+    <Panel title="Runs" aside={<small>{detail.runs.length} · {formatUsd(costUsd, detail.runs.every((row) => row.usage?.accountingComplete !== false))}</small>}>
       {detail.runs.length === 0 && <p className="hint">No runs yet.</p>}
       {detail.runs.map((row) => <RunLine key={row.run.id} row={row} task={row.run.itemId ? tasks.get(row.run.itemId) ?? null : null} />)}
     </Panel>
@@ -32,7 +32,7 @@ function RunLine({ row, task }: { row: RunRow; task: TaskRow | null }) {
     <div className="review-run">
       <span className={`dot ${dotClass(run.outcome)}`} />
       <span><Link href={`/agents/runs/${run.id}`}>RUN-{run.id}</Link> {run.stage}</span>
-      <span className="mono">{usage ? formatUsd(usage.costUsd) : "–"}</span>
+      <span className="mono">{usage ? formatUsd(usage.costUsd, usage.accountingComplete) : "–"}</span>
       <span className="review-run-facts">
         {task ? <Link href={itemPath(task)}>{task.id}</Link> : run.itemId ?? "–"} · {task ? trigger(task.data as ReviewTaskData | null) : "–"}{usage && <> · {formatDuration(usage.durationMs)}</>} · <TimeAgo date={run.startedAt} />
       </span>

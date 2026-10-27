@@ -6,6 +6,7 @@ import type { CreatedTask } from "./models/CreatedTask";
 import type { TaskCommitContext } from "./models/TaskCommitContext";
 import type { TaskTarget } from "./models/TaskTarget";
 import { USER, targetOf } from "./taskTargets";
+import { normalizeNotePath, notePathProblem } from "../techWriter/notePaths";
 
 const NEW_TASK = /^new:(\d+)$/;
 const USER_ASSIGNEE = "human";
@@ -15,7 +16,7 @@ export async function commitCreatedTasks(db: PowerLoomDb, context: TaskCommitCon
   const ids: string[] = [];
 
   for (const task of tasks) {
-    ids.push(await insertTask(db, context, { ...task, dependsOn: resolveDependencies(task.dependsOn, ids) }));
+    ids.push(await insertTask(db, context, { ...task, dependsOn: resolveTaskDependencies(task.dependsOn, ids) }));
   }
 
   return ids;
@@ -31,11 +32,15 @@ export async function countAgentCreatedTasks(db: PowerLoomDb, pbiId: number): Pr
   return Number(row?.total ?? 0);
 }
 
-function resolveDependencies(dependsOn: string[], written: string[]): string[] {
+export function resolveTaskDependencies(dependsOn: readonly string[], written: readonly string[]): string[] {
   return dependsOn.map((id) => {
+    if (typeof id !== "string" || !id.trim()) throw new Error("Task dependency must be a non-empty ID");
     const created = NEW_TASK.exec(id);
-
-    return created ? written[Number(created[1]) - 1] : id;
+    if (!id.startsWith("new:")) return id;
+    const index = created ? Number(created[1]) : 0;
+    const resolved = Number.isSafeInteger(index) && index > 0 ? written[index - 1] : undefined;
+    if (typeof resolved !== "string" || !resolved.trim()) throw new Error(`Unresolved task dependency: ${id}; only earlier-created tasks may be referenced`);
+    return resolved;
   });
 }
 
@@ -52,7 +57,7 @@ function insertTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTa
 // `goal` in data is what the research message shows as the task's goal, so it carries the done-when.
 async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask, target: TaskTarget): Promise<string> {
   const id = await nextId(db, target.prefix as ItemPrefix, context.pbiId);
-  const data = { ...decisionData(task), ...reposData(context), goal: task.doneWhen, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort, depth: context.depth + 1 };
+  const data = { ...decisionData(task), ...reposData(context), goal: task.doneWhen, depth: context.depth + 1 };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data });
 
@@ -61,8 +66,11 @@ async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task
 
 // Like the vault review's actualize tasks: numbered across the app and kept off the PBI, so a doc fix never holds it.
 async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask, target: TaskTarget): Promise<string> {
+  if (!task.docPath) throw new Error("Docs task needs a note path.");
+  const path = normalizeNotePath(task.docPath);
+  const problem = notePathProblem(path);
+  if (problem) throw new Error(problem);
   const id = await nextGlobalItemId(db, "WT");
-  const path = task.docPath!;
   const data: ActualizeTaskData = {
     key: `actualize:${context.docsVault}:${path}:RUN-${context.runId}`,
     mode: "actualize",
@@ -84,15 +92,16 @@ async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task:
 async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
   const id = await nextId(db, "HT", context.pbiId);
   const human = { why: task.reason, solves: task.goal, steps: task.steps };
+  const criteria = [`## Done when\n\n${task.doneWhen}`, ...(task.outOfScope ? [`## Out of scope\n\n${task.outOfScope}`] : [])].join("\n\n");
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: renderHumanTaskBody(human), data: { ...human, ...decisionData(task) } });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: `${renderHumanTaskBody(human)}\n\n${criteria}`, data: { ...human, ...decisionData(task) } });
 
   return id;
 }
 
 async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
   const id = await nextId(db, "Q", context.pbiId);
-  const data = { why: task.reason, options: task.options, doneWhen: task.doneWhen, ...decisionData(task) };
+  const data = { why: task.reason, options: task.options, ...decisionData(task) };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: task.goal, data });
 
@@ -115,5 +124,5 @@ export function nextId(db: PowerLoomDb, prefix: ItemPrefix, pbiId: number | null
 
 // Why the task exists and what it holds: kept on every created item (framework P9; Ready for dev reads `blocking`).
 function decisionData(task: CreatedTask) {
-  return { reason: task.reason, evidence: task.evidence, blocking: task.blocking, dependsOn: task.dependsOn };
+  return { reason: task.reason, evidence: task.evidence, blocking: task.blocking, dependsOn: task.dependsOn, doneWhen: task.doneWhen, outOfScope: task.outOfScope, effort: task.effort };
 }

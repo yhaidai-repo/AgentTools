@@ -16,7 +16,14 @@ function Test-VaultDraft {
     }
 
     $state = [ordered]@{}
-    $Name | ForEach-Object { $state[$_] = Test-Path -LiteralPath (Join-Path $vaultInfo.Root $rules.draft.folder "$_.md") -PathType Leaf }
+    try {
+        $Name | ForEach-Object {
+            $path = Join-Path $vaultInfo.Root $rules.draft.folder "$_.md"
+            Assert-VaultFilePath -Root $vaultInfo.Root -Path $path -ScopeRoot (Join-Path $vaultInfo.Root $rules.draft.folder)
+            $state[$_] = Test-Path -LiteralPath $path -PathType Leaf
+        }
+    }
+    catch { return New-DraftQueryResult -Errors $_.Exception.Message }
 
     return New-DraftQueryResult -Drafts ([pscustomobject]$state)
 }

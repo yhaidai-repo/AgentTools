@@ -8,6 +8,6 @@ public sealed class ConfluenceClientFactory(IHttpClientFactory httpClients, IOpt
     {
         var credentials = options.Value;
 
-        return credentials.IsConfigured ? new ConfluenceClient(httpClients.CreateClient(ConfluenceIntegrationSetup.HttpClientName), credentials.Email.Trim(), credentials.ApiToken.Trim()) : null;
+        return credentials.IsConfigured ? new ConfluenceClient(httpClients.CreateClient(ConfluenceIntegrationSetup.HttpClientName), credentials.Email.Trim(), credentials.ApiToken.Trim(), credentials.Site.Trim()) : null;
     }
 }

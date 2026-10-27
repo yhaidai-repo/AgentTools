@@ -46,5 +46,5 @@ export const getUsageSummaryCommand: Command<UsageSummaryInput, UsageSummary> = 
 };
 
 function sumOf(agents: AgentTotals[]): AgentTotals {
-  return agents.reduce((sum, usage) => ({ runs: sum.runs + usage.runs, tokens: sum.tokens + usage.tokens, costUsd: sum.costUsd + usage.costUsd, durationMs: sum.durationMs + usage.durationMs }), { runs: 0, tokens: 0, costUsd: 0, durationMs: 0 });
+  return agents.reduce((sum, usage) => ({ runs: sum.runs + usage.runs, tokens: sum.tokens + usage.tokens, costUsd: sum.costUsd + usage.costUsd, durationMs: sum.durationMs + usage.durationMs, accountingComplete: sum.accountingComplete !== false && usage.accountingComplete !== false }), { runs: 0, tokens: 0, costUsd: 0, durationMs: 0, accountingComplete: true });
 }

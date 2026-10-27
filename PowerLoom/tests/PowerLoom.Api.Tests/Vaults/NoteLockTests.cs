@@ -23,7 +23,7 @@ public sealed class NoteLockTests : IDisposable
     }
 
     [Fact]
-    public async Task A_lock_left_by_a_killed_writer_is_taken_over_and_a_released_one_leaves_no_file()
+    public async Task An_unowned_file_is_immediately_reusable_and_keeps_the_shared_inode()
     {
         var lockFile = NoteLock.LockFileOf(Note);
 
@@ -34,7 +34,31 @@ public sealed class NoteLockTests : IDisposable
 
         Assert.NotNull(taken);
         taken.Dispose();
-        Assert.False(File.Exists(lockFile));
+        Assert.True(File.Exists(lockFile));
+        using var next = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        Assert.NotNull(next);
+    }
+
+    [Fact]
+    public async Task Releasing_an_old_owner_twice_does_not_release_its_replacement()
+    {
+        var first = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        first!.Dispose();
+        using var next = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        first.Dispose();
+        using var busy = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        Assert.NotNull(next);
+        Assert.Null(busy);
+    }
+
+    [Fact]
+    public async Task Waiting_for_a_live_owner_can_be_cancelled()
+    {
+        using var first = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => NoteLock.TryEnterAsync(Note, cancellation.Token));
+        using var busy = await NoteLock.TryEnterAsync(Note, CancellationToken.None, TimeSpan.Zero);
+        Assert.Null(busy);
     }
 
     public void Dispose() => Directory.Delete(folder, recursive: true);

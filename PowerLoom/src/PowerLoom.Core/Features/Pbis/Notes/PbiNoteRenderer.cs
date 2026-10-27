@@ -13,9 +13,11 @@ public static class PbiNoteRenderer
     public static string Render(string template, PbiNote note, string notesSection, IReadOnlyDictionary<string, string> regions)
     {
         // A template edited on Windows has CRLF line endings; the note is written with LF throughout.
-        var body = NoteText.ReplaceRegions(PbiTemplate.Fill(template.ReplaceLineEndings("\n"), Placeholders(note)), regions);
+        // Locate the template's boundary before expanding external Markdown, which may itself have ## Notes.
+        var body = NoteText.ReplaceRegions(PbiTemplate.Fill(NotesSection.Before(template.ReplaceLineEndings("\n")), Placeholders(note)), regions);
+        var generated = $"{Frontmatter(note)}\n\n{body.TrimEnd()}\n\n{ExtraFieldsSection(note.ExtraFieldsMd)}{DiscussionSection(note.DiscussionMd)}";
 
-        return $"{Frontmatter(note)}\n\n{NotesSection.Before(body).TrimEnd()}\n\n{ExtraFieldsSection(note.ExtraFieldsMd)}{DiscussionSection(note.DiscussionMd)}{notesSection}";
+        return $"{generated.Replace(NotesSection.Marker, "", StringComparison.Ordinal)}{NotesSection.Marker}\n{notesSection}";
     }
 
     // Like the discussion, written by the app. One section for all the team's fields: a field called Notes must not

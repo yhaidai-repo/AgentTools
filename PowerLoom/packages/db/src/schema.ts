@@ -173,6 +173,9 @@ export const agentRun = pgTable("agent_run", {
   // The provider conversation this run wrote (kept so the task's next run can continue it) and the run it continued.
   conversationId: uuid("conversation_id"),
   continuesRunId: bigint("continues_run_id", { mode: "number" }).references((): AnyPgColumn => agentRun.id),
+    commitRootRunId: bigint("commit_root_run_id", { mode: "number" }),
+    commitStartedAt: ts("commit_started_at"),
+    commitCompletedAt: ts("commit_completed_at"),
 }, (t) => [
   index("agent_run_stage_started_idx").on(t.stage, t.startedAt),
   index("agent_run_pbi_idx").on(t.pbiId),

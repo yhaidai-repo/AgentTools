@@ -1,6 +1,7 @@
 export { PriceBook, baseModel } from "./PriceBook";
 export { UsageTracker } from "./UsageTracker";
 export { BudgetGuard } from "./BudgetGuard";
+export { IncompleteAccountingError } from "./IncompleteAccountingError";
 export { budgetDayStart } from "./budgetDay";
 export { TraceRecorder } from "./TraceRecorder";
 export { NOT_FAILED_OUTCOMES, isFailedOutcome, toOutcome } from "./outcome";

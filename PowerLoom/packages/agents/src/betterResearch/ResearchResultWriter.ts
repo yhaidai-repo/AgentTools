@@ -14,6 +14,7 @@ export const RESEARCH_RESULT_INTEGRATION = "researchResult";
 // relevant pages. Any agent with the grant gets it; Better Research no longer needs code of its own.
 export class ResearchResultWriter implements RunWriter {
   readonly integration = RESEARCH_RESULT_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: BetterResearchDraft = { result: null, tasks: [], captures: [], pages: [] };
 

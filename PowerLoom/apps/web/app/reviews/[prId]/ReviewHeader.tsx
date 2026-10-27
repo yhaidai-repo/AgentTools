@@ -82,7 +82,7 @@ function Stats({ detail }: { detail: ReviewDetail }) {
       <HeroStat label="Open comments" value={String(detail.comments.open)} tone={detail.comments.open > 0 ? "warn" : undefined} />
       <HeroStat label="Comments" value={String(detail.comments.total)} note={fixed > 0 ? `${fixed} fixed` : undefined} />
       <HeroStat label="Runs" value={String(detail.runs.length)} />
-      <HeroStat label="Cost" value={formatUsd(costUsd)} />
+      <HeroStat label="Cost" value={formatUsd(costUsd, detail.runs.every((row) => row.usage?.accountingComplete !== false))} />
     </div>
   );
 }

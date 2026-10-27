@@ -18,18 +18,24 @@ export const queueReviewCommand: Command<{ prId: number }, { message: string }> 
       return queued;
     }
 
-    const started = await startReviewers(context);
+    const { started, refused, available } = await startReviewers(context);
+    const dispatch = started > 0 ? `${started} agent dispatch(es) accepted` : available ? "no agent dispatch was accepted" : "no enabled agent takes review tasks yet (Agents page)";
+    const reasons = refused.length > 0 ? ` Refused: ${refused.join("; ")}.` : "";
 
-    return { ok: true, value: { message: `${queued.value} queued; ${started > 0 ? "it starts now" : "no enabled agent takes review tasks yet (Agents page)"}.` } };
+    return { ok: true, value: { message: `${queued.value} queued; ${dispatch}.${reasons}` } };
   },
 };
 
-async function startReviewers(context: CommandContext): Promise<number> {
+async function startReviewers(context: CommandContext): Promise<{ started: number; refused: string[]; available: number }> {
   const reviewers = ((await context.agents?.list()) ?? []).filter((agent) => agent.enabled && agent.handles.includes(REVIEW_TASK_TYPE));
+  let started = 0;
+  const refused: string[] = [];
 
   for (const agent of reviewers) {
-    await context.powerloom.runAgent(agent.id);
+    const result = await context.powerloom.runAgent(agent.id);
+    if (result.ok) started++;
+    else refused.push(`${agent.id}: ${result.error}`);
   }
 
-  return reviewers.length;
+  return { started, refused, available: reviewers.length };
 }

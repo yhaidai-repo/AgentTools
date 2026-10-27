@@ -23,8 +23,8 @@ export const getVaultRegistersCommand: Command<GetVaultRegistersInput, VaultRegi
     kind: z.enum([...REGISTER_KEYS, ALL_REGISTERS]).default(ALL_REGISTERS).describe("One register (www, issues, questions) or all"),
     openOnly: z.boolean().default(true).describe("Only open records (false lists resolved and fixed ones too)"),
   }),
-  async run(_context, input) {
-    const root = await mountedVaultRoot(input.vault);
+  async run(context, input) {
+    const root = await mountedVaultRoot(input.vault, context.db);
 
     if (!root.ok) {
       return root;

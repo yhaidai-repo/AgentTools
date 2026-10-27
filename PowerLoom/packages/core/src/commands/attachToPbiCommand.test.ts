@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, open, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, open, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -14,6 +14,28 @@ async function contextOn(mount: string, stored: string[]): Promise<CommandContex
 }
 
 describe("pbi.attach", () => {
+  it("S3-02 follows only links inside the same mount and checks the canonical secret path", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "attach-links-"));
+    const mount = join(parent, "mount");
+    const outside = join(parent, "outside");
+    await mkdir(join(mount, "docs"), { recursive: true });
+    await mkdir(join(mount, "dev-secrets"));
+    await mkdir(outside);
+    await writeFile(join(mount, "docs", "spec.md"), "ordinary document");
+    await writeFile(join(mount, "dev-secrets", "spec.md"), "synthetic secret sentinel");
+    await writeFile(join(outside, "spec.md"), "outside sentinel");
+    await symlink(join(mount, "docs"), join(mount, "inside-link"), "junction");
+    await symlink(join(mount, "dev-secrets"), join(mount, "secret-alias"), "junction");
+    await symlink(outside, join(mount, "outside-link"), "junction");
+    const stored: string[] = [];
+    const context = await contextOn(mount, stored);
+    const attach = (name: string) => attachToPbiCommand.run(context, { adoId: 1, path: `D:/Projects/${name}/spec.md`, itemId: null });
+    assert.equal((await attach("inside-link")).ok, true);
+    assert.equal((await attach("secret-alias")).ok, false);
+    assert.equal((await attach("outside-link")).ok, false);
+    assert.deepEqual(stored, ["spec.md"]);
+  });
+
   it("stores a document, and refuses a secret and a file over the limit without reading it", async () => {
     const mount = await mkdtemp(join(tmpdir(), "attach-"));
     const stored: string[] = [];

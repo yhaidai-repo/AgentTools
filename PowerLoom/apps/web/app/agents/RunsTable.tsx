@@ -53,7 +53,7 @@ function RunRowView({ row, shares, palette }: { row: RunListRow; shares: RunSubs
           {run.error && isFailedOutcome(run.outcome) && <span className="text-error run-error" title={run.error}>{run.error}</span>}
         </div>
       </td>
-      <td className="col-cost num">{usage ? formatUsd(usage.costUsd) : "–"}{usage && <small className="cost-per-run">{formatTokens(tokens)} tokens</small>}</td>
+      <td className="col-cost num">{usage ? formatUsd(usage.costUsd, usage.accountingComplete) : "–"}{usage && <small className="cost-per-run">{formatTokens(tokens)} tokens</small>}</td>
       <td className="col-took num">{usage ? formatDuration(usage.durationMs) : "–"}</td>
       <td className="col-outcome"><span className="run-outcome"><span className={`dot ${outcomeDot(run.outcome)}`} />{run.outcome}</span><small className="cost-per-run"><TimeAgo date={run.startedAt} /></small></td>
     </tr>

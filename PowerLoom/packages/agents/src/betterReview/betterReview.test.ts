@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -92,6 +92,62 @@ const SUMMARY = {
   next_reason: "Nothing open needs research.",
 };
 
+describe("answered outdated comments", () => {
+  it("refuses ready for new, open, kept and refined comments of every severity", async (t) => {
+    for (const severity of ["blocker", "major", "minor", "nit"] as const) {
+      const run = await runWith({ comments: [comment({ severity })] });
+      t.after(() => rm(run.checkout!.path, { recursive: true, force: true }));
+      for (const action of [null, "keep", "refine"] as const) {
+        run.draft.updates = action ? [{ id: "RC-7-001", action, reply: "Still applies", body: action === "refine" ? "Refined issue" : null }] : [];
+        assert.equal((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true, `${severity}/${action}`);
+      }
+      run.context!.earlierComments[0].status = "answered";
+      assert.equal((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true);
+      run.context!.earlierComments = [];
+      run.draft.updates = [];
+      run.draft.comments = [{ severity } as never];
+      assert.equal((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true);
+      run.draft.comments = [];
+      assert.notEqual((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true);
+    }
+  });
+
+  it("allows ready only after explicit settlement or legitimate retirement", async (t) => {
+    const run = await runWith({ comments: [comment()] });
+    t.after(() => rm(run.checkout!.path, { recursive: true, force: true }));
+    for (const action of ["fixed", "withdraw"] as const) {
+      run.draft.updates = [{ id: "RC-7-001", action, reply: "Verified settlement", body: null }];
+      assert.notEqual((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true);
+    }
+    run.draft.updates = [];
+    run.outdatedIds = ["RC-7-001"];
+    assert.notEqual((await tool(run, "write_review_summary").handler({ ...SUMMARY, verdict: "ready" })).isError, true);
+  });
+  it("allows a full summary when a changed answered comment is automatically retired", async (t) => {
+    const run = await runWith({ comments: [comment({ status: "answered", answerMd: "Synthetic answer" })], outdated: ["RC-7-001"], mode: { kind: "full", reason: "forced" } });
+    t.after(() => rm(run.checkout!.path, { recursive: true, force: true }));
+    assert.equal((await tool(run, "update_comment").handler({ id: "RC-7-001", action: "withdraw", reply: "Synthetic" })).isError, true);
+    assert.notEqual((await tool(run, "write_review_summary").handler(SUMMARY)).isError, true);
+    assert.ok(run.draft.result);
+  });
+
+  it("still requires decisions for answered comments that full mode can decide", async (t) => {
+    const run = await runWith({ comments: [comment({ status: "answered", answerMd: "Synthetic answer" })], mode: { kind: "full", reason: "forced" } });
+    t.after(() => rm(run.checkout!.path, { recursive: true, force: true }));
+    assert.equal((await tool(run, "write_review_summary").handler(SUMMARY)).isError, true);
+    await tool(run, "update_comment").handler({ id: "RC-7-001", action: "withdraw", reply: "Synthetic" });
+    assert.notEqual((await tool(run, "write_review_summary").handler(SUMMARY)).isError, true);
+  });
+
+  it("retains the decision requirement for an outdated answered comment in follow-up mode", async (t) => {
+    const run = await runWith({ comments: [comment({ status: "answered", answerMd: "Synthetic answer" })], outdated: ["RC-7-001"] });
+    t.after(() => rm(run.checkout!.path, { recursive: true, force: true }));
+    assert.equal((await tool(run, "write_review_summary").handler(SUMMARY)).isError, true);
+    await tool(run, "update_comment").handler({ id: "RC-7-001", action: "withdraw", reply: "Synthetic" });
+    assert.notEqual((await tool(run, "write_review_summary").handler(SUMMARY)).isError, true);
+  });
+});
+
 describe("review rules note", () => {
   it("appends rules with the next free id and reads which are active", () => {
     const first = appendReviewRules(null, "Repo", [{ kind: "decision", rule: "Don't ask for paging on admin lists", appliesTo: "Api/Admin", reason: "under 100 rows", source: "PR 7, RC-7-001", sourceText: "they stay small" }], "2026-10-16");
@@ -172,7 +228,7 @@ describe("Better Review tools", () => {
     await tool(run, "update_comment").handler({ id: "RC-7-001", action: "keep", reply: "still applies" });
     await tool(run, "assess_reviewer_comment").handler({ thread_id: 31, verdict: "not_applicable", note: "style nit the formatter fixes" });
     assert.ok(!(await summary.handler(SUMMARY)).isError);
-    assert.match(run.draft.summary ?? "", /Ready with fixes/);
+    assert.match(run.draft.summary ?? "", /Changes required before merge/);
     assert.match(run.draft.summary ?? "", /✓ met/);
   });
 

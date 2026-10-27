@@ -21,6 +21,7 @@ import { findOutdatedComments } from "./outdatedComments";
 import { parseUnifiedDiff, selectScope } from "./prDiff";
 import { reviewCheckoutsRoot } from "./reviewCheckouts";
 import { buildReviewMessage } from "./reviewMessage";
+import { repoFolderName, type CatalogRepoRef } from "../repos/agentRepos";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -32,6 +33,7 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // the review's version are written once the run succeeds. The worktree is removed whatever happens.
 export class ReviewWriter implements RunWriter {
   readonly integration = CODE_REVIEW_INTEGRATION;
+  commitDraft(): unknown { return { draft: this.run.draft, commit: this.run.checkout?.sourceCommit }; }
 
   private readonly run: ReviewRun = { context: null, checkout: null, scope: { reviewed: [], skipped: [] }, outdatedIds: [], repos: noRepoAccess(), toolset: null, draft: { summary: null, comments: [], updates: [] } };
 
@@ -114,11 +116,14 @@ export function reviewRepo(repos: RepoAccess, repoName: string): RepoRef {
     throw new Error("a review reads the PR's repo: switch on Read repositories in this agent's Config");
   }
 
-  if (repos.repos.length === 0) {
+  const matches = repos.repos.filter((repo: CatalogRepoRef) => repo.catalogName !== undefined
+    ? repo.catalogName.toLowerCase() === repoName.toLowerCase()
+    : repo.name.toLowerCase() === repoFolderName(repoName).toLowerCase());
+  if (matches.length !== 1) {
     throw new Error(`repo "${repoName}" is disabled in Settings or not in the vault's catalog; its PRs get no review`);
   }
 
-  return repos.repos[0];
+  return matches[0];
 }
 
 function noRepoAccess(): RepoAccess {

@@ -39,3 +39,5 @@ description: How Better Review reviews one pull request against its PBIs, the re
 - Decision: the person declined a fix with a reason you accept. Write what later reviews should do, with the reason: "Don't ask for paging on the admin lists: they stay under 100 rows."
 - Lesson: another reviewer caught a real issue you missed. Write the check: "Check that new endpoints in Api/Admin have the AdminOnly policy."
 - One instruction each, beyond this PR, scoped (`applies_to`). Not for one-off fixes; not when an active rule already says it.
+
+All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

@@ -63,18 +63,24 @@ function Invoke-RabbitCompose([string[]] $Arguments) {
     }
 }
 
-function Start-LocalRabbitMq([hashtable] $Named, [hashtable] $Service) {
+function Start-LocalRabbitMq([hashtable] $Named, [hashtable] $Service, [hashtable] $State) {
     $managementUrl = $Service.run.managementUrl
+
+    if (Test-LocalRabbitMqExists) { throw 'Local RabbitMQ already exists; it is not owned by this start attempt.' }
+    $entry = @{ name = 'rabbitmq'; kind = 'compose'; url = $managementUrl }
+    $State.services += $entry
+    Save-StackState $State
 
     Invoke-RabbitCompose @("up", "-d", "--wait")
     Set-RabbitShovel $managementUrl $Named
     Write-Host "Started rabbitmq (management $managementUrl); the shovel connects once Signals has created its topic"
 
-    return @{
-        name = "rabbitmq"
-        kind = "compose"
-        url = $managementUrl
-    }
+    return $entry
+}
+
+function Test-LocalRabbitMqExists() {
+    $containers = Invoke-RabbitCompose @('ps', '--all', '--quiet')
+    return -not [string]::IsNullOrWhiteSpace(($containers | Out-String))
 }
 
 function Test-LocalRabbitMqRunning() {

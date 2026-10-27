@@ -28,7 +28,7 @@ export function CostliestPbis({ pbis }: { pbis: PbiCost[] }) {
               <td><Link href={`/pbis/${pbi.pbiId}`} className="id">PBI-{pbi.pbiId}</Link></td>
               <td className="clip" title={pbi.title}>{pbi.title}</td>
               <td className="num">{pbi.runs}</td>
-              <td className="num">{formatUsd(pbi.costUsd)}</td>
+              <td className="num">{formatUsd(pbi.costUsd, pbi.accountingComplete)}</td>
               <td className="num">{formatDuration(pbi.durationMs)}</td>
             </tr>
           ))}

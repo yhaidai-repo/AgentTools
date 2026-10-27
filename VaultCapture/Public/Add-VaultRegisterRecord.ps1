@@ -16,7 +16,8 @@ function Add-VaultRegisterRecord {
     }
 
     # Read, next id and write under the register's lock: two writers at once would lose a record or repeat an id.
-    return Use-RegisterLock -Path $register.Path -Action { Add-RegisterLine -InputObject $InputObject -Register $register }
+    try { return Use-RegisterLock -Path $register.Path -Root $register.Root -Action { Add-RegisterLine -InputObject $InputObject -Register $register } }
+    catch { return New-RegisterResult -Errors $_.Exception.Message }
 }
 
 function Add-RegisterLine {
@@ -25,11 +26,11 @@ function Add-RegisterLine {
         [Parameter(Mandatory)][object]$Register
     )
 
-    $file = Read-DraftFile -Path $Register.Path
+    $file = Read-DraftFile -Path $Register.Path -Root $Register.Root -ScopeRoot (Split-Path -Parent $Register.Path)
     $id = Get-NextRegisterId -Records @(Get-RegisterRecordList -Lines $file.Lines -Prefix $Register.Prefix) -Prefix $Register.Prefix
     $record = ConvertTo-RegisterLine -InputObject $InputObject -Id $id -Label $Register.Label -Date (Get-Date -Format 'yyyy-MM-dd')
 
-    Write-DraftFile -Path $Register.Path -Lines (@($file.Lines) + '' + $record) -NewLine $file.NewLine
+    Write-DraftFile -Path $Register.Path -Root $Register.Root -ScopeRoot (Split-Path -Parent $Register.Path) -Lines (@($file.Lines) + '' + $record) -NewLine $file.NewLine
 
     return New-RegisterResult -Id $id -Path $Register.Path
 }

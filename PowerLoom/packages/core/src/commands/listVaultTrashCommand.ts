@@ -10,8 +10,8 @@ export const listVaultTrashCommand: Command<{ vault: string }, TrashEntry[]> = {
   effect: "read",
   description: "List a docs vault's trash (.trash/): the notes the vault review removed, with their path in the vault, size and when they were last changed, newest first.",
   input: z.object({ vault: vaultInput }),
-  async run(_context, input) {
-    const root = await mountedVaultRoot(input.vault);
+  async run(context, input) {
+    const root = await mountedVaultRoot(input.vault, context.db);
 
     if (!root.ok) {
       return root;

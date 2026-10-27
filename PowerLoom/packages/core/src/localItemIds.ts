@@ -1,5 +1,5 @@
-import { localItem, type PowerLoomDb } from "@powerloom/db";
-import { and, eq, like } from "drizzle-orm";
+import type { PowerLoomDb } from "@powerloom/db";
+import { sql } from "drizzle-orm";
 
 // XT: a task of a custom type an agent made in the UI handles (user decision 2026-10-24).
 export type ItemPrefix = "RT" | "AT" | "DT" | "HT" | "Q" | "RR" | "TT" | "TR" | "XT";
@@ -10,11 +10,7 @@ export type GlobalItemPrefix = "WT" | "F" | "VR" | "GT" | "MT";
 
 // Ids are `<prefix>-<adoId>-<nnn>`, numbered per PBI and prefix; never reused.
 export async function nextItemId(db: PowerLoomDb, prefix: ItemPrefix, adoId: number): Promise<string> {
-  const stem = `${prefix}-${adoId}-`;
-  const rows = await db.select({ id: localItem.id }).from(localItem).where(and(eq(localItem.pbiId, adoId), like(localItem.id, `${stem}%`)));
-  const highest = rows.reduce((max, row) => Math.max(max, Number(row.id.slice(stem.length)) || 0), 0);
-
-  return `${stem}${String(highest + 1).padStart(3, "0")}`;
+  return nextScopedItemId(db, `${prefix}-${adoId}-`);
 }
 
 export async function nextGlobalItemId(db: PowerLoomDb, prefix: GlobalItemPrefix): Promise<string> {
@@ -23,8 +19,6 @@ export async function nextGlobalItemId(db: PowerLoomDb, prefix: GlobalItemPrefix
 
 // The next `<stem><nnn>` across all items, e.g. stem `CR-6322-` for the review tasks of pull request 6322.
 export async function nextScopedItemId(db: PowerLoomDb, stem: string): Promise<string> {
-  const rows = await db.select({ id: localItem.id }).from(localItem).where(like(localItem.id, `${stem}%`));
-  const highest = rows.reduce((max, row) => Math.max(max, Number(row.id.slice(stem.length)) || 0), 0);
-
-  return `${stem}${String(highest + 1).padStart(3, "0")}`;
+  const result = await db.execute<{ id: string }>(sql`select reserve_item_id(${stem}) as id`);
+  return result.rows[0].id;
 }

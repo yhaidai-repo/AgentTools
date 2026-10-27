@@ -18,6 +18,7 @@ interface AgentPeriodStats {
   failures: number;
   running: number;
   costUsd: number;
+  accountingComplete?: boolean;
   tokens: number;
   durationMs: number;
   lastStartedAt: Date | null;
@@ -31,7 +32,7 @@ interface AgentListEntry {
   schedule: string | null;
   model: ModelChoice;
   budgets: AgentBudgets;
-  dailySpentUsd: number;
+  dailySpentUsd: number | null;
   period: AgentPeriodStats;
 }
 
@@ -56,7 +57,7 @@ export const listAgentsCommand: Command<AgentListInput, AgentListEntry[]> = {
     const totals = await loadAgentTotals(context.db, context.usage, from, input.vault);
     const spent = await spentTodayByAgent(context.usage, agents.map((agent) => agent.id));
 
-    return { ok: true, value: agents.map((agent) => entryOf(agent, spent.get(agent.id) ?? 0, periodStats(counts.get(agent.id), totals.get(agent.id)))) };
+    return { ok: true, value: agents.map((agent) => entryOf(agent, spent.has(agent.id) ? spent.get(agent.id)! : 0, periodStats(counts.get(agent.id), totals.get(agent.id)))) };
   },
 };
 
@@ -64,9 +65,9 @@ export function periodStats(counts: RunCounts | undefined, totals: AgentTotals |
   const { runs, failures, running, lastStartedAt, lastOutcome } = counts ?? NO_COUNTS;
   const { costUsd, tokens, durationMs } = totals ?? NO_TOTALS;
 
-  return { runs, failures, running, costUsd, tokens, durationMs, lastStartedAt, lastOutcome };
+  return { runs, failures, running, costUsd, tokens, durationMs, lastStartedAt, lastOutcome, accountingComplete: totals?.accountingComplete !== false };
 }
 
-function entryOf(agent: AgentDefinition, dailySpentUsd: number, period: AgentPeriodStats): AgentListEntry {
+function entryOf(agent: AgentDefinition, dailySpentUsd: number | null, period: AgentPeriodStats): AgentListEntry {
   return { id: agent.id, label: agent.label, enabled: agent.enabled, schedule: agent.schedule, model: agent.model, budgets: agent.budgets, dailySpentUsd, period };
 }

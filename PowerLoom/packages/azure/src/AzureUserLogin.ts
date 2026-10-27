@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PublicClientApplication, type AccountInfo, type AuthenticationResult, type ICachePlugin } from "@azure/msal-node";
+import { PublicClientApplication, type AccountInfo, type AuthenticationResult, type ICachePlugin, type TokenCache } from "@azure/msal-node";
 import type { AzureLoginStart } from "./models/AzureLoginStart";
 import type { AzureLoginStatus } from "./models/AzureLoginStatus";
 import type { AzureToken } from "./models/AzureToken";
@@ -145,12 +145,26 @@ export class AzureUserLogin {
 
 // MSAL reads the whole cache before each access and hands it back after; the store keeps it per vault.
 function cachePluginOf(store: AzureTokenCacheStore, vault: string): ICachePlugin {
+  let clearing = false;
   return {
     beforeCacheAccess: async (context) => {
+      // overwriteCache clears memory, then calls this plugin again to load the replacement snapshot.
+      if (clearing) {
+        context.tokenCache.deserialize("{}");
+        return;
+      }
       const cached = await store.read(vault);
-
       if (cached) {
         context.tokenCache.deserialize(cached);
+      } else {
+        // deserialize alone merges with memory in MSAL, even for "{}". Use its overwrite API so
+        // another process's sign-out removes warmed accounts AND tokens without writing them back.
+        clearing = true;
+        try {
+          await (context.tokenCache as TokenCache).overwriteCache();
+        } finally {
+          clearing = false;
+        }
       }
     },
     afterCacheAccess: async (context) => {

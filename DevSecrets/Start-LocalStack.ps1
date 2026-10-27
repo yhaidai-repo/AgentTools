@@ -72,7 +72,7 @@ function Write-ServiceConfigs([string[]] $Names, [hashtable] $Roots, [hashtable]
     foreach ($name in ($Names | Where-Object { $Catalog[$_].configurable -contains "workers" })) {
         $run = $Catalog[$name].run
         $workers = $Config[$name]?.workers ?? @{}
-        $Configs[$name] = Write-WorkerConfigs (Resolve-ProjectPath $Roots $run.project) $run.launchProfile $workers
+        $Configs[$name] = Prepare-WorkerConfigs (Resolve-ProjectPath $Roots $run.project) $run.launchProfile $workers
     }
 }
 
@@ -122,7 +122,7 @@ function Assert-NoRunningStack() {
         throw "A local stack is running ($($alive -join ', ')). Run Stop-LocalStack.ps1 first."
     }
 
-    Remove-Item -LiteralPath $StatePath -Force
+    Stop-Stack $state
 }
 
 function Test-PortInUse([string] $Url) {
@@ -237,9 +237,8 @@ function Get-StartEnvironment([string] $Name, [hashtable] $Named, [hashtable] $C
 function Start-AppServices([string[]] $Names, [hashtable] $Roots, [hashtable] $Named, [hashtable] $Configs, [hashtable] $State) {
     foreach ($name in $Names) {
         $projectPath = Resolve-ProjectPath $Roots $Catalog[$name].run.project
-        $entry = Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-StartEnvironment $name $Named $Configs[$name])
+        $entry = Start-ServiceProcess $name $Catalog[$name] $projectPath (Get-StartEnvironment $name $Named $Configs[$name]) $State
         $entry.config = $Configs[$name]
-        $State.services += $entry
         Save-StackState $State
     }
 }
@@ -253,9 +252,33 @@ function Wait-StackReady([hashtable] $State) {
     }
 
     $failed | ForEach-Object { Write-FailureLog $_ }
-    Stop-Stack $State
+    throw "Not ready: $(($failed | ForEach-Object { $_.name }) -join ', ')."
+}
 
-    throw "Not ready: $(($failed | ForEach-Object { $_.name }) -join ', '). The stack was stopped."
+# One owner covers publication, compose setup, launches, state saves and readiness.
+function Start-StackAttempt([string[]] $Names, [string[]] $Apps, [hashtable] $Roots, [hashtable] $Named, [hashtable] $Requested, [hashtable] $State) {
+    $configs = @{}
+    try {
+        Write-ServiceConfigs $Apps $Roots $Requested $configs
+        $State.configs = @($configs.Values)
+        # Persist recovery metadata before touching output files.
+        Save-StackState $State
+        foreach ($config in $State.configs) {
+            $config.published = $true
+            Save-StackState $State
+            Publish-WorkerConfigs $config
+        }
+        if ($Names -contains 'rabbitmq') { Start-LocalRabbitMq $Named $Catalog['rabbitmq'] $State | Out-Null }
+        if ($Names -contains 'redis') { Start-LocalRedis $Catalog['redis'] $State | Out-Null }
+        Start-AppServices $Apps $Roots $Named $configs $State
+        Wait-StackReady $State
+    }
+    catch {
+        $original = $_
+        try { Stop-Stack $State }
+        catch { Write-Warning "Startup cleanup incomplete; retained state for retry: $($_.Exception.Message)" }
+        throw $original
+    }
 }
 
 $Catalog = Read-Services
@@ -298,23 +321,8 @@ if (-not $SkipBuild) {
     $appServices | ForEach-Object { Build-Project (Resolve-ProjectPath $roots $Catalog[$_].run.project) }
 }
 
-$configs = @{}
-Write-ServiceConfigs $appServices $roots $stackConfig $configs
-
 $state = @{ branch = $Branch; environment = $Values; roots = $roots; services = @() }
-
-if ($names -contains "rabbitmq") {
-    $state.services += Start-LocalRabbitMq $named $Catalog["rabbitmq"]
-    Save-StackState $state
-}
-
-if ($names -contains "redis") {
-    $state.services += Start-LocalRedis $Catalog["redis"]
-    Save-StackState $state
-}
-
-Start-AppServices $appServices $roots $named $configs $state
-Wait-StackReady $state
+Start-StackAttempt $names $appServices $roots $named $stackConfig $state
 
 Write-Host "Local stack ready. Logs: $StackDir. Stop with Stop-LocalStack.ps1."
 $state.services | Where-Object { $_.url } | ForEach-Object { Write-Host "  $($_.name): $($_.url)" }

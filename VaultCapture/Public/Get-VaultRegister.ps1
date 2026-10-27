@@ -18,7 +18,8 @@ function Get-VaultRegister {
         return New-RegisterResult -Errors $register.Error
     }
 
-    $lines = @(Get-Content -LiteralPath $register.Path)
+    try { $lines = @((Read-DraftFile -Path $register.Path -Root $register.Root -ScopeRoot (Split-Path -Parent $register.Path)).Lines) }
+    catch { return New-RegisterResult -Errors $_.Exception.Message }
 
     return New-RegisterResult -Records @(Get-RegisterRecordList -Lines $lines -Prefix $register.Prefix) -Path $register.Path
 }

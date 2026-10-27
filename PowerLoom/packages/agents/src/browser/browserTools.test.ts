@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { PgDialect } from "drizzle-orm/pg-core";
 import type { DevHubClient, McpEndpoint } from "@powerloom/devhub";
 import type { DataAccessLog } from "../DataAccessLog";
 import type { AgentDeps } from "../models/AgentDeps";
@@ -16,7 +17,7 @@ function harness(answers: Record<string, McpCallResult> = {}) {
   const calls: { name: string; args: Record<string, unknown> }[] = [];
   const devHub: Record<string, unknown> = {};
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
-  const db = { select: () => ({ from: () => ({ where: async () => [{ outputs: [] }] }) }), update: () => ({ set: (row: { outputs: string[] }) => ({ where: async () => { outputs.push(row.outputs); } }) }) };
+  const db = { update: () => ({ set: (row: { outputs: Parameters<PgDialect["sqlToQuery"]>[0] }) => ({ where: async () => { outputs.push(JSON.parse(new PgDialect().sqlToQuery(row.outputs).params[0] as string)); } }) }) };
   const deps = { outside: { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } }, db } as unknown as AgentDeps;
   const client = {
     openBrowser: async (request: unknown) => { devHub.opened = request; return { ok: true as const, value: status }; },

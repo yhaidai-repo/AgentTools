@@ -121,7 +121,7 @@ describe("AdoClient pull requests", () => {
 
     const changes = await client.getPullRequestChanges("repo-1", 6400, 3);
 
-    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/repo-1/pullRequests/6400/iterations/3/changes?$compareTo=0&$top=2000&api-version=7.1`);
+    assert.equal(urls[0], `${PROJECT}/_apis/git/repositories/repo-1/pullRequests/6400/iterations/3/changes?$compareTo=0&$top=2000&$skip=0&api-version=7.1`);
     assert.deepEqual(changes, [{ path: "/src/A.cs", changeType: "edit", originalPath: null }, { path: "/new.cs", changeType: "rename", originalPath: "/old.cs" }]);
   });
 

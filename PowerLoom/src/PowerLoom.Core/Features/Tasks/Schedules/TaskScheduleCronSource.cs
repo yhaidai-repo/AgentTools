@@ -11,7 +11,7 @@ public sealed class TaskScheduleCronSource(IServiceScopeFactory scopes) : ICronS
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-        var schedules = await db.TaskSchedules.AsNoTracking().Where(schedule => schedule.Enabled).Select(schedule => new { schedule.Id, schedule.Cron }).ToListAsync(cancellation);
+        var schedules = await db.TaskSchedules.AsNoTracking().Where(schedule => schedule.Enabled && db.Vaults.Any(vault => vault.Name == schedule.Vault && vault.RemovedAt == null)).Select(schedule => new { schedule.Id, schedule.Cron }).ToListAsync(cancellation);
 
         return schedules.Select(schedule => new CronEntry($"task-schedule:{schedule.Id}", schedule.Cron, new CreateScheduledTask(schedule.Id))).ToList();
     }

@@ -32,3 +32,5 @@ A rule is one short instruction that holds beyond this PR. Don't add one that on
 5. `write_result` last, always: its body is the summary (status complete with a verdict, blocked when something stopped the review); the run counts only once it is written.
 
 Then stop.
+
+All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

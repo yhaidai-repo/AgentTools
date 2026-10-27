@@ -34,8 +34,9 @@ public static class ReviewsEndpoints
 
         foreach (var prId in request.PrIds.Distinct())
         {
-            await ReviewClosing.CloseAsync(db, prId, string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(), Actor, cancellation);
-            result.Done.Add(new ReviewOutcome(prId, "closed"));
+            var refusal = await ReviewClosing.CloseAsync(db, prId, string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(), Actor, cancellation);
+            if (refusal is null) result.Done.Add(new ReviewOutcome(prId, "closed"));
+            else result.Refused.Add($"PR {prId}: {refusal}");
         }
 
         return TypedResults.Ok(result);

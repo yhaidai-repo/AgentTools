@@ -57,6 +57,7 @@ export class UsageTracker {
       error: info.error ?? null,
       ...tokens,
       costUsd: this.costUsd,
+      accountingComplete: info.usageComplete !== false,
       providerCostUsd: info.providerCostUsd ?? null,
       models,
       subscription: [...this.subscription.values()],

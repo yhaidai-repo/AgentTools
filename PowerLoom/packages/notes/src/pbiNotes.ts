@@ -10,7 +10,7 @@ import {
   renderPreparedPbi,
   type PbiNote,
 } from "@powerloom/vault";
-import { asc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { writeAttachmentFiles } from "./attachments";
 import { pipelineRegions } from "./pipelineRegions";
 
@@ -21,19 +21,21 @@ export class PbiNoteWriter {
   private constructor(
     readonly writer: VaultWriter,
     private readonly db: PowerLoomDb,
+    private readonly vault: string,
     private readonly ado: AdoSettings | null,
     private readonly template: string,
   ) {}
 
-  static async create(db: PowerLoomDb, ado: AdoSettings | null, vaultRoot: string): Promise<PbiNoteWriter> {
+  static async create(db: PowerLoomDb, ado: AdoSettings | null, vaultRoot: string, vault: string): Promise<PbiNoteWriter> {
     const writer = new VaultWriter(vaultRoot);
     const template = await writer.readOrCreate(PBI_TEMPLATE_PATH, DEFAULT_PBI_TEMPLATE);
 
-    return new PbiNoteWriter(writer, db, ado, template);
+    return new PbiNoteWriter(writer, db, vault, ado, template);
   }
 
   // Writes the note and the PBI's uploads, stores the note's path; returns the path.
   async writePbi(row: WorkItemRow, status: PipelineStatus): Promise<string> {
+    if (row.vault !== this.vault) throw new Error("PBI does not belong to the note writer's vault");
     const vaultPath = row.vaultPath ?? pbiNotePath(row.adoId, row.title);
     const note = toPbiNote(row, status, this.ado);
     const regions = await pipelineRegions(this.db, row);
@@ -46,7 +48,7 @@ export class PbiNoteWriter {
   }
 
   async writeIndex(): Promise<void> {
-    const rows = await this.db.select().from(workItem).where(isNotNull(workItem.vaultPath)).orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
+    const rows = await this.db.select().from(workItem).where(and(eq(workItem.vault, this.vault), isNotNull(workItem.vaultPath))).orderBy(asc(workItem.backlogPriority), asc(workItem.adoId));
 
     await this.writer.write(BACKLOG_INDEX_PATH, (notes) => renderBacklogIndex(rows, notes));
   }

@@ -12,10 +12,10 @@ export async function conversationChain(db: PowerLoomDb, run: AgentRunRow): Prom
   return [...(await earlierRuns(db, run)), run, ...(await laterRuns(db, run))];
 }
 
-export async function conversationCostUsd(usage: UsageStore, chain: AgentRunRow[]): Promise<number> {
+export async function conversationCostUsd(usage: UsageStore, chain: AgentRunRow[]): Promise<number | null> {
   const records = await Promise.all(chain.map((run) => usage.records({ from: new Date(0), match: { run: String(run.id) } }, 1)));
 
-  return records.reduce((sum, [record]) => sum + (record?.costUsd ?? 0), 0);
+  return records.some(([record]) => record?.accountingComplete === false) ? null : records.reduce((sum, [record]) => sum + (record?.costUsd ?? 0), 0);
 }
 
 async function earlierRuns(db: PowerLoomDb, run: AgentRunRow): Promise<AgentRunRow[]> {

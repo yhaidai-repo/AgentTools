@@ -15,6 +15,8 @@ export interface UsageRecord extends TokenTotals {
   error: string | null;
   /** Our calculation from tokens × prices, fixed at run time. */
   costUsd: number;
+  /** False means costUsd is only the measured lower bound; it must not approve a daily budget. Legacy records omit it. */
+  accountingComplete?: boolean;
   /** What the provider reported, for comparison only. */
   providerCostUsd: number | null;
   models: ModelUsage[];

@@ -17,7 +17,7 @@ export function CostPerMinute({ agents, byAgent }: { agents: AgentDefinition[]; 
 
 // An agent without a finished run has no run time, so no bar.
 function barOf(agent: AgentDefinition, slot: number, activity: AgentActivity | undefined): ChartBar[] {
-  if (!activity || activity.durationMs === 0) {
+  if (!activity || activity.accountingComplete === false || activity.durationMs === 0) {
     return [];
   }
 

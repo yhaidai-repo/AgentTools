@@ -2,13 +2,14 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using PowerLoom.ConfluenceIntegration.Client.Models;
 using PowerLoom.Domain.Pbis;
 
 namespace PowerLoom.ConfluenceIntegration.Client;
 
 // Read-only Confluence Cloud REST client (API v2) for the pages a link points to.
-public sealed class ConfluenceClient(HttpClient http, string email, string apiToken) : IConfluenceClient
+public sealed class ConfluenceClient(HttpClient http, string email, string apiToken, string site) : IConfluenceClient
 {
     private const int FilesPageSize = 100;
 
@@ -23,9 +24,11 @@ public sealed class ConfluenceClient(HttpClient http, string email, string apiTo
     };
 
     private readonly AuthenticationHeaderValue _authorization = new("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{apiToken}")));
+    private readonly Uri _trustedSite = TrustedSite(site);
 
     public async Task<ConfluencePage> PageAsync(string url, CancellationToken cancellation)
     {
+        RequireTrusted(url);
         var id = RequirePageId(url);
         var page = await GetJsonAsync<PageDto>($"{ConfluencePageLinks.Site(url)}/wiki/api/v2/pages/{id}?body-format=view", cancellation);
 
@@ -34,15 +37,19 @@ public sealed class ConfluenceClient(HttpClient http, string email, string apiTo
 
     public async Task<IReadOnlyList<ConfluenceFile>> FilesAsync(string url, CancellationToken cancellation)
     {
+        RequireTrusted(url);
         var site = ConfluencePageLinks.Site(url);
         var files = new List<ConfluenceFile>();
         var next = $"/wiki/api/v2/pages/{RequirePageId(url)}/attachments?limit={FilesPageSize}";
 
+        var visited = new HashSet<string>(StringComparer.Ordinal);
         while (next is not null)
         {
-            var batch = await GetJsonAsync<FilesDto>($"{site}{next}", cancellation);
+            var target = new Uri(new Uri(site), next).AbsoluteUri;
+            if (!visited.Add(target)) throw new ConfluenceRequestException(502, "Confluence attachment pagination repeated a page");
+            var batch = await GetJsonAsync<FilesDto>(target, cancellation);
 
-            files.AddRange(batch.Results.Select(file => new ConfluenceFile(file.Id, file.Title, file.MediaType, file.FileSize, $"{site}/wiki{file.DownloadLink}")));
+            files.AddRange(batch.Results.Select(file => new ConfluenceFile(file.Id, file.Title, file.MediaType, file.FileSize, DownloadUrl(site, file.DownloadLink))));
             next = batch.Links?.Next;
         }
 
@@ -51,8 +58,7 @@ public sealed class ConfluenceClient(HttpClient http, string email, string apiTo
 
     public async Task<DownloadedFile> DownloadAsync(ConfluenceFile file, CancellationToken cancellation)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, file.DownloadUrl) { Headers = { Authorization = _authorization } };
-        using var response = await http.SendAsync(request, cancellation);
+        using var response = await RequestAsync(file.DownloadUrl, "*/*", cancellation);
 
         if (!response.IsSuccessStatusCode)
             throw Failure((int)response.StatusCode, $"download of {file.FileName}");
@@ -62,13 +68,48 @@ public sealed class ConfluenceClient(HttpClient http, string email, string apiTo
 
     private async Task<T> GetJsonAsync<T>(string url, CancellationToken cancellation)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url) { Headers = { Authorization = _authorization, Accept = { new MediaTypeWithQualityHeaderValue("application/json") } } };
-        using var response = await http.SendAsync(request, cancellation);
+        using var response = await RequestAsync(url, "application/json", cancellation);
 
         if (!response.IsSuccessStatusCode)
             throw Failure((int)response.StatusCode, url);
 
         return await response.Content.ReadFromJsonAsync<T>(Json, cancellation) ?? throw new ConfluenceRequestException(502, $"Confluence answered nothing for {url}");
+    }
+
+    private static Uri TrustedSite(string site)
+    {
+        if (!Uri.TryCreate(site, UriKind.Absolute, out var target) || target.Scheme != "https" || target.UserInfo.Length != 0)
+            throw new ConfluenceRequestException(400, "Confluence:Site must be a trusted HTTPS site");
+        return target;
+    }
+
+    private Uri RequireTrusted(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var target) || target.Scheme != "https" || target.UserInfo.Length != 0 || !string.Equals(target.Authority, _trustedSite.Authority, StringComparison.OrdinalIgnoreCase))
+            throw new ConfluenceRequestException(400, "Confluence target must belong to the trusted HTTPS Confluence:Site");
+        return target;
+    }
+
+    private async Task<HttpResponseMessage> RequestAsync(string url, string accept, CancellationToken cancellation)
+    {
+        var target = RequireTrusted(url);
+        for (var hop = 0; hop <= 5; hop++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, target) { Headers = { Authorization = _authorization, Accept = { new MediaTypeWithQualityHeaderValue(accept) } } };
+            var response = await http.SendAsync(request, cancellation);
+            if ((int)response.StatusCode is not (301 or 302 or 303 or 307 or 308)) return response;
+            var location = response.Headers.Location;
+            response.Dispose();
+            if (location is null) throw new ConfluenceRequestException(502, "Confluence redirect has no location");
+            target = RequireTrusted(new Uri(target, location).AbsoluteUri);
+        }
+        throw new ConfluenceRequestException(502, "Confluence redirected too many times");
+    }
+
+    private static string DownloadUrl(string site, string link)
+    {
+        var path = link.StartsWith('/') && !link.StartsWith("//", StringComparison.Ordinal) && !link.StartsWith("/wiki/", StringComparison.Ordinal) ? $"/wiki{link}" : link;
+        return new Uri(new Uri($"{site}/wiki/"), path).AbsoluteUri;
     }
 
     private static string RequirePageId(string url)
@@ -88,7 +129,7 @@ public sealed class ConfluenceClient(HttpClient http, string email, string apiTo
 
     private sealed record FileDto(string Id, string Title, string MediaType, long FileSize, string DownloadLink);
 
-    private sealed record FilesDto(List<FileDto> Results, LinksDto? Links);
+    private sealed record FilesDto(List<FileDto> Results, [property: JsonPropertyName("_links")] LinksDto? Links);
 
     private sealed record LinksDto(string? Next);
 }

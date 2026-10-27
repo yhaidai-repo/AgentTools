@@ -40,7 +40,7 @@ const sessions = new ChatSessions({
 });
 const server = new McpHttpServer({ token, sessions, azureLogin, azureTokenSecret: env.azureTokenSecret, vaults: async () => (await readVaults(db)).map((vault) => vault.name) });
 deps.warmUpAzure((await readVaults(db)).map((vault) => vault.name));
-const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000), SWEEP_MS);
+const sweep = setInterval(() => void sessions.closeIdle(IDLE_MINUTES * 60_000).catch(error => console.error("MCP session sweep failed:", error)), SWEEP_MS);
 
 server.listen(port);
 console.log(`powerloom-mcp listening on :${port}`);

@@ -145,11 +145,22 @@ export class AdoClient {
   }
 
   // The files the pull request changes as of an iteration, against its target branch.
-  async getPullRequestChanges(repoId: string, pullRequestId: number, iteration: number): Promise<AdoPrChange[]> {
-    const url = `${this.pullRequestUrl(repoId, pullRequestId)}/iterations/${iteration}/changes?$compareTo=0&$top=${CHANGES_LIMIT}&${API_VERSION}`;
-    const body = await this.request<{ changeEntries: PrChangeDto[] }>(url);
-
-    return body.changeEntries.filter((entry) => !entry.item?.isFolder).map(toChange);
+  async getPullRequestChanges(repoId: string, pullRequestId: number, iteration: number, signal?: AbortSignal): Promise<AdoPrChange[]> {
+    const changes: AdoPrChange[] = [];
+    let skip = 0;
+    let top = CHANGES_LIMIT;
+    while (true) {
+      signal?.throwIfAborted();
+      const url = `${this.pullRequestUrl(repoId, pullRequestId)}/iterations/${iteration}/changes?$compareTo=0&$top=${top}&$skip=${skip}&${API_VERSION}`;
+      const body = await this.request<{ changeEntries: PrChangeDto[]; nextSkip?: number; nextTop?: number }>(url, undefined, signal);
+      changes.push(...body.changeEntries.filter((entry) => !entry.item?.isFolder).map(toChange));
+      if (!body.nextSkip && !body.nextTop) return changes;
+      if (!Number.isSafeInteger(body.nextSkip) || body.nextSkip! <= skip || !Number.isSafeInteger(body.nextTop) || body.nextTop! <= 0 || body.nextTop! > CHANGES_LIMIT) {
+        throw new AdoRequestError(502, "Azure DevOps returned invalid changes pagination; the file list is incomplete");
+      }
+      skip = body.nextSkip!;
+      top = body.nextTop!;
+    }
   }
 
   // A work item attachment linked from a description. The token is only ever sent to this organization.
@@ -186,11 +197,12 @@ export class AdoClient {
     return `${this.orgUrl}/${encodeURIComponent(this.connection.project)}`;
   }
 
-  private async request<T>(url: string, body?: object): Promise<T> {
+  private async request<T>(url: string, body?: object, signal?: AbortSignal): Promise<T> {
     const response = await fetch(url, {
       method: body ? "POST" : "GET",
       headers: this.headers(),
       body: body ? JSON.stringify(body) : undefined,
+      signal,
     });
 
     await ensureJsonSuccess(response);

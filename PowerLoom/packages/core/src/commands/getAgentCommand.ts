@@ -29,7 +29,7 @@ interface RunningRun {
 }
 
 interface AgentDetail extends AgentDefinition {
-  dailySpentUsd: number;
+  dailySpentUsd: number | null;
   running: RunningRun[];
   last30Days: ReturnType<typeof periodStats>;
 }

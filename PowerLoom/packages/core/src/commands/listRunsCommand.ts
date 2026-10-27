@@ -30,6 +30,7 @@ interface RunListEntry {
   outcome: string;
   error: string | null;
   costUsd: number | null;
+  accountingComplete?: boolean;
   tokens: number | null;
   continuesRunId: string | null;
 }
@@ -65,7 +66,8 @@ function entryOf({ run, task, usage }: RunListRow): RunListEntry {
     endedAt: run.endedAt,
     outcome: run.outcome,
     error: run.error,
-    costUsd: usage?.costUsd ?? null,
+    costUsd: usage?.accountingComplete === false ? null : usage?.costUsd ?? null,
+    accountingComplete: usage?.accountingComplete,
     tokens: usage ? tokensOf(usage) : null,
     continuesRunId: run.continuesRunId === null ? null : runRef(run.continuesRunId),
   };

@@ -20,7 +20,7 @@ interface AgentHeaderProps {
   slot: number;
   totals?: AgentTotals;
   counts?: RunCounts;
-  spentTodayUsd: number;
+  spentTodayUsd: number | null;
   paused: boolean;
   /** Its runs in progress, oldest first. */
   running: { id: number; stage: string; itemId: string | null; pbiId: number | null; startedAt: Date }[];
@@ -61,7 +61,7 @@ function Facts({ agent, counts }: { agent: AgentDefinition; counts?: RunCounts }
   );
 }
 
-function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinition; totals?: AgentTotals; counts?: RunCounts; spentTodayUsd: number }) {
+function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinition; totals?: AgentTotals; counts?: RunCounts; spentTodayUsd: number | null }) {
   const cost = totals?.costUsd ?? 0;
   const failures = counts?.failures ?? 0;
 
@@ -69,7 +69,7 @@ function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinitio
     <div className="hero-stats item-stats">
       <HeroStat label="Runs · 30 days" value={String(counts?.runs ?? 0)} />
       <HeroStat label="Failed" value={String(failures)} tone={failures > 0 ? "error" : undefined} />
-      <HeroStat label="Cost · 30 days" value={formatUsd(cost)} note={totals?.runs ? `${formatUsd(average(cost, totals.runs))} a run` : undefined} />
+      <HeroStat label="Cost · 30 days" value={formatUsd(cost, totals?.accountingComplete)} note={totals?.runs ? `${formatUsd(average(cost, totals.runs), totals.accountingComplete)} a run` : undefined} />
       <HeroStat label="Today" value={formatUsd(spentTodayUsd)} note={`of ${formatUsd(agent.budgets.dailyUsd)}`} tone={isNearBudget(spentTodayUsd, agent.budgets.dailyUsd) ? "warn" : undefined}>
         <div className="budget-meter"><b style={{ width: `${budgetFill(spentTodayUsd, agent.budgets.dailyUsd) * 100}%` }} /></div>
       </HeroStat>

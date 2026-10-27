@@ -8,7 +8,8 @@ function Save-VaultCapture {
 
     $rules = Get-CaptureRules
     $vaults = Get-CaptureVault -Config $Config -Cwd $Cwd
-    $request = ConvertFrom-CaptureInput -InputObject $InputObject -Rules $rules
+    try { $request = ConvertFrom-CaptureInput -InputObject $InputObject -Rules $rules }
+    catch { return New-CaptureResult -Errors $_.Exception.Message }
     $projectError = Set-SessionProject -Request $request -Project (Resolve-CaptureProject -Cwd $Cwd -Vaults $vaults)
     if ($projectError) {
         return New-CaptureResult -Errors $projectError
@@ -20,13 +21,25 @@ function Save-VaultCapture {
     }
 
     $path = Join-Path $vault.Root $rules.draft.folder "$($request.Name).md"
-    $existing = Read-DraftFile -Path $path
-    $errors = Test-CaptureRequest -Request $request -Vault $vault -Rules $rules -ExistingDraft $existing.Lines
+    $scopeRoot = Join-Path $vault.Root $rules.draft.folder
+    try {
+        return Use-DraftLock -Path $path -Root $vault.Root -ScopeRoot $scopeRoot -Action {
+            Save-LockedDraft -Path $path -ScopeRoot $scopeRoot -Vault $vault -Request $request -Rules $rules
+        }
+    }
+    catch { return New-CaptureResult -Path $path -Errors $_.Exception.Message }
+}
+
+function Save-LockedDraft {
+    param([string]$Path, [string]$ScopeRoot, [object]$Vault, [object]$Request, [object]$Rules)
+    $existing = Read-DraftFile -Path $Path -Root $Vault.Root -ScopeRoot $ScopeRoot
+    $errors = Test-CaptureRequest -Request $Request -Vault $Vault -Rules $Rules -ExistingDraft $existing.Lines
     if ($errors) {
         return New-CaptureResult -Path $path -Errors $errors
     }
 
-    $lines = Get-DraftContent -Request $request -Rules $rules -Existing $existing
+    # Count physical lines in the final rendering, including any legacy embedded line breaks.
+    $lines = @((Get-DraftContent -Request $Request -Rules $Rules -Existing $existing) | ForEach-Object { $_ -split '\r\n|\r|\n' })
     if ($lines.Count -gt $rules.draft.maxLines) {
         return New-CaptureResult -Path $path -Errors "draft would have $($lines.Count) lines (max $($rules.draft.maxLines)). Split the topic into a second draft."
     }
@@ -34,7 +47,8 @@ function Save-VaultCapture {
     $newLine = if ($existing) { $existing.NewLine } else { "`n" }
     $mode = if ($existing) { 'appended' } else { 'created' }
 
-    Write-DraftFile -Path $path -Lines $lines -NewLine $newLine
+    try { Write-DraftFile -Path $path -Root $vault.Root -ScopeRoot $scopeRoot -Lines $lines -NewLine $newLine }
+    catch { return New-CaptureResult -Path $path -Errors $_.Exception.Message }
 
     return New-CaptureResult -Path $path -Mode $mode
 }

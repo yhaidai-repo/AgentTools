@@ -7,6 +7,7 @@ import { ADO_INTEGRATION } from "../ado/adoTools";
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { commandToolName } from "../commandTool";
 import { DEVHUB_INTEGRATION } from "../devHubTools";
+import { commandTools } from "../commandTool";
 import type { AgentDeps } from "../models/AgentDeps";
 import { isOutsideTool } from "../outsideAccess";
 import { classifyToolCall } from "../toolKinds";
@@ -46,6 +47,38 @@ function sessionTools(commands = {} as CommandContext) {
 }
 
 describe("a chat session's tools", () => {
+  it("never falls back to generic SQL commands when the grant or session access is off", () => {
+    const base = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const denied = { ...base, capabilities: { ...base.capabilities, integrations: { ...base.capabilities.integrations, readSql: false } } };
+    for (const [deps, agent] of [[fakeDeps(), denied], [{ ...fakeDeps(), sql: null }, base], [{ ...fakeDeps(), sql: { reader: {}, connections: [] } }, base]] as const) {
+      const result = chatSessionTools(deps as AgentDeps, agent, { vault: "vault-A", client: "test", sessionId: "s1" }, {} as CommandContext);
+      assert.deepEqual(result.tools.filter((tool) => tool.name.startsWith("sql_")).map((tool) => tool.name), []);
+      assert.deepEqual(result.offered.filter((tool) => tool.name.startsWith("sql_")), []);
+    }
+    assert.deepEqual(commandTools({} as CommandContext).filter((tool) => tool.name.startsWith("sql_")).map((tool) => tool.name).sort(), ["sql_databases", "sql_describe", "sql_query"]);
+  });
+
+  it("binds all granted SQL readers to the session connections even if a caller supplies another vault", async () => {
+    const calls: unknown[][] = [];
+    const answer = { ok: true, rows: { columns: [], rows: [], truncated: false, moreResultSets: 0 } };
+    const deps = fakeDeps();
+    deps.sql!.reader = {
+      query: async (...args: unknown[]) => (calls.push(args), answer),
+      listTables: async (...args: unknown[]) => (calls.push(args), answer),
+      listDatabases: async (...args: unknown[]) => (calls.push(args), answer),
+    } as unknown as SqlReader;
+    const chat = AGENT_DEFAULTS.find((agent) => agent.id === CHAT_AGENT_ID)!;
+    const { tools, offered } = chatSessionTools(deps, chat, { vault: "vault-A", client: "test", sessionId: "s1" }, {} as CommandContext);
+    const sql = tools.filter((tool) => tool.name.startsWith("sql_"));
+    assert.deepEqual(sql.map((tool) => tool.name).sort(), ["sql_databases", "sql_describe", "sql_query"]);
+    for (const tool of sql) {
+      assert.equal("vault" in tool.input, false);
+      assert.equal(offered.find((offer) => offer.name === tool.name)?.source, "Read SQL (SQL Server)");
+      await tool.handler({ vault: "vault-B", connection: "pos", sql: "SELECT 1" });
+    }
+    assert.deepEqual(calls, [["Server=sql01"], ["Server=sql01", "SELECT 1", undefined], ["Server=sql01", undefined]]);
+  });
+
   it("have unique names, so the MCP server starts the session", () => {
     const names = sessionTools().map((tool) => tool.name);
 

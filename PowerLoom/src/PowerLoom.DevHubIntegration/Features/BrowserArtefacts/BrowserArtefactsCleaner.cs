@@ -43,9 +43,11 @@ public sealed partial class BrowserArtefactsCleaner(PowerLoomDbContext db, DevHu
     {
         var actions = new List<CleanupAction>();
 
-        foreach (var owner in owners.Where(owner => RunIdOf(owner.Owner) is not null))
+        foreach (var owner in owners)
         {
-            var due = await IsDueAsync(context, owner, RunIdOf(owner.Owner)!.Value, cancellation);
+            var due = RunIdOf(owner.Owner) is { } runId
+                ? await IsDueAsync(context, owner, runId, cancellation)
+                : owner.Owner.StartsWith("powerloom-chat-", StringComparison.Ordinal) && await ChatIsDueAsync(context, owner, cancellation);
 
             if (due)
                 actions.Add(await DeleteAsync(context, target, owner, cancellation));
@@ -53,6 +55,17 @@ public sealed partial class BrowserArtefactsCleaner(PowerLoomDbContext db, DevHu
 
         return actions;
     }
+
+    private async Task<bool> ChatIsDueAsync(CleanupContext context, OwnerArtefacts owner, CancellationToken cancellation)
+    {
+        var chat = await db.Database.SqlQuery<RecordedChat>($"select vault as \"Vault\", expires_at as \"ExpiresAt\", closed_at as \"ClosedAt\" from chat_browser_owner where owner={owner.Owner}").SingleOrDefaultAsync(cancellation);
+        if (chat is null || chat.Vault != context.Vault) return false;
+        var cutoff = context.CutoffOf(context.Settings.BrowserArtefactDays);
+        // Both the persisted inactivity and recording age must be past the buffer. Unknown legacy owners stay intact.
+        return cutoff is not null && (chat.ClosedAt ?? chat.ExpiresAt) < cutoff.Value.UtcDateTime && owner.ModifiedAt < cutoff;
+    }
+
+    private sealed record RecordedChat(string Vault, DateTime ExpiresAt, DateTime? ClosedAt);
 
     // Due when the run (of this vault) ended before its buffer; a run PowerLoom doesn't know goes by the folder's date.
     private async Task<bool> IsDueAsync(CleanupContext context, OwnerArtefacts owner, long runId, CancellationToken cancellation)

@@ -6,6 +6,7 @@ export interface AgentActivity {
   failures: number;
   finishedRuns: number;
   costUsd: number;
+  accountingComplete?: boolean;
   tokens: number;
   durationMs: number;
 }

@@ -10,6 +10,7 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Items;
+using PowerLoom.Persistence.Vaults;
 
 namespace PowerLoom.Features.Tasks.CreateTask;
 
@@ -106,6 +107,8 @@ public sealed class TaskCreation(PowerLoomDbContext db, CustomTaskTypes customTy
     // Each type is checked against what it works on: its PBI, or the repos it may read.
     private async Task<Problem?> ContextProblemAsync(NewTask task, UserTaskType type, CancellationToken cancellation)
     {
+        if (!await db.VaultExistsAsync(task.Vault, cancellation))
+            return Problem.NotFound($"{task.Vault} isn't an active vault.");
         if (task.PbiId is not null)
             return await PbiProblemAsync(task.Vault, task.PbiId.Value, cancellation);
 

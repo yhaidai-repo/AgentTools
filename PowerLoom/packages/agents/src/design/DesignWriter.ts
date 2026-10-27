@@ -24,6 +24,7 @@ export const WRITE_DESIGN_INTEGRATION = "writeDesign";
 // done; without one it waits, open, until its gaps close (commitDesign). Drafts go through the toolset's vault_capture.
 export class DesignWriter implements RunWriter {
   readonly integration = WRITE_DESIGN_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: DesignDraft = { design: null, gaps: [], captures: [], pages: [] };
   private guard: DuplicateGuard | null = null;

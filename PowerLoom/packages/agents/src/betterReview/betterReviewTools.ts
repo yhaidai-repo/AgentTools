@@ -77,7 +77,7 @@ function addCommentTool(run: BetterReviewRun) {
       path: z.string().describe("The changed file, as get_pr_diff lists it"),
       start_line: z.number().int().min(1),
       end_line: z.number().int().min(1),
-      severity: z.enum(reviewSeverity.enumValues).describe("blocker: must be fixed before merge; major: a real bug or risk; minor: worth fixing; nit: optional polish"),
+      severity: z.enum(reviewSeverity.enumValues).describe("blocker: critical; major: a real bug or risk; minor: smaller issue; nit: polish. Every unresolved comment, including a nit, blocks approval and closure."),
       category: z.enum(COMMENT_CATEGORIES).describe("business-logic: the change does something the PBI or the domain doesn't want; correctness: a bug in what it does; style: the repo's own conventions; data, performance, security, tests, design"),
       body: z.string().min(1).describe("The problem, why it matters (the PBI rule, the convention with an example of it in the repo, the failing case), and what to do instead"),
     },
@@ -278,6 +278,7 @@ function summaryTool(run: BetterReviewRun, readLog: ReadLog) {
     },
     handler: async (input) => {
       const problems = [...evidenceProblems(input.acceptance_criteria.flatMap((item) => item.evidence), readLog), ...criteriaProblems(input.acceptance_criteria), ...openWork(run)];
+      if (input.verdict === "ready" && effectiveUnresolved(run) > 0) problems.push("ready requires zero unresolved comments, including nits; fix or explicitly withdraw them first");
 
       if (problems.length > 0) {
         return { text: `Not saved, fix and retry: ${problems.join("; ")}.`, isError: true };
@@ -304,6 +305,18 @@ function summaryTool(run: BetterReviewRun, readLog: ReadLog) {
   });
 }
 
+export function effectiveUnresolved(run: BetterReviewRun): number {
+  const updates = new Map(run.draft.updates.map(update => [update.id, update.action]));
+  const unresolved = run.context!.earlierComments.filter(comment => {
+    const action = updates.get(comment.id);
+    if (action === "fixed" || action === "withdraw") return false;
+    if (action === "keep" || action === "refine") return true;
+    if (run.outdatedIds.includes(comment.id)) return false;
+    return comment.status === "open" || comment.status === "answered";
+  });
+  return unresolved.length + run.draft.comments.length;
+}
+
 function criteriaProblems(criteria: z.infer<typeof criterionInput>[]): string[] {
   return criteria.filter((item) => ["met", "partly", "not_met"].includes(item.status) && item.evidence.length === 0).map((item) => `"${item.criterion}" is ${item.status}: cite the code that shows it`);
 }
@@ -312,7 +325,8 @@ function criteriaProblems(criteria: z.infer<typeof criterionInput>[]): string[] 
 // follow-up, the threads the last review weighed and nobody commented on since keep their verdict).
 function openWork(run: BetterReviewRun): string[] {
   const decided = new Set(run.draft.updates.map((update) => update.id));
-  const answered = run.context!.earlierComments.filter((comment) => comment.status === "answered" && !decided.has(comment.id)).map((comment) => comment.id);
+  const automaticallyRetired = new Set(run.mode.kind === "full" ? run.outdatedIds : []);
+  const answered = run.context!.earlierComments.filter((comment) => comment.status === "answered" && !decided.has(comment.id) && !automaticallyRetired.has(comment.id)).map((comment) => comment.id);
   const weighed = weighedThreads(run.context!);
   const assessed = new Set(run.draft.reviewerNotes.map((note) => note.threadId));
   const threads = threadsOf(run).filter((thread) => !assessed.has(thread.id) && !weighed.has(thread.id)).map((thread) => thread.id);

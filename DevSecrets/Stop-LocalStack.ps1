@@ -14,6 +14,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/DevSecrets.Common.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
 . "$PSScriptRoot/LocalStack.Redis.ps1"
+. "$PSScriptRoot/LocalStack.WorkerConfig.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
 
 $state = Read-StackState

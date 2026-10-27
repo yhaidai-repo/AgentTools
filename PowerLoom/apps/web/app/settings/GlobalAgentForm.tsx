@@ -11,7 +11,7 @@ import { saveGlobalAction } from "../agents/configActions";
 import { KeptForm } from "@/components/KeptForm";
 
 // The daily budget of all agents together; each agent's own model, schedule and limits are on its config page.
-export function GlobalAgentForm({ global, spentTodayUsd }: { global: AgentsGlobal; spentTodayUsd: number }) {
+export function GlobalAgentForm({ global, spentTodayUsd }: { global: AgentsGlobal; spentTodayUsd: number | null }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveGlobalAction, null);
 
   return (

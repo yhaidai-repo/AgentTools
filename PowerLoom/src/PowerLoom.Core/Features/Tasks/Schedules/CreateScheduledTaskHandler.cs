@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Persistence;
+using PowerLoom.Persistence.Vaults;
 
 namespace PowerLoom.Features.Tasks.Schedules;
 
@@ -9,9 +10,9 @@ public static class CreateScheduledTaskHandler
     {
         var schedule = await db.TaskSchedules.SingleOrDefaultAsync(row => row.Id == message.ScheduleId, cancellation);
 
-        if (schedule is null)
+        if (schedule is null || !schedule.Enabled || !await db.VaultExistsAsync(schedule.Vault, cancellation))
         {
-            logger.LogInformation("task-schedule {ScheduleId}: the schedule was deleted", message.ScheduleId);
+            logger.LogInformation("task-schedule {ScheduleId}: the schedule or its vault is inactive", message.ScheduleId);
 
             return;
         }

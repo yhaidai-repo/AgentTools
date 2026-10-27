@@ -1,9 +1,7 @@
 import type { UsageRecord, UsageStore } from "@agenttools/usage";
 import type { PowerLoomDb } from "@powerloom/db";
-import { inVaultRuns, vaultRunIds } from "../agentRuns/vaultRuns";
+import { vaultRunIds } from "../agentRuns/vaultRuns";
 import type { AgentTotals } from "../models/AgentTotals";
-
-const MAX_RECORDS = 5_000;
 
 const NO_USAGE: AgentTotals = { runs: 0, tokens: 0, costUsd: 0, durationMs: 0 };
 
@@ -11,7 +9,7 @@ const NO_USAGE: AgentTotals = { runs: 0, tokens: 0, costUsd: 0, durationMs: 0 };
 // vault): usage records are keyed by run, so the vault's run ids pick them.
 export async function loadAgentTotals(db: PowerLoomDb, usage: UsageStore, from: Date, vault: string): Promise<Map<string, AgentTotals>> {
   const runIds = await vaultRunIds(db, from, vault);
-  const records = inVaultRuns(await usage.records({ from }, MAX_RECORDS), runIds);
+  const records = runIds.size === 0 ? [] : await usage.records({ from, runIds: [...runIds] });
   const totals = new Map<string, AgentTotals>();
 
   for (const record of records) {
@@ -32,7 +30,7 @@ export async function loadRunTotals(usage: UsageStore, runs: { id: number; start
 
   const runIds = new Set(runs.map((run) => String(run.id)));
   const from = new Date(Math.min(...runs.map((run) => run.startedAt.getTime())));
-  const records = (await usage.records({ from }, MAX_RECORDS)).filter((record) => runIds.has(record.runId));
+  const records = await usage.records({ from, runIds: [...runIds] });
 
   return records.reduce(add, NO_USAGE);
 }
@@ -44,6 +42,7 @@ function add(totals: AgentTotals | undefined, record: UsageRecord): AgentTotals 
     runs: (totals?.runs ?? 0) + 1,
     tokens: (totals?.tokens ?? 0) + tokens,
     costUsd: (totals?.costUsd ?? 0) + record.costUsd,
+    accountingComplete: totals?.accountingComplete !== false && record.accountingComplete !== false,
     durationMs: (totals?.durationMs ?? 0) + record.durationMs,
   };
 }

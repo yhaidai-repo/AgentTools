@@ -3,7 +3,7 @@ import type { ReviewDetail } from "../models/ReviewDetail";
 import type { ReviewRead } from "../models/ReviewRead";
 import type { ReviewRow } from "../models/ReviewRow";
 import type { ReviewSummary } from "../models/ReviewSummary";
-import { branchName, reviewNeedsYou } from "./reviewLooks";
+import { branchName, isReviewClosed, reviewNeedsYou, unresolvedReviewComments } from "./reviewLooks";
 
 // A comment's text is enough for a chat to understand it; the whole thread is on the review page.
 const COMMENT_CHARS = 2000;
@@ -24,7 +24,7 @@ export function toReviewSummary(row: ReviewRow): ReviewSummary {
     url: pr.url,
     workItemIds: pr.workItemIds,
     state: row.state,
-    status: review.status,
+    status: isReviewClosed(row) ? "closed" : "active",
     closedReason: review.closedReason,
     reviewedCommit: review.reviewedCommit,
     reviewedIteration: review.reviewedIteration,
@@ -41,10 +41,10 @@ export function toReviewSummary(row: ReviewRow): ReviewSummary {
 export function toReviewRead(detail: ReviewDetail): ReviewRead {
   return {
     ...toReviewSummary(detail),
-    summaryMd: detail.review.summaryMd,
+    summaryMd: unresolvedReviewComments(detail) ? `Merge approval blocked: ${unresolvedReviewComments(detail)} unresolved review comments, including nits. Historical summary follows.\n\n${detail.review.summaryMd ?? ""}` : detail.review.summaryMd,
     allComments: detail.allComments.map(toCommentRead),
     tasks: detail.tasks.map((task) => ({ id: task.id, status: task.status, title: task.title, createdAt: task.createdAt })),
-    runs: detail.runs.map(({ run, usage }) => ({ id: run.id, outcome: run.outcome, startedAt: run.startedAt, endedAt: run.endedAt, costUsd: usage?.costUsd ?? null })),
+    runs: detail.runs.map(({ run, usage }) => ({ id: run.id, outcome: run.outcome, startedAt: run.startedAt, endedAt: run.endedAt, costUsd: usage?.accountingComplete === false ? null : usage?.costUsd ?? null })),
   };
 }
 

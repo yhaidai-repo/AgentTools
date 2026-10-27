@@ -13,20 +13,30 @@ export const createSkillCommand: Command<CreateSkillInput, { name: string }> = {
     name: z.string().trim().regex(SKILL_NAME, "lower-case letters, digits and dashes").max(80),
     description: z.string().trim().min(10).max(400),
     body: z.string().trim().min(20),
+    reuseIfUnchanged: z.boolean().optional(),
   }),
   async run(context, input) {
     const names = await context.skills.names();
+    const content = skillFile(input);
+    const unchanged = async () => {
+      if (!input.reuseIfUnchanged || !context.skills.read) return false;
+      const existing = await context.skills.read(input.name);
+      return existing?.editable === true && existing.content.replace(/\r\n/g, "\n") === content;
+    };
 
     if (names.includes(input.name)) {
+      if (await unchanged()) return { ok: true, value: { name: input.name } };
       return { ok: false, error: `A skill named ${input.name} exists already; edit it on its page instead.` };
     }
 
-    const created = await context.powerloom.createSkill(input.name, skillFile(input));
+    const created = await context.powerloom.createSkill(input.name, content);
+    // A failed response may follow a successful publication or a concurrent identical retry.
+    if (!created.ok && await unchanged()) return { ok: true, value: { name: input.name } };
 
     return created.ok ? { ok: true, value: { name: input.name } } : created;
   },
 };
 
 function skillFile(input: CreateSkillInput): string {
-  return ["---", `name: ${input.name}`, `description: ${input.description.replace(/\r?\n/g, " ")}`, "---", "", input.body.replace(/\r\n/g, "\n"), ""].join("\n");
+  return ["---", `name: ${JSON.stringify(input.name)}`, `description: ${JSON.stringify(input.description.replace(/[\r\n]+/g, " "))}`, "---", "", input.body.replace(/\r\n/g, "\n"), ""].join("\n");
 }

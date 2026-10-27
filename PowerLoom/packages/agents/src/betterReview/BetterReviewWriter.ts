@@ -32,6 +32,7 @@ const DEFAULT_MAX_DIFF_LINES = 3000;
 // as a worktree the repo tools read. The comments, the review's version and the rules are written once the run succeeds.
 export class BetterReviewWriter implements RunWriter {
   readonly integration = BETTER_REVIEW_INTEGRATION;
+  commitDraft(): unknown { return { draft: this.run.draft, commit: this.run.checkout?.sourceCommit }; }
 
   private readonly run: BetterReviewRun = {
     context: null,

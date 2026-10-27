@@ -38,6 +38,7 @@ export class CodexSdkRuntime implements AgentRuntime {
     const started = Date.now();
     let directory: string | null = null;
     let server: CodexToolServer | null = null;
+    let requested = false;
 
     try {
       abort.controller.signal.throwIfAborted();
@@ -45,12 +46,13 @@ export class CodexSdkRuntime implements AgentRuntime {
       directory = await mkdtemp(join(tmpdir(), "powerloom-codex-"));
       server = await CodexToolServer.start(request.tools, abort.controller.signal);
 
-      for await (const event of this.stream(request, directory, server, abort.controller.signal)) {
+      for await (const event of this.stream(request, directory, server, abort.controller.signal, () => { requested = true; })) {
         yield* mapper.map(event).map((body) => sequence.next(body));
         await this.remember(request, event);
 
         if (this.exceeded(request, mapper, abort)) {
-          break;
+          // Aborting stops new work; a terminal usage event already buffered by the SDK is still accounting evidence.
+          continue;
         }
 
         yield* (await this.subscriptionEvents(event, mapper)).map((body) => sequence.next(body));
@@ -69,6 +71,7 @@ export class CodexSdkRuntime implements AgentRuntime {
       durationMs: Date.now() - started,
       providerCostUsd: null,
       message: mapper.message,
+      usageComplete: !requested || mapper.usageComplete,
     });
   }
 
@@ -76,7 +79,7 @@ export class CodexSdkRuntime implements AgentRuntime {
     return this.subscription.usage();
   }
 
-  private async *stream(request: AgentRequest, directory: string, server: CodexToolServer, signal: AbortSignal): AsyncIterable<ThreadEvent> {
+  private async *stream(request: AgentRequest, directory: string, server: CodexToolServer, signal: AbortSignal, onRequest: () => void): AsyncIterable<ThreadEvent> {
     const client = this.createClient(codexOptions(request, this.codexHome, server));
     const options = codexThreadOptions(request, directory);
     const resume = await this.resumedThread(request);
@@ -84,10 +87,11 @@ export class CodexSdkRuntime implements AgentRuntime {
 
     signal.throwIfAborted();
 
+    onRequest();
     const stream = await thread.runStreamed(codexToolNamer(request.tools)(request.firstMessage), { signal });
 
     for await (const event of stream.events) {
-      signal.throwIfAborted();
+      if (event.type !== "turn.completed") signal.throwIfAborted();
 
       yield event;
     }

@@ -7,7 +7,7 @@ import type { AgentRunInfo } from "./models/AgentRunInfo";
 import type { AgentRunInput } from "./models/AgentRunInput";
 import type { AgentRunResult } from "./models/AgentRunResult";
 import { withPbiContext } from "./pbiContext/withPbiContext";
-import { continuationMessage, loadPreviousRunFacts } from "./resume/continuationMessage";
+import { continuationMessage, loadPreviousRunFacts, PreviousCommitStateError } from "./resume/continuationMessage";
 import type { ConversationPlan } from "./resume/models/ConversationPlan";
 import type { PreviousRun } from "./resume/models/PreviousRun";
 import type { RunOpening } from "./resume/models/RunOpening";
@@ -32,6 +32,11 @@ export class AgentRunSession {
   private tracker: UsageTracker;
   private trace: TraceRecorder;
 
+  get commitRootRunId(): number {
+    const previous = this.plan.continues;
+    return previous && !previous.commitCompletedAt ? previous.commitRootRunId ?? previous.id : this.runId;
+  }
+
   private constructor(
     private readonly deps: AgentDeps,
     readonly runId: number,
@@ -49,6 +54,8 @@ export class AgentRunSession {
       .values({ stage: info.stage, pbiId: info.pbiId, itemId: info.itemId, promptVersion: info.promptVersion, model: info.model.model, conversationId: plan.id, continuesRunId: plan.continues?.id ?? null })
       .returning({ id: agentRun.id });
     const session = new AgentRunSession(deps, row.id, info, plan);
+
+    await deps.db.update(agentRun).set({ commitRootRunId: session.commitRootRunId }).where(eq(agentRun.id, row.id));
 
     await clearStartOver(deps.db, info.itemId);
     await session.phase("start", { stage: info.stage, pbi: info.pbiId, item: info.itemId ?? null, model: `${info.model.provider}/${info.model.model}`, continues: plan.continues?.id ?? null, freshBecause: plan.skipped });
@@ -79,7 +86,7 @@ export class AgentRunSession {
    *  `keepOnBudgetStop`: a run stopped by its budget still commits what it saved (a partial result); the outcome stays. */
   async finish(result: AgentRunResult, commit: Commit | null, keepOnBudgetStop = false): Promise<AgentRunResult> {
     const final = await this.commitIfSuccess(result, commit, keepOnBudgetStop);
-    const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd });
+    const record = this.tracker.finish({ outcome: final.outcome, turns: this.observer?.resultEvent?.turns ?? 0, error: final.error, providerCostUsd: this.providerCostUsd, usageComplete: this.observer?.resultEvent?.usageComplete });
 
     await this.trace.flush();
     await this.deps.usageStore.saveRecord(record);
@@ -134,6 +141,7 @@ export class AgentRunSession {
     try {
       return await this.continuation(conversations, input, previous, this.plan.id);
     } catch (error) {
+      if (error instanceof PreviousCommitStateError) throw error;
       await this.phase("resume", { from: previous.id, freshBecause: errorMessage(error) });
       await this.deps.db.update(agentRun).set({ continuesRunId: null }).where(eq(agentRun.id, this.runId));
 
@@ -187,8 +195,10 @@ export class AgentRunSession {
     }
 
     try {
+      await this.deps.db.update(agentRun).set({ commitStartedAt: new Date() }).where(eq(agentRun.id, this.runId));
       await this.phase("commit");
       await commit();
+      await this.deps.db.update(agentRun).set({ commitCompletedAt: new Date() }).where(eq(agentRun.id, this.runId));
 
       return result;
     } catch (error) {

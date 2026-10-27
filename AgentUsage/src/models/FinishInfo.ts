@@ -5,4 +5,5 @@ export interface FinishInfo {
   turns: number;
   error?: string | null;
   providerCostUsd?: number | null;
+  usageComplete?: boolean;
 }

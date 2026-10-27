@@ -24,6 +24,7 @@ export const AUTOTEST_INTEGRATION = "writeTestReports";
 // written once the run succeeds; a report that waits for an answer sends the task back to open.
 export class AutotestWriter implements RunWriter {
   readonly integration = AUTOTEST_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
   private blocking: string[] = [];

@@ -2,5 +2,6 @@
 export interface DocsVault {
   readNote(path: string): Promise<string | null>;
   writeNote(path: string, content: string): Promise<void>;
+  appendNote?(path: string, content: string): Promise<void>;
   removeFile(path: string): Promise<void>;
 }

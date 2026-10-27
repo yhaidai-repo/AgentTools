@@ -12,6 +12,18 @@ export async function insertPromptVersion(db: PowerLoomDb, agentId: string, vers
   await db.insert(agentPromptVersion).values({ agentId, version, text });
 }
 
+// History can outlive a failed definition save. Reuse an identical orphaned version, or reserve a newer
+// version with the unique key as the concurrency guard. Never overwrite another edit's history.
+export async function reservePromptVersion(db: PowerLoomDb, agentId: string, currentVersion: number, text: string): Promise<number> {
+  for (;;) {
+    const [latest] = await db.select().from(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId)).orderBy(desc(agentPromptVersion.version)).limit(1);
+    if (latest && latest.version > currentVersion && latest.text === text) return latest.version;
+    const version = Math.max(currentVersion, latest?.version ?? 0) + 1;
+    const inserted = await db.insert(agentPromptVersion).values({ agentId, version, text }).onConflictDoNothing().returning({ version: agentPromptVersion.version });
+    if (inserted.length > 0) return version;
+  }
+}
+
 // A deleted agent takes its prompt history with it.
 export async function deletePromptVersions(db: PowerLoomDb, agentId: string): Promise<void> {
   await db.delete(agentPromptVersion).where(eq(agentPromptVersion.agentId, agentId));

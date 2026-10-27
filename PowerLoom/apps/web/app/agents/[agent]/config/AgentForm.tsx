@@ -33,7 +33,7 @@ interface AgentFormProps {
   blockerKinds: BlockerKind[];
   taskTypes: TaskTypeChoices;
   /** This agent's finished runs today, what its daily budget counts. */
-  spentTodayUsd: number;
+  spentTodayUsd: number | null;
   /** Created in the UI, so it may be deleted; decided on the server (the config package's entry point needs node:fs). */
   removable: boolean;
   /** The prompt file shipped with the code, when the agent has one. */
@@ -101,7 +101,7 @@ export function RunSection({ agent, catalog }: { agent: AgentDefinition; catalog
   );
 }
 
-export function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spentTodayUsd: number }) {
+export function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition; spentTodayUsd: number | null }) {
   return (
     <section className="panel config-section">
       <h3>Limits and budget <small>API-price estimate</small></h3>

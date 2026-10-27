@@ -6,7 +6,7 @@ import type { PbiCost } from "../models/PbiCost";
 // 2026-10-18). Usage records are keyed by run; a run belongs to its PBI, or to its task's PBI.
 export async function loadCostliestPbis(db: PowerLoomDb, from: Date, limit: number, vault: string): Promise<PbiCost[]> {
   const result = await db.execute<PbiCost & Record<string, unknown>>(sql`
-    select w.ado_id as "pbiId", w.title, count(*)::int as "runs", sum(u.cost_usd)::float as "costUsd", sum(u.duration_ms)::float as "durationMs"
+    select w.ado_id as "pbiId", w.title, count(*)::int as "runs", sum(u.cost_usd)::float as "costUsd", sum(u.duration_ms)::float as "durationMs", bool_and(u.accounting_complete) as "accountingComplete"
     from agent_usage.usage_record u
     join agent_run r on r.id::text = u.run_id
     left join local_item i on i.id = r.item_id

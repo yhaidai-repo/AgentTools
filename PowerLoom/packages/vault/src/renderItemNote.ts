@@ -2,6 +2,7 @@ import { frontmatter } from "./frontmatter";
 import { isoDate } from "./markdown";
 import type { ItemNote } from "./models/ItemNote";
 import { pbiNoteName } from "./paths";
+import { appendUserNotes } from "./notesSection";
 
 const ITEM_TYPES: Record<string, string> = {
   research: "research-task",
@@ -23,7 +24,7 @@ export function renderItemNote(item: ItemNote, notesSection: string): string {
   const parentLink = item.parentId ? ` · From: [[${item.parentId}]]` : "";
   const sections = SECTIONS[item.kind] ?? taskSections;
 
-  return [
+  return appendUserNotes([
     frontmatter({
       id: item.id,
       type: ITEM_TYPES[item.kind] ?? item.kind,
@@ -42,8 +43,7 @@ export function renderItemNote(item: ItemNote, notesSection: string): string {
     `# ${item.id} ${item.title}`,
     `PBI: [[${pbiNoteName(item.adoId)}]]${parentLink} · Status: ${item.status} · Assignee: ${item.assignee}`,
     ...sections(item),
-    notesSection,
-  ].join("\n\n");
+  ].join("\n\n"), notesSection);
 }
 
 // A research task reads the PBI's repos, so it lists none of its own (user decision 2026-10-13).

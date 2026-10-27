@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { PbiNote } from "./models/PbiNote";
-import { extractNotesSection } from "./notesSection";
+import { extractNotesSection, splitNotesSection, USER_NOTES_MARKER } from "./notesSection";
 import { renderPreparedPbi } from "./renderPreparedPbi";
 
 const NOTE: PbiNote = {
@@ -14,6 +14,24 @@ function headings(text: string): number {
 }
 
 describe("the user's Notes section", () => {
+  it("honors an explicit template boundary before expanding content", () => {
+    const template = `# {{title}}\n${USER_NOTES_MARKER}\nSTALE\n## Notes\nold text`;
+    const rendered = renderPreparedPbi(template, NOTE, "## Notes\nHuman text\n");
+    assert.doesNotMatch(rendered, /STALE|old text/);
+    assert.equal(splitNotesSection(rendered).userNotes, "Human text");
+  });
+  it("S3-03 keeps headings inside description and AC generated across repeated renders", () => {
+    const template = "{{description}}\n\n{{acceptance_criteria}}\n\n## Notes\n";
+    const note = { ...NOTE, descriptionMd: "Description\n## Notes\nDescription tail", acceptanceCriteriaMd: "AC\n## Notes\nAC tail" };
+    let rendered = renderPreparedPbi(template, note, "## Notes\n\nHuman text\n## Notes\nHuman tail\n");
+    for (let i = 0; i < 3; i++) {
+      assert.match(splitNotesSection(rendered).generated, /Description tail/);
+      assert.match(splitNotesSection(rendered).generated, /AC tail/);
+      assert.equal(splitNotesSection(rendered).userNotes, "Human text\n## Notes\nHuman tail");
+      rendered = renderPreparedPbi(template, note, extractNotesSection(rendered));
+    }
+  });
+
   it("stays one section when the template was saved with Windows line endings", () => {
     const template = "# {{id}} {{title}}\r\n\r\n## Description\r\n\r\n{{description}}\r\n\r\n## Notes\r\n";
     let note = renderPreparedPbi(template, NOTE, extractNotesSection(null));

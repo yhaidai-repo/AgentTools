@@ -1,6 +1,7 @@
-import { agentRun, localItem, vaultCapture, vaultNoteWrite, type PowerLoomDb } from "@powerloom/db";
+import { localItem, vaultCapture, vaultNoteWrite, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { insertFindings } from "../findings";
+import { addRunOutputs } from "../tasks/runOutputs";
 import type { DraftTaskData } from "./models/DraftTaskData";
 import type { NoteAuthor } from "./models/NoteAuthor";
 import type { NoteEdit } from "./models/NoteEdit";
@@ -63,7 +64,7 @@ async function saveSummary(db: PowerLoomDb, task: ItemRow, draft: TechWriterDraf
 }
 
 async function saveOutputs(db: PowerLoomDb, runId: number, outputs: string[]): Promise<string[]> {
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
 
   return outputs;
 }

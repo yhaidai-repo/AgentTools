@@ -1,5 +1,6 @@
 import { pbiEstimate, type PowerLoomDb } from "@powerloom/db";
 import type { EstimateDraft } from "./models/EstimateDraft";
+import { addRunOutputs } from "../tasks/runOutputs";
 
 // Writes the run's estimate, when it recorded one, as a new row: earlier estimates stay as history.
 export async function commitEstimate(db: PowerLoomDb, target: { pbiId: number | null; runId: number; agent: string }, estimate: EstimateDraft | null): Promise<void> {
@@ -17,4 +18,5 @@ export async function commitEstimate(db: PowerLoomDb, target: { pbiId: number | 
     confidence: estimate.confidence,
     basis: estimate.basis,
   });
+  await addRunOutputs(db, target.runId, [`PBI-${target.pbiId} estimate`]);
 }

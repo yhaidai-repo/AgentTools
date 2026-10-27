@@ -26,6 +26,7 @@ export const WRITE_NOTES_INTEGRATION = "writeNotes";
 // (user decision 2026-10-14): the generic executor puts the task back to open, and it runs again with the results.
 export class TechWriterWriter implements RunWriter {
   readonly integration = WRITE_NOTES_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
   private isDraftTask = false;
@@ -69,11 +70,11 @@ export class TechWriterWriter implements RunWriter {
       return [];
     }
 
-    const vault = taskVault(this.deps, target.task);
+    const vault = taskVault(target.deps, target.task);
 
     this.draft.summary = target.result?.body ?? null;
 
-    const outputs = await this.commitNotes(vault, target.task, target.runId);
+    const outputs = await this.commitNotes(target.deps.db, vault, target.task, target.runId);
 
     this.committedNotes = this.draft.edits.length;
 
@@ -91,9 +92,9 @@ export class TechWriterWriter implements RunWriter {
   }
 
   // The commits list the notes written as the run's outputs themselves, so nothing is returned to list twice.
-  private async commitNotes(vault: TaskVault, task: ItemRow, runId: number): Promise<string[]> {
+  private async commitNotes(db: AgentDeps["db"], vault: TaskVault, task: ItemRow, runId: number): Promise<string[]> {
     if (modeOf(task) !== "draft") {
-      await commitActualize(this.deps.db, vault, task, runId, this.draft);
+      await commitActualize(db, vault, task, runId, this.draft);
 
       return [];
     }
@@ -102,7 +103,7 @@ export class TechWriterWriter implements RunWriter {
     const edits = await relinkDraft(vault.root, draftName, this.draft);
 
     await requireNoDraftLinks(vault.root, draftName, edits);
-    await commitTechWriter(this.deps.db, vault, task, runId, { ...this.draft, edits });
+    await commitTechWriter(db, vault, task, runId, { ...this.draft, edits });
 
     return [];
   }

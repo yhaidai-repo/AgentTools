@@ -15,7 +15,7 @@ function ConvertTo-DraftLine {
         "source: $(ConvertTo-YamlString -Value $Request.Source)"
         "target: $(ConvertTo-YamlString -Value $Request.Target)"
         '---'
-        "# $($Request.Title)"
+        "# $(ConvertTo-DraftHeading $Request.Title)"
     )
     $sections = Add-DefaultToFill -Sections $Request.Sections -Rules $Rules
 
@@ -47,11 +47,16 @@ function ConvertTo-SectionLine {
         [Parameter(Mandatory)][string[]]$Bullets
     )
 
-    return @('', "## $Heading") + ($Bullets | ForEach-Object { "- $_" })
+    return @('', "## $(ConvertTo-DraftHeading $Heading)") + ($Bullets | ForEach-Object { "- $_" })
 }
 
 function ConvertTo-YamlString {
     param([string]$Value)
 
-    return '"' + ($Value -replace '\\', '\\' -replace '"', '\"') + '"'
+    # JSON double-quoted scalars are valid YAML and preserve newlines, quotes and control characters.
+    return ConvertTo-Json -InputObject ([string]$Value) -Compress
+}
+
+function ConvertTo-DraftHeading([string]$Value) {
+    return ($Value -replace '\s*[\r\n]+\s*', ' ').Trim()
 }

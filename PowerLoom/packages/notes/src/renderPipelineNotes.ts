@@ -19,7 +19,7 @@ export async function renderPipelineNotes(db: PowerLoomDb, vaultRoot: string, ad
     return;
   }
 
-  const notes = await PbiNoteWriter.create(db, ado, vaultRoot);
+  const notes = await PbiNoteWriter.create(db, ado, vaultRoot, row.vault);
   const pbiPath = await notes.writePbi(row, row.pipelineStatus);
   const attachments = await listAttachments(db, adoId);
 

@@ -40,7 +40,7 @@ export function AgentTable({ agents, byAgent, today, budget, range }: AgentTable
         </thead>
         <tbody>
           {agents.map((agent, slot) => (
-            <AgentRow key={agent.id} agent={agent} slot={slot} activity={byAgent.get(agent.id)} spentToday={today?.costByAgent[agent.id] ?? 0} limit={limitOf(budget, agent.id)} range={range} />
+            <AgentRow key={agent.id} agent={agent} slot={slot} activity={byAgent.get(agent.id)} spentToday={today?.accountingComplete === false ? null : today?.costByAgent[agent.id] ?? 0} limit={limitOf(budget, agent.id)} range={range} />
           ))}
         </tbody>
       </table>
@@ -52,7 +52,7 @@ interface AgentRowProps {
   agent: AgentDefinition;
   slot: number;
   activity?: AgentActivity;
-  spentToday: number;
+  spentToday: number | null;
   limit: number | null;
   range: string;
 }
@@ -67,8 +67,8 @@ function AgentRow({ agent, slot, activity, spentToday, limit, range }: AgentRowP
       <td><span className="swatch" style={{ background: agentColor(slot) }} />{agent.label}{!agent.enabled && <span className="off-tag">off</span>}</td>
       <td className="num"><Link href={`/agents?tab=runs&agent=${agent.id}&range=${range}`} title="Show runs">{activity?.runs ?? 0}</Link></td>
       <td className={`num${failures > 0 ? " text-error" : ""}`}>{failures}</td>
-      <td className="num">{formatUsd(activity?.costUsd ?? 0)}</td>
-      <td className="num">{formatUsd(average(activity?.costUsd ?? 0, finished))}</td>
+      <td className="num">{formatUsd(activity?.costUsd ?? 0, activity?.accountingComplete)}</td>
+      <td className="num">{formatUsd(average(activity?.costUsd ?? 0, finished), activity?.accountingComplete)}</td>
       <td className="num">{formatTokens(Math.round(average(activity?.tokens ?? 0, finished)))}</td>
       <td className="num">{formatDuration(average(activity?.durationMs ?? 0, finished))}</td>
       <td><BudgetMeter spent={spentToday} limit={limit} /></td>
@@ -77,10 +77,10 @@ function AgentRow({ agent, slot, activity, spentToday, limit, range }: AgentRowP
 }
 
 // The bar turns amber from 80 % of the limit and rose at the limit (BUDGET_WARN_AT).
-function BudgetMeter({ spent, limit }: { spent: number; limit: number | null }) {
+function BudgetMeter({ spent, limit }: { spent: number | null; limit: number | null }) {
   const level = limit === null ? null : budgetLevel(spent, limit);
 
-  if (level === null || limit === null) {
+  if (spent === null || level === null || limit === null) {
     return <span className="num">{formatUsd(spent)}</span>;
   }
 

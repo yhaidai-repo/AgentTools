@@ -1,4 +1,4 @@
-import { parseRegisterRecords, parseWwwRecords, type WwwRecord } from "@powerloom/vault";
+import { containedPath, parseRegisterRecords, parseWwwRecords, type WwwRecord } from "@powerloom/vault";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { ProjectRegisterRecord } from "../models/ProjectRegisterRecord";
@@ -45,7 +45,8 @@ async function readWwwLog(root: string): Promise<WwwRecord[]> {
 
 // A vault without the log, or a project without a register, simply has no records.
 async function readNoteOrEmpty(root: string, path: string): Promise<string> {
-  return readFile(join(root, path), "utf8").catch(() => "");
+  const safe = await containedPath(root, join(root, path));
+  return safe ? readFile(safe, "utf8").catch(() => "") : "";
 }
 
 function openFirst(records: ProjectRegisterRecord[]): ProjectRegisterRecord[] {

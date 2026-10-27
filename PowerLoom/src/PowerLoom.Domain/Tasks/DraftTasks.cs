@@ -27,7 +27,7 @@ public static partial class DraftTasks
     {
         var key = $"merge:{draft.Name}:{draft.Captured}";
 
-        if (await db.LocalItems.FromSql($"select * from local_item where data->>'key' = {key}").AnyAsync(cancellation))
+        if (await db.LocalItems.FromSql($"select * from local_item where vault = {vault} and data->>'key' = {key}").AnyAsync(cancellation))
             return null;
 
         var id = await ItemIds.NextGlobalAsync(db, Prefix, cancellation);
@@ -37,7 +37,7 @@ public static partial class DraftTasks
         {
             Id = id,
             Kind = ItemKinds.Docs,
-            PbiId = await PbiOfDraftAsync(db, draft.Name, cancellation),
+            PbiId = await PbiOfDraftAsync(db, vault, draft.Name, cancellation),
             Vault = vault,
             Title = title[..Math.Min(title.Length, TitleMax)],
             Status = ItemStatus.Open,
@@ -88,9 +88,9 @@ public static partial class DraftTasks
     }
 
     // PowerLoom's drafts come from an agent run on a PBI (vault_capture); chat drafts have none.
-    private static Task<int?> PbiOfDraftAsync(PowerLoomDbContext db, string name, CancellationToken cancellation)
+    private static Task<int?> PbiOfDraftAsync(PowerLoomDbContext db, string vault, string name, CancellationToken cancellation)
     {
-        return db.VaultCaptures.AsNoTracking().Where(capture => capture.Name == name).OrderByDescending(capture => capture.Id).Select(capture => (int?)capture.PbiId).FirstOrDefaultAsync(cancellation);
+        return db.VaultCaptures.AsNoTracking().Where(capture => capture.Name == name && capture.Pbi.Vault == vault).OrderByDescending(capture => capture.Id).Select(capture => (int?)capture.PbiId).FirstOrDefaultAsync(cancellation);
     }
 
     [GeneratedRegex(@"^draft:\s*", RegexOptions.IgnoreCase)]

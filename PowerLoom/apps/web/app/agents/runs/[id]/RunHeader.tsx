@@ -56,7 +56,7 @@ function RunStats({ usage }: { usage?: UsageRecord }) {
       <HeroStat label="Took" value={formatDuration(usage.durationMs)} />
       <HeroStat label="Turns" value={String(usage.turns)} />
       <HeroStat label="Tokens" value={formatTokens(tokens)} note={`in ${formatTokens(usage.inputTokens)} · out ${formatTokens(usage.outputTokens)} · cache ${formatTokens(usage.cacheReadTokens)} / ${formatTokens(usage.cacheWriteTokens)}`} />
-      <HeroStat label="Cost" value={formatUsd(usage.costUsd)} note={usage.providerCostUsd !== null ? `provider ${formatUsd(usage.providerCostUsd)}` : undefined} />
+      <HeroStat label="Cost" value={formatUsd(usage.costUsd, usage.accountingComplete)} note={usage.accountingComplete === false ? "Usage accounting is incomplete" : usage.providerCostUsd !== null ? `provider ${formatUsd(usage.providerCostUsd)}` : undefined} />
     </div>
   );
 }

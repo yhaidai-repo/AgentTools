@@ -3,4 +3,6 @@ export interface CreateSkillInput {
   name: string;
   description: string;
   body: string;
+  /** Retry a combined form operation only when the editable skill content is identical. */
+  reuseIfUnchanged?: boolean;
 }

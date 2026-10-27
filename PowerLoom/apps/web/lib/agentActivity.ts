@@ -6,9 +6,8 @@ import type { AgentActivity } from "@/models/AgentActivity";
 import type { DayActivity } from "@/models/DayActivity";
 import { getDb } from "./db";
 import { getUsageStore } from "./usage";
-import { inVaultRuns, runInVault, vaultRunIds } from "./vaultRuns";
+import { runInVault, vaultRunIds } from "./vaultRuns";
 
-const MAX_RECORDS = 5_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FAILURE_FILTER = notInArray(agentRun.outcome, NOT_FAILED_OUTCOMES);
 const BUDGET_STOP_FILTER = eq(agentRun.outcome, "budget-exceeded");
@@ -90,9 +89,8 @@ async function runsPerAgent(from: Date, vault: string): Promise<RunTotals[]> {
 }
 
 async function vaultRecords(from: Date, vault: string): Promise<UsageRecord[]> {
-  const [records, runIds] = await Promise.all([getUsageStore().records({ from }, MAX_RECORDS), vaultRunIds(from, vault)]);
-
-  return inVaultRuns(records, runIds);
+  const runIds = await vaultRunIds(from, vault);
+  return runIds.size === 0 ? [] : getUsageStore().records({ from, runIds: [...runIds] });
 }
 
 function emptyDay(day: string): DayActivity {
@@ -117,6 +115,7 @@ function addDayUsage(day: DayActivity | undefined, record: UsageRecord): void {
   const agent = agentOf(record);
 
   day.costByAgent[agent] = (day.costByAgent[agent] ?? 0) + record.costUsd;
+  day.accountingComplete = day.accountingComplete !== false && record.accountingComplete !== false;
   day.tokensByAgent[agent] = (day.tokensByAgent[agent] ?? 0) + tokensOf(record);
   day.durationMsByAgent[agent] = (day.durationMsByAgent[agent] ?? 0) + record.durationMs;
 }
@@ -130,6 +129,7 @@ function addUsage(activity: AgentActivity, record: UsageRecord): AgentActivity {
     ...activity,
     finishedRuns: activity.finishedRuns + 1,
     costUsd: activity.costUsd + record.costUsd,
+    accountingComplete: activity.accountingComplete !== false && record.accountingComplete !== false,
     tokens: activity.tokens + tokensOf(record),
     durationMs: activity.durationMs + record.durationMs,
   };

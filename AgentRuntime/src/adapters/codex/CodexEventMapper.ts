@@ -10,6 +10,7 @@ export class CodexEventMapper {
   reason: RunEndReason = "failed";
   message: string | null = null;
   threadId: string | null = null;
+  usageComplete = false;
   private failed = false;
   private readonly calls = new Set<string>();
   private readonly completed = new Set<string>();
@@ -23,6 +24,7 @@ export class CodexEventMapper {
 
         return [];
       case "turn.completed":
+        this.usageComplete = true;
         this.reason = this.failed ? this.reason : "success";
 
         return [this.usage(event.usage)];
@@ -31,9 +33,14 @@ export class CodexEventMapper {
       case "error":
         return this.failure(event.message);
       case "item.started":
+        this.usageComplete = false;
         return this.start(event.item);
       case "item.completed":
+        this.usageComplete = false;
         return this.complete(event.item);
+      case "turn.started":
+        this.usageComplete = false;
+        return [];
       default:
         return [];
     }

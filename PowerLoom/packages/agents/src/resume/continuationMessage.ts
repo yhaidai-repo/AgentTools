@@ -6,6 +6,8 @@ import type { ReplayReport } from "./models/ReplayReport";
 
 const CLOCK_SLACK_MS = 60_000;
 
+export class PreviousCommitStateError extends Error {}
+
 const STOPS: Record<string, string> = {
   "budget-exceeded": "it reached its budget",
   "max-turns": "it used all its turns",
@@ -16,8 +18,11 @@ const STOPS: Record<string, string> = {
 };
 
 // The limits the continued run had (its `agent` phase), what it spent (its usage record), and whether it reached its
-// `commit` phase.
+// durable commit completion (a trace start phase never proves output persistence).
 export async function loadPreviousRunFacts(usageStore: UsageStore, previous: PreviousRun): Promise<PreviousRunFacts> {
+  if (!previous.commitStartedAt && !previous.commitCompletedAt && previous.outputs?.length) {
+    throw new PreviousCommitStateError(`RUN-${previous.id} has legacy persisted outputs without a commit journal; reconcile them before resuming its drafts`);
+  }
   const trace = await usageStore.trace(String(previous.id));
   const phases = trace.filter((entry) => entry.type === "phase");
   const agentPhase = phases.find((entry) => entry.payload.name === "agent")?.payload ?? {};
@@ -29,7 +34,7 @@ export async function loadPreviousRunFacts(usageStore: UsageStore, previous: Pre
     timeoutMs: numberOrNull(agentPhase.timeoutMs),
     budgetUsd: numberOrNull(agentPhase.budgetUsd),
     spentUsd: record?.costUsd ?? null,
-    committed: phases.some((entry) => entry.payload.name === "commit"),
+    committed: previous.commitCompletedAt != null,
   };
 }
 
@@ -42,6 +47,7 @@ export function continuationMessage(previous: PreviousRun, before: PreviousRunFa
     "If your last tool call has no result, it did not finish.",
     `This run continues the same conversation with fresh limits: ${limitsText(limits, budgetUsd, before)}.`,
     before.committed ? savedText(previous) : restoredText(replay),
+    !before.committed && previous.outputs?.length ? `Already persisted outputs: ${previous.outputs.join(", ")}. The restored draft reconciles identical writes using their durable receipts.` : "",
     failedReplaysText(replay),
     "Continue where you stopped: don't redo finished work or re-read what you already have, and end with your required output.",
     "</continuation>",

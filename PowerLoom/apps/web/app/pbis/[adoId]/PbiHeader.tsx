@@ -93,7 +93,7 @@ function Stats({ detail }: { detail: PbiDetail }) {
       <Stat label="Blockers" value={blockers === 0 ? "None" : String(blockers)} tone={blockers === 0 ? "good" : undefined} />
       <Stat label="Estimate" value={estimate ? `~${estimate.hours} h` : "–"} note={estimate ? `human${estimate.agentHours === null ? "" : ` · ~${estimate.agentHours} h agent`}` : undefined} />
       <Stat label="Agent time" value={formatDuration(detail.usage.durationMs)} note={`${detail.runs.length} runs`} />
-      <Stat label="Agent cost" value={formatUsd(detail.usage.costUsd)} note={`${formatTokens(detail.usage.tokens)} tokens`} />
+      <Stat label="Agent cost" value={formatUsd(detail.usage.costUsd, detail.usage.accountingComplete)} note={`${formatTokens(detail.usage.tokens)} tokens`} />
     </div>
   );
 }

@@ -6,15 +6,17 @@ namespace PowerLoom.Infrastructure.Backlog;
 public static partial class NotesSection
 {
     public const string Heading = "## Notes";
+    public const string Marker = "<!-- powerloom:user-notes -->";
 
     public static string Of(string? existing)
     {
-        var match = existing is null ? null : Line().Match(existing);
+        var content = existing is null ? null : AfterMarker(existing);
+        var match = content is null ? null : Line().Match(content);
 
         if (match is null || !match.Success)
             return $"{Heading}\n";
 
-        return RepeatedHeadings().Replace(existing![match.Index..], "", 1).TrimEnd() + "\n";
+        return RepeatedHeadings().Replace(content![match.Index..], "", 1).TrimEnd() + "\n";
     }
 
     // The user's text under the heading, as the PBI page edits it.
@@ -26,7 +28,7 @@ public static partial class NotesSection
         var text = Clean(body);
         var section = text.Length == 0 ? $"{Heading}\n" : $"{Heading}\n\n{text}\n";
 
-        return $"{Before(note).TrimEnd()}\n\n{section}";
+        return $"{Before(note).TrimEnd()}\n\n{Marker}\n{section}";
     }
 
     // Line endings differ between the browser (CRLF) and the vault (LF); surrounding blank lines don't count.
@@ -35,9 +37,18 @@ public static partial class NotesSection
     // The body before the user's section (the template's own `## Notes` is replaced by it).
     public static string Before(string body)
     {
+        var marker = body.IndexOf(Marker, StringComparison.Ordinal);
+        if (marker >= 0)
+            return body[..marker];
         var match = Line().Match(body);
 
         return match.Success ? body[..match.Index] : body;
+    }
+
+    private static string AfterMarker(string body)
+    {
+        var marker = body.IndexOf(Marker, StringComparison.Ordinal);
+        return marker < 0 ? body : body[(marker + Marker.Length)..];
     }
 
     // A heading line, also with a Windows line ending: a template saved on Windows mustn't hide its heading (each render

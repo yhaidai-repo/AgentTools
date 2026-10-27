@@ -1,10 +1,11 @@
 import { ANY_AGENT, nextItemId, setItemStatus, renderHumanTaskBody, vaultOfPbiSql } from "@powerloom/core";
 import { commitRelevantPages } from "../relevantPages";
-import { agentRun, localItem, type PowerLoomDb } from "@powerloom/db";
+import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, ne } from "drizzle-orm";
 import type { QuestionDraft } from "../refinement/models/QuestionDraft";
 import type { ResearchTaskDraft } from "../refinement/models/ResearchTaskDraft";
 import { commitCaptures } from "../vaultCapture";
+import { addRunOutputs } from "../tasks/runOutputs";
 import { insertWebResearchTasks } from "../webResearch";
 import type { HumanTaskSpec } from "../humanTasks/models/HumanTaskSpec";
 import type { ResearchContext } from "./models/ResearchContext";
@@ -36,7 +37,7 @@ export async function commitResearch(
 
   await supersedeEarlierResults(db, task.id, resultId, runId);
 
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
   await setItemStatus(db, task.id, "in-progress", "done", ACTOR, runId);
 
   return outputs;

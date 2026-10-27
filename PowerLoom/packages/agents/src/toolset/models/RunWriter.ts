@@ -15,6 +15,8 @@ export interface RunWriter {
   readonly integration: string;
   tools(log: ReadLog, shared: SharedRunState): ToolDefinition<any>[];
   commit(target: WriterTarget): Promise<string[]>;
+  /** Only the draft to persist; stable across replay, without mutable read context or timestamps. */
+  commitDraft?(): unknown;
   /** After the commit (or without one): what the writer's own output says about the task's end; the generic executor
    *  settles the task, a writer never sets its status. Null when write_result's status alone decides. */
   settlement?(): WriterSettlement | null;

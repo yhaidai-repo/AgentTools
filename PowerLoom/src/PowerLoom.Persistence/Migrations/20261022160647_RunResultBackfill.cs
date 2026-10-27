@@ -18,8 +18,8 @@ namespace PowerLoom.Persistence.Migrations
                 INSERT INTO run_result (run_id, task_id, pbi_id, agent, status, body, data, created_at)
                 SELECT li.created_by_run, li.parent_id, li.pbi_id,
                        coalesce(ar.stage::text, nullif(split_part(li.assignee, ':', 2), ''), 'agent'),
-                       CASE WHEN coalesce(li.data->>'status', li.data->'report'->>'status') IN ('complete', 'partial', 'blocked') THEN coalesce(li.data->>'status', li.data->'report'->>'status')
-                            WHEN li.data->>'status' = 'not_found' THEN 'partial'
+                       CASE WHEN coalesce(li.data->>'status', li.data->'result'->>'status', li.data->'report'->>'status') IN ('complete', 'partial', 'blocked') THEN coalesce(li.data->>'status', li.data->'result'->>'status', li.data->'report'->>'status')
+                            WHEN coalesce(li.data->>'status', li.data->'result'->>'status', li.data->'report'->>'status') = 'not_found' THEN 'partial'
                             ELSE 'complete' END,
                        coalesce(nullif(li.body, ''), li.title), li.data, li.created_at
                 FROM local_item li

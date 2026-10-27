@@ -54,6 +54,7 @@ export async function AgentsTab({ vault, range, metric }: AgentsTabProps) {
         <span className="text-faint hint">Cost is an API-price estimate; nothing is billed on the Max plan.</span>
       </div>
       <AgentsBand days={days} today={today} periodLabel={periodLabel} held={held.length} stuck={running.filter((run) => run.stuck).length} />
+      {days.some((day) => day.accountingComplete === false) && <p className="hint">Some runs have incomplete usage accounting. Cost charts show measured amounts only; total costs are unknown.</p>}
       <div className="section-label">Per day</div>
       <ActivityCharts days={days} agents={agents} metric={chartMetric} keep={{ tab: "agents", range: period }} />
       <div className="section-label">Per agent, {periodLabel}</div>

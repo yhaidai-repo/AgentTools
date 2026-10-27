@@ -24,7 +24,7 @@ export const getVaultUsageCommand: Command<GetVaultUsageInput, VaultUsageSummary
     limit: limitInput(500, 100),
   }),
   async run(context, input) {
-    const root = await mountedVaultRoot(input.vault);
+    const root = await mountedVaultRoot(input.vault, context.db);
 
     if (!root.ok) {
       return root;

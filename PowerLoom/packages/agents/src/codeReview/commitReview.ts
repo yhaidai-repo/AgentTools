@@ -1,9 +1,11 @@
-import { agentRun, codeReview, codeReviewVersion, reviewComment, type PowerLoomDb } from "@powerloom/db";
+import { codeReview, codeReviewVersion, reviewComment, type PowerLoomDb } from "@powerloom/db";
 import { eq, inArray, like } from "drizzle-orm";
 import { recordLocalRepoHead } from "./localRepoHead";
+import { addRunOutputs } from "../tasks/runOutputs";
 import type { CommentUpdateDraft } from "./models/CommentUpdateDraft";
 import type { NewCommentDraft } from "./models/NewCommentDraft";
 import type { ReviewRun } from "./models/ReviewRun";
+import { commentGate, publishReview, unresolvedComments } from "./reviewPublication";
 
 const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open" | "fixed"> = { withdraw: "withdrawn", keep: "open", refine: "open", fixed: "fixed" };
 
@@ -11,6 +13,10 @@ const UPDATED_STATUS: Record<CommentUpdateDraft["action"], "withdrawn" | "open" 
 // new comments are added, and the review records the reviewed commit and summary, also as this run's version. Returns
 // the run's outputs.
 export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: number): Promise<string[]> {
+  return publishReview(db, run.context!.pr.id, tx => commitLockedReview(tx, run, runId));
+}
+
+async function commitLockedReview(db: PowerLoomDb, run: ReviewRun, runId: number): Promise<string[]> {
   const checkout = run.checkout!;
   const pr = await recordLocalRepoHead(db, run.context!.pr, checkout.sourceCommit);
 
@@ -18,21 +24,25 @@ export async function commitReview(db: PowerLoomDb, run: ReviewRun, runId: numbe
   await applyUpdates(db, run.draft.updates);
 
   const added = await insertComments(db, pr.id, checkout.sourceCommit, runId, run.draft.comments);
+  const unresolved = await unresolvedComments(db, pr.id);
+  const summaryMd = unresolved ? `${commentGate(unresolved)}\n\n${run.draft.summary ?? ""}` : run.draft.summary;
   // The PR's push count fits the reviewed commit only when the job saw that commit; a push since then shows on the next sync.
   const reviewedIteration = pr.sourceCommit === checkout.sourceCommit ? pr.iteration : null;
 
   await db.update(codeReview).set({
     reviewedCommit: checkout.sourceCommit,
     reviewedIteration,
-    summaryMd: run.draft.summary,
+    summaryMd,
+    details: null,
+    ...(unresolved ? { status: "active" as const, closedReason: null } : {}),
     reviewedAt: new Date(),
     updatedAt: new Date(),
   }).where(eq(codeReview.prId, pr.id));
-  await recordReviewVersion(db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd: run.draft.summary, details: null });
+  await recordReviewVersion(db, { prId: pr.id, runId, reviewedCommit: checkout.sourceCommit, reviewedIteration, summaryMd, details: null });
 
   const outputs = [...added, ...run.draft.updates.map((update) => `${update.id} ${update.action}`), ...run.outdatedIds.map((id) => `${id} outdated`)];
 
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
 
   return outputs;
 }

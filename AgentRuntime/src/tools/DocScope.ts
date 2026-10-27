@@ -1,4 +1,5 @@
-import { resolveInside, toRelative } from "./safePath";
+import { realpath } from "node:fs/promises";
+import { resolveExistingInside, resolveInside, toRelative } from "./safePath";
 
 // What the doc tools may see: inside `root`, not hidden (dot) paths, not the excluded folders.
 export class DocScope {
@@ -11,25 +12,37 @@ export class DocScope {
     this.exclude = exclude.map((folder) => folder.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "")).filter(Boolean);
   }
 
-  resolve(path: string): string {
+  async resolve(path: string): Promise<string> {
     const fullPath = resolveInside(this.root, path);
 
-    if (!this.isVisible(fullPath)) {
+    if (!this.visible(toRelative(this.root, fullPath))) {
       throw new Error(`Path is not available to agents: ${path}`);
     }
 
-    return fullPath;
+    const canonical = await resolveExistingInside(this.root, path);
+    if (!this.visible(toRelative(await realpath(this.root), canonical))) {
+      throw new Error(`Path is not available to agents: ${path}`);
+    }
+    return canonical;
   }
 
-  isVisible(fullPath: string): boolean {
-    const relative = toRelative(this.root, fullPath);
+  async isVisible(fullPath: string): Promise<boolean> {
+    try {
+      await this.resolve(toRelative(await realpath(this.root), fullPath));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private visible(relative: string): boolean {
     const isHidden = relative.split("/").some((segment) => segment.startsWith("."));
     const isExcluded = this.exclude.some((folder) => relative === folder || relative.startsWith(`${folder}/`));
 
     return !isHidden && !isExcluded;
   }
 
-  relative(fullPath: string): string {
-    return toRelative(this.root, fullPath);
+  async relative(fullPath: string): Promise<string> {
+    return toRelative(await realpath(this.root), fullPath);
   }
 }

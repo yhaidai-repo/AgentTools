@@ -35,11 +35,12 @@ function Set-StdHandlesInheritable([bool] $Inheritable) {
     }
 }
 
-function Start-ServiceProcess([string] $Name, [hashtable] $Service, [string] $ProjectPath, [hashtable] $Environment) {
+function Start-ServiceProcess([string] $Name, [hashtable] $Service, [string] $ProjectPath, [hashtable] $Environment, [hashtable] $State) {
     $run = $Service.run
     $log = Join-Path $StackDir "$Name.log"
     $errorLog = Join-Path $StackDir "$Name.err.log"
     $arguments = @("run", "--no-build", "--project", $ProjectPath, "--launch-profile", $run.launchProfile)
+    $url = Get-LocalUrl $Name
 
     # The child inherits the environment of this process; Hidden gives it its own console, so it outlives this shell.
     Set-ProcessEnvironment $Environment $true
@@ -48,6 +49,11 @@ function Start-ServiceProcess([string] $Name, [hashtable] $Service, [string] $Pr
     try {
         $process = Start-Process dotnet -ArgumentList $arguments -WorkingDirectory (Split-Path $ProjectPath) `
             -RedirectStandardOutput $log -RedirectStandardError $errorLog -WindowStyle Hidden -PassThru
+        $entry = @{
+            name = $Name; kind = 'process'; pid = $process.Id; startedTicks = $process.StartTime.Ticks
+            log = $log; errorLog = $errorLog; url = $url; readyLog = $run.readyLog; readyProcess = $run.readyProcess
+        }
+        $State.services += $entry
     }
     finally {
         Set-StdHandlesInheritable $true
@@ -56,17 +62,7 @@ function Start-ServiceProcess([string] $Name, [hashtable] $Service, [string] $Pr
 
     Write-Host "Started $Name (pid $($process.Id))"
 
-    return @{
-        name = $Name
-        kind = "process"
-        pid = $process.Id
-        startedTicks = $process.StartTime.Ticks
-        log = $log
-        errorLog = $errorLog
-        url = Get-LocalUrl $Name
-        readyLog = $run.readyLog
-        readyProcess = $run.readyProcess
-    }
+    return $entry
 }
 
 function Test-EntryAlive([hashtable] $Entry) {
@@ -173,25 +169,47 @@ function Stop-Entry([hashtable] $Entry) {
         return
     }
 
-    Remove-EntryConfig $Entry
-
     if (-not (Test-EntryAlive $Entry)) {
         return
     }
 
     # dotnet run starts the app (or an Aspire AppHost and its children) as child processes; kill the whole tree.
     taskkill /PID $Entry.pid /T /F 2>&1 | Out-Null
+    if (Test-EntryAlive $Entry) { throw "Could not stop $($Entry.name)" }
     Write-Host "Stopped $($Entry.name)"
 }
 
 # The per-stack configuration file written into the build output (LocalStack.WorkerConfig.ps1) goes with the stack.
 function Remove-EntryConfig([hashtable] $Entry) {
     if ($Entry.config.file) {
-        Remove-Item -LiteralPath $Entry.config.file -Force -ErrorAction SilentlyContinue
+        if ($Entry.config.ContainsKey('published')) { Restore-WorkerConfigs $Entry.config }
+        elseif (Test-Path -LiteralPath $Entry.config.file) { Remove-Item -LiteralPath $Entry.config.file -Force -ErrorAction Stop }
     }
 }
 
 function Stop-Stack([hashtable] $State) {
-    $State.services | ForEach-Object { Stop-Entry $_ }
-    Remove-Item -LiteralPath $StatePath -Force -ErrorAction SilentlyContinue
+    $remaining = @()
+    $errors = @()
+    foreach ($entry in $State.services) {
+        try { Stop-Entry $entry }
+        catch { $remaining += $entry; $errors += $_.Exception.Message }
+    }
+    # Do not restore overrides underneath a service that could not be stopped.
+    if ($remaining.Count -eq 0) {
+        foreach ($config in @($State.configs)) {
+            try { if ($config) { Restore-WorkerConfigs $config } }
+            catch { $errors += $_.Exception.Message }
+        }
+        foreach ($entry in $State.services) {
+            try { Remove-EntryConfig $entry }
+            catch { $errors += $_.Exception.Message }
+        }
+    }
+    $State.services = $remaining
+    if ($errors.Count -gt 0) {
+        try { Save-StackState $State }
+        catch { $errors += "Could not save recovery state: $($_.Exception.Message)" }
+        throw ($errors -join '; ')
+    }
+    if (Test-Path -LiteralPath $StatePath) { Remove-Item -LiteralPath $StatePath -Force -ErrorAction Stop }
 }

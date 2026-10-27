@@ -35,9 +35,9 @@ interface RunDetail {
   continuesRunId: string | null;
   continuedByRunId: string | null;
   /** The whole conversation this run is part of; null when it stands alone. */
-  conversation: { runs: number; costUsd: number } | null;
+  conversation: { runs: number; costUsd: number | null } | null;
   task: { id: string; kind: string; title: string; status: string } | null;
-  usage: { costUsd: number; tokens: number; turns: number; durationMs: number } | null;
+  usage: { costUsd: number | null; accountingComplete: boolean; tokens: number; turns: number; durationMs: number } | null;
   outputs: string[];
   /** What the services logged about the run or its task since it started. */
   errors: LogEntryView[];
@@ -93,7 +93,7 @@ function detailOf({ run, task }: Pick<RunListRow, "run" | "task">, chain: AgentR
     continuedByRunId: next ? runRef(next.id) : null,
     conversation,
     task: task ? { id: task.id, kind: task.kind, title: task.title, status: task.status } : null,
-    usage: usage ? { costUsd: usage.costUsd, tokens: tokensOf(usage), turns: usage.turns, durationMs: usage.durationMs } : null,
+    usage: usage ? { costUsd: usage.accountingComplete === false ? null : usage.costUsd, accountingComplete: usage.accountingComplete !== false, tokens: tokensOf(usage), turns: usage.turns, durationMs: usage.durationMs } : null,
     outputs: run.outputs ?? [],
   };
 }

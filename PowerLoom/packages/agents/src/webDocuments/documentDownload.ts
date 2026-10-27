@@ -1,11 +1,11 @@
 import { MAX_ATTACHMENT_BYTES, type UploadedFile } from "@powerloom/attachments";
 import type { Outcome } from "@powerloom/core";
 import { extname } from "node:path";
-import { privateHostProblem } from "./publicHost";
+import { publicAddresses } from "./publicHost";
+import { publicRequest } from "./publicRequest";
 
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = 30_000;
-const USER_AGENT = "Mozilla/5.0 (compatible; PowerLoom document reader)";
 
 // The attachment readers pick a reader by extension; a download names its type in Content-Type.
 const EXTENSIONS: Record<string, string> = {
@@ -47,12 +47,6 @@ async function fetchPublic(url: string, hops: number): Promise<Outcome<Response>
   }
 
   const target = new URL(url);
-  const problem = await privateHostProblem(target);
-
-  if (problem) {
-    return { ok: false, error: problem };
-  }
-
   const response = await request(target);
 
   if (!response.ok) {
@@ -63,22 +57,27 @@ async function fetchPublic(url: string, hops: number): Promise<Outcome<Response>
     return followRedirect(target, response.value, hops);
   }
 
-  return response.value.ok ? response : { ok: false, error: `HTTP ${response.value.status}` };
+  if (response.value.ok) return response;
+  await response.value.body?.cancel();
+  return { ok: false, error: `HTTP ${response.value.status}` };
 }
 
-function followRedirect(from: URL, response: Response, hops: number): Promise<Outcome<Response>> {
+async function followRedirect(from: URL, response: Response, hops: number): Promise<Outcome<Response>> {
   const location = response.headers.get("location");
+  await response.body?.cancel();
 
   if (!location || hops >= MAX_REDIRECTS) {
     return Promise.resolve({ ok: false, error: location ? "too many redirects" : `HTTP ${response.status} without a location` });
   }
 
-  return fetchPublic(new URL(location, from).toString(), hops + 1);
+  try { return await fetchPublic(new URL(location, from).toString(), hops + 1); }
+  catch { return { ok: false, error: "invalid redirect location" }; }
 }
 
 async function request(target: URL): Promise<Outcome<Response>> {
   try {
-    return { ok: true, value: await fetch(target, { redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS), headers: { "user-agent": USER_AGENT } }) };
+    const addresses = await publicAddresses(target);
+    return { ok: true, value: await publicRequest(target, addresses, AbortSignal.timeout(TIMEOUT_MS)) };
   } catch (error) {
     return { ok: false, error: `couldn't download it: ${error instanceof Error ? error.message : String(error)}` };
   }
@@ -94,16 +93,32 @@ async function toFile(url: string, response: Response): Promise<Outcome<Uploaded
   const declaredSize = Number(response.headers.get("content-length") ?? 0);
 
   if (!extension) {
+    await response.body?.cancel();
     return { ok: false, error: `can't read ${contentType || "an unknown type"}` };
   }
 
   if (declaredSize > MAX_ATTACHMENT_BYTES) {
+    await response.body?.cancel();
     return { ok: false, error: `too large (${declaredSize} bytes)` };
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-
-  return bytes.length > MAX_ATTACHMENT_BYTES
-    ? { ok: false, error: `too large (${bytes.length} bytes)` }
-    : { ok: true, value: { fileName: `${documentSlug(url)}${extension}`, contentType: contentType || "application/octet-stream", bytes } };
+  const reader = response.body?.getReader();
+  const chunks: Buffer[] = [];
+  let length = 0;
+  try {
+    if (reader) while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      if (length > MAX_ATTACHMENT_BYTES) {
+        await reader.cancel();
+        return { ok: false, error: `too large (${length} bytes)` };
+      }
+      chunks.push(Buffer.from(value));
+    }
+    return { ok: true, value: { fileName: `${documentSlug(url)}${extension}`, contentType: contentType || "application/octet-stream", bytes: Buffer.concat(chunks, length) } };
+  } catch (error) {
+    await reader?.cancel().catch(() => undefined);
+    return { ok: false, error: `couldn't read it: ${error instanceof Error ? error.message : String(error)}` };
+  } finally { reader?.releaseLock(); }
 }

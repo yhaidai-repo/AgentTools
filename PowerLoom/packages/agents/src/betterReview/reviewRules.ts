@@ -25,19 +25,25 @@ export function parseReviewRules(noteText: string): ReviewRule[] {
 }
 
 // The note with the new rules appended, each with the next free id (never reused); a missing note starts from its header.
-export function appendReviewRules(noteText: string | null, repoName: string, drafts: ReviewRuleDraft[], today: string): { text: string; ids: string[] } {
+export function appendReviewRules(noteText: string | null, repoName: string, drafts: ReviewRuleDraft[], today: string, identities: string[] = []): { text: string; ids: string[]; suffix: string } {
   let text = (noteText ?? header(repoName, today)).trimEnd();
   let last = lastNumber(text);
   const ids: string[] = [];
+  const additions: string[] = [];
 
-  for (const draft of drafts) {
+  for (const [index, draft] of drafts.entries()) {
+    const marker = identities[index] ? `<!-- powerloom-rule:${identities[index]} -->` : "";
+    const existing = marker ? parseReviewRules(text).find(rule => rule.text.includes(marker)) : null;
+    if (existing) { ids.push(existing.id); continue; }
     const id = `RV-${String(++last).padStart(3, "0")}`;
 
     ids.push(id);
-    text += `\n\n${renderRule(id, draft, today)}`;
+    const addition = `\n\n${renderRule(id, draft, today)}${marker ? `\n${marker}` : ""}`;
+    additions.push(addition);
+    text += addition;
   }
 
-  return { text: `${text}\n`, ids };
+  return { text: `${text}\n`, ids, suffix: additions.length === 0 ? "" : `${noteText === null ? header(repoName, today) : ""}${additions.join("")}\n` };
 }
 
 function lastNumber(text: string): number {

@@ -14,7 +14,7 @@ public sealed class ReviewsTests(PowerLoomHost host)
     private const int PrId = 7301;
 
     [Fact]
-    public async Task A_review_is_queued_once_its_comment_answered_then_closed_and_deleted()
+    public async Task Answered_comments_refuse_closure_until_settled_then_queue_is_cancelled_and_deletion_works()
     {
         await SeedAsync();
 
@@ -22,6 +22,15 @@ public sealed class ReviewsTests(PowerLoomHost host)
         var again = await host.Host.PostJson(new ReviewIds([PrId]), "/api/reviews/queue").Receive<ReviewsResult>();
         var answered = await host.Host.PostJson(new AnswerRequest("Fixed it"), $"/api/review-comments/rc-{PrId}-1/answer").Receive<AnsweredComment>();
         var commentStatus = await CommentStatusAsync();
+        var refused = await host.Host.PostJson(new CloseReviewsRequest([PrId], "later"), "/api/reviews/close").Receive<ReviewsResult>();
+        Assert.Empty(refused!.Done);
+        Assert.Contains("unresolved", Assert.Single(refused.Refused));
+        Assert.Equal(ItemStatus.Open, (await LoadTaskAsync(queued!.Done[0].Value)).Status);
+        using (var scope = host.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+            await db.ReviewComments.Where(comment => comment.PrId == PrId).ExecuteUpdateAsync(set => set.SetProperty(comment => comment.Status, ReviewCommentStatus.Fixed));
+        }
         var closed = await host.Host.PostJson(new CloseReviewsRequest([PrId], "later"), "/api/reviews/close").Receive<ReviewsResult>();
         var reviewAfterClose = await LoadReviewAsync();
         var taskAfterClose = await LoadTaskAsync(queued!.Done[0].Value);

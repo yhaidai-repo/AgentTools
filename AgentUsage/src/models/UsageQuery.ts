@@ -5,4 +5,6 @@ export interface UsageQuery {
   to?: Date;
   /** Only runs whose labels contain these. */
   match?: UsageLabels;
+  /** Restrict to these record identities before limiting; an empty list matches nothing. */
+  runIds?: readonly string[];
 }

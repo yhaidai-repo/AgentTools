@@ -23,3 +23,5 @@ Then end with `write_result` (below) and stop.
 - Verify before you comment: read the code you're commenting on and what it calls. No guesses presented as facts; when unsure, say what you'd check.
 - Prefer few, important comments over many small ones.
 - End with `write_result`, always, after `write_review_summary`: its body is the summary; the run counts only once it is written.
+
+All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

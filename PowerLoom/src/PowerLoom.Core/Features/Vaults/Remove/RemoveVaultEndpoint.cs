@@ -23,7 +23,10 @@ public static class RemoveVaultEndpoint
         if (problem is not null)
             return problem.ToProblemResult();
 
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellation);
         await db.Vaults.Where(row => row.Name == vault).ExecuteUpdateAsync(set => set.SetProperty(row => row.RemovedAt, DateTime.UtcNow), cancellation);
+        await db.TaskSchedules.Where(row => row.Vault == vault).ExecuteUpdateAsync(set => set.SetProperty(row => row.Enabled, false).SetProperty(row => row.UpdatedAt, DateTime.UtcNow), cancellation);
+        await transaction.CommitAsync(cancellation);
 
         return TypedResults.Ok(new RemovedVault(vault));
     }

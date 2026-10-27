@@ -31,10 +31,14 @@ public static class AddVaultEndpoint
         if (problem is not null)
             return problem.ToProblemResult();
 
+        // Activation and its schedule become visible only after the bootstrap succeeds. Files already created stay
+        // for an idempotent retry; a failed new/restored vault must not become an unrecoverable active conflict.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellation);
         await AddOrRestoreAsync(db, name.Value, cancellation);
         await reviewSchedule.EnsureAsync(name.Value, cancellation);
 
         var created = await initializer.PrepareAsync(name.Value, cancellation);
+        await transaction.CommitAsync(cancellation);
 
         return TypedResults.Ok(new AddedVault(name.Value, created));
     }

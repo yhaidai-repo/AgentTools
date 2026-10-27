@@ -41,23 +41,25 @@ async function saveDraft(db: PowerLoomDb, cli: VaultCaptureCli, capture: Capture
   });
   const filePath = result.ok && result.path ? cli.relativePath(result.path) : null;
 
-  await db.update(vaultCapture).set({ status: result.mode, errors: result.errors, filePath }).where(eq(vaultCapture.id, capture.id));
-
-  if (!result.ok) {
-    await handOver(db, capture, result.errors);
-  }
+  const taskId = await db.transaction(async (tx) => {
+    // Claim the pending transition under a row lock; another publisher can no longer create a second handover.
+    const [claimed] = await tx.update(vaultCapture).set({ status: result.mode, errors: result.errors, filePath })
+      .where(and(eq(vaultCapture.id, capture.id), eq(vaultCapture.status, "pending"))).returning();
+    if (claimed && !result.ok) return handOver(tx, claimed, result.errors);
+    // A failed handover rolls the status back to pending, so the next normal writeDrafts run retries it.
+    return null;
+  });
+  if (taskId) console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${result.errors.join("; ")}; handed to the user as ${taskId}`);
 }
 
 // The draft will never be written, so the person gets a task (which blocks the agents) with the reasons and the facts to save by hand.
-async function handOver(db: PowerLoomDb, capture: CaptureRow, errors: string[]): Promise<void> {
+async function handOver(db: PowerLoomDb, capture: CaptureRow, errors: string[]): Promise<string> {
   const facts = capture.captured.map((fact) => `- ${fact}`).join("\n");
-  const taskId = await createHumanTask(db, {
+  return createHumanTask(db, {
     adoId: capture.pbiId,
     title: `Fix the rejected vault draft "${capture.name}"`,
     body: `VaultCapture rejected the draft CAP-${capture.id} (target ${capture.target}):\n${errors.map((error) => `- ${error}`).join("\n")}\n\nCaptured facts:\n${facts}\n\nSave them in the docs vault by hand (or decide they aren't needed), then close this task.`,
     runId: capture.runId,
     data: { captureId: capture.id, key: draftKey(capture.id) },
   });
-
-  console.error(`VaultCapture rejected CAP-${capture.id} (${capture.name}): ${errors.join("; ")}; handed to the user as ${taskId}`);
 }

@@ -1,5 +1,7 @@
 function Read-DraftFile {
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][string]$Root, [string]$ScopeRoot)
+
+    Assert-VaultFilePath -Root $Root -Path $Path -ScopeRoot $ScopeRoot
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return $null
@@ -17,10 +19,27 @@ function Read-DraftFile {
 function Write-DraftFile {
     param(
         [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Root,
+        [string]$ScopeRoot,
         [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines,
         [string]$NewLine = "`n"
     )
 
+    Assert-VaultFilePath -Root $Root -Path $Path -ScopeRoot $ScopeRoot
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
-    [IO.File]::WriteAllText($Path, ($Lines -join $NewLine) + $NewLine, [Text.UTF8Encoding]::new($false))
+    Assert-VaultFilePath -Root $Root -Path $Path -ScopeRoot $ScopeRoot
+    $temporary = Join-Path (Split-Path -Parent $Path) ".$([IO.Path]::GetFileName($Path)).$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        Assert-VaultFilePath -Root $Root -Path $temporary -ScopeRoot $ScopeRoot
+        [IO.File]::WriteAllText($temporary, ($Lines -join $NewLine) + $NewLine, [Text.UTF8Encoding]::new($false))
+        Assert-VaultFilePath -Root $Root -Path $Path -ScopeRoot $ScopeRoot
+        Publish-DraftFile -Temporary $temporary -Path $Path
+    }
+    finally {
+        if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) }
+    }
+}
+
+function Publish-DraftFile([string]$Temporary, [string]$Path) {
+    [IO.File]::Move($Temporary, $Path, $true)
 }

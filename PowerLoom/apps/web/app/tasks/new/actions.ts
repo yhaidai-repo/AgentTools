@@ -14,7 +14,8 @@ import type { TaskFormValues } from "@/models/TaskFormValues";
 // One task now, or with a cron a schedule by task type (user decision 2026-10-14). PowerLoom checks the task against its
 // type (PBI, repos) either way; a refusal returns what was typed, so the form keeps it.
 export async function saveTaskAction(_previous: TaskActionResult | null, form: FormData): Promise<TaskActionResult> {
-  const saved = formText(form, "cron") === null ? await createTask(form) : await saveSchedule(form);
+  const scheduled = formText(form, "scheduleId") !== null || formText(form, "cron") !== null;
+  const saved = scheduled ? await saveSchedule(form) : await createTask(form);
 
   return { ...saved, values: submittedValues(form) };
 }

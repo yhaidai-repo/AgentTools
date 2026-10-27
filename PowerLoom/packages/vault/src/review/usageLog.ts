@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { VaultUsageEvent } from "../models/VaultUsageEvent";
+import { containedPath } from "../containedPath";
 
 // VaultUsage's log contract (its README): one JSON object per line in <vault>/.usage/usage.jsonl. Its PowerShell report
 // isn't in the containers, so PowerLoom reads the log itself.
@@ -10,7 +11,8 @@ const LOG_FILE = ".usage/usage.jsonl";
 export const USE_KINDS: VaultUsageEvent["kind"][] = ["read", "search", "shell"];
 
 export async function readUsageEvents(root: string): Promise<VaultUsageEvent[]> {
-  const text = await readFile(join(root, LOG_FILE), "utf8").catch(() => "");
+  const safe = await containedPath(root, join(root, LOG_FILE));
+  const text = safe ? await readFile(safe, "utf8").catch(() => "") : "";
 
   return text.split("\n").filter((line) => line.trim()).map(parseLine).filter((event): event is VaultUsageEvent => event !== null);
 }

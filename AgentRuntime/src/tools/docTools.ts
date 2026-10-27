@@ -23,9 +23,10 @@ function listDocsTool(scope: DocScope) {
     description: "List files and folders of the docs vault. Folders end with '/'. Use '' for the top level.",
     input: { dir: z.string().default("").describe("Folder path relative to the docs root") },
     handler: async ({ dir }) => {
-      const folder = scope.resolve(dir);
+      const folder = await scope.resolve(dir);
       const entries = await readdir(folder, { withFileTypes: true });
-      const visible = entries.filter((entry) => scope.isVisible(join(folder, entry.name)));
+      const checks = await Promise.all(entries.map((entry) => scope.isVisible(join(folder, entry.name))));
+      const visible = entries.filter((_entry, index) => checks[index]);
       const lines = visible.map((entry) => (entry.isDirectory() ? `${entry.name}/` : entry.name)).sort();
 
       return { text: lines.join("\n") || "(empty)" };
@@ -44,13 +45,13 @@ function readDocTool(scope: DocScope, options: DocToolOptions) {
       offset: z.number().int().min(0).default(0),
     },
     handler: async ({ path, offset }) => {
-      const file = scope.resolve(path);
+      const file = await scope.resolve(path);
       const lines = (await readFile(file, "utf8")).split(/\r?\n/);
       const page = lines.slice(offset, offset + maxLines);
       const rest = lines.length - offset - page.length;
       const footer = rest > 0 ? `\n… ${rest} more lines; call again with offset ${offset + page.length}.` : "";
 
-      await reportUse(options, [scope.relative(file)], "read");
+      await reportUse(options, [await scope.relative(file)], "read");
 
       return { text: page.join("\n") + footer };
     },
@@ -69,7 +70,7 @@ function searchDocsTool(scope: DocScope, options: DocToolOptions) {
       dir: z.string().default("").describe("Limit the search to this folder"),
     },
     handler: async ({ query, dir }) => {
-      const files = await listFiles(scope, scope.resolve(dir), extensions);
+      const files = await listFiles(scope, await scope.resolve(dir), extensions);
       const matches = await findMatches(scope, files, query.toLowerCase(), maxResults);
 
       await reportUse(options, [...new Set(matches.map((match) => match.slice(0, match.indexOf(":"))))], "search");
@@ -95,10 +96,11 @@ async function reportUse(options: DocToolOptions, paths: string[], kind: "read" 
 async function listFiles(scope: DocScope, folder: string, extensions: string[]): Promise<string[]> {
   const entries = await readdir(folder, { withFileTypes: true, recursive: true });
 
-  return entries
+  const files = entries
     .filter((entry) => entry.isFile() && extensions.includes(extname(entry.name)))
-    .map((entry) => join(entry.parentPath, entry.name))
-    .filter((path) => scope.isVisible(path));
+    .map((entry) => join(entry.parentPath, entry.name));
+  const visible = await Promise.all(files.map((path) => scope.isVisible(path)));
+  return files.filter((_path, index) => visible[index]);
 }
 
 async function findMatches(scope: DocScope, files: string[], query: string, maxResults: number): Promise<string[]> {
@@ -106,9 +108,9 @@ async function findMatches(scope: DocScope, files: string[], query: string, maxR
   let index = 0;
 
   while (index < files.length && matches.length < maxResults) {
-    const file = files[index];
+    const file = await scope.resolve(await scope.relative(files[index]));
 
-    matches.push(...matchLines(scope.relative(file), await readFile(file, "utf8"), query));
+    matches.push(...matchLines(await scope.relative(file), await readFile(file, "utf8"), query));
     index += 1;
   }
 

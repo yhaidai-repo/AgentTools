@@ -13,15 +13,20 @@ function Invoke-RedisCompose([string[]] $Arguments) {
     }
 }
 
-function Start-LocalRedis([hashtable] $Service) {
+function Start-LocalRedis([hashtable] $Service, [hashtable] $State) {
+    if (Test-LocalRedisExists) { throw 'Local Redis already exists; it is not owned by this start attempt.' }
+    $entry = @{ name = 'redis'; kind = 'compose'; url = $Service.run.url }
+    $State.services += $entry
+    Save-StackState $State
     Invoke-RedisCompose @("up", "-d", "--wait")
     Write-Host "Started redis ($($Service.run.url)); the stack's services cache there"
 
-    return @{
-        name = "redis"
-        kind = "compose"
-        url = $Service.run.url
-    }
+    return $entry
+}
+
+function Test-LocalRedisExists() {
+    $containers = Invoke-RedisCompose @('ps', '--all', '--quiet')
+    return -not [string]::IsNullOrWhiteSpace(($containers | Out-String))
 }
 
 function Test-LocalRedisRunning() {

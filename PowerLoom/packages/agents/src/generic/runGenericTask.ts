@@ -140,7 +140,7 @@ async function repoSources(context: TaskContext, task: ItemRow, writers: RunWrit
   return [...fromProject, ...own, ...fromWriters];
 }
 
-async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun, writerBlocks: string[], webDocuments: string): Promise<string> {
+export async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun, writerBlocks: string[], webDocuments: string): Promise<string> {
   return [
     taskBlock(task),
     acceptanceCriteriaBlock(task),
@@ -154,13 +154,18 @@ async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: GenericRun
 }
 
 function taskBlock(task: ItemRow): string {
-  const data = (task.data ?? {}) as { why?: string; doneWhen?: string };
+  const data = (task.data ?? {}) as { why?: string; reason?: string; doneWhen?: string; outOfScope?: string; effort?: string; evidence?: unknown[]; dependsOn?: string[]; blocking?: boolean };
   const lines = [
     `Id: ${task.id}`,
     `Kind: ${task.kind}`,
     `Title: ${task.title}`,
-    ...(data.why ? [`Why: ${data.why}`] : []),
+    ...(data.reason || data.why ? [`Why: ${data.reason || data.why}`] : []),
     ...(data.doneWhen ? [`Done when: ${data.doneWhen}`] : []),
+    ...(data.outOfScope ? [`Out of scope: ${data.outOfScope}`] : []),
+    ...(data.effort ? [`Effort: ${data.effort}`] : []),
+    ...(data.blocking !== undefined ? [`Blocking: ${data.blocking}`] : []),
+    ...(data.dependsOn?.length ? [`Depends on: ${data.dependsOn.join(", ")}`] : []),
+    ...(data.evidence?.length ? [`Evidence: ${JSON.stringify(data.evidence)}`] : []),
   ];
 
   return ["<task>", ...lines, "", task.body ?? "", "</task>"].join("\n");

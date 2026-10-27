@@ -3,6 +3,7 @@ import { isoDate } from "./markdown";
 import { replaceRegions } from "./regions";
 import type { PbiNote } from "./models/PbiNote";
 import { pbiNoteName } from "./paths";
+import { USER_NOTES_MARKER } from "./notesSection";
 
 const EMPTY = "–";
 const EMPTY_TEXT = "_Empty in Azure DevOps._";
@@ -12,9 +13,10 @@ const NOTES_HEADING = /^## Notes[ \t]*\r?$/m;
 // `regions` fills generated regions (e.g. refinement, items) with pipeline content.
 export function renderPreparedPbi(template: string, note: PbiNote, notesSection: string, regions: Record<string, string> = {}): string {
   // A template edited on Windows has CRLF line endings; the note is written with LF throughout.
-  const body = replaceRegions(fillTemplate(template.replaceAll("\r\n", "\n"), placeholderValues(note)), regions);
+  const body = replaceRegions(fillTemplate(withoutNotes(template.replaceAll("\r\n", "\n")), placeholderValues(note)), regions);
 
-  return `${renderFrontmatter(note)}\n\n${withoutNotes(body).trimEnd()}\n\n${notesSection}`;
+  const generated = `${renderFrontmatter(note)}\n\n${body.trimEnd()}\n\n`.replaceAll(USER_NOTES_MARKER, "");
+  return `${generated}${USER_NOTES_MARKER}\n${notesSection}`;
 }
 
 // Unknown placeholders stay visible so template typos are easy to spot.
@@ -70,6 +72,8 @@ function renderFrontmatter(note: PbiNote): string {
 
 // The user's `## Notes` section replaces the template's, so it survives every re-render.
 function withoutNotes(body: string): string {
+  const marker = body.indexOf(USER_NOTES_MARKER);
+  if (marker >= 0) return body.slice(0, marker);
   const start = body.search(NOTES_HEADING);
 
   return start < 0 ? body : body.slice(0, start);

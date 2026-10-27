@@ -1,0 +1,146 @@
+using System.Net;
+using Alba;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using PowerLoom.Api.Tests.Persistence;
+using PowerLoom.Features.Reviews.Models;
+using PowerLoom.Domain.Reviews;
+using PowerLoom.Persistence;
+using PowerLoom.Persistence.Entities;
+using PowerLoom.Persistence.Enums;
+
+namespace PowerLoom.Api.Tests.Reviews;
+
+[Collection(PowerLoomCollection.Name)]
+public sealed class ReviewClosureGateTests(PowerLoomHost host)
+{
+    private static int nextId = 887000;
+
+    [Theory]
+    [InlineData(ReviewSeverity.Blocker, ReviewCommentStatus.Open)]
+    [InlineData(ReviewSeverity.Major, ReviewCommentStatus.Open)]
+    [InlineData(ReviewSeverity.Minor, ReviewCommentStatus.Open)]
+    [InlineData(ReviewSeverity.Nit, ReviewCommentStatus.Open)]
+    [InlineData(ReviewSeverity.Blocker, ReviewCommentStatus.Answered)]
+    [InlineData(ReviewSeverity.Major, ReviewCommentStatus.Answered)]
+    [InlineData(ReviewSeverity.Minor, ReviewCommentStatus.Answered)]
+    [InlineData(ReviewSeverity.Nit, ReviewCommentStatus.Answered)]
+    public async Task Any_unresolved_comment_refuses_manual_closure(ReviewSeverity severity, ReviewCommentStatus status)
+    {
+        var id = await SeedAsync(severity, status);
+        string taskId;
+        using (var seedScope = host.Host.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+            taskId = (await ReviewQueueing.QueueAsync(seedDb, id, CancellationToken.None)).Value!;
+        }
+        var result = await CloseAsync(id);
+        Assert.Empty(result.Done);
+        Assert.Contains("unresolved", Assert.Single(result.Refused));
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        Assert.Equal(ReviewStatus.Active, (await db.CodeReviews.SingleAsync(row => row.PrId == id)).Status);
+        Assert.Equal(status, (await db.ReviewComments.SingleAsync(row => row.PrId == id)).Status);
+        Assert.Equal(ItemStatus.Open, (await db.LocalItems.SingleAsync(row => row.Id == taskId)).Status);
+        Assert.False(await db.StatusHistories.AnyAsync(row => row.EntityId == taskId && row.ToStatus == "cancelled"));
+    }
+
+    [Fact]
+    public async Task Running_writer_blocks_close_and_preserves_queued_work_until_it_finishes()
+    {
+        var id = await SeedAsync(ReviewSeverity.Nit, ReviewCommentStatus.Fixed);
+        var runningId = $"gate-running-{id}";
+        var queuedId = $"gate-queued-{id}";
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        foreach (var taskId in new[] { runningId, queuedId })
+        {
+            var task = ReviewFixSeed.Item(db, taskId, PowerLoomHost.Vault, "review");
+            task.Data = System.Text.Json.JsonSerializer.Serialize(new { prId = id });
+            task.Status = taskId == runningId ? ItemStatus.InProgress : ItemStatus.Open;
+        }
+        await db.SaveChangesAsync();
+        var refused = await CloseAsync(id);
+        Assert.Empty(refused.Done);
+        Assert.Contains("running", Assert.Single(refused.Refused));
+        db.ChangeTracker.Clear();
+        Assert.Equal(ItemStatus.InProgress, (await db.LocalItems.SingleAsync(row => row.Id == runningId)).Status);
+        Assert.Equal(ItemStatus.Open, (await db.LocalItems.SingleAsync(row => row.Id == queuedId)).Status);
+        Assert.Equal(ReviewStatus.Active, (await db.CodeReviews.SingleAsync(row => row.PrId == id)).Status);
+        await db.LocalItems.Where(row => row.Id == runningId).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ItemStatus.Done));
+        Assert.Single((await CloseAsync(id)).Done);
+        db.ChangeTracker.Clear();
+        Assert.Equal(ItemStatus.Done, (await db.LocalItems.SingleAsync(row => row.Id == runningId)).Status);
+        Assert.Equal(ItemStatus.Cancelled, (await db.LocalItems.SingleAsync(row => row.Id == queuedId)).Status);
+    }
+
+    [Theory]
+    [InlineData(ReviewCommentStatus.Fixed)]
+    [InlineData(ReviewCommentStatus.Withdrawn)]
+    [InlineData(ReviewCommentStatus.Outdated)]
+    public async Task Settled_comments_allow_close(ReviewCommentStatus status)
+    {
+        var id = await SeedAsync(ReviewSeverity.Nit, status);
+        Assert.Single((await CloseAsync(id)).Done);
+    }
+
+    [Fact]
+    public async Task Close_waits_for_a_publisher_and_sees_its_new_comment()
+    {
+        var id = await SeedAsync(ReviewSeverity.Nit, ReviewCommentStatus.Fixed);
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.CodeReviews.FromSqlInterpolated($"SELECT * FROM code_review WHERE pr_id={id} FOR UPDATE").SingleAsync();
+        var closing = CloseAsync(id);
+        await WaitForBlockedRequestsAsync(1);
+        await db.ReviewComments.Where(row => row.PrId == id).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ReviewCommentStatus.Open));
+        await transaction.CommitAsync();
+        Assert.Contains("unresolved", Assert.Single((await closing).Refused));
+    }
+
+    [Fact]
+    public async Task A_waiting_human_answer_cannot_resurrect_a_settled_comment_after_closure()
+    {
+        var id = await SeedAsync(ReviewSeverity.Nit, ReviewCommentStatus.Open);
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.CodeReviews.FromSqlInterpolated($"SELECT * FROM code_review WHERE pr_id={id} FOR UPDATE").SingleAsync();
+        var answering = host.Host.Scenario(scenario => {
+            scenario.Post.Json(new AnswerRequest("Late answer")).ToUrl($"/api/review-comments/gate-{id}/answer");
+            scenario.StatusCodeShouldBe(HttpStatusCode.Conflict);
+        });
+        await WaitForBlockedRequestsAsync(1);
+        await db.ReviewComments.Where(row => row.PrId == id).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ReviewCommentStatus.Withdrawn));
+        // Simulate the serialized publisher/closer's final state while the real answer request is waiting.
+        await db.CodeReviews.Where(row => row.PrId == id).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ReviewStatus.Closed));
+        await transaction.CommitAsync();
+        await answering;
+        Assert.Equal(ReviewCommentStatus.Withdrawn, (await db.ReviewComments.SingleAsync(row => row.PrId == id)).Status);
+        Assert.Equal(ReviewStatus.Closed, (await db.CodeReviews.AsNoTracking().SingleAsync(row => row.PrId == id)).Status);
+    }
+
+    private async Task WaitForBlockedRequestsAsync(int count)
+    {
+        // Observe outside the publisher transaction: PostgreSQL caches activity statistics within a transaction.
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (await db.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%code_review%'").SingleAsync(timeout.Token) < count)
+            await Task.Delay(20, timeout.Token);
+    }
+
+    private async Task<ReviewsResult> CloseAsync(int id) => (await host.Host.PostJson(new CloseReviewsRequest([id], "Synthetic"), "/api/reviews/close").Receive<ReviewsResult>())!;
+
+    private async Task<int> SeedAsync(ReviewSeverity severity, ReviewCommentStatus status)
+    {
+        var id = Interlocked.Increment(ref nextId);
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        ReviewFixSeed.Pr(db, id, PowerLoomHost.Vault);
+        db.ReviewComments.Add(new ReviewComment { Id = $"gate-{id}", PrId = id, Commit = "c1", FilePath = "synthetic.cs", StartLine = 1, EndLine = 1, Severity = severity, Status = status, BodyMd = "Synthetic finding", CodeSnippet = "x", SnippetStartLine = 1 });
+        await db.SaveChangesAsync();
+        return id;
+    }
+}

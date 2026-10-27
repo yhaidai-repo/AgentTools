@@ -3,7 +3,7 @@
 import type { AgentDefinition, AgentOptionValue } from "@agenttools/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, providerOfModel, saveAgentsGlobalCommand, saveFrameworkCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
+import { createAgentCommand, createSkillCommand, deleteAgentCommand, newAgentTemplate, prepareAgentCreation, prepareAgentUpdate, providerOfModel, saveAgentsGlobalCommand, saveFrameworkCommand, updateAgentCommand, type UpdateAgentInput } from "@powerloom/core";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { runWebCommand } from "@/lib/commandContext";
 import type { ActionResult } from "@/models/ActionResult";
@@ -18,17 +18,24 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
     return { ok: false, message: "Unknown agent." };
   }
 
+  const input = updateInputFromForm(form, current);
+  const skillName = text(form, "newSkillName");
+  input.skills = [...new Set([...(input.skills ?? []), ...(skillName ? [skillName] : [])])];
+  const checked = await runWebCommand({ ...updateAgentCommand, run: (context, parsed) => prepareAgentUpdate(context, parsed, skillName) }, input);
+  if (!checked.ok) return { ok: false, message: checked.error };
+
   const skill = await createNewSkill(form);
 
   if (skill && !skill.ok) {
     return skill;
   }
 
-  const input = updateInputFromForm(form, current);
-  const saved = await runWebCommand(updateAgentCommand, { ...input, skills: [...(input.skills ?? []), ...(skill ? [skill.message] : [])] });
+  let saved;
+  try { saved = await runWebCommand(updateAgentCommand, input); }
+  catch (error) { return saveRefusal(error instanceof Error ? error.message : String(error), skill); }
 
   if (!saved.ok) {
-    return { ok: false, message: saved.error };
+    return saveRefusal(saved.error, skill);
   }
 
   revalidatePath("/agents");
@@ -40,21 +47,16 @@ export async function saveAgentAction(_previous: ActionResult | null, form: Form
 // A new agent (user decision 2026-10-23; the Config form itself since 2026-10-24): the whole form on the template's
 // defaults, a skill written with it, through agent.create. It runs on the generic executor.
 export async function createAgentAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const skill = await createNewSkill(form);
-
-  if (skill && !skill.ok) {
-    return skill;
-  }
-
   const template = await newAgentTemplate(getAgentConfig(), text(form, "id"));
   const agent = readAgentForm(form, template);
-  const created = await runWebCommand(createAgentCommand, {
+  const skillName = text(form, "newSkillName");
+  const input = {
     id: text(form, "id"),
     label: agent.label,
     description: agent.description,
     prompt: agent.prompt ?? "",
     handles: agent.handles,
-    skills: [...agent.skills, ...(skill ? [skill.message] : [])],
+    skills: [...new Set([...agent.skills, ...(skillName ? [skillName] : [])])],
     canAssign: agent.canAssign,
     waitFor: agent.waitFor,
     grants: grantsOf(agent),
@@ -65,10 +67,17 @@ export async function createAgentAction(_previous: ActionResult | null, form: Fo
     schedule: agent.schedule,
     enabled: agent.enabled,
     options: numberOptions(agent),
-  });
+  };
+  const checked = await runWebCommand({ ...createAgentCommand, run: (context, parsed) => prepareAgentCreation(context, parsed, skillName) }, input);
+  if (!checked.ok) return { ok: false, message: checked.error };
+  const skill = await createNewSkill(form);
+  if (skill && !skill.ok) return skill;
+  let created;
+  try { created = await runWebCommand(createAgentCommand, input); }
+  catch (error) { return saveRefusal(error instanceof Error ? error.message : String(error), skill); }
 
   if (!created.ok) {
-    return { ok: false, message: created.error };
+    return saveRefusal(created.error, skill);
   }
 
   revalidatePath("/agents");
@@ -87,9 +96,14 @@ async function createNewSkill(form: FormData): Promise<ActionResult | null> {
     name,
     description: text(form, "newSkillDescription") || `Skill of the agent ${text(form, "id")}.`,
     body: text(form, "newSkillContent"),
+    reuseIfUnchanged: true,
   });
 
   return created.ok ? { ok: true, message: created.value.name } : { ok: false, message: created.error };
+}
+
+function saveRefusal(message: string, skill: ActionResult | null): ActionResult {
+  return { ok: false, message: `${message}${skill?.ok ? ` Skill ${skill.message} is saved; retrying will reuse it if unchanged.` : ""}` };
 }
 
 export async function deleteAgentAction(id: string): Promise<ActionResult> {

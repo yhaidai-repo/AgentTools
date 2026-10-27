@@ -117,7 +117,7 @@ function Runs({ detail }: { detail: PbiDetail }) {
   const { usage } = detail;
 
   return (
-    <Panel title="Runs" aside={<small>{formatDuration(usage.durationMs)} · {formatUsd(usage.costUsd)}</small>}>
+    <Panel title="Runs" aside={<small>{formatDuration(usage.durationMs)} · {formatUsd(usage.costUsd, usage.accountingComplete)}</small>}>
       {detail.runs.length === 0 && <p className="empty">None yet.</p>}
       <div className="item-rows">
         {detail.runs.map((run) => (

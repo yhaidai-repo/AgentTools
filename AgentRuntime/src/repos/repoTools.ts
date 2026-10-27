@@ -6,7 +6,7 @@ import type { RepoRefReader } from "../models/RepoRefReader";
 import type { RepoToolOptions } from "../models/RepoToolOptions";
 import type { ResolvedRef } from "../models/ResolvedRef";
 import type { ToolDefinition } from "../models/ToolDefinition";
-import { resolveInside } from "../tools/safePath";
+import { resolveExistingInside } from "../tools/safePath";
 import { git, gitOrEmpty } from "./git";
 
 const DEFAULT_READ_LINES = 400;
@@ -39,8 +39,13 @@ function listFilesTool(options: RepoToolOptions) {
         return atRef(options, path, ref, async (repo, resolved, inner) => (await refs(options).listTree(repo, resolved.commit, inner)).join("\n") || "(empty)");
       }
 
-      const entries = await readdir(resolveRepoPath(options, path), { withFileTypes: true });
-      const lines = entries.filter((entry) => entry.name !== ".git").map((entry) => (entry.isDirectory() ? `${entry.name}/` : entry.name));
+      const entries = await readdir(await resolveRepoPath(options, path), { withFileTypes: true });
+      const visible = await Promise.all(entries.map(async (entry) => {
+        if (entry.name === ".git") return false;
+        try { await resolveRepoPath(options, `${path}/${entry.name}`); return true; }
+        catch { return false; }
+      }));
+      const lines = entries.filter((_entry, index) => visible[index]).map((entry) => (entry.isDirectory() ? `${entry.name}/` : entry.name));
 
       return { text: lines.sort().join("\n") || "(empty)" };
     },
@@ -63,7 +68,7 @@ function readFileTool(options: RepoToolOptions) {
         return atRef(options, path, ref, async (repo, resolved, inner) => pageOf(await refs(options).show(repo, resolved.commit, inner), offset, maxLines));
       }
 
-      return { text: pageOf(await readFile(resolveRepoPath(options, path), "utf8"), offset, maxLines) };
+      return { text: pageOf(await readFile(await resolveRepoPath(options, path), "utf8"), offset, maxLines) };
     },
   });
 }
@@ -104,7 +109,7 @@ function gitLogTool(options: RepoToolOptions) {
       }
 
       const [repo, ...rest] = path.split("/");
-      const repoRoot = resolveRepoPath(options, allowedRepo(options, repo));
+      const repoRoot = await resolveRepoPath(options, allowedRepo(options, repo));
       const output = await git(["log", `-n${limit}`, "--date=short", "--pretty=format:%h %ad %an: %s", "--", rest.join("/") || "."], repoRoot);
 
       return { text: output || "No commits." };
@@ -173,7 +178,7 @@ async function searchAtRef(options: RepoToolOptions, query: string, repo: string
 
 async function searchCheckouts(options: RepoToolOptions, query: string, repo: string | undefined, glob: string | undefined): Promise<string[]> {
   const repos = repo ? [allowedRepo(options, repo)] : options.repos;
-  const results = await Promise.all(repos.map((name) => grepRepo(options.root, name, query, glob)));
+  const results = await Promise.all(repos.map(async (name) => grepRepo(await resolveRepoPath(options, name), name, query, glob)));
 
   return results.flat();
 }
@@ -201,17 +206,17 @@ function refs(options: RepoToolOptions): RepoRefReader {
 
 async function grepRepo(root: string, repo: string, query: string, glob?: string): Promise<string[]> {
   const pathspec = glob ? ["--", glob] : [];
-  const output = await gitOrEmpty(["grep", "-n", "-I", "-i", "--fixed-strings", "-e", query, ...pathspec], join(root, repo));
+  const output = await gitOrEmpty(["grep", "-n", "-I", "-i", "--fixed-strings", "-e", query, ...pathspec], root);
 
   return output.split("\n").filter(Boolean).map((line) => `${repo}/${line.slice(0, 240)}`);
 }
 
-function resolveRepoPath(options: RepoToolOptions, path: string): string {
+async function resolveRepoPath(options: RepoToolOptions, path: string): Promise<string> {
   const repo = path.split("/")[0];
 
   allowedRepo(options, repo);
 
-  return resolveInside(join(options.root, repo), path.slice(repo.length + 1) || ".");
+  return resolveExistingInside(join(options.root, repo), path.slice(repo.length + 1) || ".");
 }
 
 function allowedRepo(options: RepoToolOptions, repo: string): string {

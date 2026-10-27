@@ -1,12 +1,14 @@
 import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
-import { insertPromptVersion } from "../agents/promptVersions";
+import { reservePromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
 import { withModelProvider } from "../agents/modelProvider";
+import { serializeAgentEdit } from "../agents/serializeAgentEdit";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
 import type { UpdateAgentInput } from "../models/UpdateAgentInput";
+import type { Outcome } from "../models/Outcome";
 
 const CRON = /^(\S+\s+){4}\S+$/;
 // A built-in task type or a new one the agent brings (user decision 2026-10-24).
@@ -44,32 +46,49 @@ export const updateAgentCommand: Command<UpdateAgentInput, { id: string; promptV
       return { ok: false, error: "Agents can't be changed from here (no agent store)." };
     }
 
-    const current = await agents.get(input.id);
-
-    if (!current) {
-      return { ok: false, error: `No agent ${input.id} (agent.list names them).` };
-    }
-
-    const problems = await inputProblems(context, current, input);
-
-    if (problems.length > 0) {
-      return { ok: false, error: problems.join(" ") };
-    }
-
-    const checked = validateAgent(await withPromptVersion(applyChanges(current, input), current));
-
-    if (!checked.ok) {
-      return { ok: false, error: checked.errors.join("; ") };
-    }
-
-    await save(context, current, checked.value);
-
-    return { ok: true, value: { id: checked.value.id, promptVersion: checked.value.promptVersion ?? 0, enabled: checked.value.enabled, changed: changedFields(input) } };
+    return serializeAgentEdit(agents, input.id, async () => {
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const result = await update(context, input);
+        if (result !== null) return result;
+      }
+      return { ok: false as const, error: "The agent changed repeatedly while saving; read it again and retry." };
+    });
   },
 };
 
-async function inputProblems(context: CommandContext, current: AgentDefinition, input: UpdateAgentInput): Promise<string[]> {
-  const known = await context.skills.names();
+// A conflicting save retries the patch against the latest definition, preserving fields this call did not edit.
+async function update(context: CommandContext, input: UpdateAgentInput) {
+  const prepared = await prepareAgentUpdate(context, input);
+  if (!prepared.ok) return prepared;
+  const { current, next } = prepared.value;
+  if (!await save(context, current, next)) return null;
+  return { ok: true as const, value: { id: next.id, promptVersion: next.promptVersion ?? 0, enabled: next.enabled, changed: changedFields(input) } };
+}
+
+// No history reservation or definition write until the combined form has validated both parts.
+export async function prepareAgentUpdate(context: CommandContext, input: UpdateAgentInput, pendingSkill?: string): Promise<Outcome<{ current: AgentDefinition; next: AgentDefinition }>> {
+  const current = await context.agents?.get(input.id);
+  if (!current) {
+    return { ok: false as const, error: `No agent ${input.id} (agent.list names them).` };
+  }
+
+  const problems = await inputProblems(context, current, input, pendingSkill);
+
+  if (problems.length > 0) {
+    return { ok: false as const, error: problems.join(" ") };
+  }
+
+  const checked = validateAgent(await withPromptVersion(applyChanges(current, input), current));
+
+  if (!checked.ok) {
+    return { ok: false as const, error: checked.errors.join("; ") };
+  }
+
+  return { ok: true, value: { current, next: checked.value } };
+}
+
+async function inputProblems(context: CommandContext, current: AgentDefinition, input: UpdateAgentInput, pendingSkill?: string): Promise<string[]> {
+  const known = [...await context.skills.names(), ...(pendingSkill ? [pendingSkill] : [])];
   const unknownSkills = (input.skills ?? []).filter((skill) => !known.includes(skill));
   const offered = (current.integrationSpecs ?? []).map((spec) => spec.key);
   const unknownGrants = (input.grants ?? []).filter((grant) => !offered.includes(grant));
@@ -106,12 +125,14 @@ function applyChanges(current: AgentDefinition, input: UpdateAgentInput): AgentD
   };
 }
 
-async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<void> {
+async function save(context: CommandContext, current: AgentDefinition, next: AgentDefinition): Promise<boolean> {
   if (next.promptVersion !== (current.promptVersion ?? 0)) {
-    await insertPromptVersion(context.db, next.id, next.promptVersion ?? 0, next.prompt ?? "");
+    next.promptVersion = await reservePromptVersion(context.db, next.id, current.promptVersion ?? 0, next.prompt ?? "");
   }
 
+  if (context.agents!.saveIfUnchanged) return context.agents!.saveIfUnchanged(current, next);
   await context.agents!.save(next);
+  return true;
 }
 
 function changedFields(input: UpdateAgentInput): string[] {

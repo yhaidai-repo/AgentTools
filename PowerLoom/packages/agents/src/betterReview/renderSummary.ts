@@ -2,7 +2,7 @@ import type { BetterReviewSummary } from "./models/BetterReviewSummary";
 import type { CriterionCheck } from "./models/CriterionCheck";
 import type { ReviewerNote } from "./models/ReviewerNote";
 
-const VERDICTS: Record<BetterReviewSummary["verdict"], string> = { ready: "Ready to merge", ready_with_fixes: "Ready with fixes", not_ready: "Not ready" };
+const VERDICTS: Record<BetterReviewSummary["verdict"], string> = { ready: "Ready to merge", ready_with_fixes: "Changes required before merge", not_ready: "Not ready" };
 const CRITERION_MARKS: Record<CriterionCheck["status"], string> = { met: "✓ met", partly: "◐ partly", not_met: "✗ not met", not_verifiable: "? not verifiable", out_of_scope: "– out of scope" };
 
 // The review's summary as markdown (code_review.summary_md): what the review page, the Continue chat and the next run

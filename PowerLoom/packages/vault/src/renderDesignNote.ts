@@ -2,9 +2,10 @@ import { frontmatter } from "./frontmatter";
 import { escapeCell, isoDate } from "./markdown";
 import type { DesignNote } from "./models/DesignNote";
 import { designNoteName, pbiNoteName } from "./paths";
+import { appendUserNotes } from "./notesSection";
 
 export function renderDesignNote(note: DesignNote, notesSection: string): string {
-  return [
+  return appendUserNotes([
     frontmatter({
       id: designNoteName(note.adoId),
       type: "design",
@@ -35,8 +36,7 @@ export function renderDesignNote(note: DesignNote, notesSection: string): string
     bullets(note.tests.map((item) => `${item.kind}: ${item.case}`)),
     "## Assumptions",
     bullets(note.assumptions),
-    notesSection,
-  ].join("\n\n");
+  ].join("\n\n"), notesSection);
 }
 
 function estimateTable(note: DesignNote): string {

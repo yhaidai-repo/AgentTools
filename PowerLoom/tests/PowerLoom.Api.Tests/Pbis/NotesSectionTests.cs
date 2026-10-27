@@ -11,6 +11,22 @@ public sealed class NotesSectionTests
     private static readonly PbiNote Note = new(7, "Login", "Product Backlog Item", "New", "", "new", null, null, null, null, [], "d", "a", null, null, null, DateTime.UnixEpoch, DateTime.UnixEpoch);
 
     [Fact]
+    public void S3_03_External_headings_do_not_truncate_generated_content_or_become_user_notes()
+    {
+        const string template = "{{description}}\n{{acceptance_criteria}}\n## Notes\n";
+        var note = Note with { DescriptionMd = "Description\n## Notes\nDescription tail", AcceptanceCriteriaMd = "AC\n## Notes\nAC tail", DiscussionMd = "Discussion\n## Notes\nDiscussion tail" };
+        var rendered = PbiNoteRenderer.Render(template, note, "## Notes\n\nHuman text\n## Notes\nHuman tail\n", new Dictionary<string, string>());
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Contains("Description tail", NotesSection.Before(rendered));
+            Assert.Contains("AC tail", NotesSection.Before(rendered));
+            Assert.Contains("Discussion tail", NotesSection.Before(rendered));
+            Assert.Equal("Human text\n## Notes\nHuman tail", NotesSection.BodyOf(rendered));
+            rendered = PbiNoteRenderer.Render(template, note, NotesSection.Of(rendered), new Dictionary<string, string>());
+        }
+    }
+
+    [Fact]
     public void A_template_saved_with_Windows_line_endings_keeps_one_notes_section_over_many_renders()
     {
         const string template = "# {{id}} {{title}}\r\n\r\n## Description\r\n\r\n{{description}}\r\n\r\n## Notes\r\n";

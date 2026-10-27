@@ -2,4 +2,5 @@
 export interface ConfluenceCredentials {
   email: string;
   apiToken: string;
+  site: string;
 }

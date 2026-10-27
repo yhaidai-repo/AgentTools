@@ -1,4 +1,5 @@
 import type { reviewComment } from "@powerloom/db";
+import { unresolvedReviewComments } from "@powerloom/core";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
@@ -47,6 +48,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
       <div className="pbi-columns review-columns">
         <div>
           <Panel title="Summary" aside={reviews.versions.length > 1 ? <small>{reviews.versions.length} versions</small> : null}>
+            {unresolvedReviewComments(detail) > 0 && <p role="status">Merge approval and closure are blocked by {unresolvedReviewComments(detail)} unresolved comments, including nits. The saved summary below is historical and does not override this requirement.</p>}
             <ResultBlock set={reviews} chosen={(await searchParams).v} hrefOf={hrefOf} />
           </Panel>
           <Comments detail={detail} />

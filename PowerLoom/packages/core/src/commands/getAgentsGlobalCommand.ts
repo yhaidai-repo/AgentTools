@@ -1,5 +1,5 @@
 import type { AgentsGlobal } from "@agenttools/config";
-import { budgetDayStart } from "@agenttools/usage";
+import { spentToday } from "../agentStats/budgetUsage";
 import { z } from "zod";
 import { budgetLevel } from "../agentStats/budget";
 import type { BudgetLevel } from "../models/BudgetLevel";
@@ -7,7 +7,7 @@ import type { Command } from "../models/Command";
 
 interface AgentsGlobalView extends AgentsGlobal {
   /** All agents' spend today, every vault (the daily budget counts from 00:00 UTC). */
-  spentTodayUsd: number;
+  spentTodayUsd: number | null;
   /** Null without a daily budget. */
   budgetLevel: BudgetLevel | null;
 }
@@ -24,7 +24,7 @@ export const getAgentsGlobalCommand: Command<Record<string, never>, AgentsGlobal
     }
 
     const global = await context.agents.getGlobal();
-    const spentTodayUsd = await context.usage.costSince(budgetDayStart(new Date()), {});
+    const spentTodayUsd = await spentToday(context.usage);
 
     return { ok: true, value: { ...global, spentTodayUsd, budgetLevel: budgetLevel(spentTodayUsd, global.dailyBudgetUsd) } };
   },

@@ -43,8 +43,12 @@ interface FilesDto {
 // Read-only Confluence Cloud REST client (API v2) for the pages a link points to. Never add write calls.
 export class ConfluenceClient {
   private readonly authorization: string;
+  private readonly trustedOrigin: string;
 
   constructor(credentials: ConfluenceCredentials) {
+    const site = new URL(credentials.site);
+    if (site.protocol !== "https:" || site.username || site.password) throw new ConfluenceRequestError(400, "CONFLUENCE_SITE must be a trusted HTTPS site");
+    this.trustedOrigin = site.origin;
     this.authorization = `Basic ${Buffer.from(`${credentials.email}:${credentials.apiToken}`).toString("base64")}`;
   }
 
@@ -52,11 +56,13 @@ export class ConfluenceClient {
   static fromEnv(env: NodeJS.ProcessEnv = process.env): ConfluenceClient | null {
     const email = env.CONFLUENCE_EMAIL?.trim();
     const apiToken = env.CONFLUENCE_API_TOKEN?.trim();
+    const site = env.CONFLUENCE_SITE?.trim();
 
-    return email && apiToken ? new ConfluenceClient({ email, apiToken }) : null;
+    return email && apiToken && site ? new ConfluenceClient({ email, apiToken, site }) : null;
   }
 
   async page(url: string): Promise<ConfluencePage> {
+    this.requireTrusted(url);
     const id = requirePageId(url);
     const page = await this.getJson<PageDto>(`${confluenceSite(url)}/wiki/api/v2/pages/${id}?body-format=view`);
 
@@ -65,12 +71,17 @@ export class ConfluenceClient {
 
   // Every file attached to the page (the API pages through them).
   async files(url: string): Promise<ConfluenceFile[]> {
+    this.requireTrusted(url);
     const site = confluenceSite(url);
     const files: ConfluenceFile[] = [];
     let next: string | undefined = `/wiki/api/v2/pages/${requirePageId(url)}/attachments?limit=${FILES_PAGE_SIZE}`;
 
+    const visited = new Set<string>();
     do {
-      const batch: FilesDto = await this.getJson<FilesDto>(`${site}${next}`);
+      const target = new URL(next, site).href;
+      if (visited.has(target)) throw new ConfluenceRequestError(502, "Confluence attachment pagination repeated a page");
+      visited.add(target);
+      const batch: FilesDto = await this.getJson<FilesDto>(target);
 
       files.push(...batch.results.map((file) => toFile(site, file)));
       next = batch._links?.next;
@@ -101,7 +112,7 @@ export class ConfluenceClient {
   }
 
   async download(file: ConfluenceFile): Promise<DownloadedFile> {
-    const response = await fetch(file.downloadUrl, { headers: { Authorization: this.authorization }, redirect: "follow" });
+    const response = await this.request(file.downloadUrl, "*/*");
     const contentType = response.headers.get("content-type") ?? file.mediaType;
 
     if (!response.ok) {
@@ -112,13 +123,34 @@ export class ConfluenceClient {
   }
 
   private async getJson<T>(url: string): Promise<T> {
-    const response = await fetch(url, { headers: { Authorization: this.authorization, Accept: "application/json" } });
+    const response = await this.request(url, "application/json");
 
     if (!response.ok) {
       throw failure(response.status, url);
     }
 
     return (await response.json()) as T;
+  }
+
+  private requireTrusted(url: string): URL {
+    const target = new URL(url);
+    if (target.protocol !== "https:" || target.origin !== this.trustedOrigin || target.username || target.password) {
+      throw new ConfluenceRequestError(400, "Confluence target must belong to the trusted HTTPS CONFLUENCE_SITE");
+    }
+    return target;
+  }
+
+  private async request(url: string, accept: string): Promise<Response> {
+    let target = this.requireTrusted(url);
+    for (let hop = 0; hop <= 5; hop++) {
+      const response = await fetch(target, { headers: { Authorization: this.authorization, Accept: accept }, redirect: "manual" });
+      if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+      await response.body?.cancel();
+      const location = response.headers.get("location");
+      if (!location) throw new ConfluenceRequestError(502, "Confluence redirect has no location");
+      target = this.requireTrusted(new URL(location, target).href);
+    }
+    throw new ConfluenceRequestError(502, "Confluence redirected too many times");
   }
 }
 
@@ -133,7 +165,9 @@ function requirePageId(url: string): string {
 }
 
 function toFile(site: string, file: FileDto): ConfluenceFile {
-  return { id: file.id, fileName: file.title, mediaType: file.mediaType, sizeBytes: file.fileSize, downloadUrl: `${site}/wiki${file.downloadLink}` };
+  const link = file.downloadLink;
+  const path = link.startsWith("/") && !link.startsWith("//") && !link.startsWith("/wiki/") ? `/wiki${link}` : link;
+  return { id: file.id, fileName: file.title, mediaType: file.mediaType, sizeBytes: file.fileSize, downloadUrl: new URL(path, `${site}/wiki/`).href };
 }
 
 function escapeCql(value: string): string {

@@ -48,7 +48,7 @@ public static class TaskValidation
         {
             HumanItems => OpenHumanItemsAsync(db, pbiId, cancellation),
             LinkedDocuments => DocumentsWithoutContentAsync(db, pbiId, webAccess, cancellation),
-            Drafts => UnmergedDraftsAsync(db, agentId, pbiId, cancellation),
+            Drafts => UnmergedDraftsAsync(db, agentId, task.Vault, pbiId, cancellation),
             _ => OtherAgentsOpenTasksAsync(db, agentId, task, cancellation),
         };
     }
@@ -104,22 +104,22 @@ public static class TaskValidation
 
     // Drafts the agent itself captured don't hold it back, nor do drafts whose merge task is blocked: nothing would merge
     // them, so they would hold every agent forever; the user gets a task for each instead (user decision 2026-10-13).
-    private static async Task<List<string>> UnmergedDraftsAsync(PowerLoomDbContext db, string agentId, int pbiId, CancellationToken cancellation)
+    private static async Task<List<string>> UnmergedDraftsAsync(PowerLoomDbContext db, string agentId, string vault, int pbiId, CancellationToken cancellation)
     {
         var drafts = await db.VaultCaptures.AsNoTracking()
             .Where(capture => capture.PbiId == pbiId && UnmergedDrafts.Contains(capture.Status))
             .Join(db.AgentRuns.AsNoTracking(), capture => capture.RunId, run => run.Id, (capture, run) => new { capture.Name, run.Stage })
             .ToListAsync(cancellation);
-        var stuck = await StuckDraftsAsync(db, cancellation);
+        var stuck = await StuckDraftsAsync(db, vault, cancellation);
         var names = drafts.Where(draft => draft.Stage != agentId && !stuck.Contains(draft.Name)).Select(draft => draft.Name).ToList();
 
         return names.Count > 0 ? [$"Vault drafts not merged: {string.Join(", ", names)}"] : [];
     }
 
-    private static async Task<HashSet<string>> StuckDraftsAsync(PowerLoomDbContext db, CancellationToken cancellation)
+    private static async Task<HashSet<string>> StuckDraftsAsync(PowerLoomDbContext db, string vault, CancellationToken cancellation)
     {
         var names = await db.Database
-            .SqlQuery<string>($"select data->>'draft' as \"Value\" from local_item where kind = 'docs' and status = 'blocked' and data->>'draft' is not null")
+            .SqlQuery<string>($"select data->>'draft' as \"Value\" from local_item where vault = {vault} and kind = 'docs' and status = 'blocked' and data->>'draft' is not null")
             .ToListAsync(cancellation);
 
         return names.ToHashSet();

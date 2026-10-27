@@ -8,7 +8,8 @@ export function formatTokens(count: number): string {
 
 // Two decimals everywhere (user, 2026-10-18: $0.6916 next to $15.27 read unevenly); a cheap run under a cent says so
 // instead of showing $0.00.
-export function formatUsd(amount: number): string {
+export function formatUsd(amount: number | null, accountingComplete = true): string {
+  if (amount === null || !accountingComplete) return "Unknown";
   if (amount > 0 && amount < 0.01) {
     return "<$0.01";
   }

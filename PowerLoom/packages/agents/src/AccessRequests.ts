@@ -69,14 +69,10 @@ export class AccessRequests {
       return;
     }
 
-    const [task] = await this.db.select({ data: localItem.data }).from(localItem).where(eq(localItem.id, taskId));
-    const data = (task?.data ?? {}) as ItemData;
-    const rerunAfter = data.rerunAfter ?? [];
-
-    if (rerunAfter.includes(requestId)) {
-      return;
-    }
-
-    await this.db.update(localItem).set({ data: { ...data, rerunAfter: [...rerunAfter, requestId] } }).where(eq(localItem.id, taskId));
+    // Evaluate against the locked current row, rather than replacing a stale snapshot of its JSON.
+    await this.db.update(localItem).set({ data: sql`jsonb_set(coalesce(${localItem.data}, '{}'::jsonb), '{rerunAfter}',
+      case when coalesce(${localItem.data}->'rerunAfter', '[]'::jsonb) @> jsonb_build_array(${requestId}::text)
+        then coalesce(${localItem.data}->'rerunAfter', '[]'::jsonb)
+        else coalesce(${localItem.data}->'rerunAfter', '[]'::jsonb) || jsonb_build_array(${requestId}::text) end)` }).where(eq(localItem.id, taskId));
   }
 }

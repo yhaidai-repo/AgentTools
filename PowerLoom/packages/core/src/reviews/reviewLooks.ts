@@ -2,17 +2,21 @@ import type { ReviewListStatus } from "../models/ReviewListStatus";
 import type { ReviewRow } from "../models/ReviewRow";
 
 export function isReviewClosed(row: ReviewRow): boolean {
-  return row.review.status === "closed";
+  return row.review.status === "closed" && unresolvedReviewComments(row) === 0;
+}
+
+export function unresolvedReviewComments(row: ReviewRow): number {
+  return row.comments.open + row.comments.answered;
 }
 
 export function matchesReviewStatus(row: ReviewRow, status: ReviewListStatus): boolean {
-  return status === "all" || row.review.status === status;
+  return status === "all" || (isReviewClosed(row) ? "closed" : "active") === status;
 }
 
 // An active review needs you when it has comments to answer or the PR moved past the reviewed commit (nothing re-reviews
 // on its own: user decision 2026-10-02).
 export function reviewNeedsYou(row: ReviewRow): boolean {
-  return !isReviewClosed(row) && (row.comments.open > 0 || row.hasNewCommits);
+  return !isReviewClosed(row) && (unresolvedReviewComments(row) > 0 || row.hasNewCommits);
 }
 
 export function countReviewStatuses(rows: ReviewRow[]): Record<ReviewListStatus, number> {

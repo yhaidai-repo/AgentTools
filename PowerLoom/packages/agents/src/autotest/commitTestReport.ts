@@ -1,10 +1,11 @@
 import { vaultOfPbiSql } from "@powerloom/core";
-import { agentRun, localItem, type PowerLoomDb, type workItem } from "@powerloom/db";
+import { localItem, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import type { AgentDeps } from "../models/AgentDeps";
 import { nextId } from "../taskCreation/commitCreatedTasks";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import { commitBugs } from "./commitBugs";
+import { addRunOutputs } from "../tasks/runOutputs";
 import type { AutotestDraft } from "./models/AutotestDraft";
 import type { TestReport } from "./models/TestReport";
 import { renderTestReport, resolveNewIds } from "./renderTestReport";
@@ -30,13 +31,13 @@ export async function commitTestReport(
 ): Promise<{ blocking: string[] }> {
   const { db } = deps;
   const pbiId = pbi.adoId;
-  const bugIds = await commitBugs(deps.powerloomUrl, pbiId, draft.bugs);
+  const bugIds = await commitBugs(deps.powerloomUrl, pbiId, draft.bugs, task.id);
   const report = withResolvedIds(draft.report, created.taskIds, bugIds);
   const data = { report, reportVersion: REPORT_VERSION, next: { taskIds: created.taskIds, reason: report.nextReason }, bugIds, commits: extra.commits, docsRead: extra.docsRead };
   const reportId = await insertReport(db, task, pbiId, runId, renderTestReport(report, created.taskIds, bugIds), data);
   const outputs = [reportId, ...bugIds];
 
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
 
   return { blocking: report.status === "complete" ? [] : blockingIds(created.tasks, created.taskIds) };
 }

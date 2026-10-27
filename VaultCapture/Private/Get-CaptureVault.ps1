@@ -48,7 +48,13 @@ function Get-VaultProject {
     )
 
     return @(Get-ChildItem -LiteralPath $VaultRoot -Directory |
-        ForEach-Object { ConvertTo-CaptureProject -Folder $_ -VaultName $VaultName } |
+        ForEach-Object {
+            try {
+                Assert-VaultFilePath -Root $VaultRoot -Path (Join-Path $_.FullName "$($_.Name)-index.md")
+                ConvertTo-CaptureProject -Folder $_ -VaultName $VaultName
+            }
+            catch { $null }
+        } |
         Where-Object { $_ })
 }
 

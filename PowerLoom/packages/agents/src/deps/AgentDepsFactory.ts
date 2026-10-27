@@ -236,6 +236,7 @@ export class AgentDepsFactory {
 function docsVaultOf(writer: VaultWriter): NonNullable<AgentDeps["docsVault"]> {
   return {
     readNote: (path) => writer.readText(path),
+    appendNote: (path, content) => writer.appendText(path, content),
     writeNote: async (path, content) => {
       await writer.writeText(path, content);
     },

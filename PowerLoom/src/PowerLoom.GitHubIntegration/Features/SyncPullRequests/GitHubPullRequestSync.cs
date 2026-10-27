@@ -63,7 +63,7 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
     // Null when the user deleted the PR's review.
     private async Task<(int Id, bool IsNewReview)?> UpsertAsync(string vault, Repo repo, GitHubPullRequest pr, HashSet<int> deleted, CancellationToken cancellation)
     {
-        var row = await db.PullRequests.Include(entry => entry.CodeReview).SingleOrDefaultAsync(entry => entry.Origin == PullRequestOrigin.Github && entry.Url == pr.HtmlUrl, cancellation);
+        var row = await db.PullRequests.Include(entry => entry.CodeReview).SingleOrDefaultAsync(entry => entry.Vault == vault && entry.Origin == PullRequestOrigin.Github && entry.Url == pr.HtmlUrl, cancellation);
 
         if (row is not null && deleted.Contains(row.Id))
             return null;
@@ -118,20 +118,22 @@ public sealed class GitHubPullRequestSync(PowerLoomDbContext db)
     {
         var gone = await db.PullRequests.Where(row => row.Vault == vault && row.Origin == PullRequestOrigin.Github && row.IsListed && !listed.Contains(row.Id)).ToListAsync(cancellation);
 
+        var closed = 0;
         foreach (var pr in gone)
-            await UnlistAsync(pr, cancellation);
+            if (await UnlistAsync(pr, cancellation)) closed++;
 
-        return gone.Count;
+        return closed;
     }
 
-    private async Task UnlistAsync(PullRequest pr, CancellationToken cancellation)
+    private async Task<bool> UnlistAsync(PullRequest pr, CancellationToken cancellation)
     {
         pr.IsListed = false;
         pr.SyncedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellation);
 
         if (await db.CodeReviews.AnyAsync(review => review.PrId == pr.Id && review.Status == ReviewStatus.Active, cancellation))
-            await ReviewClosing.CloseAsync(db, pr.Id, UnlistedReason, Actor, cancellation);
+            return await ReviewClosing.CloseAsync(db, pr.Id, UnlistedReason, Actor, cancellation) is null;
+        return false;
     }
 
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);

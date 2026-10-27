@@ -8,6 +8,7 @@ export interface DayActivity {
   /** Runs stopped by their budget: not failures (user decision 2026-10-13). */
   budgetStops: number;
   costByAgent: Record<string, number>;
+  accountingComplete?: boolean;
   tokensByAgent: Record<string, number>;
   durationMsByAgent: Record<string, number>;
 }

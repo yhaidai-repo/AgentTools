@@ -1,4 +1,5 @@
 import { budgetDayStart } from "./budgetDay";
+import { IncompleteAccountingError } from "./IncompleteAccountingError";
 import type { BudgetDecision } from "./models/BudgetDecision";
 import type { BudgetPolicy } from "./models/BudgetPolicy";
 import type { DailyBudget } from "./models/DailyBudget";
@@ -26,7 +27,13 @@ export class BudgetGuard {
   }
 
   private async checkDaily(budget: DailyBudget, dayStart: Date): Promise<BudgetDecision> {
-    const spent = await this.store.costSince(dayStart, budget.match);
+    let spent: number;
+    try {
+      spent = await this.store.costSince(dayStart, budget.match);
+    } catch (error) {
+      if (error instanceof IncompleteAccountingError) return { allowed: false, reason: error.message };
+      throw error;
+    }
     const scope = Object.keys(budget.match).length > 0 ? JSON.stringify(budget.match) : "all runs";
 
     return spent < budget.limitUsd

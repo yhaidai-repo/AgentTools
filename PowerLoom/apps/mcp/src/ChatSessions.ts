@@ -6,6 +6,7 @@ import type { CommandContext } from "@powerloom/core";
 import type { ChatHost } from "./models/ChatHost";
 import type { ChatSession } from "./models/ChatSession";
 import { registerTools } from "./registerTools";
+import { closeBrowserOwner, openBrowserOwner, renewBrowserOwners } from "./chatBrowserOwners";
 
 const SERVER_NAME = "powerloom";
 const SERVER_VERSION = "1.0.0";
@@ -15,6 +16,11 @@ const SERVER_VERSION = "1.0.0";
 // its calls go to the data access log and the usage log under its id.
 export class ChatSessions {
   private readonly sessions = new Map<string, ChatSession>();
+  private readonly allocated = new Map<string, ChatSession>();
+  private readonly disposed = new WeakMap<ChatSession, Promise<void>>();
+  private readonly closing = new Set<Promise<void>>();
+  private readonly opening = new Set<Promise<ChatSession>>();
+  private stopping = false;
 
   constructor(private readonly host: ChatHost) {}
 
@@ -33,27 +39,43 @@ export class ChatSessions {
   }
 
   /** A session for the initialize request: registered under its id once the transport confirmed it. */
-  async open(vault: string, client: string): Promise<ChatSession> {
+  open(vault: string, client: string): Promise<ChatSession> {
+    if (this.stopping) return Promise.reject(new Error("MCP sessions are shutting down"));
+    const opening = this.allocate(vault, client);
+    this.opening.add(opening);
+    void opening.then(() => this.opening.delete(opening), () => this.opening.delete(opening));
+    return opening;
+  }
+
+  private async allocate(vault: string, client: string): Promise<ChatSession> {
     const id = randomUUID();
     const deps = await this.host.deps.forVault(vault);
+    if (this.stopping) {
+      await this.host.deps.closeAzure(deps.azure);
+      throw new Error("MCP sessions are shutting down");
+    }
     const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => id,
       onsessioninitialized: () => {
+        if (!this.allocated.has(id)) throw new Error("MCP session is closed");
         this.sessions.set(id, session);
       },
     });
     const session: ChatSession = { id, vault, client, deps, server, transport, lastUsedAt: Date.now() };
+    this.allocated.set(id, session);
 
     try {
+      await openBrowserOwner(this.host.db, chatOwner(id), vault);
       const tools = chatSessionTools(deps, await this.chatAgent(deps), { vault, client, sessionId: id }, this.commandContext(client));
 
       registerTools(server, tools.tools);
       await recordToolOffer(this.host.db, vault, CHAT_AGENT_ID, tools.offered);
+      if (!this.allocated.has(id)) throw new Error("MCP session is closed");
       transport.onclose = () => void this.close(session);
       await server.connect(transport);
     } catch (error) {
-      await this.host.deps.closeAzure(deps.azure);
+      await this.close(session);
       throw error;
     }
 
@@ -63,35 +85,44 @@ export class ChatSessions {
   }
 
   async closeIdle(maxIdleMs: number): Promise<void> {
-    const idle = [...this.sessions.values()].filter((session) => Date.now() - session.lastUsedAt > maxIdleMs);
+    const idle = [...this.allocated.values()].filter((session) => Date.now() - session.lastUsedAt > maxIdleMs);
 
     for (const session of idle) {
-      await session.transport.close();
+      await this.close(session);
     }
+    await renewBrowserOwners(this.host.db, [...this.allocated.keys()].map(chatOwner));
   }
 
   async closeAll(): Promise<void> {
-    for (const session of this.sessions.values()) {
-      session.transport.onclose = undefined;
-      await session.transport.close();
-      await this.close(session);
-    }
+    this.stopping = true;
+    await Promise.all([...this.allocated.values()].map((session) => this.close(session)));
+    await Promise.allSettled([...this.opening]);
+    await Promise.all([...this.closing]);
   }
 
   // The session's stack and browser on DevHub stop with it, the Azure server closes.
-  private async close(session: ChatSession): Promise<void> {
-    if (!this.sessions.delete(session.id)) {
-      return;
-    }
-
-    try {
-      await stopDevHubOfSession(session);
-      await this.host.deps.closeAzure(session.deps.azure);
-    } catch (error) {
-      console.error(`session ${session.id}: closing failed:`, error);
-    }
-
-    console.log(`session ${session.id} ended`);
+  close(session: ChatSession): Promise<void> {
+    const existing = this.disposed.get(session);
+    if (existing) return existing;
+    this.sessions.delete(session.id);
+    this.allocated.delete(session.id);
+    // Defer callbacks until the idempotent promise is installed: transport.close invokes onclose too.
+    const closing = Promise.resolve().then(async () => {
+      const results = await Promise.allSettled([
+        session.server.close(),
+        stopDevHubOfSession(session),
+        this.host.deps.closeAzure(session.deps.azure),
+        closeBrowserOwner(this.host.db, chatOwner(session.id)),
+      ]);
+      for (const result of results) {
+        if (result.status === "rejected") console.error(`session ${session.id}: closing failed:`, result.reason);
+      }
+      console.log(`session ${session.id} ended`);
+    });
+    this.disposed.set(session, closing);
+    this.closing.add(closing);
+    void closing.then(() => this.closing.delete(closing));
+    return closing;
   }
 
   private async chatAgent(deps: AgentDeps) {

@@ -60,6 +60,18 @@ export class PostgresAgentConfigStore implements AgentConfigStore {
     return mergeGlobal(await this.readGlobal(), FALLBACK_GLOBAL);
   }
 
+  async saveIfUnchanged(current: AgentDefinition, next: AgentDefinition): Promise<boolean> {
+    const checked = validateAgent(next);
+    if (!checked.ok) throw new Error(`Invalid agent definition: ${checked.errors.join("; ")}`);
+    const result = await this.pool.query(
+      "UPDATE agent_config.agent SET definition = $3::jsonb, updated_at = now() WHERE id = $1 AND definition = $2::jsonb RETURNING id",
+      [current.id, JSON.stringify(current), JSON.stringify(checked.value)],
+    );
+    if (result.rows.length === 0) return false;
+    await this.notify({ kind: "agent", id: next.id });
+    return true;
+  }
+
   async saveGlobal(global: AgentsGlobal): Promise<void> {
     const checked = validateGlobal(global);
 

@@ -117,10 +117,12 @@ Describe 'Register lock' {
         $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Wrong total'; text = 'Sums twice.' }
     }
 
-    It 'leaves no lock file after an add' {
+    It 'leaves an unowned persistent lock file after an add' {
         (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeTrue
 
-        Test-Path -LiteralPath $lock | Should -BeFalse
+        Test-Path -LiteralPath $lock | Should -BeTrue
+        $handle = [IO.File]::Open($lock, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $handle.Dispose()
     }
 
     It 'gives every one of parallel adds its own id' {
@@ -135,22 +137,27 @@ Describe 'Register lock' {
         $results = @($jobs | Wait-Job | Receive-Job)
         $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-known-issues.md')
 
-        @($results | Where-Object ok).Count | Should -Be 4
+        @($results | Where-Object ok).Count | Should -Be 4 -Because ($results.errors -join '; ')
         ($results.id | Sort-Object) | Should -Be @('KI-001', 'KI-002', 'KI-003', 'KI-004')
         @($content | Where-Object { $_ -like '## KI-*' }).Count | Should -Be 4
     }
 
-    It 'answers busy while another writer holds the lock, and takes over a stale one' {
-        New-Item -ItemType File -Path $lock | Out-Null
-
-        $busy = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') } {
-            param($Path)
-            Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
-        }
+    It 'answers busy for an aged live owner and reuses its file after release' {
+        [IO.File]::WriteAllText($lock, '')
         (Get-Item -LiteralPath $lock -Force).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(-5)
+        $handle = [IO.File]::Open($lock, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+
+        try {
+            $busy = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') } {
+                param($Path)
+                Use-RegisterLock -Path $Path -Root (Split-Path -Parent $Path) -TimeoutSeconds 0 -Action { 'written' }
+            }
+        } finally {
+            $handle.Dispose()
+        }
         $taken = InModuleScope VaultCapture -Parameters @{ Path = (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') } {
             param($Path)
-            Use-RegisterLock -Path $Path -TimeoutSeconds 0 -Action { 'written' }
+            Use-RegisterLock -Path $Path -Root (Split-Path -Parent $Path) -TimeoutSeconds 0 -Action { 'written' }
         }
         $result = Add-VaultRegisterRecord -InputObject $record -Config $config
 
@@ -158,6 +165,6 @@ Describe 'Register lock' {
         $busy.ok | Should -BeFalse
         $busy.errors | Should -Contain 'the register is being written by another process: try again in a moment.'
         $result.id | Should -Be 'KI-001'
-        Test-Path -LiteralPath $lock | Should -BeFalse
+        Test-Path -LiteralPath $lock | Should -BeTrue
     }
 }

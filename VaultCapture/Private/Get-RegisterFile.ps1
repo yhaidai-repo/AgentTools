@@ -16,12 +16,17 @@ function Resolve-RegisterFile {
         return [pscustomobject]@{ Error = "kind '$Kind' is unknown. Use: $($script:RegisterKinds.Keys -join ', ')." }
     }
 
+    if ($Project -in @('.', '..') -or $Project -match '[\\/:\x00-\x1f]') {
+        return [pscustomobject]@{ Error = 'project must be one vault folder name.' }
+    }
     $path = Join-Path $Vault.Root $Project "$Project-$($kindInfo.Suffix).md"
+    try { Assert-VaultFilePath -Root $Vault.Root -Path $path -ScopeRoot (Join-Path $Vault.Root $Project) }
+    catch { return [pscustomobject]@{ Error = $_.Exception.Message } }
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         return [pscustomobject]@{ Error = "project '$Project' has no $($kindInfo.Suffix) register." }
     }
 
-    return [pscustomobject]@{ Path = $path; Prefix = $kindInfo.Prefix; Label = $kindInfo.Label; Error = $null }
+    return [pscustomobject]@{ Path = $path; Root = $Vault.Root; Prefix = $kindInfo.Prefix; Label = $kindInfo.Label; Error = $null }
 }
 
 # Records as the vault rules lay them out ("## [RESOLVED] OQ-001 Title" + "> **Status** · …"), and the older layout with

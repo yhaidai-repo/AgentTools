@@ -9,4 +9,6 @@ export interface ResultEvent extends EventBase {
   /** Cost the provider reported, if any; budgets use AgentUsage's own calculation. */
   providerCostUsd: number | null;
   message: string | null;
+  /** False when a started provider request ended without complete measured usage. */
+  usageComplete?: boolean;
 }

@@ -2,9 +2,10 @@ import { frontmatter } from "./frontmatter";
 import { isoDate } from "./markdown";
 import type { RefinementNote } from "./models/RefinementNote";
 import { pbiNoteName, refinementNoteName } from "./paths";
+import { appendUserNotes } from "./notesSection";
 
 export function renderRefinementNote(note: RefinementNote, notesSection: string): string {
-  return [
+  return appendUserNotes([
     frontmatter({
       id: refinementNoteName(note.adoId),
       type: "refinement",
@@ -39,8 +40,7 @@ export function renderRefinementNote(note: RefinementNote, notesSection: string)
     bullets(note.relevantDocs.map((doc) => `\`${doc.path}\`: ${doc.why}`)),
     "## Docs read",
     bullets(note.docsRead.map((path) => `\`${path}\``)),
-    notesSection,
-  ].join("\n\n");
+  ].join("\n\n"), notesSection);
 }
 
 function bullets(items: string[]): string {

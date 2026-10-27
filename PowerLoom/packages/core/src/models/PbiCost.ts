@@ -4,5 +4,6 @@ export interface PbiCost {
   title: string;
   runs: number;
   costUsd: number;
+  accountingComplete?: boolean;
   durationMs: number;
 }

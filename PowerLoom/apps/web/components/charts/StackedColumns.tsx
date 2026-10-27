@@ -65,7 +65,7 @@ export function StackedColumns({ title, aside, labels, series, format, axisLabel
                     height={Math.max(scale(segment.value) - (position > 0 ? SEPARATOR : 0), 0)}
                     fill={segment.color}
                   >
-                    <title>{`${label} · ${segment.label}: ${segment.values.map(format).join(" + ")}`}</title>
+                    <title>{`${label} · ${segment.label}: ${segment.values.map(value => format(value)).join(" + ")}`}</title>
                   </rect>
                 ))}
               </g>

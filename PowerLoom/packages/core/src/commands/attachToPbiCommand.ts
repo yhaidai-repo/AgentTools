@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
 import { z } from "zod";
+import { containedPath } from "@powerloom/vault";
 import { MAX_ATTACHMENT_BYTES, secretFileProblem } from "../attachablePath";
 import { contentTypeOf } from "../contentTypeOf";
 import { containerPathOf } from "../hostPaths";
@@ -36,7 +37,8 @@ export const attachToPbiCommand: Command<{ adoId: number; path: string; itemId: 
 };
 
 async function readHostFile(hostPath: string, folders: HostFolder[]): Promise<Outcome<AttachmentFile>> {
-  const path = containerPathOf(hostPath, folders);
+  const folder = folders.find((folder) => containerPathOf(hostPath, [folder]) !== null);
+  const path = folder ? containerPathOf(hostPath, [folder]) : null;
 
   if (path === null) {
     return { ok: false, error: `${hostPath} is outside the folders PowerLoom can read (${folders.map((folder) => folder.hostRoot).join(", ") || "none here"}).` };
@@ -44,7 +46,11 @@ async function readHostFile(hostPath: string, folders: HostFolder[]): Promise<Ou
 
   const secret = secretFileProblem(hostPath);
 
-  return secret ? { ok: false, error: secret } : readAttachable(hostPath, path);
+  if (secret) return { ok: false, error: secret };
+  const safe = await containedPath(folder!.mount, path);
+  if (!safe) return { ok: false, error: `${hostPath} doesn't resolve inside its allowed mount.` };
+  const resolvedSecret = secretFileProblem(safe);
+  return resolvedSecret ? { ok: false, error: resolvedSecret } : readAttachable(hostPath, safe);
 }
 
 async function readAttachable(hostPath: string, path: string): Promise<Outcome<AttachmentFile>> {

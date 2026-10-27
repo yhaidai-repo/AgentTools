@@ -1,8 +1,9 @@
 import { ANY_AGENT, nextItemId, recommendPbiSkills, vaultOfPbiSql } from "@powerloom/core";
-import { agentRun, localItem, refinement, type PowerLoomDb } from "@powerloom/db";
+import { localItem, refinement, type PowerLoomDb } from "@powerloom/db";
 import { eq, max } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
 import { commitCaptures } from "../vaultCapture";
+import { addRunOutputs } from "../tasks/runOutputs";
 import { insertWebResearchTasks } from "../webResearch";
 import { confirmRepos } from "./confirmRepos";
 import { insertQuestions } from "./insertQuestions";
@@ -27,7 +28,7 @@ export async function commitRefinement(db: PowerLoomDb, task: { id: string; pbiI
   const followUpId = await queueRefinementFollowUp(db, { pbiId: adoId, runId, taskId: task.id, userItemIds: questionIds, agentItemIds: [...taskIds, ...webIds], designQueued: false });
   const outputs = [`PBI-${adoId}-refinement v${version}`, ...taskIds, ...webIds, ...questionIds, ...repoQuestionIds, ...captureIds, ...(followUpId ? [followUpId] : [])];
 
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
   await recommendPbiSkills(db, adoId, draft.refinement.skills);
   await commitRelevantPages(db, adoId, draft.pages, "refinement");
 

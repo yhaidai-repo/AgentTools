@@ -36,7 +36,7 @@ public sealed class UserNotesTests(PowerLoomHost host)
 
         Assert.Equal("First thought.", loaded!.Text);
         Assert.Equal("Line one\nLine two", saved!.Text);
-        Assert.Equal("# PBI-65001\n\nGenerated.\n\n## Notes\n\nLine one\nLine two\n", afterSave);
+        Assert.Equal("# PBI-65001\n\nGenerated.\n\n<!-- powerloom:user-notes -->\n## Notes\n\nLine one\nLine two\n", afterSave);
         Assert.Contains("changed in the vault", await stale.ReadAsTextAsync());
         Assert.Contains("Edited in Obsidian", await File.ReadAllTextAsync(file));
     }

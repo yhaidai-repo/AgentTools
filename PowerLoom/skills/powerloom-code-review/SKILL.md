@@ -28,7 +28,7 @@ description: How the PowerLoom code-review agent reviews one pull request and wr
 | blocker | Must be fixed before merge: a bug, data loss, a security hole, a broken build or contract. |
 | major | A real risk or defect that should be fixed in this PR. |
 | minor | Worth fixing; the PR could merge without it. |
-| nit | Optional polish. Use sparingly. |
+| nit | Polish. Use sparingly; an unresolved nit still blocks approval and closure. |
 
 ## Writing a comment
 - First line: the problem, concretely ("`total` is never reset between batches, so the second batch reports both").
@@ -41,3 +41,5 @@ description: How the PowerLoom code-review agent reviews one pull request and wr
 - Withdraw when the answer resolves the point, and say so in the reply.
 - Keep when it doesn't, and say what is still wrong; don't just repeat the comment.
 - Refine when the answer shows the comment was unclear or partly wrong.
+
+All unresolved comments, including nits and answered comments, block merge approval and review closure. Mark a comment fixed only with evidence, or explicitly withdraw an accepted declined suggestion; do not silently dismiss comments to pass this gate. Ready with fixes means changes are required before merge, never permission to merge now.

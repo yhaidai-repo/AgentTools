@@ -55,5 +55,12 @@ function Read-StackState() {
 
 function Save-StackState([hashtable] $State) {
     New-Item -ItemType Directory -Force -Path $StackDir | Out-Null
-    $State | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $StatePath -Encoding utf8NoBOM
+    $temporary = Join-Path $StackDir ".stack-$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        $State | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $temporary -Encoding utf8NoBOM
+        [IO.File]::Move($temporary, $StatePath, $true)
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    }
 }

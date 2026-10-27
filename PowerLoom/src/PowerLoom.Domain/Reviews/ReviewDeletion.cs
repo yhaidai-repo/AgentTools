@@ -45,6 +45,7 @@ public static class ReviewDeletion
         var itemIds = taskIds.Concat(findingIds).ToList();
 
         await db.ReviewComments.Where(comment => comment.PrId == prId).ExecuteDeleteAsync(cancellation);
+        await db.CodeReviewVersions.Where(version => version.PrId == prId).ExecuteDeleteAsync(cancellation);
 
         if (itemIds.Count > 0)
         {

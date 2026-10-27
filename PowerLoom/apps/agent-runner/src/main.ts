@@ -8,6 +8,9 @@ import { ClaudeAgentSdkRuntime, CodexSdkRuntime, RuntimeRegistry } from "@agentt
 import { and, eq, lt, notInArray } from "drizzle-orm";
 import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
 import { RunnerServer } from "./runnerServer";
+import { runAcceptedJob } from "./runAcceptedJob";
+import { join } from "node:path";
+import { RunnerMaintenance } from "./RunnerMaintenance";
 
 const TRACE_RETENTION_DAYS = 30;
 // The data access log outlives the traces (user decision 2026-10-13: every outside read traceable); counts only, no data.
@@ -55,7 +58,8 @@ await stopOrphanedStacks();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex);
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex,
+  new RunnerMaintenance(join(process.env.CLAUDE_CONFIG_DIR ?? "/agent-sessions", ".deployment-maintenance.json")));
 
 server.listen(runnerPort);
 console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}`);
@@ -65,40 +69,25 @@ process.once("SIGINT", stop);
 
 // Every run ends with the callback, also a failed one and a task the runner refused: PowerLoom waits for it.
 async function runAndReport(job: AgentRunJob): Promise<void> {
-  await purgeOldTraces();
-
-  let completed: CompletedRun = { runId: null, outcome: "aborted", error: "the task was not started (its held reasons say why)" };
   let devHub: AgentDeps["devHub"] = null;
   let azure: AgentDeps["azure"] = null;
 
-  try {
-    const runDeps = await deps.forVault(await vaultOfJob(job));
-
-    devHub = runDeps.devHub;
-    azure = runDeps.azure;
-
-    const result = await runAgentTask(runDeps, job);
-
-    completed = result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : completed;
-  } catch (error) {
-    console.error(`${job.agentId} ${job.taskId} failed:`, error);
-    completed = { runId: null, outcome: "failed", error: String(error) };
-  } finally {
-    await stopStackOfRun(devHub, completed.runId);
-    await deps.closeAzure(azure);
-    await report(job.taskId, completed);
-  }
-}
-
-// Before the callback, so the next task never finds this run's stack still running; DevHub's own clock stops it
-// when this is skipped (a crash) and the next start sweeps it.
-async function stopStackOfRun(access: AgentDeps["devHub"], runId: number | null): Promise<void> {
-  if (!access || runId === null) {
-    return;
-  }
-
-  logStackNote(await closeRunBrowser(access.client, runId));
-  logStackNote(await stopRunStack(access.client, runId));
+  await runAcceptedJob(job, {
+    maintain: purgeOldTraces,
+    execute: async () => {
+      const runDeps = await deps.forVault(await vaultOfJob(job));
+      devHub = runDeps.devHub;
+      azure = runDeps.azure;
+      const result = await runAgentTask(runDeps, job);
+      return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
+    },
+    cleanups: [
+      async (completed) => { if (devHub && completed.runId !== null) logStackNote(await closeRunBrowser(devHub.client, completed.runId)); },
+      async (completed) => { if (devHub && completed.runId !== null) logStackNote(await stopRunStack(devHub.client, completed.runId)); },
+      async () => { await deps.closeAzure(azure); },
+    ],
+    report: (completed) => report(job.taskId, completed),
+  });
 }
 
 // At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a

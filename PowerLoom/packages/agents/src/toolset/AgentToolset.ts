@@ -38,7 +38,8 @@ import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive
 import { createAgentDocTools, outsideAccessContext } from "../stage";
 import { EVERY_AGENT, runRef } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
-import { commitCreatedTasks } from "../taskCreation/commitCreatedTasks";
+import { commitStep } from "../tasks/commitStep";
+import { commitCreatedTasks, resolveTaskDependencies } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { TaskCreationLimits } from "../taskCreation/models/TaskCreationLimits";
@@ -76,6 +77,7 @@ export class AgentToolset {
   private offer: OfferedTool[] = [];
   /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
   private readonly gitHub: GitHubWorkspace | null;
+  private readonly committedSettlements = new Map<string, WriterSettlement | null>();
 
   private constructor(
     private readonly context: TaskContext,
@@ -148,21 +150,45 @@ export class AgentToolset {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
     const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
-    const taskIds = await commitCreatedTasks(deps.db, target, this.input.tasks ? [] : this.tasks);
-    const captureIds = this.input.captures || this.task.pbiId === null ? [] : await commitCaptures(deps.db, runId, this.task.pbiId, this.task.id, this.captures);
+    const root = this.session.commitRootRunId ?? runId;
+    const taskIds: string[] = [];
+    for (const task of this.input.tasks ? [] : this.tasks) {
+      // Include IDs recovered from prior receipts in both dependency resolution and journal identity.
+      const resolved = { ...task, dependsOn: resolveTaskDependencies(task.dependsOn, taskIds) };
+      taskIds.push(...await commitStep(deps.db, root, runId, "task", resolved, async tx => {
+        const ids = await commitCreatedTasks(tx, target, [resolved]);
+        await addRunOutputs(tx, runId, ids);
+        return ids;
+      }));
+    }
+    const captureIds: string[] = [];
+    if (!this.input.captures && this.task.pbiId !== null) for (const capture of this.captures) {
+      captureIds.push(...await commitStep(deps.db, root, runId, "capture", capture, async tx => {
+        const ids = await commitCaptures(tx, runId, this.task.pbiId!, this.task.id, [capture]);
+        await addRunOutputs(tx, runId, ids);
+        return ids;
+      }));
+    }
 
     const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, budgetStopped });
-    const resultOutput = await commitResult(deps.db, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
+    const resultOutput = await commitStep(deps.db, root, runId, "result", this.result.latest, async tx => {
+      const output = await commitResult(tx, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
+      if (output) await addRunOutputs(tx, runId, [output]);
+      return output;
+    });
 
     await addRunOutputs(deps.db, runId, [...writerIds, ...taskIds, ...captureIds, ...(resultOutput ? [resultOutput] : [])]);
-    await commitEstimate(deps.db, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
+    await commitStep(deps.db, root, runId, "estimate", this.estimate.latest, async tx => {
+      await commitEstimate(tx, { pbiId: this.task.pbiId, runId, agent: this.context.agent.id }, this.estimate.latest);
+      return null;
+    });
 
     return { taskIds, captureIds };
   }
 
   /** What the granted writers' outputs say about the task's end (see WriterSettlement). */
   settlements(): WriterSettlement[] {
-    return this.writers.map((writer) => writer.settlement?.() ?? null).filter((settlement): settlement is WriterSettlement => settlement !== null);
+    return this.writers.map((writer) => this.committedSettlements.has(writer.integration) ? this.committedSettlements.get(writer.integration)! : writer.settlement?.() ?? null).filter((settlement): settlement is WriterSettlement => settlement !== null);
   }
 
   /** What the granted writers add to the first message (a draft, a note to actualize). */
@@ -185,7 +211,13 @@ export class AgentToolset {
     const ids: string[] = [];
 
     for (const writer of this.writers) {
-      ids.push(...(await writer.commit(target)));
+      const receipt = await commitStep(target.deps.db, this.session.commitRootRunId ?? target.runId, target.runId, writer.integration, writer.commitDraft?.() ?? null, async tx => {
+        const outputs = await writer.commit({ ...target, deps: { ...target.deps, db: tx } });
+        await addRunOutputs(tx, target.runId, outputs);
+        return { outputs, settlement: writer.settlement?.() ?? null };
+      });
+      ids.push(...receipt.outputs);
+      this.committedSettlements.set(writer.integration, receipt.settlement);
     }
 
     return ids;

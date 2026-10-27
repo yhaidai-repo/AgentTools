@@ -43,7 +43,7 @@ describe("commitBugs", () => {
       return new Response(JSON.stringify({ adoId: 40001, parentId: 1 }), { status: 200 });
     }) as unknown as typeof fetch;
 
-    const ids = await commitBugs("http://powerloom:8080", 1, draft.bugs, fetcher);
+    const ids = await commitBugs("http://powerloom:8080", 1, draft.bugs, "TT-1", fetcher);
 
     assert.deepEqual(ids, ["PBI-40001"]);
     assert.equal(requests[0].url, "http://powerloom:8080/api/bugs");
@@ -57,7 +57,7 @@ describe("commitBugs", () => {
     await createBugTool(draft, new ReadLog("AC 2 expects a warning")).handler(bugInput());
     const fetcher = (async () => new Response("A title of 1 to 120 characters is required.", { status: 400 })) as unknown as typeof fetch;
 
-    await assert.rejects(() => commitBugs("http://powerloom:8080", 1, draft.bugs, fetcher), /refused the bug/);
+    await assert.rejects(() => commitBugs("http://powerloom:8080", 1, draft.bugs, "TT-1", fetcher), /refused the bug/);
   });
 });
 

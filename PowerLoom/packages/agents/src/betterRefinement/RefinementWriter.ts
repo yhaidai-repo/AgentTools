@@ -26,6 +26,7 @@ export const WRITE_REFINEMENT_INTEGRATION = "writeRefinement";
 // Config grants it (user decision 2026-10-18): write_refinement refuses until record_estimate was called.
 export class RefinementWriter implements RunWriter {
   readonly integration = WRITE_REFINEMENT_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: BetterRefinementDraft = { refinement: null, captures: [], pages: [] };
   private recommendable: string[] | null = null;

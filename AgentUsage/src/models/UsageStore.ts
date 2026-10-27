@@ -10,7 +10,8 @@ export interface UsageStore {
   appendTrace(events: StoredTraceEvent[]): Promise<void>;
   costSince(from: Date, match: UsageLabels): Promise<number>;
   totals(query: UsageQuery, groupBy: string): Promise<UsageTotals[]>;
-  records(query: UsageQuery, limit: number): Promise<UsageRecord[]>;
+  /** Omit limit for complete target-scoped enumeration; explicit limits are for presentation lists. */
+  records(query: UsageQuery, limit?: number): Promise<UsageRecord[]>;
   trace(runId: string): Promise<StoredTraceEvent[]>;
   purgeTraceBefore(date: Date): Promise<number>;
 }

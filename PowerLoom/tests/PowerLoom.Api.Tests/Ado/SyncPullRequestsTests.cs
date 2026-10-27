@@ -12,6 +12,7 @@ using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using Wolverine;
 using Wolverine.Tracking;
+using PowerLoom.Api.Tests.Persistence;
 
 namespace PowerLoom.Api.Tests.Ado;
 
@@ -19,6 +20,34 @@ namespace PowerLoom.Api.Tests.Ado;
 public sealed class SyncPullRequestsTests(PowerLoomHost host)
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+
+    [Fact]
+    public async Task D7_01_Syncing_one_vault_does_not_close_another_vaults_reviews_or_tasks()
+    {
+        await ConfigureAsync();
+        const int mine = 980170;
+        const int other = 980171;
+        const string otherVault = "review-boundary";
+        using (var scope = host.Host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+            db.Vaults.Add(new Vault { Name = otherVault, Features = "{}" });
+            ReviewFixSeed.Pr(db, mine, PowerLoomHost.Vault);
+            ReviewFixSeed.Pr(db, other, otherVault);
+            await db.SaveChangesAsync();
+            Assert.True((await ReviewQueueing.QueueAsync(db, mine, CancellationToken.None)).Ok);
+            Assert.True((await ReviewQueueing.QueueAsync(db, other, CancellationToken.None)).Ok);
+        }
+        host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client.PullRequests = [];
+        await Sync();
+        var rows = await LoadAsync();
+        Assert.False(rows[mine].IsListed);
+        Assert.Equal(ReviewStatus.Closed, rows[mine].CodeReview!.Status);
+        Assert.Equal(ItemStatus.Cancelled, Assert.Single(await ReviewTasksAsync(mine)).Status);
+        Assert.True(rows[other].IsListed);
+        Assert.Equal(ReviewStatus.Active, rows[other].CodeReview!.Status);
+        Assert.Equal(ItemStatus.Open, Assert.Single(await ReviewTasksAsync(other)).Status);
+    }
 
     [Fact]
     public async Task Your_pull_requests_get_a_review_and_one_that_leaves_the_list_closes_it()

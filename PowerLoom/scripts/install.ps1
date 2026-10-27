@@ -245,8 +245,28 @@ function Add-Vault([string]$api, [string]$path) {
         Write-Host "Vault $path added."
     }
     catch {
-        Write-Host "Vault ${path}: $($_.ErrorDetails.Message ?? $_.Exception.Message)"
+        if ($_.Exception.Response.StatusCode -eq 409) {
+            Write-Host "Vault $path already exists: kept."
+            return
+        }
+
+        throw "Vault ${path}: $($_.ErrorDetails.Message ?? $_.Exception.Message)"
     }
+}
+
+function Complete-Installation([string]$api, [string[]]$paths) {
+    $failures = [Collections.Generic.List[string]]::new()
+    foreach ($path in $paths) {
+        try { Add-Vault $api $path }
+        catch { $failures.Add($_.Exception.Message) }
+    }
+
+    if ($failures.Count) {
+        throw "Required vault setup failed: $($failures -join '; '). Created resources were kept; correct the failures and rerun install.ps1."
+    }
+
+    Set-Providers $api
+    Show-NextSteps
 }
 
 # Optional; a provider that can't be set up here (no token, Codex sign-in failed) is set in Settings later.
@@ -286,9 +306,4 @@ $api = "http://127.0.0.1:$(Read-EnvValue 'POWERLOOM_PORT')"
 
 Wait-Api $api
 
-foreach ($path in $VaultPaths) {
-    Add-Vault $api $path
-}
-
-Set-Providers $api
-Show-NextSteps
+Complete-Installation $api $VaultPaths

@@ -19,7 +19,7 @@ export async function loadRunList(db: PowerLoomDb, usage: UsageStore, filter: Ru
     .where(and(runInVault(vault), ...runConditions(filter, from)))
     .orderBy(desc(agentRun.id))
     .limit(MAX_RUNS);
-  const usageRecords = await usageByRun(usage, from);
+  const usageRecords = await usageByRun(usage, from, runs.map(({ run }) => String(run.id)));
 
   return runs.map(({ run, task }) => ({ run, task, usage: usageRecords.get(String(run.id)) ?? null }));
 }
@@ -38,8 +38,8 @@ function runConditions(filter: RunListFilter, from: Date): SQL[] {
   return conditions;
 }
 
-async function usageByRun(usage: UsageStore, from: Date): Promise<Map<string, UsageRecord>> {
-  const records = await usage.records({ from }, MAX_RUNS * 2);
+async function usageByRun(usage: UsageStore, from: Date, runIds: string[]): Promise<Map<string, UsageRecord>> {
+  const records = runIds.length === 0 ? [] : await usage.records({ from, runIds });
 
   return new Map(records.map((record) => [record.runId, record]));
 }

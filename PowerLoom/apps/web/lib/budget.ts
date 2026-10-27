@@ -4,6 +4,7 @@ export { BUDGET_WARN_AT, budgetLevel, isNearBudget } from "@powerloom/core/src/a
 export type { BudgetLevel } from "@powerloom/core/src/models/BudgetLevel";
 
 // How full a budget meter is: 0–1 of the limit (a limit of 0 shows any spend as full).
-export function budgetFill(spent: number, limit: number): number {
+export function budgetFill(spent: number | null, limit: number): number {
+  if (spent === null) return 0;
   return Math.min(spent / Math.max(limit, 0.01), 1);
 }

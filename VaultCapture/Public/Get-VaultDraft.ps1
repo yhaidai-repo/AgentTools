@@ -14,7 +14,13 @@ function Get-VaultDraft {
         return New-DraftQueryResult -Errors "vault '$Vault' is unknown."
     }
 
-    $drafts = @(Get-DraftFile -Vault $vaultInfo -Rules $rules | ForEach-Object { ConvertTo-DraftInfo -File $_ -PreferSource $PreferSource })
+    try {
+        $drafts = @(Get-DraftFile -Vault $vaultInfo -Rules $rules | ForEach-Object {
+            Assert-VaultFilePath -Root $vaultInfo.Root -Path $_.FullName -ScopeRoot (Join-Path $vaultInfo.Root $rules.draft.folder)
+            ConvertTo-DraftInfo -File $_ -PreferSource $PreferSource
+        })
+    }
+    catch { return New-DraftQueryResult -Errors $_.Exception.Message }
     $ordered = @($drafts | Sort-Object -Property @{ Expression = { -not $_.preferred } }, captured, name)
 
     return New-DraftQueryResult -Drafts $ordered
@@ -27,6 +33,7 @@ function Get-DraftFile {
     )
 
     $draftRoot = Join-Path $Vault.Root $Rules.draft.folder
+    Assert-VaultFilePath -Root $Vault.Root -Path $draftRoot -ScopeRoot $draftRoot
     if (-not (Test-Path -LiteralPath $draftRoot -PathType Container)) {
         return @()
     }

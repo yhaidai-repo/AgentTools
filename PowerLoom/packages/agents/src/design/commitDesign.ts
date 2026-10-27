@@ -1,7 +1,8 @@
-import { agentRun, design, localItem, type PowerLoomDb } from "@powerloom/db";
+import { design, localItem, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
 import { commitCaptures } from "../vaultCapture";
+import { addRunOutputs } from "../tasks/runOutputs";
 import { insertGapItems } from "./gapItems";
 import type { DesignDraft } from "./models/DesignDraft";
 import type { DesignOutput } from "./models/DesignOutput";
@@ -18,7 +19,7 @@ export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number
   const outputs = [...designIds, ...gapIds, ...captureIds];
 
   await commitRelevantPages(db, adoId, draft.pages, "design");
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
 
   return { gapIds };
 }

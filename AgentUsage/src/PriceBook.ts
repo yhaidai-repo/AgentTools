@@ -19,7 +19,8 @@ export class PriceBook {
     const day = at.toISOString().slice(0, 10);
     const candidates = this.prices.filter((price) => price.model === baseModel(model) && price.from <= day);
 
-    return candidates.sort((a, b) => b.from.localeCompare(a.from))[0] ?? null;
+    // Entries later in the input (host overrides) win an identical effective-date tie.
+    return candidates.reverse().sort((a, b) => b.from.localeCompare(a.from))[0] ?? null;
   }
 
   // Unknown models are charged at the fallback price so they can't slip past budgets; `isPriced` says so.

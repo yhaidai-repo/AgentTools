@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { scopedFilePath } from "@powerloom/vault";
 import type { RepoCache } from "@agenttools/runtime";
 import type { GitHubRepoTarget } from "./models/GitHubRepoTarget";
 import type { WorkCopy } from "./models/WorkCopy";
@@ -11,6 +12,7 @@ const AUTHOR_EMAIL = "powerloom-agent@users.noreply.github.com";
 // run ends; what was pushed stays on GitHub. Only that branch is ever committed to and pushed.
 export class GitHubWorkspace {
   private readonly copies = new Map<string, WorkCopy>();
+  private readonly starting = new Map<string, Promise<{ copy: WorkCopy; baseCommit: string | null }>>();
 
   constructor(private readonly cache: RepoCache, private readonly runId: number, private readonly taskId: string | null, private readonly author: string) {}
 
@@ -26,14 +28,29 @@ export class GitHubWorkspace {
       return { copy: known, baseCommit: null };
     }
 
+    const name = key(target.name);
+    const pending = this.starting.get(name);
+    if (pending) return pending;
+    const current = this.startCopy(target);
+    this.starting.set(name, current);
+    try { return await current; }
+    finally { this.starting.delete(name); }
+  }
+
+  private async startCopy(target: GitHubRepoTarget): Promise<{ copy: WorkCopy; baseCommit: string | null }> {
     await this.cache.acquire([target.ref]);
 
     const copy: WorkCopy = { target, path: join(this.cache.root, ".work", `run-${this.runId}`, target.ref.name), branch: this.branch, base: target.ref.defaultBranch, pushed: false };
-    const baseCommit = await this.cache.checkoutNewBranch(target.ref, copy.base, copy.branch, copy.path);
-
-    this.copies.set(key(target.name), copy);
-
-    return { copy, baseCommit };
+    try {
+      const baseCommit = await this.cache.checkoutNewBranch(target.ref, copy.base, copy.branch, copy.path);
+      this.copies.set(key(target.name), copy);
+      return { copy, baseCommit };
+    } catch (error) {
+      try { await this.cache.removeCheckout(target.ref, copy.path); }
+      catch (cleanupError) { console.error("GitHub branch setup cleanup failed:", cleanupError); }
+      finally { this.cache.release([target.ref]); }
+      throw error;
+    }
   }
 
   copyOf(repo: string): WorkCopy | null {
@@ -41,18 +58,19 @@ export class GitHubWorkspace {
   }
 
   async read(copy: WorkCopy, path: string): Promise<string> {
-    return readFile(this.fileOf(copy, path), "utf8");
+    return readFile(await this.fileOf(copy, path), "utf8");
   }
 
   async write(copy: WorkCopy, path: string, content: string): Promise<void> {
-    const file = this.fileOf(copy, path);
+    const file = await this.fileOf(copy, path);
 
     await mkdir(dirname(file), { recursive: true });
+    await this.fileOf(copy, path);
     await writeFile(file, content, "utf8");
   }
 
   async remove(copy: WorkCopy, path: string): Promise<void> {
-    await rm(this.fileOf(copy, path));
+    await rm(await this.fileOf(copy, path));
   }
 
   diff(copy: WorkCopy): Promise<string> {
@@ -70,24 +88,30 @@ export class GitHubWorkspace {
 
   /** Removes the worktrees and lets the repos go; what was pushed stays on GitHub. */
   async cleanUp(): Promise<void> {
-    for (const copy of this.copies.values()) {
-      await this.cache.removeCheckout(copy.target.ref, copy.path);
-      this.cache.release([copy.target.ref]);
+    await Promise.allSettled(this.starting.values());
+    const failures: unknown[] = [];
+    for (const [name, copy] of this.copies) {
+      this.copies.delete(name);
+      try { await this.cache.removeCheckout(copy.target.ref, copy.path); }
+      catch (error) { failures.push(error); }
+      finally { this.cache.release([copy.target.ref]); }
     }
-
-    this.copies.clear();
+    if (failures.length) throw new AggregateError(failures, "GitHub working-copy cleanup failed.");
   }
 
   // A path inside the working copy, never its .git: a path that would leave it is refused.
-  private fileOf(copy: WorkCopy, path: string): string {
-    const file = resolve(copy.path, path);
-    const inside = relative(copy.path, file);
-
-    if (inside === "" || inside.startsWith("..") || inside.split(sep)[0] === ".git") {
-      throw new Error(`${path} isn't a file of the working copy.`);
+  private async fileOf(copy: WorkCopy, path: string): Promise<string> {
+    try {
+      const file = await scopedFilePath(copy.path, path);
+      const metadata = [relative(resolve(copy.path), file.path), relative(file.root, file.canonical)].some((inner) => inner.split(/[\\/]/).some((part) => {
+        const normalized = process.platform === "win32" ? part.replace(/[. ]+$/g, "").split(":")[0] : part;
+        return normalized.toLowerCase() === ".git";
+      }));
+      if (metadata) throw new Error("Git metadata is not writable through working-copy tools.");
+      return file.path;
+    } catch (error) {
+      throw new Error(`${path} isn't a file of the working copy.`, { cause: error });
     }
-
-    return file;
   }
 }
 

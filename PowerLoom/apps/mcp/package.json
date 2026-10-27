@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@agenttools/config": "*",

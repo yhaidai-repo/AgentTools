@@ -114,6 +114,17 @@ export class McpHttpServer {
       return;
     }
 
+    // The transport requires these headers. Check before starting vault readers/child processes.
+    const accept = request.headers.accept;
+    if (!accept?.includes("application/json") || !accept.includes("text/event-stream")) {
+      answer(response, 406, { error: "client must accept application/json and text/event-stream" });
+      return;
+    }
+    if (request.headers["content-type"]?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+      answer(response, 415, { error: "Content-Type must be application/json" });
+      return;
+    }
+
     const vault = await this.vaultOf(request);
 
     if (!vault) {
@@ -122,9 +133,35 @@ export class McpHttpServer {
       return;
     }
 
-    const opened = await this.options.sessions.open(vault, clientNameOf(body));
-
-    await opened.transport.handleRequest(request, response, body);
+    let opened: ChatSession | undefined;
+    let disconnected = response.destroyed;
+    let completed!: () => void;
+    const completion = new Promise<void>((resolve) => { completed = resolve; });
+    const onFinish = () => completed();
+    const onClose = () => {
+      if (!response.writableFinished) {
+        disconnected = true;
+        if (opened) void this.options.sessions.close(opened);
+      }
+      completed();
+    };
+    response.on("close", onClose);
+    response.on("finish", onFinish);
+    let accepted = false;
+    try {
+      if (disconnected) return;
+      opened = await this.options.sessions.open(vault, clientNameOf(body));
+      if (disconnected || response.destroyed) return;
+      await opened.transport.handleRequest(request, response, body);
+      // The Node transport can return while its response is still streaming. Initialization owns
+      // the disconnect handler until the response is delivered, not just until handleRequest returns.
+      await completion;
+      accepted = !disconnected && response.statusCode < 400 && this.options.sessions.get(opened.id) === opened;
+    } finally {
+      response.off("close", onClose);
+      response.off("finish", onFinish);
+      if (opened && !accepted) await this.options.sessions.close(opened);
+    }
   }
 
   private authorized(request: IncomingMessage): boolean {

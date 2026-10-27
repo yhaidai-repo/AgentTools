@@ -5,7 +5,7 @@ import { evidenceInput } from "../evidence/evidenceInput";
 import { evidenceProblems } from "../evidence/evidenceProblems";
 import type { ReadLog } from "../evidence/ReadLog";
 import { missingQueryProblem, reasonInput, stepInput } from "../humanTasks/humanTaskTool";
-import { notePathProblem } from "../techWriter/notePaths";
+import { normalizeNotePath, notePathProblem } from "../techWriter/notePaths";
 import type { CreatedTask } from "./models/CreatedTask";
 import type { TaskCreationLimits } from "./models/TaskCreationLimits";
 import type { TaskTarget } from "./models/TaskTarget";
@@ -113,7 +113,7 @@ function toCreatedTask(input: Input): CreatedTask {
     dependsOn: input.depends_on,
     options: input.options,
     steps: input.steps,
-    docPath: input.doc_path,
+    docPath: input.doc_path === null ? null : normalizeNotePath(input.doc_path),
   };
 }
 

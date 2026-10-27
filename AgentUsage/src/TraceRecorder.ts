@@ -6,6 +6,7 @@ const DEFAULT_MAX_TEXT = 16 * 1024;
 const DEFAULT_BATCH = 50;
 const NUL = /\u0000/g;
 const NUL_MARK = "␀";
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 
 // Buffers a run's events and writes them in batches; strings are made storable (see `storableText`).
 export class TraceRecorder {
@@ -70,7 +71,7 @@ function storable(value: unknown, maxLength: number): unknown {
 // Postgres jsonb rejects NUL (\u0000, e.g. in a SQL tool's result) and a lone surrogate, so NUL is marked and a long
 // string is cut (to keep traces bounded) never between the two halves of a surrogate pair (an emoji).
 function storableText(value: string, maxLength: number): string {
-  const marked = value.replace(NUL, NUL_MARK);
+  const marked = value.replace(NUL, NUL_MARK).replace(LONE_SURROGATE, "\uFFFD");
 
   if (marked.length <= maxLength) {
     return marked;

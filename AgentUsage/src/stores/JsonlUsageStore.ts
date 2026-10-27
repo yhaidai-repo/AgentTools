@@ -7,6 +7,7 @@ import type { UsageRecord } from "../models/UsageRecord";
 import type { UsageStore } from "../models/UsageStore";
 import type { UsageTotals } from "../models/UsageTotals";
 import { inQuery, labelsMatch, totalsOf } from "./aggregate";
+import { IncompleteAccountingError } from "../IncompleteAccountingError";
 
 const RECORDS_FILE = "usage.jsonl";
 const TRACE_FILE = "trace.jsonl";
@@ -24,10 +25,10 @@ export class JsonlUsageStore implements UsageStore {
   }
 
   async costSince(from: Date, match: UsageLabels): Promise<number> {
-    const records = await this.readRecords();
+    const records = (await this.readRecords()).filter((record) => record.startedAt >= from && labelsMatch(record.labels, match));
+    if (records.some((record) => record.accountingComplete === false)) throw new IncompleteAccountingError();
 
     return records
-      .filter((record) => record.startedAt >= from && labelsMatch(record.labels, match))
       .reduce((total, record) => total + record.costUsd, 0);
   }
 
@@ -35,10 +36,12 @@ export class JsonlUsageStore implements UsageStore {
     return totalsOf((await this.readRecords()).filter((record) => inQuery(record, query)), groupBy);
   }
 
-  async records(query: UsageQuery, limit: number): Promise<UsageRecord[]> {
-    const matching = (await this.readRecords()).filter((record) => inQuery(record, query));
+  async records(query: UsageQuery, limit?: number): Promise<UsageRecord[]> {
+    const ids = query.runIds === undefined ? null : new Set(query.runIds);
+    const matching = (await this.readRecords()).filter((record) => inQuery(record, { ...query, runIds: undefined }) && (ids === null || ids.has(record.runId)));
 
-    return matching.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()).slice(0, limit);
+    matching.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime() || (a.runId < b.runId ? 1 : a.runId > b.runId ? -1 : 0));
+    return limit === undefined ? matching : matching.slice(0, limit);
   }
 
   async trace(runId: string): Promise<StoredTraceEvent[]> {
@@ -51,7 +54,9 @@ export class JsonlUsageStore implements UsageStore {
     const events = await this.readLines<StoredTraceEvent>(TRACE_FILE);
     const kept = events.filter((event) => new Date(event.at) >= date);
 
-    await writeFile(join(this.folder, TRACE_FILE), kept.map((event) => JSON.stringify(event) + "\n").join(""), "utf8");
+    if (events.length !== kept.length) {
+      await writeFile(join(this.folder, TRACE_FILE), kept.map((event) => JSON.stringify(event) + "\n").join(""), "utf8");
+    }
 
     return events.length - kept.length;
   }
@@ -63,7 +68,10 @@ export class JsonlUsageStore implements UsageStore {
   }
 
   private async readLines<T>(file: string): Promise<T[]> {
-    const text = await readFile(join(this.folder, file), "utf8").catch(() => "");
+    const text = await readFile(join(this.folder, file), "utf8").catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return "";
+      throw error;
+    });
 
     return text.split("\n").filter(Boolean).map((line) => JSON.parse(line) as T);
   }

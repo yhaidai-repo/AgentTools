@@ -10,5 +10,7 @@ public sealed class ConfluenceOptions
 
     public string ApiToken { get; set; } = "";
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(Email) && !string.IsNullOrWhiteSpace(ApiToken);
+    public string Site { get; set; } = "";
+
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(Email) && !string.IsNullOrWhiteSpace(ApiToken) && Uri.TryCreate(Site, UriKind.Absolute, out var site) && site.Scheme == "https" && site.UserInfo.Length == 0;
 }

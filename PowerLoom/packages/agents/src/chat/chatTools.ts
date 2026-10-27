@@ -41,10 +41,12 @@ export function chatSessionTools(deps: AgentDeps, agent: AgentDefinition, princi
 // a chat in one vault can't write into another.
 const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close"]);
 
-// A reader bound to the session's vault replaces the command of the same name that takes the vault as an argument
-// (sql_query, sql_describe, sql_databases): one tool per name, the session-scoped one.
+// Generic SQL commands accept a caller-selected vault and have no session grant. Never offer them in a chat,
+// including when the grant-checked readers are absent. Other callers retain the generic command contracts.
+const SESSION_SQL_TOOLS = new Set(["sql_query", "sql_describe", "sql_databases"]);
+
 function withoutTaken(commands: ToolDefinition<any>[], readers: ToolDefinition<any>[]): ToolDefinition<any>[] {
-  const taken = new Set(readers.map((tool) => tool.name));
+  const taken = new Set([...SESSION_SQL_TOOLS, ...readers.map((tool) => tool.name)]);
 
   return commands.filter((tool) => !taken.has(tool.name));
 }

@@ -3,7 +3,7 @@
 # The host adds workerConfigs.json + workerConfigs.<Environment>.json after the default configuration sources, so
 # they beat environment variables and user secrets; the only way to change a worker per stack is that file. It is
 # written into the build output after the build (the project's copy rule is Always, so the next build restores the
-# source) and removed when the stack stops (Remove-EntryConfig in LocalStack.Process.ps1). Without a request every worker is off: a local host on a shared
+# source) and restored to its prior contents when the stack stops. Without a request every worker is off: a local host on a shared
 # database would otherwise send the emails, reports and FTP downloads dev's host is meant to send.
 
 $WorkerConfigsFile = "workerConfigs.json"
@@ -61,8 +61,8 @@ function Merge-WorkerConfigs([hashtable] $Defaults, [hashtable] $Workers) {
     return $merged
 }
 
-# Writes the environment file into the build output and returns its path with the workers in effect.
-function Write-WorkerConfigs([string] $ProjectPath, [string] $LaunchProfile, [hashtable] $Workers) {
+# Prepare every service before publishing any override. Keep the original bytes for stop/rollback.
+function Prepare-WorkerConfigs([string] $ProjectPath, [string] $LaunchProfile, [hashtable] $Workers) {
     $outputDir = Get-BuildOutputDir $ProjectPath
     $environment = Get-LaunchProfileEnvironment $ProjectPath $LaunchProfile
     $defaults = Read-WorkerDefaults $outputDir
@@ -72,10 +72,38 @@ function Write-WorkerConfigs([string] $ProjectPath, [string] $LaunchProfile, [ha
     $path = Join-Path $outputDir "workerConfigs.$environment.json"
     $document = [ordered]@{ $WorkerConfigsSection = (Merge-WorkerConfigs $defaults $Workers) }
 
-    Set-Content -LiteralPath $path -Value ($document | ConvertTo-Json -Depth 4) -Encoding utf8
-    Write-Host "Workers in $environment`: $(if ($Workers.Count -gt 0) { ($Workers.Keys | Sort-Object) -join ', ' } else { 'none' }) ($path)"
+    $existed = Test-Path -LiteralPath $path
+    return @{
+        file = $path; workers = @($Workers.Keys | Sort-Object); environment = Get-ContentRootEnvironment $outputDir
+        content = $document | ConvertTo-Json -Depth 4
+        existed = $existed; previous = if ($existed) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) } else { $null }
+        published = $false
+    }
+}
 
-    return @{ file = $path; workers = @($Workers.Keys | Sort-Object); environment = Get-ContentRootEnvironment $outputDir }
+function Publish-WorkerConfigs([hashtable] $Prepared) {
+    # Set before writing: even a partially failed write must be restored.
+    $Prepared.published = $true
+    Set-Content -LiteralPath $Prepared.file -Value $Prepared.content -Encoding utf8
+}
+
+function Restore-WorkerConfigs([hashtable] $Prepared) {
+    if (-not $Prepared.published) { return }
+    if ($Prepared.existed) {
+        [IO.File]::WriteAllBytes($Prepared.file, [Convert]::FromBase64String($Prepared.previous))
+    }
+    elseif (Test-Path -LiteralPath $Prepared.file) {
+        Remove-Item -LiteralPath $Prepared.file -Force -ErrorAction Stop
+    }
+    $Prepared.published = $false
+}
+
+# Single-service callers retain the same interface and receive restoration metadata.
+function Write-WorkerConfigs([string] $ProjectPath, [string] $LaunchProfile, [hashtable] $Workers) {
+    $prepared = Prepare-WorkerConfigs $ProjectPath $LaunchProfile $Workers
+    try { Publish-WorkerConfigs $prepared }
+    catch { Restore-WorkerConfigs $prepared; throw }
+    return $prepared
 }
 
 # The host reads its workerConfigs files from the content root, which is the working directory of `dotnet run`: the

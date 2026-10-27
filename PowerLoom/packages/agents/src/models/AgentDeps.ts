@@ -48,7 +48,7 @@ export interface AgentDeps {
   listRegister: ((project: string, kind: "questions" | "issues") => Promise<RegisterEntry[]>) | null;
   /** Confluence account for agents with the integration on; null when CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN aren't set. */
   confluence: ConfluenceClient | null;
-  /** The Confluence site agents search (CONFLUENCE_SITE); null = no search tool, page links still work. */
+  /** The trusted Confluence site (CONFLUENCE_SITE); required for authenticated page access and search. */
   confluenceSite: string | null;
   /** Every tool call goes here (user decision 2026-10-13: traceable). */
   accessLog: DataAccessLog;

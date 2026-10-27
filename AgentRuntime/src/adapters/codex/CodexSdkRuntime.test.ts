@@ -95,6 +95,7 @@ for (const mode of ["aborted", "timeout", "max-turns", "crashed"] as const) {
       assert.equal(result.length, 1);
       assert.equal(result[0].reason, mode === "crashed" ? "failed" : mode);
       assert.equal(events.at(-1), result[0]);
+      if (events.some((event) => event.type === "text")) assert.equal(result[0].usageComplete, false);
     } finally {
       clearTimeout(timer ?? undefined);
       await rm(home, { recursive: true, force: true });
@@ -112,9 +113,31 @@ test("does not start a child for an already aborted request", async () => {
     assert.equal(events.length, 1);
     assert.equal(events[0].type, "result");
     assert.equal((events[0] as { reason: string }).reason, "aborted");
+    assert.equal(events[0].usageComplete, true);
   } finally {
     await rm(home, { recursive: true, force: true });
   }
+});
+
+test("preserves buffered measured usage after enforcing a turn cap", async () => {
+  const home = await mkdtemp(join(tmpdir(), "codex-capped-usage-"));
+  try {
+    const events: ThreadEvent[] = [
+      ...success.slice(0, 2),
+      { type: "item.completed", item: { id: "second-message", type: "agent_message", text: "over limit" } },
+      { type: "turn.completed", usage },
+    ];
+    const runtime = new CodexSdkRuntime({ codexHome: home }, fake(events));
+    const output = await collect(runtime.run({ ...request(), limits: { maxTurns: 1, timeoutMs: 2000 } }));
+    const measured = output.filter((event) => event.type === "usage");
+    const results = output.filter((event) => event.type === "result");
+    assert.equal(measured.length, 1);
+    assert.equal(measured[0].inputTokens, 12069);
+    assert.equal(measured[0].outputTokens, 228);
+    assert.equal(results.length, 1);
+    assert.equal(results[0].reason, "max-turns");
+    assert.equal(results[0].usageComplete, true);
+  } finally { await rm(home, { recursive: true, force: true }); }
 });
 
 test("configures isolated read-only execution and removes its working folder", async () => {

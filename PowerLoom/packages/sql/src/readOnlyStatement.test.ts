@@ -68,7 +68,26 @@ describe("readOnlyProblem", () => {
     assert.equal(readOnlyProblem("sp_who"), "Only a SELECT (or WITH … SELECT) query may run.");
   });
 
-  it("checks an unclosed string or comment as code", () => {
+  it("refuses the nested-comment bypasses without executing them", () => {
+    assert.notEqual(readOnlyProblem("SELECT 1 /* /* */ ' */ COMMIT DELETE FROM dbo.Target -- '"), null);
+    assert.notEqual(readOnlyProblem("SELECT 1 /* /* */ ' */ SELECT NEXT VALUE FOR dbo.Seq -- '"), null);
+  });
+
+  it("handles nested comments, escaped names, and CR-only line comments", () => {
+    const allowed = [
+      "SELECT 1 /* outer /* DELETE ' [ */ still a comment */",
+      "SELECT [a]]DELETE], \"a\"\"COMMIT\", '/* it''s */'",
+      "-- comment\rSELECT 1",
+    ];
+    assert.deepEqual(allowed.map(readOnlyProblem), [null, null, null]);
+    assert.notEqual(readOnlyProblem("SELECT 1 -- comment\rCOMMIT"), null);
+    assert.notEqual(readOnlyProblem("SELECT NEXT /* outer /* inner */ outer */ VALUE FOR dbo.Seq"), null);
+  });
+
+  it("rejects malformed strings, quoted identifiers and comments conservatively", () => {
+    for (const query of ["SELECT 'safe", 'SELECT "safe', "SELECT [safe", "SELECT 1 /* safe", "SELECT 1 /* outer /* inner */", "SELECT 1 */"]) {
+      assert.notEqual(readOnlyProblem(query), null, query);
+    }
     assert.notEqual(readOnlyProblem("SELECT 'x FROM t; DROP TABLE t"), null);
     assert.notEqual(readOnlyProblem("SELECT 1 /* DELETE FROM t"), null);
   });

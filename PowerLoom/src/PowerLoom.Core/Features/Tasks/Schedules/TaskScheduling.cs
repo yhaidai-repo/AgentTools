@@ -7,13 +7,15 @@ using PowerLoom.Features.Tasks.Schedules.Models;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Vaults;
+using Wolverine;
 
 namespace PowerLoom.Features.Tasks.Schedules;
 
 // Scheduled tasks (user decision 2026-10-03): a schedule's tick (or "Create now") creates the task the task form described,
 // for any agent that takes its type (user decision 2026-10-14; the vault review too since 2026-10-18). The agent's own
 // cron decides when the task is picked up.
-public sealed class TaskScheduling(PowerLoomDbContext db, TaskCreation creation)
+public sealed class TaskScheduling(PowerLoomDbContext db, TaskCreation creation, IMessageBus bus)
 {
     // Blocked counts too: a new task would fail the same way, so the user decides (Rerun or delete) first.
     private static readonly ItemStatus[] Waiting = [ItemStatus.Open, ItemStatus.InProgress, ItemStatus.Blocked];
@@ -78,6 +80,8 @@ public sealed class TaskScheduling(PowerLoomDbContext db, TaskCreation creation)
 
     private async Task<string> TickResultAsync(TaskSchedule schedule, CancellationToken cancellation)
     {
+        if (!await db.VaultExistsAsync(schedule.Vault, cancellation))
+            return $"no task: {schedule.Vault} isn't an active vault.";
         var waiting = await WaitingTaskIdAsync(schedule.Id, cancellation);
 
         if (waiting is not null)
@@ -90,6 +94,9 @@ public sealed class TaskScheduling(PowerLoomDbContext db, TaskCreation creation)
     private async Task<string> CreateTaskAsync(TaskSchedule schedule, CancellationToken cancellation)
     {
         var created = await creation.CreateAsync(TaskParams.Of(schedule.Params).ToTask(schedule), cancellation);
+
+        if (created.Ok)
+            await PbiChanges.PublishAsync(db, bus, created.Value.PbiId, "task-schedule", cancellation);
 
         return created.Ok ? $"{created.Value.Id} created" : $"no task: {created.Problem.Detail}";
     }

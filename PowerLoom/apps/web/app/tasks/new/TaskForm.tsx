@@ -71,7 +71,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
           </div>
           {readsRepos && <RepoChoices repos={repos} checked={shown.repos} />}
           <div className="panel new-pbi-side">
-            <Field label="Schedule" hint="cron, optional: creates this task on each tick, none while the last one still waits; empty = one task now"><input name="cron" value={cron} onChange={(event) => setCron(event.target.value)} placeholder="0 7 * * 1" /></Field>
+            <Field label="Schedule" hint={isEditing ? "cron required; creates this task on each tick" : "cron, optional: creates this task on each tick, none while the last one still waits; empty = one task now"}><input name="cron" value={cron} onChange={(event) => setCron(event.target.value)} placeholder="0 7 * * 1" /></Field>
             {isScheduled && <label className="inline"><input type="checkbox" name="enabled" defaultChecked={shown.enabled} />Enabled (off = only &quot;Create now&quot;)</label>}
           </div>
         </div>

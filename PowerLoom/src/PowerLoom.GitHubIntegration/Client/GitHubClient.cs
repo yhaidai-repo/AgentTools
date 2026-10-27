@@ -33,9 +33,26 @@ public sealed class GitHubClient(HttpClient http, string token) : IGitHubClient
     public async Task<IReadOnlyList<string>> ListReviewedPullRequestsAsync(string login, CancellationToken cancellation)
     {
         var query = Uri.EscapeDataString($"is:pr is:open reviewed-by:{login}");
-        var found = await RequestAsync<SearchDto>($"{Api}/search/issues?q={query}&per_page={PageSize}", cancellation);
-
-        return found.Items.Select(item => KeyOf(item.RepositoryUrl, item.Number)).OfType<string>().ToList();
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int? expected = null;
+        for (var page = 1; page <= 10; page++)
+        {
+            var found = await RequestAsync<SearchDto>($"{Api}/search/issues?q={query}&per_page={PageSize}&page={page}", cancellation);
+            // Search exposes at most 1,000 results. Never treat a partial set as authoritative for unlisting.
+            if (found.TotalCount is not { } total || found.IncompleteResults is not false || found.Items is null || total < 0 || total > 1000 || expected is not null && expected != total)
+                throw new GitHubRequestException(502, "GitHub reviewed search is incomplete; sync was stopped before unlisting");
+            expected = total;
+            var before = keys.Count;
+            foreach (var item in found.Items)
+            {
+                var key = KeyOf(item.RepositoryUrl, item.Number) ?? throw new GitHubRequestException(502, "GitHub reviewed search returned an invalid repository");
+                keys.Add(key);
+            }
+            if (keys.Count == expected) return keys.ToList();
+            if (keys.Count > expected || keys.Count == before || found.Items.Count < PageSize)
+                throw new GitHubRequestException(502, "GitHub reviewed search ended before all results were received");
+        }
+        throw new GitHubRequestException(502, "GitHub reviewed search exceeded its result limit");
     }
 
     private static GitHubPullRequest ToPullRequest(string owner, string repo, PullDto dto)
@@ -65,8 +82,13 @@ public sealed class GitHubClient(HttpClient http, string token) : IGitHubClient
             all.AddRange(batch);
 
             if (batch.Count < PageSize)
-                break;
+                return all;
         }
+
+        // A full last page proves neither completion nor truncation. One bounded lookahead distinguishes them.
+        var remaining = await RequestAsync<List<T>>($"{url}{separator}per_page={PageSize}&page={MaxPages + 1}", cancellation);
+        if (remaining.Count > 0)
+            throw new GitHubRequestException(502, "GitHub list is incomplete at its pagination limit; sync was stopped before unlisting");
 
         return all;
     }
@@ -107,5 +129,5 @@ public sealed class GitHubClient(HttpClient http, string token) : IGitHubClient
 
     private sealed record SearchItemDto(int Number, string RepositoryUrl);
 
-    private sealed record SearchDto(List<SearchItemDto> Items);
+    private sealed record SearchDto(List<SearchItemDto>? Items, int? TotalCount, bool? IncompleteResults);
 }

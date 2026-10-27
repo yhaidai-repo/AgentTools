@@ -14,9 +14,7 @@ public static class ItemIds
     // The next `<stem><nnn>` across all items, e.g. stem `CR-6322-` for the review tasks of pull request 6322.
     public static async Task<string> NextScopedAsync(PowerLoomDbContext db, string stem, CancellationToken cancellation)
     {
-        var ids = await db.LocalItems.AsNoTracking().Where(item => item.Id.StartsWith(stem)).Select(item => item.Id).ToListAsync(cancellation);
-        var highest = ids.Select(id => int.TryParse(id[stem.Length..], out var number) ? number : 0).DefaultIfEmpty(0).Max();
-
-        return $"{stem}{highest + 1:000}";
+        // Shared by .NET and TypeScript writers; the database reserves the number before an item is saved.
+        return await db.Database.SqlQuery<string>($"select reserve_item_id({stem}) as \"Value\"").SingleAsync(cancellation);
     }
 }

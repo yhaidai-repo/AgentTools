@@ -8,7 +8,7 @@ import { isFailedOutcome } from "../outcome";
 export function inQuery(record: UsageRecord, query: UsageQuery): boolean {
   const to = query.to ?? new Date();
 
-  return record.startedAt >= query.from && record.startedAt < to && labelsMatch(record.labels, query.match ?? {});
+  return record.startedAt >= query.from && record.startedAt < to && labelsMatch(record.labels, query.match ?? {}) && (query.runIds === undefined || query.runIds.includes(record.runId));
 }
 
 export function labelsMatch(labels: UsageLabels, match: UsageLabels): boolean {
@@ -40,6 +40,7 @@ function totalsOfGroup(group: string, records: UsageRecord[]): UsageTotals {
     cacheReadTokens: sum((record) => record.cacheReadTokens),
     cacheWriteTokens: sum((record) => record.cacheWriteTokens),
     costUsd: sum((record) => record.costUsd),
+    accountingComplete: records.every((record) => record.accountingComplete !== false),
     durationMs: sum((record) => record.durationMs),
     lastRunAt: latest?.endedAt ?? null,
     lastOutcome: latest?.outcome ?? null,

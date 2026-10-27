@@ -10,6 +10,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot/Deployment.Checkout.ps1"
+. "$PSScriptRoot/Deployment.Maintenance.ps1"
 # Chat sessions (the MCP server's runs, stage chat) don't hold the guard: they report their end later and survive a restart.
 $RunningRunsSql = "select id || ' ' || stage || ' ' || coalesce(item_id, '-') || ' since ' || to_char(started_at, 'HH24:MI') from agent_run where outcome = 'running' and stage <> 'chat' order by id"
 
@@ -42,41 +44,6 @@ function Invoke-Compose([string[]]$arguments) {
     }
 }
 
-function Update-Api([string[]]$runs) {
-    if ($runs.Count -gt 0 -and -not $Force) {
-        throw "PowerLoom's API was NOT recreated: the runs above report their end to it. Wait for them, or pass -Force."
-    }
-
-    Invoke-Compose @("build", "powerloom")
-    Invoke-Compose @("up", "-d", "--no-deps", "--wait", "powerloom")
-    Write-Host "PowerLoom API recreated (database migrated)."
-}
-
-function Update-Runner([string[]]$runs) {
-    if ($runs.Count -gt 0 -and -not $Force) {
-        Write-Host "The agent-runner was NOT recreated: it would kill the runs above. Wait for them, or pass -Force."
-
-        return
-    }
-
-    Invoke-Compose @("up", "-d", "--no-deps", "agent-runner")
-    Write-Host "agent-runner recreated."
-}
-
 Set-Location (Join-Path $PSScriptRoot "..")
-$running = Get-RunningRuns
-Show-RunningRuns $running
-
-if ($WithApi) {
-    Update-Api $running
-}
-
-# The agent-runner service builds the image the web and the MCP server run too; building doesn't touch a running
-# container. The MCP server is recreated with the web: a chat's session ends, its next call opens a new one.
-Invoke-Compose @("build", "agent-runner")
-Invoke-Compose @("up", "-d", "--no-deps", "web", "mcp")
-Write-Host "web and mcp recreated."
-
-if ($WithRunner) {
-    Update-Runner $running
-}
+Assert-DeploymentCheckout (Join-Path $PSScriptRoot '..')
+Invoke-Deployment

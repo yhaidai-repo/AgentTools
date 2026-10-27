@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS agent_usage.usage_record (
   models jsonb NOT NULL
 );
 ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS subscription jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS accounting_complete boolean NOT NULL DEFAULT true;
 CREATE INDEX IF NOT EXISTS usage_record_started_idx ON agent_usage.usage_record (started_at);
 CREATE INDEX IF NOT EXISTS usage_record_labels_idx ON agent_usage.usage_record USING gin (labels);
 

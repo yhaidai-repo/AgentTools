@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using PowerLoom.Contracts;
 using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Pbis.Models;
@@ -39,14 +43,37 @@ public static class ReportBugEndpoint
 
         var actor = string.IsNullOrWhiteSpace(request.Actor) ? "human" : request.Actor.Trim();
         var bug = new NewPbi(parent.Vault, BugRule.BugTitle(request.Title.Trim()), BugRule.WorkItemType, request.Priority ?? DefaultPriority, Text(request.DescriptionMd), null, parent.AdoId);
-        var adoId = await LocalPbis.CreateAsync(db, actor, bug, cancellation);
-
-        await Bugs.RecordAsync(db, adoId, parent.AdoId, BugSource.Internal, actor, cancellation);
+        var requestId = request.ClientRequestId;
+        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { bug, actor }))));
+        int adoId;
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellation))
+        {
+            Receipt? receipt = null;
+            if (requestId is not null)
+            {
+                await db.Database.ExecuteSqlAsync($"select pg_advisory_xact_lock(hashtextextended({requestId}, 0))", cancellation);
+                receipt = await db.Database.SqlQuery<Receipt>($"select request_hash as \"Hash\", ado_id as \"AdoId\" from bug_report_receipt where request_id={requestId}").SingleOrDefaultAsync(cancellation);
+                if (receipt is not null && receipt.Hash != hash)
+                    return Problem.Conflict("This bug request identity was already used for a different report.").ToProblemResult();
+            }
+            if (receipt is not null) adoId = receipt.AdoId;
+            else
+            {
+                adoId = await LocalPbis.CreateAsync(db, actor, bug, cancellation);
+                await Bugs.RecordAsync(db, adoId, parent.AdoId, BugSource.Internal, actor, cancellation);
+                if (requestId is not null)
+                    await db.Database.ExecuteSqlAsync($"insert into bug_report_receipt values ({requestId}, {hash}, {adoId})", cancellation);
+            }
+            await transaction.CommitAsync(cancellation);
+        }
+        // Retry publication too: a response or bus failure after persistence still returns the same bug on retry.
         await bus.PublishAsync(new PreparePbi(parent.Vault, adoId, actor));
         await bus.PublishAsync(new PbiChanged(parent.Vault, parent.AdoId));
 
         return TypedResults.Ok(new ReportedBug(adoId, parent.AdoId));
     }
+
+    private sealed record Receipt(string Hash, int AdoId);
 
     private static Problem? ProblemOf(ReportBugRequest request)
     {
@@ -55,6 +82,9 @@ public static class ReportBugEndpoint
 
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length > TitleMax)
             return Problem.Invalid($"A title of 1 to {TitleMax} characters is required.");
+
+        if (request.ClientRequestId is not null && (string.IsNullOrWhiteSpace(request.ClientRequestId) || request.ClientRequestId.Length > 200))
+            return Problem.Invalid("A bug request identity must contain 1 to 200 characters.");
 
         return request.Priority is < 1 or > 4 ? Problem.Invalid("Priority is 1 to 4.") : null;
     }

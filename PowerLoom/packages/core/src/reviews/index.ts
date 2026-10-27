@@ -1,6 +1,6 @@
 // The reviews domain: the reads the web pages and the read commands share (stage 2 of the powerloom-mcp design, 2026-10-23).
 export { loadReviewDetail, loadReviewRows, reviewTaskPrId, reviewTasksOf } from "./reviews";
-export { branchName, countReviewStatuses, isReviewClosed, matchesReviewStatus, reviewNeedsYou } from "./reviewLooks";
+export { branchName, countReviewStatuses, isReviewClosed, matchesReviewStatus, reviewNeedsYou, unresolvedReviewComments } from "./reviewLooks";
 export { toReviewRead, toReviewSummary } from "./reviewReads";
 export { REVIEW_LIST_STATUSES } from "../models/ReviewListStatus";
 export type { ReviewListStatus } from "../models/ReviewListStatus";

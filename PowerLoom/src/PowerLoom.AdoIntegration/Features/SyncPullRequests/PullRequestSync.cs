@@ -44,7 +44,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         await MarkListedAsync(listed, cancellation);
 
         var added = await AddNewReviewsAsync(listed, cancellation);
-        var closed = await CloseUnlistedAsync(listed, mine, cancellation);
+        var closed = await CloseUnlistedAsync(vault, listed, mine, cancellation);
         var branches = await RefreshBranchReviewsAsync(vault, ado, client, cancellation);
         var followUps = await QueueForReviewerCommentsAsync(listed, ado, client, cancellation);
 
@@ -207,16 +207,17 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
     // A PR that left the list: completed or abandoned, no longer yours to review, or its repo was deselected or disabled
     // (`mine`: your PRs before the repo filter, so the reason says which). Only Azure DevOps PRs: branch reviews have no PR
     // to leave it, and GitHub's PRs have their own check.
-    private async Task<int> CloseUnlistedAsync(List<AdoPullRequest> listed, List<AdoPullRequest> mine, CancellationToken cancellation)
+    private async Task<int> CloseUnlistedAsync(string vault, List<AdoPullRequest> listed, List<AdoPullRequest> mine, CancellationToken cancellation)
     {
         var listedIds = listed.Select(pr => pr.Id).ToList();
         var mineIds = mine.Select(pr => pr.Id).ToHashSet();
-        var gone = await db.PullRequests.Where(row => row.IsListed && !listedIds.Contains(row.Id) && (row.Origin == PullRequestOrigin.Sync || row.Origin == PullRequestOrigin.User)).ToListAsync(cancellation);
+        var gone = await db.PullRequests.Where(row => row.Vault == vault && row.IsListed && !listedIds.Contains(row.Id) && (row.Origin == PullRequestOrigin.Sync || row.Origin == PullRequestOrigin.User)).ToListAsync(cancellation);
 
+        var closed = 0;
         foreach (var pr in gone)
-            await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation);
+            if (await UnlistAsync(pr, mineIds.Contains(pr.Id) ? RepoNotSelectedReason : UnlistedReason, cancellation)) closed++;
 
-        return gone.Count;
+        return closed;
     }
 
     // Other reviewers' new comments on a reviewed PR queue a follow-up review task in the pool (user decision 2026-10-16),
@@ -288,7 +289,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         public int Failed { get; set; }
     }
 
-    private async Task UnlistAsync(PullRequest pr, string reason, CancellationToken cancellation)
+    private async Task<bool> UnlistAsync(PullRequest pr, string reason, CancellationToken cancellation)
     {
         pr.IsListed = false;
         pr.SyncedAt = DateTime.UtcNow;
@@ -296,6 +297,7 @@ public sealed class PullRequestSync(PowerLoomDbContext db, AgentConfigReader age
         await db.SaveChangesAsync(cancellation);
 
         if (await db.CodeReviews.AnyAsync(review => review.PrId == pr.Id && review.Status == ReviewStatus.Active, cancellation))
-            await ReviewClosing.CloseAsync(db, pr.Id, reason, Actor, cancellation);
+            return await ReviewClosing.CloseAsync(db, pr.Id, reason, Actor, cancellation) is null;
+        return false;
     }
 }

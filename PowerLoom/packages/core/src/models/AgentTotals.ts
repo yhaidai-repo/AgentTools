@@ -4,5 +4,6 @@ export interface AgentTotals {
   runs: number;
   tokens: number;
   costUsd: number;
+  accountingComplete?: boolean;
   durationMs: number;
 }

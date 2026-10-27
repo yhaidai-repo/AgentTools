@@ -39,3 +39,5 @@ export type { WikiLink } from "./models/WikiLink";
 export { vaultsDir, vaultsExclude } from "./review/vaultsEnv";
 export { TRASH_FOLDER, listTrash } from "./trash/listTrash";
 export type { TrashEntry } from "./models/TrashEntry";
+export { containedPath } from "./containedPath";
+export { scopedFilePath } from "./scopedFilePath";

@@ -39,8 +39,17 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
     options: z.record(z.string(), z.number()).default({}),
   }),
   async run(context, input) {
-    const agents = context.agents;
+    const prepared = await prepareAgentCreation(context, input);
+    if (!prepared.ok) return prepared;
+    await context.agents!.save(prepared.value);
+    await context.db.insert(agentPromptVersion).values({ agentId: input.id, version: 1, text: input.prompt });
+    return { ok: true, value: { id: input.id, promptVersion: 1, enabled: input.enabled } };
+  },
+};
 
+// Side-effect-free preflight shared by the combined agent/skill form and the command's final save.
+export async function prepareAgentCreation(context: CommandContext, input: CreateAgentInput, pendingSkill?: string): Promise<Outcome<AgentDefinition>> {
+    const agents = context.agents;
     if (!agents) {
       return { ok: false, error: "Agents can't be created from here (no agent store)." };
     }
@@ -49,7 +58,7 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
       return { ok: false, error: `An agent with the id "${input.id}" exists.` };
     }
 
-    const problems = await inputProblems(context, input);
+    const problems = await inputProblems(context, input, pendingSkill);
 
     if (problems.length > 0) {
       return { ok: false, error: problems.join(" ") };
@@ -62,15 +71,11 @@ export const createAgentCommand: Command<CreateAgentInput, { id: string; promptV
       return { ok: false, error: checked.errors.join("; ") };
     }
 
-    await agents.save(checked.value);
-    await context.db.insert(agentPromptVersion).values({ agentId: input.id, version: 1, text: input.prompt });
+    return { ok: true, value: checked.value };
+}
 
-    return { ok: true, value: { id: input.id, promptVersion: 1, enabled: input.enabled } };
-  },
-};
-
-async function inputProblems(context: CommandContext, input: CreateAgentInput): Promise<string[]> {
-  const known = await context.skills.names();
+async function inputProblems(context: CommandContext, input: CreateAgentInput, pendingSkill?: string): Promise<string[]> {
+  const known = [...await context.skills.names(), ...(pendingSkill ? [pendingSkill] : [])];
   const unknownSkills = input.skills.filter((skill) => !known.includes(skill));
   const template = await newAgentTemplate(context.agents!, input.id);
   const offered = (template.integrationSpecs ?? []).map((spec) => spec.key);

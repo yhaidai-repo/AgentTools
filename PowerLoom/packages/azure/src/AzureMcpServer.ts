@@ -25,12 +25,21 @@ export class AzureMcpServer {
     const namespaces = options.namespaces.flatMap((namespace) => ["--namespace", namespace]);
     const transport = new StdioClientTransport({ command: process.execPath, args: [wrapperPath(), "server", "start", "--read-only", "--mode", "all", ...namespaces], env: { ...getDefaultEnvironment(), ...options.env } });
     const client = new Client({ name: "powerloom-agent-runner", version: "1" });
+    const closeTransport = transport.close.bind(transport);
+    let closing: Promise<void> | undefined;
+    // The SDK starts an unawaited close if initialization fails. Share and await that same cleanup;
+    // absorb cleanup errors here so the SDK's discarded promise cannot become an unhandled rejection.
+    transport.close = () => closing ??= Promise.resolve().then(closeTransport).catch(() => undefined);
 
-    await client.connect(transport);
-
-    const { tools } = await client.listTools();
-
-    return new AzureMcpServer(client, tools.map(toolOf));
+    try {
+      await client.connect(transport);
+      const { tools } = await client.listTools();
+      transport.close = closeTransport;
+      return new AzureMcpServer(client, tools.map(toolOf));
+    } catch (error) {
+      await transport.close();
+      throw error;
+    }
   }
 
   tools(): AzureMcpTool[] {

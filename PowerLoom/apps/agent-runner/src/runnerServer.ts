@@ -5,6 +5,7 @@ import type { AzureUserLogin } from "@powerloom/azure";
 import type { DevHubCheck } from "@powerloom/devhub";
 import type { SqlConnectionCheck } from "@powerloom/sql";
 import type { RunnerCodex } from "./models/RunnerCodex";
+import type { RunnerMaintenance } from "./RunnerMaintenance";
 
 const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set (docker-compose.yml mounts agent-homes/codex there).";
 
@@ -28,8 +29,11 @@ export class RunnerServer {
     private readonly azureLogin: AzureUserLogin,
     private readonly azureTokenSecret: string,
     private readonly codex: RunnerCodex | null = null,
+    private readonly maintenance: RunnerMaintenance | null = null,
   ) {
-    this.server = createServer((request, response) => this.handle(request, response));
+    this.server = createServer((request, response) => {
+      void this.handle(request, response).catch((error) => this.requestFailed(request, response, error));
+    });
   }
 
   listen(port: number): void {
@@ -42,7 +46,7 @@ export class RunnerServer {
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method === "GET" && request.url === "/health") {
-      answer(response, 200, { ok: true, running: this.running });
+      answer(response, 200, { ok: true, running: this.running, maintenanceOwner: this.maintenance?.owner() ?? null });
 
       return;
     }
@@ -50,6 +54,11 @@ export class RunnerServer {
     if (request.method === "POST" && request.url === "/runs") {
       await this.start(request, response);
 
+      return;
+    }
+
+    if ((request.method === "PUT" || request.method === "DELETE") && request.url === "/maintenance") {
+      await this.setMaintenance(request, response);
       return;
     }
 
@@ -219,6 +228,11 @@ export class RunnerServer {
       return;
     }
 
+    if (this.maintenance?.owner()) {
+      answer(response, 409, { error: "deployment maintenance; retry the job later" });
+      return;
+    }
+
     if (this.running) {
       answer(response, 409, { error: `running ${this.running}` });
 
@@ -226,8 +240,24 @@ export class RunnerServer {
     }
 
     this.running = job.taskId;
-    answer(response, 202, { taskId: job.taskId });
-    void this.runThenFree(job);
+    try { answer(response, 202, { taskId: job.taskId }); }
+    finally { void this.runThenFree(job); }
+  }
+
+  private async setMaintenance(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (!this.maintenance) {
+      answer(response, 503, { error: "Persistent deployment maintenance is not configured." });
+      return;
+    }
+    const body = await readBody(request) as { owner?: unknown } | null;
+    if (typeof body?.owner !== "string" || !/^[a-f0-9-]{36}$/.test(body.owner)) {
+      answer(response, 400, { error: "expected a deployment owner UUID" });
+      return;
+    }
+    const accepted = request.method === "PUT" ? this.maintenance.acquire(body.owner) : this.maintenance.release(body.owner);
+    answer(response, accepted ? 200 : 409, accepted
+      ? { owner: body.owner, running: this.running }
+      : { error: "Another deployment owns maintenance; its lease was preserved." });
   }
 
   private async test(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -257,9 +287,22 @@ export class RunnerServer {
   private async runThenFree(job: AgentRunJob): Promise<void> {
     try {
       await this.run(job);
+    } catch (error) {
+      console.error(`${job.taskId}: background run failed:`, error);
     } finally {
       this.running = null;
     }
+  }
+
+  private requestFailed(request: IncomingMessage, response: ServerResponse, error: unknown): void {
+    console.error(`agent-runner request failed (${request.method} ${request.url}):`, error);
+    if (response.destroyed || response.writableEnded) return;
+    if (response.headersSent || request.aborted) {
+      response.destroy();
+      return;
+    }
+    try { answer(response, 500, { error: "Agent-runner request failed." }); }
+    catch { response.destroy(); }
   }
 }
 

@@ -18,7 +18,7 @@ const MAX_PAGE_CHARS = 60_000;
 const DENIED_STATUSES = [401, 403];
 
 // The Confluence tools, for an agent with the integration switched on in its Config (user decision 2026-10-02) and a
-// worker-side account set up (CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN). Read only. Search needs CONFLUENCE_SITE.
+// Worker-side account and trusted site (CONFLUENCE_EMAIL / CONFLUENCE_API_TOKEN / CONFLUENCE_SITE). Read only.
 // Every call goes to the data access log.
 export function createConfluenceTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
   const isOn = agent.capabilities.integrations?.[CONFLUENCE_INTEGRATION] === true;

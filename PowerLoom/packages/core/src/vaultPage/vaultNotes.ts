@@ -1,4 +1,4 @@
-import { frontmatterBlock, noteTitle } from "@powerloom/vault";
+import { containedPath, frontmatterBlock, noteTitle } from "@powerloom/vault";
 import { readFile, readdir } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 import type { PowerLoomNote } from "../models/PowerLoomNote";
@@ -13,7 +13,11 @@ export async function listVaultNotes(root: string): Promise<VaultNote[]> {
   const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".md")).map((entry) => join(entry.parentPath, entry.name));
   const visible = files.map((file) => relative(root, file).replaceAll("\\", "/")).filter((path) => !path.split("/").some((part) => HIDDEN_FOLDERS.includes(part)));
 
-  return Promise.all(visible.sort().map(async (path) => readNote(root, path)));
+  const notes = await Promise.all(visible.sort().map(async (path) => {
+    const safe = await containedPath(root, join(root, path));
+    return safe ? readNote(path, safe) : null;
+  }));
+  return notes.filter((note): note is VaultNote => note !== null);
 }
 
 // The tech-writer's notes changed since the period's start (user decision 2026-10-02: the page lists only those, and the
@@ -29,8 +33,8 @@ export function notesWrittenByPowerLoom(notes: VaultNote[], since: Date): PowerL
     .sort((a, b) => b.date.localeCompare(a.date) || (b.runId ?? 0) - (a.runId ?? 0));
 }
 
-async function readNote(root: string, path: string): Promise<VaultNote> {
-  const text = await readFile(join(root, path), "utf8");
+async function readNote(path: string, safe: string): Promise<VaultNote> {
+  const text = await readFile(safe, "utf8");
 
   return { path, title: noteTitle(text) ?? basename(path, ".md"), authors: authorsOf(text) };
 }

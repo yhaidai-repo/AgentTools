@@ -29,6 +29,7 @@ export const VAULT_REVIEW_INTEGRATION = "reviewVault";
 // notes, dead links and open records; the decisions, link fixes and record closings are applied once the run succeeds.
 export class VaultReviewWriter implements RunWriter {
   readonly integration = VAULT_REVIEW_INTEGRATION;
+  commitDraft(): unknown { return this.draft; }
 
   private readonly draft: VaultReviewDraft = { decisions: [], linkFixes: [], records: [], findings: [], summary: null };
   private readonly limits: ReviewLimits;

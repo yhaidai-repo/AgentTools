@@ -5,7 +5,7 @@ import type { AgentRunSession } from "../AgentRunSession";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { TaskContext } from "../models/TaskContext";
 import { numberOption } from "../stage";
-import { agentRepos } from "./agentRepos";
+import { agentRepos, mergeRepoRefs } from "./agentRepos";
 
 export const OPEN_REPO_TOOL = "open_repo";
 
@@ -29,6 +29,8 @@ export async function createOpenRepoTool(context: TaskContext, session: AgentRun
       if (!repo) {
         return { text: `"${name}" is not an enabled repo in the catalog. Catalog: ${catalog.join(", ") || "none"}.`, isError: true };
       }
+
+      mergeRepoRefs([...access.repos, repo]);
 
       if (names.includes(repo.name)) {
         return { text: `${repo.name} is already in your code tools.` };

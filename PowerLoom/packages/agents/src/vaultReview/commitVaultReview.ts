@@ -1,7 +1,8 @@
 import { ANY_AGENT, nextGlobalItemId } from "@powerloom/core";
-import { agentRun, localItem, vaultReviewDecision, type PowerLoomDb } from "@powerloom/db";
+import { localItem, vaultReviewDecision, type PowerLoomDb } from "@powerloom/db";
 import { eq } from "drizzle-orm";
 import { insertFindings } from "../findings";
+import { addRunOutputs } from "../tasks/runOutputs";
 import type { VaultsAccess } from "../models/VaultsAccess";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
 import type { NoteAuthor } from "../techWriter/models/NoteAuthor";
@@ -38,7 +39,7 @@ export async function commitVaultReview(db: PowerLoomDb, vaults: VaultsAccess, s
   const findingIds = await insertFindings(db, task, runId, draft.findings);
   const outputs = [...summaryLines(draft), ...taskIds, ...findingIds];
 
-  await db.update(agentRun).set({ outputs }).where(eq(agentRun.id, runId));
+  await addRunOutputs(db, runId, outputs);
   await db.update(localItem).set({ resolution: draft.summary }).where(eq(localItem.id, task.id));
 
   return outputs;

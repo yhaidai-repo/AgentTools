@@ -41,7 +41,9 @@ function Add-InputSection {
         return
     }
 
-    $Sections[$Heading] = $cleanBullets
+    $heading = ConvertTo-DraftHeading $Heading
+    if (-not $heading) { throw 'section heading must contain text.' }
+    $Sections[$heading] = @($Sections[$heading]) + $cleanBullets | Where-Object { $_ } | Select-Object -Unique
 }
 
 # Bullets stay one line each; the module, not the agent, owns the "- " marker.
