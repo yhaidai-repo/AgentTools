@@ -25,8 +25,8 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
     <>
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
-      <ItemContent item={item} />
       <EditTask detail={detail} />
+      <ItemContent item={item} editable={isEditableTask(item)} />
       <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
       <DocsResult detail={detail} />
@@ -37,8 +37,8 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
   );
 }
 
-// An agent task's text, while it isn't running (user decision 2026-10-26); the criteria are `doneWhen`, or `goal` on
-// tasks older than the field.
+// An agent task's text as fields, while it isn't running (user decision 2026-10-26); the criteria are `doneWhen`, or
+// `goal` on tasks older than the field. ItemContent leaves those sections out then.
 function EditTask({ detail }: { detail: ItemDetail }) {
   const { item } = detail;
   const data = (item.data ?? {}) as { doneWhen?: string; goal?: string };

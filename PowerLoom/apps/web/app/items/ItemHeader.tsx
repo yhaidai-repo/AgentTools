@@ -1,4 +1,4 @@
-import { isCancellableTask, isDeletableItem, isEditableTask, isHumanTaskData, isRerunnableTask } from "@powerloom/core";
+import { isCancellableTask, isDeletableItem, isHumanTaskData, isRerunnableTask } from "@powerloom/core";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -18,7 +18,6 @@ import type { Crumb } from "@/models/Crumb";
 import { CancelTaskButton } from "./CancelTaskButton";
 import { ContinueItem } from "./ContinueItem";
 import { DeleteItemButton } from "./DeleteItemButton";
-import { EDIT_TASK_ANCHOR } from "./EditTaskForm";
 import { ItemProgress } from "./ItemProgress";
 import { RerunTaskButton } from "./RerunTaskButton";
 
@@ -44,7 +43,6 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
           </div>
           <div className="hero-actions">
             {waitsForYou && <a className="button" href="#answer">{item.kind === "question" ? "Answer" : item.kind === "finding" ? "Review" : "Close the task"}</a>}
-            {isEditableTask(item) && <a className="button secondary" href={`#${EDIT_TASK_ANCHOR}`}>Edit</a>}
             {isRerunnableTask(item) && <RerunTaskButton adoId={item.pbiId} itemId={item.id} />}
             <ContinueItem item={item} />
             {(isCancellableTask(item) || isDeletableItem(item)) && (

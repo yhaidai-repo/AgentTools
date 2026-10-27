@@ -32,7 +32,9 @@ type ItemData = {
   repos?: string[];
 };
 
-const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode> = {
+type Render = (item: ItemRow, data: ItemData, editable: boolean) => React.ReactNode;
+
+const CONTENT: Record<string, Render> = {
   question: QuestionContent,
   human: HumanContent,
   research: ResearchTaskContent,
@@ -42,20 +44,25 @@ const CONTENT: Record<string, (item: ItemRow, data: ItemData) => React.ReactNode
   docs: DocsTaskContent,
 };
 
-// The full content of one item, laid out per kind; a task the user created looks the same whatever its kind.
-export function ItemContent({ item }: { item: ItemRow }) {
+// The full content of one item, laid out per kind; a task the user created looks the same whatever its kind. `editable`:
+// the page shows the task's text as fields (EditTaskForm), so its sections here are left out.
+export function ItemContent({ item, editable = false }: { item: ItemRow; editable?: boolean }) {
   const data = (item.data ?? {}) as ItemData;
-  const render = data.createdBy === "user" ? UserTaskContent : (CONTENT[item.kind] ?? ((row: ItemRow) => <Section title="Details" text={row.body} />));
+  const render: Render = data.createdBy === "user" ? UserTaskContent : (CONTENT[item.kind] ?? DetailsContent);
 
-  return <>{render(item, data)}</>;
+  return <>{render(item, data, editable)}</>;
+}
+
+function DetailsContent(item: ItemRow, _data: ItemData, editable: boolean) {
+  return editable ? null : <Section title="Details" text={item.body} />;
 }
 
 // Created on the Tasks page (user decision 2026-10-14): what to do, when it is done, and the note or repos it works on.
-function UserTaskContent(item: ItemRow, data: ItemData) {
+function UserTaskContent(item: ItemRow, data: ItemData, editable: boolean) {
   return (
     <>
-      <Section title="Description" text={item.body} />
-      <Section title="Acceptance criteria" text={data.doneWhen} />
+      {!editable && <Section title="Description" text={item.body} />}
+      {!editable && <Section title="Acceptance criteria" text={data.doneWhen} />}
       {data.path && <p>Note: <code>{data.path}</code></p>}
       {data.repos && data.repos.length > 0 && <p>Repositories: {data.repos.join(", ")}</p>}
     </>
@@ -87,12 +94,12 @@ function HumanTaskText({ text }: { text: string | null }) {
   );
 }
 
-function ResearchTaskContent(item: ItemRow, data: ItemData) {
+function ResearchTaskContent(item: ItemRow, data: ItemData, editable: boolean) {
   return (
     <>
       {data.needsWeb && <p className="result-error">Needs web research: research runs it only with web access on (its Config page).</p>}
-      <Section title="Question" text={item.body} />
-      <Section title="Goal" text={data.goal ?? data.why} />
+      {!editable && <Section title="Question" text={item.body} />}
+      {!editable && <Section title="Goal" text={data.goal ?? data.why} />}
       {data.needsWeb && <Bullets title="Suggested sources" items={data.sources} />}
       <p className="muted">Depth {data.depth ?? 1} · attempts {item.attempts}</p>
     </>
