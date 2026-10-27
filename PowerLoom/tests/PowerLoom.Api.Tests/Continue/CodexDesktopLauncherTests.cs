@@ -13,7 +13,7 @@ public sealed class CodexDesktopLauncherTests
 
         Assert.True(opened.Ok);
         Assert.StartsWith("codex://new?path=D%3A%2Fwork%20%26%20notes&prompt=", opened.Value!.Url);
-        Assert.Equal("Title\nIntro\n1. Work in these folders too (absolute paths): D:/extra.\n2. Prepare.\n3. Read D:/note.md and follow its Start section. Its short version, for you and me:\n\n---\n\nShort version", PromptOf(opened.Value));
+        Assert.Equal("Title\nIntro\n1. Work in the vault D:/work & notes: if it isn't this session's working folder, add it to the session. Read its AGENTS.md and follow it.\n2. Work in these folders too (absolute paths): D:/extra.\n3. Prepare.\n4. Read D:/note.md and follow its Start section. Its short version, for you and me:\n\n---\n\nShort version", PromptOf(opened.Value));
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class CodexDesktopLauncherTests
         var opened = new CodexDesktopLauncher().Open(request);
 
         Assert.True(opened.Ok);
-        Assert.StartsWith("Title\nIntro\n1. Prepare.\n2. Read", PromptOf(opened.Value!));
+        Assert.StartsWith("Title\nIntro\n1. Work in the vault D:/work & notes: if it isn't this session's working folder, add it to the session. Read its AGENTS.md and follow it.\n2. Prepare.\n3. Read", PromptOf(opened.Value!));
     }
 
     [Fact]
