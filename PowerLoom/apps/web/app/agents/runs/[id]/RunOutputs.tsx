@@ -9,8 +9,9 @@ import { itemPath } from "@/lib/items";
 type RunRow = typeof agentRun.$inferSelect;
 
 // What the run made, as status rows like the PBI page's items: the PBI note and refinement version, the items it
-// created, and the notes the tech-writer wrote (its outputs that are no item).
-export async function RunOutputs({ run }: { run: RunRow }) {
+// created, and the notes the tech-writer wrote (its outputs that are no item). `producers` names the sub-session that
+// made an output, when one did.
+export async function RunOutputs({ run, producers = {} }: { run: RunRow; producers?: Record<string, string> }) {
   const ids = (run.outputs ?? []).filter((output) => !output.includes("refinement"));
   const db = getDb();
   const items = ids.length > 0 ? await db.select().from(localItem).where(inArray(localItem.id, ids)) : [];
@@ -31,12 +32,16 @@ export async function RunOutputs({ run }: { run: RunRow }) {
           <span className="dot ok" />
           <Link href={itemPath(item)} className="id">{item.id}</Link>
           <span className="item-title" title={item.title}>{item.title}</span>
-          <span className="item-state">{item.kind} · {item.status}</span>
+          <span className="item-state">{item.kind} · {item.status}{producedBy(producers, item.id)}</span>
         </div>
       ))}
-      {notes.map((note) => <div key={note} className="item-row"><span className="dot ok" /><span className="item-title mono">{note}</span></div>)}
+      {notes.map((note) => <div key={note} className="item-row"><span className="dot ok" /><span className="item-title mono">{note}</span><span className="item-state">{producedBy(producers, note)}</span></div>)}
     </div>
   );
+}
+
+function producedBy(producers: Record<string, string>, output: string): string {
+  return producers[output] ? ` · by ${producers[output]}` : "";
 }
 
 // VaultCapture results: created or appended drafts, or the module's reasons for rejecting.

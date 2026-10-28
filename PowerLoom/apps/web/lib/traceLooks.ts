@@ -6,6 +6,7 @@ import type { TraceLine } from "@/models/TraceLine";
 import type { TraceLook } from "@/models/TraceLook";
 
 const SUMMARY_CHARS = 160;
+const FOLDED_TYPES = new Set(["phase", "session_progress", "tool_progress"]);
 
 export const TRACE_FILTERS = [
   { key: "all", label: "All" },
@@ -52,7 +53,7 @@ export function matchesFilter(event: StoredTraceEvent, filter: TraceFilter): boo
   }
 }
 
-// Consecutive phase events say little one by one: they fold into one line.
+// Consecutive phase or progress events say little one by one: those of one type fold into one line.
 export function groupPhases(events: StoredTraceEvent[]): TraceLine[] {
   const lines: TraceLine[] = [];
 
@@ -70,13 +71,13 @@ export function summaryOf(event: StoredTraceEvent): string {
 function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   const last = lines.at(-1);
 
-  if (event.type !== "phase") {
+  if (!FOLDED_TYPES.has(event.type)) {
     lines.push({ kind: "event", key: String(event.seq), event });
 
     return;
   }
 
-  if (last?.kind === "phases") {
+  if (last?.kind === "phases" && last.events[0].type === event.type) {
     last.events.push(event);
 
     return;

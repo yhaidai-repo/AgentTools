@@ -12,7 +12,7 @@ const MAX_TEXT_CHARS = 2000;
 const input = z.object({
   id: z.number().int().positive().describe("The run's number, e.g. 2716 for RUN-2716"),
   vault: vaultInput,
-  kind: z.enum(TRACE_EVENT_KINDS).optional().describe("Only events of this type: phase, text, tool_call, tool_result, usage, result, error or rate_limit"),
+  kind: z.enum(TRACE_EVENT_KINDS).optional().describe("Only events of this type: phase, text, tool_call, tool_result, usage, result, error, rate_limit, session_start, session_progress, session_end or tool_progress"),
   limit: limitInput(500, 200),
   offset: z.number().int().min(0).default(0).describe("Events to skip, to page through a long trace"),
 });

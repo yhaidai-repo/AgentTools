@@ -12,6 +12,7 @@ export interface UsageStore {
   totals(query: UsageQuery, groupBy: string): Promise<UsageTotals[]>;
   /** Omit limit for complete target-scoped enumeration; explicit limits are for presentation lists. */
   records(query: UsageQuery, limit?: number): Promise<UsageRecord[]>;
-  trace(runId: string): Promise<StoredTraceEvent[]>;
+  /** With a sessionId, only the events of that sub-session (the run page loads a large trace session by session). */
+  trace(runId: string, sessionId?: string): Promise<StoredTraceEvent[]>;
   purgeTraceBefore(date: Date): Promise<number>;
 }
