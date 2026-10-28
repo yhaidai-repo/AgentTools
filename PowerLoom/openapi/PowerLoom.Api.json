@@ -6035,6 +6035,12 @@
                 "$ref": "#/components/schemas/ChatDestination"
               }
             ]
+          },
+          "handoff": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

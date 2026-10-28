@@ -96,6 +96,20 @@ public sealed class OpenChatTests(PowerLoomHost host)
     }
 
     [Fact]
+    public async Task An_item_s_hand_off_goes_first_among_its_sections_and_into_the_short_version()
+    {
+        const string handoff = "**Handed off by** PT-7004 (planning, RUN-12): review the sender's output.\n\nThe plan archives expired orders.";
+        await StoreHumanTaskAsync("HT-7004");
+
+        var link = await host.Host.PostJson(new OpenChatRequest(ChatKind.Item, "HT-7004", Handoff: handoff), "/api/chats").Receive<ChatLink>();
+        var note = await File.ReadAllTextAsync(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, "chats", "item-HT-7004.md"));
+
+        Assert.Contains("## Hand-off\n\n" + handoff, note);
+        Assert.True(note.IndexOf("## Hand-off", StringComparison.Ordinal) < note.IndexOf("## The item", StringComparison.Ordinal));
+        Assert.Contains("The plan archives expired orders.", PromptOf(link!));
+    }
+
+    [Fact]
     public async Task An_unknown_item_is_not_found()
     {
         await host.Host.Scenario(scenario =>

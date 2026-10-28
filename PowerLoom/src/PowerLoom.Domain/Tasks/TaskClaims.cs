@@ -42,6 +42,15 @@ public static class TaskClaims
         return true;
     }
 
+    // Blocked for a person with the reasons on the task: nothing would start it again on its own (a gate refused it).
+    public static async Task BlockAsync(PowerLoomDbContext db, string taskId, IReadOnlyList<string> reasons, string actor, CancellationToken cancellation)
+    {
+        var task = await db.LocalItems.SingleAsync(item => item.Id == taskId, cancellation);
+
+        task.HeldBy = JsonSerializer.Serialize(reasons);
+        await ItemStatusChange.SetAsync(db, task, ItemStatus.Blocked, actor, null, cancellation);
+    }
+
     public static Task HoldAsync(PowerLoomDbContext db, string taskId, IReadOnlyList<string> reasons, CancellationToken cancellation)
     {
         var held = JsonSerializer.Serialize(reasons);

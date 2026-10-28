@@ -1,7 +1,7 @@
 import type { HumanTaskStep } from "../models/HumanTaskStep";
 
 // A review human task's fixed answers (gate approve): the backend releases the tasks that depend on it only when step 1
-// is answered `approve` (HandoffGates.cs reads the first answer); step 2 lets the person correct facts either way.
+// is answered `approve` (HandoffGates.cs in the backend reads the first answer); step 2 lets the person correct facts either way.
 export const APPROVE_ANSWER = "approve";
 
 export function approvalSteps(subject: string): HumanTaskStep[] {
