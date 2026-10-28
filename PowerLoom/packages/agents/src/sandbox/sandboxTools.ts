@@ -11,6 +11,7 @@ import { refusalOf } from "./commandRefusals";
 import { createEditTools } from "./editTools";
 import type { RunSandbox } from "./models/RunSandbox";
 import type { RunWorktree } from "./models/RunWorktree";
+import type { RunWorktreeSlot } from "./models/RunWorktreeSlot";
 import type { SandboxAccess } from "./models/SandboxAccess";
 import { isWorktreeRepo, snapshotOf } from "./repoSnapshot";
 import { restoreTool } from "./restoreTool";
@@ -30,8 +31,9 @@ const REQUEST_CHARS = 500;
 // run's repos copied in, no network and none of the runner's secrets, where the agent builds, tests and runs scripts.
 // The same tools for every provider, shaped like the ones the models know (Bash, Codex's exec_command and
 // apply_patch, Claude's Edit). The container is removed when the run ends; every call goes to the data access log.
-// `worktree`: the run's worktree when it commits code there; its repo is copied from it and sandbox_sync recopies it.
-export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, repos: RepoAccess, worktree: RunWorktree | null = null): ToolDefinition<any>[] {
+// `deps.runWorktree`: where the runner tells the run's worktree when it commits code there; that repo is copied from it
+// and sandbox_sync recopies it. Without the slot (a run with no worktree support) the repos come from the cache.
+export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, repos: RepoAccess): ToolDefinition<any>[] {
   const isOn = agent.capabilities.integrations?.[SANDBOX_INTEGRATION] === true;
 
   if (!isOn || !deps.sandbox) {
@@ -41,6 +43,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
   const access = deps.sandbox;
   const sandbox: RunSandbox = { info: null, repos: [] };
   const ttlMinutes = agent.limits.timeoutMinutes + TTL_MARGIN_MINUTES;
+  const worktree = deps.runWorktree ?? null;
   const sync = worktree ? [syncTool(deps, context, access, sandbox, worktree)] : [];
 
   return [
@@ -54,7 +57,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
   ];
 }
 
-function openTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox, repos: RepoAccess, worktree: RunWorktree | null, ttlMinutes: number) {
+function openTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox, repos: RepoAccess, worktree: RunWorktreeSlot | null, ttlMinutes: number) {
   return defineOutsideTool(deps.outside, context, {
     name: "sandbox_open",
     description: `Open your sandbox before any other sandbox tool: a Linux container with your repos copied in at /workspace/<repo> (each a git repo of its own at the run's commit), where you can build, run tests, grep and run scripts. It has no network: fetch the packages a build needs with sandbox_restore. Call it again to copy in more repos (open_repo first). Nothing you change leaves the sandbox: put what you found in your result.${worktreeNote(worktree)}`,
@@ -76,9 +79,9 @@ function openTool(deps: AgentDeps, context: OutsideAccessContext, access: Sandbo
         return opened;
       }
 
-      const copied = await copyRepos(deps, access, sandbox, repos, worktree, wanted.filter((name) => !sandbox.repos.includes(name)));
+      const copied = await copyRepos(deps, access, sandbox, repos, worktree?.current ?? null, wanted.filter((name) => !sandbox.repos.includes(name)));
 
-      return copied ?? { text: layoutText(sandbox, repos, worktree), rows: sandbox.repos.length };
+      return copied ?? { text: layoutText(sandbox, repos, worktree?.current ?? null), rows: sandbox.repos.length };
     },
   });
 }
@@ -151,12 +154,12 @@ async function ensureOpen(access: SandboxAccess, sandbox: RunSandbox, owner: str
   return null;
 }
 
-function worktreeNote(worktree: RunWorktree | null): string {
+function worktreeNote(worktree: RunWorktreeSlot | null): string {
   if (!worktree) {
     return "";
   }
 
-  return ` ${worktree.repo} is copied from your worktree instead (what you committed and changed there); call sandbox_sync to bring later commits in. Edits you make with the sandbox's edit tools stay in the sandbox: change code in your worktree.`;
+  return ` If your run has a worktree, its own repo is copied from the worktree instead of the base commit (with what you committed and changed there); call sandbox_sync to bring later commits in. Edits you make with the sandbox's edit tools stay in the sandbox: change code in your worktree.`;
 }
 
 async function copyRepos(deps: AgentDeps, access: SandboxAccess, sandbox: RunSandbox, repos: RepoAccess, worktree: RunWorktree | null, names: string[]): Promise<OutsideToolResult | null> {

@@ -2,7 +2,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import { defineOutsideTool } from "../outsideAccess";
 import type { RunSandbox } from "./models/RunSandbox";
-import type { RunWorktree } from "./models/RunWorktree";
+import type { RunWorktreeSlot } from "./models/RunWorktreeSlot";
 import type { SandboxAccess } from "./models/SandboxAccess";
 import { snapshotOf } from "./repoSnapshot";
 import { failure, noSandbox, resourceOf } from "./sandboxResults";
@@ -12,14 +12,20 @@ export const SYNC_MESSAGE = "synced from your worktree";
 // sandbox_sync: the agent commits in its worktree with its own tools, and builds and tests only in the sandbox, so the
 // sandbox copy must catch up with each wave of commits. The service replaces the repo's folder whole (files that
 // disappeared go too); the packages volume under /packages is not in it and stays.
-export function syncTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox, worktree: RunWorktree) {
+export function syncTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox, slot: RunWorktreeSlot) {
   return defineOutsideTool(deps.outside, context, {
     name: "sandbox_sync",
-    description: `Copy your worktree's current files (${worktree.repo}) over /workspace/${worktree.repo} in your sandbox, so it builds what you committed. Call it after each wave of commits, before building or testing. Files you deleted disappear from the sandbox; anything made inside /workspace/${worktree.repo} (build output, node_modules, sandbox-only edits) is reset, while restored packages under /packages stay: build again, and for npm run \`npm ci --offline\` again. Afterwards git status / git diff in the sandbox show changes since this sync.`,
+    description: `Copy your worktree's current files over its repo's folder /workspace/<repo> in your sandbox, so it builds what you committed. Call it after each wave of commits, before building or testing. Files you deleted disappear from the sandbox; anything made inside /workspace/<repo> (build output, node_modules, sandbox-only edits) is reset, while restored packages under /packages stay: build again, and for npm run \`npm ci --offline\` again. Afterwards git status / git diff in the sandbox show changes since this sync.`,
     input: {},
-    resource: () => resourceOf(access, sandbox, `sync ${worktree.repo}`),
-    request: () => `sync ${worktree.repo}`,
+    resource: () => resourceOf(access, sandbox, `sync ${slot.current?.repo ?? ""}`.trim()),
+    request: () => `sync ${slot.current?.repo ?? ""}`.trim(),
     handler: async () => {
+      const worktree = slot.current;
+
+      if (!worktree) {
+        return { text: "Your run has no worktree: there is nothing to sync.", isError: true };
+      }
+
       if (!sandbox.info) {
         return noSandbox();
       }

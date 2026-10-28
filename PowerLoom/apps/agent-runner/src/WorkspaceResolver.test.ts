@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import type { RunWorktreeSlot } from "@powerloom/agents";
 import type { AgentEvent, AgentRequest, AgentRuntime, RepoRef } from "@agenttools/runtime";
 import type { GitIdentityEnv } from "./models/GitIdentityEnv";
 import type { GsdWorktreeOptions } from "./models/GsdWorktreeOptions";
@@ -57,8 +58,8 @@ function workspaceRequest(gsd: boolean): AgentRequest {
   return request({ env: { KEEP: "1" }, settingSources: ["project"], workspace: { repo, branch: "feature/123-totals", baseBranch: "develop", gsd } });
 }
 
-function resolver(repos: WorkspaceRepos, gsd: FakeGsd, gsdCore: string | null = "D:/gsd-core"): WorkspaceResolver {
-  return new WorkspaceResolver(repos, gsd, { worktreeRoot: ROOT, gsdCore, identity });
+function resolver(repos: WorkspaceRepos, gsd: FakeGsd, gsdCore: string | null = "D:/gsd-core", slot: RunWorktreeSlot = { current: null }): WorkspaceResolver {
+  return new WorkspaceResolver(repos, gsd, { worktreeRoot: ROOT, gsdCore, identity }, slot);
 }
 
 describe("WorkspaceResolver", () => {
@@ -104,6 +105,27 @@ describe("WorkspaceResolver", () => {
     resolved.release();
 
     assert.deepEqual(repos.calls.filter((call) => call.startsWith("release")), ["release app"]);
+  });
+
+  it("tells the sandbox tools the run's worktree and repo until the workspace is released", async () => {
+    const slot: RunWorktreeSlot = { current: null };
+
+    const resolved = await resolver(new FakeRepos(), new FakeGsd(), "D:/gsd-core", slot).resolve(workspaceRequest(true));
+
+    assert.deepEqual(slot.current, { repo: "app", path: worktree });
+
+    resolved.release();
+
+    assert.equal(slot.current, null);
+  });
+
+  it("leaves the worktree slot empty for a request without a workspace or a failed worktree", async () => {
+    const slot: RunWorktreeSlot = { current: null };
+
+    await resolver(new FakeRepos(), new FakeGsd(), "D:/gsd-core", slot).resolve(request());
+    await assert.rejects(resolver(new FakeRepos(true), new FakeGsd(), "D:/gsd-core", slot).resolve(workspaceRequest(true)));
+
+    assert.equal(slot.current, null);
   });
 
   it("releases the repo when the worktree can't be opened", async () => {

@@ -10,6 +10,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { RunWorktree } from "./models/RunWorktree";
+import type { RunWorktreeSlot } from "./models/RunWorktreeSlot";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "./sandboxTools";
 
 const feed = { urlPrefixes: ["https://pkgs.dev.azure.com/acme/"], username: "powerloom", password: "pat" };
@@ -30,17 +31,17 @@ function agentWith(sandbox: boolean): AgentDefinition {
   return { capabilities: { webAccess: false, integrations: { [SANDBOX_INTEGRATION]: sandbox } }, limits: { maxTurns: 40, timeoutMinutes: 20 } } as unknown as AgentDefinition;
 }
 
-function depsWith(client: Partial<SandboxClient> | null): { deps: AgentDeps; entries: DataAccessEntry[] } {
+function depsWith(client: Partial<SandboxClient> | null, runWorktree?: RunWorktreeSlot): { deps: AgentDeps; entries: DataAccessEntry[] } {
   const entries: DataAccessEntry[] = [];
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
   const outside = { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } };
   const sandbox = client ? { client: client as SandboxClient, url: "http://sandbox:3300", feeds: [feed], packageHosts: ["api.nuget.org"], image: "" } : null;
 
-  return { deps: { outside, sandbox, repoCache: { root: cacheRoot } } as unknown as AgentDeps, entries };
+  return { deps: { outside, sandbox, repoCache: { root: cacheRoot }, runWorktree } as unknown as AgentDeps, entries };
 }
 
-function toolsOf(deps: AgentDeps, runWorktree: RunWorktree | null = null) {
-  const tools = createSandboxTools(deps, agentWith(true), context, repos, runWorktree);
+function toolsOf(deps: AgentDeps) {
+  const tools = createSandboxTools(deps, agentWith(true), context, repos);
 
   return (name: string) => tools.find((tool) => tool.name === name)!;
 }
@@ -180,10 +181,53 @@ describe("createSandboxTools", () => {
     assert.match(result.text, /call sandbox_open first/);
   });
 
-  it("adds sandbox_sync only for a run with a worktree", () => {
-    const names = createSandboxTools(depsWith({}).deps, agentWith(true), context, repos, worktree).map((tool) => tool.name);
+  it("adds sandbox_sync only for a run that can have a worktree", () => {
+    const withSlot = createSandboxTools(depsWith({}, { current: null }).deps, agentWith(true), context, repos).map((tool) => tool.name);
+    const without = createSandboxTools(depsWith({}).deps, agentWith(true), context, repos).map((tool) => tool.name);
 
-    assert.deepEqual(names.slice(0, 3), ["sandbox_open", "sandbox_sync", "sandbox_restore"]);
+    assert.deepEqual(withSlot.slice(0, 3), ["sandbox_open", "sandbox_sync", "sandbox_restore"]);
+    assert.equal(without.includes("sandbox_sync"), false);
+  });
+
+  it("reads the worktree when a tool is called, as the runner tells it after the tools are built", async () => {
+    const calls: string[] = [];
+    const slot: RunWorktreeSlot = { current: null };
+    const tool = toolsOf(depsWith(fakeClient(calls), slot).deps);
+
+    slot.current = worktree;
+    await tool("sandbox_open").handler({});
+
+    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api your worktree"]);
+  });
+
+  it("copies the cached checkout for a repo that isn't the worktree's", async () => {
+    const calls: string[] = [];
+    const other = { ...repos, repos: [...repos.repos, { name: "billing", remoteUrl: "", defaultBranch: "main" }] };
+    mkdirSync(join(cacheRoot, "billing"), { recursive: true });
+    const tools = createSandboxTools(depsWith(fakeClient(calls), { current: worktree }).deps, agentWith(true), context, other);
+
+    await tools.find((tool) => tool.name === "sandbox_open")!.handler({});
+
+    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api your worktree", "upload abc123 billing base unknown"]);
+  });
+
+  it("says a sync has nothing to do in a run with no worktree", async () => {
+    const calls: string[] = [];
+    const tool = toolsOf(depsWith(fakeClient(calls), { current: null }).deps);
+
+    await tool("sandbox_open").handler({});
+    const result = await tool("sandbox_sync").handler({});
+
+    assert.match(result.text, /no worktree/);
+    assert.equal(calls.length, 2);
+  });
+
+  it("copies the cached checkout when the run has no worktree", async () => {
+    const calls: string[] = [];
+    const result = await toolsOf(depsWith(fakeClient(calls)).deps)("sandbox_open").handler({});
+
+    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api base 0123456789abcdef"]);
+    assert.match(result.text, /commit 0123456789ab/);
   });
 
   it("copies the worktree's repo from the worktree and sync recopies its current files", async () => {
@@ -198,7 +242,7 @@ describe("createSandboxTools", () => {
         return { ok: true, value: { path: `/workspace/${name}`, files: 1 } };
       },
     };
-    const tool = toolsOf(depsWith(client).deps, worktree);
+    const tool = toolsOf(depsWith(client, { current: worktree }).deps);
 
     writeFileSync(join(worktreeRoot, "gone.cs"), "");
 
@@ -220,7 +264,7 @@ describe("createSandboxTools", () => {
 
   it("asks for sandbox_open before a sync", async () => {
     const calls: string[] = [];
-    const result = await toolsOf(depsWith(fakeClient(calls)).deps, worktree)("sandbox_sync").handler({});
+    const result = await toolsOf(depsWith(fakeClient(calls), { current: worktree }).deps)("sandbox_sync").handler({});
 
     assert.match(result.text, /call sandbox_open first/);
     assert.deepEqual(calls, []);
@@ -236,7 +280,7 @@ describe("createSandboxTools", () => {
         return { ok: true, value: { ok: true, steps: [], skipped: [], packagesPath: "/packages" } };
       },
     };
-    const tool = toolsOf(depsWith(client).deps, worktree);
+    const tool = toolsOf(depsWith(client, { current: worktree }).deps);
 
     await tool("sandbox_open").handler({});
     await tool("sandbox_restore").handler({ repo: "orders-api" });
