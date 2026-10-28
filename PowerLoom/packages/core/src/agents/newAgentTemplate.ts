@@ -1,5 +1,5 @@
 import type { AgentConfigStore, AgentDefinition } from "@agenttools/config";
-import { modelCatalog } from "@agenttools/config";
+import { modelCatalog, sharedSpecs } from "@agenttools/config";
 
 // The one grant a new agent starts with: reading the repos of its task (the runner's READ_REPOS_INTEGRATION key).
 const READ_REPOS_INTEGRATION = "readRepos";
@@ -13,7 +13,7 @@ export async function newAgentTemplate(agents: AgentConfigStore, id: string): Pr
   const builtins = (await agents.list()).filter((agent) => agent.origin !== "user");
   const optionSpecs = sharedOptionSpecs(builtins);
   const options = Object.fromEntries(optionSpecs.map((spec) => [spec.key, optionDefault(builtins, spec.key, spec.min)]));
-  const integrationSpecs = builtins.find((agent) => (agent.integrationSpecs ?? []).length > 0)?.integrationSpecs ?? [];
+  const integrationSpecs = sharedSpecs(builtins.find((agent) => (agent.integrationSpecs ?? []).length > 0)?.integrationSpecs ?? []);
   const integrations = Object.fromEntries(integrationSpecs.map((spec) => [spec.key, spec.key === READ_REPOS_INTEGRATION]));
   const model = modelCatalog()[0];
 

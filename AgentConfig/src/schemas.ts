@@ -50,6 +50,7 @@ export const agentDefinitionSchema = z.object({
     key: z.string().min(1),
     label: z.string().min(1),
     description: z.string(),
+    owner: z.string().min(1).optional(),
   })).default([]),
 }).superRefine(checkOptions).superRefine(checkIntegrations);
 

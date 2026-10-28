@@ -212,9 +212,10 @@ function readOptions(form: FormData, current: AgentDefinition): Record<string, A
   return Object.fromEntries(current.optionSpecs.map((spec) => [spec.key, Number(text(form, `option:${spec.key}`))]));
 }
 
-// One checkbox per integration the host declares (`integration:<key>`); undeclared keys never reach the definition.
+// One checkbox per integration the host declares (`integration:<key>`); undeclared keys never reach the definition. The
+// agent's owned ones are always on and not on the form.
 function readIntegrations(form: FormData, current: AgentDefinition): Record<string, boolean> {
-  return Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, form.get(`integration:${spec.key}`) === "on"]));
+  return Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, spec.owner !== undefined || form.get(`integration:${spec.key}`) === "on"]));
 }
 
 function text(form: FormData, name: string): string {

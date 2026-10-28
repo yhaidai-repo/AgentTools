@@ -242,7 +242,8 @@ const VAULT_REVIEW_OPTIONS: AgentOptionSpec[] = [
 ];
 
 // Outside systems PowerLoom can give an agent tools for, and PowerLoom's own grants; each one is switched on per agent in
-// its Config (user decision 2026-10-02).
+// its Config (user decision 2026-10-02). An agent-specific output tool carries its owner: always on there, offered to no other
+// agent (user decision 2026-10-28).
 const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: READ_REPOS_INTEGRATION,
@@ -314,31 +315,37 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
   },
   {
     key: VAULT_REVIEW_INTEGRATION,
+    owner: "vault-review",
     label: "Review a vault",
     description: "The agent may review its task's vault: list its stale and unlinked notes, dead links and open records, decide each (keep, remove, actualize; fix; close), and write the review summary. The decisions are applied when the run succeeds.",
   },
   {
     key: WRITE_DESIGN_INTEGRATION,
+    owner: "design",
     label: "Write designs",
     description: "The agent may design its PBI with write_design (approach, alternatives, plan, risks, tests) or name the questions that stop a design; the first message carries the PBI, its refinement and every research result. With a design the task is done, without one it waits for its gaps.",
   },
   {
     key: WRITE_REFINEMENT_INTEGRATION,
+    owner: "better-refinement",
     label: "Write refinements",
     description: "The agent may refine its PBI with write_refinement (summary, scope, gaps, dependencies, repos, blockers, skills) after record_estimate when estimates are granted; the first message carries the PBI as refinement reads it. The readiness gates read the latest refinement.",
   },
   {
     key: CODE_REVIEW_INTEGRATION,
+    owner: "code-review",
     label: "Review code (comments and summary)",
     description: "The agent reviews its task's pull request: the PR is checked out for the repo tools, its diff is in the first message, and add_review_comment, update_comment and write_review_summary record the review. Needs Read repositories.",
   },
   {
     key: BETTER_REVIEW_INTEGRATION,
+    owner: "better-review",
     label: "Review pull requests (Better Review)",
     description: "The agent reviews its task's pull request against its PBIs, the repo's review rules and the other reviewers' threads, with follow-ups anchored to the last reviewed commit; the PR is checked out for the repo tools. Needs Read repositories.",
   },
   {
     key: AUTOTEST_INTEGRATION,
+    owner: "autotest",
     label: "Write test reports",
     description: "The agent proves its PBI's acceptance criteria: the test cases, design and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
   },
