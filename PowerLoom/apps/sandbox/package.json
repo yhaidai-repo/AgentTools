@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
+    "proxy": "tsx src/proxy/proxyMain.ts",
     "typecheck": "tsc -p .",
     "test": "tsx --test \"src/**/*.test.ts\""
   },

@@ -14,7 +14,7 @@ export class ContainerExec {
 
   /** Runs `argv` to its end and collects its output; stdout and stderr stay apart. */
   async run(argv: string[], options: ExecOptions): Promise<ExecResult> {
-    const exec = await this.container().exec({ Cmd: argv, User: SANDBOX_USER, WorkingDir: options.cwd, AttachStdout: true, AttachStderr: true, AttachStdin: options.stdin !== undefined, Tty: false });
+    const exec = await this.container().exec({ Cmd: argv, User: SANDBOX_USER, WorkingDir: options.cwd, Env: options.env, AttachStdout: true, AttachStderr: true, AttachStdin: options.stdin !== undefined, Tty: false });
     const stream = await exec.start({ hijack: true, stdin: options.stdin !== undefined });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];

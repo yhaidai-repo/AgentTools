@@ -181,6 +181,9 @@ services:
       SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-8192}
       SANDBOX_DISK_MB: ${SANDBOX_DISK_MB:-20480}
       SANDBOX_MAX_COMMAND_MS: ${SANDBOX_MAX_COMMAND_MS:-600000}
+      # Package restores (sandbox_restore): their containers join this network, whose only way out is sandbox-egress.
+      SANDBOX_EGRESS_NETWORK: powerloom-sandbox-egress
+      SANDBOX_PROXY_URL: http://sandbox-egress:3128
     networks: [default, docker-api]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]
@@ -189,6 +192,18 @@ services:
       retries: 3
     depends_on:
       - docker-proxy
+    restart: unless-stopped
+
+  # The restore containers' only way out: HTTPS tunnels to the package hosts in SANDBOX_PACKAGE_HOSTS (exact names or
+  # *.domain), every tunnel logged. It sees host names only, never the traffic or a feed's token.
+  sandbox-egress:
+    <<: *app
+    profiles: ["sandbox"]
+    command: ["npm", "run", "proxy", "-w", "@powerloom/sandbox-service"]
+    environment:
+      SANDBOX_PACKAGE_HOSTS: ${SANDBOX_PACKAGE_HOSTS:-api.nuget.org,registry.npmjs.org,pkgs.dev.azure.com,*.pkgs.visualstudio.com,*.vsblob.vsassets.io}
+      SANDBOX_PROXY_PORT: "3128"
+    networks: [default, sandbox-egress]
     restart: unless-stopped
 
   # The Docker API for the sandbox service only, cut down to what it uses (containers, exec, images, volumes); on an
@@ -306,6 +321,10 @@ networks:
   # Only the sandbox service and the socket proxy: nothing else reaches the Docker API.
   docker-api:
     internal: true
+  # The restore containers and the egress proxy only; named, because the sandbox service attaches containers to it.
+  sandbox-egress:
+    internal: true
+    name: powerloom-sandbox-egress
 
 volumes:
   # Named after the old compose project (adoa): the volumes keep their data across the rename to powerloom.

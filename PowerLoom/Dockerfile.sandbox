@@ -34,8 +34,8 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && rm -rf /var/lib/apt/lists/* \
  && (userdel -r ubuntu 2>/dev/null || true) \
  && useradd --uid 1000 --create-home --home-dir /home/sandbox --shell /bin/bash sandbox \
- && mkdir /workspace \
- && chown 1000:1000 /workspace
+ && mkdir /workspace /packages /work \
+ && chown 1000:1000 /workspace /packages /work
 
 # Shown to the agent when it opens its sandbox.
 LABEL powerloom.toolchains=".NET SDK ${DOTNET_SDK} (runtimes ${DOTNET_PREVIOUS_1}, ${DOTNET_PREVIOUS_2}), Node ${NODE}, Deno ${DENO}, Python 3, PowerShell 7, git, ripgrep, jq"

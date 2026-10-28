@@ -2,10 +2,12 @@ import type { CommandRequest } from "./models/CommandRequest";
 import type { CommandResult } from "./models/CommandResult";
 import type { EditApplied } from "./models/EditApplied";
 import type { EditRequest } from "./models/EditRequest";
+import type { FeedCredential } from "./models/FeedCredential";
 import type { FileWritten } from "./models/FileWritten";
 import type { OpenSandboxRequest } from "./models/OpenSandboxRequest";
 import type { PatchApplied } from "./models/PatchApplied";
 import type { RepoUploaded } from "./models/RepoUploaded";
+import type { RestoreResult } from "./models/RestoreResult";
 import type { SandboxAnswer } from "./models/SandboxAnswer";
 import type { SandboxesRemoved } from "./models/SandboxesRemoved";
 import type { SandboxInfo } from "./models/SandboxInfo";
@@ -14,12 +16,14 @@ import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
+import { FEED_CREDENTIALS_HEADER } from "./sandboxConstants";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
 const COMMAND_MARGIN_MS = 30_000;
-// Copying a repo in streams its whole checkout.
+// Copying a repo in streams its whole checkout; a restore downloads its packages too.
 const UPLOAD_TIMEOUT_MS = 10 * 60_000;
+const RESTORE_TIMEOUT_MS = 30 * 60_000;
 const MAX_PROBLEM_CHARS = 300;
 
 // The sandbox service (apps/sandbox): the only PowerLoom service with Docker access. Every call carries its token.
@@ -43,6 +47,15 @@ export class SandboxClient {
     const path = `/sandboxes/${encodeURIComponent(id)}/repos/${encodeURIComponent(name)}?message=${encodeURIComponent(message)}`;
 
     return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: UPLOAD_TIMEOUT_MS });
+  }
+
+  /** Restores a repo's packages from its unchanged files (the tar), in a container of its own with the feeds' sign-ins;
+   *  `target` is a solution, project or folder of the repo, or the repo's root when empty. */
+  restore(id: string, repo: string, target: string, tar: ReadableStream<Uint8Array>, credentials: FeedCredential[]): Promise<SandboxAnswer<RestoreResult>> {
+    const path = `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}?target=${encodeURIComponent(target)}`;
+    const headers = { [FEED_CREDENTIALS_HEADER]: Buffer.from(JSON.stringify(credentials), "utf8").toString("base64") };
+
+    return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_TIMEOUT_MS, headers });
   }
 
   run(id: string, request: CommandRequest): Promise<SandboxAnswer<CommandResult>> {
@@ -91,8 +104,8 @@ export class SandboxClient {
     return this.send(method, path, { body: json, contentType: json === undefined ? undefined : "application/json", timeoutMs });
   }
 
-  private async send<T>(method: string, path: string, options: { body?: BodyInit; contentType?: string; timeoutMs: number }): Promise<SandboxAnswer<T>> {
-    const headers: Record<string, string> = { Authorization: `Bearer ${this.token}` };
+  private async send<T>(method: string, path: string, options: { body?: BodyInit; contentType?: string; timeoutMs: number; headers?: Record<string, string> }): Promise<SandboxAnswer<T>> {
+    const headers: Record<string, string> = { ...options.headers, Authorization: `Bearer ${this.token}` };
 
     if (options.contentType) {
       headers["Content-Type"] = options.contentType;

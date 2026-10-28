@@ -17,6 +17,9 @@ export function configFromEnv(): SandboxConfig {
     tmpMb: number("SANDBOX_TMP_MB", 1024),
     maxCommandMs: number("SANDBOX_MAX_COMMAND_MS", 600_000),
     maxSessions: number("SANDBOX_MAX_SESSIONS", 8),
+    egressNetwork: process.env.SANDBOX_EGRESS_NETWORK || null,
+    proxyUrl: process.env.SANDBOX_PROXY_URL || "http://sandbox-egress:3128",
+    restoreTimeoutMs: number("SANDBOX_RESTORE_TIMEOUT_MS", 15 * 60_000),
   };
 }
 

@@ -11,6 +11,7 @@ import type { DataAccessEntry } from "../models/DataAccessEntry";
 import type { RepoAccess } from "../models/RepoAccess";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "./sandboxTools";
 
+const feed = { urlPrefixes: ["https://pkgs.dev.azure.com/acme/"], username: "powerloom", password: "pat" };
 const context = { vault: "work-projects", agentId: "tester", runId: 7, owner: "powerloom-run-7", taskId: "AT-1-001", pbiId: 1 };
 const info = { id: "abc123", owner: "powerloom-run-7", expiresAt: "2026-10-28T12:00:00.000Z", workspace: "/workspace", image: "powerloom-sandbox", toolchains: "dotnet 10, node 24" };
 // The repo cache the snapshot reads: one checkout folder.
@@ -27,7 +28,7 @@ function depsWith(client: Partial<SandboxClient> | null): { deps: AgentDeps; ent
   const entries: DataAccessEntry[] = [];
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
   const outside = { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } };
-  const sandbox = client ? { client: client as SandboxClient, url: "http://sandbox:3300" } : null;
+  const sandbox = client ? { client: client as SandboxClient, url: "http://sandbox:3300", feeds: [feed] } : null;
 
   return { deps: { outside, sandbox, repoCache: { root: cacheRoot } } as unknown as AgentDeps, entries };
 }
@@ -56,7 +57,7 @@ describe("createSandboxTools", () => {
   it("gives the same tools to every provider, in the models' own shapes", () => {
     const names = createSandboxTools(depsWith({}).deps, agentWith(true), context, repos).map((tool) => tool.name);
 
-    assert.deepEqual(names, ["sandbox_open", "run_command", "exec_command", "write_stdin", "apply_patch", "edit_file", "write_file", "sandbox_close"]);
+    assert.deepEqual(names, ["sandbox_open", "sandbox_restore", "run_command", "exec_command", "write_stdin", "apply_patch", "edit_file", "write_file", "sandbox_close"]);
   });
 
   it("opens the run's sandbox, copies the repos in at their commit, runs a command and removes it", async () => {
@@ -141,5 +142,35 @@ describe("createSandboxTools", () => {
 
     assert.equal(result.text, "Done:\nupdate /workspace/a.ts");
     assert.equal(entries[1].request, "patch a.ts");
+  });
+
+  it("restores from the cached repo with the vault's feed sign-in and reports each step", async () => {
+    const sent: unknown[] = [];
+    const client: Partial<SandboxClient> = {
+      ...fakeClient([]),
+      restore: async (id, repo, target, tar, credentials) => {
+        sent.push([id, repo, target, credentials]);
+        await tar.cancel();
+
+        return { ok: true, value: { ok: false, steps: [{ label: "dotnet restore App.sln", exitCode: 1, durationMs: 4_000, output: "NU1301: unable to load" }], skipped: [], packagesPath: "/packages" } };
+      },
+    };
+    const { deps } = depsWith(client);
+    const tool = toolsOf(deps);
+
+    await tool("sandbox_open").handler({});
+
+    const result = await tool("sandbox_restore").handler({ repo: "orders-api", target: "App.sln" });
+
+    assert.deepEqual(sent, [["abc123", "orders-api", "App.sln", [feed]]]);
+    assert.equal(result.isError, true);
+    assert.match(result.text, /- dotnet restore App\.sln: failed \(exit code 1\) in 4\.0 s/);
+    assert.match(result.text, /NU1301/);
+  });
+
+  it("restores only a repo the sandbox has", async () => {
+    const result = await toolsOf(depsWith(fakeClient([])).deps)("sandbox_restore").handler({ repo: "orders-api" });
+
+    assert.match(result.text, /call sandbox_open first/);
   });
 });

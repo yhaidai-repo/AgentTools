@@ -23,6 +23,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
 import { SharedAzureServers } from "./SharedAzureServers";
 import { loadCaptureRules } from "../vaultCapture";
+import { adoFeedCredential } from "../sandbox/adoFeedCredential";
 import { repoGitAuth } from "./env";
 import { SearchThrottle } from "../webSearch/SearchThrottle";
 import { SearxngClient } from "../webSearch/SearxngClient";
@@ -30,7 +31,7 @@ import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
 
-type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "github" | "googleDrive" | "azure" | "devHub" | "ado" | "webSearch">;
+type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "github" | "googleDrive" | "azure" | "devHub" | "ado" | "sandbox" | "webSearch">;
 
 // Builds what a run or a chat session needs for one vault (the runner's deps, shared with the MCP server since the
 // powerloom-mcp design, 2026-10-23): the vault's docs and backlog, its repo cache, and every integration the vault has
@@ -45,6 +46,7 @@ export class AgentDepsFactory {
   private readonly repoCaches = new Map<string, RepoCache>();
   // Each vault's git sign-in as its last run read it; its cache reads it on every git command.
   private readonly repoAuth = new Map<string, string[]>();
+  private sandboxClient: SandboxClient | null = null;
   // The Azure MCP server per vault when the host serves many short sessions (the MCP server); null: one per run.
   private readonly sharedAzure: SharedAzureServers<AzureMcpServer> | null;
   // One pace for every run of this host: the searches all leave from this machine.
@@ -79,7 +81,6 @@ export class AgentDepsFactory {
       confluence: ConfluenceClient.fromEnv(),
       confluenceSite: env.confluenceSite,
       powerloomUrl: env.powerloomUrl,
-      sandbox: env.sandbox ? { client: new SandboxClient(env.sandbox.url, env.sandbox.token), url: env.sandbox.url } : null,
     };
   }
 
@@ -120,6 +121,7 @@ export class AgentDepsFactory {
       azure: await this.azureAccessOf(vault),
       devHub: await this.devHubAccessOf(vault),
       ado: await this.adoAccessOf(vault),
+      sandbox: await this.sandboxAccessOf(vault),
       webSearch: await this.webSearchAccess(),
     };
   }
@@ -188,6 +190,18 @@ export class AgentDepsFactory {
   }
 
   // The vault's Azure DevOps, read only.
+  // The host's sandbox service, with the vault's own package feeds signed in by its ADO token (restores only).
+  private async sandboxAccessOf(vault: string): Promise<AgentDeps["sandbox"]> {
+    if (!this.env.sandbox) {
+      return null;
+    }
+
+    const ado = await readAdoSettings(this.db, vault);
+    const feed = ado ? adoFeedCredential(ado.orgUrl, ado.pat) : null;
+
+    return { client: this.sandboxClient ??= new SandboxClient(this.env.sandbox.url, this.env.sandbox.token), url: this.env.sandbox.url, feeds: feed ? [feed] : [] };
+  }
+
   private async adoAccessOf(vault: string): Promise<AgentDeps["ado"]> {
     const settings = await readAdoSettings(this.db, vault);
 

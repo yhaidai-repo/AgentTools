@@ -13,6 +13,7 @@ import { createEditTools } from "./editTools";
 import type { RunSandbox } from "./models/RunSandbox";
 import type { SandboxAccess } from "./models/SandboxAccess";
 import { repoSnapshot } from "./repoSnapshot";
+import { restoreTool } from "./restoreTool";
 import { failure, noSandbox, resourceOf } from "./sandboxResults";
 import { createSessionTools } from "./sessionTools";
 
@@ -41,6 +42,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
 
   return [
     openTool(deps, context, access, sandbox, repos, ttlMinutes),
+    restoreTool(deps, context, access, sandbox),
     runCommandTool(deps, context, access, sandbox),
     ...createSessionTools(deps, context, access, sandbox),
     ...createEditTools(deps, context, access, sandbox),
@@ -51,7 +53,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
 function openTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox, repos: RepoAccess, ttlMinutes: number) {
   return defineOutsideTool(deps.outside, context, {
     name: "sandbox_open",
-    description: "Open your sandbox before any other sandbox tool: a Linux container with your repos copied in at /workspace/<repo> (each a git repo of its own at the run's commit), where you can build, run tests, grep and run scripts. It has no network: packages a build needs and doesn't already have can't be fetched. Call it again to copy in more repos (open_repo first). Nothing you change leaves the sandbox: put what you found in your result.",
+    description: "Open your sandbox before any other sandbox tool: a Linux container with your repos copied in at /workspace/<repo> (each a git repo of its own at the run's commit), where you can build, run tests, grep and run scripts. It has no network: fetch the packages a build needs with sandbox_restore. Call it again to copy in more repos (open_repo first). Nothing you change leaves the sandbox: put what you found in your result.",
     input: { repos: z.array(z.string().min(1)).optional().describe("Repos to copy in, by name as the repo tools name them; leave out for every repo of your run") },
     resource: (input) => resourceOf(access, sandbox, (input.repos ?? []).join(",")),
     request: (input) => `open${input.repos ? ` with ${input.repos.join(", ")}` : ""}`,
@@ -165,7 +167,7 @@ function layoutText(sandbox: RunSandbox, repos: RepoAccess): string {
   const lines = sandbox.repos.map((name) => `- ${info.workspace}/${name} (commit ${(repos.commits[name] ?? "unknown").slice(0, 12)})`);
   const toolchains = info.toolchains ? `\nToolchains: ${info.toolchains}` : "";
 
-  return `Sandbox ${info.id} is open until ${info.expiresAt}.\nRepos:\n${lines.join("\n") || "- none"}${toolchains}\nNo network; Linux only (projects that need Windows don't build here). git status / git diff show your changes.`;
+  return `Sandbox ${info.id} is open until ${info.expiresAt}.\nRepos:\n${lines.join("\n") || "- none"}${toolchains}\nNo network (sandbox_restore fetches packages); Linux only (projects that need Windows don't build here). git status / git diff show your changes.`;
 }
 
 function commandText(result: CommandResult): OutsideToolResult {

@@ -7,6 +7,7 @@ import { SessionRegistry } from "../sessions/SessionRegistry";
 import { CommandRunner } from "./CommandRunner";
 import { ContainerExec } from "./ContainerExec";
 import { DiskWatch } from "./DiskWatch";
+import { PackageRestore } from "./PackageRestore";
 import { RepoImporter } from "./RepoImporter";
 
 // One run's sandbox: its container, and what works on it.
@@ -14,6 +15,7 @@ export class Sandbox {
   readonly commands: CommandRunner;
   readonly files: FileEditor;
   readonly repos: RepoImporter;
+  readonly packages: PackageRestore;
 
   constructor(
     readonly info: SandboxInfo,
@@ -26,6 +28,7 @@ export class Sandbox {
     this.commands = new CommandRunner(exec, new DiskWatch(exec, config.diskMb), new SessionRegistry(config.maxSessions), config.maxCommandMs);
     this.files = new FileEditor(new ContainerFileStore(exec));
     this.repos = new RepoImporter(exec);
+    this.packages = new PackageRestore(docker, config);
   }
 
   get isExpired(): boolean {

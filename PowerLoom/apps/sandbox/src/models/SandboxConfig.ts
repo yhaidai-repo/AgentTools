@@ -16,4 +16,9 @@ export interface SandboxConfig {
   tmpMb: number;
   maxCommandMs: number;
   maxSessions: number;
+  /** The internal network restore containers join; its only way out is the egress proxy. Null = no restores. */
+  egressNetwork: string | null;
+  /** The egress proxy as the restore containers reach it, e.g. http://sandbox-egress:3128. */
+  proxyUrl: string;
+  restoreTimeoutMs: number;
 }

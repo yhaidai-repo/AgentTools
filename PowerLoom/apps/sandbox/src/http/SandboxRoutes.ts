@@ -1,4 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { FEED_CREDENTIALS_HEADER, type FeedCredential } from "@powerloom/sandbox";
+import { BadRequest } from "./BadRequest";
 import type { SandboxRegistry } from "../docker/SandboxRegistry";
 import type { Sandbox } from "../docker/Sandbox";
 import type { Outcome } from "../models/Outcome";
@@ -12,6 +14,7 @@ const SANDBOX_ACTIONS: Record<string, Record<string, SandboxAction>> = {
   PUT: {
     repos: async (sandbox, request, parts, url) => sandbox.repos.import(parts[3] ?? "", request, url.searchParams.get("message") || "base"),
     files: async (sandbox, request) => sandbox.files.writeFile(writeFileRequest(await readJson(request))),
+    restore: async (sandbox, request, parts, url) => sandbox.packages.restore(sandbox.info, parts[3] ?? "", url.searchParams.get("target") ?? "", request, feedCredentials(request)),
   },
   POST: {
     commands: async (sandbox, request) => sandbox.commands.run(commandRequest(await readJson(request))),
@@ -88,6 +91,21 @@ function ownerFilter(url: URL): (sandbox: Sandbox) => boolean {
   }
 
   return prefix ? (sandbox) => sandbox.info.owner.startsWith(prefix) : () => false;
+}
+
+// The feeds' sign-ins of a restore, from its header (base64 JSON); none when it has no header.
+function feedCredentials(request: IncomingMessage): FeedCredential[] {
+  const header = request.headers[FEED_CREDENTIALS_HEADER];
+
+  if (typeof header !== "string" || header.length === 0) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(Buffer.from(header, "base64").toString("utf8")) as FeedCredential[];
+  } catch {
+    throw new BadRequest(`The ${FEED_CREDENTIALS_HEADER} header is not base64 JSON`);
+  }
 }
 
 function sendOutcome(response: ServerResponse, outcome: Outcome<unknown>): void {

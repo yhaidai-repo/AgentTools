@@ -4,7 +4,7 @@ import { SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE, type OpenSandboxRequest,
 import type { Outcome } from "../models/Outcome";
 import type { SandboxConfig } from "../models/SandboxConfig";
 import { Sandbox } from "./Sandbox";
-import { sandboxContainerOptions } from "./sandboxContainerOptions";
+import { packagesVolume, sandboxContainerOptions } from "./sandboxContainerOptions";
 
 const TOOLCHAINS_LABEL = "powerloom.toolchains";
 const MAX_TTL_MINUTES = 24 * 60;
@@ -23,6 +23,9 @@ export class SandboxRegistry {
   async open(request: OpenSandboxRequest): Promise<Sandbox> {
     const id = randomBytes(6).toString("hex");
     const expiresAt = new Date(Date.now() + Math.min(request.ttlMinutes, MAX_TTL_MINUTES) * 60_000);
+
+    await this.docker.createVolume({ Name: packagesVolume(id), Labels: { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: request.owner } });
+
     const container = await this.docker.createContainer(sandboxContainerOptions(this.config, id, request.owner, expiresAt));
 
     await container.start();
@@ -69,6 +72,12 @@ export class SandboxRegistry {
       console.log(`removed the leftover sandbox of ${container.Labels[SANDBOX_OWNER_LABEL] ?? "unknown"}`);
     }
 
+    const volumes = (await this.docker.listVolumes({ filters: { label: [SANDBOX_LABEL] } })).Volumes ?? [];
+
+    for (const volume of volumes) {
+      await this.docker.getVolume(volume.Name).remove();
+    }
+
     return containers.length;
   }
 
@@ -78,6 +87,7 @@ export class SandboxRegistry {
 
     try {
       await this.docker.getContainer(sandbox.containerId).remove({ force: true, v: true });
+      await this.docker.getVolume(packagesVolume(sandbox.info.id)).remove();
     } catch (error) {
       console.error(`removing the sandbox of ${sandbox.info.owner} failed:`, error);
     }
