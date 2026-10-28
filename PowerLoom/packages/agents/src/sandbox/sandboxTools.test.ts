@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -9,6 +9,7 @@ import type { DataAccessLog } from "../DataAccessLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import type { RepoAccess } from "../models/RepoAccess";
+import type { RunWorktree } from "./models/RunWorktree";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "./sandboxTools";
 
 const feed = { urlPrefixes: ["https://pkgs.dev.azure.com/acme/"], username: "powerloom", password: "pat" };
@@ -17,6 +18,11 @@ const info = { id: "abc123", owner: "powerloom-run-7", expiresAt: "2026-10-28T12
 // The repo cache the snapshot reads: one checkout folder.
 const cacheRoot = mkdtempSync(join(tmpdir(), "sandbox-tools-"));
 mkdirSync(join(cacheRoot, "orders-api"));
+writeFileSync(join(cacheRoot, "orders-api", "cached.cs"), "");
+
+// The run's worktree of orders-api, where the agent commits.
+const worktreeRoot = mkdtempSync(join(tmpdir(), "sandbox-worktree-"));
+const worktree: RunWorktree = { repo: "orders-api", path: worktreeRoot };
 
 const repos: RepoAccess = { isOn: true, repos: [{ name: "orders-api", remoteUrl: "", defaultBranch: "main" }], commits: { "orders-api": "0123456789abcdef" }, tools: [] };
 
@@ -33,8 +39,8 @@ function depsWith(client: Partial<SandboxClient> | null): { deps: AgentDeps; ent
   return { deps: { outside, sandbox, repoCache: { root: cacheRoot } } as unknown as AgentDeps, entries };
 }
 
-function toolsOf(deps: AgentDeps) {
-  const tools = createSandboxTools(deps, agentWith(true), context, repos);
+function toolsOf(deps: AgentDeps, runWorktree: RunWorktree | null = null) {
+  const tools = createSandboxTools(deps, agentWith(true), context, repos, runWorktree);
 
   return (name: string) => tools.find((tool) => tool.name === name)!;
 }
@@ -172,5 +178,70 @@ describe("createSandboxTools", () => {
     const result = await toolsOf(depsWith(fakeClient([])).deps)("sandbox_restore").handler({ repo: "orders-api" });
 
     assert.match(result.text, /call sandbox_open first/);
+  });
+
+  it("adds sandbox_sync only for a run with a worktree", () => {
+    const names = createSandboxTools(depsWith({}).deps, agentWith(true), context, repos, worktree).map((tool) => tool.name);
+
+    assert.deepEqual(names.slice(0, 3), ["sandbox_open", "sandbox_sync", "sandbox_restore"]);
+  });
+
+  it("copies the worktree's repo from the worktree and sync recopies its current files", async () => {
+    const calls: string[] = [];
+    const uploads: string[] = [];
+    const client: Partial<SandboxClient> = {
+      ...fakeClient(calls),
+      uploadRepo: async (id, name, tar, message) => {
+        calls.push(`upload ${id} ${name} ${message}`);
+        uploads.push(Buffer.from(await new Response(tar).arrayBuffer()).toString("latin1"));
+
+        return { ok: true, value: { path: `/workspace/${name}`, files: 1 } };
+      },
+    };
+    const tool = toolsOf(depsWith(client).deps, worktree);
+
+    writeFileSync(join(worktreeRoot, "gone.cs"), "");
+
+    const opened = await tool("sandbox_open").handler({});
+
+    rmSync(join(worktreeRoot, "gone.cs"));
+    writeFileSync(join(worktreeRoot, "committed.cs"), "");
+
+    const synced = await tool("sandbox_sync").handler({});
+
+    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api your worktree", "upload abc123 orders-api synced from your worktree"]);
+    assert.match(opened.text, /\/workspace\/orders-api \(your worktree's files\)/);
+    assert.match(uploads[0], /gone\.cs/);
+    assert.doesNotMatch(uploads[0], /cached\.cs/);
+    assert.match(uploads[1], /committed\.cs/);
+    assert.doesNotMatch(uploads[1], /gone\.cs/);
+    assert.equal(synced.text, "Synced 1 files into /workspace/orders-api.");
+  });
+
+  it("asks for sandbox_open before a sync", async () => {
+    const calls: string[] = [];
+    const result = await toolsOf(depsWith(fakeClient(calls)).deps, worktree)("sandbox_sync").handler({});
+
+    assert.match(result.text, /call sandbox_open first/);
+    assert.deepEqual(calls, []);
+  });
+
+  it("restores from the cached checkout at the run's commit even with a worktree", async () => {
+    const restored: string[] = [];
+    const client: Partial<SandboxClient> = {
+      ...fakeClient([]),
+      restore: async (id, repo, target, tar) => {
+        restored.push(Buffer.from(await new Response(tar).arrayBuffer()).toString("latin1"));
+
+        return { ok: true, value: { ok: true, steps: [], skipped: [], packagesPath: "/packages" } };
+      },
+    };
+    const tool = toolsOf(depsWith(client).deps, worktree);
+
+    await tool("sandbox_open").handler({});
+    await tool("sandbox_restore").handler({ repo: "orders-api" });
+
+    assert.match(restored[0], /cached\.cs/);
+    assert.match(tool("sandbox_restore").description, /a package you add can't be fetched/);
   });
 });
