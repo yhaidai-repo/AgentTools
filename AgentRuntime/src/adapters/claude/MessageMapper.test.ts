@@ -86,6 +86,7 @@ describe("MessageMapper sub-sessions", () => {
       description: "Create roadmap",
       taskId: "a09e",
       background: false,
+      inferred: false,
     });
     assert.deepEqual(ofType(events, "tool_progress")[0], { type: "tool_progress", callId: AGENT_CALL, name: "Agent", elapsedMs: 30_000, sessionId: AGENT_CALL });
     assert.deepEqual(ofType(events, "session_end")[0], {
@@ -112,6 +113,37 @@ describe("MessageMapper sub-sessions", () => {
       [AGENT_CALL, null],
       ["toolu_inner", AGENT_CALL],
     ]);
+  });
+
+  it("opens an inferred session for a frame that comes before its task_started, and completes it then", () => {
+    const mapper = new MessageMapper();
+    const early = { ...assistant("m1", [{ type: "tool_use", id: "toolu_read", name: "Read", input: {} }], AGENT_CALL), subagent_type: "gsd-planner", task_description: "Plan Phase 1" } as SDKMessage;
+
+    const events = mapAll(mapper, [early, taskStarted("a8a1", AGENT_CALL, "gsd-planner", true), toolResult("toolu_read", AGENT_CALL)]);
+
+    assert.deepEqual(events.map((event) => event.type), ["session_start", "tool_call", "session_start", "tool_result"]);
+    assert.deepEqual(ofType(events, "session_start").map((event) => [event.sessionId, event.name, event.description, event.taskId, event.background, event.inferred]), [
+      [AGENT_CALL, "gsd-planner", "Plan Phase 1", null, null, true],
+      [AGENT_CALL, "gsd-planner", "Create roadmap", "a8a1", true, false],
+    ]);
+  });
+
+  it("ends an inferred session that never got its task_started as unfinished", () => {
+    const mapper = new MessageMapper();
+
+    mapAll(mapper, [heartbeat(AGENT_CALL)]);
+
+    const finished = mapper.finish(null);
+
+    assert.deepEqual(finished.map((event) => [event.type, event.sessionId]), [["session_end", AGENT_CALL], ["result", undefined]]);
+  });
+
+  it("does not reopen a session for a late frame after its task_notification", () => {
+    const mapper = new MessageMapper();
+
+    const events = mapAll(mapper, [taskStarted("a09e", AGENT_CALL, "gsd-roadmapper"), taskNotification("a09e", AGENT_CALL), heartbeat(AGENT_CALL)]);
+
+    assert.deepEqual(events.map((event) => event.type), ["session_start", "session_end", "tool_progress"]);
   });
 
   it("maps a background Bash task as a background task, not a sub-agent", () => {
@@ -171,6 +203,17 @@ describe("MessageMapper run result", () => {
 
     assert.equal(summedOutput(events, "claude-opus-5-5"), 260);
     assert.equal(summedOutput(events, "claude-sonnet-5-5"), 1200);
+  });
+
+  it("keeps the usage of a turn cut short by the stop, before the result", () => {
+    const mapper = new MessageMapper();
+
+    mapper.map(assistant("m1", [{ type: "text", text: "working" }], null, { input_tokens: 10, output_tokens: 40 }));
+
+    const finished = mapper.finish("timeout");
+
+    assert.deepEqual(finished.map((event) => event.type), ["usage", "result"]);
+    assert.equal(summedOutput(finished, "claude-opus-5-5"), 40);
   });
 
   it("reports the stop reason of a run stopped after a result", () => {

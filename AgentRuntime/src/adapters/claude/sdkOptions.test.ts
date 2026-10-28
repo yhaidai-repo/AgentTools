@@ -17,7 +17,7 @@ function optionsFor(fields: Partial<AgentRequest> = {}) {
   const abort = new RunAbort(2000);
 
   try {
-    return buildSdkOptions(request(fields), abort, PROJECT_DIR, undefined);
+    return buildSdkOptions(request(fields), abort, { projectDir: PROJECT_DIR, conversation: undefined, apiProxied: false });
   } finally {
     abort.dispose();
   }
@@ -56,24 +56,42 @@ describe("buildSdkOptions", () => {
     assert.equal(options.hooks?.PreToolUse?.length, 1);
   });
 
+  it("guards secrets by default when the run has built-in tools", async () => {
+    const options = optionsFor({ capabilities: { webAccess: true } });
+    const [hook] = options.hooks?.PreToolUse?.[0].hooks ?? [];
+
+    const output = await decide(hook, preToolUse({ tool_name: "Read", tool_input: { file_path: "D:/repo/.env" } }));
+
+    assert.equal((output as { hookSpecificOutput?: { permissionDecision?: string } }).hookSpecificOutput?.permissionDecision, "deny");
+  });
+
   it("names this runtime as the SDK client", () => {
     assert.equal(optionsFor().env?.CLAUDE_AGENT_SDK_CLIENT_APP, "agenttools-runtime/1.0");
   });
 });
 
 describe("childEnv", () => {
+  const parentEnv = {
+    PATH: "/bin",
+    CLAUDE_CONFIG_DIR: "/claude",
+    CLAUDE_CODE_OAUTH_TOKEN: "token",
+    CLAUDECODE: "1",
+    CLAUDE_CODE_ENTRYPOINT: "claude-desktop",
+    CLAUDE_AGENT_SDK_VERSION: "0.3.286",
+    ANTHROPIC_BASE_URL: "http://localhost:1234",
+  };
+
   it("drops a parent Claude Code session's variables and keeps the OAuth token", () => {
-    const env = childEnv({
-      PATH: "/bin",
-      CLAUDE_CONFIG_DIR: "/claude",
-      CLAUDE_CODE_OAUTH_TOKEN: "token",
-      CLAUDECODE: "1",
-      CLAUDE_CODE_ENTRYPOINT: "claude-desktop",
-      CLAUDE_AGENT_SDK_VERSION: "0.3.286",
-      ANTHROPIC_BASE_URL: "http://localhost:1234",
-    }, "app/1.0");
+    const env = childEnv(parentEnv, "app/1.0", false);
 
     assert.deepEqual(env, { PATH: "/bin", CLAUDE_CONFIG_DIR: "/claude", CLAUDE_CODE_OAUTH_TOKEN: "token", CLAUDE_AGENT_SDK_CLIENT_APP: "app/1.0" });
+  });
+
+  it("keeps ANTHROPIC_BASE_URL when the host proxies the API", () => {
+    const env = childEnv(parentEnv, "app/1.0", true);
+
+    assert.equal(env.ANTHROPIC_BASE_URL, "http://localhost:1234");
+    assert.equal(env.CLAUDECODE, undefined);
   });
 });
 

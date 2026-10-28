@@ -9,6 +9,7 @@ import { RunAbort } from "../../RunAbort";
 import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
+import type { ClaudeRuntimeOptions } from "./models/ClaudeRuntimeOptions";
 import { buildSdkOptions } from "./sdkOptions";
 import { TOOL_SERVER_NAME, sdkToolNamer } from "./toSdkTools";
 import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
@@ -22,7 +23,7 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   private lastSeen: SubscriptionReport | null = null;
   private readonly projectDir = process.cwd();
 
-  constructor(keepConversations = false) {
+  constructor(keepConversations = false, private readonly options: ClaudeRuntimeOptions = {}) {
     this.conversations = keepConversations ? new ClaudeConversations(this.projectDir) : null;
   }
 
@@ -76,7 +77,7 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   private buildOptions(request: AgentRequest, abort: RunAbort): Options {
     const conversation = this.conversations ? request.conversation : undefined;
 
-    return buildSdkOptions(request, abort, this.projectDir, conversation);
+    return buildSdkOptions(request, abort, { projectDir: this.projectDir, conversation, apiProxied: this.options.apiProxied ?? false });
   }
 
   private remember(event: AgentEvent): void {

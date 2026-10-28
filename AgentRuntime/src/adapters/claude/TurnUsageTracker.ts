@@ -1,9 +1,9 @@
-import type { ModelUsage, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { ModelUsage } from "@anthropic-ai/claude-agent-sdk";
 import type { EventBody } from "../../EventSequence";
 import type { TurnUsageEvent } from "../../models/TurnUsageEvent";
+import type { SdkAssistantMessage } from "./models/SdkAssistantMessage";
 
-type AssistantMessage = Extract<SDKMessage, { type: "assistant" }>;
-type SdkUsage = NonNullable<AssistantMessage["message"]["usage"]>;
+type SdkUsage = NonNullable<SdkAssistantMessage["message"]["usage"]>;
 type TokenCounts = Pick<TurnUsageEvent, "inputTokens" | "outputTokens" | "cacheReadTokens" | "cacheWriteTokens">;
 
 const TOKEN_FIELDS = ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"] as const;
@@ -16,7 +16,7 @@ export class TurnUsageTracker {
   private pending: { id: string; event: EventBody & TokenCounts & { model: string } } | null = null;
   private readonly emitted = new Map<string, TokenCounts>();
 
-  track(message: AssistantMessage): EventBody[] {
+  track(message: SdkAssistantMessage): EventBody[] {
     const { id, usage, model } = message.message;
     const finished = this.pending && this.pending.id !== id ? this.flush() : [];
 
