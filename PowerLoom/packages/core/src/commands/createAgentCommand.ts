@@ -4,7 +4,7 @@ import { AGENT_DESCRIPTION_MAX } from "../agents/agentText";
 import { reservePromptVersion } from "../agents/promptVersions";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
 import { newAgentTemplate } from "../agents/newAgentTemplate";
-import { ownedGrantProblems } from "../agents/ownedIntegrations";
+import { ownedGrantProblems, ownedGrants } from "../agents/ownedIntegrations";
 import { withModelProvider } from "../agents/modelProvider";
 import type { Command } from "../models/Command";
 import type { CommandContext } from "../models/CommandContext";
@@ -83,12 +83,12 @@ async function inputProblems(context: CommandContext, input: CreateAgentInput, p
   const unknownSkills = input.skills.filter((skill) => !known.includes(skill));
   const template = await newAgentTemplate(context.agents!, input.id);
   const offered = (template.integrationSpecs ?? []).map((spec) => spec.key);
-  const owned = await ownedGrantProblems(context.agents!, input.id, input.grants);
-  const unknownGrants = input.grants.filter((grant) => !offered.includes(grant) && !owned.some((problem) => problem.startsWith(`"${grant}"`)));
+  const owned = await ownedGrants(context.agents!, input.id, input.grants);
+  const unknownGrants = input.grants.filter((grant) => !offered.includes(grant) && !owned.has(grant));
 
   return [
     ...(unknownSkills.length > 0 ? [`Unknown skills: ${unknownSkills.join(", ")} (known: ${known.join(", ")}).`] : []),
-    ...owned,
+    ...ownedGrantProblems(owned),
     ...(unknownGrants.length > 0 ? [`Unknown grants: ${unknownGrants.join(", ")} (offered: ${offered.join(", ")}).`] : []),
   ];
 }

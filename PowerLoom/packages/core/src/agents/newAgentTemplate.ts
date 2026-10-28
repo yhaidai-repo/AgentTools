@@ -1,6 +1,5 @@
 import type { AgentConfigStore, AgentDefinition } from "@agenttools/config";
-import { modelCatalog } from "@agenttools/config";
-import { sharedSpecs } from "./ownedIntegrations";
+import { modelCatalog, sharedSpecs } from "@agenttools/config";
 
 // The one grant a new agent starts with: reading the repos of its task (the runner's READ_REPOS_INTEGRATION key).
 const READ_REPOS_INTEGRATION = "readRepos";

@@ -1,21 +1,18 @@
-import type { AgentConfigStore, AgentIntegrationSpec } from "@agenttools/config";
+import type { AgentConfigStore } from "@agenttools/config";
 
-// The switches every agent may have; an owned one (an agent-specific output tool) belongs to its system agent only.
-export function sharedSpecs(specs: AgentIntegrationSpec[]): AgentIntegrationSpec[] {
-  return specs.filter((spec) => spec.owner === undefined);
-}
-
-// One message per grant that names another agent's owned switch; the agent's own is already on, so it passes.
-export async function ownedGrantProblems(agents: AgentConfigStore, agentId: string, grants: string[]): Promise<string[]> {
+// The grants that name another agent's owned switch, with that switch's owner; the agent's own is already on, so it passes.
+export async function ownedGrants(agents: AgentConfigStore, agentId: string, grants: string[]): Promise<Map<string, string>> {
   if (grants.length === 0) {
-    return [];
+    return new Map();
   }
 
   const owners = await ownersByKey(agents);
 
-  return grants
-    .filter((grant) => owners.has(grant) && owners.get(grant) !== agentId)
-    .map((grant) => `"${grant}" belongs to the ${owners.get(grant)} agent and can't be granted to any other agent.`);
+  return new Map(grants.filter((grant) => owners.has(grant) && owners.get(grant) !== agentId).map((grant) => [grant, owners.get(grant)!]));
+}
+
+export function ownedGrantProblems(owned: Map<string, string>): string[] {
+  return [...owned].map(([grant, owner]) => `"${grant}" belongs to the ${owner} agent and can't be granted to any other agent.`);
 }
 
 async function ownersByKey(agents: AgentConfigStore): Promise<Map<string, string>> {

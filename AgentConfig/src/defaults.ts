@@ -33,6 +33,11 @@ function specsOfAgent(agentId: string, specs: AgentDefinition["integrationSpecs"
   return specs.filter((spec) => spec.owner === undefined || spec.owner === agentId);
 }
 
+// The switches every agent may have; an owned one (an agent-specific output tool) belongs to its system agent only.
+export function sharedSpecs(specs: AgentDefinition["integrationSpecs"]): AgentDefinition["integrationSpecs"] {
+  return specs.filter((spec) => spec.owner === undefined);
+}
+
 function ownedOn(specs: AgentDefinition["integrationSpecs"]): Record<string, boolean> {
   return Object.fromEntries(specs.filter((spec) => spec.owner !== undefined).map((spec) => [spec.key, true]));
 }
@@ -42,9 +47,9 @@ function ownedOn(specs: AgentDefinition["integrationSpecs"]): Record<string, boo
 // switch starts off; every switch already set keeps its value; one the code no longer offers goes. Owned switches are
 // never copied.
 export function refreshUserAgents(stored: AgentDefinition[], builtins: AgentDefinition[]): AgentDefinition[] {
-  const specs = builtins.find((agent) => agent.integrationSpecs.length > 0)?.integrationSpecs.filter((spec) => spec.owner === undefined);
+  const specs = builtins.find((agent) => agent.integrationSpecs.length > 0)?.integrationSpecs;
 
-  return specs ? stored.filter((agent) => agent.origin === "user").map((agent) => withSwitches(agent, specs)) : [];
+  return specs ? stored.filter((agent) => agent.origin === "user").map((agent) => withSwitches(agent, sharedSpecs(specs))) : [];
 }
 
 function withSwitches(agent: AgentDefinition, specs: AgentDefinition["integrationSpecs"]): AgentDefinition {

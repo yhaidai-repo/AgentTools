@@ -136,8 +136,18 @@ function OwnedTools({ specs }: { specs: AgentDefinition["integrationSpecs"] }) {
   return (
     <div className="owned-tools">
       <h4>Part of this agent</h4>
-      {specs.map((spec) => <label key={spec.key} className="switch-field"><input type="checkbox" checked disabled readOnly /><span className="switch-knob" aria-hidden="true" /><span className="switch-text">{spec.label}<small>{spec.description}</small></span></label>)}
+      {specs.map((spec) => <OwnedTool key={spec.key} spec={spec} />)}
     </div>
+  );
+}
+
+function OwnedTool({ spec }: { spec: AgentDefinition["integrationSpecs"][number] }) {
+  return (
+    <label className="switch-field">
+      <input type="checkbox" checked disabled readOnly />
+      <span className="switch-knob" aria-hidden="true" />
+      <span className="switch-text">{spec.label}<small>{spec.description}</small></span>
+    </label>
   );
 }
 
