@@ -1,10 +1,14 @@
 import { Panel } from "@/components/Panel";
 import { loadAiProviders } from "@/lib/aiProviders";
+import { loadDeadLetters } from "@/lib/deadLetters";
 import { mcpAnswers } from "@/lib/mcpHealth";
 import { isObservabilityOn, observabilityState } from "@/lib/observability";
 import { grafanaExploreUrl } from "@/lib/prometheus";
+import { periodStart } from "@/lib/periodStart";
+import { periodOf } from "@/lib/ranges";
 import type { SystemStatus } from "@/lib/systemStatus";
 import { ArchitectureScheme } from "./ArchitectureScheme";
+import { DeadLetters } from "./DeadLetters";
 import { HealthBand } from "./HealthBand";
 import { RatesSection, hasRates, loadRates } from "./RatesSection";
 import { nodeById } from "./schemeLayout";
@@ -16,21 +20,25 @@ interface ApplicationTabProps {
   vault: string;
   focus: string | null;
   mark: string | null;
+  range?: string;
 }
 
 // PowerLoom's own health (user decision 2026-10-13: service health, not delivery; 2026-10-18: only what belongs to the
-// application, and the selected vault's integrations): the health band, the state of each part, the last 24 h of
-// rates, and the architecture scheme last. `focus` is the scheme's open level, `mark` the node to point at (from the URL).
-export async function ApplicationTab({ status, vault, focus, mark }: ApplicationTabProps) {
+// application, and the selected vault's integrations): health, state, dead letters, the last 24 h of rates, and the
+// architecture scheme last. `focus` is the scheme's open level, `mark` the node to point at (from the URL).
+export async function ApplicationTab({ status, vault, focus, mark, range }: ApplicationTabProps) {
   const rates = await loadRates(new Date());
   const level = focus && nodeById(focus) ? focus : null;
   const observabilityOn = isObservabilityOn();
+  const period = periodOf(range);
+  const letters = status ? await loadDeadLetters(await periodStart(period, vault)) : null;
 
   return (
     <>
       {status ? <HealthBand status={status} rates={rates} /> : <Panel tone="error"><p className="text-error">PowerLoom doesn&apos;t answer: its status is unknown.</p></Panel>}
       {status && <div className="section-label">Status</div>}
       {status && <StatePanels status={status} vault={vault} observability={observabilityState(observabilityOn, hasRates(rates))} />}
+      <DeadLetters letters={letters} range={period} />
       <div className="section-label">Last 24 h</div>
       <RatesSection rates={rates} grafana={grafanaExploreUrl()} observabilityOn={observabilityOn} />
       <div className="section-label">Architecture</div>

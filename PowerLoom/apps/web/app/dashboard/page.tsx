@@ -35,7 +35,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       </div>
       <RememberFilters vault={vault} />
       <DashboardTabs active={tab} />
-      {tab === "application" && <ApplicationTab status={await loadSystemStatus()} vault={vault} focus={params.focus ?? null} mark={params.mark ?? null} />}
+      {tab === "application" && <ApplicationTab status={await loadSystemStatus()} vault={vault} focus={params.focus ?? null} mark={params.mark ?? null} range={params.range} />}
       {tab === "agents" && <AgentsTab vault={vault} range={params.range} metric={params.metric} />}
       {tab === "delivery" && <DeliveryTab vault={vault} sprint={params.sprint} />}
     </>
