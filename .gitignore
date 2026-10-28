@@ -1,2 +1,4 @@
 node_modules/
 *.tsbuildinfo
+# Desktop chat catalog fallback folders (metadata only, machine-local).
+PowerLoom/desktop-chats/

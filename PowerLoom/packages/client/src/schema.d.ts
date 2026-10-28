@@ -968,6 +968,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chats/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_chats_conversations
+         * @description GET_api_chats_conversations
+         */
+        get: operations["GET_api_chats_conversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/chats": {
         parameters: {
             query?: never;
@@ -2036,10 +2056,20 @@ export interface components {
             current: string;
             apps: components["schemas"]["ChatApp"][];
         };
+        ChatConversationChoices: {
+            launcher: string;
+            label: string;
+            conversations: components["schemas"]["DesktopConversation"][];
+        };
+        ChatDestination: {
+            launcher: string;
+            conversationId: string;
+        };
         /** @enum {unknown} */
         ChatKind: "pbi" | "item" | "review" | "vault" | "import";
         ChatLink: {
             url: string;
+            clipboardText?: null | string;
         };
         ChooseChatAppRequest: {
             launcher: string;
@@ -2230,6 +2260,15 @@ export interface components {
             deleted: components["schemas"]["DeletedPbi"][];
             refused: string[];
         };
+        DesktopConversation: {
+            id: string;
+            title: string;
+            folder: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @default false */
+            isRelated: boolean;
+        };
         DevHubCheck: {
             ok: boolean;
             message: string;
@@ -2331,6 +2370,7 @@ export interface components {
             kind: components["schemas"]["ChatKind"];
             id: string;
             folder?: null | string;
+            destination?: null | components["schemas"]["ChatDestination"];
         };
         OutsideComponentState: {
             component: string;
@@ -4169,6 +4209,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeadLetterAction"];
+                };
+            };
+        };
+    };
+    GET_api_chats_conversations: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["ChatKind"];
+                id?: string;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatConversationChoices"];
                 };
             };
         };

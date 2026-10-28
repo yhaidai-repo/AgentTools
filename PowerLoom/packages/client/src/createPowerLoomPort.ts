@@ -26,10 +26,10 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
         throw new Error(`PowerLoom didn't take the ${kind} record ${sourceId}: ${problemDetail(error, response)}`);
       }
     },
-    async openChat(target) {
-      const { data, error, response } = await powerloom.POST("/api/chats", { body: chatRequest(target) });
+    async openChat(target, destination) {
+      const { data, error, response } = await powerloom.POST("/api/chats", { body: { ...chatRequest(target), destination } });
 
-      return data ? { ok: true, value: { url: data.url } } : powerloomFailure(error, response);
+      return data ? { ok: true, value: { url: data.url, clipboardText: data.clipboardText } } : powerloomFailure(error, response);
     },
     async deletePbi(adoId) {
       const { data, error, response } = await powerloom.DELETE("/api/pbis", { body: { adoIds: [adoId] } });

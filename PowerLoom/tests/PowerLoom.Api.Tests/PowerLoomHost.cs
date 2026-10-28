@@ -52,6 +52,7 @@ public sealed class PowerLoomHost : IAsyncLifetime
 
     // PowerLoom's backlog vault (a folder per vault), where chat notes are written.
     public string BacklogRoot => Path.Combine(VaultsRoot, "..", "backlog-" + Path.GetFileName(VaultsRoot));
+    public string DesktopRoot => Path.Combine(VaultsRoot, "desktop");
 
     public async Task InitializeAsync()
     {
@@ -79,6 +80,10 @@ public sealed class PowerLoomHost : IAsyncLifetime
         Environment.SetEnvironmentVariable("Chat__ReposRoot", "D:/pc/repos");
         Environment.SetEnvironmentVariable("Chat__BacklogHostRoot", "D:/pc/powerloom-backlog");
         Environment.SetEnvironmentVariable("Chat__AgentTools", AgentTools);
+        Environment.SetEnvironmentVariable("Chat__CodexHistoryRoot", Path.Combine(DesktopRoot, "codex"));
+        Environment.SetEnvironmentVariable("Chat__ClaudeSessionsRoot", Path.Combine(DesktopRoot, "claude"));
+        Directory.CreateDirectory(Path.Combine(DesktopRoot, "codex", "sessions"));
+        Directory.CreateDirectory(Path.Combine(DesktopRoot, "claude"));
         // The run saga's waits, short enough for a test.
         Environment.SetEnvironmentVariable("Runner__BusyRetry", "00:00:01");
         Environment.SetEnvironmentVariable("Runner__TimeoutMargin", "00:00:02");

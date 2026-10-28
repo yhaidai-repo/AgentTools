@@ -58,6 +58,21 @@ docker compose up -d --build
   overwriting.
 - Rebuild only after checking `agent_run` for a run without `ended_at`.
 
+## Continue in an existing chat
+- **Continue with …** on a PBI, item or review offers **New chat** / **Existing chat**, with title/folder search and
+  the current project's conversations first. Configure/import still start a new chat.
+- Codex opens the selected conversation with the handoff prompt prefilled. Claude copies the prompt, shows
+  “Prompt copied. Paste it into the selected Claude chat.”, then opens the selected local Code session.
+  If copying fails, the prompt stays visible for manual copying or retry. No message is sent automatically.
+- Choosing another chat preserves the item's existing handoff note; a missing note is created once.
+- New installs discover desktop histories automatically. For an existing install, run
+  `pwsh scripts/Set-DesktopChatHistory.ps1` from this folder before recreating the backend. It sets the three
+  `*_DESKTOP_*_PATH` values in `.env`; existing custom paths are retained. Optional `-CodexHistory <home>` and
+  `-ClaudeSessions <folder>` override discovery. The mounts are read-only and exclude login files.
+- Catalog sources: Claude Desktop's `claude-code-sessions` metadata and Codex's active `sessions` headers plus
+  `session_index.jsonl`. Archived and delegated conversations are excluded; user-created forks stay selectable.
+  An app update that changes its metadata/link formats may need a reader update.
+
 ## Backups
 - `backup` service: one `pg_dump` at start, then daily at `BACKUP_CRON` (UTC) into `BACKUP_PATH` (default `./backups`); keeps `BACKUP_KEEP_DAYS` (14).
 - Restore: `docker compose stop powerloom agent-runner web`, then `docker compose run --rm backup sh /scripts/restore.sh /backups/<file>.dump`, then `docker compose start powerloom agent-runner web`.

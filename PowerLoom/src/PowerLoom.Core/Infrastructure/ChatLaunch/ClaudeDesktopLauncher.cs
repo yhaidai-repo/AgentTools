@@ -23,6 +23,14 @@ public sealed class ClaudeDesktopLauncher : IChatLauncher
         if (prompt.Length > PromptMax)
             return Outcome<OpenedChat>.Failure(Problem.Invalid($"The prompt has {prompt.Length} characters; a claude:// link takes about {PromptMax}."));
 
+        if (request.Destination is { } destination)
+        {
+            if (destination.Launcher != Id || !destination.ConversationId.StartsWith("local_", StringComparison.Ordinal) || !Guid.TryParseExact(destination.ConversationId[6..], "D", out _))
+                return Outcome<OpenedChat>.Failure(Problem.Invalid("Choose an existing local Claude conversation from the list."));
+
+            return Outcome<OpenedChat>.Success(new OpenedChat($"claude://code/continue?session={Uri.EscapeDataString(destination.ConversationId)}", prompt));
+        }
+
         return Outcome<OpenedChat>.Success(new OpenedChat($"claude://code/new?folder={Uri.EscapeDataString(request.Folder)}&q={Uri.EscapeDataString(prompt)}"));
     }
 
