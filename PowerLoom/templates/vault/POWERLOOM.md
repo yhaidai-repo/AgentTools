@@ -13,6 +13,12 @@ Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, 
 - Tools marked read-only change nothing; the others change PowerLoom, so ask the user first.
 - No `powerloom` tools in this chat? The MCP server isn't connected: say so; the user can do the same in PowerLoom's web UI.
 
+## When PowerLoom itself fails
+A PowerLoom tool failed in a way a retry did not fix, answered with something clearly wrong, or the server is not reachable
+and you worked around it? Call `failure_report` once per cause (`tool`: the tool as named, or `PowerLoom MCP`; what you saw;
+what you did instead; the impact on your answer). Not for a retry that worked, an expected "not found", or your own tools
+(web search, shell, editor). Never put in data a tool returned or secrets. `failure_reports` lists what was reported.
+
 ## Working on a PBI
 1. Start with `pbi_read` and `{"ref": "PBI-<id>"}`: the PBI's prepared context, the same the agents get. It holds the
    ADO fields, the note (description, acceptance criteria), the user's own notes (`<user-notes>`), the parent, links,
@@ -53,6 +59,7 @@ at most 200 rows. Every read goes to the data access log.
 | `vault_capture` | saves verified facts this vault lacks as a draft in draft/, for a person to verify and merge (always this chat's vault) |
 | `register_add`, `register_close` | records an open question or known issue in a project's register; closes a record the user settled (always this chat's vault) |
 | `www_create` | adds a What-went-wrong record |
+| `failure_report` | records a failure of a PowerLoom tool, or of the server, that you could not work around (the one tool here you call without asking first: say in one line what you reported) |
 | `agent_create`, `agent_update`, `agent_delete`, `agent_run`, `agent_pause`, `agent_saveGlobal`, `agent_saveFramework` | creates, changes or deletes an agent, runs one now, pauses or resumes them all, sets the shared daily budget, replaces the shared framework |
 | `skill_create`, `skill_save`, `skill_restore` | creates a skill, rewrites one of PowerLoom's own skills, puts a revision of one back |
 | `deadletter_replay`, `deadletter_discard` | runs a message PowerLoom gave up on again, or drops it for good |

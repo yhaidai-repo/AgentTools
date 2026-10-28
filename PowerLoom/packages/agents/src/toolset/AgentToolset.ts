@@ -17,6 +17,9 @@ import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
 import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
 import { DuplicateGuard } from "../DuplicateGuard";
+import { DbFailureReportStore } from "../failureReport/DbFailureReportStore";
+import { FailureReportRun } from "../failureReport/FailureReportRun";
+import { createReportFailureTool } from "../failureReport/reportFailureTool";
 import { commitEstimate } from "../estimate/commitEstimate";
 import { createEstimateTools, ESTIMATE_INTEGRATION, offersEstimate } from "../estimate/estimateTool";
 import { RunEstimate } from "../estimate/RunEstimate";
@@ -81,6 +84,8 @@ export class AgentToolset {
   readonly meter = new RunMeter();
   /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
   private readonly writers: RunWriter[];
+  /** What report_failure has recorded in this run: its cap and one report per cause. */
+  private readonly failureReports = new FailureReportRun();
   private log: ReadLog | null = null;
   private offer: OfferedTool[] = [];
   /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
@@ -287,6 +292,7 @@ export class AgentToolset {
     const shared = [
       { source: HAND_ON_SOURCE, tools: hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : [] },
       { source: EVERY_AGENT, tools: createWebDocumentTools(deps.db, this.webDocuments) },
+      { source: EVERY_AGENT, tools: [createReportFailureTool(new DbFailureReportStore(deps.db), outsideAccessContext(agent.id, this.session.runId, this.task), this.failureReports)] },
       { source: EVERY_AGENT, tools: deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : [] },
       { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];
