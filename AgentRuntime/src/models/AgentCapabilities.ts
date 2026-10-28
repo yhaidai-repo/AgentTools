@@ -7,7 +7,8 @@ export interface AgentCapabilities {
   readCode?: boolean;
   /** Editing and creating files inside the run's folder, without asking. */
   editCode?: boolean;
-  /** A shell in the run's folder, without asking; it can never push or open pull requests. */
+  /** A shell in the run's folder, without asking, for local git, GSD's tools and read-only listing only: builds, tests
+   *  and scripts run in PowerLoom's sandbox. It can never push, fetch or open pull requests. */
   shell?: boolean;
   /** Sub-agents the run starts itself. */
   subAgents?: boolean;

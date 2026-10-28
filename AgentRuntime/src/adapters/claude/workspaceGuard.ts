@@ -1,6 +1,7 @@
 import { posix, win32, type PlatformPath } from "node:path";
 import type { ToolPolicy } from "../../models/ToolPolicy";
 import type { ToolPolicyDecision } from "../../models/ToolPolicyDecision";
+import { shellRefusal } from "./shellAllowlist";
 
 // Claude Code's tools that write, with the input field naming the file.
 const WRITE_FIELDS: Record<string, string> = {
@@ -28,8 +29,8 @@ const WORD_SEPARATORS = /[\s;&|()<>"'`=,]+/;
 // A Git Bash path to a drive (`/d/repo`) on a Windows folder.
 const GIT_BASH_DRIVE = /^\/([a-z])(?=\/|$)/i;
 
-// Keeps a run that edits or runs commands inside its folder and away from publishing. Shell commands are checked word
-// by word: a path built at run time (a variable, a subshell) is not seen.
+// Keeps a run that edits or runs commands inside its folder and away from publishing, and its shell to the commands
+// shellAllowlist allows. Shell paths are checked word by word: a path built at run time (a variable) is not seen.
 export function workspaceGuard(folder: string): ToolPolicy {
   return (call) => {
     const input = (call.input ?? {}) as Record<string, unknown>;
@@ -64,6 +65,12 @@ function checkCommand(folder: string, toolName: string, command: string): ToolPo
 
   if (publishing) {
     return { allow: false, reason: `${toolName} was blocked: ${publishing.label} is not allowed; commit locally and leave publishing to a person.` };
+  }
+
+  const refusal = shellRefusal(command);
+
+  if (refusal) {
+    return { allow: false, reason: `${toolName} was blocked: ${refusal}` };
   }
 
   const outsideWord = pathWords(command).find((word) => isOutside(folder, word));

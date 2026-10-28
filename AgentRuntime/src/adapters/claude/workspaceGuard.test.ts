@@ -19,10 +19,10 @@ describe("workspaceGuard on a Windows folder", () => {
     ["Write", { file_path: "..feature/x.md" }],
     ["NotebookEdit", { notebook_path: ".planning/spike.ipynb" }],
     ["Bash", { command: "git add -A && git commit -m \"Add totals\"" }],
-    ["Bash", { command: "npm test 2>/dev/null | tail -5" }],
+    ["Bash", { command: "git log --oneline 2>/dev/null | head -5" }],
     ["Bash", { command: "ls /d/cache/vault/.worktrees/app/feature-123/src" }],
     ["Bash", { command: "git log origin/main..HEAD" }],
-    ["PowerShell", { command: "Get-ChildItem src > $null" }],
+    ["PowerShell", { command: "dir src > $null" }],
     ["Read", { file_path: "C:\\Users\\me\\notes.md" }],
   ] as const) {
     it(`allows ${name} ${JSON.stringify(input)}`, async () => {
@@ -37,12 +37,12 @@ describe("workspaceGuard on a Windows folder", () => {
     ["Write", { file_path: "src/../../feature-124/a.ts" }, "src/../../feature-124/a.ts"],
     ["Write", { file_path: "\\\\server\\share\\a.ts" }, "\\\\server\\share\\a.ts"],
     ["Write", { file_path: "~/notes.md" }, "~/notes.md"],
-    ["Bash", { command: "cp build/app.js /d/cache/vault/app/" }, "/d/cache/vault/app/"],
-    ["Bash", { command: "cd .. && rm -rf feature-124" }, ".."],
-    ["Bash", { command: "echo x > /tmp/out.txt" }, "/tmp/out.txt"],
+    ["Bash", { command: "ls /d/cache/vault/app/" }, "/d/cache/vault/app/"],
+    ["Bash", { command: "git add ../feature-124" }, "../feature-124"],
+    ["Bash", { command: "cat /tmp/out.txt" }, "/tmp/out.txt"],
     ["Bash", { command: "git -C D:\\cache\\vault\\app status" }, "D:\\cache\\vault\\app"],
     ["Bash", { command: "cat $HOME/.npmrc" }, "$HOME/.npmrc"],
-    ["PowerShell", { command: "Set-Content -Path 'C:\\Windows\\x.txt' -Value 1" }, "C:\\Windows\\x.txt"],
+    ["PowerShell", { command: "type 'C:\\Windows\\x.txt'" }, "C:\\Windows\\x.txt"],
   ] as const) {
     it(`denies ${name} ${JSON.stringify(input)}`, async () => {
       const decision = await decide(WINDOWS_FOLDER, name, input);
@@ -56,7 +56,7 @@ describe("workspaceGuard on a Linux folder", () => {
   it("allows a write inside and denies one outside", async () => {
     assert.deepEqual(await decide(LINUX_FOLDER, "Write", { file_path: `${LINUX_FOLDER}/src/a.ts` }), { allow: true });
     assert.equal((await decide(LINUX_FOLDER, "Write", { file_path: "/etc/hosts" })).allow, false);
-    assert.equal((await decide(LINUX_FOLDER, "Bash", { command: "touch ../other/x" })).allow, false);
+    assert.equal((await decide(LINUX_FOLDER, "Bash", { command: "cat ../other/x" })).allow, false);
   });
 });
 
@@ -78,9 +78,58 @@ describe("workspaceGuard publishing", () => {
     });
   }
 
-  for (const command of ["git commit -m \"push the button\"", "git status", "gh issue list", "az repos list", "npm run push-docs"]) {
+  for (const command of ["git commit -m \"push the button\"", "git status"]) {
     it(`allows ${command}`, async () => {
       assert.deepEqual(await decide(WINDOWS_FOLDER, "Bash", { command }), { allow: true });
+    });
+  }
+
+  it("keeps the push reason for git push inside a pipeline", async () => {
+    const decision = await decide(WINDOWS_FOLDER, "Bash", { command: "git commit -m x && git push" });
+
+    assert.match(decision.allow ? "" : decision.reason, /git push is not allowed/);
+  });
+});
+
+describe("workspaceGuard shell", () => {
+  const sandboxReason = "is not allowed in the worktree's shell; use run_command in the sandbox for builds, tests and scripts.";
+
+  for (const command of [
+    "git commit -m \"Add totals; fix rounding | tests\"",
+    "git -C . -c core.autocrlf=false commit -m x",
+    "git commit -m \"$(cat <<'EOF'\nAdd totals\n\nSecond line\nEOF\n)\"",
+    "git add -A && git commit -m x && git log -1",
+    "node D:\\cache\\vault\\.worktrees\\app\\feature-123\\.claude\\gsd-core\\bin\\gsd-tools.cjs init plan-phase 1",
+    "node \".claude/gsd-core/bin/gsd-tools.cjs\" state load",
+    "npx gsd-core --version",
+    "rg -n total src | head -20",
+    "find src -name \"*.ts\" | wc -l",
+    "pwd",
+  ]) {
+    it(`allows ${JSON.stringify(command)}`, async () => {
+      assert.deepEqual(await decide(WINDOWS_FOLDER, "Bash", { command }), { allow: true });
+    });
+  }
+
+  for (const [command, word] of [
+    ["dotnet test", "dotnet"],
+    ["git status && dotnet build", "dotnet"],
+    ["git log | xargs rm", "xargs"],
+    ["npm test", "npm"],
+    ["git fetch origin", "git"],
+    ["git pull", "git"],
+    ["git clone https://dev.azure.com/org/app", "git"],
+    ["git remote add other https://x", "git"],
+    ["cat a.txt > b.txt", "cat"],
+    ["find . -name x -delete", "find"],
+    ["git status \"$(dotnet test)\"", "git"],
+    ["cd src", "cd"],
+    ["node scripts/build.js", "node"],
+  ] as const) {
+    it(`denies ${JSON.stringify(command)} and points to the sandbox`, async () => {
+      const decision = await decide(WINDOWS_FOLDER, "Bash", { command });
+
+      assert.deepEqual(decision, { allow: false, reason: `Bash was blocked: ${word} ${sandboxReason}` });
     });
   }
 });
