@@ -29,7 +29,7 @@ Preserve existing `Created in` and `Updated in` lines when editing a register no
    ADO fields, the note (description, acceptance criteria), the user's own notes (`<user-notes>`), the parent, links,
    attachments, questions with the team's answers, and every related item as a reference (`<pbi-related>`).
 2. Read any reference it lists in full with `pbi_read` and `{"ref": "<ref>"}`: `PBI-<id>:refinement`,
-   `PBI-<id>:design`, `PBI-<id>:estimate` (the latest estimate from any agent), an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`,
+   `PBI-<id>:plan`, `PBI-<id>:design` (from before planning), `PBI-<id>:estimate` (the latest estimate from any agent), an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`,
    `RR-…`), `DRAFT-<n>`, an attachment `ATT-<n>`, a test case `TC-<id>`, or another `PBI-<id>`.
 3. `pbi_get` with `{"link": "<ADO link, #id or id>"}`: fields, statuses, parent, child items, repos, skills, note path.
 

@@ -53,6 +53,8 @@ export type { SkillCatalog } from "./models/SkillCatalog";
 export type { SkillSummary } from "./models/SkillSummary";
 export type { AgentCapabilities } from "./models/AgentCapabilities";
 export type { AgentWorkspace } from "./models/AgentWorkspace";
+export type { GsdSeed } from "./models/GsdSeed";
+export type { GsdSeedFile } from "./models/GsdSeedFile";
 export type { RepoRef } from "./models/RepoRef";
 export type { PullRequestRef } from "./models/PullRequestRef";
 export type { PullRequestCheckout } from "./models/PullRequestCheckout";

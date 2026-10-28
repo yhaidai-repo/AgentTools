@@ -22,6 +22,7 @@ import type { HandoffIntent } from "./models/HandoffIntent";
 import type { HandoffRefs } from "./models/HandoffRefs";
 import type { HandoffStatus } from "./models/HandoffStatus";
 import type { HandoffTargetKind } from "./models/HandoffTargetKind";
+import type { PlanContent } from "./models/PlanContent";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -331,6 +332,21 @@ export const design = pgTable("design", {
 }, (t) => [
   uniqueIndex("design_pbi_version_uq").on(t.pbiId, t.version),
   check("design_complexity_ck", sql`${t.complexity} between 1 and 5`),
+]);
+
+// The planning agent's plan of a PBI, one version per write_plan (migration 20261029120000_PlanningSnapshots): the plan
+// read from the worktree's .planning/ and the `gsd-tools planning inspect` snapshot it was read with (schema_version 1).
+export const planningSnapshot = pgTable("planning_snapshot", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  version: integer("version").notNull(),
+  schemaVersion: smallint("schema_version").notNull(),
+  inspect: jsonb("inspect").$type<unknown>().notNull(),
+  plan: jsonb("plan").$type<PlanContent>().notNull(),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("planning_snapshot_pbi_version_uq").on(t.pbiId, t.version),
 ]);
 
 // Every estimate an agent recorded with record_estimate, one per run (user decision 2026-10-18); pages show a PBI's latest,

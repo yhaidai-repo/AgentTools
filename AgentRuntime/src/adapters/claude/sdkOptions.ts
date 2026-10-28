@@ -4,7 +4,7 @@ import type { Conversation } from "../../models/Conversation";
 import type { ToolPolicy } from "../../models/ToolPolicy";
 import type { RunAbort } from "../../RunAbort";
 import { allPolicies } from "./allPolicies";
-import { autoAllowedBuiltInTools, builtInTools, permissionMode, writesUnattended } from "./builtInTools";
+import { autoAllowedBuiltInTools, builtInTools, permissionMode, projectSkillTools, writesUnattended } from "./builtInTools";
 import { childEnv } from "./childEnv";
 import type { SdkOptionsHost } from "./models/SdkOptionsHost";
 import { secretsGuard } from "./secretsGuard";
@@ -26,9 +26,9 @@ export function buildSdkOptions(request: AgentRequest, abort: RunAbort, host: Sd
     systemPrompt: withSdkToolNaming(sdkToolNamer(request.tools)(request.systemPrompt), request.tools),
     maxTurns: request.limits.maxTurns,
     abortController: abort.controller,
-    tools: builtInTools(request.capabilities),
+    tools: [...builtInTools(request.capabilities), ...projectSkillTools(request.settingSources)],
     mcpServers: { [TOOL_SERVER_NAME]: createToolServer(request.tools) },
-    allowedTools: [...sdkToolNames(request.tools), ...autoAllowedBuiltInTools(request.capabilities)],
+    allowedTools: [...sdkToolNames(request.tools), ...autoAllowedBuiltInTools(request.capabilities), ...projectSkillTools(request.settingSources)],
     permissionMode: permissionMode(request.capabilities),
     cwd,
     settingSources: request.settingSources ?? [],

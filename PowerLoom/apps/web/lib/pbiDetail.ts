@@ -1,5 +1,5 @@
 import { agentRun, attachment, design, localItem, refinement, vaultCapture, workItem } from "@powerloom/db";
-import { ATTACHMENT_SUMMARY_COLUMNS, latestPbiEstimate, loadItemDetail as loadItemDetailOf, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
+import { ATTACHMENT_SUMMARY_COLUMNS, latestPbiEstimate, latestPlan, loadItemDetail as loadItemDetailOf, pbiRepoEntries, readBug, readChildItems } from "@powerloom/core";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { loadRunTotals } from "./agentTotals";
 import { getDb } from "./db";
@@ -19,13 +19,14 @@ export async function loadPbiDetail(adoId: number) {
   const runs = await db.select().from(agentRun).where(eq(agentRun.pbiId, adoId)).orderBy(desc(agentRun.id));
   const [latestRefinement] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
   const [latestDesign] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
+  const plan = await latestPlan(db, adoId);
   const estimate = await latestPbiEstimate(db, adoId);
   const drafts = await db.select().from(vaultCapture).where(eq(vaultCapture.pbiId, adoId)).orderBy(vaultCapture.id);
   const repos = await pbiRepoEntries(db, adoId);
   const relations = await loadRelations(adoId, pbi.parentId);
   const usage = await loadRunTotals(runs);
 
-  return { pbi, items, attachments, runs, usage, drafts, repos, refinement: latestRefinement ?? null, design: latestDesign ?? null, estimate, ...relations };
+  return { pbi, items, attachments, runs, usage, drafts, repos, refinement: latestRefinement ?? null, plan, design: latestDesign ?? null, estimate, ...relations };
 }
 
 // Where the PBI sits (user decision 2026-10-09): its parent and bug record when it is a child, its child items.

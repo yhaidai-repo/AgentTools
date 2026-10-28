@@ -1,3 +1,4 @@
+import type { GsdSeed } from "./GsdSeed";
 import type { RepoRef } from "./RepoRef";
 
 // A git worktree of its own for a run that changes code (one per PBI branch). The runtime never resolves it: the host
@@ -11,4 +12,6 @@ export interface AgentWorkspace {
   baseBranch: string;
   /** Prepares the worktree for GSD (its planning folder, local install and settings) before the run. */
   gsd: boolean;
+  /** Settings and files the GSD preparation writes into .planning/; only read when `gsd` is set. */
+  gsdSeed?: GsdSeed;
 }

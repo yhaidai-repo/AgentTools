@@ -10,7 +10,7 @@ import {
 } from "@powerloom/core";
 import { getDb } from "./db";
 
-// A PBI's results on its page: its estimates, refinements and designs, then each task's results.
+// A PBI's results on its page: its estimates, refinements and plans (designs from before planning), then each task's results.
 export function loadPbiResultSets(adoId: number): Promise<ResultSet[]> {
   return loadPbiResultSetsOf(getDb(), adoId);
 }

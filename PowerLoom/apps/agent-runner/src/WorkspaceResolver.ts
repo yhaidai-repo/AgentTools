@@ -48,15 +48,15 @@ export class WorkspaceResolver {
   private async openWorktree(workspace: AgentWorkspace, worktree: string): Promise<GitIdentityEnv> {
     await this.repos.openBranchWorktree(workspace.repo, workspace.baseBranch, workspace.branch, worktree);
 
-    return workspace.gsd ? this.prepareGsd(worktree) : identityEnv(this.options.identity);
+    return workspace.gsd ? this.prepareGsd(worktree, workspace) : identityEnv(this.options.identity);
   }
 
-  private prepareGsd(worktree: string): Promise<GitIdentityEnv> {
+  private prepareGsd(worktree: string, workspace: AgentWorkspace): Promise<GitIdentityEnv> {
     if (!this.options.gsdCore) {
       throw new Error("The run asks for a GSD workspace, but the runner has no GSD (GSD_CORE_DIR is not set).");
     }
 
-    return this.gsd.prepare({ worktree, gsdCore: this.options.gsdCore, identity: this.options.identity });
+    return this.gsd.prepare({ worktree, gsdCore: this.options.gsdCore, identity: this.options.identity, seed: workspace.gsdSeed });
   }
 
   // One worktree per repo and branch, so a PBI's planning run and implementation run share it.

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { agentRun, design, reviewComment, codeReview, codeReviewVersion, localItem, vaultCapture, runResult, pbiEstimate, type PowerLoomDb } from "@powerloom/db";
+import { agentRun, planningSnapshot, reviewComment, codeReview, codeReviewVersion, localItem, vaultCapture, runResult, pbiEstimate, type PowerLoomDb } from "@powerloom/db";
 import { AgentToolset } from "./AgentToolset";
-import { commitDesign } from "../design/commitDesign";
+import { commitPlan } from "../planning/commitPlan";
 import { commitReview } from "../codeReview/commitReview";
 import { DuplicateGuard } from "../DuplicateGuard";
 import type { RunWriter } from "./models/RunWriter";
 
-it("retains actual design/review writer outputs together with tasks, captures, results and estimates", async () => {
+it("retains actual plan/review writer outputs together with tasks, captures, results and estimates", async () => {
   let outputs = ["earlier recording"];
   const inserted: { table: unknown; values: any }[] = [];
   const dialect = new PgDialect();
@@ -43,8 +43,8 @@ it("retains actual design/review writer outputs together with tasks, captures, r
   const task = { id: "AT-7-001", pbiId: 7, vault: "demo", data: {}, title: "Synthetic" } as any;
   const context = { deps: { db, docsVaultName: "demo" }, agent: { id: "synthetic", label: "Synthetic", budgets: {}, capabilities: { integrations: {} } } } as any;
   const writers: RunWriter[] = [
-    { integration: "writeDesign", tools: () => [], commit: async target => {
-      await commitDesign(db, task, 7, target.runId, { design: { approach: "Synthetic", alternatives: [], plan: [], risks: [], tests: [], assumptions: [] }, captures: [], pages: [] });
+    { integration: "writePlan", tools: () => [], commit: async target => {
+      await commitPlan(db, 7, target.runId, { content: { summary: "Synthetic", decisions: [], autoChoices: [], requirements: [], plans: [], checker: { verdict: "passed", issues: [] }, risks: [], assumptions: [] }, inspect: { schema_version: 1 } });
       return [];
     } },
     { integration: "reviewCode", tools: () => [], commit: async target => {
@@ -59,11 +59,11 @@ it("retains actual design/review writer outputs together with tasks, captures, r
   toolset.result.record({ status: "complete", body: "Synthetic", data: null, evidence: [], waitingFor: [] });
   toolset.estimate.record({ humanHours: 2, agentHours: 1, complexity: 1, confidence: "high", basis: "Synthetic" });
   await assert.rejects(toolset.commit(1), /review commit failure/);
-  assert.ok(outputs.includes("design v1"));
+  assert.ok(outputs.includes("plan v1"));
   assert.ok(!outputs.includes("RC-7-001"));
   failReview = false;
   await toolset.commit(1);
-  assert.deepEqual(outputs, ["earlier recording", "HT-7-001", "CAP-1", "design v1", "RC-7-001", "result: complete", "PBI-7 estimate"]);
-  for (const table of [design, reviewComment, codeReviewVersion, localItem, vaultCapture, runResult, pbiEstimate]) assert.ok(inserted.some(entry => entry.table === table));
-  for (const table of [design, reviewComment, localItem, vaultCapture, runResult, pbiEstimate]) assert.equal(inserted.filter(entry => entry.table === table).length, 1);
+  assert.deepEqual(outputs, ["earlier recording", "HT-7-001", "CAP-1", "plan v1", "RC-7-001", "result: complete", "PBI-7 estimate"]);
+  for (const table of [planningSnapshot, reviewComment, codeReviewVersion, localItem, vaultCapture, runResult, pbiEstimate]) assert.ok(inserted.some(entry => entry.table === table));
+  for (const table of [planningSnapshot, reviewComment, localItem, vaultCapture, runResult, pbiEstimate]) assert.equal(inserted.filter(entry => entry.table === table).length, 1);
 });

@@ -13,6 +13,15 @@ export type { DesignAlternative } from "./models/DesignAlternative";
 export type { DesignPlanStep } from "./models/DesignPlanStep";
 export type { DesignRisk } from "./models/DesignRisk";
 export type { DesignTest } from "./models/DesignTest";
+export type { PlanContent } from "./models/PlanContent";
+export type { PlanDecision } from "./models/PlanDecision";
+export type { PlanAutoChoice } from "./models/PlanAutoChoice";
+export type { PlanRequirement } from "./models/PlanRequirement";
+export type { PhasePlan } from "./models/PhasePlan";
+export type { PhasePlanTask } from "./models/PhasePlanTask";
+export type { PlanRisk } from "./models/PlanRisk";
+export type { PlanCheck } from "./models/PlanCheck";
+export { PLAN_CHECK_VERDICTS, type PlanCheckVerdict } from "./models/PlanCheckVerdict";
 
 export function createDb(url = process.env.DATABASE_URL) {
   if (!url) {

@@ -162,6 +162,8 @@ export type { PbiContextBlock } from "./models/PbiContextBlock";
 export { readPbiReference } from "./pbiContext/readPbiReference";
 export { relatedBlock } from "./pbiContext/relatedBlock";
 export { estimateText, latestPbiEstimate, latestRunEstimate } from "./pbiEstimates";
+export { latestPlan, planById, planLines } from "./planning/latestPlan";
+export type { PlanVersion } from "./models/PlanVersion";
 export type { PbiReadResult } from "./models/PbiReadResult";
 export type { PbiReference } from "./models/PbiReference";
 export { reportBugCommand } from "./commands/reportBugCommand";

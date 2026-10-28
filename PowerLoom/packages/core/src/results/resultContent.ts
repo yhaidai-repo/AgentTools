@@ -6,11 +6,13 @@ import type { ResultOwner } from "../models/ResultOwner";
 import type { ResultQuestion } from "../models/ResultQuestion";
 import { reviewTaskPrId } from "../reviews/reviews";
 import { isResultKind } from "../tasks/items";
+import { planById } from "../planning/latestPlan";
 
 // One version's content, loaded only when it is shown; null when the id isn't a result of that kind.
 export async function loadResult(db: PowerLoomDb, kind: ResultKind, id: string): Promise<AgentResult | null> {
   const loaders: Record<ResultKind, () => Promise<AgentResult | null>> = {
     refinement: () => byNumericId(id, async (rowId) => wrap("refinement", (await db.select().from(refinement).where(eq(refinement.id, rowId)))[0])),
+    plan: () => byNumericId(id, async (rowId) => wrap("plan", (await planById(db, rowId)) ?? undefined)),
     design: () => byNumericId(id, async (rowId) => wrap("design", (await db.select().from(design).where(eq(design.id, rowId)))[0])),
     estimate: () => byNumericId(id, async (rowId) => wrap("estimate", (await db.select().from(pbiEstimate).where(eq(pbiEstimate.id, rowId)))[0])),
     item: () => loadResultItem(db, id),

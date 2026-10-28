@@ -6,6 +6,7 @@ import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ItemContent } from "../items/ItemContent";
 import { DesignSection } from "../pbis/[adoId]/DesignSection";
 import { EstimateLine } from "../pbis/[adoId]/EstimateLine";
+import { PlanSection } from "../pbis/[adoId]/PlanSection";
 import { RefinementDetailsLine } from "../pbis/[adoId]/RefinementDetailsLine";
 import { ReviewBody } from "./ReviewBody";
 import { RunResultBody } from "./RunResultBody";
@@ -17,6 +18,10 @@ type RefinementRow = typeof refinement.$inferSelect;
 export function ResultBody({ result, withQuestion = true }: { result: AgentResult; withQuestion?: boolean }) {
   if (result.kind === "refinement") {
     return <RefinementBody row={result.row} />;
+  }
+
+  if (result.kind === "plan") {
+    return <PlanSection plan={result.row.plan} />;
   }
 
   if (result.kind === "design") {

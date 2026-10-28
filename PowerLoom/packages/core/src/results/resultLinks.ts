@@ -2,7 +2,7 @@ import type { ResultKind } from "../models/ResultKind";
 import type { ResultVersion } from "../models/ResultVersion";
 
 // Every kind a result page's URL and result.get accept.
-export const RESULT_KIND_NAMES = ["refinement", "design", "estimate", "item", "review", "run"] as const satisfies readonly ResultKind[];
+export const RESULT_KIND_NAMES = ["refinement", "plan", "design", "estimate", "item", "review", "run"] as const satisfies readonly ResultKind[];
 
 // A version's key in the `v` query parameter of the page that shows it, e.g. design-7 or item-TR-30474-012.
 export function versionKey(version: Pick<ResultVersion, "kind" | "id">): string {

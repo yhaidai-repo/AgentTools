@@ -9,8 +9,8 @@ function tool(name: string): ToolDefinition<any> {
 
 describe("ownTools", () => {
   it("drops an own tool a shared tool already has the name of", () => {
-    const kept = ownTools([tool("write_design"), tool("create_task"), tool("create_question")], [tool("read_file"), tool("create_task")]);
+    const kept = ownTools([tool("write_plan"), tool("create_task"), tool("create_question")], [tool("read_file"), tool("create_task")]);
 
-    assert.deepEqual(kept.map((item) => item.name), ["write_design", "create_question"]);
+    assert.deepEqual(kept.map((item) => item.name), ["write_plan", "create_question"]);
   });
 });

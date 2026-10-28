@@ -14,8 +14,8 @@ namespace PowerLoom.Api.Tests.Tasks;
 [Collection(PowerLoomCollection.Name)]
 public sealed class HandoffGatesTests(PowerLoomHost host)
 {
-    private const string Approved = "### 1. Review \"the plan\" and decide\n\napprove\n\n### 2. Check the facts it rests on\n\nok";
-    private const string Changes = "### 1. Review \"the plan\" and decide\n\nchanges: archive after 30 days, not 7\n\n### 2. Check the facts it rests on\n\nok";
+    private const string Approved = "### 1. Review \"the plan\" and decide\n\napprove\n\n### 2. Check the facts and assumptions it rests on\n\nok";
+    private const string Changes = "### 1. Review \"the plan\" and decide\n\nchanges: archive after 30 days, not 7\n\n### 2. Check the facts and assumptions it rests on\n\nok";
 
     [Fact]
     public async Task An_approved_review_releases_the_implementation_and_closes_its_hand_off()
@@ -76,7 +76,7 @@ public sealed class HandoffGatesTests(PowerLoomHost host)
     [Theory]
     [InlineData(Approved, "approve")]
     [InlineData("### 1. Decide\n\nApproved.", "Approved.")]
-    [InlineData("### 2. Check the facts it rests on\n\nok", "")]
+    [InlineData("### 2. Check the facts and assumptions it rests on\n\nok", "")]
     [InlineData(null, "")]
     public void The_decision_is_the_first_step_s_answer(string? resolution, string expected)
     {

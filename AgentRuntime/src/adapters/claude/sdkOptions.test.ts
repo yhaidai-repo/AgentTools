@@ -50,6 +50,19 @@ describe("buildSdkOptions", () => {
     assert.deepEqual(options.settingSources, ["project", "local"]);
   });
 
+  it("offers and allows Skill when the run loads its folder's project settings, so the folder's commands can run", () => {
+    const options = optionsFor({ cwd: "D:/runs/run-1", settingSources: ["project", "local"], capabilities: { readCode: true } });
+
+    assert.deepEqual(options.tools, ["Read", "Grep", "Glob", "Skill"]);
+    assert.deepEqual(options.allowedTools, ["Read", "Grep", "Glob", "Skill"]);
+  });
+
+  it("offers no Skill when only local settings load", () => {
+    const options = optionsFor({ settingSources: ["local"] });
+
+    assert.deepEqual(options.tools, []);
+  });
+
   it("registers the tool policy as a PreToolUse hook", () => {
     const options = optionsFor({ toolPolicy: () => ({ allow: true }) });
 
