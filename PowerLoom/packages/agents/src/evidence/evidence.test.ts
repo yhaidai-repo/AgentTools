@@ -85,6 +85,18 @@ describe("evidenceProblems", () => {
     const unseen = evidenceProblems([{ source: "web", ref: "https://example.com/blog", note: "made up" }], log);
 
     assert.deepEqual(fetched, []);
-    assert.match(unseen[0], /no WebSearch or WebFetch of this run shows that URL/);
+    assert.match(unseen[0], /no web search or page read of this run shows that URL/);
+  });
+
+  it("accepts a web page PowerLoom's read_web_page read", () => {
+    const log = new ReadLog("task message");
+    const at = new Date();
+
+    log.observe({ type: "tool_call", runId: "r", seq: 1, at, callId: "c1", name: "read_web_page", input: { url: "https://www.cms.gov/files/a.pdf", offset: 0 } } as never);
+    log.observe({ type: "tool_result", runId: "r", seq: 2, at, callId: "c1", output: "AAA03 code 97 means the enrollment is suspended.", isError: false } as never);
+
+    const problems = evidenceProblems([{ source: "web", ref: "https://www.cms.gov/files/a.pdf", note: "AAA03 97", quote: "enrollment is suspended" }], log);
+
+    assert.deepEqual(problems, []);
   });
 });

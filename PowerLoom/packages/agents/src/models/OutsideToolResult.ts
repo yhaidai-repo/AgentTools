@@ -11,6 +11,8 @@ export interface OutsideToolResult {
   refusal?: string;
   /** The outside system refused access (login, role, key): logged as `denied`. */
   denied?: boolean;
+  /** What the log row should say about a call that worked anyway, e.g. the search engines that didn't respond. */
+  note?: string;
   rows?: number;
   truncated?: boolean;
 }

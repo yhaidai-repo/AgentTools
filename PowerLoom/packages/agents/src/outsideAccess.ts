@@ -100,5 +100,5 @@ export function outcomeOf(result: OutsideToolResult): { outcome: DataAccessOutco
     return { outcome: "denied", reason: result.text.slice(0, MAX_ERROR_CHARS) };
   }
 
-  return result.isError ? { outcome: "failed", reason: result.text.slice(0, MAX_ERROR_CHARS) } : { outcome: "ok", reason: null };
+  return result.isError ? { outcome: "failed", reason: result.text.slice(0, MAX_ERROR_CHARS) } : { outcome: "ok", reason: result.note?.slice(0, MAX_ERROR_CHARS) ?? null };
 }

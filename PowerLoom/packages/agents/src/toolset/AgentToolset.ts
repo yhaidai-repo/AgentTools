@@ -18,6 +18,9 @@ import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTool
 import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "../sandbox/sandboxTools";
 import { DuplicateGuard } from "../DuplicateGuard";
+import { DbFailureReportStore } from "../failureReport/DbFailureReportStore";
+import { FailureReportRun } from "../failureReport/FailureReportRun";
+import { createReportFailureTool } from "../failureReport/reportFailureTool";
 import { commitEstimate } from "../estimate/commitEstimate";
 import { createEstimateTools, ESTIMATE_INTEGRATION, offersEstimate } from "../estimate/estimateTool";
 import { RunEstimate } from "../estimate/RunEstimate";
@@ -52,6 +55,10 @@ import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
 import type { WebDocumentRun } from "../webDocuments/models/WebDocumentRun";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
+import { WebPageTexts } from "../webDocuments/WebPageTexts";
+import { createReadWebPageTools } from "../webSearch/readWebPageTool";
+import { createWebSearchTools } from "../webSearch/webSearchTools";
+import { POWERLOOM_WEB_INTEGRATION } from "../webSearch/powerloomWebIntegration";
 import type { CommittedToolset } from "./models/CommittedToolset";
 import type { ToolGroup } from "./models/ToolGroup";
 import type { RunWriter } from "./models/RunWriter";
@@ -79,11 +86,15 @@ export class AgentToolset {
   readonly meter = new RunMeter();
   /** The output tools the Config grants (write_research_result, …), each committed with commit(). */
   private readonly writers: RunWriter[];
+  /** What report_failure has recorded in this run: its cap and one report per cause. */
+  private readonly failureReports = new FailureReportRun();
   private log: ReadLog | null = null;
   private offer: OfferedTool[] = [];
   /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
   private readonly gitHub: GitHubWorkspace | null;
   private readonly committedSettlements = new Map<string, WriterSettlement | null>();
+  /** The web pages the run read, shared by fetch_document and read_web_page. */
+  private readonly webPages = new WebPageTexts();
 
   private constructor(
     private readonly context: TaskContext,
@@ -263,7 +274,8 @@ export class AgentToolset {
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, SANDBOX_INTEGRATION), tools: createSandboxTools(deps, agent, access, this.input.repos) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
-      { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments) },
+      { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
+      { source: grantSource(agent, POWERLOOM_WEB_INTEGRATION), tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },
     ];
   }
 
@@ -283,6 +295,7 @@ export class AgentToolset {
     const shared = [
       { source: HAND_ON_SOURCE, tools: hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : [] },
       { source: EVERY_AGENT, tools: createWebDocumentTools(deps.db, this.webDocuments) },
+      { source: EVERY_AGENT, tools: [createReportFailureTool(new DbFailureReportStore(deps.db), outsideAccessContext(agent.id, this.session.runId, this.task), this.failureReports)] },
       { source: EVERY_AGENT, tools: deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : [] },
       { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];

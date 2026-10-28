@@ -1,4 +1,4 @@
-import { COMMANDS, runCommand, type Command, type CommandContext, type PowerLoomPort } from "@powerloom/core";
+import { COMMANDS, commandToolName, runCommand, type Command, type CommandContext, type PowerLoomPort } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { defineTool, type ToolAnnotations, type ToolDefinition } from "@agenttools/runtime";
 import type { z } from "zod";
@@ -30,10 +30,7 @@ export function commandTools(context: CommandContext, fixedOf: (command: Command
   return COMMANDS.map((command) => createCommandTool(commandToolName(command.name), command, context, fixedOf(command)));
 }
 
-// MCP tool names allow no dot.
-export function commandToolName(commandName: string): string {
-  return commandName.replace(/\./g, "_");
-}
+export { commandToolName };
 
 export function agentCommandContext(db: PowerLoomDb, backlogMount: string): CommandContext {
   return { db, actor: "agent", powerloom: NO_POWERLOOM, skills: { names: async () => [] }, backlogMount };

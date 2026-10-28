@@ -39,7 +39,7 @@ export function chatSessionTools(deps: AgentDeps, agent: AgentDefinition, princi
 
 // The capture tools (stage 5) write the notes of the chat's own vault: the session's vault, never one the chat names, so
 // a chat in one vault can't write into another.
-const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close"]);
+const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close", "failure.report"]);
 
 // Generic SQL commands accept a caller-selected vault and have no session grant. Never offer them in a chat,
 // including when the grant-checked readers are absent. Other callers retain the generic command contracts.

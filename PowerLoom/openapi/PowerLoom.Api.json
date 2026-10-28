@@ -5,6 +5,61 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/web-search": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.WebSearch.WebSearchEndpoints"
+        ],
+        "summary": "GET_api_web_search",
+        "description": "GET_api_web_search",
+        "operationId": "GET_api_web_search",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebSearchSetting"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.WebSearch.WebSearchEndpoints"
+        ],
+        "summary": "PUT_api_web_search",
+        "description": "PUT_api_web_search",
+        "operationId": "PUT_api_web_search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveWebSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebSearchSetting"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/trash": {
       "get": {
         "tags": [
@@ -6209,6 +6264,12 @@
               "null",
               "string"
             ]
+          },
+          "clientRequestId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6657,6 +6718,46 @@
           },
           "loadedText": {
             "type": "string"
+          }
+        }
+      },
+      "SaveWebSearchRequest": {
+        "required": [
+          "enabled",
+          "url",
+          "language",
+          "maxSearchesPerRun",
+          "minSecondsBetweenSearches",
+          "cacheHours"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "maxSearchesPerRun": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minSecondsBetweenSearches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheHours": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -7425,10 +7526,39 @@
             ]
           }
         }
+      },
+      "WebSearchSetting": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "maxSearchesPerRun": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minSecondsBetweenSearches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       }
     }
   },
   "tags": [
+    {
+      "name": "PowerLoom.Features.WebSearch.WebSearchEndpoints"
+    },
     {
       "name": "PowerLoom.Features.Vaults.Trash.TrashEndpoints"
     },

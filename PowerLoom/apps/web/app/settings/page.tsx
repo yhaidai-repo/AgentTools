@@ -3,6 +3,7 @@ import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProviders";
+import { loadWebSearch } from "@/lib/webSearch";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -18,6 +19,7 @@ import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { ChatAppForm } from "./ChatAppForm";
 import { ClaudeTokenForm } from "./ClaudeTokenForm";
+import { WebSearchForm } from "./WebSearchForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
@@ -158,6 +160,7 @@ async function DataTab({ db, current, readSql, readAzure, driveMessage }: { db: 
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
       <GoogleDrivePanel key={`drive-${current}`} values={googleDriveValues(await readGoogleDriveSettings(db, current))} message={driveMessage} />
+      <WebSearchForm setting={await loadWebSearch()} />
     </>
   );
 }

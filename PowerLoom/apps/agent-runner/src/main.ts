@@ -1,7 +1,7 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
 import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, removeOrphanedSandboxes, removeRunSandbox, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
 import { captureConsoleErrors, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
-import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
+import { OUTSIDE_KINDS, createDb, dataAccess, localItem, runFailureReport } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
 import { SandboxClient } from "@powerloom/sandbox";
 import { SqlReader } from "@powerloom/sql";
@@ -140,6 +140,7 @@ async function vaultOfJob(job: AgentRunJob): Promise<string> {
 async function purgeOldTraces(): Promise<void> {
   await deps.usageStore.purgeTraceBefore(daysAgo(TRACE_RETENTION_DAYS));
   await db.delete(dataAccess).where(lt(dataAccess.startedAt, daysAgo(DATA_ACCESS_RETENTION_DAYS)));
+  await db.delete(runFailureReport).where(lt(runFailureReport.createdAt, daysAgo(DATA_ACCESS_RETENTION_DAYS)));
   await db.delete(dataAccess).where(and(notInArray(dataAccess.kind, OUTSIDE_KINDS), lt(dataAccess.startedAt, daysAgo(TOOL_CALL_RETENTION_DAYS))));
 }
 

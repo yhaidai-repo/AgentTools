@@ -10,6 +10,7 @@ import { READ_SQL_INTEGRATION } from "./sqlTools";
 import { GITHUB_READ_INTEGRATION } from "./github/githubReadTools";
 import { GITHUB_WRITE_INTEGRATION } from "./github/githubWriteTools";
 import { GOOGLE_DRIVE_INTEGRATION } from "./googleDrive/googleDriveTools";
+import { POWERLOOM_WEB_INTEGRATION } from "./webSearch/powerloomWebIntegration";
 import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
@@ -273,6 +274,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Google Drive (read)",
     description: "The agent may search and read files in the Google Drive folders the vault shares with agents (Settings → Data access) during its runs. Whatever it reads goes to the model provider.",
   },
+  {
+    key: POWERLOOM_WEB_INTEGRATION,
+    label: "PowerLoom web (search and read pages)",
+    description: "The agent may search the web with search_web (PowerLoom's SearXNG, while Settings → Data access → Web search is on) and read public pages with read_web_page, PDFs and Office files too. Separate from Web access, the model provider's own search and fetch. Queries and pages go to the model provider.",
+  },
   ...AZURE_INTEGRATION_SPECS,
   {
     key: DEVHUB_INTEGRATION,
@@ -348,7 +354,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_REFINEMENT_INTEGRATION]: true } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_REFINEMENT_INTEGRATION]: true, [POWERLOOM_WEB_INTEGRATION]: true } },
     skills: ["powerloom-refinement-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REFINEMENT_OPTIONS),
@@ -367,7 +373,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 2, dailyUsd: 5 },
-    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [RESEARCH_RESULT_INTEGRATION]: true } },
+    capabilities: { webAccess: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [RESEARCH_RESULT_INTEGRATION]: true, [POWERLOOM_WEB_INTEGRATION]: true } },
     skills: ["powerloom-research-checklist"],
     options: { batchSize: 2, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_RESEARCH_OPTIONS),

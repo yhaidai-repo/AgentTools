@@ -4,7 +4,8 @@ type ToolCall = Extract<AgentEvent, { type: "tool_call" }>;
 
 // WebSearch and WebFetch are the SDK's own tools, so their results can't carry a source id; evidence cites them as
 // source "web" with the page's URL, and this keeps what each call asked for and returned to check that against.
-const WEB_TOOLS = ["WebSearch", "WebFetch"];
+// PowerLoom's own web tools have source ids, but a "web" + URL citation of what they returned holds too.
+const WEB_TOOLS = ["WebSearch", "WebFetch", "search_web", "read_web_page"];
 
 export class WebReads {
   private readonly pending = new Map<string, ToolCall>();

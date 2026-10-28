@@ -21,6 +21,7 @@ const docs: ToolKind = { kind: "docs", resource: () => "docs", request: (input) 
 const internal: ToolKind = { kind: "internal" };
 const skill: ToolKind = { kind: "skills", resource: (input) => text(input.name) || "skills" };
 const web: ToolKind = { kind: "web", resource: (input) => hostOf(text(input.url)), request: (input) => text(input.url) };
+const nativeSearch: ToolKind = { kind: "web", resource: () => "web search", request: (input) => text(input.query) };
 
 const TOOL_KINDS: Record<string, ToolKind> = {
   list_repos: { kind: "repo", resource: () => "catalog" },
@@ -32,14 +33,18 @@ const TOOL_KINDS: Record<string, ToolKind> = {
   read_doc: docs,
   search_docs: docs,
   list_docs: docs,
-  WebSearch: { kind: "web", resource: () => "web search", request: (input) => text(input.query) },
+  WebSearch: nativeSearch,
+  // Codex's own live search, as its events name it.
+  web_search: nativeSearch,
   WebFetch: web,
   use_skill: { kind: "skills", resource: (input) => text(input.name) || "skill" },
   list_skills: { kind: "skills", resource: () => "skills" },
   git_diff: repo,
   read_pbi: internal,
   fetch_document: web,
+  read_web_page: web,
   save_document_notes: web,
+  report_failure: internal,
   // PowerLoom's commands that read the vault or the skills, as chats call them over MCP; every other command is
   // PowerLoom's own (see commandKindOf).
   vault_notes: docs,

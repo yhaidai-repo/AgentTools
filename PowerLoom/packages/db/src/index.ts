@@ -26,3 +26,6 @@ export function createDb(url = process.env.DATABASE_URL) {
 }
 export { OUTSIDE_KINDS, type DataAccessKind } from "./models/DataAccessKind";
 export type { DataAccessOutcome } from "./models/DataAccessOutcome";
+export { FAILURE_KINDS, type FailureKind } from "./models/FailureKind";
+export { FAILURE_WORKAROUNDS, type FailureWorkaround } from "./models/FailureWorkaround";
+export { FAILURE_IMPACTS, type FailureImpact } from "./models/FailureImpact";

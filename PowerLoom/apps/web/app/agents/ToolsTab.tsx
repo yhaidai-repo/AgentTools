@@ -10,11 +10,12 @@ import { agentsUrl } from "@/lib/agentsUrl";
 import { getDb } from "@/lib/db";
 import { periodStart } from "@/lib/periodStart";
 import { periodOf } from "@/lib/ranges";
-import { ALL_AGENTS, agentChoices, configuredResources, isUsed, latestCalls, latestToolCalls, loadDataAccess, readToolOffers, resourceUsage, toolCatalog, toolsOfAgent } from "@/lib/toolUsage";
+import { ALL_AGENTS, agentChoices, configuredResources, isUsed, latestCalls, latestToolCalls, loadDataAccess, loadFailureReportGroups, readToolOffers, resourceUsage, toolCatalog, toolsOfAgent } from "@/lib/toolUsage";
 import type { BarPart } from "@/models/BarPart";
 import type { ResourceUsage } from "@/models/ResourceUsage";
 import { AllToolsPanel } from "./AllToolsPanel";
 import { CallRows } from "./CallRows";
+import { ReportedProblems } from "./ReportedProblems";
 
 const MOST_USED = 20;
 const CALL_PAGE_SIZES = [50, 100];
@@ -67,6 +68,7 @@ export async function ToolsTab({ vault, params, tabs }: { vault: string; params:
         <ResourceTable rows={unused} palette={palette} empty={configured.length === 0 ? "No resource is configured for this vault (Settings → Data access)." : "Every configured resource was used in the period."} />
       </details>
       <AllToolsPanel rows={tools} palette={palette} />
+      <ReportedProblems groups={await loadFailureReportGroups(db, vault, await periodStart(range, vault), agent)} palette={palette} />
       <Panel title={<span>Calls <small>newest first · a line opens the request as sent</small></span>} aside={<small>{calls.length}</small>}>
         <CallRows rows={calls.slice((page - 1) * size, page * size)} palette={palette} />
         {calls.length > size && <Pager page={page} size={size} sizes={CALL_PAGE_SIZES} pages={pages} total={calls.length} noun="calls" hrefOf={(change) => agentsUrl({ ...keep, page: change.page, size: change.size ?? size })} />}
