@@ -114,7 +114,6 @@ services:
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ./skills:/app/PowerLoom/skills:ro  # PowerLoom writes the skills now
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
-      - ./sandbox-images.json:/app/PowerLoom/sandbox-images.json:ro  # the sandbox image catalog, edited without a rebuild
     depends_on:
       powerloom:
         condition: service_healthy
@@ -177,7 +176,8 @@ services:
       SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}  # required: the service refuses to start without it
       SANDBOX_PORT: "3300"
       DOCKER_HOST: tcp://docker-proxy:2375
-      # The images a vault may pick (Settings → Data access → Sandbox); a vault's own image is added to this file.
+      # The images a vault may pick (Settings → Data access → Sandbox), from the app image; a vault's own image is added
+      # to PowerLoom/sandbox-images.json and the image rebuilt.
       SANDBOX_IMAGES: /app/PowerLoom/sandbox-images.json
       SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}  # e.g. runsc where gVisor is installed; empty = Docker's default
       SANDBOX_CPUS: ${SANDBOX_CPUS:-4}
@@ -189,8 +189,6 @@ services:
       SANDBOX_PROXY_URL: http://sandbox-egress:3128
       # Signs each restore's pass with its vault's package hosts; the same value as sandbox-egress's.
       SANDBOX_PROXY_SECRET: ${SANDBOX_PROXY_SECRET:-}
-    volumes:
-      - ./sandbox-images.json:/app/PowerLoom/sandbox-images.json:ro
     networks: [default, docker-api]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]
