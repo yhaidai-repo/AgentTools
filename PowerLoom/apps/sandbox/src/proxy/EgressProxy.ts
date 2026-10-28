@@ -1,17 +1,20 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { connect, type Socket } from "node:net";
-import type { HostAllowlist } from "./HostAllowlist";
+import type { RequestAllowlist } from "./requestAllowlist";
 
 const HTTPS_PORT = 443;
 const CONNECT_TIMEOUT_MS = 30_000;
+// A client sends its pass only after the proxy asks (.NET's HttpClient does).
+const ASK_FOR_PASS = "HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"powerloom-sandbox\"\r\n\r\n";
 
 // The restore containers' only way out (design agent-sandbox, phase 3): HTTPS tunnels (CONNECT) to allowed hosts on
 // port 443, nothing else. It sees host names only, never the traffic, so a feed's token passes through it encrypted.
-// Every tunnel, allowed or refused, is logged with the client's address.
+// Every tunnel, allowed or refused, is logged with the client's address. Which hosts a tunnel may reach comes from the
+// request (a restore's signed pass) or from one fixed list.
 export class EgressProxy {
   private readonly server: Server;
 
-  constructor(private readonly allowlist: HostAllowlist) {
+  constructor(private readonly allowlistOf: RequestAllowlist) {
     this.server = createServer((request, response) => refusePlainHttp(request, response));
     this.server.on("connect", (request: IncomingMessage, client: Socket, head: Buffer) => this.tunnel(request, client, head));
   }
@@ -27,10 +30,18 @@ export class EgressProxy {
   private tunnel(request: IncomingMessage, client: Socket, head: Buffer): void {
     const { host, port } = targetOf(request.url ?? "");
     const from = client.remoteAddress ?? "unknown";
+    const allowlist = this.allowlistOf(request);
 
-    if (port !== HTTPS_PORT || !this.allowlist.allows(host)) {
+    if (!allowlist) {
+      console.log(`asked ${from} for a pass to ${host}:${port}`);
+      client.end(ASK_FOR_PASS);
+
+      return;
+    }
+
+    if (port !== HTTPS_PORT || !allowlist.allows(host)) {
       console.log(`refused ${host}:${port} for ${from}`);
-      client.end(`HTTP/1.1 403 Forbidden\r\n\r\n${host}:${port} is not an allowed package host (SANDBOX_PACKAGE_HOSTS)\r\n`);
+      client.end(`HTTP/1.1 403 Forbidden\r\n\r\n${host}:${port} is not one of the vault's package hosts (Settings → Data access → Sandbox)\r\n`);
 
       return;
     }

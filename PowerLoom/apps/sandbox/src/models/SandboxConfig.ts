@@ -5,7 +5,6 @@ export interface SandboxConfig {
   /** The Docker API, normally the socket proxy: tcp://host:port. */
   dockerHost: string;
   dockerPort: number;
-  image: string;
   /** A Docker runtime such as runsc (gVisor); null = Docker's default. */
   runtime: string | null;
   cpus: number;
@@ -21,4 +20,8 @@ export interface SandboxConfig {
   /** The egress proxy as the restore containers reach it, e.g. http://sandbox-egress:3128. */
   proxyUrl: string;
   restoreTimeoutMs: number;
+  /** Shared with the egress proxy: signs each restore's pass with its vault's hosts. Null = the proxy's fixed list. */
+  proxySecret: string | null;
+  /** sandbox-images.json, the images a vault may pick; null = the general image only. */
+  imageCatalogPath: string | null;
 }

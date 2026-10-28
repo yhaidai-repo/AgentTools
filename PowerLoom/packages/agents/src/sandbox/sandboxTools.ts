@@ -136,7 +136,7 @@ async function ensureOpen(access: SandboxAccess, sandbox: RunSandbox, owner: str
     return null;
   }
 
-  const answer = await access.client.open({ owner, ttlMinutes });
+  const answer = await access.client.open({ owner, ttlMinutes, image: access.image });
 
   if (!answer.ok) {
     return failure(answer);

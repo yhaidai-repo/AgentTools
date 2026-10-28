@@ -12,6 +12,7 @@ import { probeRepo, restoreTarget } from "../restore/probeRepo";
 import { restorePlanOf } from "../restore/restorePlan";
 import { cutOutput } from "../sessions/cutOutput";
 import { ContainerExec } from "./ContainerExec";
+import { proxyTokenOf } from "../proxy/proxyToken";
 import { RESTORE_WORK, restoreContainerOptions } from "./sandboxContainerOptions";
 
 const REPO_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -20,6 +21,8 @@ const SETUP_DEADLINE_MS = 10 * 60_000;
 const SOURCES_DEADLINE_MS = 60_000;
 const EXTRACT_SCRIPT = `mkdir -p -- "$1" && tar -x -C "$1"`;
 const NPMRC_SCRIPT = `cat > "$HOME/.npmrc"`;
+// A pass outlives its restore's time limit by this much, so a slow last step isn't cut off at the proxy.
+const PASS_MARGIN_MS = 5 * 60_000;
 
 // A restore (design agent-sandbox, phase 3): in a container of its own, on the unchanged copy of a repo (the tar the
 // runner sends, never the agent's edited workspace), with the network through the egress proxy and the feeds'
@@ -31,7 +34,10 @@ export class PackageRestore {
     private readonly config: SandboxConfig,
   ) {}
 
-  async restore(sandbox: SandboxInfo, repo: string, target: string, tar: Readable, credentials: FeedCredential[]): Promise<Outcome<RestoreResult>> {
+  /** `hosts`: the vault's package hosts, the only ones the restore's pass opens at the proxy. */
+  async restore(sandbox: SandboxInfo, what: { repo: string; target: string }, tar: Readable, credentials: FeedCredential[], hosts: string[]): Promise<Outcome<RestoreResult>> {
+    const { repo, target } = what;
+
     if (!this.config.egressNetwork) {
       return { ok: false, reason: "Package restore is off on this host (SANDBOX_EGRESS_NETWORK is not set)" };
     }
@@ -47,7 +53,7 @@ export class PackageRestore {
       return where;
     }
 
-    const container = await this.docker.createContainer(restoreContainerOptions(this.config, sandbox.id, sandbox.owner, new Date(sandbox.expiresAt)));
+    const container = await this.docker.createContainer(restoreContainerOptions(this.config, sandbox.image, this.proxyUrlFor(hosts), sandbox.id, sandbox.owner, new Date(sandbox.expiresAt)));
 
     try {
       await container.start();
@@ -56,6 +62,20 @@ export class PackageRestore {
     } finally {
       await container.remove({ force: true, v: true });
     }
+  }
+
+  // With a signing secret, the proxy URL carries the restore's pass (its vault's hosts, valid for one restore's time).
+  private proxyUrlFor(hosts: string[]): string {
+    if (!this.config.proxySecret) {
+      return this.config.proxyUrl;
+    }
+
+    const url = new URL(this.config.proxyUrl);
+
+    url.username = "restore";
+    url.password = proxyTokenOf(this.config.proxySecret, hosts, new Date(Date.now() + this.config.restoreTimeoutMs + PASS_MARGIN_MS));
+
+    return url.toString().replace(/\/$/, "");
   }
 
   private async restoreIn(exec: ContainerExec, repoRoot: string, where: { folder: string; file: string | null }, tar: Readable, credentials: FeedCredential[]): Promise<Outcome<RestoreResult>> {

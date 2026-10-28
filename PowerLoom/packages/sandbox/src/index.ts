@@ -1,5 +1,6 @@
 export { SandboxClient } from "./SandboxClient";
-export { SANDBOX_OWNER_LABEL, SANDBOX_LABEL, SANDBOX_EXPIRES_LABEL, WORKSPACE, PACKAGES, FEED_CREDENTIALS_HEADER } from "./sandboxConstants";
+export { GENERAL_IMAGE, imageNamed, readImageCatalog } from "./imageCatalog";
+export { SANDBOX_OWNER_LABEL, SANDBOX_LABEL, SANDBOX_EXPIRES_LABEL, WORKSPACE, PACKAGES, FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
 export type { CommandRequest } from "./models/CommandRequest";
 export type { CommandResult } from "./models/CommandResult";
 export type { EditApplied } from "./models/EditApplied";
@@ -16,6 +17,7 @@ export type { RestoreStepResult } from "./models/RestoreStepResult";
 export type { SandboxAnswer } from "./models/SandboxAnswer";
 export type { SandboxFailure } from "./models/SandboxFailure";
 export type { SandboxesRemoved } from "./models/SandboxesRemoved";
+export type { SandboxImage } from "./models/SandboxImage";
 export type { SandboxInfo } from "./models/SandboxInfo";
 export type { SandboxSummary } from "./models/SandboxSummary";
 export type { SessionOutput } from "./models/SessionOutput";

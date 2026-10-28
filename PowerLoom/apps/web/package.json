@@ -16,6 +16,7 @@
     "@powerloom/client": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
+    "@powerloom/sandbox": "*",
     "@powerloom/vault": "*",
     "@agenttools/config": "*",
     "@agenttools/runtime": "*",

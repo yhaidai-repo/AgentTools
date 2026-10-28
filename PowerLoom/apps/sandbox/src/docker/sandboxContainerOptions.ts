@@ -15,10 +15,10 @@ export function packagesVolume(id: string): string {
 // The isolation is the enforcement (user decision 2026-10-28): no network, nothing of the host or the runner (no env,
 // no mounts but its own volumes), not root, a read-only root, no capabilities, no privilege gain, and hard limits.
 // Nothing the caller sends reaches these options except the owner and the expiry, which are labels only.
-export function sandboxContainerOptions(config: SandboxConfig, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
+export function sandboxContainerOptions(config: SandboxConfig, image: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
   return {
     name: `powerloom-sandbox-${id}`,
-    Image: config.image,
+    Image: image,
     Cmd: ["sleep", "infinity"],
     User: SANDBOX_USER,
     WorkingDir: WORKSPACE,
@@ -35,18 +35,19 @@ export function sandboxContainerOptions(config: SandboxConfig, id: string, owner
   };
 }
 
-// A restore's container (phase 3): the same isolation, but on the egress network (its only way out is the proxy), with
-// the repo's unchanged copy in its own volume and the sandbox's packages volume writable. Lives for one restore.
-export function restoreContainerOptions(config: SandboxConfig, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
+// A restore's container (phase 3): the same isolation and the sandbox's image, but on the egress network (its only way
+// out is the proxy, reached at `proxyUrl` with the restore's pass), with the repo's unchanged copy in its own volume and
+// the sandbox's packages volume writable. Lives for one restore.
+export function restoreContainerOptions(config: SandboxConfig, image: string, proxyUrl: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
   return {
     name: `powerloom-restore-${id}-${Date.now()}`,
-    Image: config.image,
+    Image: image,
     Cmd: ["sleep", "infinity"],
     User: SANDBOX_USER,
     WorkingDir: RESTORE_WORK,
     // NuGet checks package signatures' revocation over plain HTTP (CRL/OCSP), which the proxy refuses: offline mode
     // skips those calls instead of letting each one fail.
-    Env: [...sandboxEnv(), "NUGET_CERT_REVOCATION_MODE=offline", `HTTPS_PROXY=${config.proxyUrl}`, `https_proxy=${config.proxyUrl}`, `HTTP_PROXY=${config.proxyUrl}`, `http_proxy=${config.proxyUrl}`, "NO_PROXY=localhost,127.0.0.1"],
+    Env: [...sandboxEnv(), "NUGET_CERT_REVOCATION_MODE=offline", `HTTPS_PROXY=${proxyUrl}`, `https_proxy=${proxyUrl}`, `HTTP_PROXY=${proxyUrl}`, `http_proxy=${proxyUrl}`, "NO_PROXY=localhost,127.0.0.1"],
     Labels: labels(id, owner, expiresAt),
     HostConfig: {
       ...isolation(config),

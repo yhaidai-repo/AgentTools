@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureMcpStart, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, isGitHubActive, isGoogleDriveReady, isWebSearchReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, readWebSearchSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, isGitHubActive, isGoogleDriveReady, isWebSearchReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, readSandboxSettings, readWebSearchSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -23,7 +23,7 @@ import type { AgentDeps } from "../models/AgentDeps";
 import { ProviderConnections } from "../providerConnections";
 import { SharedAzureServers } from "./SharedAzureServers";
 import { loadCaptureRules } from "../vaultCapture";
-import { adoFeedCredential } from "../sandbox/adoFeedCredential";
+import { adoFeedCredential, adoFeedHosts } from "../sandbox/adoFeedCredential";
 import { repoGitAuth } from "./env";
 import { SearchThrottle } from "../webSearch/SearchThrottle";
 import { SearxngClient } from "../webSearch/SearxngClient";
@@ -190,16 +190,20 @@ export class AgentDepsFactory {
   }
 
   // The vault's Azure DevOps, read only.
-  // The host's sandbox service, with the vault's own package feeds signed in by its ADO token (restores only).
+  // The host's sandbox service with the vault's part: its image, its package hosts, and its own Azure DevOps feeds signed
+  // in by its token (restores only).
   private async sandboxAccessOf(vault: string): Promise<AgentDeps["sandbox"]> {
     if (!this.env.sandbox) {
       return null;
     }
 
     const ado = await readAdoSettings(this.db, vault);
+    const settings = await readSandboxSettings(this.db, vault);
     const feed = ado ? adoFeedCredential(ado.orgUrl, ado.pat) : null;
+    const adoHosts = feed && ado ? adoFeedHosts(ado.orgUrl) : [];
+    const client = this.sandboxClient ??= new SandboxClient(this.env.sandbox.url, this.env.sandbox.token);
 
-    return { client: this.sandboxClient ??= new SandboxClient(this.env.sandbox.url, this.env.sandbox.token), url: this.env.sandbox.url, feeds: feed ? [feed] : [] };
+    return { client, url: this.env.sandbox.url, feeds: feed ? [feed] : [], packageHosts: [...new Set([...settings.packageHosts, ...adoHosts])], image: settings.image };
   }
 
   private async adoAccessOf(vault: string): Promise<AgentDeps["ado"]> {

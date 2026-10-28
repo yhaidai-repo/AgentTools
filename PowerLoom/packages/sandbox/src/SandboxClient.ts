@@ -16,7 +16,7 @@ import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
-import { FEED_CREDENTIALS_HEADER } from "./sandboxConstants";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -50,10 +50,11 @@ export class SandboxClient {
   }
 
   /** Restores a repo's packages from its unchanged files (the tar), in a container of its own with the feeds' sign-ins;
-   *  `target` is a solution, project or folder of the repo, or the repo's root when empty. */
-  restore(id: string, repo: string, target: string, tar: ReadableStream<Uint8Array>, credentials: FeedCredential[]): Promise<SandboxAnswer<RestoreResult>> {
+   *  `target` is a solution, project or folder of the repo, or the repo's root when empty; `hosts` the vault's package
+   *  hosts, the only ones the restore may reach. */
+  restore(id: string, repo: string, target: string, tar: ReadableStream<Uint8Array>, credentials: FeedCredential[], hosts: string[]): Promise<SandboxAnswer<RestoreResult>> {
     const path = `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}?target=${encodeURIComponent(target)}`;
-    const headers = { [FEED_CREDENTIALS_HEADER]: Buffer.from(JSON.stringify(credentials), "utf8").toString("base64") };
+    const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts) };
 
     return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_TIMEOUT_MS, headers });
   }
@@ -120,6 +121,10 @@ export class SandboxClient {
       return { ok: false, message: `The sandbox service at ${this.url} doesn't answer (${(error as Error).message}).`, failure: "failed" };
     }
   }
+}
+
+function base64Json(value: unknown): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64");
 }
 
 async function answerOf<T>(response: Response): Promise<SandboxAnswer<T>> {

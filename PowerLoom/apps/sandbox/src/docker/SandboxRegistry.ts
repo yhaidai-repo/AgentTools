@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type Docker from "dockerode";
-import { SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE, type OpenSandboxRequest, type SandboxSummary } from "@powerloom/sandbox";
+import { SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE, imageNamed, readImageCatalog, type OpenSandboxRequest, type SandboxImage, type SandboxSummary } from "@powerloom/sandbox";
 import type { Outcome } from "../models/Outcome";
 import type { SandboxConfig } from "../models/SandboxConfig";
 import { Sandbox } from "./Sandbox";
@@ -13,24 +13,39 @@ const MAX_TTL_MINUTES = 24 * 60;
 // container always has its entry here, and a sandbox never outlives its expiry (reap).
 export class SandboxRegistry {
   private readonly sandboxes = new Map<string, Sandbox>();
-  private toolchains: string | null = null;
+  // What each image holds, from its label: read once per image.
+  private readonly toolchains = new Map<string, string>();
+  private readonly catalog: SandboxImage[];
 
   constructor(
     private readonly docker: Docker,
     private readonly config: SandboxConfig,
-  ) {}
+  ) {
+    this.catalog = readImageCatalog(config.imageCatalogPath ?? undefined);
+  }
 
-  async open(request: OpenSandboxRequest): Promise<Sandbox> {
+  /** Refused for an image name the catalog doesn't have: the caller never names a Docker image itself. */
+  async open(request: OpenSandboxRequest): Promise<Outcome<Sandbox>> {
+    const image = imageNamed(this.catalog, request.image ?? "");
+
+    if (!image) {
+      return { ok: false, reason: `The vault's sandbox image "${request.image}" is not in the image catalog (${this.catalog.map((entry) => entry.name).join(", ")}): pick one in Settings → Data access → Sandbox` };
+    }
+
+    return { ok: true, value: await this.start(request, image) };
+  }
+
+  private async start(request: OpenSandboxRequest, image: SandboxImage): Promise<Sandbox> {
     const id = randomBytes(6).toString("hex");
     const expiresAt = new Date(Date.now() + Math.min(request.ttlMinutes, MAX_TTL_MINUTES) * 60_000);
 
     await this.docker.createVolume({ Name: packagesVolume(id), Labels: { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: request.owner } });
 
-    const container = await this.docker.createContainer(sandboxContainerOptions(this.config, id, request.owner, expiresAt));
+    const container = await this.docker.createContainer(sandboxContainerOptions(this.config, image.image, id, request.owner, expiresAt));
 
     await container.start();
 
-    const info = { id, owner: request.owner, expiresAt: expiresAt.toISOString(), workspace: WORKSPACE, image: this.config.image, toolchains: await this.imageToolchains() };
+    const info = { id, owner: request.owner, expiresAt: expiresAt.toISOString(), workspace: WORKSPACE, image: image.image, toolchains: await this.toolchainsOf(image) };
     const sandbox = new Sandbox(info, container.id, this.docker, this.config);
 
     this.sandboxes.set(id, sandbox);
@@ -93,13 +108,14 @@ export class SandboxRegistry {
     }
   }
 
-  private async imageToolchains(): Promise<string> {
-    if (this.toolchains === null) {
-      const image = await this.docker.getImage(this.config.image).inspect();
+  // The image's own label, else the catalog's description.
+  private async toolchainsOf(image: SandboxImage): Promise<string> {
+    if (!this.toolchains.has(image.image)) {
+      const inspected = await this.docker.getImage(image.image).inspect();
 
-      this.toolchains = image.Config?.Labels?.[TOOLCHAINS_LABEL] ?? "";
+      this.toolchains.set(image.image, inspected.Config?.Labels?.[TOOLCHAINS_LABEL] ?? image.description);
     }
 
-    return this.toolchains;
+    return this.toolchains.get(image.image) ?? image.description;
   }
 }

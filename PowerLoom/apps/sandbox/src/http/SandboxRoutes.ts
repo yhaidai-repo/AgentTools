@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { FEED_CREDENTIALS_HEADER, type FeedCredential } from "@powerloom/sandbox";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER, type FeedCredential } from "@powerloom/sandbox";
 import { BadRequest } from "./BadRequest";
 import type { SandboxRegistry } from "../docker/SandboxRegistry";
 import type { Sandbox } from "../docker/Sandbox";
@@ -14,7 +14,7 @@ const SANDBOX_ACTIONS: Record<string, Record<string, SandboxAction>> = {
   PUT: {
     repos: async (sandbox, request, parts, url) => sandbox.repos.import(parts[3] ?? "", request, url.searchParams.get("message") || "base"),
     files: async (sandbox, request) => sandbox.files.writeFile(writeFileRequest(await readJson(request))),
-    restore: async (sandbox, request, parts, url) => sandbox.packages.restore(sandbox.info, parts[3] ?? "", url.searchParams.get("target") ?? "", request, feedCredentials(request)),
+    restore: async (sandbox, request, parts, url) => sandbox.packages.restore(sandbox.info, { repo: parts[3] ?? "", target: url.searchParams.get("target") ?? "" }, request, feedCredentials(request), headerJson<string[]>(request, PACKAGE_HOSTS_HEADER) ?? []),
   },
   POST: {
     commands: async (sandbox, request) => sandbox.commands.run(commandRequest(await readJson(request))),
@@ -44,9 +44,9 @@ export class SandboxRoutes {
 
   private async collection(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
     if (request.method === "POST") {
-      const sandbox = await this.registry.open(openRequest(await readJson(request)));
+      const opened = await this.registry.open(openRequest(await readJson(request)));
 
-      return sendJson(response, 201, sandbox.info);
+      return opened.ok ? sendJson(response, 201, opened.value.info) : sendProblem(response, 422, opened.reason);
     }
 
     if (request.method === "GET") {
@@ -93,18 +93,23 @@ function ownerFilter(url: URL): (sandbox: Sandbox) => boolean {
   return prefix ? (sandbox) => sandbox.info.owner.startsWith(prefix) : () => false;
 }
 
-// The feeds' sign-ins of a restore, from its header (base64 JSON); none when it has no header.
+// The feeds' sign-ins of a restore; none when it has no header.
 function feedCredentials(request: IncomingMessage): FeedCredential[] {
-  const header = request.headers[FEED_CREDENTIALS_HEADER];
+  return headerJson<FeedCredential[]>(request, FEED_CREDENTIALS_HEADER) ?? [];
+}
+
+// A restore's header holding base64 JSON; null when it isn't sent.
+function headerJson<T>(request: IncomingMessage, name: string): T | null {
+  const header = request.headers[name];
 
   if (typeof header !== "string" || header.length === 0) {
-    return [];
+    return null;
   }
 
   try {
-    return JSON.parse(Buffer.from(header, "base64").toString("utf8")) as FeedCredential[];
+    return JSON.parse(Buffer.from(header, "base64").toString("utf8")) as T;
   } catch {
-    throw new BadRequest(`The ${FEED_CREDENTIALS_HEADER} header is not base64 JSON`);
+    throw new BadRequest(`The ${name} header is not base64 JSON`);
   }
 }
 

@@ -33,7 +33,7 @@ export function restoreTool(deps: AgentDeps, context: OutsideAccessContext, acce
       }
 
       const snapshot = repoSnapshot(join(deps.repoCache.root, input.repo));
-      const answer = await access.client.restore(sandbox.info.id, input.repo, input.target ?? "", snapshot, access.feeds);
+      const answer = await access.client.restore(sandbox.info.id, input.repo, input.target ?? "", snapshot, access.feeds, access.packageHosts);
 
       return answer.ok ? restoreText(answer.value) : failure(answer);
     },

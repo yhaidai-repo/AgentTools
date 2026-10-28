@@ -19,7 +19,7 @@ const server = new SandboxHttpServer(new SandboxRoutes(registry), docker, config
 const reaper = setInterval(() => void reapExpired(), REAP_EVERY_MS);
 
 server.listen(config.port);
-console.log(`sandbox service started on ${config.port}; image ${config.image}${config.runtime ? `, runtime ${config.runtime}` : ""}`);
+console.log(`sandbox service started on ${config.port}; images from ${config.imageCatalogPath ?? "the general image only"}${config.runtime ? `, runtime ${config.runtime}` : ""}`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);

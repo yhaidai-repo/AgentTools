@@ -8,7 +8,6 @@ export function configFromEnv(): SandboxConfig {
     port: number("SANDBOX_PORT", 3300),
     dockerHost: docker.hostname,
     dockerPort: Number(docker.port || 2375),
-    image: process.env.SANDBOX_IMAGE || "powerloom-sandbox",
     runtime: process.env.SANDBOX_RUNTIME || null,
     cpus: number("SANDBOX_CPUS", 4),
     memoryMb: number("SANDBOX_MEMORY_MB", 8192),
@@ -20,6 +19,8 @@ export function configFromEnv(): SandboxConfig {
     egressNetwork: process.env.SANDBOX_EGRESS_NETWORK || null,
     proxyUrl: process.env.SANDBOX_PROXY_URL || "http://sandbox-egress:3128",
     restoreTimeoutMs: number("SANDBOX_RESTORE_TIMEOUT_MS", 15 * 60_000),
+    proxySecret: process.env.SANDBOX_PROXY_SECRET || null,
+    imageCatalogPath: process.env.SANDBOX_IMAGES || null,
   };
 }
 

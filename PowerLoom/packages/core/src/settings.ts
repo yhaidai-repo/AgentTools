@@ -13,6 +13,7 @@ import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
 import type { ReadSqlSettings } from "./models/ReadSqlSettings";
+import type { SandboxSettings } from "./models/SandboxSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 import type { WebSearchSettings } from "./models/WebSearchSettings";
 
@@ -230,6 +231,17 @@ export async function readWebSearchSettings(db: PowerLoomDb): Promise<WebSearchS
   const stored = await readValue<Partial<WebSearchSettings>>(db, WEB_SEARCH_KEY);
 
   return { ...DEFAULT_WEB_SEARCH_SETTINGS, ...stored };
+}
+
+// Settings → Data access → Sandbox, per vault (PowerLoom's API saves it; the agent-runner reads it per run).
+export const SANDBOX_KEY = "sandbox";
+// The public registries only (user decision 2026-10-29); the runner adds the vault's own Azure DevOps feed hosts.
+export const DEFAULT_PACKAGE_HOSTS = ["api.nuget.org", "registry.npmjs.org"];
+
+export async function readSandboxSettings(db: PowerLoomDb, vault: string): Promise<SandboxSettings> {
+  const stored = await readValue<Partial<SandboxSettings>>(db, vaultSettingKey(vault, SANDBOX_KEY));
+
+  return { packageHosts: stored?.packageHosts ?? DEFAULT_PACKAGE_HOSTS, image: stored?.image ?? "" };
 }
 
 // Agents get search_web only while it is on and points at a SearXNG.

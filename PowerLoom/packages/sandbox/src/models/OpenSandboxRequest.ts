@@ -3,4 +3,6 @@ export interface OpenSandboxRequest {
   owner: string;
   /** The service removes it after this long, whatever happens to the run. */
   ttlMinutes: number;
+  /** A name from the image catalog (the vault's Settings → Sandbox); the catalog's first image when left out. */
+  image?: string;
 }

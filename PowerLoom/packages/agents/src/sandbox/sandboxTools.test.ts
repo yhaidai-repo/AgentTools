@@ -28,7 +28,7 @@ function depsWith(client: Partial<SandboxClient> | null): { deps: AgentDeps; ent
   const entries: DataAccessEntry[] = [];
   const log = { record: async (entry: DataAccessEntry) => { entries.push(entry); } } as unknown as DataAccessLog;
   const outside = { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } };
-  const sandbox = client ? { client: client as SandboxClient, url: "http://sandbox:3300", feeds: [feed] } : null;
+  const sandbox = client ? { client: client as SandboxClient, url: "http://sandbox:3300", feeds: [feed], packageHosts: ["api.nuget.org"], image: "" } : null;
 
   return { deps: { outside, sandbox, repoCache: { root: cacheRoot } } as unknown as AgentDeps, entries };
 }
@@ -148,8 +148,8 @@ describe("createSandboxTools", () => {
     const sent: unknown[] = [];
     const client: Partial<SandboxClient> = {
       ...fakeClient([]),
-      restore: async (id, repo, target, tar, credentials) => {
-        sent.push([id, repo, target, credentials]);
+      restore: async (id, repo, target, tar, credentials, hosts) => {
+        sent.push([id, repo, target, credentials, hosts]);
         await tar.cancel();
 
         return { ok: true, value: { ok: false, steps: [{ label: "dotnet restore App.sln", exitCode: 1, durationMs: 4_000, output: "NU1301: unable to load" }], skipped: [], packagesPath: "/packages" } };
@@ -162,7 +162,7 @@ describe("createSandboxTools", () => {
 
     const result = await tool("sandbox_restore").handler({ repo: "orders-api", target: "App.sln" });
 
-    assert.deepEqual(sent, [["abc123", "orders-api", "App.sln", [feed]]]);
+    assert.deepEqual(sent, [["abc123", "orders-api", "App.sln", [feed], ["api.nuget.org"]]]);
     assert.equal(result.isError, true);
     assert.match(result.text, /- dotnet restore App\.sln: failed \(exit code 1\) in 4\.0 s/);
     assert.match(result.text, /NU1301/);

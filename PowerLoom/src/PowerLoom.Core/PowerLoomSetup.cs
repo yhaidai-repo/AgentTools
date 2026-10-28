@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Features.Agents;
 using PowerLoom.Features.AiProviders;
+using PowerLoom.Features.Sandbox;
 using PowerLoom.Features.WebSearch;
 using PowerLoom.Features.Cleanup;
 using PowerLoom.Features.Continue;
@@ -68,6 +69,7 @@ public static class PowerLoomSetup
         builder.Services.AddAgentsFeature();
         builder.Services.AddAiProvidersFeature();
         builder.Services.AddWebSearchFeature();
+        builder.Services.AddSandboxFeature();
         builder.Services.AddStatusFeature();
         builder.Services.AddOpenApi();
 
