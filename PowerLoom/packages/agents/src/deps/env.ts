@@ -50,5 +50,14 @@ export function depsEnvFromProcess(azureTokenUrl: string): DepsEnv {
     azureTokenSecret: randomBytes(32).toString("hex"),
     confluenceSite: process.env.CONFLUENCE_SITE?.trim().replace(/\/+$/, "") || null,
     captureHome: process.env.VAULT_CAPTURE_HOME,
+    sandbox: sandboxEnv(),
   };
+}
+
+// The sandbox service is the host's, not a vault's: both variables set, or no sandbox tools.
+function sandboxEnv(): DepsEnv["sandbox"] {
+  const url = process.env.SANDBOX_URL?.trim().replace(/\/+$/, "");
+  const token = process.env.SANDBOX_TOKEN?.trim();
+
+  return url && token ? { url, token } : null;
 }

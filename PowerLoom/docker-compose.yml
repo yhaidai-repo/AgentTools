@@ -57,6 +57,9 @@ services:
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
       RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs, one at a time)
       POWERLOOM_URL: http://powerloom:8080  # … and takes the one callback per run
+      # The agents' sandboxes (the `sandbox` profile): both set, or agents get no sandbox tools. URL: http://sandbox:3300
+      SANDBOX_URL: ${SANDBOX_URL:-}
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
       # Every vault, writable: a run reads the docs of its task's vault and the tech-writer merges drafts into it (user decision 2026-10-02) and actualizes
@@ -101,6 +104,7 @@ services:
       POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
       PROMETHEUS_URL: ${PROMETHEUS_URL:-}  # observability on (.env): the dashboard asks Prometheus for PowerLoom's rates; empty = off
       GRAFANA_URL: ${GRAFANA_URL:-}  # observability on (.env): the dashboard's link to the logs (Grafana Explore), as the PC reaches it
+      SANDBOX_IMAGES: /app/PowerLoom/sandbox-images.json  # Settings → Data access → Sandbox lists its images
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
     volumes:
@@ -110,6 +114,7 @@ services:
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ./skills:/app/PowerLoom/skills:ro  # PowerLoom writes the skills now
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro  # DevSecrets tool skills (dev-local-run), read-only
+      - ./sandbox-images.json:/app/PowerLoom/sandbox-images.json:ro  # the sandbox image catalog, edited without a rebuild
     depends_on:
       powerloom:
         condition: service_healthy
@@ -157,6 +162,74 @@ services:
     depends_on:
       powerloom:
         condition: service_healthy
+    restart: unless-stopped
+
+  # The agents' sandboxes (design agent-sandbox, user decisions 2026-10-28): one isolated container per run (no network,
+  # no mounts but its own workspace, user 1000, read-only root, no capabilities, CPU/memory/pids limits) where an agent
+  # builds, tests and runs scripts on a copy of its repos. The only PowerLoom service with Docker access, and only
+  # through the socket proxy; the agent-runner calls it with SANDBOX_TOKEN and never gets Docker itself. Off unless
+  # COMPOSE_PROFILES has `sandbox`; build its image first: docker build -t powerloom-sandbox - < Dockerfile.sandbox
+  sandbox:
+    <<: *app
+    profiles: ["sandbox"]
+    command: ["npm", "run", "start", "-w", "@powerloom/sandbox-service"]
+    environment:
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}  # required: the service refuses to start without it
+      SANDBOX_PORT: "3300"
+      DOCKER_HOST: tcp://docker-proxy:2375
+      # The images a vault may pick (Settings → Data access → Sandbox); a vault's own image is added to this file.
+      SANDBOX_IMAGES: /app/PowerLoom/sandbox-images.json
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}  # e.g. runsc where gVisor is installed; empty = Docker's default
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-4}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-8192}
+      SANDBOX_DISK_MB: ${SANDBOX_DISK_MB:-20480}
+      SANDBOX_MAX_COMMAND_MS: ${SANDBOX_MAX_COMMAND_MS:-600000}
+      # Package restores (sandbox_restore): their containers join this network, whose only way out is sandbox-egress.
+      SANDBOX_EGRESS_NETWORK: powerloom-sandbox-egress
+      SANDBOX_PROXY_URL: http://sandbox-egress:3128
+      # Signs each restore's pass with its vault's package hosts; the same value as sandbox-egress's.
+      SANDBOX_PROXY_SECRET: ${SANDBOX_PROXY_SECRET:-}
+    volumes:
+      - ./sandbox-images.json:/app/PowerLoom/sandbox-images.json:ro
+    networks: [default, docker-api]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - docker-proxy
+    restart: unless-stopped
+
+  # The restore containers' only way out: HTTPS tunnels to the hosts a restore's signed pass names (its vault's
+  # package hosts, Settings → Data access → Sandbox), every tunnel logged. It sees host names only, never the traffic or
+  # a feed's token. Without SANDBOX_PROXY_SECRET every restore gets the fixed list SANDBOX_PACKAGE_HOSTS instead.
+  sandbox-egress:
+    <<: *app
+    profiles: ["sandbox"]
+    command: ["npm", "run", "proxy", "-w", "@powerloom/sandbox-service"]
+    environment:
+      SANDBOX_PROXY_SECRET: ${SANDBOX_PROXY_SECRET:-}
+      SANDBOX_PACKAGE_HOSTS: ${SANDBOX_PACKAGE_HOSTS:-api.nuget.org,registry.npmjs.org}
+      SANDBOX_PROXY_PORT: "3128"
+    networks: [default, sandbox-egress]
+    restart: unless-stopped
+
+  # The Docker API for the sandbox service only, cut down to what it uses (containers, exec, images, volumes); on an
+  # internal network no other service is on.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.1
+    profiles: ["sandbox"]
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+      IMAGES: 1
+      VOLUMES: 1
+      POST: 1
+      DELETE: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-api]
     restart: unless-stopped
 
   # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.
@@ -258,6 +331,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+networks:
+  default: {}
+  # Only the sandbox service and the socket proxy: nothing else reaches the Docker API.
+  docker-api:
+    internal: true
+  # The restore containers and the egress proxy only; named, because the sandbox service attaches containers to it.
+  sandbox-egress:
+    internal: true
+    name: powerloom-sandbox-egress
 
 volumes:
   # Named after the old compose project (adoa): the volumes keep their data across the rename to powerloom.

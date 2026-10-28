@@ -19,6 +19,7 @@
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/devhub": "*",
+    "@powerloom/sandbox": "*",
     "@powerloom/mongo": "*",
     "@powerloom/notes": "*",
     "@powerloom/sql": "*",

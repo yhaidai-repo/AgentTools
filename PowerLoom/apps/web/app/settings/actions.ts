@@ -359,6 +359,20 @@ export async function saveWebSearchAction(_previous: ActionResult | null, form: 
   return result;
 }
 
+// Settings → Data access → Sandbox of the vault: counts from each run's next sandbox and restore.
+export async function saveSandboxAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const packageHosts = field(form, "packageHosts").split(/[\s,]+/).filter(Boolean);
+  const saved = await powerloom.PUT("/api/vaults/{vault}/sandbox", {
+    params: { path: { vault: await requireVault() } },
+    body: { packageHosts, image: field(form, "image") || null },
+  });
+  const result = powerloomResult(saved, "Saved. The vault's next sandboxes and restores use it.");
+
+  revalidatePath("/settings");
+
+  return result;
+}
+
 // The app chats open in: "Continue with …" and "Configure with …" follow it.
 export async function saveChatAppAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const saved = await powerloom.PUT("/api/chats/app", { body: { launcher: field(form, "launcher") } });

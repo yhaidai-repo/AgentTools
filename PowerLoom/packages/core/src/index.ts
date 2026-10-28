@@ -30,6 +30,7 @@ export type { ReadSqlSettings } from "./models/ReadSqlSettings";
 export type { ReadAzureSettings } from "./models/ReadAzureSettings";
 export type { DevHubSettings } from "./models/DevHubSettings";
 export type { WebSearchSettings } from "./models/WebSearchSettings";
+export type { SandboxSettings } from "./models/SandboxSettings";
 export type { GitHubSettings } from "./models/GitHubSettings";
 export type { GitHubCheckStatus } from "./models/GitHubCheckStatus";
 export type { GoogleDriveSettings } from "./models/GoogleDriveSettings";
