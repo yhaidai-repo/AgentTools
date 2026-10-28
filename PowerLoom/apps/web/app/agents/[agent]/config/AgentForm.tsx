@@ -118,12 +118,26 @@ export function LimitsSection({ agent, spentTodayUsd }: { agent: AgentDefinition
 
 // What the agent may read or run: one switch each, its description as the hint (user decision 2026-10-18).
 export function AccessSection({ agent }: { agent: AgentDefinition }) {
+  const specs = agent.integrationSpecs ?? [];
+  const owned = specs.filter((spec) => spec.owner === agent.id);
+
   return (
     <section className="panel config-section">
       <h3>Access <small>what it may read or run</small></h3>
       <SwitchField name="webAccess" label="Web" hint="search and fetch" defaultChecked={agent.capabilities.webAccess} />
-      {(agent.integrationSpecs ?? []).map((spec) => <SwitchField key={spec.key} name={`integration:${spec.key}`} label={spec.label} hint={spec.description} defaultChecked={agent.capabilities.integrations?.[spec.key] === true} />)}
+      {specs.filter((spec) => spec.owner === undefined).map((spec) => <SwitchField key={spec.key} name={`integration:${spec.key}`} label={spec.label} hint={spec.description} defaultChecked={agent.capabilities.integrations?.[spec.key] === true} />)}
+      {owned.length > 0 && <OwnedTools specs={owned} />}
     </section>
+  );
+}
+
+// The agent's own output tools (user decision 2026-10-28): always on, so they are shown but not posted.
+function OwnedTools({ specs }: { specs: AgentDefinition["integrationSpecs"] }) {
+  return (
+    <div className="owned-tools">
+      <h4>Part of this agent</h4>
+      {specs.map((spec) => <label key={spec.key} className="switch-field"><input type="checkbox" checked disabled readOnly /><span className="switch-knob" aria-hidden="true" /><span className="switch-text">{spec.label}<small>{spec.description}</small></span></label>)}
+    </div>
   );
 }
 

@@ -13,7 +13,7 @@ export async function newAgentTemplate(id: string): Promise<AgentDefinition> {
   const builtins = (await getAgentConfig().list()).filter((agent) => agent.origin !== "user");
   const optionSpecs = sharedOptionSpecs(builtins);
   const options = Object.fromEntries(optionSpecs.map((spec) => [spec.key, optionDefault(builtins, spec.key, spec.min)]));
-  const integrationSpecs = builtins[0]?.integrationSpecs ?? [];
+  const integrationSpecs = (builtins[0]?.integrationSpecs ?? []).filter((spec) => spec.owner === undefined);
   const integrations = Object.fromEntries(integrationSpecs.map((spec) => [spec.key, spec.key === READ_REPOS_INTEGRATION]));
   const model = modelCatalog()[0];
 

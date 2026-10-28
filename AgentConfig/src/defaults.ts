@@ -6,8 +6,9 @@ import type { AgentsGlobal } from "./models/AgentsGlobal";
 export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: AgentDefinition): AgentDefinition {
   const options = { ...defaults.options, ...stored.options };
   const declared = new Set(defaults.optionSpecs.map((spec) => spec.key));
-  const integrations = { ...defaults.capabilities.integrations, ...stored.capabilities?.integrations };
-  const offered = new Set(defaults.integrationSpecs.map((spec) => spec.key));
+  const integrationSpecs = specsOfAgent(defaults.id, defaults.integrationSpecs);
+  const integrations = { ...defaults.capabilities.integrations, ...stored.capabilities?.integrations, ...ownedOn(integrationSpecs) };
+  const offered = new Set(integrationSpecs.map((spec) => spec.key));
 
   return {
     ...defaults,
@@ -22,15 +23,26 @@ export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: Ag
     },
     options: Object.fromEntries(Object.entries(options).filter(([key]) => declared.has(key))),
     optionSpecs: defaults.optionSpecs,
-    integrationSpecs: defaults.integrationSpecs,
+    integrationSpecs,
   };
+}
+
+// An owned switch (user decision 2026-10-28) belongs to one system agent: no other agent is offered it, and what a stored
+// config carries for it elsewhere is dropped on read.
+function specsOfAgent(agentId: string, specs: AgentDefinition["integrationSpecs"]): AgentDefinition["integrationSpecs"] {
+  return specs.filter((spec) => spec.owner === undefined || spec.owner === agentId);
+}
+
+function ownedOn(specs: AgentDefinition["integrationSpecs"]): Record<string, boolean> {
+  return Object.fromEntries(specs.filter((spec) => spec.owner !== undefined).map((spec) => [spec.key, true]));
 }
 
 // Agents made in the UI copied the shared integration switches when they were made; every start brings them the
 // current ones from the agents shipped in code (user request 2026-10-25: an older agent needs a newer switch). A new
-// switch starts off; every switch already set keeps its value; one the code no longer offers goes.
+// switch starts off; every switch already set keeps its value; one the code no longer offers goes. Owned switches are
+// never copied.
 export function refreshUserAgents(stored: AgentDefinition[], builtins: AgentDefinition[]): AgentDefinition[] {
-  const specs = builtins.find((agent) => agent.integrationSpecs.length > 0)?.integrationSpecs;
+  const specs = builtins.find((agent) => agent.integrationSpecs.length > 0)?.integrationSpecs.filter((spec) => spec.owner === undefined);
 
   return specs ? stored.filter((agent) => agent.origin === "user").map((agent) => withSwitches(agent, specs)) : [];
 }

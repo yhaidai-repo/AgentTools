@@ -5,4 +5,6 @@ export interface AgentIntegrationSpec {
   label: string;
   /** What the agent can do with it, and what the host needs for it (e.g. credentials). */
   description: string;
+  /** The agent that owns this switch: always on there, shown read-only, and offered to no other agent. Absent = shared. */
+  owner?: string;
 }

@@ -2,6 +2,7 @@ import { validateAgent, type AgentDefinition } from "@agenttools/config";
 import { z } from "zod";
 import { AGENT_DESCRIPTION_MAX } from "../agents/agentText";
 import { TASK_TYPE_PATTERN } from "../tasks/customTaskTypes";
+import { ownedGrantProblems } from "../agents/ownedIntegrations";
 import { reservePromptVersion } from "../agents/promptVersions";
 import { withPromptVersion } from "../agents/promptVersioning";
 import { withModelProvider } from "../agents/modelProvider";
@@ -94,12 +95,14 @@ async function inputProblems(context: CommandContext, current: AgentDefinition, 
   const known = [...await context.skills.names(), ...(pendingSkill ? [pendingSkill] : [])];
   const unknownSkills = (input.skills ?? []).filter((skill) => !known.includes(skill));
   const offered = (current.integrationSpecs ?? []).map((spec) => spec.key);
-  const unknownGrants = (input.grants ?? []).filter((grant) => !offered.includes(grant));
+  const owned = await ownedGrantProblems(context.agents!, current.id, input.grants ?? []);
+  const unknownGrants = (input.grants ?? []).filter((grant) => !offered.includes(grant) && !owned.some((problem) => problem.startsWith(`"${grant}"`)));
   const declared = current.optionSpecs.map((spec) => spec.key);
   const unknownOptions = Object.keys(input.options ?? {}).filter((key) => !declared.includes(key));
 
   return [
     ...(unknownSkills.length > 0 ? [`Unknown skills: ${unknownSkills.join(", ")} (known: ${known.join(", ")}).`] : []),
+    ...owned,
     ...(unknownGrants.length > 0 ? [`Unknown grants: ${unknownGrants.join(", ")} (offered: ${offered.join(", ")}).`] : []),
     ...(unknownOptions.length > 0 ? [`Unknown options: ${unknownOptions.join(", ")} (declared: ${declared.join(", ")}).`] : []),
   ];
@@ -107,7 +110,7 @@ async function inputProblems(context: CommandContext, current: AgentDefinition, 
 
 // The fields given replace the current ones; grants rewrite every declared integration switch; options merge.
 function applyChanges(current: AgentDefinition, input: UpdateAgentInput): AgentDefinition {
-  const integrations = input.grants === undefined ? current.capabilities.integrations : Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, input.grants!.includes(spec.key)]));
+  const integrations = input.grants === undefined ? current.capabilities.integrations : Object.fromEntries((current.integrationSpecs ?? []).map((spec) => [spec.key, spec.owner !== undefined || input.grants!.includes(spec.key)]));
 
   return {
     ...current,
