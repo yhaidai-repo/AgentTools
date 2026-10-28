@@ -9,8 +9,11 @@ import { and, eq, lt, notInArray } from "drizzle-orm";
 import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
 import { RunnerServer } from "./runnerServer";
 import { runAcceptedJob } from "./runAcceptedJob";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { RunnerMaintenance } from "./RunnerMaintenance";
+import { GsdWorktreePreparer } from "./GsdWorktreePreparer";
+import { WorkspaceResolver } from "./WorkspaceResolver";
+import { workspaceRuntimes } from "./workspaceRuntimes";
 
 const TRACE_RETENTION_DAYS = 30;
 // The data access log outlives the traces (user decision 2026-10-13: every outside read traceable); counts only, no data.
@@ -18,6 +21,8 @@ const DATA_ACCESS_RETENTION_DAYS = Number(process.env.DATA_ACCESS_RETENTION_DAYS
 // Every other tool call (repos, docs, web, PowerLoom's own tools) is the bulk of the log and matters for less long.
 const TOOL_CALL_RETENTION_DAYS = Number(process.env.TOOL_CALL_RETENTION_DAYS ?? "90");
 const INTERRUPTED: CompletedRun = { runId: null, outcome: "aborted", error: "the agent-runner stopped during the run" };
+// Coding agents' worktrees (one per repo and branch) are kept beside the repo caches, where the repo tools don't list them.
+const WORKTREES = ".worktrees";
 
 const { db, pool } = createDb(requireEnv("DATABASE_URL"));
 
@@ -78,7 +83,8 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
       const runDeps = await deps.forVault(await vaultOfJob(job));
       devHub = runDeps.devHub;
       azure = runDeps.azure;
-      const result = await runAgentTask({ ...runDeps, stop }, job);
+      const runtimes = workspaceRuntimes(runDeps.runtimes, workspaceResolver(runDeps));
+      const result = await runAgentTask({ ...runDeps, runtimes, stop }, job);
       return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
     },
     cleanups: [
@@ -88,6 +94,14 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
     ],
     report: (completed) => report(job.taskId, completed),
   });
+}
+
+// A run with a workspace runs in its branch's worktree of the vault's repo cache; GSD comes from GSD_CORE_DIR.
+function workspaceResolver(runDeps: AgentDeps): WorkspaceResolver {
+  const worktreeRoot = join(runDeps.repoCacheRoot, WORKTREES, basename(runDeps.repoCache.root));
+  const identity = { name: process.env.AGENT_GIT_NAME ?? "PowerLoom agent", email: process.env.AGENT_GIT_EMAIL ?? "agent@powerloom.local" };
+
+  return new WorkspaceResolver(runDeps.repoCache, new GsdWorktreePreparer(), { worktreeRoot, gsdCore: process.env.GSD_CORE_DIR ?? null, identity });
 }
 
 // At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a
