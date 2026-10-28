@@ -1,4 +1,4 @@
-import type { NewFailureReport } from "./models/NewFailureReport";
+import type { NewFailureReport } from "@powerloom/core";
 
 // A run keeps this many reports; a run that fails more often puts the rest in its result.
 export const MAX_REPORTS_PER_RUN = 20;

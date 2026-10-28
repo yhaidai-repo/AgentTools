@@ -38,6 +38,8 @@ import { listTestCasesCommand } from "./listTestCasesCommand";
 import { listSchedulesCommand } from "./listSchedulesCommand";
 import { getScheduleCommand } from "./getScheduleCommand";
 import { listRunsCommand } from "./listRunsCommand";
+import { listFailureReportsCommand } from "./listFailureReportsCommand";
+import { reportFailureCommand } from "./reportFailureCommand";
 import { getRunCommand } from "./getRunCommand";
 import { readLogsCommand } from "./readLogsCommand";
 import { getRunEventsCommand } from "./getRunEventsCommand";
@@ -162,6 +164,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   discardDeadLetterCommand,
   getSettingsCommand,
   captureDraftCommand,
+  reportFailureCommand,
   addRegisterRecordCommand,
   closeRegisterRecordCommand,
   // The read commands (stage 2 of the powerloom-mcp design, 2026-10-23): what the pages show, for the chats.
@@ -181,6 +184,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   getFrameworkCommand,
   getUsageSummaryCommand,
   listDataAccessCommand,
+  listFailureReportsCommand,
   listDeadLettersCommand,
   getStatusCommand,
   getResultCommand,

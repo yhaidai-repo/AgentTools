@@ -1,13 +1,12 @@
-import { runFailureReport, type PowerLoomDb } from "@powerloom/db";
+import { insertFailureReport } from "@powerloom/core";
+import type { PowerLoomDb } from "@powerloom/db";
 import type { FailureReportStore } from "./models/FailureReportStore";
-import type { NewFailureReport } from "./models/NewFailureReport";
+import type { NewFailureReport } from "@powerloom/core";
 
 export class DbFailureReportStore implements FailureReportStore {
   constructor(private readonly db: PowerLoomDb) {}
 
-  async add(report: NewFailureReport): Promise<number> {
-    const [row] = await this.db.insert(runFailureReport).values({ ...report, origin: "run" }).returning({ id: runFailureReport.id });
-
-    return row.id;
+  add(report: NewFailureReport): Promise<number> {
+    return insertFailureReport(this.db, report);
   }
 }

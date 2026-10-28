@@ -1,9 +1,9 @@
+import type { NewFailureReport } from "@powerloom/core";
 import { FAILURE_IMPACTS, FAILURE_KINDS, FAILURE_WORKAROUNDS } from "@powerloom/db";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
 import { FailureReportRun, MAX_REPORTS_PER_RUN } from "./FailureReportRun";
 import type { FailureReportStore } from "./models/FailureReportStore";
-import type { NewFailureReport } from "./models/NewFailureReport";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 
 const MAX_SAW_CHARS = 400;
@@ -12,7 +12,7 @@ const MAX_TARGET_CHARS = 200;
 const MAX_TOOL_CHARS = 80;
 
 const input = {
-  kind: z.enum(FAILURE_KINDS).describe("no_results: a search that gave nothing it should have; source_unreachable: a page that didn't load or search engines that didn't respond; tool_error: a tool failed and a retry didn't fix it; access_missing: you lack access; limit_reached: a cap or quota; other"),
+  kind: z.enum(FAILURE_KINDS).describe("no_results: a search that gave nothing it should have; source_unreachable: a page that didn't load or search engines that didn't respond; tool_error: a tool failed and a retry didn't fix it; access_missing: you lack access; limit_reached: a cap or quota; powerloom_unavailable: a PowerLoom tool failed; other"),
   tool: z.string().trim().min(1).max(MAX_TOOL_CHARS).optional().describe("The tool that failed, as named (search_web, WebFetch, sql_query)"),
   target: z.string().trim().min(1).max(MAX_TARGET_CHARS).describe("What it was aimed at: a host, connection or resource name. Never the text of a search or a URL's query string"),
   saw: z.string().trim().min(1).max(MAX_SAW_CHARS).describe("What happened, as you saw it: the status, the error text, the engines that didn't respond. Never data a tool returned, secrets, or names of customers or patients"),
@@ -62,7 +62,9 @@ async function saveReport(store: FailureReportStore, run: FailureReportRun, repo
 function reportOf(context: OutsideAccessContext, fields: z.infer<z.ZodObject<typeof input>>): NewFailureReport {
   return {
     vault: context.vault,
+    origin: "run",
     agentId: context.agentId,
+    actor: null,
     runId: context.runId,
     taskId: context.taskId,
     pbiId: context.pbiId,

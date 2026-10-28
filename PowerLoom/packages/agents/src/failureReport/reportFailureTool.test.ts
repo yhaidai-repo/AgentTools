@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
+import type { NewFailureReport } from "@powerloom/core";
 import { describe, it } from "node:test";
 import { FailureReportRun, MAX_REPORTS_PER_RUN } from "./FailureReportRun";
 import type { FailureReportStore } from "./models/FailureReportStore";
-import type { NewFailureReport } from "./models/NewFailureReport";
 import { createReportFailureTool } from "./reportFailureTool";
 
 const context = { vault: "work-projects", agentId: "better-research", runId: 42, owner: "powerloom-run-42", taskId: "AT-1-001", pbiId: 1 };
@@ -23,7 +23,7 @@ describe("report_failure", () => {
     const result = await tool.handler(failure);
 
     assert.equal(result.text, "Recorded as FR-1. Go on; name the gap in your result if there is one.");
-    assert.deepEqual(reports, [{ vault: "work-projects", agentId: "better-research", runId: 42, taskId: "AT-1-001", pbiId: 1, ...failure }]);
+    assert.deepEqual(reports, [{ vault: "work-projects", origin: "run", agentId: "better-research", actor: null, runId: 42, taskId: "AT-1-001", pbiId: 1, ...failure }]);
   });
 
   it("stores missing optional fields as null", async () => {

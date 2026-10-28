@@ -10,6 +10,8 @@ export * from "./backlog";
 export * from "./tasks";
 export * from "./agentRuns";
 export * from "./agentStats";
+export * from "./failureReports";
+export { commandToolName } from "./commandToolName";
 export * from "./results";
 export * from "./reviews";
 export * from "./vaultPage";
