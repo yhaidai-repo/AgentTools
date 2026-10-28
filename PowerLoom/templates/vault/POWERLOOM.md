@@ -13,6 +13,22 @@ Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, 
 - Tools marked read-only change nothing; the others change PowerLoom, so ask the user first.
 - No `powerloom` tools in this chat? The MCP server isn't connected: say so; the user can do the same in PowerLoom's web UI.
 
+## Maintaining these instructions
+- PowerLoom owns this installed `POWERLOOM.md`. It refreshes the file from
+  `PowerLoom/templates/vault/POWERLOOM.md` in the AgentTools repository on every startup.
+  Change that source template and deploy it for shared PowerLoom instruction changes;
+  direct edits to this installed copy are replaced on the next startup, including after a redeploy.
+- The vault owns its `AGENTS.md`: PowerLoom creates it only when missing. Existing edits survive
+  PowerLoom restarts and redeployments. Put vault-specific instructions there. Changes to
+  `PowerLoom/templates/vault/AGENTS.md` apply when creating a missing file; they do not update existing vault rules.
+- PowerLoom also refreshes its own MCP connection entries in `.mcp.json` and `.codex/config.toml`.
+  Maintain those entries through PowerLoom's configuration; other servers and unrelated settings are preserved.
+- The shared agent framework (`PowerLoom/packages/agents/prompts/_framework.md`, or its Settings override)
+  governs internal agent runs. Inspect the active source with `agent_framework` before changing it.
+- When adding or changing instructions, state who reads them, who owns them, their authoritative source,
+  where to edit them, and what startup or deployment replaces or preserves. Keep shared rules in one place
+  and explicitly load or reference them from the applicable entry points.
+
 ## When PowerLoom itself fails
 A PowerLoom tool failed in a way a retry did not fix, answered with something clearly wrong, or the server is not reachable
 and you worked around it? Call `failure_report` once per cause (`tool`: the tool as named, or `PowerLoom MCP`; what you saw;
@@ -34,6 +50,20 @@ Preserve existing `Created in` and `Updated in` lines when editing a register no
 3. `pbi_get` with `{"link": "<ADO link, #id or id>"}`: fields, statuses, parent, child items, repos, skills, note path.
 
 Answers in `<existing-items>` are the team's decisions; the user's notes are their own input on the PBI.
+
+## After investigating an implementation bug
+When you finish investigating a bug in an implementation produced using PowerLoom, record what went wrong through
+`www_create`. This applies to whichever chat or agent performs the investigation.
+- Read the bug and its original implementation item with `pbi_get` / `pbi_read`; verify their relationship.
+- Include expected behavior, actual failure, the established root cause, fault (Human or Agent), and any known
+  resolution and preventive action. Ask about required facts you cannot establish; never invent blame or a fix.
+- Link both the bug and the original implementation item in the record's `happened` text, using their actual item links.
+  Include known task/chat references as described above. Do not invent unsupported tool fields for a second item.
+- Check `vault_registers` with `kind: "www", openOnly: false` for an existing record of this investigation, including
+  resolved records; reuse its reference if already recorded. Follow the vault's approval rules, show the record,
+  and obtain any approval not already given.
+- Call `www_create` and report its returned identifier. If recording fails or the log write is still pending, say so;
+  keep the investigation findings available and do not claim the WWW record was written successfully.
 
 ## Reading SQL
 The vault's Read SQL connections (Settings > Read SQL), with the agents' guards: one `SELECT` or `WITH`, rolled back,
