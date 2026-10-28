@@ -179,6 +179,7 @@ export type { CommandContext } from "./models/CommandContext";
 export type { SkillCatalog } from "./models/SkillCatalog";
 export type { ChatTarget } from "./models/ChatTarget";
 export type { ChatLaunch } from "./models/ChatLaunch";
+export type { ChatDestination } from "./models/ChatDestination";
 export type { PbiFeedback } from "./models/PbiFeedback";
 export type { NewWwwRecord } from "./models/NewWwwRecord";
 export type { PowerLoomPort } from "./models/PowerLoomPort";

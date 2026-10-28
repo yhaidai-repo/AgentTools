@@ -2211,6 +2211,51 @@
         }
       }
     },
+    "/api/chats/conversations": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Continue.ChatsEndpoints"
+        ],
+        "summary": "GET_api_chats_conversations",
+        "description": "GET_api_chats_conversations",
+        "operationId": "GET_api_chats_conversations",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ChatKind"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatConversationChoices"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/chats": {
       "post": {
         "tags": [
@@ -4832,6 +4877,43 @@
           }
         }
       },
+      "ChatConversationChoices": {
+        "required": [
+          "launcher",
+          "label",
+          "conversations"
+        ],
+        "type": "object",
+        "properties": {
+          "launcher": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "conversations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DesktopConversation"
+            }
+          }
+        }
+      },
+      "ChatDestination": {
+        "required": [
+          "launcher",
+          "conversationId"
+        ],
+        "type": "object",
+        "properties": {
+          "launcher": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          }
+        }
+      },
       "ChatKind": {
         "enum": [
           "pbi",
@@ -4849,6 +4931,12 @@
         "properties": {
           "url": {
             "type": "string"
+          },
+          "clipboardText": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5621,6 +5709,34 @@
           }
         }
       },
+      "DesktopConversation": {
+        "required": [
+          "id",
+          "title",
+          "folder",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isRelated": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "DevHubCheck": {
         "required": [
           "ok",
@@ -6003,6 +6119,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChatDestination"
+              }
             ]
           }
         }

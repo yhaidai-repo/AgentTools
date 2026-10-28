@@ -1,56 +1,90 @@
 import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { EventBody } from "../../EventSequence";
-import type { RunEndReason } from "../../models/RunEndReason";
 import { fromEpochSeconds, windowsOfRateLimit } from "./claudeWindows";
+import type { SdkAssistantMessage } from "./models/SdkAssistantMessage";
+import type { SdkRateLimitInfo } from "./models/SdkRateLimitInfo";
+import type { SdkRateLimitMessage } from "./models/SdkRateLimitMessage";
+import type { SdkSystemMessage } from "./models/SdkSystemMessage";
+import type { SdkToolProgressMessage } from "./models/SdkToolProgressMessage";
+import type { SdkUserMessage } from "./models/SdkUserMessage";
+import { RunResults } from "./RunResults";
+import { SubSessions } from "./SubSessions";
 import { toNeutralToolName } from "./toSdkTools";
 import { TurnUsageTracker } from "./TurnUsageTracker";
 
-type AssistantMessage = Extract<SDKMessage, { type: "assistant" }>;
-type UserMessage = Extract<SDKMessage, { type: "user" }>;
-type RateLimitMessage = Extract<SDKMessage, { type: "rate_limit_event" }>;
-type RateLimitInfo = RateLimitMessage["rate_limit_info"];
-
-const RATE_LIMIT_STATUS: Record<RateLimitInfo["status"], "allowed" | "warning" | "rejected"> = {
+const RATE_LIMIT_STATUS: Record<SdkRateLimitInfo["status"], "allowed" | "warning" | "rejected"> = {
   allowed: "allowed",
   allowed_warning: "warning",
   rejected: "rejected",
 };
 
-// Maps Claude Agent SDK messages to neutral events; other message kinds are ignored.
+// A sub-agent's heartbeat names its Agent call with a counter suffix (`toolu_…-heartbeat-0`, spike 2026-10-28).
+const HEARTBEAT_SUFFIX = /-heartbeat-\d+$/;
+
+// Maps Claude Agent SDK messages to neutral events; other message kinds are ignored. The run's result comes from
+// finish(), once the stream has ended.
 export class MessageMapper {
   private readonly usage = new TurnUsageTracker();
+  private readonly sessions = new SubSessions();
+  private readonly results = new RunResults();
   private isRateLimited = false;
-  private isResultMapped = false;
-
-  get hasResult(): boolean {
-    return this.isResultMapped;
-  }
 
   map(message: SDKMessage): EventBody[] {
     switch (message.type) {
       case "assistant":
         return this.mapAssistant(message);
       case "user":
-        return mapUser(message);
+        return this.sessions.stamp(message, mapUser(message));
+      case "tool_progress":
+        return this.sessions.stamp(message, [mapToolProgress(message)]);
+      case "system":
+        return this.mapSystem(message);
       case "rate_limit_event":
         return this.mapRateLimit(message);
       case "result":
-        return [...this.usage.flush(), ...this.usage.reconcile(message.modelUsage), this.mapResult(message)];
+        return this.mapResult(message);
       default:
         return [];
     }
   }
 
-  private mapAssistant(message: AssistantMessage): EventBody[] {
-    const finishedTurn = this.usage.track(message);
+  // Exactly one result per run, after the usage of a turn the stop cut short and the sub-sessions the stream left open.
+  finish(stopReason: "timeout" | "aborted" | null): EventBody[] {
+    return [...this.usage.flush(), ...this.sessions.closeOpen(), this.results.toEvent(stopReason, this.isRateLimited)];
+  }
+
+  // A sub-agent frame's usage is a streaming snapshot, not its final count (about 1k output tokens summed against
+  // 69k, spike 2026-10-28), so only main-session turns are tracked; sub-agents' tokens arrive with the result's totals.
+  private mapAssistant(message: SdkAssistantMessage): EventBody[] {
+    const isMainSession = message.parent_tool_use_id === null;
+    const finishedTurn = isMainSession ? this.usage.track(message) : [];
 
     this.isRateLimited ||= message.error === "rate_limit";
 
-    return [...finishedTurn, ...message.message.content.flatMap(mapContentBlock)];
+    return [...finishedTurn, ...this.contentEvents(message)];
+  }
+
+  private contentEvents(message: SdkAssistantMessage): EventBody[] {
+    const bodies = message.message.content.flatMap(mapContentBlock);
+
+    return this.sessions.stamp(message, bodies);
+  }
+
+  private mapSystem(message: SdkSystemMessage): EventBody[] {
+    switch (message.subtype) {
+      case "task_started":
+        return this.sessions.open(message);
+      case "task_progress":
+        return this.sessions.progress(message);
+      case "task_notification":
+        return this.sessions.close(message);
+      default:
+        return [];
+    }
   }
 
   // Every status is passed on, so hosts can follow the subscription's usage, not only its warnings.
-  private mapRateLimit(message: RateLimitMessage): EventBody[] {
+  private mapRateLimit(message: SdkRateLimitMessage): EventBody[] {
     const info = message.rate_limit_info;
 
     this.isRateLimited ||= info.status === "rejected";
@@ -64,33 +98,14 @@ export class MessageMapper {
     }];
   }
 
-  private mapResult(message: SDKResultMessage): EventBody {
-    this.isResultMapped = true;
+  private mapResult(message: SDKResultMessage): EventBody[] {
+    this.results.add(message);
 
-    return {
-      type: "result",
-      reason: this.resultReason(message),
-      turns: message.num_turns,
-      durationMs: message.duration_ms,
-      providerCostUsd: message.total_cost_usd ?? null,
-      message: message.subtype === "success" ? null : message.errors.join("; ") || message.subtype,
-    };
-  }
-
-  private resultReason(message: SDKResultMessage): RunEndReason {
-    if (this.isRateLimited) {
-      return "rate-limited";
-    }
-
-    if (message.subtype === "error_max_turns") {
-      return "max-turns";
-    }
-
-    return message.subtype === "success" && !message.is_error ? "success" : "failed";
+    return [...this.usage.flush(), ...this.usage.reconcile(message.modelUsage)];
   }
 }
 
-function mapContentBlock(block: AssistantMessage["message"]["content"][number]): EventBody[] {
+function mapContentBlock(block: SdkAssistantMessage["message"]["content"][number]): EventBody[] {
   if (block.type === "text" && block.text.trim()) {
     return [{ type: "text", text: block.text }];
   }
@@ -102,7 +117,16 @@ function mapContentBlock(block: AssistantMessage["message"]["content"][number]):
   return [];
 }
 
-function mapUser(message: UserMessage): EventBody[] {
+function mapToolProgress(message: SdkToolProgressMessage): EventBody {
+  return {
+    type: "tool_progress",
+    callId: message.tool_use_id.replace(HEARTBEAT_SUFFIX, ""),
+    name: toNeutralToolName(message.tool_name),
+    elapsedMs: message.elapsed_time_seconds * 1000,
+  };
+}
+
+function mapUser(message: SdkUserMessage): EventBody[] {
   const content = message.message.content;
 
   if (typeof content === "string") {

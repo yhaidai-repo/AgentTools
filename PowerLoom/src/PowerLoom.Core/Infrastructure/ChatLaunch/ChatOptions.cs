@@ -16,4 +16,9 @@ public sealed class ChatOptions
 
     // The folder with VaultUsage and VaultCapture on the PC; empty = vaults can't be configured for the app.
     public string AgentTools { get; set; } = "";
+
+    // Read-only desktop metadata, separate from the runner's model-provider homes.
+    public string CodexHistoryRoot { get; set; } = "";
+
+    public string ClaudeSessionsRoot { get; set; } = "";
 }

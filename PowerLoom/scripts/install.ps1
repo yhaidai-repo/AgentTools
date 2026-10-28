@@ -297,6 +297,7 @@ $VaultsRoot = Get-VaultsRoot $VaultPaths
 
 Assert-Docker
 New-EnvFile
+& (Join-Path $PSScriptRoot 'Set-DesktopChatHistory.ps1')
 Assert-VaultsRoot
 New-HostFolders
 New-DatabaseVolume

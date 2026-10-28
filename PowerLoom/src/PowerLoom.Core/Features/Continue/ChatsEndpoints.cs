@@ -8,6 +8,14 @@ namespace PowerLoom.Features.Continue;
 
 public static class ChatsEndpoints
 {
+    [WolverineGet("/api/chats/conversations")]
+    public static async Task<Results<Ok<ChatConversationChoices>, ProblemHttpResult>> Conversations(ChatKind kind, string id, string? search, ChatConversations conversations, CancellationToken cancellation)
+    {
+        var choices = await conversations.ChoicesAsync(kind, id, search, cancellation);
+
+        return choices.Ok ? TypedResults.Ok(choices.Value) : choices.Problem.ToProblemResult();
+    }
+
     // "Continue with <agent>": the note is written, the link comes back, the browser opens it in the agent app.
     [WolverinePost("/api/chats")]
     public static async Task<Results<Ok<ChatLink>, ProblemHttpResult>> Post(OpenChatRequest request, ChatOpener opener, CancellationToken cancellation)

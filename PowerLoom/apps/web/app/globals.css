@@ -815,3 +815,16 @@ tbody[data-folded] tr.child-row {
   border-color: var(--accent);
   outline: none;
 }
+
+dialog.chat-picker { width: min(48rem, calc(100vw - 3rem)); }
+.chat-picker-body { display: grid; gap: 14px; }
+.chat-picker-body h2, .chat-picker-body p { margin: 0; }
+.chat-mode { display: flex; gap: 24px; border: 0; padding: 0; }
+.chat-mode legend { margin-bottom: 8px; }
+.chat-mode label { display: flex; align-items: center; gap: 6px; }
+.chat-options { display: grid; gap: 6px; max-height: 42vh; overflow-y: auto; }
+.chat-option { display: flex; align-items: start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.chat-option.selected { border-color: var(--accent); }
+.chat-option > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.chat-option small { color: var(--muted); }
+.clipboard-fallback { display: grid; gap: 10px; }

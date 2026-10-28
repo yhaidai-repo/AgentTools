@@ -5,6 +5,11 @@ import type { ToolImage } from "../../models/ToolImage";
 export const TOOL_SERVER_NAME = "agent";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 
+// The sub-agent tool: the model's tool_use blocks name it `Agent`, while the init message lists it as `Task` (CLI
+// 2.1.286, spike 2026-10-28). Both mean the same tool.
+const SUBAGENT_TOOL = "Agent";
+const LEGACY_SUBAGENT_TOOL = "Task";
+
 // Our tools run in-process as one MCP server; the model sees them as `mcp__agent__<name>`. Their results name tools
 // the way the model can call them (sdkToolNamer).
 export function createToolServer(tools: ToolDefinition<any>[]): McpSdkServerConfigWithInstance {
@@ -40,7 +45,11 @@ export function withSdkToolNaming(systemPrompt: string, tools: ToolDefinition<an
 }
 
 export function toNeutralToolName(sdkName: string): string {
-  return sdkName.startsWith(TOOL_PREFIX) ? sdkName.slice(TOOL_PREFIX.length) : sdkName;
+  if (sdkName.startsWith(TOOL_PREFIX)) {
+    return sdkName.slice(TOOL_PREFIX.length);
+  }
+
+  return sdkName === LEGACY_SUBAGENT_TOOL ? SUBAGENT_TOOL : sdkName;
 }
 
 // A whole neutral name only: not one that is already prefixed, nor part of a longer word (`read_pbis`).

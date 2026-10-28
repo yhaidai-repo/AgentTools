@@ -21,6 +21,14 @@ public sealed class CodexDesktopLauncher : IChatLauncher
         if (prompt.Length > PromptMax)
             return Outcome<OpenedChat>.Failure(Problem.Invalid($"The prompt has {prompt.Length} characters; the codex:// link limit used here is {PromptMax}."));
 
+        if (request.Destination is { } destination)
+        {
+            if (destination.Launcher != Id || !Guid.TryParseExact(destination.ConversationId, "D", out _))
+                return Outcome<OpenedChat>.Failure(Problem.Invalid("Choose an existing Codex conversation from the list."));
+
+            return Outcome<OpenedChat>.Success(new OpenedChat($"codex://threads/{Uri.EscapeDataString(destination.ConversationId)}?prompt={Uri.EscapeDataString(prompt)}"));
+        }
+
         return Outcome<OpenedChat>.Success(new OpenedChat($"codex://new?path={Uri.EscapeDataString(request.Folder)}&prompt={Uri.EscapeDataString(prompt)}"));
     }
 

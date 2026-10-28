@@ -259,6 +259,8 @@ services:
       Chat__ReposRoot: ${REPOS_ROOT:-}  # PC paths for the chat links: the repos
       Chat__BacklogHostRoot: ${VAULT_PATH:?set in .env}  # … PowerLoom's backlog vault
       Chat__AgentTools: ${AGENTTOOLS_PATH:-}  # … VaultUsage and VaultCapture, for "Configure with <agent>"
+      Chat__CodexHistoryRoot: /desktop-chats/codex
+      Chat__ClaudeSessionsRoot: /desktop-chats/claude
       Runner__Url: http://agent-runner:3200  # the agents' dispatch starts the runs there
       # The MCP server as the PC sees it and its token: written into every vault's .mcp.json (Add vault, every start).
       Mcp__Url: http://127.0.0.1:${MCP_PORT:-3110}/mcp
@@ -276,6 +278,11 @@ services:
       - ./skills:/app/PowerLoom/skills  # writable: the Skills page's saves
       - ${SKILLS_PATH:?set in .env}:/skills:ro
       - ../DevSecrets/skills:/app/DevSecrets/skills:ro
+      # Desktop histories only; the desktop login files and the runner's agent homes are not mounted here.
+      # Set-DesktopChatHistory.ps1 discovers these paths on the PC and creates empty fallbacks for missing apps.
+      - ${CODEX_DESKTOP_SESSIONS_PATH:-./desktop-chats/codex/sessions}:/desktop-chats/codex/sessions:ro
+      - ${CODEX_DESKTOP_INDEX_PATH:-./desktop-chats/codex/session_index.jsonl}:/desktop-chats/codex/session_index.jsonl:ro
+      - ${CLAUDE_DESKTOP_SESSIONS_PATH:-./desktop-chats/claude}:/desktop-chats/claude:ro
     depends_on:
       db:
         condition: service_healthy

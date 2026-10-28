@@ -3,21 +3,18 @@ import { EventSequence } from "../../EventSequence";
 import type { AgentEvent } from "../../models/AgentEvent";
 import type { AgentRequest } from "../../models/AgentRequest";
 import type { AgentRuntime } from "../../models/AgentRuntime";
-import type { Conversation } from "../../models/Conversation";
 import type { SubscriptionQuery } from "../../models/SubscriptionQuery";
 import type { SubscriptionReport } from "../../models/SubscriptionReport";
 import { RunAbort } from "../../RunAbort";
 import { ClaudeConversations } from "./ClaudeConversations";
 import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
-import { TOOL_SERVER_NAME, createToolServer, sdkToolNamer, sdkToolNames, withSdkToolNaming } from "./toSdkTools";
+import type { ClaudeRuntimeOptions } from "./models/ClaudeRuntimeOptions";
+import { buildSdkOptions } from "./sdkOptions";
+import { TOOL_SERVER_NAME, sdkToolNamer } from "./toSdkTools";
 import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
 
-const CLIENT_APP = "agenttools-runtime/1.0";
-const WEB_TOOLS = ["WebSearch", "WebFetch"];
-
-// Claude via the Claude Agent SDK, with every Claude Code built-in tool and setting source disabled:
-// the agent sees only the request's tools, so it behaves the same as on any other adapter.
+// Claude via the Claude Agent SDK (options: sdkOptions).
 // `keepConversations`: runs with a conversation write their transcript under CLAUDE_CONFIG_DIR and can be continued.
 export class ClaudeAgentSdkRuntime implements AgentRuntime {
   readonly provider = "anthropic";
@@ -26,7 +23,7 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   private lastSeen: SubscriptionReport | null = null;
   private readonly projectDir = process.cwd();
 
-  constructor(keepConversations = false) {
+  constructor(keepConversations = false, private readonly options: ClaudeRuntimeOptions = {}) {
     this.conversations = keepConversations ? new ClaudeConversations(this.projectDir) : null;
   }
 
@@ -46,9 +43,9 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
       abort.dispose(request.signal);
     }
 
-    // An aborted or crashed run may end without a result message; every run still ends with exactly one.
-    if (!mapper.hasResult) {
-      yield events.next({ type: "result", reason: abort.stopReason ?? "failed", turns: 0, durationMs: 0, providerCostUsd: null, message: abort.stopReason });
+    // The run ends with the stream, not with a result message; an aborted or crashed run still ends with one result.
+    for (const body of mapper.finish(abort.stopReason)) {
+      yield events.next(body);
     }
   }
 
@@ -80,7 +77,7 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
   private buildOptions(request: AgentRequest, abort: RunAbort): Options {
     const conversation = this.conversations ? request.conversation : undefined;
 
-    return { ...baseOptions(request, abort), cwd: this.projectDir, ...conversationOptions(conversation) };
+    return buildSdkOptions(request, abort, { projectDir: this.projectDir, conversation, apiProxied: this.options.apiProxied ?? false });
   }
 
   private remember(event: AgentEvent): void {
@@ -103,38 +100,4 @@ async function* streamEvents(options: Options, request: AgentRequest, mapper: Me
   for await (const message of session) {
     yield* mapper.map(message).map((body) => events.next(body));
   }
-}
-
-// The webAccess capability maps to Claude's own web tools; every other built-in stays off.
-function builtInTools(request: AgentRequest): string[] {
-  return request.capabilities?.webAccess ? WEB_TOOLS : [];
-}
-
-// A continued conversation is forked into the run's own id, so the earlier run's transcript stays as it was.
-function conversationOptions(conversation: Conversation | undefined): Partial<Options> {
-  if (!conversation) {
-    return { persistSession: false };
-  }
-
-  if (!conversation.continues) {
-    return { persistSession: true, sessionId: conversation.id };
-  }
-
-  return { persistSession: true, resume: conversation.continues, forkSession: true, sessionId: conversation.id };
-}
-
-function baseOptions(request: AgentRequest, abort: RunAbort): Options {
-  return {
-    model: request.model.model,
-    effort: request.model.effort,
-    systemPrompt: withSdkToolNaming(sdkToolNamer(request.tools)(request.systemPrompt), request.tools),
-    maxTurns: request.limits.maxTurns,
-    abortController: abort.controller,
-    tools: builtInTools(request),
-    mcpServers: { [TOOL_SERVER_NAME]: createToolServer(request.tools) },
-    allowedTools: [...sdkToolNames(request.tools), ...builtInTools(request)],
-    permissionMode: "dontAsk",
-    settingSources: [],
-    env: { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: CLIENT_APP },
-  };
 }

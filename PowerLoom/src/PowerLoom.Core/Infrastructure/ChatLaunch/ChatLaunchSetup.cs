@@ -9,6 +9,7 @@ public static class ChatLaunchSetup
         builder.Services.AddSingleton<IChatLauncher, CodexDesktopLauncher>();
         builder.Services.AddScoped<ChatLaunchers>();
         builder.Services.AddSingleton<HostPaths>();
+        builder.Services.AddSingleton<DesktopConversationCatalog>();
 
         return builder;
     }
