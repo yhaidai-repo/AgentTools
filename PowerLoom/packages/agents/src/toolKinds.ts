@@ -40,6 +40,7 @@ const TOOL_KINDS: Record<string, ToolKind> = {
   read_pbi: internal,
   fetch_document: web,
   save_document_notes: web,
+  report_failure: internal,
   // PowerLoom's commands that read the vault or the skills, as chats call them over MCP; every other command is
   // PowerLoom's own (see commandKindOf).
   vault_notes: docs,

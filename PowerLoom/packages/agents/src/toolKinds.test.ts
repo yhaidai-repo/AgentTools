@@ -8,6 +8,10 @@ describe("classifyToolCall", () => {
     assert.equal(classifyToolCall("pbi_read", {}).kind, "internal");
   });
 
+  it("reads report_failure as PowerLoom's own, though report_ is no write prefix", () => {
+    assert.equal(classifyToolCall("report_failure", { kind: "tool_error" }).kind, "internal");
+  });
+
   it("reads the commands on the vault as docs and the ones on skills as skills", () => {
     assert.equal(classifyToolCall("vault_registers", {}).kind, "docs");
     assert.equal(classifyToolCall("vault_notes", { folder: "pos" }).request, "pos");
