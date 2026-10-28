@@ -19,15 +19,15 @@ import { AgentToolset, grantedWriters } from "../toolset/AgentToolset";
 import { recordToolOffer } from "../toolset/recordToolOffer";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
-import { loadPreviousResult, previousResultBlock } from "./previousResult";
+import { runContextBlock } from "./previousResult";
 import { settleTask } from "./settleTask";
 
 type ItemRow = typeof localItem.$inferSelect;
 
 
 // One task of an agent without code of its own (user decision 2026-10-22): its prompt, the framework and its skills as
-// instructions; the task, the PBI's context (AgentRunSession adds it) and the task's latest result (not on Start over)
-// as the first message; whatever its Config grants as tools; write_result as the run's required output. Once everything
+// instructions; the task, the PBI's context (AgentRunSession adds it), its hand-offs and its latest result (not on Start
+// over) as the first message; whatever its Config grants as tools; write_result as the run's required output. Once everything
 // is committed the task is settled in one place (settleTask): done, waiting for what it handed on, or blocked, never
 // done while unfinished.
 export async function runGenericTask(context: TaskContext, task: ItemRow): Promise<AgentRunResult> {
@@ -53,15 +53,18 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
     keepWhatTheStopLeft(ran.outcome, run);
 
-    const committed: { createdIds: string[] | null } = { createdIds: null };
+    const committed = { isDone: false };
     const commit = isCheckpoint
       ? async () => { await run.toolset?.commitCheckpoint(session.runId); }
-      : async () => { committed.createdIds = (await run.toolset?.commit(session.runId, stoppedEarly))?.taskIds ?? []; };
+      : async () => {
+        await run.toolset?.commit(session.runId, stoppedEarly);
+        committed.isDone = true;
+      };
     const final = await session.finish(ran, commit, stoppedEarly, isCheckpoint ? "checkpoint" : "commit");
 
     // Settled once everything is committed, never by a writer; a failed commit is ended by endTask as a failure.
-    if (committed.createdIds && run.toolset && (final.outcome === "success" || final.outcome === "budget-exceeded")) {
-      await settleTask(deps.db, task, final.runId, { outcome: final.outcome, result: run.toolset.result.latest, createdIds: committed.createdIds, writers: run.toolset.settlements() });
+    if (committed.isDone && run.toolset && (final.outcome === "success" || final.outcome === "budget-exceeded")) {
+      await settleTask(deps.db, task, final.runId, { outcome: final.outcome, result: run.toolset.result.latest, writers: run.toolset.settlements() });
     }
 
     return final;
@@ -164,7 +167,7 @@ export async function buildFirstMessage(db: PowerLoomDb, task: ItemRow, run: Gen
     acceptanceCriteriaBlock(task),
     ...writerBlocks,
     // The task row was read before the run began, so it still holds the Start over the run clears.
-    previousResultBlock(await loadPreviousResult(db, task.id), task.startOver),
+    await runContextBlock(db, task),
     webDocuments,
     reposBlock(run.repos),
     "Work on the task. Record what you have early with write_result (status partial), then call it again with the final result: each call replaces the last, and the last one is the run's result.",

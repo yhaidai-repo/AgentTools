@@ -1,4 +1,8 @@
+import { localItem, type PowerLoomDb } from "@powerloom/db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { loadHandoffContext } from "../handoffs/handoffContext";
+import { handoffChatSection } from "../handoffs/renderHandoff";
 import type { ChatLaunch } from "../models/ChatLaunch";
 import type { ChatTarget } from "../models/ChatTarget";
 import type { ChatDestination } from "../models/ChatDestination";
@@ -20,7 +24,18 @@ export const openChatCommand: Command<{ target: ChatTarget; destination?: ChatDe
       conversationId: z.string().min(1).max(100),
     }).optional(),
   }),
-  run(context, input) {
-    return context.powerloom.openChat(input.target, input.destination);
+  async run(context, input) {
+    return context.powerloom.openChat(input.target, input.destination, await handoffSectionOf(context.db, input.target));
   },
 };
+
+// An item's hand-offs go into its chat note, rendered as the agents read them (user decision 2026-10-28).
+async function handoffSectionOf(db: PowerLoomDb, target: ChatTarget): Promise<string | null> {
+  if (target.kind !== "item") {
+    return null;
+  }
+
+  const [item] = await db.select({ id: localItem.id, data: localItem.data }).from(localItem).where(eq(localItem.id, target.itemId));
+
+  return item ? handoffChatSection(await loadHandoffContext(db, item, null)) : null;
+}

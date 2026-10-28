@@ -1,4 +1,4 @@
-import { ANY_AGENT, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type ItemPrefix } from "@powerloom/core";
+import { ANY_AGENT, handoffHumanTaskBody, insertHandoff, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type ItemPrefix, type NewHandoff } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, count, eq, isNotNull, like } from "drizzle-orm";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
@@ -11,15 +11,39 @@ import { normalizeNotePath, notePathProblem } from "../techWriter/notePaths";
 const NEW_TASK = /^new:(\d+)$/;
 const USER_ASSIGNEE = "human";
 
-// Writes a successful run's created tasks in order, so a `new:<n>` dependency points at an id written before it.
+// Writes a successful run's created tasks in order, so a `new:<n>` dependency points at an id written before it. A task
+// hand_off made gets its hand-off recorded with it.
 export async function commitCreatedTasks(db: PowerLoomDb, context: TaskCommitContext, tasks: CreatedTask[]): Promise<string[]> {
   const ids: string[] = [];
 
   for (const task of tasks) {
-    ids.push(await insertTask(db, context, { ...task, dependsOn: resolveTaskDependencies(task.dependsOn, ids) }));
+    ids.push(await commitTask(db, context, resolveTask(task, ids)));
   }
 
   return ids;
+}
+
+// The task with every `new:<n>` it names (its dependencies, its hand-off's items) replaced by the id written for it.
+export function resolveTask(task: CreatedTask, written: readonly string[]): CreatedTask {
+  const dependsOn = resolveTaskDependencies(task.dependsOn, written);
+
+  if (!task.handoff) {
+    return { ...task, dependsOn };
+  }
+
+  const refs = { ...task.handoff.package.refs, items: resolveTaskDependencies(task.handoff.package.refs.items, written) };
+
+  return { ...task, dependsOn, handoff: { ...task.handoff, package: { ...task.handoff.package, refs } } };
+}
+
+async function commitTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
+  const id = await insertTask(db, context, task);
+
+  if (task.handoff) {
+    await insertHandoff(db, newHandoffOf(context, task), id);
+  }
+
+  return id;
 }
 
 // Agent tasks that agents created on the PBI so far: the per-PBI cap counts them across runs.
@@ -93,8 +117,9 @@ async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task:
   const id = await nextId(db, "HT", context.pbiId);
   const human = { why: task.reason, solves: task.goal, steps: task.steps };
   const criteria = [`## Done when\n\n${task.doneWhen}`, ...(task.outOfScope ? [`## Out of scope\n\n${task.outOfScope}`] : [])].join("\n\n");
+  const body = task.handoff ? handoffHumanTaskBody(newHandoffOf(context, task), human, criteria) : `${renderHumanTaskBody(human)}\n\n${criteria}`;
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: `${renderHumanTaskBody(human)}\n\n${criteria}`, data: { ...human, ...decisionData(task) } });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body, data: { ...human, ...decisionData(task) } });
 
   return id;
 }
@@ -106,6 +131,21 @@ async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task:
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: task.goal, data });
 
   return id;
+}
+
+// The hand-off a task carries, sent by the creating task's run.
+function newHandoffOf(context: TaskCommitContext, task: CreatedTask): NewHandoff {
+  const handoff = task.handoff!;
+
+  return { from: { taskId: context.parentTaskId, agent: context.agent, runId: context.runId }, toKind: targetKindOf(task), intent: handoff.intent, gate: handoff.gate, package: handoff.package };
+}
+
+function targetKindOf(task: CreatedTask): NewHandoff["toKind"] {
+  if (task.assignee !== USER) {
+    return "agent";
+  }
+
+  return task.kind === "question" ? "question" : "human";
 }
 
 // A task without a PBI names its own repos (the Tasks page's choice); one an agent creates inherits its run's.

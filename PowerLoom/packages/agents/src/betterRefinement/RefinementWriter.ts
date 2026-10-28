@@ -30,7 +30,6 @@ export class RefinementWriter implements RunWriter {
 
   private readonly draft: BetterRefinementDraft = { refinement: null, captures: [], pages: [] };
   private recommendable: string[] | null = null;
-  private carriedOnBy: string | null = null;
 
   constructor(private readonly context: TaskContext) {}
 
@@ -60,22 +59,15 @@ export class RefinementWriter implements RunWriter {
 
     const { deps } = target;
     const pages = withPagesRead(this.draft.pages, await confluencePagesReadInRun(deps, target.runId), "Read by Better Refinement while refining.");
-    const extra = { docsRead: await docsReadInRun(deps, target.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName, stoppedEarly: target.stoppedEarly };
+    const extra = { agent: target.agentId, docsRead: await docsReadInRun(deps, target.runId), documented: await documentedRepos(deps.docsRoot), docsVault: deps.docsVaultName, stoppedEarly: target.stoppedEarly };
     const task = { id: target.task.id, pbiId: requirePbiId(target.task), vault: target.task.vault };
-    const committed = await commitBetterRefinement(deps.db, task, target.runId, { refinement: this.draft.refinement, pages }, { tasks: target.tasks, taskIds: target.taskIds }, extra);
-
-    this.carriedOnBy = committed.carriedOnBy;
-
-    return committed.outputs;
+    return commitBetterRefinement(deps.db, task, target.runId, { refinement: this.draft.refinement, pages }, { tasks: target.tasks, taskIds: target.taskIds }, extra);
   }
 
-  // The refinement is the task's output; a follow-up refinement that waits for the user's answers carries it on.
+  // The refinement is the task's output; a follow-up refinement that waits for the user's answers carries it on with a
+  // continue hand-off, which the settlement reads.
   settlement(): WriterSettlement | null {
-    if (!this.draft.refinement) {
-      return { kind: "missing", output: "a refinement (write_refinement)" };
-    }
-
-    return this.carriedOnBy ? { kind: "handedOn", id: this.carriedOnBy } : null;
+    return this.draft.refinement ? null : { kind: "missing", output: "a refinement (write_refinement)" };
   }
 }
 

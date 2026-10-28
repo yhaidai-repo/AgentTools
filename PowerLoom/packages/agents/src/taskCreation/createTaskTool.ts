@@ -4,8 +4,9 @@ import type { DuplicateGuard } from "../DuplicateGuard";
 import { evidenceInput } from "../evidence/evidenceInput";
 import { evidenceProblems } from "../evidence/evidenceProblems";
 import type { ReadLog } from "../evidence/ReadLog";
-import { missingQueryProblem, reasonInput, stepInput } from "../humanTasks/humanTaskTool";
+import { missingQueryProblem, reasonInput } from "../humanTasks/humanTaskTool";
 import { normalizeNotePath, notePathProblem } from "../techWriter/notePaths";
+import { noteCreatedTask } from "./noteCreatedTask";
 import type { CreatedTask } from "./models/CreatedTask";
 import type { TaskCreationLimits } from "./models/TaskCreationLimits";
 import type { TaskTarget } from "./models/TaskTarget";
@@ -16,7 +17,6 @@ const ITEM_ID = /^[A-Z]{1,3}-\d+(-\d+)?$/;
 
 const EXAMPLE = JSON.stringify({
   assignee: "research",
-  kind: "task",
   title: "Why do expired orders stay open?",
   goal: "The grid shows orders past their expiry date (S0). What should archive them is unknown.",
   done_when: "The writer that should change their state is named, with evidence, and why it did not run.",
@@ -30,9 +30,9 @@ const EXAMPLE = JSON.stringify({
 
 type Input = z.infer<z.ZodObject<ReturnType<typeof inputShape>>>;
 
-// The one task tool of the Better agents (chaining v2): the agent decides what work comes next, among the task types its
-// config lets it create and the user; any agent that handles the type takes it. Tasks are only noted here; the run's
-// commit writes them.
+// Plain task creation (chaining v2): work for another agent, among the task types the agent's config lets it create; any
+// agent that handles the type takes it. Nothing waits for it: handing work on, to an agent or a person, is hand_off's
+// (user decision 2026-10-28). Tasks are only noted here; the run's commit writes them.
 export function createTaskTool(canAssign: string[], tasks: CreatedTask[], guard: DuplicateGuard, readLog: ReadLog, limits: TaskCreationLimits): ToolDefinition<any> {
   const targets = allowedTargets(canAssign);
 
@@ -42,58 +42,45 @@ export function createTaskTool(canAssign: string[], tasks: CreatedTask[], guard:
     input: inputShape(targets),
     handler: async (input: Input) => {
       const task = toCreatedTask(input);
-      const problems = taskProblems(task, tasks, readLog, limits);
 
-      if (problems.length > 0) {
-        return { text: `Not created, fix and retry: ${problems.join("; ")}.`, isError: true };
-      }
-
-      const duplicate = guard.check(guardKindOf(task), task.goal);
-
-      if (duplicate) {
-        return { text: duplicate, isError: true };
-      }
-
-      tasks.push(task);
-      guard.remember(guardKindOf(task), `new:${tasks.length}`, task.goal);
-
-      return { text: `Noted as new:${tasks.length} for ${task.assignee}; it is created when your run succeeds.` };
+      return noteCreatedTask(task, taskProblems(task, tasks, readLog, limits), tasks, guard);
     },
     replayOnResume: true,
   });
 }
 
 function inputShape(targets: TaskTarget[]) {
-  const assignees: [string, ...string[]] = [USER, ...targets.map((target) => target.type)];
+  const assignees = targets.map((target) => target.type) as [string, ...string[]];
 
   return {
-    assignee: z.enum(assignees).describe("The task type (any agent taking that type picks it up), or user"),
-    kind: z.enum(["task", "question"]).describe("question: a decision only the user can make, with options; task: work for an agent, or an action for the user"),
+    assignee: z.enum(assignees).describe("The task type; any agent taking that type picks it up"),
     title: z.string().min(1).max(120),
-    goal: z.string().min(1).describe("The problem or question and the facts known so far; mark guesses (inferred)"),
-    done_when: z.string().min(1).describe("The answer or result that closes it"),
-    out_of_scope: z.string().nullable().default(null).describe("What it must not cover, e.g. a sibling task's id"),
-    effort: z.enum(["lookup", "trace", "spike"]).describe("lookup: a quick check; trace: follow code, data or logs; spike: an open investigation"),
-    reason: reasonInput("Why it is needed now: what its answer changes"),
-    evidence: evidenceInput,
-    blocking: z.boolean().describe("true when the PBI can't be developed until it is closed"),
-    depends_on: z.array(z.string()).default([]).describe("Item ids, or new:<n> for a task you created earlier in this run, that must close first"),
-    options: z.array(z.string()).default([]).describe("Questions: the choices you see"),
-    steps: z.array(stepInput).default([]).describe("Tasks for the user: what to do, step by step"),
+    ...taskFieldsInput,
     doc_path: z.string().nullable().default(null).describe("Docs tasks: the note's path in the docs vault, e.g. shop/orders/note.md"),
   };
 }
+
+// The fields every created task carries, shared with hand_off.
+export const taskFieldsInput = {
+  goal: z.string().min(1).describe("The problem or question and the facts known so far; mark guesses (inferred)"),
+  done_when: z.string().min(1).describe("The answer or result that closes it"),
+  out_of_scope: z.string().nullable().default(null).describe("What it must not cover, e.g. a sibling task's id"),
+  effort: z.enum(["lookup", "trace", "spike"]).describe("lookup: a quick check; trace: follow code, data or logs; spike: an open investigation"),
+  reason: reasonInput("Why it is needed now: what its answer changes"),
+  evidence: evidenceInput,
+  blocking: z.boolean().describe("true when the PBI can't be developed until it is closed"),
+  depends_on: z.array(z.string()).default([]).describe("Item ids, or new:<n> for a task you created earlier in this run, that must close first"),
+};
 
 function describeTool(targets: TaskTarget[], limits: TaskCreationLimits): string {
   const agents = targets.map((target) => `- ${target.type}: ${target.purpose}`);
 
   return [
-    "Create a task for another agent or for the user; you decide what work comes next. Create one only when its answer changes the outcome.",
-    "Assignees (a task type, picked up by any agent taking that type, or the user):",
+    "Create a task for another agent that nothing in your run waits for; to hand your work on, or to ask an agent or the user and wait for the answer, use hand_off.",
+    "Task types (picked up by any agent taking that type):",
     ...agents,
-    "- user: decisions (kind question, with options), access or actions no tool can do (kind task, with steps).",
-    "Hand on the problem and its evidence, not your guess. Name what it depends on, and mark it blocking when the PBI can't be developed without it.",
-    `Agent tasks: yours would be depth ${limits.depth + 1} of ${limits.maxDepth}; at most ${limits.maxPerRun} per run.`,
+    "Give the problem and its evidence, not your guess. Name what it depends on, and mark it blocking when the PBI can't be developed without it.",
+    `Yours would be depth ${limits.depth + 1} of ${limits.maxDepth}; at most ${limits.maxPerRun} agent tasks per run.`,
     `Example: ${EXAMPLE}`,
   ].join("\n");
 }
@@ -101,7 +88,7 @@ function describeTool(targets: TaskTarget[], limits: TaskCreationLimits): string
 function toCreatedTask(input: Input): CreatedTask {
   return {
     assignee: input.assignee,
-    kind: input.kind,
+    kind: "task",
     title: input.title,
     goal: input.goal,
     doneWhen: input.done_when,
@@ -111,9 +98,10 @@ function toCreatedTask(input: Input): CreatedTask {
     evidence: input.evidence,
     blocking: input.blocking,
     dependsOn: input.depends_on,
-    options: input.options,
-    steps: input.steps,
+    options: [],
+    steps: [],
     docPath: input.doc_path === null ? null : normalizeNotePath(input.doc_path),
+    handoff: null,
   };
 }
 
@@ -186,15 +174,7 @@ function pbiCapProblem(inRun: number, limits: TaskCreationLimits): string | null
     return null;
   }
 
-  return `agents already created ${created} tasks on this PBI (cap ${limits.maxPerPbi}): the work may be going in circles; create a task for the user that says what is still open`;
-}
-
-function guardKindOf(task: CreatedTask): string {
-  if (task.assignee === USER) {
-    return task.kind === "question" ? "question" : "human";
-  }
-
-  return targetOf(task.assignee)!.kind;
+  return `agents already created ${created} tasks on this PBI (cap ${limits.maxPerPbi}): the work may be going in circles; hand_off to a person what is still open`;
 }
 
 function isProblem(problem: string | null): problem is string {

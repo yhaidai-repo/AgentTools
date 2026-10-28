@@ -34,14 +34,14 @@ describe("loadPrompt", () => {
   it("keeps today's prompts unchanged", async () => {
     const prompt = await loadPrompt("design", { team: "Catalog" });
 
-    assert.equal(prompt.version, "v10");
+    assert.equal(prompt.version, "v11");
     assert.doesNotMatch(prompt.text, /How you work/);
   });
 
-  it("gives the autotest prompt the continue and create_task rules", async () => {
+  it("gives the autotest prompt the continue and hand-off rules", async () => {
     const prompt = await loadPrompt("autotest", { team: "Catalog" });
 
-    assert.match(prompt.version, /^v12\+framework\./);
+    assert.match(prompt.version, /^v13\+framework\./);
     assert.match(prompt.text, /Each bug in `<bugs-to-retest>` is a case too/);
     assert.match(prompt.text, /Before asking the user for test data, search the database/);
     assert.match(prompt.text, /## Continuing from a previous report/);
@@ -66,7 +66,7 @@ describe("loadAgentPrompt", () => {
   it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
     const prompt = await loadAgentPrompt("design", { text: "  ", version: 0 }, { team: "Catalog" });
 
-    assert.equal(prompt.version, "v10");
+    assert.equal(prompt.version, "v11");
   });
 
   it("pulls in the framework stored in Settings instead of the file", async () => {

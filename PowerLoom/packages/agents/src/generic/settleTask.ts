@@ -1,4 +1,4 @@
-import { setItemStatus } from "@powerloom/core";
+import { handoffsOfRun, setItemStatus, type RunHandoff } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import type { AgentRunResult } from "../models/AgentRunResult";
@@ -15,8 +15,8 @@ const OPEN_STATUSES = ["open", "in-progress", "blocked", "draft"] as const;
 export interface SettlementInput {
   outcome: AgentRunResult["outcome"];
   result: ResultDraft | null;
-  /** The tasks create_task made in this run, as committed. */
-  createdIds: string[];
+  /** What the run handed off (its hand_off calls and its writers' hand-offs), in order. */
+  handoffs: RunHandoff[];
   /** The result's waiting_for that exist and aren't closed. */
   openWaitingFor: string[];
   writers: WriterSettlement[];
@@ -29,18 +29,20 @@ export type Settlement =
   | { kind: "wait"; ids: string[]; reason: string | null }
   | { kind: "block"; reason: string };
 
-// The one decision how a committed run ends its task (user decision 2026-10-25). A budget stop stays blocked whatever
-// it handed on (its dependencies are kept for the Re-run). A writer's own blockers (design's gaps, a test's blocking
-// items) hold the task whatever write_result says: its outputs say the work isn't done. A follow-up that carries one
-// writer's work on (refinement's) ends the task done only when no other writer misses its output. Complete is done only
-// with every output the task promised. Anything else waits for what it handed on or named, or is blocked for a person:
-// nothing would run it again.
+// The one decision how a committed run ends its task (user decisions 2026-10-25, 2026-10-28). A budget stop stays
+// blocked whatever it handed off (what it asked is kept for the Re-run). A writer's own blockers (a test's blocking
+// items) hold the task whatever write_result says. A hand-off settles the task by its intent: one that hands the work on
+// (continue, review, return) ends it done when no writer misses its output, even when it also asked something (the
+// receiver waits for that); one that only asks makes it wait for the answers, then run again. Complete is done only with
+// every output the task promised. Anything else waits for what it named, or is blocked for a person: nothing would run
+// it again.
 export function decideSettlement(input: SettlementInput): Settlement {
   const waits = input.writers.flatMap((writer) => (writer.kind === "waits" ? [writer] : []));
   const missing = input.writers.flatMap((writer) => (writer.kind === "missing" ? [writer.output] : []));
-  const handedOn = input.writers.some((writer) => writer.kind === "handedOn");
+  const asked = input.handoffs.filter((handoff) => handoff.intent === "ask").map((handoff) => handoff.toItemId);
+  const handedOn = input.handoffs.some((handoff) => handoff.intent !== "ask");
   const ownWaits = waits.flatMap((writer) => writer.ids);
-  const waitFor = unique([...(waits.length > 0 ? ownWaits : input.createdIds), ...input.openWaitingFor]);
+  const waitFor = unique([...(waits.length > 0 ? ownWaits : asked), ...input.openWaitingFor]);
 
   if (input.outcome === "budget-exceeded") {
     return { kind: "budget", dependsOn: waitFor };
@@ -52,6 +54,10 @@ export function decideSettlement(input: SettlementInput): Settlement {
 
   if (handedOn && missing.length === 0) {
     return { kind: "done" };
+  }
+
+  if (asked.length > 0) {
+    return { kind: "wait", ids: waitFor, reason: "Waiting for what it asked" };
   }
 
   if (input.result?.status === "complete") {
@@ -77,9 +83,10 @@ export function unfinishedReason(result: ResultDraft | null): string {
 
 // Applies the decision to a task still in progress (writers never change its status). Done and budget leave it to
 // endTask; a budget stop keeps what it waits for in data.dependsOn, so the Re-run waits for them too.
-export async function settleTask(db: PowerLoomDb, task: ItemRow, runId: number, input: Omit<SettlementInput, "openWaitingFor">): Promise<Settlement> {
+export async function settleTask(db: PowerLoomDb, task: ItemRow, runId: number, input: Omit<SettlementInput, "openWaitingFor" | "handoffs">): Promise<Settlement> {
   const [current] = await db.select().from(localItem).where(eq(localItem.id, task.id));
-  const settlement = decideSettlement({ ...input, openWaitingFor: await openItems(db, input.result?.waitingFor ?? [], task.id) });
+  const handoffs = await handoffsOfRun(db, runId);
+  const settlement = decideSettlement({ ...input, handoffs, openWaitingFor: await openItems(db, input.result?.waitingFor ?? [], task.id) });
 
   if (current?.status !== "in-progress") {
     return settlement;

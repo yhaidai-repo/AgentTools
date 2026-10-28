@@ -22,15 +22,14 @@ type ItemRow = typeof localItem.$inferSelect;
 export const WRITE_NOTES_INTEGRATION = "writeNotes";
 
 // The tech-writer's tools as a granted writer (stage 2b, 2026-10-23): write_note, findings and draft handling in the
-// task's vault; the notes are applied once the run succeeds. A run that handed work on with create_task merges nothing
-// (user decision 2026-10-14): the generic executor puts the task back to open, and it runs again with the results.
+// task's vault; the notes are applied once the run succeeds. A run that asked something with hand_off merges nothing
+// (user decision 2026-10-14): the settlement puts the task back to open, and it runs again with the answers.
 export class TechWriterWriter implements RunWriter {
   readonly integration = WRITE_NOTES_INTEGRATION;
   commitDraft(): unknown { return this.draft; }
 
   private readonly draft: TechWriterDraft = { edits: [], findings: [], home: null, summary: null };
   private isDraftTask = false;
-  private handedOn: string[] = [];
   private committedNotes = 0;
 
   constructor(private readonly deps: AgentDeps) {}
@@ -57,12 +56,10 @@ export class TechWriterWriter implements RunWriter {
   async commit(target: WriterTarget): Promise<string[]> {
     this.isDraftTask = modeOf(target.task) === "draft";
 
-    // A run that handed work on merges nothing (its notes wait for the answers); one with nothing to merge the draft into
-    // leaves it alone. Either way the draft and its capture stay as they are (removing them is the commit's last step,
-    // only once the facts have a note to live in).
-    if (target.taskIds.length > 0) {
-      this.handedOn = target.taskIds;
-
+    // A run that asked something merges nothing (its notes wait for the answers); one with nothing to merge the draft
+    // into leaves it alone. Either way the draft and its capture stay as they are (removing them is the commit's last
+    // step, only once the facts have a note to live in).
+    if (target.handoffs.some((handoff) => handoff.intent === "ask")) {
       return [];
     }
 
@@ -81,13 +78,9 @@ export class TechWriterWriter implements RunWriter {
     return outputs;
   }
 
-  // Settled on what was written, not on what was staged: a run that handed work on waits for it (its staged notes were
-  // not written), and a draft task is done only once its draft went into at least one note.
+  // Settled on what was written, not on what was staged: a draft task is done only once its draft went into at least one
+  // note. A run that asked something waits for it by its hand-off, which the settlement reads.
   settlement(): WriterSettlement | null {
-    if (this.handedOn.length > 0) {
-      return { kind: "waits", ids: this.handedOn, reason: "The notes wait for what the tech-writer handed on" };
-    }
-
     return this.isDraftTask && this.committedNotes === 0 ? { kind: "missing", output: "the draft merged into a note (write_note)" } : null;
   }
 

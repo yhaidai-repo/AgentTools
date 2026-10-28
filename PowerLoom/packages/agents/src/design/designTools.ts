@@ -1,23 +1,19 @@
-import { renderHumanTaskBody } from "@powerloom/core";
 import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
-import { createHumanTaskTool } from "../humanTasks/humanTaskTool";
-import type { DuplicateGuard } from "../DuplicateGuard";
 import { relevantPageProblems, relevantPagesInput } from "../relevantPages";
-import { gapItemKind } from "./gapItems";
 import type { DesignDraft } from "./models/DesignDraft";
-import type { GapItem } from "./models/GapItem";
 
-// Pipeline tools of the design agent. They only fill the draft; nothing is written until the run succeeds. Questions and
-// tasks go to the user only: design has the same code and docs as research (user decision 2026-10-02).
-export function createDesignTools(draft: DesignDraft, guard: DuplicateGuard): ToolDefinition<any>[] {
-  return [writeDesignTool(draft), questionTool(draft, guard), taskTool(draft, guard)];
+// Pipeline tools of the design agent. They only fill the draft; nothing is written until the run succeeds. What stops a
+// design goes to the user with the shared hand_off (user decision 2026-10-28; design has the same code and docs as
+// research, so it looks things up itself).
+export function createDesignTools(draft: DesignDraft): ToolDefinition<any>[] {
+  return [writeDesignTool(draft)];
 }
 
 function writeDesignTool(draft: DesignDraft) {
   return defineTool({
     name: "write_design",
-    description: "Save or replace the implementation design: call it when you can design; another call replaces the earlier one. Don't call it when gaps stop you: create the questions or tasks for the user instead.",
+    description: "Save or replace the implementation design: call it when you can design; another call replaces the earlier one. Don't call it when gaps stop you: hand_off the questions or tasks to a person instead.",
     input: {
       approach: z.string().min(1).describe("The solution and why this one, in 3-6 sentences"),
       alternatives: z.array(z.object({
@@ -59,39 +55,4 @@ function writeDesignTool(draft: DesignDraft) {
     },
     replayOnResume: true,
   });
-}
-
-function questionTool(draft: DesignDraft, guard: DuplicateGuard) {
-  return defineTool({
-    name: "create_question",
-    description: "Ask the user something the design depends on that only a person can answer: a business rule, trade-off, missing spec, or a fact outside the code and docs.",
-    input: { question: z.string().min(1), why: z.string().min(1), options: z.array(z.string()).default([]) },
-    handler: async (input) => noteGap(draft, guard, { kind: "question", title: input.question, text: input.question, why: input.why, options: input.options, humanTask: null }),
-    replayOnResume: true,
-  });
-}
-
-function taskTool(draft: DesignDraft, guard: DuplicateGuard) {
-  return defineTool({
-    ...createHumanTaskTool(
-      "create_task",
-      "Create a task for the user that the design needs done: access, an action, a decision, or finding out something outside the code and docs.",
-      (spec) => noteGap(draft, guard, { kind: "task", title: spec.title, text: renderHumanTaskBody(spec.data), why: spec.data.why, options: [], humanTask: spec.data }),
-    ),
-    replayOnResume: true,
-  });
-}
-
-function noteGap(draft: DesignDraft, guard: DuplicateGuard, item: GapItem): { text: string; isError?: boolean } {
-  const kind = gapItemKind(item);
-  const duplicate = guard.check(kind, item.text);
-
-  if (duplicate) {
-    return { text: duplicate, isError: true };
-  }
-
-  draft.gaps.push(item);
-  guard.remember(kind, `${item.kind} ${draft.gaps.length}`, item.text);
-
-  return { text: `${item.kind} ${draft.gaps.length} for the user noted.` };
 }

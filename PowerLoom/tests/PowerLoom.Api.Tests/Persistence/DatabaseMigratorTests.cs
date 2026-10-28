@@ -56,7 +56,8 @@ public sealed class DatabaseMigratorTests(PowerLoomHost host)
     }
 
     // Tables the migrations after the baseline add: drizzle never built them, so they go before the pretence.
-    private static readonly string[] PostBaselineDrops = ["DROP TABLE IF EXISTS data_access", "DROP TABLE IF EXISTS test_case", "ALTER TABLE refinement DROP COLUMN IF EXISTS details", "ALTER TABLE task_schedule DROP COLUMN IF EXISTS task_type",
+    private static readonly string[] PostBaselineDrops = ["DROP TRIGGER IF EXISTS local_item_handoff_follow_target ON local_item", "DROP FUNCTION IF EXISTS handoff_follow_target()", "DROP TABLE IF EXISTS handoff",
+        "DROP TABLE IF EXISTS data_access", "DROP TABLE IF EXISTS test_case", "ALTER TABLE refinement DROP COLUMN IF EXISTS details", "ALTER TABLE task_schedule DROP COLUMN IF EXISTS task_type",
         "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_rev",
         "ALTER TABLE refinement DROP COLUMN IF EXISTS est_hours", "ALTER TABLE refinement DROP COLUMN IF EXISTS estimate_basis",
         "ALTER TABLE work_item DROP COLUMN IF EXISTS extra_fields_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS attached_files",

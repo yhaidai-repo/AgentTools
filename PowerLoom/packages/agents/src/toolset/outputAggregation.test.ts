@@ -44,7 +44,7 @@ it("retains actual design/review writer outputs together with tasks, captures, r
   const context = { deps: { db, docsVaultName: "demo" }, agent: { id: "synthetic", label: "Synthetic", budgets: {}, capabilities: { integrations: {} } } } as any;
   const writers: RunWriter[] = [
     { integration: "writeDesign", tools: () => [], commit: async target => {
-      await commitDesign(db, task, 7, target.runId, { design: { approach: "Synthetic", alternatives: [], plan: [], risks: [], tests: [], assumptions: [] }, gaps: [], captures: [], pages: [] });
+      await commitDesign(db, task, 7, target.runId, { design: { approach: "Synthetic", alternatives: [], plan: [], risks: [], tests: [], assumptions: [] }, captures: [], pages: [] });
       return [];
     } },
     { integration: "reviewCode", tools: () => [], commit: async target => {

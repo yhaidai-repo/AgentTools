@@ -17,6 +17,11 @@ import type { DataAccessOutcome } from "./models/DataAccessOutcome";
 import type { FailureImpact } from "./models/FailureImpact";
 import type { FailureKind } from "./models/FailureKind";
 import type { FailureWorkaround } from "./models/FailureWorkaround";
+import type { HandoffGate } from "./models/HandoffGate";
+import type { HandoffIntent } from "./models/HandoffIntent";
+import type { HandoffRefs } from "./models/HandoffRefs";
+import type { HandoffStatus } from "./models/HandoffStatus";
+import type { HandoffTargetKind } from "./models/HandoffTargetKind";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -213,6 +218,29 @@ export const localItem = pgTable("local_item", {
   index("local_item_kind_status_idx").on(t.kind, t.status),
   // App-generated items are unique per subject (data.key); see core itemKeys.
   uniqueIndex("local_item_pbi_key_uq").on(t.pbiId, sql`(${t.data}->>'key')`).where(sql`${t.data}->>'key' IS NOT NULL`),
+]);
+
+// One hand-off from an agent's task to the next agent or a person (user decision 2026-10-28): the item it created, what it
+// asks of it and the package it carries. The handoff_follow_target trigger closes it with its target.
+
+export const handoff = pgTable("handoff", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  fromTaskId: text("from_task_id").notNull().references(() => localItem.id),
+  fromAgent: text("from_agent").notNull(),
+  fromRunId: bigint("from_run_id", { mode: "number" }).references(() => agentRun.id),
+  toKind: text("to_kind").$type<HandoffTargetKind>().notNull(),
+  toItemId: text("to_item_id").notNull().references(() => localItem.id),
+  intent: text("intent").$type<HandoffIntent>().notNull(),
+  gate: text("gate").$type<HandoffGate>().notNull().default("none"),
+  body: text("body").notNull(),
+  refs: jsonb("refs").$type<HandoffRefs>().notNull(),
+  status: text("status").$type<HandoffStatus>().notNull().default("open"),
+  createdAt: createdAt(),
+  closedAt: ts("closed_at"),
+}, (t) => [
+  index("handoff_from_task_idx").on(t.fromTaskId),
+  index("handoff_from_run_idx").on(t.fromRunId),
+  index("handoff_to_item_idx").on(t.toItemId),
 ]);
 
 // Every status change, written in the same transaction by core.transition().

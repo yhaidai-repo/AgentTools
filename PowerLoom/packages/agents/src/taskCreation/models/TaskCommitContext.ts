@@ -6,6 +6,8 @@ export interface TaskCommitContext {
   vault: string;
   /** The creating task: the parent of everything it created. */
   parentTaskId: string;
+  /** The creating task's agent: the sender of its hand-offs. */
+  agent: string;
   runId: number;
   depth: number;
   /** The docs vault, where a tech-writer task's note lives. */

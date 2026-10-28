@@ -7,7 +7,7 @@ import { DuplicateGuard } from "../DuplicateGuard";
 import { commitCreatedTasks, resolveTaskDependencies } from "../taskCreation/commitCreatedTasks";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 
-const draft = (title: string, dependsOn: string[] = []): CreatedTask => ({ assignee: "research", kind: "task", title, dependsOn, goal: "Synthetic", doneWhen: "Done", outOfScope: null, effort: "trace", reason: "Synthetic", evidence: [], blocking: true, options: [], steps: [], docPath: null });
+const draft = (title: string, dependsOn: string[] = []): CreatedTask => ({ assignee: "research", kind: "task", title, dependsOn, goal: "Synthetic", doneWhen: "Done", outOfScope: null, effort: "trace", reason: "Synthetic", evidence: [], blocking: true, options: [], steps: [], docPath: null, handoff: null });
 const drafts = () => [draft("First"), draft("Second", ["new:1", "HT-existing"]), draft("Third", ["new:1", "new:2"])];
 
 function fixture() {
@@ -89,7 +89,7 @@ it("reuses the first task receipt after a later insert fails and resolves resume
 
 it("keeps batch-helper dependencies working and rejects unresolved references before inserting them", async () => {
   const f = fixture();
-  const ids = await commitCreatedTasks(f.db, { pbiId: null, vault: "demo", docsVault: "demo", parentTaskId: "AT-parent", runId: 1, depth: 1 }, drafts());
+  const ids = await commitCreatedTasks(f.db, { pbiId: null, vault: "demo", docsVault: "demo", parentTaskId: "AT-parent", agent: "synthetic", runId: 1, depth: 1 }, drafts());
   assertDependencies(f.rows(), ids);
   for (const reference of ["new:0", "new:1", "new:2", "new:999999999999999999999", "new:bad"]) {
     const invalid = fixture();
