@@ -7,7 +7,7 @@ export const ALL_FAILURE_AGENTS = "all";
 /** The causes reported in the period, the most reported first: repeated failures stand out. */
 export async function loadFailureReportGroups(db: PowerLoomDb, vault: string, since: Date, agent: string): Promise<FailureReportGroup[]> {
   const reports = sql<number>`count(*)::int`;
-  const lastReportedAt = sql<Date>`max(${runFailureReport.createdAt})`;
+  const lastReportedAt = sql<Date>`max(${runFailureReport.createdAt})`.mapWith(runFailureReport.createdAt);
 
   return db.select({
     kind: runFailureReport.kind,
