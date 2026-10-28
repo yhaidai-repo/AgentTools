@@ -3,6 +3,7 @@ import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProviders";
+import { loadImageOptions, loadSandbox } from "@/lib/sandboxSettings";
 import { loadWebSearch } from "@/lib/webSearch";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
@@ -19,6 +20,7 @@ import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { ChatAppForm } from "./ChatAppForm";
 import { ClaudeTokenForm } from "./ClaudeTokenForm";
+import { SandboxForm } from "./SandboxForm";
 import { WebSearchForm } from "./WebSearchForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
@@ -161,6 +163,7 @@ async function DataTab({ db, current, readSql, readAzure, driveMessage }: { db: 
       <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
       <GoogleDrivePanel key={`drive-${current}`} values={googleDriveValues(await readGoogleDriveSettings(db, current))} message={driveMessage} />
       <WebSearchForm setting={await loadWebSearch()} />
+      <SandboxForm key={`sandbox-${current}`} setting={await loadSandbox(current)} images={loadImageOptions()} />
     </>
   );
 }

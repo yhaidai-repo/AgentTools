@@ -16,6 +16,7 @@ import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter
 import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
 import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
+import { SANDBOX_INTEGRATION, createSandboxTools } from "../sandbox/sandboxTools";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { DbFailureReportStore } from "../failureReport/DbFailureReportStore";
 import { FailureReportRun } from "../failureReport/FailureReportRun";
@@ -273,6 +274,7 @@ export class AgentToolset {
       { source: grantSource(agent, GITHUB_WRITE_INTEGRATION), tools: createGitHubWriteTools(deps, agent, access, this.gitHub) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
+      { source: grantSource(agent, SANDBOX_INTEGRATION), tools: createSandboxTools(deps, agent, access, this.input.repos) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
       { source: grantSource(agent, POWERLOOM_WEB_INTEGRATION), tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },

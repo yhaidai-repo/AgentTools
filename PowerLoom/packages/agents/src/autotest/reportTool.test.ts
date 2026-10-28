@@ -53,6 +53,23 @@ describe("write_test_report", () => {
     assert.equal(draft.report, null);
   });
 
+  it("can save an unexecuted case when neither refinement delegation nor task creation is available", async () => {
+    const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
+    const tool = createReportTool(draft, readLogWith("AC 2 expects a warning"));
+    const planned = { ...reportInput().cases[1], state: "planned" as const, blocked_by: undefined, data: "The required record is missing" };
+    const result = await tool.handler(reportInput({
+      status: "blocked", cases: [planned],
+      analysis: [{ kind: "missing_test_data", about: "AC 2", detail: "The required record is missing", evidence, resolution: "No task tool is available; a person must enable delegation before Re-run" }],
+      results: [{ case: planned.title, criterion: planned.criterion, verdict: "not_run", observed: "Missing test data; task creation is unavailable", artifacts: [] }],
+      next_reason: "Enable delegation, then Re-run",
+    }));
+
+    assert.notEqual(result.isError, true);
+    assert.equal(draft.report?.status, "blocked");
+    assert.equal(draft.report?.cases[0].blockedBy, null);
+    assert.equal(draft.report?.results[0].verdict, "not_run");
+  });
+
   it("refuses evidence from a source the run never read", async () => {
     const draft: AutotestDraft = { report: null, tasks: [], captures: [], bugs: [] };
     const tool = createReportTool(draft, readLogWith("AC 2 expects a warning"));

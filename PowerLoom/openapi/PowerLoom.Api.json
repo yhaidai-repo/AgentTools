@@ -811,6 +811,101 @@
         }
       }
     },
+    "/api/vaults/{vault}/sandbox": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Sandbox.SandboxEndpoints"
+        ],
+        "summary": "GET_api_vaults_vault_sandbox",
+        "description": "GET_api_vaults_vault_sandbox",
+        "operationId": "GET_api_vaults_vault_sandbox",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxSetting"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Sandbox.SandboxEndpoints"
+        ],
+        "summary": "PUT_api_vaults_vault_sandbox",
+        "description": "PUT_api_vaults_vault_sandbox",
+        "operationId": "PUT_api_vaults_vault_sandbox",
+        "parameters": [
+          {
+            "name": "vault",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSandboxSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxSetting"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reviews/queue": {
       "post": {
         "tags": [
@@ -6599,6 +6694,20 @@
           }
         }
       },
+      "SandboxSetting": {
+        "type": "object",
+        "properties": {
+          "packageHosts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      },
       "SaveClaudeTokenRequest": {
         "required": [
           "token"
@@ -6788,6 +6897,30 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "SaveSandboxSettingsRequest": {
+        "required": [
+          "packageHosts",
+          "image"
+        ],
+        "type": "object",
+        "properties": {
+          "packageHosts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "image": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7732,6 +7865,9 @@
     },
     {
       "name": "PowerLoom.Features.Skills.SkillsEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Sandbox.SandboxEndpoints"
     },
     {
       "name": "PowerLoom.Features.Reviews.ReviewsEndpoints"

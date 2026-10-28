@@ -41,9 +41,9 @@ describe("loadPrompt", () => {
   it("gives the autotest prompt the continue and hand-off rules", async () => {
     const prompt = await loadPrompt("autotest", { team: "Catalog" });
 
-    assert.match(prompt.version, /^v13\+framework\./);
+    assert.match(prompt.version, /^v14\+framework\./);
     assert.match(prompt.text, /Each bug in `<bugs-to-retest>` is a case too/);
-    assert.match(prompt.text, /Before asking the user for test data, search the database/);
+    assert.match(prompt.text, /Before delegating missing test data to Refinement, use the granted database tools to search/);
     assert.match(prompt.text, /## Continuing from a previous report/);
     assert.match(prompt.text, /An API criterion is proven with `http_request` alone/);
     assert.match(prompt.text, /a cancelled one is the user's decision not to do it/);

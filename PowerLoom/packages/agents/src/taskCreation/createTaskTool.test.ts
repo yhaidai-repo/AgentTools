@@ -54,6 +54,7 @@ describe("create_task", () => {
     assert.equal(input.safeParse(researchTask()).success, true);
     assert.equal(input.safeParse(researchTask({ assignee: "user" })).success, false);
     assert.equal(input.safeParse(researchTask({ assignee: "design" })).success, false);
+    assert.equal(input.safeParse(researchTask({ assignee: "refinement" })).success, false);
   });
 
   it("notes a plain task without a hand-off, and rejects a docs task without a note", async () => {

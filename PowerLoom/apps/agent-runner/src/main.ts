@@ -1,16 +1,20 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, removeOrphanedSandboxes, removeRunSandbox, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
 import { captureConsoleErrors, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem, runFailureReport } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
+import { SandboxClient } from "@powerloom/sandbox";
 import { SqlReader } from "@powerloom/sql";
 import { ClaudeAgentSdkRuntime, CodexSdkRuntime, RuntimeRegistry } from "@agenttools/runtime";
 import { and, eq, lt, notInArray } from "drizzle-orm";
 import { PowerLoomCallback, type CompletedRun } from "./powerloomCallback";
 import { RunnerServer } from "./runnerServer";
 import { runAcceptedJob } from "./runAcceptedJob";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { RunnerMaintenance } from "./RunnerMaintenance";
+import { GsdWorktreePreparer } from "./GsdWorktreePreparer";
+import { WorkspaceResolver } from "./WorkspaceResolver";
+import { workspaceRuntimes } from "./workspaceRuntimes";
 
 const TRACE_RETENTION_DAYS = 30;
 // The data access log outlives the traces (user decision 2026-10-13: every outside read traceable); counts only, no data.
@@ -18,6 +22,8 @@ const DATA_ACCESS_RETENTION_DAYS = Number(process.env.DATA_ACCESS_RETENTION_DAYS
 // Every other tool call (repos, docs, web, PowerLoom's own tools) is the bulk of the log and matters for less long.
 const TOOL_CALL_RETENTION_DAYS = Number(process.env.TOOL_CALL_RETENTION_DAYS ?? "90");
 const INTERRUPTED: CompletedRun = { runId: null, outcome: "aborted", error: "the agent-runner stopped during the run" };
+// Coding agents' worktrees (one per repo and branch) are kept beside the repo caches, where the repo tools don't list them.
+const WORKTREES = ".worktrees";
 
 const { db, pool } = createDb(requireEnv("DATABASE_URL"));
 
@@ -42,6 +48,8 @@ if (codexHome) {
 const codex = codexHome ? { home: codexHome, login: new CodexDeviceLogin(codexHome, { spawn: spawnCodexLogin }) } : null;
 const azureLogin = createAzureUserLogin(db);
 const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes });
+// The host's sandbox service, for the runs' sandbox cleanup; null where SANDBOX_URL / SANDBOX_TOKEN aren't set.
+const sandbox = env.sandbox ? new SandboxClient(env.sandbox.url, env.sandbox.token) : null;
 
 // PowerLoom dispatches the tasks and takes the one callback per run (the vault's adoa-backend-delivery note, phase 5).
 const powerloom = new PowerLoomCallback(env.powerloomUrl);
@@ -55,6 +63,7 @@ for (const taskId of await recoverInterruptedRuns(db)) {
 }
 
 await stopOrphanedStacks();
+await removeOrphanedRunSandboxes();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
@@ -78,16 +87,26 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
       const runDeps = await deps.forVault(await vaultOfJob(job));
       devHub = runDeps.devHub;
       azure = runDeps.azure;
-      const result = await runAgentTask({ ...runDeps, stop }, job);
+      const runtimes = workspaceRuntimes(runDeps.runtimes, workspaceResolver(runDeps));
+      const result = await runAgentTask({ ...runDeps, runtimes, stop }, job);
       return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
     },
     cleanups: [
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await closeRunBrowser(devHub.client, completed.runId)); },
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await stopRunStack(devHub.client, completed.runId)); },
+      async (completed) => { if (sandbox && completed.runId !== null) logStackNote(await removeRunSandbox(sandbox, completed.runId)); },
       async () => { await deps.closeAzure(azure); },
     ],
     report: (completed) => report(job.taskId, completed),
   });
+}
+
+// A run with a workspace runs in its branch's worktree of the vault's repo cache; GSD comes from GSD_CORE_DIR.
+function workspaceResolver(runDeps: AgentDeps): WorkspaceResolver {
+  const worktreeRoot = join(runDeps.repoCacheRoot, WORKTREES, basename(runDeps.repoCache.root));
+  const identity = { name: process.env.AGENT_GIT_NAME ?? "PowerLoom agent", email: process.env.AGENT_GIT_EMAIL ?? "agent@powerloom.local" };
+
+  return new WorkspaceResolver(runDeps.repoCache, new GsdWorktreePreparer(), { worktreeRoot, gsdCore: process.env.GSD_CORE_DIR ?? null, identity });
 }
 
 // At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a
@@ -96,6 +115,13 @@ async function stopOrphanedStacks(): Promise<void> {
   for (const client of await devHubsOfVaults(db)) {
     logStackNote(await closeOrphanedBrowser(client));
     logStackNote(await stopOrphanedStack(client));
+  }
+}
+
+// At start no run is in progress: a sandbox a run left behind is removed.
+async function removeOrphanedRunSandboxes(): Promise<void> {
+  if (sandbox) {
+    logStackNote(await removeOrphanedSandboxes(sandbox));
   }
 }
 

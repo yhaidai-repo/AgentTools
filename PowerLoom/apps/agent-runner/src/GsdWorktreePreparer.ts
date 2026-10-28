@@ -59,6 +59,6 @@ export class GsdWorktreePreparer {
   }
 }
 
-function identityEnv({ name, email }: GitIdentity): GitIdentityEnv {
+export function identityEnv({ name, email }: GitIdentity): GitIdentityEnv {
   return { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
 }

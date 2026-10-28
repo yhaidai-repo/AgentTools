@@ -4,6 +4,7 @@ import { AZURE_ACCESS_INTEGRATION, AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS, 
 import { CHAT_AGENT_ID } from "./chat/models/ChatPrincipal";
 import { READ_REPOS_INTEGRATION } from "./repos/openRepos";
 import { DEVHUB_INTEGRATION } from "./devHubTools";
+import { SANDBOX_INTEGRATION } from "./sandbox/sandboxTools";
 import { ADO_INTEGRATION } from "./ado/adoTools";
 import { READ_SQL_INTEGRATION } from "./sqlTools";
 import { GITHUB_READ_INTEGRATION } from "./github/githubReadTools";
@@ -285,6 +286,11 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent may start, inspect and stop a chain of the vault's services on the Windows host (Settings → DevHub) during its runs, e.g. a web app with the services it calls, for a test. One stack at a time; it stops when the run or chat session that started it ends.",
   },
   {
+    key: SANDBOX_INTEGRATION,
+    label: "Sandbox (run commands)",
+    description: "The agent may run commands in an isolated Linux container of its own during its runs: its repos copied in, builds, tests, grep, scripts and git on that copy, with file edits. The container has no network and none of PowerLoom's sign-ins; nothing in it leaves it, and it is removed when the run ends. Needs Read repositories, and the sandbox service (SANDBOX_URL).",
+  },
+  {
     key: ADO_INTEGRATION,
     label: "Azure DevOps (read)",
     description: "The agent may read Azure DevOps with the vault's PAT (Settings → Azure DevOps): any work item with its links and comments, WIQL queries, pull requests with their reviewers, changed files and comment threads, and its PBI's Test Cases (Tested By), which are saved to the PBI as TC-<id> for later agents and chats. Pull requests need the PAT's Code (Read) scope.",
@@ -509,7 +515,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30, headless: 1 },
     optionSpecs: withToolsetOptions([...BETTER_RESEARCH_OPTIONS, HEADLESS_OPTION]),
     integrationSpecs: INTEGRATIONS,
-    canAssign: ["research"],
+    canAssign: ["research", "refinement"],
     handles: ["test"],
     waitFor: ["linkedDocuments"],
   },

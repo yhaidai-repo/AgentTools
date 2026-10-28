@@ -124,7 +124,8 @@ function toolCallOf(item: ThreadItem): EventBody | null {
     case "command_execution":
       return { type: "tool_call", callId: item.id, name: "shell", input: { command: item.command } };
     case "file_change":
-      return { type: "tool_call", callId: item.id, name: "apply_patch", input: { changes: item.changes } };
+      // Not "apply_patch": that is a host tool's name (PowerLoom's sandbox), and a host tool logs itself.
+      return { type: "tool_call", callId: item.id, name: "codex_apply_patch", input: { changes: item.changes } };
     case "agent_message":
     case "reasoning":
     case "error":

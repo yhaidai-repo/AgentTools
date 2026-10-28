@@ -65,6 +65,16 @@ describe("decideSettlement", () => {
     assert.deepEqual(settled, { kind: "wait", ids: ["Q-1-006"], reason: "Waiting for what it asked" });
   });
 
+  it("can release ready test cases after approval, then wait for a reused refinement on the remaining cases", () => {
+    const approval = decideSettlement(input({ result: result("partial"), handoffs: [ask("Q-1-001"), ask("RT-1-002")], writers: [{ kind: "waits", ids: ["Q-1-001"], reason: "Approve the ready cases" }] }));
+
+    assert.deepEqual(approval, { kind: "wait", ids: ["Q-1-001"], reason: "Approve the ready cases" });
+
+    const afterReadyCases = decideSettlement(input({ result: result("partial", "AC 1 passed; AC 2 still needs data", ["RT-1-002"]), openWaitingFor: ["RT-1-002"] }));
+
+    assert.deepEqual(afterReadyCases, { kind: "wait", ids: ["RT-1-002"], reason: null });
+  });
+
   it("ends done when a hand-off carries the work on, reviews it or returns it, whatever the status", () => {
     for (const intent of ["continue", "review", "return"] as const) {
       assert.deepEqual(decideSettlement(input({ result: result("partial"), handoffs: [ask("HT-1-003"), carryOn("RT-1-005", intent)] })), { kind: "done" }, intent);

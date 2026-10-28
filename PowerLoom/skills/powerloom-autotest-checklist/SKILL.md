@@ -1,6 +1,6 @@
 ---
 name: powerloom-autotest-checklist
-description: How the PowerLoom Autotest agent analyses acceptance criteria against test cases, plans end-to-end cases, runs them on a DevHub stack with a recorded browser and reports verdicts and bugs. Use when starting a test task, before writing the test report.
+description: How the PowerLoom Autotest agent validates or creates local test cases, checks data readiness, hands missing information to Refinement, runs end-to-end cases on a DevHub stack and reports verdicts and bugs. Use when starting or continuing a test task, before writing the test report.
 ---
 
 # Autotest checklist
@@ -8,10 +8,19 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 ## Analysis (before the plan)
 - Number the acceptance criteria as the PBI lists them (AC 1, AC 2, …); every finding, case and result names one.
 - Map each test case to the criteria it proves; a test case that proves none is a finding, not a case.
+- Validate each existing case: coverage of the criterion and resolved team decisions, explicit preconditions and permitted data references, ordered reproducible actions, and observable expected results. Missing information blocks validation; a mismatch with known requirements is a finding.
+- When no case covers a criterion or observable result, create a local case in the report (`ref: agent`), using the requirements and citing their evidence in the findings. The same checks apply to created cases. Keep the case for the next run; never write it to Azure DevOps or invent requirements, ids or expected results.
 - A contradiction is when the criterion and the test case's expected result can't both be true; quote both sides.
 - Test data: a step that needs a record, an id, a user, a customer or an environment nobody named is `missing_test_data`; the refinement's test data block, the answers and your environment's rules may already hold it, and the database often does: search for a successful earlier call of the same kind, within what the rules allow and on any date, before asking, and reuse its inputs by record id.
 - Ambiguous expectations ("works correctly", "is shown") become a question with the readings as options.
 - An answered question is the decision; a test case that still contradicts it goes into `ado_edits`, with the decision it follows. Never a task for ADO edits.
+
+## Missing information and data
+- Check the PBI, attachments, answers, latest refinement and permitted data sources first. If a gap remains, `hand_off` to `refinement` with intent `ask`, its package naming the affected cases/criteria, missing fields or records, evidence of the checks, and done-when requiring the answer or usable data references in the refinement/answers.
+- Reuse an existing open task on the same gap. Keep affected cases blocked by its id; a new task uses `new:<n>` until committed. Mark the task blocking when every case needs it; otherwise run the ready cases once approved and keep a partial report.
+- Save a partial/blocked test report and result. `write_result.waiting_for` names reused open tasks needed for the next runnable step: while awaiting plan approval, omit data blockers that only affect other cases; after ready cases run, name the remaining open blockers. The report and result never say complete while cases still wait for missing information/data.
+- On resumption, read the latest refinement and follow-up items, then check the supplied data against each case's preconditions. Closing a task without supplying the data does not unblock execution. Wait for an open follow-up that owns the remaining gap; cancellation is a decision, not a reason to create a duplicate.
+- If refinement delegation fails, create/reuse a user task with steps to fix the configuration, access or task-limit problem; its id is the affected cases' `blocked_by`. If task creation itself is unavailable, keep those cases `planned` without `blocked_by`, record `not_run` results with the missing data and handoff failure, and save a blocked report/result without invented dependency ids for a person to settle before Re-run.
 
 ## Plan
 - One or more cases per criterion: one per observable result, each with its own title; no criterion without a case.
@@ -50,7 +59,7 @@ description: How the PowerLoom Autotest agent analyses acceptance criteria again
 
 ## Continuing from a previous report
 - The `<previous-report>` block is the plan: run the cases without a `pass`; keep a passed verdict with the earlier report as its evidence only while the commit under test (a new commit on the same branch counts), the services and config, the data and the expected result are the same, and the user didn't ask for a rerun.
-- A blocked case runs when its item closed; one whose item was cancelled stays blocked with that id in `observed`, without a new task.
+- A blocked case runs after its missing information/data is verified and the plan is approved. The existence of an earlier report proves neither readiness nor approval. One whose item was cancelled stays blocked with that id in `observed`, without a new task.
 
 ## Before writing
 - Every criterion has at least one case (planned or blocked); after a run, every case has exactly one result.

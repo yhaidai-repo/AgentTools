@@ -1,4 +1,5 @@
 import type { AgentCapabilities } from "./AgentCapabilities";
+import type { AgentWorkspace } from "./AgentWorkspace";
 import type { Conversation } from "./Conversation";
 import type { ModelRef } from "./ModelRef";
 import type { ProjectSettingSource } from "./ProjectSettingSource";
@@ -26,5 +27,10 @@ export interface AgentRequest {
   cwd?: string;
   /** Settings the agent loads from its working folder; none by default. Adapters without folder settings ignore it. */
   settingSources?: ProjectSettingSource[];
+  /** Variables added to the environment of the agent's own processes (its tools' commands), e.g. a commit identity. */
+  env?: Record<string, string>;
+  /** Checked before every tool call, together with the runtime's own guards for the run's grants. */
   toolPolicy?: ToolPolicy;
+  /** The worktree the host prepares for the run; see AgentWorkspace. */
+  workspace?: AgentWorkspace;
 }

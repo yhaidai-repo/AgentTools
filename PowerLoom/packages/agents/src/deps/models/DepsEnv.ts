@@ -17,4 +17,6 @@ export interface DepsEnv {
   confluenceSite: string | null;
   /** VAULT_CAPTURE_HOME; unset = no vault_capture tool. */
   captureHome: string | undefined;
+  /** SANDBOX_URL and SANDBOX_TOKEN; null = no sandbox tools. */
+  sandbox: { url: string; token: string } | null;
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -50,5 +50,28 @@ describe("RepoCache writes", () => {
     assert.equal(nothing, null);
     assert.equal(main, base);
     assert.equal(readFileSync(join(root, "cache", "app", "a.txt"), "utf8"), "one\n");
+  });
+
+  it("opens a branch's worktree once and reuses it, with its commits, in later runs", async () => {
+    const { remote, root } = remoteWithMain();
+    const cache = new RepoCache({ root: join(root, "cache"), refreshMinutes: 30 });
+    const repo = { name: "app", remoteUrl: remote, defaultBranch: "main" };
+    const work = join(root, "work", "app");
+
+    await cache.acquire([repo]);
+    await cache.openBranchWorktree(repo, "main", "feature/1-totals", work);
+    writeFileSync(join(work, "b.txt"), "planned\n");
+    const commit = await cache.commitAll(work, "Plan", author);
+    writeFileSync(join(work, "c.txt"), "uncommitted\n");
+    await cache.openBranchWorktree(repo, "main", "feature/1-totals", work);
+    const uncommittedKept = existsSync(join(work, "c.txt"));
+    rmSync(work, { recursive: true, force: true });
+    await cache.openBranchWorktree(repo, "main", "feature/1-totals", work);
+
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: work }).toString().trim();
+
+    assert.equal(uncommittedKept, true);
+    assert.equal(head, commit);
+    assert.match(readFileSync(join(work, "b.txt"), "utf8"), /^planned\r?\n$/);
   });
 });

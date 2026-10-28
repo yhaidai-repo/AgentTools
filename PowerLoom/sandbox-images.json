@@ -1,0 +1,9 @@
+{
+  "images": [
+    {
+      "name": "general",
+      "image": "powerloom-sandbox",
+      "description": ".NET SDK 10 with runtimes 9 and 8, Node 24, Deno, Python 3, PowerShell 7, git, ripgrep, jq"
+    }
+  ]
+}

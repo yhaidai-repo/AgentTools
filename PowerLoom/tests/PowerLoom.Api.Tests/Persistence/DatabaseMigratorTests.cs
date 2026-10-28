@@ -1,86 +1,108 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using PowerLoom.Infrastructure.Persistence;
 using PowerLoom.Persistence;
 
 namespace PowerLoom.Api.Tests.Persistence;
 
+// The pretence strips a schema back to the baseline, so it runs on a database of its own on the fixture's Postgres: the
+// collection's database, which every other test shares, is never touched.
 [Collection(PowerLoomCollection.Name)]
-public sealed class DatabaseMigratorTests(PowerLoomHost host)
+public sealed class DatabaseMigratorTests(PowerLoomHost host) : IAsyncLifetime
 {
+    private const string BaselineSuffix = "_BaselineObjects";
+
+    private readonly string _database = "migrator_" + Guid.NewGuid().ToString("N");
+    private readonly string _fixtureConnection = Environment.GetEnvironmentVariable("ConnectionStrings__PowerLoom")!;
+    private string _connection = null!;
+
+    public async Task InitializeAsync()
+    {
+        _connection = new NpgsqlConnectionStringBuilder(_fixtureConnection) { Database = _database }.ConnectionString;
+
+        await RunOnFixtureDatabaseAsync("CREATE DATABASE " + QuotedDatabase());
+
+        await using var db = OpenContext(_connection);
+        await db.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        NpgsqlConnection.ClearAllPools();
+
+        await RunOnFixtureDatabaseAsync("DROP DATABASE " + QuotedDatabase() + " WITH (FORCE)");
+    }
+
+    // Plain Npgsql: CREATE/DROP DATABASE run outside any transaction, and the name is this class's own, never input.
+    private async Task RunOnFixtureDatabaseAsync(string sql)
+    {
+        await using var connection = new NpgsqlConnection(_fixtureConnection);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string QuotedDatabase()
+    {
+        return "\"" + _database + "\"";
+    }
+
     [Fact]
     public async Task Adoa_s_drizzle_database_is_adopted_without_running_the_baseline()
     {
-        using var scope = host.Host.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        await using var db = OpenContext(_connection);
 
         await PretendDrizzleBuiltTheSchemaAsync(db, DatabaseMigrator.DrizzleMigrationsAtBaseline);
+        await Migrator().MigrateAsync(db, CancellationToken.None);
 
-        try
-        {
-            await host.Host.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync(db, CancellationToken.None);
+        var applied = await db.Database.GetAppliedMigrationsAsync();
 
-            var applied = await db.Database.GetAppliedMigrationsAsync();
-
-            // The baseline is marked, every later migration (data_access, …) is run.
-            Assert.Equal(db.Database.GetMigrations().Count(), applied.Count());
-            Assert.Empty(await db.Database.GetPendingMigrationsAsync());
-        }
-        finally
-        {
-            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA drizzle CASCADE");
-        }
+        // The baseline is marked, every later migration (data_access, …) is run.
+        Assert.Equal(db.Database.GetMigrations().Count(), applied.Count());
+        Assert.Empty(await db.Database.GetPendingMigrationsAsync());
     }
 
     [Fact]
     public async Task A_drizzle_schema_the_baseline_does_not_describe_is_refused()
     {
-        using var scope = host.Host.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        await using var db = OpenContext(_connection);
 
         await PretendDrizzleBuiltTheSchemaAsync(db, DatabaseMigrator.DrizzleMigrationsAtBaseline - 1);
 
-        try
-        {
-            var migrator = host.Host.Services.GetRequiredService<DatabaseMigrator>();
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() => migrator.MigrateAsync(db, CancellationToken.None));
-        }
-        finally
-        {
-            // Back to an adopted state for the other tests: the journal at the baseline count, then adoption.
-            await db.Database.ExecuteSqlRawAsync("INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ('h41', 41)");
-            await host.Host.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync(db, CancellationToken.None);
-            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA drizzle CASCADE");
-        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Migrator().MigrateAsync(db, CancellationToken.None));
     }
 
-    // Tables the migrations after the baseline add: drizzle never built them, so they go before the pretence.
-    private static readonly string[] PostBaselineDrops = ["DROP TRIGGER IF EXISTS local_item_handoff_follow_target ON local_item", "DROP FUNCTION IF EXISTS handoff_follow_target()", "DROP TABLE IF EXISTS handoff",
-        "DROP TABLE IF EXISTS data_access", "DROP TABLE IF EXISTS test_case", "ALTER TABLE refinement DROP COLUMN IF EXISTS details", "ALTER TABLE task_schedule DROP COLUMN IF EXISTS task_type",
-        "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS discussion_rev",
-        "ALTER TABLE refinement DROP COLUMN IF EXISTS est_hours", "ALTER TABLE refinement DROP COLUMN IF EXISTS estimate_basis",
-        "ALTER TABLE work_item DROP COLUMN IF EXISTS extra_fields_md", "ALTER TABLE work_item DROP COLUMN IF EXISTS attached_files",
-        "ALTER TABLE work_item DROP COLUMN IF EXISTS closed_by_user", "ALTER TABLE work_item DROP COLUMN IF EXISTS user_notes_md",
-        "ALTER TABLE code_review DROP COLUMN IF EXISTS details", "ALTER TABLE code_review DROP COLUMN IF EXISTS seen_comments", "ALTER TABLE review_comment DROP COLUMN IF EXISTS category",
-        "DROP TABLE IF EXISTS pbi_estimate", "DROP TABLE IF EXISTS code_review_version", "DROP TABLE IF EXISTS run_result", "DROP TABLE IF EXISTS agent_prompt_version",
-        "CREATE TYPE stage AS ENUM ('sync', 'refinement', 'research', 'design', 'tech-writer', 'pull-requests', 'code-review', 'vault-review', 'better-research', 'better-refinement', 'meeting-notes', 'better-review', 'autotest')", "ALTER TABLE agent_run ALTER COLUMN stage TYPE stage USING stage::stage",
-        "CREATE TYPE item_kind AS ENUM ('research', 'design', 'human', 'question', 'research-result', 'refinement', 'docs', 'finding', 'review', 'vault-review', 'goal', 'meeting', 'test', 'test-report')", "ALTER TABLE local_item ALTER COLUMN kind TYPE item_kind USING kind::item_kind",
-        "DROP INDEX IF EXISTS agent_run_item_idx", "ALTER TABLE agent_run DROP COLUMN IF EXISTS continues_run_id", "ALTER TABLE agent_run DROP COLUMN IF EXISTS conversation_id",
-        "ALTER TABLE local_item DROP COLUMN IF EXISTS start_over", "DROP TABLE IF EXISTS log_entry",
-        "DROP TRIGGER IF EXISTS local_item_remember_id ON local_item", "DROP FUNCTION IF EXISTS remember_item_id()",
-        "DROP FUNCTION IF EXISTS reserve_item_id(text)", "DROP TABLE IF EXISTS item_id_counter"];
+    private DatabaseMigrator Migrator()
+    {
+        return host.Host.Services.GetRequiredService<DatabaseMigrator>();
+    }
 
-    // The schema exists (the fixture migrated it) but EF's history is gone and drizzle's journal is there instead; the
-    // schema is brought back to the baseline's state, as drizzle left it.
+    private static PowerLoomDbContext OpenContext(string connection)
+    {
+        var options = new DbContextOptionsBuilder<PowerLoomDbContext>().UseNpgsql(connection, npgsql => npgsql.MapPowerLoomEnums()).Options;
+
+        return new PowerLoomDbContext(options);
+    }
+
+    // The schema exists (migrated above) but EF's history is gone and drizzle's journal is there instead; the schema is
+    // brought back to the baseline's state, as drizzle left it. The migrations undo what they added, so a new migration
+    // never needs a drop here.
     private static async Task PretendDrizzleBuiltTheSchemaAsync(PowerLoomDbContext db, int drizzleMigrations)
     {
-        foreach (var drop in PostBaselineDrops)
-            await db.Database.ExecuteSqlRawAsync(drop);
+        await db.GetService<IMigrator>().MigrateAsync(BaselineMigrationOf(db));
 
         await db.Database.ExecuteSqlRawAsync("DROP TABLE \"__EFMigrationsHistory\"");
         await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA drizzle");
         await db.Database.ExecuteSqlRawAsync("CREATE TABLE drizzle.__drizzle_migrations (id serial PRIMARY KEY, hash text NOT NULL, created_at bigint)");
         await db.Database.ExecuteSqlAsync($"INSERT INTO drizzle.__drizzle_migrations (hash, created_at) SELECT 'h' || n, n FROM generate_series(1, {drizzleMigrations}) AS n");
+    }
+
+    private static string BaselineMigrationOf(PowerLoomDbContext db)
+    {
+        return db.Database.GetMigrations().Single(id => id.EndsWith(BaselineSuffix, StringComparison.Ordinal));
     }
 }

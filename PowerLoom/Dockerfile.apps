@@ -3,7 +3,8 @@ FROM node:24-alpine
 # Node's connection racing (autoselect family) times out on this Docker network; plain connect works.
 ENV NODE_OPTIONS=--no-network-family-autoselection \
     NEXT_TELEMETRY_DISABLED=1
-RUN apk add --no-cache git
+# GNU tar: a run copies a cached repo into its sandbox as a tar without .git (--exclude).
+RUN apk add --no-cache git tar
 # Local repos (folders of the repos root) are cloned from the read-only mount, whose files a Linux or WSL host may own
 # under another uid: git refuses such a repo ("dubious ownership") unless system config trusts it; the container only
 # reads the mount and its own clones.
@@ -24,6 +25,7 @@ COPY PowerLoom/packages/sql/package.json PowerLoom/packages/sql/
 COPY PowerLoom/packages/azure/package.json PowerLoom/packages/azure/
 COPY PowerLoom/packages/mongo/package.json PowerLoom/packages/mongo/
 COPY PowerLoom/packages/devhub/package.json PowerLoom/packages/devhub/
+COPY PowerLoom/packages/sandbox/package.json PowerLoom/packages/sandbox/
 COPY PowerLoom/packages/vault/package.json PowerLoom/packages/vault/
 COPY PowerLoom/packages/attachments/package.json PowerLoom/packages/attachments/
 COPY PowerLoom/packages/notes/package.json PowerLoom/packages/notes/
@@ -32,6 +34,7 @@ COPY PowerLoom/packages/client/package.json PowerLoom/packages/client/
 COPY PowerLoom/apps/agent-runner/package.json PowerLoom/apps/agent-runner/
 COPY PowerLoom/apps/web/package.json PowerLoom/apps/web/
 COPY PowerLoom/apps/mcp/package.json PowerLoom/apps/mcp/
+COPY PowerLoom/apps/sandbox/package.json PowerLoom/apps/sandbox/
 RUN npm ci --no-fund --no-audit
 # Codex runs its CLI's Linux binary (an optional platform package of @openai/codex, musl-static): fail the build when
 # npm skipped it, instead of the first Codex run.
@@ -46,5 +49,7 @@ RUN install -m 755 PowerLoom/apps/agent-runner/shim/az /usr/local/bin/az
 COPY PowerLoom/packages PowerLoom/packages
 COPY PowerLoom/skills PowerLoom/skills
 COPY PowerLoom/templates PowerLoom/templates
+# The sandbox image catalog: Settings lists it, the sandbox service starts its images (SANDBOX_IMAGES).
+COPY PowerLoom/sandbox-images.json PowerLoom/
 COPY PowerLoom/tsconfig.base.json PowerLoom/
 RUN npm run build -w @powerloom/web
