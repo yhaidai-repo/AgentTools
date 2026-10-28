@@ -5,6 +5,7 @@ export const USER = "user";
 
 // The task types agents may create; any agent that handles a type takes its tasks (user decision 2026-10-13).
 const TASK_TARGETS: TaskTarget[] = [
+  { type: "refinement", kind: "refinement", scope: "pbi", prefix: "RT", needsDocPath: false, purpose: "Resolves missing requirements or test data for a PBI, recording the answers and usable data references for the waiting task." },
   { type: "research", kind: "research", scope: "pbi", prefix: "AT", needsDocPath: false, purpose: "Answers one question with evidence: why a bug happens, how something works, whether something exists, or which options a spike has." },
   { type: "design", kind: "design", scope: "pbi", prefix: "DT", needsDocPath: false, purpose: "Writes the implementation plan once the problem and its cause are known." },
   { type: "docs", kind: "docs", scope: "global", prefix: "WT", needsDocPath: true, purpose: "Fixes a docs-vault note that is wrong or outdated; give the note's path." },

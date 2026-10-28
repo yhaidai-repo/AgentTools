@@ -53,6 +53,16 @@ describe("decideSettlement", () => {
     assert.deepEqual(decideSettlement(input({ result: result("partial"), createdIds: ["AT-1-002"] })), { kind: "wait", ids: ["AT-1-002"], reason: null });
   });
 
+  it("can release ready test cases after approval, then wait for a reused refinement on the remaining cases", () => {
+    const approval = decideSettlement(input({ result: result("partial"), createdIds: ["Q-1-001"], writers: [{ kind: "waits", ids: ["Q-1-001"], reason: "Approve the ready cases" }] }));
+
+    assert.deepEqual(approval, { kind: "wait", ids: ["Q-1-001"], reason: "Approve the ready cases" });
+
+    const afterReadyCases = decideSettlement(input({ result: result("partial", "AC 1 passed; AC 2 still needs data", ["RT-1-002"]), openWaitingFor: ["RT-1-002"] }));
+
+    assert.deepEqual(afterReadyCases, { kind: "wait", ids: ["RT-1-002"], reason: null });
+  });
+
   it("ends done when a follow-up carries the work on, whatever the status", () => {
     assert.deepEqual(decideSettlement(input({ result: result("partial"), createdIds: ["HT-1-003"], writers: [{ kind: "handedOn", id: "RF-1-005" }] })), { kind: "done" });
   });

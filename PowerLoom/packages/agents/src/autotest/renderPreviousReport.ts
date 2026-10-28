@@ -12,7 +12,7 @@ export function previousReportBlock(previous: PreviousReport): string {
 
   return [
     "<previous-report>",
-    `${id} (status ${report.status}), the latest report of this task. Execute its plan; don't analyse or plan again unless an answer above changed a finding. Verdicts in "Results so far" stay unless the branch under test changed; cite ${id} as their evidence (source S0). Write the whole report again, with the kept results and the new ones.`,
+    `${id} (status ${report.status}), the latest report of this task. Keep its plan; revalidate affected cases against the latest refinement and answers before running them. A closed handoff alone does not prove its required data is available. This report is not plan approval: check the user's answers before execution. Verdicts in "Results so far" stay only while the commit, services/config, data and expected results are unchanged; cite ${id} as their evidence (source S0). Write the whole report again, with the kept results and the new ones.`,
     `Summary: ${report.summary}`,
     ...findingsSection(report),
     "Plan:",

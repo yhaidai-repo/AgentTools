@@ -59,6 +59,7 @@ describe("create_task", () => {
     assert.equal(input.safeParse(researchTask()).success, true);
     assert.equal(input.safeParse(researchTask({ assignee: "user", kind: "question" })).success, true);
     assert.equal(input.safeParse(researchTask({ assignee: "design" })).success, false);
+    assert.equal(input.safeParse(researchTask({ assignee: "refinement" })).success, false);
   });
 
   it("rejects a question for an agent, a user task without steps and a docs task without a note", async () => {

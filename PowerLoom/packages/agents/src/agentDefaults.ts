@@ -509,7 +509,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 8, maxTasksPerPbi: 20, repoRefreshMinutes: 30, headless: 1 },
     optionSpecs: withToolsetOptions([...BETTER_RESEARCH_OPTIONS, HEADLESS_OPTION]),
     integrationSpecs: INTEGRATIONS,
-    canAssign: ["research"],
+    canAssign: ["research", "refinement"],
     handles: ["test"],
     waitFor: ["linkedDocuments"],
   },
