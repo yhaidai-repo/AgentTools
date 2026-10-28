@@ -49,5 +49,7 @@ RUN install -m 755 PowerLoom/apps/agent-runner/shim/az /usr/local/bin/az
 COPY PowerLoom/packages PowerLoom/packages
 COPY PowerLoom/skills PowerLoom/skills
 COPY PowerLoom/templates PowerLoom/templates
+# The sandbox image catalog: Settings lists it, the sandbox service starts its images (SANDBOX_IMAGES).
+COPY PowerLoom/sandbox-images.json PowerLoom/
 COPY PowerLoom/tsconfig.base.json PowerLoom/
 RUN npm run build -w @powerloom/web
