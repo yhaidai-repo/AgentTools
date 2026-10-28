@@ -28,6 +28,7 @@ import { repoGitAuth } from "./env";
 import { SearchThrottle } from "../webSearch/SearchThrottle";
 import { SearxngClient } from "../webSearch/SearxngClient";
 import type { DepsEnv } from "./models/DepsEnv";
+import { migrateReviewSkills } from "./migrateReviewSkills";
 
 const REPO_REFRESH_MINUTES = 30;
 
@@ -99,6 +100,7 @@ export class AgentDepsFactory {
     await this.usageStore.ensureSchema();
     await this.config.ensureSchema();
     await this.config.ensureDefaults(agents, global);
+    await migrateReviewSkills(this.config);
   }
 
   // The run reads docs from its vault, writes drafts, merges and the usage log into it, and reads the PBI note from the

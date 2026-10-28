@@ -461,7 +461,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     limits: { maxTurns: 80, timeoutMinutes: 30 },
     budgets: { perRunUsd: 4, dailyUsd: 20 },
     capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: true, [ESTIMATE_INTEGRATION]: false, [BETTER_REVIEW_INTEGRATION]: true } },
-    skills: ["powerloom-better-review", "powerloom-code-review"],
+    skills: ["powerloom-code-review"],
     options: { batchSize: 3, maxFailures: 2, maxDiffLines: 3000, maxDepth: 2, maxTasksPerRun: 3, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(BETTER_REVIEW_OPTIONS),
     integrationSpecs: INTEGRATIONS,
