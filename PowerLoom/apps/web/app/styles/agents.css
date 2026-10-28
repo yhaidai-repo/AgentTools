@@ -703,6 +703,96 @@ tr:hover .row-action,
 .trace-end .trace-icon { color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .trace-end .trace-kind { color: var(--ok); }
 
+/* A run with sub-sessions: the session tree that picks what the trace shows, and each sub-session folded under the
+   call that started it. */
+.session-tree {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.session-continues {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 160px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px 5px calc(8px + var(--depth, 0) * 18px);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.session-row:hover {
+  color: var(--text);
+}
+
+.session-row.on {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.session-name {
+  overflow: hidden;
+  font: 500 12px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-facts {
+  overflow: hidden;
+  font: 11.5px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.trace-session {
+  border-bottom: 1px solid rgb(255 255 255 / 0.035);
+}
+
+.trace-session > summary {
+  display: grid;
+  grid-template-columns: 20px 8px 120px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0 6px 26px;
+  font-size: 12.5px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.trace-session > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trace-session > summary .trace-kind {
+  color: var(--accent-2);
+}
+
+.trace-session[open] > summary .fold-mark {
+  transform: rotate(90deg);
+}
+
+.trace-session-lines {
+  margin: 0 0 6px 26px;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, var(--accent-2) 30%, transparent);
+}
+
 @media (max-width: 1000px) {
   .config-columns {
     grid-template-columns: minmax(0, 1fr);

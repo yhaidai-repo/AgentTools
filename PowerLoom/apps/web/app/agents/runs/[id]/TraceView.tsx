@@ -20,13 +20,7 @@ export function TraceView({ events }: { events: StoredTraceEvent[] }) {
 
   return (
     <>
-      <nav className="status-pills trace-pills" aria-label="Show">
-        {TRACE_FILTERS.map((choice) => (
-          <button key={choice.key} type="button" className={choice.key === filter ? "status-pill on" : "status-pill"} onClick={() => setFilter(choice.key)}>
-            {choice.label}<b>{events.filter((event) => matchesFilter(event, choice.key)).length}</b>
-          </button>
-        ))}
-      </nav>
+      <TraceFilterPills events={events} filter={filter} onChange={setFilter} />
       <div className="trace-lines">
         {lines.map((line) => <TraceLineView key={line.key} line={line} />)}
       </div>
@@ -34,9 +28,21 @@ export function TraceView({ events }: { events: StoredTraceEvent[] }) {
   );
 }
 
-function TraceLineView({ line }: { line: TraceLine }) {
+export function TraceFilterPills({ events, filter, onChange }: { events: StoredTraceEvent[]; filter: TraceFilter; onChange: (filter: TraceFilter) => void }) {
+  return (
+    <nav className="status-pills trace-pills" aria-label="Show">
+      {TRACE_FILTERS.map((choice) => (
+        <button key={choice.key} type="button" className={choice.key === filter ? "status-pill on" : "status-pill"} onClick={() => onChange(choice.key)}>
+          {choice.label}<b>{events.filter((event) => matchesFilter(event, choice.key)).length}</b>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+export function TraceLineView({ line }: { line: TraceLine }) {
   if (line.kind === "phases") {
-    return <div className="trace-group">› {line.events.length} phase events</div>;
+    return <div className="trace-group">› {line.events.length} {line.events[0].type.replace("_", " ")} events</div>;
   }
 
   const look = eventLook(line.event);
