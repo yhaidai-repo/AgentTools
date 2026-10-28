@@ -14,6 +14,9 @@ import type { PbiSkill } from "./models/PbiSkill";
 import type { VaultFeatures } from "./models/VaultFeatures";
 import type { DataAccessKind } from "./models/DataAccessKind";
 import type { DataAccessOutcome } from "./models/DataAccessOutcome";
+import type { FailureImpact } from "./models/FailureImpact";
+import type { FailureKind } from "./models/FailureKind";
+import type { FailureWorkaround } from "./models/FailureWorkaround";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -512,6 +515,31 @@ export const dataAccess = pgTable("data_access", {
   index("data_access_vault_started_idx").on(t.vault, t.startedAt),
   index("data_access_resource_started_idx").on(t.resource, t.startedAt),
   index("data_access_run_idx").on(t.runId),
+]);
+
+// What an agent (or a chat, origin "chat") reported about a failure it met: the agent's view, beside the data access
+// log's facts. Written at once by report_failure; purged with the data access log.
+export const runFailureReport = pgTable("run_failure_report", {
+  id: serial("id").primaryKey(),
+  vault: vaultName(),
+  origin: text("origin").$type<"run" | "chat">().notNull().default("run"),
+  agentId: text("agent_id").notNull(),
+  actor: text("actor"), // who reported, for a chat
+  runId: bigint("run_id", { mode: "number" }), // no foreign key, like data_access
+  taskId: text("task_id"),
+  pbiId: integer("pbi_id"),
+  kind: text("kind").$type<FailureKind>().notNull(),
+  tool: text("tool"), // the tool that failed, as named
+  target: text("target").notNull(), // host, connection or resource; never query text
+  saw: text("saw").notNull(),
+  workaround: text("workaround").$type<FailureWorkaround>().notNull(),
+  instead: text("instead"),
+  impact: text("impact").$type<FailureImpact>().notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  index("run_failure_report_vault_created_idx").on(t.vault, t.createdAt),
+  index("run_failure_report_kind_tool_created_idx").on(t.kind, t.tool, t.createdAt),
+  index("run_failure_report_run_idx").on(t.runId),
 ]);
 
 // Scheduled tasks (user decision 2026-10-03): PowerLoom ticks each row on its cron; a tick creates the task of its

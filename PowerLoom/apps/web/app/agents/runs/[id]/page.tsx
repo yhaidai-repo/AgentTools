@@ -8,6 +8,7 @@ import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { getUsageStore } from "@/lib/usage";
 import { RunHeader } from "./RunHeader";
+import { RunFailureReports } from "./RunFailureReports";
 import { RunCaptures, RunOutputs } from "./RunOutputs";
 import { TraceView } from "./TraceView";
 
@@ -48,6 +49,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           {isFailedOutcome(run.outcome) && <section className="panel tone-error failure-panel"><h3>Failure <small>{run.outcome}</small></h3><p className="panel-body">{run.error ?? "no message"}</p></section>}
           <Panel title="Outputs"><RunOutputs run={run} /></Panel>
           <RunCaptures runId={run.id} />
+          <RunFailureReports runId={run.id} />
           <details className="panel fold-panel">
             <summary><span className="fold-mark" aria-hidden="true">›</span>Input <small>{run.continuesRunId ? "continuation note" : "first message"}</small></summary>
             <pre className="run-input">{run.input ?? "–"}</pre>
