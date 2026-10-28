@@ -32,14 +32,15 @@ export function chatSessionTools(deps: AgentDeps, agent: AgentDefinition, princi
   const access: OutsideAccessContext = { vault: principal.vault, agentId: agent.id, runId: null, owner: chatOwner(principal.sessionId), taskId: null, pbiId: null };
   const readers = readingGroups(deps, agent, access, `CHAT-${principal.sessionId}`);
   const sessionVault = (command: { name: string }) => (WRITES_INTO_SESSION_VAULT.has(command.name) ? { vault: principal.vault } : {});
-  const groups = [...readers, { source: COMMANDS_SOURCE, tools: withoutTaken(commandTools(commands, sessionVault), toolsOf(readers)) }];
+  const context = { ...commands, recordContext: { ...commands.recordContext, sessionId: principal.sessionId } };
+  const groups = [...readers, { source: COMMANDS_SOURCE, tools: withoutTaken(commandTools(context, sessionVault), toolsOf(readers)) }];
 
   return { tools: withChatLogging(toolsOf(groups), deps.accessLog, access), offered: offeredTools(groups) };
 }
 
 // The capture tools (stage 5) write the notes of the chat's own vault: the session's vault, never one the chat names, so
 // a chat in one vault can't write into another.
-const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close", "failure.report"]);
+const WRITES_INTO_SESSION_VAULT = new Set(["vault.capture", "register.add", "register.close", "www.create", "failure.report"]);
 
 // Generic SQL commands accept a caller-selected vault and have no session grant. Never offer them in a chat,
 // including when the grant-checked readers are absent. Other callers retain the generic command contracts.

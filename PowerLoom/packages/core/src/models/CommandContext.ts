@@ -1,3 +1,4 @@
+import type { RecordWorkContext } from "@powerloom/vault";
 import type { AgentConfigStore } from "@agenttools/config";
 import type { UsageStore } from "@agenttools/usage";
 import type { PowerLoomDb } from "@powerloom/db";
@@ -7,6 +8,8 @@ import type { SkillCatalog } from "./SkillCatalog";
 
 // What every command runs with. Each caller (the web today, an MCP server later) supplies its own adapters.
 export interface CommandContext {
+  /** Trusted caller context; MCP supplies its actual session id. */
+  recordContext?: RecordWorkContext;
   db: PowerLoomDb;
   actor: string; // who acts, for status_history: "human" from the web
   powerloom: PowerLoomPort;

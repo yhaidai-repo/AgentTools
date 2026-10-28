@@ -8,6 +8,7 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using Wolverine;
 using Wolverine.Http;
+using System.Text.Json;
 
 namespace PowerLoom.Features.Docs.Records;
 
@@ -26,6 +27,9 @@ public static class WwwRecordsEndpoints
         if (!Kinds.Contains(request.Kind) || !Faults.Contains(request.Fault))
             return Problem.Invalid($"Kind is one of {string.Join(", ", Kinds)} and fault one of {string.Join(", ", Faults)}.").ToProblemResult();
 
+        var contextProblem = await RecordContextValidation.ProblemAsync(request.Context, vault, db, cancellation);
+        if (contextProblem is not null) return Problem.Invalid(contextProblem).ToProblemResult();
+
         var record = new WwwRecord
         {
             Vault = vault,
@@ -40,6 +44,7 @@ public static class WwwRecordsEndpoints
             PreventiveAction = request.PreventiveAction,
             Assumptions = request.Assumptions,
             Source = request.Source,
+            WorkContext = request.Context is null ? null : JsonSerializer.Serialize(request.Context, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
         };
 
         db.WwwRecords.Add(record);

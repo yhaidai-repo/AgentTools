@@ -28,6 +28,7 @@ public partial class WwwRecordConfiguration : IEntityTypeConfiguration<WwwRecord
         entity.Property(e => e.Resolution).HasColumnName("resolution");
         entity.Property(e => e.RootCause).HasColumnName("root_cause");
         entity.Property(e => e.Source).HasColumnName("source");
+        entity.Property(e => e.WorkContext).HasColumnType("jsonb").HasColumnName("work_context");
         entity.Property(e => e.Title).HasColumnName("title");
         entity.Property(e => e.Vault).HasColumnName("vault");
         entity.Property(e => e.WrittenAt).HasColumnName("written_at");

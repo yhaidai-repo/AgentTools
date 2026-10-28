@@ -102,7 +102,7 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
       return data ? { ok: true, value: { adoId: data.adoId } } : powerloomFailure(error, response);
     },
     async finishPbi(feedback: PbiFeedback, actor: string) {
-      const { data, error, response } = await powerloom.POST("/api/pbis/{adoId}/finish", { params: { path: { adoId: feedback.adoId } }, body: { rating: feedback.rating, effortHours: feedback.effortHours, whatWentWrong: feedback.whatWentWrong, fault: feedback.fault, actor } });
+      const { data, error, response } = await powerloom.POST("/api/pbis/{adoId}/finish", { params: { path: { adoId: feedback.adoId } }, body: { rating: feedback.rating, effortHours: feedback.effortHours, whatWentWrong: feedback.whatWentWrong, fault: feedback.fault, actor, ...(feedback.context ? { context: feedback.context } : {}) } });
 
       return data ? { ok: true, value: { message: data.message, wwwRecordId: data.wwwRecordId } } : powerloomFailure(error, response);
     },

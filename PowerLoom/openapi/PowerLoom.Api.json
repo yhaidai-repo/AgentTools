@@ -4475,6 +4475,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "context": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordWorkContext"
+              }
+            ]
           }
         }
       },
@@ -5118,6 +5128,16 @@
           },
           "decidedBy": {
             "type": "string"
+          },
+          "context": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordWorkContext"
+              }
+            ]
           }
         }
       },
@@ -5523,6 +5543,16 @@
           },
           "source": {
             "type": "string"
+          },
+          "context": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordWorkContext"
+              }
+            ]
           }
         }
       },
@@ -5903,6 +5933,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "context": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecordWorkContext"
+              }
             ]
           }
         }
@@ -6407,6 +6447,36 @@
           },
           "id": {
             "type": "string"
+          }
+        }
+      },
+      "RecordWorkContext": {
+        "type": "object",
+        "properties": {
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "taskId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chatId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessionId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

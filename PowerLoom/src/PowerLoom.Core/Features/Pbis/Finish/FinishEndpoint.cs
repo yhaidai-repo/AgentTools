@@ -9,6 +9,8 @@ using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using Wolverine;
 using Wolverine.Http;
+using PowerLoom.Features.Docs.Records;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Features.Pbis.Finish;
 
@@ -29,6 +31,10 @@ public static class FinishEndpoint
 
         if (problem is not null)
             return problem.ToProblemResult();
+
+        var vault = await db.WorkItems.AsNoTracking().Where(row => row.AdoId == adoId).Select(row => row.Vault).SingleOrDefaultAsync(cancellation);
+        var contextProblem = vault is null ? null : await RecordContextValidation.ProblemAsync(request.Context is null ? null : request.Context with { PbiId = adoId }, vault, db, cancellation);
+        if (contextProblem is not null) return Problem.Invalid(contextProblem).ToProblemResult();
 
         var actor = string.IsNullOrWhiteSpace(request.Actor) ? "human" : request.Actor.Trim();
         var finished = await PbiFinishing.FinishAsync(db, adoId, actor, cancellation);
@@ -75,6 +81,7 @@ public static class FinishEndpoint
         {
             Vault = pbi.Vault,
             Source = $"PBI-{adoId} finish",
+            WorkContext = System.Text.Json.JsonSerializer.Serialize((request.Context ?? new RecordWorkContext()) with { PbiId = adoId }, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)),
             Title = $"PBI-{adoId}: {firstLine[..Math.Min(firstLine.Length, TitleMax)]}",
             Kind = "complaint",
             Project = await PbiDocsProject.OfAsync(db, adoId, cancellation),

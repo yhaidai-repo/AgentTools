@@ -30,6 +30,7 @@ public sealed class FindingRecordTests(PowerLoomHost host)
         Assert.Equal($"Recorded as {FakeVaultCapture.RecordId} in adoa-open-questions.", finding.Resolution);
         Assert.NotNull(finding.ClosedAt);
         Assert.Equal("questions", capture.Added.Single(entry => entry.Record.Title == "Sync drops the last page").Record.Kind);
+        Assert.Equal("WT-9001", capture.Added.Single(entry => entry.Record.Title == "Sync drops the last page").Record.Context?.TaskId);
         Assert.Equal(["in-progress", "done"], await HistoryOfAsync(id));
     }
 
@@ -64,7 +65,9 @@ public sealed class FindingRecordTests(PowerLoomHost host)
             Status = ItemStatus.InProgress,
             Body = "the finding's text",
             Data = """{"type":"question","project":"adoa","default":["keep"],"options":["a","b"]}""",
+            ParentId = id == "FND-9001" ? "WT-9001" : null,
         });
+        if (id == "FND-9001") db.LocalItems.Add(new LocalItem { Id = "WT-9001", Title = "Source task", Assignee = "agent:tech-writer", Vault = PowerLoomHost.Vault, Kind = ItemKinds.Docs, Status = ItemStatus.Done });
         await db.SaveChangesAsync();
 
         return id;

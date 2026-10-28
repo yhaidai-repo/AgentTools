@@ -1,5 +1,6 @@
 import type { WwwEntry } from "../models/WwwEntry";
 import type { WwwRecord } from "../models/WwwRecord";
+import { parseRecordWorkReferences, recordWorkLine } from "../registers/recordWorkReferences";
 
 const RECORD_HEADING = /^## WWW-(\d+)\b/gm;
 const STATS_BLOCK = /<!-- stats:start -->[\s\S]*?<!-- stats:end -->/;
@@ -22,9 +23,11 @@ export function parseWwwRecords(logText: string): WwwRecord[] {
 }
 
 function toWwwRecord(heading: RegExpMatchArray, record: string): WwwRecord {
+  const workItems = parseRecordWorkReferences(record);
   const dates = field(record, "Created").split("·").map((part) => part.replace("Updated:", "").trim());
 
   return {
+    ...(workItems.length ? { workItems } : {}),
     id: heading[1],
     title: heading[2].trim(),
     created: dates[0] ?? "",
@@ -55,6 +58,7 @@ function renderRecord(recordId: string, entry: WwwEntry, today: string): string 
     `- Applied at: ${EMPTY}`,
     `- Status: ${entry.resolution ? "resolved" : "open"}`,
     `- Assumptions: ${entry.assumptions?.trim() ? oneLine(entry.assumptions) : "none"}`,
+    ...(entry.context ? [recordWorkLine("created", entry.context, today)].filter((line): line is string => line !== null) : []),
   ].join("\n");
 }
 

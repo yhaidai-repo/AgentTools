@@ -13,6 +13,7 @@ export type RegisterKey = (typeof REGISTERS)[number]["key"];
 
 export function wwwRows(records: WwwRecord[]): RegisterRow[] {
   return records.map((record) => ({
+    ...(record.workItems?.length ? { workItems: record.workItems } : {}),
     key: record.id,
     id: record.id,
     project: record.project,
@@ -28,6 +29,7 @@ export function wwwRows(records: WwwRecord[]): RegisterRow[] {
 
 export function registerRows(records: ProjectRegisterRecord[]): RegisterRow[] {
   return records.map((record) => ({
+    ...(record.workItems?.length ? { workItems: record.workItems } : {}),
     key: `${record.project}-${record.id}`,
     id: record.id,
     project: record.project,

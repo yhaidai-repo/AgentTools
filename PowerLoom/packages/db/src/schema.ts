@@ -703,6 +703,7 @@ export const wwwRecord = pgTable("www_record", {
   preventiveAction: text("preventive_action"),
   assumptions: text("assumptions"),
   source: text("source").notNull(), // what created it, e.g. "PBI-34881 finish"
+  workContext: jsonb("work_context"),
   recordId: text("record_id"),
   writtenAt: ts("written_at"),
   error: text("error"),

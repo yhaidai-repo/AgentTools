@@ -1,4 +1,5 @@
 import type { RegisterNoteRecord } from "../models/RegisterNoteRecord";
+import { parseRecordWorkReferences } from "./recordWorkReferences";
 
 const RECORD_HEADING = /^## (\[RESOLVED\] )?([A-Z]+-\d+)\b[ \t]*(.*)$/gm;
 const BOLD_LINE = /^\*\*(.+)\*\*\s*$/m;
@@ -14,10 +15,12 @@ export function parseRegisterRecords(noteText: string): RegisterNoteRecord[] {
 }
 
 function toRecord(heading: RegExpMatchArray, body: string): RegisterNoteRecord {
+  const workItems = parseRecordWorkReferences(body);
   const status = METADATA_STATUS.exec(body)?.[1] ?? "";
   const markedResolved = heading[1] !== undefined;
 
   return {
+    ...(workItems.length ? { workItems } : {}),
     id: heading[2],
     title: heading[3].trim() || BOLD_LINE.exec(body)?.[1] || "",
     status,

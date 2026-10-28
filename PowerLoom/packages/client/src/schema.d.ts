@@ -1979,6 +1979,7 @@ export interface components {
             text: string;
             default: null | string[];
             options: null | string[];
+            context?: null | components["schemas"]["RecordWorkContext"];
         };
         AddReviewRequest: {
             vault: string;
@@ -2146,6 +2147,7 @@ export interface components {
             duplicateOf: null | components["schemas"]["RecordRef"];
             decision: string;
             decidedBy: string;
+            context?: null | components["schemas"]["RecordWorkContext"];
         };
         CloseRequest: {
             /** Format: int32 */
@@ -2235,6 +2237,7 @@ export interface components {
             preventiveAction: null | string;
             assumptions: null | string;
             source: string;
+            context?: null | components["schemas"]["RecordWorkContext"];
         };
         CreatedPbi: {
             /** Format: int32 */
@@ -2335,6 +2338,7 @@ export interface components {
             whatWentWrong: null | string;
             fault: null | string;
             actor: null | string;
+            context?: null | components["schemas"]["RecordWorkContext"];
         };
         FinishedPbi: {
             message: string;
@@ -2458,6 +2462,13 @@ export interface components {
         RecordRef: {
             path: string;
             id: string;
+        };
+        RecordWorkContext: {
+            /** Format: int32 */
+            pbiId?: null | number;
+            taskId?: null | string;
+            chatId?: null | string;
+            sessionId?: null | string;
         };
         RemoveLinkRequest: {
             url: string;

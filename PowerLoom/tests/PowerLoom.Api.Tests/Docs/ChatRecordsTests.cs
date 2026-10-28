@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PowerLoom.Api.Tests.Probes;
 using PowerLoom.Features.Docs.Records.Models;
 using PowerLoom.Infrastructure.VaultCapture.Models;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Api.Tests.Docs;
 
@@ -91,6 +92,31 @@ public sealed class ChatRecordsTests(PowerLoomHost host)
         using var exclusive = new FileStream(lockFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
         return true;
+    }
+
+    [Fact]
+    public async Task Record_context_reaches_capture_and_closing_preserves_creation_context()
+    {
+        var context = new RecordWorkContext(ChatId: "codex-123", SessionId: "mcp-456");
+        await host.Host.PostJson(new AddRegisterRecordRequest("chatp", "issues", "Provenance record", "Known facts", [], [], context), $"{VaultApi}/register-records").Receive<AddedRegisterRecord>();
+        Assert.Equal(context, Capture.Added.Single(entry => entry.Record.Title == "Provenance record").Record.Context);
+
+        await WriteRegisterAsync("# Known issues\n\n## KI-001 Wrong total\n> **Open** · Created 2026-10-01 · Updated 2026-10-01\n\n**Issue**: Sums twice.\n- Created in: 2026-10-01 · session:old-session\n");
+        await host.Host.PostJson(new CloseRegisterRecordRequest(IssuesPath, "KI-001", "resolved", null, "Fixed", "the user", context), $"{VaultApi}/register-records/close").Receive<ClosedRegisterRecord>();
+        var text = await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, IssuesPath));
+        Assert.Contains("- Created in: 2026-10-01 · session:old-session", text);
+        Assert.Matches(@"- Updated in: \d{4}-\d{2}-\d{2} · chat:codex-123", text);
+        Assert.DoesNotContain("mcp-456", text);
+    }
+
+    [Theory]
+    [InlineData("bad\n## KI-999 Fake", null)]
+    [InlineData(null, "AT-unknown-001")]
+    public async Task Invalid_or_foreign_context_is_refused_before_writing(string? chatId, string? taskId)
+    {
+        var request = new AddRegisterRecordRequest("chatp", "issues", "Invalid provenance", "Known facts", [], [], new RecordWorkContext(TaskId: taskId, ChatId: chatId));
+        await ShouldFailAsync($"{VaultApi}/register-records", request, HttpStatusCode.BadRequest);
+        Assert.DoesNotContain(Capture.Added, entry => entry.Record.Title == "Invalid provenance");
     }
 
     private static CaptureDraftRequest Draft(string name) => new("chatp", name, "Sync paging", "[[chatp-sync]]", ["The sync reads 200 items a page."], null, ["Is 200 configurable?"], "session finding: powerloom chat CHAT-1");

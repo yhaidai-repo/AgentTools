@@ -6,6 +6,7 @@ using PowerLoom.Features.Docs.Records.Models;
 using PowerLoom.Persistence;
 using Wolverine;
 using Wolverine.Tracking;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Api.Tests.Docs;
 
@@ -23,7 +24,8 @@ public sealed class WwwRecordsTests(PowerLoomHost host)
         await File.WriteAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md"), WwwLogTests.EmptyLog);
         CreatedWwwRecord? created = null;
 
-        await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync((Func<IMessageContext, Task>)(async _ => created = await host.Host.PostJson(Record("notice", "The chat noticed a stale note"), Url).Receive<CreatedWwwRecord>()));
+        var request = Record("notice", "The chat noticed a stale note") with { Context = new RecordWorkContext(ChatId: "codex-www", SessionId: "transport-www") };
+        await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync((Func<IMessageContext, Task>)(async _ => created = await host.Host.PostJson(request, Url).Receive<CreatedWwwRecord>()));
         await host.Host.Scenario(scenario =>
         {
             scenario.Post.Json(Record("rant", "Not a kind")).ToUrl(Url);
@@ -36,6 +38,10 @@ public sealed class WwwRecordsTests(PowerLoomHost host)
 
         Assert.Equal((PowerLoomHost.Vault, "notice", "chat:test"), (row.Vault, row.Kind, row.Source));
         Assert.Contains("The chat noticed a stale note", await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md")));
+        Assert.Contains("codex-www", row.WorkContext);
+        var log = await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md"));
+        Assert.Matches(@"- Created in: \d{4}-\d{2}-\d{2} · chat:codex-www", log);
+        Assert.DoesNotContain("transport-www", log);
     }
 
     private static CreateWwwRecordRequest Record(string kind, string title) => new(title, kind, "pos", "Notes stay current", "A note was stale", "Agent", null, null, null, null, "chat:test");

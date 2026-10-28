@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using PowerLoom.Features.Docs.Records.Models;
+using PowerLoom.Infrastructure.VaultScan;
 
 namespace PowerLoom.Features.Docs.Records;
 
@@ -64,7 +65,8 @@ public static partial class WwwLog
             $"- Assumptions: {(string.IsNullOrWhiteSpace(entry.Assumptions) ? "none" : OneLine(entry.Assumptions))}",
         };
 
-        return string.Join("\n", lines);
+        var context = RecordWorkReferences.Line("Created", entry.Context, today);
+        return string.Join("\n", context is null ? lines : lines.Append(context));
     }
 
     private static string Field(string record, string name)

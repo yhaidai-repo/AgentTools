@@ -56,6 +56,22 @@ Describe 'Add-VaultRegisterRecord' {
         $vaultName = Split-Path -Leaf $vaultRoot
     }
 
+    It 'records supplied work context and prefers the actual chat over its session' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Context'; text = 'Known facts'; context = [pscustomobject]@{ pbiId = 7; taskId = 'TT-7-001'; chatId = 'codex-123'; sessionId = 'mcp-456' } }
+        $result = Add-VaultRegisterRecord -InputObject $record -Config $config
+        $content = Get-Content -LiteralPath (Join-Path $vaultRoot 'pos' 'pos-known-issues.md') -Raw
+        $result.ok | Should -BeTrue
+        $content | Should -Match '- Created in: \d{4}-\d{2}-\d{2} · pbi:7 · task:TT-7-001 · chat:codex-123'
+        $content | Should -Not -Match 'mcp-456'
+    }
+
+    It 'refuses context that could inject a record heading' {
+        $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'issues'; title = 'Context'; text = 'Known facts'; context = [pscustomobject]@{ chatId = "bad`n## KI-999 Fake" } }
+        (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeFalse
+        $record.context = [pscustomobject]@{ pbiId = "7`n" }
+        (Add-VaultRegisterRecord -InputObject $record -Config $config).ok | Should -BeFalse
+    }
+
     It 'appends the next question in the rule layout' {
         $record = [pscustomobject]@{ vault = $vaultName; project = 'pos'; kind = 'questions'; title = 'Which states?'; text = 'Only MA, MD?'; default = @('MA and MD only'); options = @('Keep', 'Extend') }
 

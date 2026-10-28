@@ -1,6 +1,7 @@
 import { TimeAgo } from "@/components/TimeAgo";
 import type { RegisterRow } from "@/models/RegisterRow";
 import { DocLink } from "./DocLink";
+import { RecordWorkItems } from "./RecordWorkItems";
 
 // One register in four columns that fit (user decision 2026-10-18): the record with its project (ids repeat across
 // projects), the title with its facts under it, the status, and when. An open miss pulses amber; open issues and
@@ -22,6 +23,7 @@ export function RegisterTable({ vault, rows, onlyOpen }: { vault: string; rows: 
               <td className="col-record"><DocLink vault={vault} path={row.path}><span className="id">{row.id}</span></DocLink><span className="project-tag">{row.project}</span></td>
               <td className="title">
                 <span className="register-title">{row.title}</span>
+                <RecordWorkItems references={row.workItems} />
                 {row.facts.length > 0 && <div className="row-facts">{row.facts.map((fact) => <span key={fact} className={faultClass(fact)}>{fact}</span>)}</div>}
               </td>
               <td className="col-status"><span className={`register-status ${statusClass(row)}`}>{row.status}</span></td>

@@ -31,6 +31,8 @@ public partial class WwwRecord
 
     public string Source { get; set; } = null!;
 
+    public string? WorkContext { get; set; }
+
     public string? RecordId { get; set; }
 
     public DateTime? WrittenAt { get; set; }
