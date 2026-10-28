@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { appendMissingExcludes, createPlanningFolder, disableCommitDocs } from "./gsdWorktreeFiles";
+import { createPlanningFolder, disableCommitDocs, ignoreFolderContents } from "./gsdWorktreeFiles";
 import type { GitIdentity } from "./models/GitIdentity";
+import type { GitIdentityEnv } from "./models/GitIdentityEnv";
 import type { GsdWorktreeOptions } from "./models/GsdWorktreeOptions";
 
 const run = promisify(execFile);
@@ -12,11 +13,13 @@ export const GSD_CORE_VERSION = "1.19.0";
 
 const INSTALL_ARGS = ["--local", "--claude", "--relative-includes", "--no-legacy-cleanup"];
 
-// Prepares a per-PBI git worktree for GSD before the first GSD command. Every step is local to the worktree and safe to repeat.
+// Prepares a per-PBI git worktree for GSD before the first GSD command. Every step is local to the worktree (nothing is
+// written to the main repository's .git) and safe to repeat.
 // The run must load the installer's hooks and permissions with settingSources: ["project", "local"]: the installer writes
 // them to <worktree>/.claude/settings.local.json (not settings.json), which the "project" source alone never reads.
 export class GsdWorktreePreparer {
-  async prepare(options: GsdWorktreeOptions): Promise<void> {
+  /** Returns the environment the run's processes need so GSD's commits carry the run's identity. */
+  async prepare(options: GsdWorktreeOptions): Promise<GitIdentityEnv> {
     const worktree = resolve(options.worktree);
 
     await this.requirePinnedGsdCore(options.gsdCore);
@@ -27,28 +30,18 @@ export class GsdWorktreePreparer {
 
     // Keeps GSD from committing planning docs into the PBI branch.
     await disableCommitDocs(planning);
-    await appendMissingExcludes(await this.excludeFileOf(worktree));
+
+    // info/exclude is read from the shared git dir only, so a nested .gitignore is the per-worktree way. It does not
+    // cover tracked files: a tracked .claude/CLAUDE.md is still committed when changed.
+    await ignoreFolderContents(planning);
+    await ignoreFolderContents(join(worktree, ".claude"));
     await this.installGsd(worktree, options.gsdCore);
-    await this.setIdentity(worktree, options.identity);
-  }
 
-  // `info/exclude` lives in the common git dir, so in a linked worktree this is the main repo's file, shared by all its
-  // worktrees: .planning/ and .claude/ become untracked-and-ignored there too. The repo's .gitignore is never edited.
-  private async excludeFileOf(worktree: string): Promise<string> {
-    const path = (await this.git(worktree, ["rev-parse", "--git-path", "info/exclude"])).trim();
-
-    return isAbsolute(path) ? path : join(worktree, path);
+    return identityEnv(options.identity);
   }
 
   private async installGsd(worktree: string, gsdCore: string): Promise<void> {
     await run(process.execPath, [join(gsdCore, "bin", "install.js"), ...INSTALL_ARGS], { cwd: worktree });
-  }
-
-  private async setIdentity(worktree: string, identity: GitIdentity): Promise<void> {
-    // Plain --local would write the shared repo config; --worktree keeps the identity to this worktree.
-    await this.git(worktree, ["config", "extensions.worktreeConfig", "true"]);
-    await this.git(worktree, ["config", "--worktree", "user.name", identity.name]);
-    await this.git(worktree, ["config", "--worktree", "user.email", identity.email]);
   }
 
   private requireIdentity(identity: GitIdentity): void {
@@ -64,10 +57,8 @@ export class GsdWorktreePreparer {
       throw new Error(`@opengsd/gsd-core ${GSD_CORE_VERSION} is required, found ${manifest.version ?? "unknown"} in ${gsdCore}.`);
     }
   }
+}
 
-  private async git(cwd: string, args: string[]): Promise<string> {
-    const { stdout } = await run("git", args, { cwd });
-
-    return stdout;
-  }
+function identityEnv({ name, email }: GitIdentity): GitIdentityEnv {
+  return { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
 }

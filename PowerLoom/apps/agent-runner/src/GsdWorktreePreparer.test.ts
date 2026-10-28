@@ -54,7 +54,7 @@ async function withRepo(test: (paths: { main: string; worktree: string; core: st
   }
 }
 
-it("creates .planning, merges config.json, writes the exclude file and installs GSD", async () => {
+it("creates .planning, merges config.json, ignores both folders and installs GSD", async () => {
   await withRepo(async ({ main, worktree, core }) => {
     await mkdir(join(worktree, ".planning"));
     await writeFile(join(worktree, ".planning", "config.json"), JSON.stringify({ mode: "yolo", commit_docs: true }));
@@ -62,11 +62,10 @@ it("creates .planning, merges config.json, writes the exclude file and installs 
     await new GsdWorktreePreparer().prepare({ worktree, gsdCore: core, identity });
 
     const config = JSON.parse(await readFile(join(worktree, ".planning", "config.json"), "utf8"));
-    const exclude = await readFile(join(main, ".git", "info", "exclude"), "utf8");
-
     assert.deepEqual(config, { mode: "yolo", commit_docs: false });
-    assert.match(exclude, /^\.planning\/$/m);
-    assert.match(exclude, /^\.claude\/$/m);
+    assert.equal(await readFile(join(worktree, ".planning", ".gitignore"), "utf8"), "*\n");
+    assert.equal(await readFile(join(worktree, ".claude", ".gitignore"), "utf8"), "*\n");
+    assert.doesNotMatch(await readFile(join(main, ".git", "info", "exclude"), "utf8"), /\.planning|\.claude/);
     assert.equal(await readFile(join(worktree, ".claude", "install-args.log"), "utf8"), "--local --claude --relative-includes --no-legacy-cleanup");
     assert.equal(git(worktree, "status", "--porcelain").trim(), "");
   });
@@ -81,20 +80,20 @@ it("creates .planning and config.json when the worktree has neither", async () =
   });
 });
 
-it("sets the commit identity for the worktree only", async () => {
+it("returns the commit identity as environment and leaves every git config alone", async () => {
   await withRepo(async ({ main, worktree, core }) => {
-    await new GsdWorktreePreparer().prepare({ worktree, gsdCore: core, identity });
+    const before = await readFile(join(main, ".git", "config"), "utf8");
+    const env = await new GsdWorktreePreparer().prepare({ worktree, gsdCore: core, identity });
 
-    assert.equal(git(worktree, "config", "user.name").trim(), identity.name);
-    assert.equal(git(worktree, "config", "user.email").trim(), identity.email);
-    assert.notEqual(git(main, "config", "--default", "", "user.email").trim(), identity.email);
+    assert.deepEqual(env, { GIT_AUTHOR_NAME: identity.name, GIT_AUTHOR_EMAIL: identity.email, GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email });
+    assert.equal(await readFile(join(main, ".git", "config"), "utf8"), before);
   });
 });
 
 it("a second run changes no file", async () => {
-  await withRepo(async ({ main, worktree, core }) => {
+  await withRepo(async ({ worktree, core }) => {
     const preparer = new GsdWorktreePreparer();
-    const files = [join(worktree, ".planning", "config.json"), join(main, ".git", "info", "exclude")];
+    const files = [join(worktree, ".planning", "config.json"), join(worktree, ".planning", ".gitignore"), join(worktree, ".claude", ".gitignore")];
 
     await preparer.prepare({ worktree, gsdCore: core, identity });
     const before = await Promise.all(files.map((file) => readFile(file, "utf8")));
@@ -102,7 +101,6 @@ it("a second run changes no file", async () => {
     const after = await Promise.all(files.map((file) => readFile(file, "utf8")));
 
     assert.deepEqual(after, before);
-    assert.equal(after[1].match(/^\.planning\/$/gm)?.length, 1);
   });
 });
 

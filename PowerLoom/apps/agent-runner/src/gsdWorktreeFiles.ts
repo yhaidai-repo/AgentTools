@@ -1,8 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const EXCLUDED = [".planning/", ".claude/"];
-
 export async function createPlanningFolder(worktree: string): Promise<string> {
   const folder = join(worktree, ".planning");
 
@@ -23,19 +21,10 @@ export async function disableCommitDocs(planningFolder: string): Promise<void> {
   await writeFile(file, `${JSON.stringify({ ...config, commit_docs: false }, null, 2)}\n`, "utf8");
 }
 
-export async function appendMissingExcludes(excludeFile: string): Promise<void> {
-  const text = await readOrEmpty(excludeFile);
-  const present = new Set(text.split(/\r?\n/).map((line) => line.trim()));
-  const missing = EXCLUDED.filter((pattern) => !present.has(pattern));
-
-  if (missing.length === 0) {
-    return;
-  }
-
-  const separator = text === "" || text.endsWith("\n") ? "" : "\n";
-
-  await mkdir(join(excludeFile, ".."), { recursive: true });
-  await writeFile(excludeFile, `${text}${separator}${missing.join("\n")}\n`, "utf8");
+/** A folder-local .gitignore of `*` hides the folder and itself without touching the repo's own ignore files. */
+export async function ignoreFolderContents(folder: string): Promise<void> {
+  await mkdir(folder, { recursive: true });
+  await writeFile(join(folder, ".gitignore"), "*\n", "utf8");
 }
 
 async function readJsonObject(file: string): Promise<Record<string, unknown>> {
