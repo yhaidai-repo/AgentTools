@@ -32,7 +32,7 @@ export function sessionDurationMs(session: RunSession): number | null {
 }
 
 // The sub-session whose tool results first named the output (an item id, a note path); the main session when none did,
-// since the host commits a run's outputs.
+// since the host commits a run's outputs. Inferred, not recorded: a plain text match, so `a.md` also matches `aaa.md`.
 export function sessionOfOutput(trace: RunSessionTrace, output: string): string {
   const named = trace.sessions.find((session) => session.id !== MAIN_SESSION_ID && trace.events[session.id].some((event) => resultNames(event, output)));
 

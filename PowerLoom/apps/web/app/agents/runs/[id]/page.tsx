@@ -16,7 +16,8 @@ import { TraceView } from "./TraceView";
 
 export const dynamic = "force-dynamic";
 
-// Beyond this many events a run with sub-sessions ships only its main session's; the others load when opened.
+// Beyond this many events a run with sub-sessions sends the browser only its main session's events; the others load
+// when opened. The server still reads the whole trace once to build the session tree.
 const LARGE_TRACE_EVENTS = 1500;
 
 // One run, like the other detail pages (user decision 2026-10-18): its header, the trace in the main column, and its

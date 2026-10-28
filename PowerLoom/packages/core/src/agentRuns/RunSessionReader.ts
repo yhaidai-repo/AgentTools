@@ -118,6 +118,7 @@ export class RunSessionReader {
 
     if (!runEnded) {
       session.status = "running";
+
       return;
     }
 
