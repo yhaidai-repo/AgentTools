@@ -302,14 +302,17 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Give estimates",
     description: "The agent may record an estimate of its PBI with record_estimate: hours for a developer without an agent and hours for an agent implementing it. The PBI shows the latest estimate from any agent. Refinement agents must give one when this is on.",
   },
-  // Output tools are granted like readers (user decision 2026-10-22); the first one shared, Better Research's (stage 2b).
+  // An agent-specific output tool belongs to the system agent that owns it (user decisions 2026-10-28 and 2026-10-29,
+  // replacing 2026-10-22: granted like readers): always on there, offered to no other agent.
   {
     key: RESEARCH_RESULT_INTEGRATION,
+    owner: "better-research",
     label: "Write research results",
     description: "The agent may answer its task with write_research_result: a research result item (RR) on the PBI or task, with findings, evidence and the next steps; earlier results of the task are superseded and the task is closed.",
   },
   {
     key: WRITE_NOTES_INTEGRATION,
+    owner: "tech-writer",
     label: "Write vault notes",
     description: "The agent may write notes in its task's vault with write_note and record findings for the vault registers: a draft merged into the docs vault, a note actualized in place, or a docs request. The vault's AGENTS.md joins its instructions.",
   },
