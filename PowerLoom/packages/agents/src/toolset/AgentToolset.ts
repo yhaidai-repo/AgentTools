@@ -49,6 +49,7 @@ import { commitStep } from "../tasks/commitStep";
 import { commitCreatedTasks, resolveTask } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
 import { createHandOffTool } from "../handoff/handOffTool";
+import { joinAskedToReceivers } from "../handoff/askedDependencies";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { TaskCreationLimits } from "../taskCreation/models/TaskCreationLimits";
 import { commitCaptures, createVaultCaptureTool } from "../vaultCapture";
@@ -181,6 +182,7 @@ export class AgentToolset {
         return ids;
       }));
     }
+    if (!this.input.tasks) await joinAskedToReceivers(deps.db, this.tasks, taskIds);
     const captureIds: string[] = [];
     if (!this.input.captures && this.task.pbiId !== null) for (const capture of this.captures) {
       captureIds.push(...await commitStep(deps.db, root, runId, "capture", capture, async tx => {

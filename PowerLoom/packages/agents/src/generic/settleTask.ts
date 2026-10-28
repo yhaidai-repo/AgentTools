@@ -33,9 +33,9 @@ export type Settlement =
 // blocked whatever it handed off (what it asked is kept for the Re-run). A writer's own blockers (a test's blocking
 // items) hold the task whatever write_result says. A hand-off settles the task by its intent: one that hands the work on
 // (continue, review, return) ends it done when no writer misses its output, even when it also asked something (the
-// receiver waits for that); one that only asks makes it wait for the answers, then run again. Complete is done only with
-// every output the task promised. Anything else waits for what it named, or is blocked for a person: nothing would run
-// it again.
+// receiving agent task waits for that: joinAskedToReceivers); one that only asks makes it wait for the answers, then run
+// again. Complete is done only with every output the task promised. Anything else waits for what it named, or is blocked
+// for a person: nothing would run it again.
 export function decideSettlement(input: SettlementInput): Settlement {
   const waits = input.writers.flatMap((writer) => (writer.kind === "waits" ? [writer] : []));
   const missing = input.writers.flatMap((writer) => (writer.kind === "missing" ? [writer.output] : []));

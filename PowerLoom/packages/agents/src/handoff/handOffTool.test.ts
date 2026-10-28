@@ -148,4 +148,15 @@ describe("hand_off", () => {
     ]);
     assert.deepEqual(handoffs[1].refs.items, ["ID-1"]);
   });
+
+  it("gives a question for a person the package with the question, as a human task gets it", async () => {
+    const { tasks, tool } = setup();
+    const { db, items } = recordingDb();
+
+    await tool.handler(handOff({ item: "question", intent: "ask", gate: "answer", goal: "Archive after 7 or 30 days?", options: ["7 days", "30 days"] }));
+    await commitCreatedTasks(db, CONTEXT, tasks);
+
+    assert.equal(items[0].kind, "question");
+    assert.match(items[0].body, /^\*\*Handed off by\*\* PT-1 \(planning, RUN-812\): answer this; the sender waits for it and runs again\.\n\nThe plan archives orders past their expiry \(step 2\)\.[\s\S]*\n\n\*\*Question:\*\* Archive after 7 or 30 days\?$/);
+  });
 });

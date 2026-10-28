@@ -89,6 +89,18 @@ public sealed class HandoffGatesTests(PowerLoomHost host)
         Assert.Null(HandoffGates.RefusalOf(new GatedDependency("HT-1", "approve", "done", "### 1. Decide\n\nApproved.")));
     }
 
+    [Theory]
+    [InlineData("`approve`", true)]
+    [InlineData("\"approve\"", true)]
+    [InlineData("```\napprove\n```", true)]
+    [InlineData("**Approve**", true)]
+    [InlineData("approve, but rename the job", false)]
+    [InlineData("changes: `approve` only step 1", false)]
+    public void Approve_counts_in_backticks_quotes_or_a_code_block_but_not_with_conditions(string decision, bool isApproval)
+    {
+        Assert.Equal(isApproval, HandoffGates.IsApproval(decision));
+    }
+
     // A planning task, its review human task with the gate, and the implementation task that depends on the review.
     private async Task<(string Review, string Task)> SeedReviewChainAsync(int adoId, string gate)
     {

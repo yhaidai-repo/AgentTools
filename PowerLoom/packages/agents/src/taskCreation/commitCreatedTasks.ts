@@ -1,4 +1,4 @@
-import { ANY_AGENT, handoffHumanTaskBody, insertHandoff, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type ItemPrefix, type NewHandoff } from "@powerloom/core";
+import { ANY_AGENT, handoffHumanTaskBody, handoffQuestionBody, insertHandoff, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type HumanTaskData, type ItemPrefix, type NewHandoff } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, count, eq, isNotNull, like } from "drizzle-orm";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
@@ -116,10 +116,8 @@ async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task:
 async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
   const id = await nextId(db, "HT", context.pbiId);
   const human = { why: task.reason, solves: task.goal, steps: task.steps };
-  const criteria = [`## Done when\n\n${task.doneWhen}`, ...(task.outOfScope ? [`## Out of scope\n\n${task.outOfScope}`] : [])].join("\n\n");
-  const body = task.handoff ? handoffHumanTaskBody(newHandoffOf(context, task), human, criteria) : `${renderHumanTaskBody(human)}\n\n${criteria}`;
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body, data: { ...human, ...decisionData(task) } });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: humanTaskBodyOf(context, task, human), data: { ...human, ...decisionData(task) } });
 
   return id;
 }
@@ -128,9 +126,20 @@ async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task:
   const id = await nextId(db, "Q", context.pbiId);
   const data = { why: task.reason, options: task.options, ...decisionData(task) };
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: task.goal, data });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: questionBodyOf(context, task), data });
 
   return id;
+}
+
+// A person's item shows the hand-off's package with it, rendered as the agents read it.
+function humanTaskBodyOf(context: TaskCommitContext, task: CreatedTask, human: HumanTaskData): string {
+  const criteria = [`## Done when\n\n${task.doneWhen}`, ...(task.outOfScope ? [`## Out of scope\n\n${task.outOfScope}`] : [])].join("\n\n");
+
+  return task.handoff ? handoffHumanTaskBody(newHandoffOf(context, task), human, criteria) : `${renderHumanTaskBody(human)}\n\n${criteria}`;
+}
+
+function questionBodyOf(context: TaskCommitContext, task: CreatedTask): string {
+  return task.handoff ? handoffQuestionBody(newHandoffOf(context, task), task.goal) : task.goal;
 }
 
 // The hand-off a task carries, sent by the creating task's run.

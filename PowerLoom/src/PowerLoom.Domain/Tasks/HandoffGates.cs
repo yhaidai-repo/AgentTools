@@ -17,6 +17,7 @@ public static class HandoffGates
     private const string NextHeading = "\n### ";
 
     private static readonly string[] Answered = ["answered", "done"];
+    private static readonly char[] DecisionWrapping = ['`', '"', '\'', '*', '.', '!', ' ', '\n', '\r', '\t'];
 
     public static async Task<List<string>> RefusalsAsync(PowerLoomDbContext db, LocalItem task, CancellationToken cancellation)
     {
@@ -79,9 +80,11 @@ public static class HandoffGates
         return (end < 0 ? answer : answer[..end]).Trim();
     }
 
-    private static bool IsApproval(string decision)
+    // The person answers the fixed `approve`, often as written in the step: in backticks or quotes, in a code block (core
+    // fences an answer that looks like JSON), or with a full stop. Anything else around the word is a request for changes.
+    public static bool IsApproval(string decision)
     {
-        var word = decision.TrimEnd('.', '!', ' ').ToLowerInvariant();
+        var word = decision.Trim(DecisionWrapping).ToLowerInvariant();
 
         return word is Approve or "approved";
     }

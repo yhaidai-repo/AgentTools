@@ -29,6 +29,11 @@ export function handoffHumanTaskBody(handoff: NewHandoff, task: HumanTaskData, c
   return [packageMarkdown(handoff), renderHumanTaskBody(task), criteria].filter(Boolean).join("\n\n");
 }
 
+/** (b) A question's body: the package, then the question itself, so the person sees what it rests on. */
+export function handoffQuestionBody(handoff: NewHandoff, question: string): string {
+  return [packageMarkdown(handoff), `**Question:** ${question}`].join("\n\n");
+}
+
 /** (c) The Continue chat note's section on an item: where it came from and how what it waits for closed; null when no
  *  hand-off touches it. */
 export function handoffChatSection(context: HandoffContext): string | null {

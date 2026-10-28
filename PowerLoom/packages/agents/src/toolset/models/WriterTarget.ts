@@ -14,7 +14,8 @@ export interface WriterTarget {
   /** The tasks create_task and hand_off made in this run, already written, and their ids in the same order. */
   tasks: CreatedTask[];
   taskIds: string[];
-  /** The run's hand_off calls among them: what each asked of which item. */
+  /** The run's hand_off calls among them: what each asked of which item. Only the tool's hand-offs: one a writer makes
+   *  while committing (refinement's follow-up) isn't here, while settleTask reads every hand-off of the run (handoffsOfRun). */
   handoffs: RunHandoff[];
   repos: RepoAccess;
   /** What write_result recorded, when it was called before the commit. */

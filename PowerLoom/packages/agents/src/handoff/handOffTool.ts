@@ -87,6 +87,13 @@ function describeTool(targets: TaskTarget[]): string {
   ].join("\n");
 }
 
+// A review with gate approve gets the fixed answers the backend's gate reads; any other person's task brings its own.
+function stepsOf(input: Input): CreatedTask["steps"] {
+  const hasFixedAnswers = input.gate === "approve" && input.steps.length === 0;
+
+  return hasFixedAnswers ? approvalSteps(`"${input.title}"`) : input.steps;
+}
+
 function toCreatedTask(input: Input): CreatedTask {
   return {
     assignee: input.to === PERSON ? USER : input.to,
@@ -101,7 +108,7 @@ function toCreatedTask(input: Input): CreatedTask {
     blocking: input.blocking,
     dependsOn: input.depends_on,
     options: input.options,
-    steps: input.gate === "approve" && input.steps.length === 0 ? approvalSteps(`"${input.title}"`) : input.steps,
+    steps: stepsOf(input),
     docPath: input.doc_path === null ? null : normalizeNotePath(input.doc_path),
     handoff: { intent: input.intent, gate: input.gate, package: { body: input.package.body, refs: { results: input.package.results, items: input.package.items, notes: input.package.notes } } },
   };

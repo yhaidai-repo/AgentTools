@@ -29,6 +29,8 @@ export function renderHumanTaskBody(data: HumanTaskData): string {
 }
 
 // The person's per-step answers as markdown, so the next agent maps each answer to its step. JSON goes into a code block.
+// The format (`### <n>. <action>`, a blank line, the answer) is a contract: the backend's HandoffGates.FirstAnswerOf reads
+// step 1 of a review to decide its gate; change both together.
 export function humanTaskResolution(data: HumanTaskData, answers: string[], note: string | null): string | null {
   const answered = data.steps.map((step, index) => ({ step, index, answer: answers[index]?.trim() ?? "" })).filter((entry) => entry.answer !== "");
   const parts = answered.map((entry) => `### ${entry.index + 1}. ${entry.step.action}\n\n${asCodeBlockIfJson(entry.answer)}`);

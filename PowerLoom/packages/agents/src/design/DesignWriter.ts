@@ -27,7 +27,7 @@ export class DesignWriter implements RunWriter {
   commitDraft(): unknown { return this.draft; }
 
   private readonly draft: DesignDraft = { design: null, captures: [], pages: [] };
-  private hasHandedOff = false;
+  private hasAsked = false;
 
   constructor(private readonly context: TaskContext) {}
 
@@ -46,15 +46,15 @@ export class DesignWriter implements RunWriter {
   async commit(target: WriterTarget): Promise<string[]> {
     const pages = withPagesRead(this.draft.pages, await confluencePagesReadInRun(target.deps, target.runId), "Read by design while designing.");
 
-    this.hasHandedOff = target.handoffs.length > 0;
+    this.hasAsked = target.handoffs.some((handoff) => handoff.intent === "ask");
     await commitDesign(target.deps.db, target.task, requirePbiId(target.task), target.runId, { ...this.draft, pages });
 
     return [];
   }
 
-  // A design is the task's output; without one, what it handed off settles the task (it waits for what it asked).
+  // A design is the task's output; without one, only the questions it asked (hand_off, intent ask) hold the task open.
   settlement(): WriterSettlement | null {
-    if (this.draft.design || this.hasHandedOff) {
+    if (this.draft.design || this.hasAsked) {
       return null;
     }
 

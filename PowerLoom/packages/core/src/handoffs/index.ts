@@ -2,7 +2,7 @@ export { APPROVE_ANSWER, approvalSteps } from "./approvalSteps";
 export { dependsOnOf, loadHandoffContext, loadHandoffsInto } from "./handoffContext";
 export { insertHandoff } from "./insertHandoff";
 export { handoffsOfRun } from "./runHandoffs";
-export { handoffChatSection, handoffContextBlock, handoffHumanTaskBody } from "./renderHandoff";
+export { handoffChatSection, handoffContextBlock, handoffHumanTaskBody, handoffQuestionBody } from "./renderHandoff";
 export type { HandoffContext } from "../models/HandoffContext";
 export type { HandoffPackage } from "../models/HandoffPackage";
 export type { HandoffSender } from "../models/HandoffSender";
