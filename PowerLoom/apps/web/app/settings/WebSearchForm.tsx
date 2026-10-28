@@ -11,8 +11,9 @@ import { saveWebSearchAction } from "./actions";
 // SearXNG's own default: it picks the language from the query.
 const UNSET_LANGUAGE = "auto";
 
-// Settings → Web search (user decision 2026-10-28): agents with web access search through the SearXNG next to
-// PowerLoom, from this PC's address, at the pace set here. Until the search is set up, the language is this PC's.
+// Settings → Data access → Web search (user decision 2026-10-28): agents with PowerLoom web on search through the
+// SearXNG next to PowerLoom, from this PC's address, at the pace set here. Until the search is set up, the language is
+// this PC's.
 export function WebSearchForm({ setting }: { setting: WebSearchSetting | null }) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveWebSearchAction, null);
   const [language, setLanguage] = useState(setting?.language ?? UNSET_LANGUAGE);
@@ -29,7 +30,7 @@ export function WebSearchForm({ setting }: { setting: WebSearchSetting | null })
 
   return (
     <KeptForm action={action} clearOn={result} className="panel settings-card">
-      <SettingsHead title="Web search" description="Agents with web access get search_web: PowerLoom's own SearXNG, searching Google, Bing and other engines from this PC. Engines may refuse automated searches; a refusal is logged and the agent uses its own search." enabled={setting.enabled} />
+      <SettingsHead title="Web search" description="For the whole PowerLoom, not only this vault. Agents with PowerLoom web switched on get search_web: PowerLoom's own SearXNG, searching Google, Bing and other engines from this PC. Engines may refuse automated searches; a refusal is logged and the agent uses its own search." enabled={setting.enabled} />
       <div className="settings-body">
         <div className="field-grid">
           <label className="field"><span>SearXNG URL<small>as the agent-runner reaches it</small></span><input name="url" defaultValue={setting.url} placeholder="http://searxng:8080" /></label>

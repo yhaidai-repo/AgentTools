@@ -57,6 +57,7 @@ import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments"
 import { WebPageTexts } from "../webDocuments/WebPageTexts";
 import { createReadWebPageTools } from "../webSearch/readWebPageTool";
 import { createWebSearchTools } from "../webSearch/webSearchTools";
+import { POWERLOOM_WEB_INTEGRATION } from "../webSearch/powerloomWebIntegration";
 import type { CommittedToolset } from "./models/CommittedToolset";
 import type { ToolGroup } from "./models/ToolGroup";
 import type { RunWriter } from "./models/RunWriter";
@@ -64,7 +65,7 @@ import type { WriterSettlement } from "./models/WriterSettlement";
 import type { WriterTarget } from "./models/WriterTarget";
 import type { ToolsetInput } from "./models/ToolsetInput";
 import { depthOf, taskLimits } from "./taskLimits";
-import { grantSource, HAND_ON_SOURCE, offeredTools, READ_AZURE_SOURCE, SKILLS_SOURCE, toolsOf, WEB_ACCESS_SOURCE } from "./toolSources";
+import { grantSource, HAND_ON_SOURCE, offeredTools, READ_AZURE_SOURCE, SKILLS_SOURCE, toolsOf } from "./toolSources";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -272,7 +273,7 @@ export class AgentToolset {
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
-      { source: WEB_ACCESS_SOURCE, tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },
+      { source: grantSource(agent, POWERLOOM_WEB_INTEGRATION), tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },
     ];
   }
 

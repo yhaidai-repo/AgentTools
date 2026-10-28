@@ -148,7 +148,6 @@ async function AiProvidersTab({ providers }: { providers: ProviderStatus[] | nul
       <ClaudeTokenForm status={providers?.find((provider) => provider.provider === "anthropic") ?? null} />
       <CodexConnectForm status={providers?.find((provider) => provider.provider === "openai-codex") ?? null} />
       <ChatAppForm apps={await loadChatApps()} />
-      <WebSearchForm setting={await loadWebSearch()} />
     </>
   );
 }
@@ -161,6 +160,7 @@ async function DataTab({ db, current, readSql, readAzure, driveMessage }: { db: 
       <ReadSqlPanel key={current} enabled={readSql.enabled} connections={connectionRows(readSql)} />
       <ReadAzurePanel key={`azure-${current}`} enabledKinds={readAzure.enabledKinds} account={await readAzureUserAccount(db, current)} subscription={readAzure.subscription} resources={resourceRows(readAzure)} />
       <GoogleDrivePanel key={`drive-${current}`} values={googleDriveValues(await readGoogleDriveSettings(db, current))} message={driveMessage} />
+      <WebSearchForm setting={await loadWebSearch()} />
     </>
   );
 }

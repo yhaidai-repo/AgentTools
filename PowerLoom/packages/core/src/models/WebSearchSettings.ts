@@ -1,5 +1,6 @@
-// Settings → Web search (user decision 2026-10-28): one SearXNG for the whole PowerLoom, run next to it, and the pace
-// agents search at. Saved by PowerLoom's backend; read here. No secret: SearXNG is reachable only on Docker's network.
+// Settings → Data access → Web search (user decision 2026-10-28): one SearXNG for the whole PowerLoom, run next to it,
+// and the pace agents search at. Saved by PowerLoom's backend; read here. No secret: SearXNG is reachable only on
+// Docker's network.
 export interface WebSearchSettings {
   enabled: boolean;
   url: string;

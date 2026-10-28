@@ -5,7 +5,7 @@ using Wolverine.Http;
 
 namespace PowerLoom.Features.WebSearch;
 
-// Settings → Web search: one section for the whole PowerLoom, not per vault.
+// Settings → Data access → Web search: one section for the whole PowerLoom, not per vault.
 public static class WebSearchEndpoints
 {
     [WolverineGet("/api/web-search")]

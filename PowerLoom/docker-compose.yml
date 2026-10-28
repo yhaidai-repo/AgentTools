@@ -227,8 +227,8 @@ services:
     restart: unless-stopped
 
   # search_web's SearXNG (user decision 2026-10-28): general engines, searching from this PC's address. Reached only by
-  # the agent-runner on Docker's network (no published port); Settings → Web search switches it on for agents. Pinned,
-  # so engines change only when the tag is updated here.
+  # the agent-runner on Docker's network (no published port); Settings → Data access → Web search switches it on for
+  # agents. Pinned, so engines change only when the tag is updated here.
   searxng:
     image: searxng/searxng:2026.10.24-ef0ec03da
     volumes:

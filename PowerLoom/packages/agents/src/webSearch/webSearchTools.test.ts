@@ -15,8 +15,8 @@ const context = { vault: "work-projects", agentId: "better-research", runId: 42,
 const SETTINGS: WebSearchSettings = { enabled: true, url: "http://searxng:8080", language: "uk-UA", maxSearchesPerRun: 2, minSecondsBetweenSearches: 0, cacheHours: 0 };
 const HIT = { title: "HETS 270/271 Companion Guide", url: "https://www.cms.gov/files/hets.pdf", snippet: "AAA03" };
 
-function agentWith(webAccess: boolean): AgentDefinition {
-  return { capabilities: { webAccess, integrations: {} } } as unknown as AgentDefinition;
+function agentWith(powerloomWeb: boolean): AgentDefinition {
+  return { capabilities: { webAccess: !powerloomWeb, integrations: { powerloomWeb } } } as unknown as AgentDefinition;
 }
 
 function fakeDeps(answer: () => Promise<WebSearchAnswer>, webSearchOn = true) {
@@ -42,7 +42,7 @@ function searchTool(deps: AgentDeps) {
 }
 
 describe("search_web", () => {
-  it("is given only to an agent with web access while web search is on", () => {
+  it("is given only to an agent with PowerLoom web on while web search is on, whatever its native web access", () => {
     const answer = async () => ({ hits: [], unresponsiveEngines: [] });
 
     assert.equal(createWebSearchTools(fakeDeps(answer).deps, agentWith(false), context).length, 0);

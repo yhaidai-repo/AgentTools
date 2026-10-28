@@ -211,7 +211,7 @@ export function readAzureUserAccount(db: PowerLoomDb, vault: string): Promise<Az
 // token, and the runner's report whether .env gave it the fallback CLAUDE_CODE_OAUTH_TOKEN (never the token itself).
 export const CLAUDE_TOKEN_KEY = "claudeToken";
 
-// Settings → Web search, one for the whole PowerLoom (PowerLoom's API saves it; the agent-runner reads it per run).
+// Settings → Data access → Web search, one for the whole PowerLoom (PowerLoom's API saves it; the agent-runner reads it per run).
 export const WEB_SEARCH_KEY = "webSearch";
 // SearXNG as the compose service `searxng` serves it to the other containers.
 export const DEFAULT_SEARXNG_URL = "http://searxng:8080";

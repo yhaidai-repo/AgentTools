@@ -7,6 +7,7 @@ import type { OutsideAccessServices } from "../models/OutsideAccessServices";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
 import { SEARCH_FRESHNESS, type SearchFreshness } from "./models/SearchFreshness";
+import { POWERLOOM_WEB_INTEGRATION } from "./powerloomWebIntegration";
 import type { WebSearchAccess } from "./models/WebSearchAccess";
 import { searchOutcome } from "./searchOutcome";
 import { WebSearchRequestError } from "./WebSearchRequestError";
@@ -14,11 +15,11 @@ import { WebSearchRequestError } from "./WebSearchRequestError";
 const MAX_COUNT = 20;
 const DEFAULT_COUNT = 10;
 
-// search_web (user decision 2026-10-28): PowerLoom's own search, for an agent with web access while Settings → Web
-// search is on, next to the provider's native search. Every call goes to the data access log, with the engines that
+// search_web (user decision 2026-10-28): PowerLoom's own search, for an agent with PowerLoom web switched on while
+// Settings → Data access → Web search is on, next to the provider's native search. Every call goes to the data access log, with the engines that
 // didn't respond.
 export function createWebSearchTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext): ToolDefinition<any>[] {
-  if (!agent.capabilities.webAccess || !deps.webSearch) {
+  if (agent.capabilities.integrations?.[POWERLOOM_WEB_INTEGRATION] !== true || !deps.webSearch) {
     return [];
   }
 
@@ -68,7 +69,7 @@ async function answered(access: WebSearchAccess, query: string, count: number, f
 }
 
 function limitReached(max: number): OutsideToolResult {
-  const refusal = `${max} searches per run (Settings → Web search)`;
+  const refusal = `${max} searches per run (Settings → Data access → Web search)`;
 
   return { text: `Web search limit reached: ${refusal}. Use your own web search.`, isError: true, refusal };
 }

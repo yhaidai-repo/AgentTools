@@ -67,7 +67,7 @@ export interface AgentDeps {
   powerloomUrl: string;
   /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
   devHub: DevHubAccess | null;
-  /** PowerLoom's own web search (search_web) while Settings → Web search is on; null otherwise. */
+  /** PowerLoom's own web search (search_web) while Settings → Data access → Web search is on; null otherwise. */
   webSearch: WebSearchAccess | null;
   /** The vault's Azure DevOps while its integration is on (the ADO tools). */
   ado: AdoAccess | null;

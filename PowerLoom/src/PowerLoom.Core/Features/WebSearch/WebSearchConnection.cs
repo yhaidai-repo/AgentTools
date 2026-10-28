@@ -6,8 +6,9 @@ using PowerLoom.Persistence.Settings;
 
 namespace PowerLoom.Features.WebSearch;
 
-// Settings → Web search (user decision 2026-10-28): one self-hosted SearXNG for the whole PowerLoom and the pace agents
-// search at. No secret: SearXNG is reachable only on Docker's network. The agent-runner reads it for every run.
+// Settings → Data access → Web search (user decision 2026-10-28): one self-hosted SearXNG for the whole PowerLoom and
+// the pace agents search at. No secret: SearXNG is reachable only on Docker's network. The agent-runner reads it for
+// every run.
 public sealed partial class WebSearchConnection(PowerLoomDbContext db)
 {
     // The TypeScript side reads the same key (WEB_SEARCH_KEY).

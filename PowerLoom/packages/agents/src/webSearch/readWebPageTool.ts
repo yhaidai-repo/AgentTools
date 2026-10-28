@@ -4,12 +4,13 @@ import { defineTool, type ToolDefinition } from "@agenttools/runtime";
 import { z } from "zod";
 import { PAGE_CHARS, textPage } from "../textPages";
 import type { WebPageTexts } from "../webDocuments/WebPageTexts";
+import { POWERLOOM_WEB_INTEGRATION } from "./powerloomWebIntegration";
 
-// read_web_page (user decision 2026-10-28): any public page, for an agent with web access. Codex has no page fetch of
-// its own, and a page read here gets a source id its evidence can cite. A reading tool, logged by the run's
+// read_web_page (user decision 2026-10-28): any public page, for an agent with PowerLoom web on. Codex has no page
+// fetch of its own, and a page read here gets a source id its evidence can cite. A reading tool, logged by the run's
 // ToolCallLogger (TOOL_KINDS): a page's 403 is the page's problem, not an access request.
 export function createReadWebPageTools(agent: AgentDefinition, pages: WebPageTexts): ToolDefinition<any>[] {
-  if (!agent.capabilities.webAccess) {
+  if (agent.capabilities.integrations?.[POWERLOOM_WEB_INTEGRATION] !== true) {
     return [];
   }
 

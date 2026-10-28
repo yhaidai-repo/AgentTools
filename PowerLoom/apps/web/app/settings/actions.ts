@@ -339,7 +339,7 @@ export async function removeClaudeTokenAction(): Promise<ActionResult> {
   return result;
 }
 
-// Settings → Web search, one for the whole PowerLoom: counts from each run's next search.
+// Settings → Data access → Web search, one for the whole PowerLoom: counts from each run's next search.
 export async function saveWebSearchAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const enabled = isEnabled(form);
   const saved = await powerloom.PUT("/api/web-search", {
@@ -352,7 +352,7 @@ export async function saveWebSearchAction(_previous: ActionResult | null, form: 
       cacheHours: Number(field(form, "cacheHours")),
     },
   });
-  const result = powerloomResult(saved, enabled ? "Saved. Agents with web access get search_web from their next run." : "Saved. Web search is off: agents use only their own search.");
+  const result = powerloomResult(saved, enabled ? "Saved. Agents with PowerLoom web switched on get search_web from their next run." : "Saved. Web search is off: agents use only their own search.");
 
   revalidatePath("/settings");
 

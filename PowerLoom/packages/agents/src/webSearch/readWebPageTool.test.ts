@@ -7,8 +7,8 @@ import { createReadWebPageTools } from "./readWebPageTool";
 
 const PAGE = "https://www.cms.gov/files/document/hets-270-271-companion-guide.pdf";
 
-function agentWith(webAccess: boolean): AgentDefinition {
-  return { capabilities: { webAccess, integrations: {} } } as unknown as AgentDefinition;
+function agentWith(powerloomWeb: boolean): AgentDefinition {
+  return { capabilities: { webAccess: !powerloomWeb, integrations: { powerloomWeb } } } as unknown as AgentDefinition;
 }
 
 function countingPages(text: string): { pages: WebPageTexts; downloads: () => number } {
@@ -23,7 +23,7 @@ function countingPages(text: string): { pages: WebPageTexts; downloads: () => nu
 }
 
 describe("read_web_page", () => {
-  it("is given only to an agent with web access", () => {
+  it("is given only to an agent with PowerLoom web on, whatever its native web access", () => {
     const pages = new WebPageTexts();
 
     assert.equal(createReadWebPageTools(agentWith(false), pages).length, 0);
