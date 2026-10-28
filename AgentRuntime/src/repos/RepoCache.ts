@@ -85,6 +85,23 @@ export class RepoCache {
     return (await this.git(["rev-parse", "HEAD"], path)).trim();
   }
 
+  /** A branch's own worktree at `path`, kept between runs (one per PBI): reused as it is while it is on `branch`, else
+   *  checked out again from the local branch with its commits, else started from the remote's `base`. Acquire the repo
+   *  first. */
+  async openBranchWorktree(repo: RepoRef, base: string, branch: string, path: string): Promise<void> {
+    if (await this.isWorktreeOn(path, branch)) {
+      return;
+    }
+
+    if (await this.hasLocalBranch(repo, branch)) {
+      await this.checkoutLocalBranch(repo, branch, path);
+
+      return;
+    }
+
+    await this.checkoutNewBranch(repo, base, branch, path);
+  }
+
   /** Commits every change of a worktree as `author`; null when there is nothing to commit. Hooks don't run. */
   async commitAll(path: string, message: string, author: { name: string; email: string }): Promise<string | null> {
     await this.git(["add", "--all"], path);
@@ -127,6 +144,30 @@ export class RepoCache {
 
   release(repos: RepoRef[]): void {
     repos.forEach((repo) => this.inUse.set(repo.name, Math.max(0, (this.inUse.get(repo.name) ?? 1) - 1)));
+  }
+
+  private async isWorktreeOn(path: string, branch: string): Promise<boolean> {
+    if (!(await exists(join(path, ".git")))) {
+      return false;
+    }
+
+    const head = await this.git(["rev-parse", "--abbrev-ref", "HEAD"], path).catch(() => "");
+
+    return head.trim() === branch;
+  }
+
+  private hasLocalBranch(repo: RepoRef, branch: string): Promise<boolean> {
+    return this.git(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], this.path(repo)).then(() => true, () => false);
+  }
+
+  // A worktree folder removed by hand still blocks its branch until git prunes it.
+  private async checkoutLocalBranch(repo: RepoRef, branch: string, path: string): Promise<void> {
+    const cwd = this.path(repo);
+
+    await rm(path, { recursive: true, force: true });
+    await this.git(["worktree", "prune"], cwd);
+    // A partial clone downloads the files it checks out, hence the auth.
+    await this.git(["worktree", "add", path, branch], cwd, true);
   }
 
   private async acquireOne(repo: RepoRef, refreshMinutes: number): Promise<RepoProgress> {
