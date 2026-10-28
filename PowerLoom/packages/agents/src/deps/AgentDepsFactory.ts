@@ -4,6 +4,7 @@ import { isAdoActive, isGitHubActive, isGoogleDriveReady, readAdoSettings, readA
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
+import { SandboxClient } from "@powerloom/sandbox";
 import { MongoReader } from "@powerloom/mongo";
 import { VaultCaptureCli } from "@powerloom/notes";
 import { SqlReader } from "@powerloom/sql";
@@ -74,6 +75,7 @@ export class AgentDepsFactory {
       confluence: ConfluenceClient.fromEnv(),
       confluenceSite: env.confluenceSite,
       powerloomUrl: env.powerloomUrl,
+      sandbox: env.sandbox ? { client: new SandboxClient(env.sandbox.url, env.sandbox.token), url: env.sandbox.url } : null,
     };
   }
 

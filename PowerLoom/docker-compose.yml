@@ -57,6 +57,9 @@ services:
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
       RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs, one at a time)
       POWERLOOM_URL: http://powerloom:8080  # … and takes the one callback per run
+      # The agents' sandboxes (the `sandbox` profile): both set, or agents get no sandbox tools. URL: http://sandbox:3300
+      SANDBOX_URL: ${SANDBOX_URL:-}
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
       # Every vault, writable: a run reads the docs of its task's vault and the tech-writer merges drafts into it (user decision 2026-10-02) and actualizes
@@ -159,6 +162,52 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # The agents' sandboxes (design agent-sandbox, user decisions 2026-10-28): one isolated container per run (no network,
+  # no mounts but its own workspace, user 1000, read-only root, no capabilities, CPU/memory/pids limits) where an agent
+  # builds, tests and runs scripts on a copy of its repos. The only PowerLoom service with Docker access, and only
+  # through the socket proxy; the agent-runner calls it with SANDBOX_TOKEN and never gets Docker itself. Off unless
+  # COMPOSE_PROFILES has `sandbox`; build its image first: docker build -t powerloom-sandbox - < Dockerfile.sandbox
+  sandbox:
+    <<: *app
+    profiles: ["sandbox"]
+    command: ["npm", "run", "start", "-w", "@powerloom/sandbox-service"]
+    environment:
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}  # required: the service refuses to start without it
+      SANDBOX_PORT: "3300"
+      DOCKER_HOST: tcp://docker-proxy:2375
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-powerloom-sandbox}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}  # e.g. runsc where gVisor is installed; empty = Docker's default
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-4}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-8192}
+      SANDBOX_DISK_MB: ${SANDBOX_DISK_MB:-20480}
+      SANDBOX_MAX_COMMAND_MS: ${SANDBOX_MAX_COMMAND_MS:-600000}
+    networks: [default, docker-api]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - docker-proxy
+    restart: unless-stopped
+
+  # The Docker API for the sandbox service only, cut down to what it uses (containers, exec, images, volumes); on an
+  # internal network no other service is on.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.1
+    profiles: ["sandbox"]
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+      IMAGES: 1
+      VOLUMES: 1
+      POST: 1
+      DELETE: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-api]
+    restart: unless-stopped
+
   # Daily pg_dump into BACKUP_PATH on the PC; keeps BACKUP_KEEP_DAYS days.
   # PowerLoom: the .NET backend taking over the worker's jobs feature by feature (the vault's adoa-backend-delivery note).
   powerloom:
@@ -242,6 +291,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+networks:
+  default: {}
+  # Only the sandbox service and the socket proxy: nothing else reaches the Docker API.
+  docker-api:
+    internal: true
 
 volumes:
   # Named after the old compose project (adoa): the volumes keep their data across the rename to powerloom.

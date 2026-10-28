@@ -10,6 +10,8 @@ export { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 export { READ_SQL_INTEGRATION } from "./sqlTools";
 export { CHAT_OWNER_PREFIX, DEVHUB_INTEGRATION, chatOwner, stackOwner } from "./devHubTools";
 export { ADO_INTEGRATION } from "./ado/adoTools";
+export { SANDBOX_INTEGRATION } from "./sandbox/sandboxTools";
+export { removeOrphanedSandboxes, removeRunSandbox } from "./sandbox/sandboxCleanup";
 export { closeOrphanedBrowser, closeOrphanedChatBrowser, closeOwnedBrowser, closeRunBrowser, stopOrphanedChatStack, stopOrphanedStack, stopOwnedStack, stopRunStack } from "./devHubCleanup";
 export { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
 export { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "./azure/azureTools";

@@ -1,8 +1,9 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, removeOrphanedSandboxes, removeRunSandbox, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps } from "@powerloom/agents";
 import { captureConsoleErrors, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
+import { SandboxClient } from "@powerloom/sandbox";
 import { SqlReader } from "@powerloom/sql";
 import { ClaudeAgentSdkRuntime, CodexSdkRuntime, RuntimeRegistry } from "@agenttools/runtime";
 import { and, eq, lt, notInArray } from "drizzle-orm";
@@ -42,6 +43,8 @@ if (codexHome) {
 const codex = codexHome ? { home: codexHome, login: new CodexDeviceLogin(codexHome, { spawn: spawnCodexLogin }) } : null;
 const azureLogin = createAzureUserLogin(db);
 const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes });
+// The host's sandbox service, for the runs' sandbox cleanup; null where SANDBOX_URL / SANDBOX_TOKEN aren't set.
+const sandbox = env.sandbox ? new SandboxClient(env.sandbox.url, env.sandbox.token) : null;
 
 // PowerLoom dispatches the tasks and takes the one callback per run (the vault's adoa-backend-delivery note, phase 5).
 const powerloom = new PowerLoomCallback(env.powerloomUrl);
@@ -55,6 +58,7 @@ for (const taskId of await recoverInterruptedRuns(db)) {
 }
 
 await stopOrphanedStacks();
+await removeOrphanedRunSandboxes();
 await clearReviewCheckouts(env.repoCacheRoot);
 
 const sqlReader = new SqlReader();
@@ -84,6 +88,7 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
     cleanups: [
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await closeRunBrowser(devHub.client, completed.runId)); },
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await stopRunStack(devHub.client, completed.runId)); },
+      async (completed) => { if (sandbox && completed.runId !== null) logStackNote(await removeRunSandbox(sandbox, completed.runId)); },
       async () => { await deps.closeAzure(azure); },
     ],
     report: (completed) => report(job.taskId, completed),
@@ -96,6 +101,13 @@ async function stopOrphanedStacks(): Promise<void> {
   for (const client of await devHubsOfVaults(db)) {
     logStackNote(await closeOrphanedBrowser(client));
     logStackNote(await stopOrphanedStack(client));
+  }
+}
+
+// At start no run is in progress: a sandbox a run left behind is removed.
+async function removeOrphanedRunSandboxes(): Promise<void> {
+  if (sandbox) {
+    logStackNote(await removeOrphanedSandboxes(sandbox));
   }
 }
 

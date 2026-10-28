@@ -19,7 +19,7 @@ import { CallRows } from "./CallRows";
 const MOST_USED = 20;
 const CALL_PAGE_SIZES = [50, 100];
 
-const KIND_LABELS: Record<string, string> = { sql: "SQL", azure: "Azure", cosmos: "Cosmos DB", mongo: "Mongo", serviceBus: "Service Bus", confluence: "Confluence", localStack: "DevHub", ado: "Azure DevOps", github: "GitHub", googleDrive: "Google Drive", repo: "Repo", docs: "Docs", web: "Web", skills: "Skills", internal: "PowerLoom", other: "Other" };
+const KIND_LABELS: Record<string, string> = { sql: "SQL", azure: "Azure", cosmos: "Cosmos DB", mongo: "Mongo", serviceBus: "Service Bus", confluence: "Confluence", localStack: "DevHub", sandbox: "Sandbox", ado: "Azure DevOps", github: "GitHub", googleDrive: "Google Drive", repo: "Repo", docs: "Docs", web: "Web", skills: "Skills", internal: "PowerLoom", other: "Other" };
 
 const CALL_OUTCOMES: Pick<BarPart, "label" | "className">[] = [
   { label: "ok", className: "call-ok" },
