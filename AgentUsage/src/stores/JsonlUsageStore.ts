@@ -44,10 +44,11 @@ export class JsonlUsageStore implements UsageStore {
     return limit === undefined ? matching : matching.slice(0, limit);
   }
 
-  async trace(runId: string): Promise<StoredTraceEvent[]> {
+  async trace(runId: string, sessionId?: string): Promise<StoredTraceEvent[]> {
     const events = await this.readLines<StoredTraceEvent>(TRACE_FILE);
+    const matching = events.filter((event) => event.runId === runId && (sessionId === undefined || event.payload.sessionId === sessionId));
 
-    return events.filter((event) => event.runId === runId).map((event) => ({ ...event, at: new Date(event.at) }));
+    return matching.map((event) => ({ ...event, at: new Date(event.at) }));
   }
 
   async purgeTraceBefore(date: Date): Promise<number> {

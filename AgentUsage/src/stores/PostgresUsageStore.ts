@@ -78,8 +78,11 @@ export class PostgresUsageStore implements UsageStore {
     return result.rows.map(toRecord);
   }
 
-  async trace(runId: string): Promise<StoredTraceEvent[]> {
-    const result = await this.pool.query("SELECT * FROM agent_usage.run_event WHERE run_id = $1 ORDER BY seq", [runId]);
+  async trace(runId: string, sessionId?: string): Promise<StoredTraceEvent[]> {
+    const result = await this.pool.query(
+      "SELECT * FROM agent_usage.run_event WHERE run_id = $1 AND ($2::text IS NULL OR payload->>'sessionId' = $2) ORDER BY seq",
+      [runId, sessionId ?? null],
+    );
 
     return result.rows.map((row: Row) => ({ runId: row.run_id, seq: row.seq, at: row.at, type: row.type, payload: row.payload }));
   }
