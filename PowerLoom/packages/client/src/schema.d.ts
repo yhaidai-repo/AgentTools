@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/web-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_web_search
+         * @description GET_api_web_search
+         */
+        get: operations["GET_api_web_search"];
+        /**
+         * PUT_api_web_search
+         * @description PUT_api_web_search
+         */
+        put: operations["PUT_api_web_search"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/trash": {
         parameters: {
             query?: never;
@@ -2389,6 +2413,7 @@ export interface components {
             /** Format: int32 */
             priority: null | number;
             actor: null | string;
+            clientRequestId?: null | string;
         };
         ReportedBug: {
             /** Format: int32 */
@@ -2497,6 +2522,17 @@ export interface components {
         SaveUserNotesRequest: {
             text: string;
             loadedText: string;
+        };
+        SaveWebSearchRequest: {
+            enabled: boolean;
+            url: null | string;
+            language: null | string;
+            /** Format: int32 */
+            maxSearchesPerRun: number;
+            /** Format: int32 */
+            minSecondsBetweenSearches: number;
+            /** Format: int32 */
+            cacheHours: number;
         };
         SavedConnection: {
             enabled: boolean;
@@ -2684,6 +2720,17 @@ export interface components {
             importConfigured: boolean;
             importCheckedAt: null | string;
         };
+        WebSearchSetting: {
+            enabled?: boolean;
+            url?: string;
+            language?: string;
+            /** Format: int32 */
+            maxSearchesPerRun?: number;
+            /** Format: int32 */
+            minSecondsBetweenSearches?: number;
+            /** Format: int32 */
+            cacheHours?: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -2693,6 +2740,57 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    GET_api_web_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSearchSetting"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PUT_api_web_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveWebSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSearchSetting"];
+                };
+            };
+        };
+    };
     GET_api_vaults_vault_trash: {
         parameters: {
             query?: never;

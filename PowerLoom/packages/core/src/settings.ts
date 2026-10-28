@@ -14,6 +14,7 @@ import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
 import type { ReadSqlSettings } from "./models/ReadSqlSettings";
 import type { SyncSettings } from "./models/SyncSettings";
+import type { WebSearchSettings } from "./models/WebSearchSettings";
 
 // Settings are per vault (user decision 2026-10-05): the key is `vault:<name>:<setting>`. Confluence access is global.
 const ADO_KEY = "ado";
@@ -209,6 +210,32 @@ export function readAzureUserAccount(db: PowerLoomDb, vault: string): Promise<Az
 // Settings → AI providers, one for the whole PowerLoom (PowerLoom's API saves them; the agent-runner reads them): the Claude
 // token, and the runner's report whether .env gave it the fallback CLAUDE_CODE_OAUTH_TOKEN (never the token itself).
 export const CLAUDE_TOKEN_KEY = "claudeToken";
+
+// Settings → Web search, one for the whole PowerLoom (PowerLoom's API saves it; the agent-runner reads it per run).
+export const WEB_SEARCH_KEY = "webSearch";
+// SearXNG as the compose service `searxng` serves it to the other containers.
+export const DEFAULT_SEARXNG_URL = "http://searxng:8080";
+
+// The pace decided 2026-10-28: no daily limit; runs used 3 searches at most, so these only stop a run that loops.
+const DEFAULT_WEB_SEARCH_SETTINGS: WebSearchSettings = {
+  enabled: false,
+  url: DEFAULT_SEARXNG_URL,
+  language: "auto",
+  maxSearchesPerRun: 20,
+  minSecondsBetweenSearches: 5,
+  cacheHours: 24,
+};
+
+export async function readWebSearchSettings(db: PowerLoomDb): Promise<WebSearchSettings> {
+  const stored = await readValue<Partial<WebSearchSettings>>(db, WEB_SEARCH_KEY);
+
+  return { ...DEFAULT_WEB_SEARCH_SETTINGS, ...stored };
+}
+
+// Agents get search_web only while it is on and points at a SearXNG.
+export function isWebSearchReady(settings: WebSearchSettings): boolean {
+  return settings.enabled && settings.url.length > 0;
+}
 export const CLAUDE_ENV_TOKEN_KEY = "claudeEnvToken";
 
 // Null until a token was saved in Settings.

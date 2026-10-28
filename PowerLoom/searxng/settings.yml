@@ -1,0 +1,20 @@
+# SearXNG for PowerLoom's search_web (user decision 2026-10-28): SearXNG's own defaults (its general engines) with only
+# what PowerLoom needs changed. Mounted read-only at /etc/searxng/settings.yml by the `searxng` service.
+use_default_settings: true
+
+general:
+  instance_name: "PowerLoom search"
+
+search:
+  # JSON is off by default and answered with 403; search_web reads JSON.
+  formats:
+    - html
+    - json
+
+server:
+  # Only the agent-runner calls it, over Docker's network: the request limiter (and its Valkey) isn't needed.
+  limiter: false
+  public_instance: false
+  # Signs SearXNG's image proxy and limiter tokens, both unused here, and the instance has no published port: a fixed
+  # key is enough (SearXNG refuses only its own placeholder, ultrasecretkey).
+  secret_key: "powerloom-internal-searxng"

@@ -1,6 +1,6 @@
 import { AdoClient } from "@powerloom/ado";
 import { AzureMcpServer, CosmosConnectionStrings, ServiceBusPeeker, type AzureMcpStart, type AzureUserLogin } from "@powerloom/azure";
-import { isAdoActive, isGitHubActive, isGoogleDriveReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, vaultBacklogRoot } from "@powerloom/core";
+import { isAdoActive, isGitHubActive, isGoogleDriveReady, isWebSearchReady, readAdoSettings, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readReadAzureSettings, readReadSqlSettings, readWebSearchSettings, vaultBacklogRoot } from "@powerloom/core";
 import { ConfluenceClient } from "@powerloom/confluence";
 import type { PowerLoomDb } from "@powerloom/db";
 import { DevHubClient } from "@powerloom/devhub";
@@ -23,11 +23,13 @@ import { ProviderConnections } from "../providerConnections";
 import { SharedAzureServers } from "./SharedAzureServers";
 import { loadCaptureRules } from "../vaultCapture";
 import { repoGitAuth } from "./env";
+import { SearchThrottle } from "../webSearch/SearchThrottle";
+import { SearxngClient } from "../webSearch/SearxngClient";
 import type { DepsEnv } from "./models/DepsEnv";
 
 const REPO_REFRESH_MINUTES = 30;
 
-type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "github" | "googleDrive" | "azure" | "devHub" | "ado">;
+type SharedDeps = Omit<AgentDeps, "repoCache" | "docsRoot" | "vaultRoot" | "docsVault" | "docsVaultName" | "listRegister" | "docUsageLog" | "sql" | "github" | "googleDrive" | "azure" | "devHub" | "ado" | "webSearch">;
 
 // Builds what a run or a chat session needs for one vault (the runner's deps, shared with the MCP server since the
 // powerloom-mcp design, 2026-10-23): the vault's docs and backlog, its repo cache, and every integration the vault has
@@ -44,6 +46,8 @@ export class AgentDepsFactory {
   private readonly repoAuth = new Map<string, string[]>();
   // The Azure MCP server per vault when the host serves many short sessions (the MCP server); null: one per run.
   private readonly sharedAzure: SharedAzureServers<AzureMcpServer> | null;
+  // One pace for every run of this host: the searches all leave from this machine.
+  private readonly searchThrottle = new SearchThrottle();
 
   private constructor(
     private readonly db: PowerLoomDb,
@@ -114,6 +118,7 @@ export class AgentDepsFactory {
       azure: await this.azureAccessOf(vault),
       devHub: await this.devHubAccessOf(vault),
       ado: await this.adoAccessOf(vault),
+      webSearch: await this.webSearchAccess(),
     };
   }
 
@@ -185,6 +190,13 @@ export class AgentDepsFactory {
     const settings = await readAdoSettings(this.db, vault);
 
     return isAdoActive(settings) ? { client: new AdoClient({ orgUrl: settings.orgUrl, project: settings.project, team: settings.team, pat: settings.pat }), orgUrl: settings.orgUrl } : null;
+  }
+
+  // One SearXNG for the whole PowerLoom, read fresh per run: switched on or re-paced in Settings, it counts from the next run.
+  private async webSearchAccess(): Promise<AgentDeps["webSearch"]> {
+    const settings = await readWebSearchSettings(this.db);
+
+    return isWebSearchReady(settings) ? { client: new SearxngClient(settings.url), throttle: this.searchThrottle, settings } : null;
   }
 
   // The vault's GitHub token for the GitHub tools, read fresh per run like the clones' sign-in.

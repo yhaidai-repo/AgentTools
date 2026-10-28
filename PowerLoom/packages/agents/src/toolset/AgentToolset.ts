@@ -51,6 +51,9 @@ import { createFetchDocumentTools } from "../webDocuments/fetchDocumentTool";
 import type { WebDocumentRun } from "../webDocuments/models/WebDocumentRun";
 import { createWebDocumentTools } from "../webDocuments/webDocumentTools";
 import { webDocumentRun, webDocumentsBlock } from "../webDocuments/webDocuments";
+import { WebPageTexts } from "../webDocuments/WebPageTexts";
+import { createReadWebPageTools } from "../webSearch/readWebPageTool";
+import { createWebSearchTools } from "../webSearch/webSearchTools";
 import type { CommittedToolset } from "./models/CommittedToolset";
 import type { ToolGroup } from "./models/ToolGroup";
 import type { RunWriter } from "./models/RunWriter";
@@ -58,7 +61,7 @@ import type { WriterSettlement } from "./models/WriterSettlement";
 import type { WriterTarget } from "./models/WriterTarget";
 import type { ToolsetInput } from "./models/ToolsetInput";
 import { depthOf, taskLimits } from "./taskLimits";
-import { grantSource, HAND_ON_SOURCE, offeredTools, READ_AZURE_SOURCE, SKILLS_SOURCE, toolsOf } from "./toolSources";
+import { grantSource, HAND_ON_SOURCE, offeredTools, READ_AZURE_SOURCE, SKILLS_SOURCE, toolsOf, WEB_ACCESS_SOURCE } from "./toolSources";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -83,6 +86,8 @@ export class AgentToolset {
   /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
   private readonly gitHub: GitHubWorkspace | null;
   private readonly committedSettlements = new Map<string, WriterSettlement | null>();
+  /** The web pages the run read, shared by fetch_document and read_web_page. */
+  private readonly webPages = new WebPageTexts();
 
   private constructor(
     private readonly context: TaskContext,
@@ -261,7 +266,8 @@ export class AgentToolset {
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
       { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
-      { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments) },
+      { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
+      { source: WEB_ACCESS_SOURCE, tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },
     ];
   }
 

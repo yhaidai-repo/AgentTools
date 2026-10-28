@@ -226,6 +226,15 @@ services:
       - ./tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro  # the image's config plus a 7-day trace retention
     restart: unless-stopped
 
+  # search_web's SearXNG (user decision 2026-10-28): general engines, searching from this PC's address. Reached only by
+  # the agent-runner on Docker's network (no published port); Settings → Web search switches it on for agents. Pinned,
+  # so engines change only when the tag is updated here.
+  searxng:
+    image: searxng/searxng:2026.10.24-ef0ec03da
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+
   backup:
     image: postgres:16-alpine
     restart: unless-stopped

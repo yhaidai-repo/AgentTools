@@ -3,6 +3,7 @@ import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { loadAiProviders, loadChatApps, type ProviderStatus } from "@/lib/aiProviders";
+import { loadWebSearch } from "@/lib/webSearch";
 import { spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -18,6 +19,7 @@ import type { SqlConnectionRow } from "@/models/SqlConnectionRow";
 import { AdoIntegrationForm } from "./AdoIntegrationForm";
 import { ChatAppForm } from "./ChatAppForm";
 import { ClaudeTokenForm } from "./ClaudeTokenForm";
+import { WebSearchForm } from "./WebSearchForm";
 import { CodexConnectForm } from "./CodexConnectForm";
 import { CleanupSettingsForm } from "./CleanupSettingsForm";
 import { DevHubForm } from "./DevHubForm";
@@ -146,6 +148,7 @@ async function AiProvidersTab({ providers }: { providers: ProviderStatus[] | nul
       <ClaudeTokenForm status={providers?.find((provider) => provider.provider === "anthropic") ?? null} />
       <CodexConnectForm status={providers?.find((provider) => provider.provider === "openai-codex") ?? null} />
       <ChatAppForm apps={await loadChatApps()} />
+      <WebSearchForm setting={await loadWebSearch()} />
     </>
   );
 }

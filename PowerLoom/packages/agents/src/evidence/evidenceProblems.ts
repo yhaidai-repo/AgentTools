@@ -30,7 +30,7 @@ function webProblem(item: Evidence, log: ReadLog): string | null {
   const texts = log.web.textsWith(item.ref);
 
   if (texts.length === 0) {
-    return `"${item.ref}" cites the web, but no WebSearch or WebFetch of this run shows that URL: give the page's URL as ref, or fetch it first`;
+    return `"${item.ref}" cites the web, but no web search or page read of this run shows that URL: give the page's URL as ref, or fetch it first`;
   }
 
   if (item.quote && !texts.some((text) => containsQuote(text, item.quote!))) {

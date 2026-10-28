@@ -9,6 +9,7 @@ export const SKILLS_SOURCE = "Skills";
 export const HAND_ON_SOURCE = "Task types it may hand on";
 export const READ_AZURE_SOURCE = "Read Azure";
 export const COMMANDS_SOURCE = "PowerLoom commands";
+export const WEB_ACCESS_SOURCE = "Web access";
 
 export function grantSource(agent: AgentDefinition, key: string): string {
   return agent.integrationSpecs?.find((spec) => spec.key === key)?.label ?? key;

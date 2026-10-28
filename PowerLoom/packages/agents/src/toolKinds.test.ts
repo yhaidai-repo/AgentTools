@@ -14,6 +14,11 @@ describe("classifyToolCall", () => {
     assert.deepEqual(classifyToolCall("skill_get", { name: "powerloom-code-review" }).resource, "powerloom-code-review");
   });
 
+  it("reads the web tools as web: the page's host, or the search's query", () => {
+    assert.deepEqual(classifyToolCall("read_web_page", { url: "https://www.cms.gov/files/a.pdf", offset: 0 }), { kind: "web", resource: "www.cms.gov", target: "read_web_page", request: "https://www.cms.gov/files/a.pdf" });
+    assert.deepEqual(classifyToolCall("web_search", { query: "HETS 270 companion guide" }), { kind: "web", resource: "web search", target: "web_search", request: "HETS 270 companion guide" });
+  });
+
   it("keeps the docs readers as docs and an unknown tool as other", () => {
     assert.equal(classifyToolCall("read_doc", { path: "pos/index.md" }).kind, "docs");
     assert.equal(classifyToolCall("some_new_tool", {}).kind, "other");

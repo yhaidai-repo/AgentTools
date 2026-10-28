@@ -17,6 +17,7 @@ import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 import type { GitHubAccess } from "../github/models/GitHubAccess";
 import type { GoogleDriveAccess } from "../googleDrive/models/GoogleDriveAccess";
+import type { WebSearchAccess } from "../webSearch/models/WebSearchAccess";
 
 export interface AgentDeps {
   db: PowerLoomDb;
@@ -66,6 +67,8 @@ export interface AgentDeps {
   powerloomUrl: string;
   /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
   devHub: DevHubAccess | null;
+  /** PowerLoom's own web search (search_web) while Settings → Web search is on; null otherwise. */
+  webSearch: WebSearchAccess | null;
   /** The vault's Azure DevOps while its integration is on (the ADO tools). */
   ado: AdoAccess | null;
   /** The docs vault's usage log (VaultUsage) agents' doc reads go to; null where the vault isn't writable. */
