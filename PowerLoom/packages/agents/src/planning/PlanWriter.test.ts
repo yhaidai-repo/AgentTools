@@ -8,7 +8,6 @@ import { createHandOffTool } from "../handoff/handOffTool";
 import type { TaskContext } from "../models/TaskContext";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
-import { MISSING_IMPLEMENTER_NOTE } from "./commitPlan";
 import type { PlanningFolder } from "./models/PlanningFolder";
 import { PlanWriter } from "./PlanWriter";
 
@@ -100,7 +99,7 @@ describe("PlanWriter", () => {
     assert.ok(updated.some((entry) => entry.table === agentRun));
   });
 
-  it("is settled by the gated review and the implementation task behind it, which gets the missing-agent note", async () => {
+  it("is settled by the gated review and the implementation task behind it, which is marked to read the review", async () => {
     const { db, updated } = recordingDb();
     const writer = writerWith(db);
     const tasks = await handedOff(REVIEW, IMPLEMENT);
@@ -111,8 +110,8 @@ describe("PlanWriter", () => {
     assert.equal(writer.settlement(), null);
     assert.equal(tasks[0].steps.length, 2);
     assert.match(tasks[0].steps[0].reportBack, /`approve`, or `changes: <what to change>`/);
-    const note = updated.find((entry) => entry.table === localItem)?.changes.body;
-    assert.ok(new PgDialect().sqlToQuery(note).params.includes(MISSING_IMPLEMENTER_NOTE));
+    const marked = new PgDialect().sqlToQuery(updated.find((entry) => entry.table === localItem)?.changes.data).sql;
+    assert.match(marked, /jsonb_build_object\('readsReview', true\)/);
   });
 
   it("misses the review when a plan was written without one", async () => {

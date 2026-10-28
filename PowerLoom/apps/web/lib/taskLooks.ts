@@ -12,6 +12,7 @@ const KIND_TAGS: Record<string, { label: string; tone: string }> = {
   refinement: { label: "Refinement", tone: "kind-refine" },
   research: { label: "Research", tone: "kind-refine" },
   design: { label: "Planning", tone: "kind-design" },
+  implement: { label: "Implementation", tone: "kind-design" },
   docs: { label: "Docs", tone: "kind-docs" },
   review: { label: "Review", tone: "kind-review" },
   "vault-review": { label: "Vault review", tone: "kind-docs" },

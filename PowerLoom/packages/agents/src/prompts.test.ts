@@ -41,12 +41,24 @@ describe("loadPrompt", () => {
   it("gives the planning prompt the framework, GSD's steps and the gated review hand-off", async () => {
     const prompt = await loadPrompt("planning", { team: "Catalog" });
 
-    assert.match(prompt.version, /^v1\+framework\./);
+    assert.match(prompt.version, /^v2\+framework\./);
     assert.match(prompt.text, /How you work/);
     assert.match(prompt.text, /gsd-discuss-phase` with `<phase> --auto`/);
     assert.match(prompt.text, /`intent: "review"`, `gate: "approve"`/);
     assert.match(prompt.text, /`depends_on: \["new:1"\]`/);
     assert.doesNotMatch(prompt.text, /write_design/);
+  });
+
+  it("gives the implementation prompt the outcome first, GSD's execution, the sandbox builds and the hand-over without a push", async () => {
+    const prompt = await loadPrompt("implementation", { team: "Catalog" });
+
+    assert.match(prompt.version, /^v1\+framework\./);
+    assert.match(prompt.text, /How you work/);
+    assert.match(prompt.text, /`outcome="replan"`: build nothing\. `hand_off` to `design` with `intent: "continue"`/);
+    assert.match(prompt.text, /Skill `gsd-execute-phase` with `<phase>`/);
+    assert.match(prompt.text, /answer `skip: needs a person: <why>`/);
+    assert.match(prompt.text, /`intent: "review"`, `gate: "none"`/);
+    assert.match(prompt.text, /Never `git push`, never open a pull request, never run GSD's ship step/);
   });
 
   it("gives the autotest prompt the continue and hand-off rules", async () => {

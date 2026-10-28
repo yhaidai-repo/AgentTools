@@ -6,6 +6,7 @@ import type { RefinementDetailsView } from "@/models/RefinementDetailsView";
 import { ItemContent } from "../items/ItemContent";
 import { DesignSection } from "../pbis/[adoId]/DesignSection";
 import { EstimateLine } from "../pbis/[adoId]/EstimateLine";
+import { BuildSection } from "../pbis/[adoId]/BuildSection";
 import { PlanSection } from "../pbis/[adoId]/PlanSection";
 import { RefinementDetailsLine } from "../pbis/[adoId]/RefinementDetailsLine";
 import { ReviewBody } from "./ReviewBody";
@@ -22,6 +23,10 @@ export function ResultBody({ result, withQuestion = true }: { result: AgentResul
 
   if (result.kind === "plan") {
     return <PlanSection plan={result.row.plan} />;
+  }
+
+  if (result.kind === "build") {
+    return <BuildSection build={result.row.build} />;
   }
 
   if (result.kind === "design") {

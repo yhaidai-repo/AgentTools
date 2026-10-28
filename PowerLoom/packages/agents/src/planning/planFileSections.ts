@@ -28,6 +28,14 @@ export function frontmatterRequirements(plan: string): string[] {
   return bullets(BLOCK_LIST.exec(frontmatter)?.[1] ?? "").map(unquoted);
 }
 
+// A scalar of a file's YAML frontmatter (`status: passed`), unquoted; "" when the file has none.
+export function frontmatterField(text: string, key: string): string {
+  const frontmatter = FRONTMATTER.exec(text)?.[1] ?? "";
+  const field = new RegExp(`^${key}:[ 	]*(.*)$`, "m").exec(frontmatter);
+
+  return unquoted(field?.[1] ?? "");
+}
+
 // The text between <tag> and </tag>, or "" when the file has no such block.
 export function taggedSection(text: string, tag: string): string {
   const start = text.indexOf(`<${tag}>`);
@@ -83,8 +91,8 @@ function riskOf(header: string[], cells: string[], planId: string): PlanRisk {
   };
 }
 
-// Consecutive markdown table lines; a register is the table whose header names the threat id.
-function tableRows(block: string): string[][] {
+// Consecutive markdown table lines as their cells; a register is the table whose header names the threat id.
+export function tableRows(block: string): string[][] {
   return block.split(/\r?\n/).filter((line) => line.trim().startsWith("|")).map(cellsOf);
 }
 
@@ -92,7 +100,7 @@ function cellsOf(line: string): string[] {
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((cell) => cell.trim());
 }
 
-function isDivider(cells: string[]): boolean {
+export function isDivider(cells: string[]): boolean {
   return cells.every((cell) => /^:?-{3,}:?$/.test(cell));
 }
 

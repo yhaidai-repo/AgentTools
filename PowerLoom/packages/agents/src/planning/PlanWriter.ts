@@ -10,7 +10,7 @@ import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import type { WriterWorkspace } from "../toolset/models/WriterWorkspace";
-import { IMPLEMENT_TASK_TYPE, commitPlan, noteMissingImplementer } from "./commitPlan";
+import { IMPLEMENT_TASK_TYPE, commitPlan, markReviewReaders } from "./commitPlan";
 import type { PlanDraft } from "./models/PlanDraft";
 import type { PlanningFolder } from "./models/PlanningFolder";
 import type { PlanningOutcome } from "./models/PlanningOutcome";
@@ -62,10 +62,10 @@ export class PlanWriter implements RunWriter {
     this.outcome = handoffOutcome(target);
 
     if (this.draft.plan) {
-      await commitPlan(target.deps.db, requirePbiId(target.task), target.runId, this.draft.plan);
+      await commitPlan(target.deps.db, requirePbiId(target.task), target.runId, this.draft.plan, await this.pbiContentHash());
     }
 
-    await noteMissingImplementer(target.deps.db, implementationIds);
+    await markReviewReaders(target.deps.db, implementationIds);
 
     return [];
   }
@@ -83,6 +83,11 @@ export class PlanWriter implements RunWriter {
     return this.outcome.hasImplementation ? null : { kind: "missing", output: `the implementation task (hand_off to ${IMPLEMENT_TASK_TYPE}, depends_on the review)` };
   }
 
+  // The PBI's content as the run planned from it; null for a writer that never prepared (nothing was planned from it).
+  private async pbiContentHash(): Promise<string | null> {
+    return this.prepared ? (await this.prepared).pbiContentHash : null;
+  }
+
   private prepare(task: ItemRow): Promise<PreparedPlanning> {
     this.prepared ??= this.preparePlanning(task);
 
@@ -94,7 +99,7 @@ export class PlanWriter implements RunWriter {
     const research = await loadResearchContext(deps, task);
     const context = await buildPlanContext(deps.db, deps.vaultRoot, research);
 
-    return { context, workspace: await planningWorkspace(deps.db, research.pbi, planningSeed(context)) };
+    return { context, workspace: await planningWorkspace(deps.db, research.pbi, planningSeed(context)), pbiContentHash: research.pbi.contentHash };
   }
 
   private runFolder(): PlanningFolder | null {

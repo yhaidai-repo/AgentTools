@@ -8,8 +8,8 @@ import { RESULT_KIND_NAMES } from "../results/resultLinks";
 import { resultVault } from "../results/resultVault";
 
 const input = z.object({
-  kind: z.enum(RESULT_KIND_NAMES).describe("Where the result is stored: refinement, plan, design, estimate, item (a research result or test report), review (a review run) or run (what one run wrote)"),
-  id: z.string().trim().min(1).describe("The result's id as result_versions lists it: a row id (refinement, plan, design, estimate, run), an item id (RR-…, TR-…) or a review run's id"),
+  kind: z.enum(RESULT_KIND_NAMES).describe("Where the result is stored: refinement, plan, build, design, estimate, item (a research result or test report), review (a review run) or run (what one run wrote)"),
+  id: z.string().trim().min(1).describe("The result's id as result_versions lists it: a row id (refinement, plan, build, design, estimate, run), an item id (RR-…, TR-…) or a review run's id"),
   vault: vaultInput,
 });
 

@@ -22,7 +22,8 @@ export const planningDocsOnly: ToolPolicy = (call) => {
   return { allow: false, reason: `${call.name} was blocked: planning is read-only on code; only files under .planning/ may be written.` };
 };
 
-function writeTarget(call: ToolPolicyCall): string | null {
+// The file a write tool call writes, or null for a call that writes none.
+export function writeTarget(call: ToolPolicyCall): string | null {
   const field = WRITE_FIELDS[call.name];
   const value = field ? (call.input as Record<string, unknown> | null)?.[field] : null;
 

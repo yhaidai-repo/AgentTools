@@ -41,7 +41,8 @@ export async function readPlan(folder: PlanningFolder, reported: ReportedPlan): 
   return { ok: true, content: contentOf(phases, plans, snapshot, reported), inspect };
 }
 
-function inspectProblem(inspect: unknown): string | null {
+// Why an inspect snapshot can't be read (no object, another schema_version), or null when it can.
+export function inspectProblem(inspect: unknown): string | null {
   if (typeof inspect !== "object" || inspect === null) {
     return "planning inspect returned no JSON object";
   }

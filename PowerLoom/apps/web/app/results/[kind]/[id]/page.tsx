@@ -14,7 +14,7 @@ import { RunResultHeader } from "../../RunResultHeader";
 export const dynamic = "force-dynamic";
 
 const ITEM_TITLES: Record<string, string> = { "research-result": "Research result", "test-report": "Test report" };
-const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", plan: "Plan", design: "Design", estimate: "Estimate", review: "Review", run: "Run result" };
+const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", plan: "Plan", build: "Build", design: "Design", estimate: "Estimate", review: "Review", run: "Run result" };
 
 // One agent result version on a page of its own (user decision 2026-10-21): the whole width, so its tables get room,
 // unfolded, with its other versions one click away. A run result starts with where it comes from.

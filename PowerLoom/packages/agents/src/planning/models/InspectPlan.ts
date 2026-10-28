@@ -1,6 +1,7 @@
 import type { InspectTask } from "./InspectTask";
 
-// A plan file of a phase as `planning inspect` (schema_version 1) lists it.
+// A plan file of a phase as `planning inspect` (schema_version 1) lists it; `hasSummary` once its executor wrote the
+// SUMMARY.md, with the files it changed.
 export interface InspectPlan {
   id: string;
   file: string;
@@ -10,4 +11,6 @@ export interface InspectPlan {
   dependsOn?: string[];
   autonomous?: boolean;
   tasks?: InspectTask[];
+  hasSummary?: boolean;
+  changedFiles?: string[] | null;
 }

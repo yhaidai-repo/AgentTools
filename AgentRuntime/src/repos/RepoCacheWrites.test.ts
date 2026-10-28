@@ -74,4 +74,29 @@ describe("RepoCache writes", () => {
     assert.equal(head, commit);
     assert.match(readFileSync(join(work, "b.txt"), "utf8"), /^planned\r?\n$/);
   });
+
+  it("holds a worktree for a person: git keeps it, and a switched branch isn't replaced until it is released", async () => {
+    const { remote, root } = remoteWithMain();
+    const cache = new RepoCache({ root: join(root, "cache"), refreshMinutes: 30 });
+    const repo = { name: "app", remoteUrl: remote, defaultBranch: "main" };
+    const work = join(root, "work", "app");
+    const git = (args: string[], cwd: string) => execFileSync("git", args, { cwd, stdio: "pipe" }).toString();
+
+    await cache.acquire([repo]);
+    await cache.openBranchWorktree(repo, "main", "powerloom/pbi-7", work);
+    await cache.holdWorktree(work, "held by HT-7-002 until it closes");
+    await cache.holdWorktree(work, "held by HT-7-003 until it closes");
+    const reason = await cache.heldReason(work);
+    git(["checkout", "--quiet", "-b", "review/local"], work);
+    const refused = await cache.openBranchWorktree(repo, "main", "powerloom/pbi-7", work).then(() => null, (error: Error) => error.message);
+    const listed = git(["worktree", "list", "--porcelain"], join(root, "cache", "app"));
+    git(["checkout", "--quiet", "powerloom/pbi-7"], work);
+    await cache.releaseWorktree(work);
+
+    assert.equal(reason, "held by HT-7-003 until it closes");
+    assert.match(refused ?? "", /is held \(held by HT-7-003 until it closes\)/);
+    assert.match(listed, /locked/);
+    assert.equal(await cache.heldReason(work), null);
+    assert.equal(await cache.heldReason(join(root, "nowhere")), null);
+  });
 });

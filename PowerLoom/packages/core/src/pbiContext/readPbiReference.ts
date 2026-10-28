@@ -3,18 +3,19 @@ import { desc, eq } from "drizzle-orm";
 import { attachmentRef } from "../attachmentIds";
 import type { Outcome } from "../models/Outcome";
 import { latestPbiEstimate } from "../pbiEstimates";
+import { latestBuild } from "../implementation/latestBuild";
 import { latestPlan } from "../planning/latestPlan";
 import { buildPbiContext } from "./buildPbiContext";
 
 const PBI_REF = /^PBI-(\d+)$/i;
-const VERSIONED_REF = /^PBI-(\d+):(refinement|plan|design|estimate)$/i;
+const VERSIONED_REF = /^PBI-(\d+):(refinement|plan|build|design|estimate)$/i;
 const DRAFT_REF = /^DRAFT-(\d+)$/i;
 const ATTACHMENT_REF = /^ATT-(\d+)$/i;
 const TEST_CASE_REF = /^TC-(\d+)$/i;
 const RESULT_REF = /^RESULT-(\d+)$/i;
 
-// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement, plan, design (history from
-// before planning replaced it) or estimate, a run's
+// Any reference a PBI context lists, in full: a PBI (its own context), its latest refinement, plan, build, design
+// (history from before planning replaced it) or estimate, a run's
 // result, an item (question, task, finding, result), a vault draft, an upload's text or an Azure DevOps test case.
 export async function readPbiReference(db: PowerLoomDb, backlogMount: string, ref: string): Promise<Outcome<string>> {
   const versioned = VERSIONED_REF.exec(ref);
@@ -73,6 +74,7 @@ async function readVersioned(db: PowerLoomDb, adoId: number, kind: string): Prom
 const VERSIONED_READERS: Record<string, (db: PowerLoomDb, adoId: number) => Promise<object | null>> = {
   refinement: latestRefinement,
   plan: latestPlanView,
+  build: latestBuildView,
   design: latestDesign,
   estimate: latestPbiEstimate,
 };
@@ -99,6 +101,17 @@ async function latestPlanView(db: PowerLoomDb, adoId: number): Promise<object | 
   }
 
   return { version: latest.version, run: latest.runId === null ? null : `RUN-${latest.runId}`, createdAt: latest.createdAt, ...latest.plan };
+}
+
+// The implementation as the hand-over's reviewer and later agents read it, with the run that wrote it.
+async function latestBuildView(db: PowerLoomDb, adoId: number): Promise<object | null> {
+  const latest = await latestBuild(db, adoId);
+
+  if (!latest) {
+    return null;
+  }
+
+  return { version: latest.version, run: latest.runId === null ? null : `RUN-${latest.runId}`, createdAt: latest.createdAt, ...latest.build };
 }
 
 async function latestDesign(db: PowerLoomDb, adoId: number): Promise<object | null> {

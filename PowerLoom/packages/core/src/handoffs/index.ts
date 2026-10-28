@@ -1,6 +1,7 @@
 export { APPROVE_ANSWER, approvalSteps } from "./approvalSteps";
 export { dependsOnOf, loadHandoffContext, loadHandoffsInto } from "./handoffContext";
 export { insertHandoff } from "./insertHandoff";
+export { confirmsFacts, isApproval, reviewAnswers } from "./reviewAnswers";
 export { handoffsOfRun } from "./runHandoffs";
 export { handoffChatSection, handoffContextBlock, handoffHumanTaskBody, handoffQuestionBody } from "./renderHandoff";
 export type { HandoffContext } from "../models/HandoffContext";
@@ -10,3 +11,4 @@ export type { HandoffView } from "../models/HandoffView";
 export type { NewHandoff } from "../models/NewHandoff";
 export type { PreviousResult } from "../models/PreviousResult";
 export type { RunHandoff } from "../models/RunHandoff";
+export type { ReviewAnswers } from "../models/ReviewAnswers";

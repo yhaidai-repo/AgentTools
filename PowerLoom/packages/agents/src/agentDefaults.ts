@@ -16,6 +16,7 @@ import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWrit
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
 import { WRITE_PLAN_INTEGRATION } from "./planning/PlanWriter";
+import { WRITE_IMPLEMENTATION_INTEGRATION } from "./implementation/ImplementationWriter";
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
@@ -135,6 +136,24 @@ const PLANNING_OPTIONS: AgentOptionSpec[] = [
     key: "maxFailures",
     label: "Failures before blocking a planning task",
     description: "After this many failed runs, the planning task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
+const IMPLEMENTATION_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("PBIs"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking an implementation task",
+    description: "After this many failed runs, the implementation task is set to blocked and no longer picked.",
     min: 1,
     max: 10,
   },
@@ -329,6 +348,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent plans its PBI with GSD in the PBI's worktree and stores the plan with write_plan (decisions, requirements coverage, plans by wave with tasks, the plan checker's verdict, risks and tests), or names the questions that stop it. A plan goes to a person for review; the implementation task waits behind that review.",
   },
   {
+    key: WRITE_IMPLEMENTATION_INTEGRATION,
+    owner: "implementation",
+    label: "Write implementations",
+    description: "The agent builds its PBI's approved plan with GSD on the PBI branch in its worktree, one local commit per task, never pushed, and stores what it built with write_implementation (plans done, commits, deviations, checkpoints, the verification matrix, open UAT items). A person gets the branch to review, push and open the pull request; review changes go back to planning.",
+  },
+  {
     key: WRITE_REFINEMENT_INTEGRATION,
     owner: "better-refinement",
     label: "Write refinements",
@@ -414,6 +439,29 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     canAssign: ["implement"],
     handles: ["design"],
     waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
+  },
+  // Wave 3 (user decisions 2026-10-28/29): takes the `implement` task the planning agent hands on behind its review. It reads
+  // the review first; an approved plan is executed by GSD on the PBI branch in the run's worktree (one local commit per
+  // task, never pushed, no ship step), checked with verify-work, and handed to a person to review, push and open the pull
+  // request. Opus 5.5 at effort high orchestrates; executors and verifiers get their models per run from
+  // .planning/config.json (implementationSeed). Builds and tests run in the sandbox, hence its grant.
+  {
+    id: "implementation",
+    label: "Implementation",
+    description: "Builds one PBI's approved plan with GSD on the PBI branch: executes each phase wave by wave with one local commit per task, verifies the work, and hands the branch with a ready pull request description to a person to review, push and open the PR. Review changes go back to planning.",
+    enabled: true,
+    schedule: "15 */2 * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5", effort: "high" },
+    limits: { maxTurns: 400, timeoutMinutes: 180 },
+    budgets: { perRunUsd: 40, dailyUsd: 80 },
+    capabilities: { webAccess: false, readCode: true, shell: true, subAgents: true, editCode: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [SANDBOX_INTEGRATION]: true, [WRITE_IMPLEMENTATION_INTEGRATION]: true } },
+    skills: ["powerloom-implementation-checklist"],
+    options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
+    optionSpecs: withToolsetOptions(IMPLEMENTATION_OPTIONS),
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["design"],
+    handles: ["implement"],
+    waitFor: ["humanItems", "linkedDocuments", "otherAgentTasks"],
   },
   {
     id: "tech-writer",

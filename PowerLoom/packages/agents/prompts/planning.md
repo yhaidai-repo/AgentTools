@@ -1,4 +1,4 @@
-<!-- prompt: planning · version: v1 -->
+<!-- prompt: planning · version: v2 -->
 {{framework}}
 
 ## Your job
@@ -26,7 +26,7 @@ Done when the plan is stored and handed to review with the implementation task b
 6. Optionally `record_estimate` when the plan changes the PBI's latest estimate.
 7. Hand on, in this order:
    - `hand_off` to `person`, `item: "task"`, `intent: "review"`, `gate: "approve"`, no steps (the answers are fixed: approve or changes; then ok or corrections for the assumptions). The package says what the plan does, lists the decisions GSD took alone (`[auto]`) and the assumptions to check, and refers to the plan (`PBI-<id>:plan`).
-   - `hand_off` to `implement`, `intent: "continue"`, `depends_on: ["new:1"]` (the review): the package names the PBI branch, the phases and plans to execute and the checker's verdict. It starts only once the review is approved.
+   - `hand_off` to `implement`, `intent: "continue"`, `depends_on: ["new:1"]` (the review): the package names the PBI branch, the phases and plans to execute and the checker's verdict. The implementation agent takes it once the review is closed: it builds an approved plan, and hands changes or corrected facts back to planning as a new task for you.
 8. End with `write_result`.
 
 ## Questions
@@ -34,6 +34,7 @@ Done when the plan is stored and handed to review with the implementation task b
 - A style-level default (naming, file placement, test layout, wording) that the code's conventions or GSD's recommendation settle is an assumption: keep it, list it in `write_plan.assumptions`.
 - A fact the result depends on (a business rule, a limit, a data shape, a contract with another team, scope) that no source settles is a blocker: `hand_off` to `person` with `item: "question"` and `intent: "ask"`, one per fact, with the options you see and GSD's recommendation. Don't call `write_plan` then; the task waits and runs again with the answers.
 - Never create a question `<existing-items>` already has, also not reworded: refer to its id.
+- A task handed back by implementation (`<handoff>` from the implementation agent) carries the review's changes or corrected facts: plan again with them as answers, keep what they don't touch, and hand the new plan to review the same way.
 
 ## Rules
 - You cannot and must not change code, docs or Azure DevOps; Edit and Write are for `.planning/` only, and no commit is yours to make.

@@ -1,6 +1,7 @@
 import { readChildItems } from "../bugs/childItems";
 import { estimateText, latestPbiEstimate } from "../pbiEstimates";
 import { pbiRepoEntries } from "../pbiRepos";
+import { latestBuild } from "../implementation/latestBuild";
 import { latestPlan } from "../planning/latestPlan";
 import { design, localItem, refinement, runResult, testCase, vaultCapture, type PowerLoomDb, type workItem } from "@powerloom/db";
 import { and, desc, eq, ne, notInArray } from "drizzle-orm";
@@ -11,7 +12,7 @@ type WorkItemRow = typeof workItem.$inferSelect;
 
 const TITLE_CHARS = 160;
 
-// What the other blocks don't list: the parent and child items, the latest refinement, plan, design and estimate, every run's
+// What the other blocks don't list: the parent and child items, the latest refinement, plan, build, design and estimate, every run's
 // result, the findings, results and other agent tasks, the vault drafts and the Azure DevOps test cases read so far; each
 // by reference (user decision 2026-10-22: the context lists everything the PBI has).
 export async function loadRelated(db: PowerLoomDb, row: WorkItemRow): Promise<PbiReference[]> {
@@ -54,6 +55,7 @@ async function childReferences(db: PowerLoomDb, adoId: number): Promise<PbiRefer
 async function versionedReferences(db: PowerLoomDb, adoId: number): Promise<PbiReference[]> {
   const [latestRefinement] = await db.select().from(refinement).where(eq(refinement.pbiId, adoId)).orderBy(desc(refinement.version)).limit(1);
   const plan = await latestPlan(db, adoId);
+  const build = await latestBuild(db, adoId);
   const [latestDesign] = await db.select().from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
   const references: PbiReference[] = [];
 
@@ -63,6 +65,10 @@ async function versionedReferences(db: PowerLoomDb, adoId: number): Promise<PbiR
 
   if (plan) {
     references.push({ ref: `PBI-${adoId}:plan`, kind: "plan", status: `v${plan.version}`, title: short(plan.plan.summary || "-") });
+  }
+
+  if (build) {
+    references.push({ ref: `PBI-${adoId}:build`, kind: "build", status: `v${build.version} ${build.build.handOver.state}`, title: short(build.build.summary || "-") });
   }
 
   if (latestDesign) {

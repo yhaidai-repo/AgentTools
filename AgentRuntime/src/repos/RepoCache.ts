@@ -1,4 +1,4 @@
-import { access, rm } from "node:fs/promises";
+import { access, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { PullRequestCheckout } from "../models/PullRequestCheckout";
 import type { PullRequestRef } from "../models/PullRequestRef";
@@ -102,6 +102,32 @@ export class RepoCache {
     await this.checkoutNewBranch(repo, base, branch, path);
   }
 
+  /** Holds a branch's worktree for a person until they are done with it (user decision 2026-10-29: an implementation's
+   *  worktree outlives its run until the hand-over task closes): git's lock keeps `worktree prune` and `worktree remove`
+   *  off it, and openBranchWorktree never replaces it. Holding it again replaces the reason. */
+  async holdWorktree(path: string, reason: string): Promise<void> {
+    await this.releaseWorktree(path);
+    await this.git(["worktree", "lock", "--reason", reason, path], path);
+  }
+
+  /** Gives a held worktree back; nothing happens to one that isn't held. */
+  async releaseWorktree(path: string): Promise<void> {
+    if ((await this.heldReason(path)) !== null) {
+      await this.git(["worktree", "unlock", path], path);
+    }
+  }
+
+  /** Why a worktree is held (its lock's reason, possibly empty), or null when it isn't held or doesn't exist. */
+  async heldReason(path: string): Promise<string | null> {
+    if (!(await exists(join(path, ".git")))) {
+      return null;
+    }
+
+    const gitDir = (await this.git(["rev-parse", "--absolute-git-dir"], path)).trim();
+
+    return readFile(join(gitDir, "locked"), "utf8").then((reason) => reason.trim(), () => null);
+  }
+
   /** Commits every change of a worktree as `author`; null when there is nothing to commit. Hooks don't run. */
   async commitAll(path: string, message: string, author: { name: string; email: string }): Promise<string | null> {
     await this.git(["add", "--all"], path);
@@ -160,9 +186,15 @@ export class RepoCache {
     return this.git(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], this.path(repo)).then(() => true, () => false);
   }
 
-  // A worktree folder removed by hand still blocks its branch until git prunes it.
+  // A worktree folder removed by hand still blocks its branch until git prunes it. A held one (a person switched its
+  // branch while reviewing it) is never removed.
   private async checkoutLocalBranch(repo: RepoRef, branch: string, path: string): Promise<void> {
     const cwd = this.path(repo);
+    const held = await this.heldReason(path);
+
+    if (held !== null) {
+      throw new Error(`The worktree ${path} is held (${held || "locked"}) and is no longer on ${branch}; it is left as it is.`);
+    }
 
     await rm(path, { recursive: true, force: true });
     await this.git(["worktree", "prune"], cwd);

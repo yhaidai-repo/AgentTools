@@ -8,11 +8,14 @@ namespace PowerLoom.Domain.Tasks;
 // Gated dependencies (hand-off v1, user decision 2026-10-28): a task that depends on an item a hand-off gates starts only
 // as the gate allows, unlike TaskDependencies' any-close release. `approve`: the review human task closed done with
 // `approve` as its first answer; `answer`: an answered question or a done human task. Anything else is a refusal the
-// dispatcher blocks the task with, worded so the receiving agent and the person can act on it.
+// dispatcher blocks the task with, worded so the receiving agent and the person can act on it. A task whose agent reads
+// the review itself (`data.readsReview`, the planning agent's implementation task, user decision 2026-10-29) also starts
+// on a review that asked for changes: its agent hands the changes back to planning.
 public static class HandoffGates
 {
     private const string Approve = "approve";
     private const string Answer = "answer";
+    private const string ReadsReview = "readsReview";
     private const string FirstAnswerHeading = "### 1.";
     private const string NextHeading = "\n### ";
 
@@ -27,8 +30,9 @@ public static class HandoffGates
             return [];
 
         var gated = await ClosedGatedAsync(db, dependencies.ToArray(), cancellation);
+        var readsReview = ItemData.BoolOf(task.Data, ReadsReview) == true;
 
-        return gated.Select(RefusalOf).OfType<string>().ToList();
+        return gated.Select(dependency => RefusalOf(dependency, readsReview)).OfType<string>().ToList();
     }
 
     // Only closed targets: an open one still holds the task as a plain dependency.
@@ -40,24 +44,24 @@ public static class HandoffGates
             order by h.to_item_id
             """).ToListAsync(cancellation);
 
-    public static string? RefusalOf(GatedDependency dependency) => dependency.Gate switch
+    public static string? RefusalOf(GatedDependency dependency, bool readsReview = false) => dependency.Gate switch
     {
-        Approve => ApprovalRefusal(dependency),
+        Approve => ApprovalRefusal(dependency, readsReview),
         Answer => Answered.Contains(dependency.Status) ? null : $"{dependency.ItemId} was {dependency.Status} without an answer",
         _ => null,
     };
 
-    private static string? ApprovalRefusal(GatedDependency dependency)
+    private static string? ApprovalRefusal(GatedDependency dependency, bool readsReview)
     {
         if (dependency.Status != "done")
             return $"{dependency.ItemId} was {dependency.Status}: the review never approved it";
 
         var decision = FirstAnswerOf(dependency.Resolution);
 
-        if (IsApproval(decision))
-            return null;
+        if (string.IsNullOrEmpty(decision))
+            return $"{dependency.ItemId} closed without a review decision";
 
-        return string.IsNullOrEmpty(decision) ? $"{dependency.ItemId} closed without a review decision" : $"{dependency.ItemId} asked for changes: {decision}";
+        return IsApproval(decision) || readsReview ? null : $"{dependency.ItemId} asked for changes: {decision}";
     }
 
     // The review's step 1 answer, as core's humanTaskResolution writes it: `### 1. <action>`, a blank line, the answer.

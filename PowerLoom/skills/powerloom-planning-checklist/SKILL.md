@@ -40,7 +40,7 @@ description: "How the PowerLoom planning agent plans a PBI with GSD: answering G
 ## Review hand-off
 - Gate approve, to a person, no steps: the answers are fixed (approve | changes; ok | corrections).
 - The package lists: what the plan does, the `[auto]` decisions, the assumptions to check, the checker's verdict, the plan's ref `PBI-<id>:plan`.
-- Then the implementation hand-off to `implement` with `depends_on: ["new:1"]`.
+- Then the implementation hand-off to `implement` with `depends_on: ["new:1"]`: the implementation agent reads the review's answers; changes or corrections come back as a new planning task.
 
 ## Estimates
 - Given with `record_estimate`, always both values; optional for planning (skip it when the PBI's latest estimate still holds).

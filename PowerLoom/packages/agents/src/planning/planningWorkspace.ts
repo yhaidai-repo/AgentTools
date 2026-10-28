@@ -1,6 +1,6 @@
 import type { AgentWorkspace, GsdSeed, RepoRef } from "@agenttools/runtime";
 import type { PowerLoomDb, workItem } from "@powerloom/db";
-import { agentRepos, pbiRepoSources } from "../repos/agentRepos";
+import { agentRepos, pbiRepoSources, type CatalogRepoRef } from "../repos/agentRepos";
 
 type PbiRow = typeof workItem.$inferSelect;
 
@@ -13,12 +13,20 @@ export function pbiBranch(pbi: Pick<PbiRow, "adoId" | "parentId">): string {
 // The PBI worktree a planning run works in: the PBI's first enabled repo, on the PBI branch from that repo's default
 // branch, prepared for GSD with the run's seed. Null when the PBI has no enabled repo: there is nothing to plan in.
 export async function planningWorkspace(db: PowerLoomDb, pbi: PbiRow, seed: GsdSeed): Promise<AgentWorkspace | null> {
+  const first = await pbiWorkRepo(db, pbi);
+
+  return first ? pbiWorkspace(first, pbi, seed) : null;
+}
+
+// The repo a PBI is planned and built in: its first enabled repo, or null when it has none.
+export async function pbiWorkRepo(db: PowerLoomDb, pbi: PbiRow): Promise<CatalogRepoRef | null> {
   const [first] = await agentRepos(db, await pbiRepoSources(db, pbi.adoId));
 
-  if (!first) {
-    return null;
-  }
+  return first ?? null;
+}
 
+// The PBI branch's worktree in a repo, from the repo's default branch, prepared for GSD with the run's seed.
+export function pbiWorkspace(first: CatalogRepoRef, pbi: Pick<PbiRow, "adoId" | "parentId">, seed: GsdSeed): AgentWorkspace {
   const repo: RepoRef = { name: first.name, remoteUrl: first.remoteUrl, defaultBranch: first.defaultBranch };
 
   return { repo, branch: pbiBranch(pbi), baseBranch: repo.defaultBranch, gsd: true, gsdSeed: seed };

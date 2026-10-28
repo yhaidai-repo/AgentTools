@@ -10,6 +10,7 @@ export interface ResultVersion {
   runId: number | null;
   agent: string | null;
   at: Date;
-  /** The result item's status (final, superseded) or the run result's (complete, partial, blocked); null for the other kinds. */
+  /** The result item's status (final, superseded), the run result's (complete, partial, blocked) or a build's hand-over
+   *  state (ready, needs-person, gaps); null for the other kinds. */
   status: string | null;
 }
