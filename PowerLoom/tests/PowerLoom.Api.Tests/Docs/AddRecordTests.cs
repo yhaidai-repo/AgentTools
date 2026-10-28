@@ -38,7 +38,7 @@ public sealed class AddRecordTests(PowerLoomHost host)
     [Fact]
     public async Task A_submitted_finding_goes_into_the_register_closes_and_renders_its_pbi()
     {
-        const int adoId = 68001;
+        const int adoId = 68501;
         var findingId = await StoreFindingAsync(adoId);
 
         var session = await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(_ => host.Host.Scenario(scenario =>

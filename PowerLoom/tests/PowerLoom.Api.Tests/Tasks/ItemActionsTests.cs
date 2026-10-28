@@ -47,8 +47,11 @@ public sealed class ItemActionsTests(PowerLoomHost host)
         Assert.True(bug.Value.AdoId >= 9000001);
         Assert.Equal((AdoId, BugSource.Internal, "cli"), (bugRow.PbiId, bugRow.Source, bugRow.ReportedBy));
         Assert.Equal(bug.Value.AdoId, bug.Session.Executed.SingleMessage<PreparePbi>().AdoId);
-        Assert.Equal(3, closed.Session.Executed.MessagesOf<PbiChanged>().Count() + deleted.Session.Executed.MessagesOf<PbiChanged>().Count() + rerun.Session.Executed.MessagesOf<PbiChanged>().Count());
+        Assert.Equal(3, ChangesOfThisPbi(closed.Session) + ChangesOfThisPbi(deleted.Session) + ChangesOfThisPbi(rerun.Session));
     }
+
+    // A tracked session sees every message the host handles meanwhile, a late cascade of an earlier test's PBI too.
+    private static int ChangesOfThisPbi(ITrackedSession session) => session.Executed.MessagesOf<PbiChanged>().Count(change => change.AdoId == AdoId);
 
     private async Task<(T? Value, ITrackedSession Session)> Tracked<T>(Func<Task<T?>> call)
     {

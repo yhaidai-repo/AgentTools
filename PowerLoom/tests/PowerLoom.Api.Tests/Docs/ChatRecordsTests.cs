@@ -82,7 +82,15 @@ public sealed class ChatRecordsTests(PowerLoomHost host)
         await ShouldFailAsync($"{VaultApi}/register-records/close", new CloseRegisterRecordRequest(IssuesPath, "KI-001", "duplicate", new RecordRef("../x/x-known-issues.md", "KI-009"), "x", "the user"), HttpStatusCode.BadRequest);
         await host.Host.PostJson(new CloseRegisterRecordRequest(IssuesPath, "KI-001", "fixed", null, "Fixed.", "the user"), $"{VaultApi}/register-records/close").Receive<ClosedRegisterRecord>();
 
-        Assert.False(File.Exists(Path.Combine(host.VaultRoot, "chatp", ".chatp-known-issues.md.lock")));
+        Assert.True(IsReleased(Path.Combine(host.VaultRoot, "chatp", ".chatp-known-issues.md.lock")));
+    }
+
+    // The lock file stays next to the register (NoteLock never unlinks it); a released lock opens exclusively.
+    private static bool IsReleased(string lockFile)
+    {
+        using var exclusive = new FileStream(lockFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        return true;
     }
 
     private static CaptureDraftRequest Draft(string name) => new("chatp", name, "Sync paging", "[[chatp-sync]]", ["The sync reads 200 items a page."], null, ["Is 200 configurable?"], "session finding: powerloom chat CHAT-1");
