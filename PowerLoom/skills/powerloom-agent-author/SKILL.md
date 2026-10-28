@@ -16,9 +16,10 @@ on demand: case knowledge, checklists, rules. Decide first which the user needs:
 1. **Goal**: what should it produce, for whom, and how will the user know it did well?
 2. **Input**: what does it read: the PBI, the task text, the vault docs, code (which repos), SQL, Azure, Confluence,
    the web? Each is a grant; read-only ones are cheap to give, writers change PowerLoom.
-3. **Output**: what does it write: just its result (`write_result`, always there), notes in the vault, a research
-   result, a design, a refinement, a review, a test report? Each is a grant (`writeNotes`, `researchResult`,
-   `writeDesign`, `writeRefinement`, `reviewCode`, `reviewPullRequests`, `writeTestReports`).
+3. **Output**: what does it write: just its result (`write_result`, always there)? The output tools for vault notes,
+   research results, designs, refinements, reviews and test reports belong to the system agent that owns each
+   (tech-writer, better-research, design, better-refinement, code-review, better-review, autotest); they can't be
+   granted to a new agent, so say that when the user asks for one of those outputs.
 4. **When**: which task types it takes (`handles`): refinement, research, design, docs, review, vault-review, test;
    on a schedule or on demand; whether it may hand work on (`canAssign`).
 5. **Name**: an id in lower-case letters, digits and dashes, a label, and one line for the Agents page.
