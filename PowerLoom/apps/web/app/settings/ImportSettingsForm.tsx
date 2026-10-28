@@ -18,20 +18,19 @@ interface ImportSettingsFormProps {
   status: ReactNode;
 }
 
-// Mail import: the import job reads every source (Outlook mails from the exporter, JSON requests in the import inbox);
-// each PBI is synced and, if new, prepared for refinement.
+// Mail import: reads the Outlook exporter's mails; each PBI is synced and, if new, prepared for refinement.
 export function ImportSettingsForm({ enabled, importFolder, inboxPath, settings, status }: ImportSettingsFormProps) {
   const [result, action, isSaving] = useActionState<ActionResult | null, FormData>(saveImportSettingsAction, null);
 
   return (
     <KeptForm action={action} className="panel settings-card">
-      <SettingsHead title="Mail import" description="Reads every source (Outlook mails from the exporter, JSON requests in the import inbox); a new PBI is prepared for refinement." enabled={enabled} />
+      <SettingsHead title="Mail import" description="Reads Outlook mails from the exporter; a new PBI is prepared for refinement." enabled={enabled} />
       <div className="settings-body">
         {status}
         <div className="field-grid">
           <label className="field"><span>Import folder<small>inside {inboxPath}; empty = its root</small></span><input name="importFolder" defaultValue={importFolder ?? ""} /></label>
           <CronField label="Schedule" value={settings.cron} />
-          <label className="field"><span>Max items per run<small>all sources</small></span><input name="maxItemsPerRun" type="number" min={1} defaultValue={settings.maxItemsPerRun} required /></label>
+          <label className="field"><span>Max mails per run</span><input name="maxItemsPerRun" type="number" min={1} defaultValue={settings.maxItemsPerRun} required /></label>
         </div>
       </div>
       <div className="settings-foot">

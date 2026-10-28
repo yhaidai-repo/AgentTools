@@ -9,13 +9,14 @@ export function ImportStatus({ status, activity }: { status: ImportRunStatus | n
   }
 
   if (!status.configured) {
-    return <p className="text-warn">The import inbox (Import:InboxRoot) isn&apos;t set for PowerLoom.</p>;
+    return <p className="text-warn">The mail import folder isn&apos;t configured for PowerLoom.</p>;
   }
 
   return (
     <div className="source-rows">
       <p className="hint">Last run <TimeAgo date={status.checkedAt} />.</p>
-      {status.sources.map((source) => <SourceRow key={source.source} source={source} activity={activity.find((entry) => entry.source === source.source)} />)}
+      {/* Older saved statuses may still contain the retired generic inbox source until the next import run. */}
+      {status.sources.filter((source) => source.source !== "inbox").map((source) => <SourceRow key={source.source} source={source} activity={activity.find((entry) => entry.source === source.source)} />)}
     </div>
   );
 }

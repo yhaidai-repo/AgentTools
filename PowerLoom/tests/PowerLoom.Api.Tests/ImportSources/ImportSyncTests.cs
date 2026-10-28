@@ -29,10 +29,10 @@ public sealed class ImportSyncTests(PowerLoomHost host)
         await ConfigureAsync();
         var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
 
-        ado.WorkItems.Add(WorkItemMapperTests.Item(52001, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"From the inbox","System.State":"New","System.IterationPath":"proj\\Sprint 9"}"""));
+        ado.WorkItems.Add(WorkItemMapperTests.Item(52001, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"From Outlook","System.State":"New","System.IterationPath":"proj\\Sprint 9"}"""));
         ado.WorkItems.Add(WorkItemMapperTests.Item(52002, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Started already","System.State":"Active"}"""));
         Directory.CreateDirectory(Path.Combine(host.ImportRoot, "outlook"));
-        await File.WriteAllTextAsync(Path.Combine(host.ImportRoot, "req-52001.json"), """{"source":"inbox","adoIds":[52001]}""");
+        await File.WriteAllTextAsync(Path.Combine(host.ImportRoot, "outlook", "mail-52001.json"), """{"entryId":"e52001","internetMessageId":"<m52001@x>","subject":"New PBI","text":"https://dev.azure.com/org/proj/_workitems/edit/52001"}""");
         await File.WriteAllTextAsync(Path.Combine(host.ImportRoot, "outlook", "mail-1.json"), """{"entryId":"e1","internetMessageId":"<m1@x>","subject":"Please look","sender":"pat@x.io","received":"2026-10-01T10:00:00Z","html":"<a href=\"https://dev.azure.com/org/proj/_workitems/edit/52002\">PBI</a>"}""");
         await File.WriteAllTextAsync(Path.Combine(host.ImportRoot, "outlook", "broken.json"), "{not json");
 
@@ -40,15 +40,33 @@ public sealed class ImportSyncTests(PowerLoomHost host)
         var imports = await LoadImportsAsync();
 
         Assert.Equal(52001, session.Executed.SingleMessage<PreparePbi>().AdoId);
-        Assert.Equal([new PbiImportResult(52001, "prepared")], Results(imports["req-52001.json"]));
+        Assert.Equal([new PbiImportResult(52001, "prepared")], Results(imports["<m52001@x>"]));
         Assert.Equal([new PbiImportResult(52002, "refused", "PBI-52002 is Active in Azure DevOps; only New or Ready for Dev PBIs enter PowerLoom")], Results(imports["<m1@x>"]));
         Assert.Equal(("Please look", "pat@x.io"), (imports["<m1@x>"].Title, imports["<m1@x>"].Sender));
-        Assert.False(File.Exists(Path.Combine(host.ImportRoot, "req-52001.json")));
+        Assert.False(File.Exists(Path.Combine(host.ImportRoot, "outlook", "mail-52001.json")));
         Assert.False(File.Exists(Path.Combine(host.ImportRoot, "outlook", "mail-1.json")));
         Assert.Equal("Not valid JSON", (await File.ReadAllTextAsync(Path.Combine(host.ImportRoot, "outlook", "failed", "broken.json.reason.txt")))[..14]);
         Assert.Equal(PipelineStatus.ReadyForRefinement, await StatusAsync(52001));
         Assert.Contains(new ImportSourceStatus("outlook", 0, 1), (await ImportStatusAsync()).Sources);
         Assert.False(await ExistsAsync(52002));
+    }
+
+    [Fact]
+    public async Task ImportSync_RootJsonRequest_IsIgnoredAndPreserved()
+    {
+        await ConfigureAsync();
+        var ado = host.Host.Services.GetRequiredService<FakeAdoClientFactory>().Client;
+        ado.WorkItems.Add(WorkItemMapperTests.Item(52003, 1, """{"System.WorkItemType":"Product Backlog Item","System.Title":"Retired generic request","System.State":"New"}"""));
+        Directory.CreateDirectory(host.ImportRoot);
+        var file = Path.Combine(host.ImportRoot, "legacy-52003.json");
+        await File.WriteAllTextAsync(file, """{"source":"inbox","adoIds":[52003]}""");
+
+        await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(bus => bus.PublishAsync(new SyncPbis(PowerLoomHost.Vault, null, SyncSources.Imports)).AsTask());
+
+        Assert.False(await ExistsAsync(52003));
+        Assert.True(File.Exists(file));
+        Assert.DoesNotContain("legacy-52003.json", (await LoadImportsAsync()).Keys);
+        Assert.DoesNotContain((await ImportStatusAsync()).Sources, source => source.Source == "inbox");
     }
 
     private async Task ConfigureAsync()

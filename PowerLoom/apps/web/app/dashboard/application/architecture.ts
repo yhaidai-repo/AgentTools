@@ -75,7 +75,7 @@ const powerloomFeatures: SchemeNode[] = [
   node("continue", "Continue", "component", "pl-features", "chats in the chosen app: Claude or Codex"),
   node("ai-providers-feature", "AI providers", "component", "pl-features", "Claude token, Connect Codex, chat app"),
   node("drafts", "Drafts", "component", "pl-features", "the drafts scan every 10 minutes"),
-  node("import-sources", "Import sources", "component", "pl-features", "Outlook, inbox, meeting recordings (tools/audio-capture)"),
+  node("import-sources", "Import sources", "component", "pl-features", "Outlook, meeting recordings (tools/audio-capture)"),
   node("vault-features", "Vaults", "component", "pl-features", "add, trash, features, POWERLOOM.md, .mcp.json and .codex/config.toml"),
   node("skills", "Skills", "component", "pl-features", "edits, revisions"),
   node("status", "Status", "component", "pl-features", "GET /api/status, the dashboard"),
