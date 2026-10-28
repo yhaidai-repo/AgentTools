@@ -13,6 +13,7 @@ import type { VaultChanges } from "./models/VaultChanges";
 import type { VaultReviewDraft } from "./models/VaultReviewDraft";
 import { linksLeftToRemoved, plannedChanges } from "./reviewChanges";
 import type { ReviewScope } from "./ReviewScope";
+import { withRecordWorkReferences } from "@powerloom/vault";
 
 type ItemRow = typeof localItem.$inferSelect;
 
@@ -28,7 +29,7 @@ export async function commitVaultReview(db: PowerLoomDb, vaults: VaultsAccess, s
   const changes = await changesPerVault(scope, draft);
 
   for (const [vault, vaultChanges] of changes) {
-    await applyChanges(vaults, scope, vault, vaultChanges, runId);
+    await applyChanges(vaults, scope, vault, vaultChanges, task, runId);
   }
 
   const decidedAt = new Date();
@@ -65,14 +66,15 @@ async function changesPerVault(scope: ReviewScope, draft: VaultReviewDraft): Pro
   return changes;
 }
 
-async function applyChanges(vaults: VaultsAccess, scope: ReviewScope, vault: string, changes: VaultChanges, runId: number): Promise<void> {
+async function applyChanges(vaults: VaultsAccess, scope: ReviewScope, vault: string, changes: VaultChanges, task: ItemRow, runId: number): Promise<void> {
   const writer = vaults.writer(vault);
   const author: NoteAuthor = { writer: AUTHOR, context: `RUN-${runId}`, date: new Date().toISOString().slice(0, 10) };
 
   for (const [path, content] of changes.edits) {
     const previous = await writer.readNote(path);
 
-    await writer.writeNote(path, withAuthor(content, previous, author));
+    const referenced = withRecordWorkReferences(path, previous ?? "", content, { taskId: task.id, ...(task.pbiId !== null ? { pbiId: task.pbiId } : {}) }, author.date);
+    await writer.writeNote(path, withAuthor(referenced, previous, author));
   }
 
   for (const path of changes.removed) {

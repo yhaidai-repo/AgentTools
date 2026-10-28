@@ -3,6 +3,8 @@ using PowerLoom.Features.Docs.Records.Models;
 using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
+using System.Text.Json;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Features.Docs.Records;
 
@@ -55,6 +57,7 @@ public sealed class WwwRecordWriter(PowerLoomDbContext db, VaultFiles files, Tim
 
     private static WwwEntry ToEntry(WwwRecord row)
     {
-        return new WwwEntry(row.Title, row.Kind, row.Project, row.Planned, row.Happened, row.Fault, row.RootCause, row.Resolution, row.PreventiveAction, row.Assumptions);
+        var context = row.WorkContext is null ? null : JsonSerializer.Deserialize<RecordWorkContext>(row.WorkContext, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        return new WwwEntry(row.Title, row.Kind, row.Project, row.Planned, row.Happened, row.Fault, row.RootCause, row.Resolution, row.PreventiveAction, row.Assumptions, context);
     }
 }

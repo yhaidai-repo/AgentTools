@@ -62,6 +62,17 @@ function Get-RegisterShapeError {
 
     $entries = @($InputObject.default) + @($InputObject.options) | Where-Object { $_ }
     $errors = @()
+    if ($InputObject.context) {
+        $context = $InputObject.context
+        if ($null -ne $context.pbiId -and ([string]$context.pbiId -notmatch '\A[1-9][0-9]*\z')) {
+            $errors += 'context.pbiId is a positive integer.'
+        }
+        foreach ($field in @('taskId', 'chatId', 'sessionId')) {
+            if ($null -ne $context.$field -and [string]$context.$field -notmatch '\A[a-zA-Z0-9][a-zA-Z0-9._:-]{0,199}\z') {
+                $errors += "context.$field is an id without whitespace or Markdown (at most 200 characters)."
+            }
+        }
+    }
     if ([string]$InputObject.title -match '[\r\n]') {
         $errors += 'title is one line.'
     }
@@ -93,6 +104,15 @@ function ConvertTo-RegisterLine {
     )
     $lines += @(ConvertTo-RecordBlock -Label 'Default' -Items $InputObject.default -Numbered $false)
     $lines += @(ConvertTo-RecordBlock -Label 'Options' -Items $InputObject.options -Numbered $true)
+    if ($InputObject.context) {
+        $context = $InputObject.context
+        $references = @()
+        if ($context.pbiId) { $references += "pbi:$($context.pbiId)" }
+        if ($context.taskId) { $references += "task:$($context.taskId)" }
+        if ($context.chatId) { $references += "chat:$($context.chatId)" }
+        elseif ($context.sessionId) { $references += "session:$($context.sessionId)" }
+        if ($references.Count -gt 0) { $lines += "- Created in: $Date · $($references -join ' · ')" }
+    }
 
     return $lines
 }

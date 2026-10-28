@@ -1,5 +1,7 @@
+import type { RecordWorkReference } from "@powerloom/vault";
 // One record of a vault register (What went wrong, known issues, open questions) as the Maintenance tab lists it.
 export interface RegisterRow {
+  workItems?: RecordWorkReference[];
   key: string;
   id: string;
   project: string;

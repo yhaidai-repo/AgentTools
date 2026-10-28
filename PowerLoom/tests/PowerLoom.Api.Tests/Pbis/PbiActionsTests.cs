@@ -17,6 +17,7 @@ using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Tracking;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Api.Tests.Pbis;
 
@@ -44,7 +45,7 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         });
         var skills = await Tracked(() => host.Host.PutJson(new SaveSkillsRequest([new SkillChoice("my-skill", "handy")]), $"/api/pbis/{adoId}/skills").Receive<SavedSkills>());
         var uploaded = await Tracked(() => UploadAsync(adoId));
-        var finished = await Tracked(() => host.Host.PostJson(new FinishRequest(8, 2.5m, "Took long", null, null), $"/api/pbis/{adoId}/finish").Receive<FinishedPbi>());
+        var finished = await Tracked(() => host.Host.PostJson(new FinishRequest(8, 2.5m, "Took long", null, null, new RecordWorkContext(adoId, $"AT-{adoId}-001", "codex-feedback", "session-feedback")), $"/api/pbis/{adoId}/finish").Receive<FinishedPbi>());
         var pbi = await LoadAsync(adoId);
         var items = await LoadItemsAsync(adoId);
 
@@ -66,6 +67,7 @@ public sealed class PbiActionsTests(PowerLoomHost host)
         Assert.NotNull(finished.Value.WwwRecordId);
         Assert.Equal(finished.Value.WwwRecordId.ToString(), finished.Session.Executed.SingleMessage<AddRecord>().SourceId);
         Assert.Contains("PBI-" + adoId + ": Took long", await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md")));
+        Assert.Contains($"pbi:{adoId} · task:AT-{adoId}-001 · chat:codex-feedback", await File.ReadAllTextAsync(Path.Combine(host.VaultRoot, "www-log.md")));
     }
 
     [Fact]

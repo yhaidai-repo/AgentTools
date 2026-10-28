@@ -8,6 +8,7 @@ using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
 using PowerLoom.Persistence.Items;
 using Wolverine;
+using PowerLoom.Infrastructure.VaultScan.Models;
 
 namespace PowerLoom.Features.Docs.Records;
 
@@ -27,7 +28,10 @@ public sealed class FindingRecordWriter(PowerLoomDbContext db, IVaultCapture cap
             return $"{sourceId}: not waiting for a submit ({finding?.Status.ToString() ?? "gone"})";
 
         var data = FindingData.Parse(finding.Data) ?? throw new InvalidOperationException($"{sourceId} has no submit data");
-        var added = await capture.AddRegisterRecordAsync(finding.Vault, RecordOf(kind, finding, data), cancellation);
+        var contextProblem = await RecordContextValidation.ProblemAsync(data.Context, finding.Vault, db, cancellation);
+        var added = contextProblem is null
+            ? await capture.AddRegisterRecordAsync(finding.Vault, RecordOf(kind, finding, data), cancellation)
+            : Outcome<string>.Failure(Problem.Invalid(contextProblem));
 
         finding.Resolution = added.Ok ? $"Recorded as {added.Value} in {data.Project}-{RegisterOf(kind)}." : $"Not recorded: {added.Problem.Detail}";
 
@@ -40,7 +44,8 @@ public sealed class FindingRecordWriter(PowerLoomDbContext db, IVaultCapture cap
 
     private static NewRegisterRecord RecordOf(RecordKind kind, LocalItem finding, FindingData data)
     {
-        return new NewRegisterRecord(data.Project, kind == RecordKind.OpenQuestion ? "questions" : "issues", finding.Title, finding.Body ?? "", data.Default ?? [], data.Options ?? []);
+        var context = new RecordWorkContext(finding.PbiId ?? data.Context?.PbiId, finding.ParentId ?? data.Context?.TaskId, data.Context?.ChatId, data.Context?.SessionId);
+        return new NewRegisterRecord(data.Project, kind == RecordKind.OpenQuestion ? "questions" : "issues", finding.Title, finding.Body ?? "", data.Default ?? [], data.Options ?? [], context);
     }
 
     private static string RegisterOf(RecordKind kind) => kind == RecordKind.OpenQuestion ? "open-questions" : "known-issues";

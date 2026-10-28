@@ -16,7 +16,7 @@ public sealed class VaultCaptureCli(IOptions<VaultCaptureOptions> options, Vault
 
     public async Task<Outcome<string>> AddRegisterRecordAsync(string vault, NewRegisterRecord record, CancellationToken cancellation)
     {
-        var input = JsonSerializer.Serialize(new { vault, record.Project, record.Kind, record.Title, record.Text, record.Default, record.Options }, Json);
+        var input = JsonSerializer.Serialize(new { vault, record.Project, record.Kind, record.Title, record.Text, record.Default, record.Options, record.Context }, Json);
         var result = await RunAsync(["register-add"], vault, input, cancellation);
 
         if (!result.Ok)

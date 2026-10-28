@@ -146,6 +146,16 @@ describe("a chat session's tools", () => {
     assert.deepEqual(inputs.filter((keys) => keys.includes("vault")), []);
   });
 
+  it("captures the MCP session automatically and keeps a supplied actual chat id for record writes", async () => {
+    const writes: any[] = [];
+    const powerloom = { addRegisterRecord: async (vault: string, record: unknown) => (writes.push({ vault, record }), { ok: true, value: "KI-001" }), createWwwRecord: async (record: unknown) => (writes.push(record), { ok: true, value: 1 }) };
+    const tools = sessionTools({ powerloom } as unknown as CommandContext);
+    const result = await tools.find((tool) => tool.name === "register_add")!.handler({ project: "pos", kind: "issues", title: "Wrong total", text: "Sums twice", context: { chatId: "codex-123", sessionId: "wrong-session" } });
+    assert.notEqual(result.isError, true);
+    assert.deepEqual(writes[0].record.context, { chatId: "codex-123", sessionId: "s1" });
+    assert.equal("vault" in tools.find((tool) => tool.name === "www_create")!.input, false);
+  });
+
   it("name other tools as the session sees them, with _ (vault_registers, not vault.registers)", () => {
     const dotted = COMMANDS.map((command) => command.name).filter((name) => name.includes("."));
     const pattern = new RegExp(`(?<![\\w.])(${dotted.map((name) => name.replace(/\./g, "\\.")).join("|")})(?!\\w)`);

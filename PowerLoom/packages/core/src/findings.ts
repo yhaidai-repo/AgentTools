@@ -28,7 +28,7 @@ export async function startFindingSubmit(db: PowerLoomDb, request: SubmitFinding
   await db.update(localItem).set({
     title: job.title.slice(0, 120),
     body: job.text,
-    data: { type: request.type, project: job.project, default: job.default, options: job.options },
+    data: { ...(finding.data as object), type: request.type, project: job.project, default: job.default, options: job.options, ...(request.context ? { context: request.context } : {}) },
   }).where(eq(localItem.id, finding.id));
   await setItemStatus(db, finding.id, "open", "in-progress", "human");
 

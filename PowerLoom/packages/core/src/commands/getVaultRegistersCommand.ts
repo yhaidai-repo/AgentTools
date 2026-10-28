@@ -17,7 +17,7 @@ type GetVaultRegistersInput = { vault: string; kind: RegisterKey | typeof ALL_RE
 export const getVaultRegistersCommand: Command<GetVaultRegistersInput, VaultRegisterRows> = {
   name: "vault.registers",
   effect: "read",
-  description: "A docs vault's registers as the Vault page's Maintenance tab lists them: What-went-wrong records (www-log.md), and each project's known issues (KI-nnn) and open questions (OQ-nnn), with id, title, status, project and date. Open records only unless openOnly is false; kind picks one register.",
+  description: "A docs vault's registers as the Vault page's Maintenance tab lists them: What-went-wrong records (www-log.md), and each project's known issues (KI-nnn) and open questions (OQ-nnn), with id, title, status, project, date and workItems (creation/update PBI, task and chat references when recorded). Open records only unless openOnly is false; kind picks one register.",
   input: z.object({
     vault: vaultInput,
     kind: z.enum([...REGISTER_KEYS, ALL_REGISTERS]).default(ALL_REGISTERS).describe("One register (www, issues, questions) or all"),

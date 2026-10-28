@@ -5,13 +5,14 @@ using PowerLoom.Infrastructure.VaultCapture.Models;
 using PowerLoom.Infrastructure.Vaults;
 using PowerLoom.Infrastructure.VaultScan;
 using PowerLoom.Infrastructure.VaultScan.Models;
+using PowerLoom.Persistence;
 
 namespace PowerLoom.Features.Docs.Records;
 
 // The capture tools for chats without file access (stage 5 of the powerloom-mcp design, open decision MCPQ-008: the
 // vault read tools plus these, no raw note writes). An agent stages the same writes for the end of its run; a chat has
 // no run and the user has already said yes, so each one is written at once, in the format the agents' are.
-public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimeProvider clock)
+public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimeProvider clock, PowerLoomDbContext db)
 {
     private static readonly string[] RegisterKinds = [MaintenanceRecords.Questions, MaintenanceRecords.Issues];
     private static readonly string[] ClosingStatuses = ["fixed", "resolved", "duplicate"];
@@ -29,7 +30,10 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
         if (!RegisterKinds.Contains(request.Kind))
             return Outcome<AddedRegisterRecord>.Failure(Problem.Invalid("kind is questions (open questions) or issues (known issues)."));
 
-        var record = new NewRegisterRecord(request.Project, request.Kind, request.Title, request.Text, request.Default ?? [], request.Options ?? []);
+        var contextProblem = await RecordContextValidation.ProblemAsync(request.Context, vault, db, cancellation);
+        if (contextProblem is not null) return Outcome<AddedRegisterRecord>.Failure(Problem.Invalid(contextProblem));
+
+        var record = new NewRegisterRecord(request.Project, request.Kind, request.Title, request.Text, request.Default ?? [], request.Options ?? [], request.Context);
         var added = await capture.AddRegisterRecordAsync(vault, record, cancellation);
 
         return added.Ok ? Outcome<AddedRegisterRecord>.Success(new AddedRegisterRecord(added.Value)) : Outcome<AddedRegisterRecord>.Failure(added.Problem);
@@ -40,6 +44,8 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
     // VaultCapture's adds take too.
     public async Task<Outcome<ClosedRegisterRecord>> CloseRegisterRecordAsync(string vault, CloseRegisterRecordRequest request, CancellationToken cancellation)
     {
+        var contextProblem = await RecordContextValidation.ProblemAsync(request.Context, vault, db, cancellation);
+        if (contextProblem is not null) return Outcome<ClosedRegisterRecord>.Failure(Problem.Invalid(contextProblem));
         var paths = PathProblem(request.Path) ?? (request.DuplicateOf is { } original ? PathProblem(original.Path) : null);
 
         if (paths is not null)
@@ -71,7 +77,10 @@ public sealed class ChatRecords(IVaultCapture capture, VaultFiles files, TimePro
 
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
 
-        await files.WriteTextAsync(vault, request.Path, RegisterRecordClosing.Close(text!, record, ClosingOf(request, today), today), cancellation);
+        var updated = RegisterRecordClosing.Close(text!, record, ClosingOf(request, today), today);
+        var closed = MaintenanceRecords.Of(request.Path, updated).First(candidate => candidate.Id == request.Id);
+        updated = updated.Replace(closed.Text, RecordWorkReferences.AppendUpdate(closed.Text, request.Context, today, updated.Contains("\r\n") ? "\r\n" : "\n"), StringComparison.Ordinal);
+        await files.WriteTextAsync(vault, request.Path, updated, cancellation);
 
         return Outcome<ClosedRegisterRecord>.Success(new ClosedRegisterRecord(request.Path, request.Id, request.Status));
     }

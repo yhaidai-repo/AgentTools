@@ -97,3 +97,6 @@ tags: [<key>, ...]
 1. Repo path comes from `<key>-index` (`repo:`). Drift: `git -C <repo> diff --stat <sha> HEAD -- <sources>`.
 2. No diff → leave the note. Diff → re-read, edit, then bump `last_verified` / `verified_against` (only after re-reading).
 3. Can't re-verify → `status: needs-review`. Issue fixed → `Status: fixed (date, commit)`.
+<!-- Maintenance provenance: preserve existing Created in / Updated in lines on WWW, KI and OQ records.
+When recording or changing one, supply known PBI/task/chat ids to PowerLoom; never invent unknown ids.
+Actual chat ids take precedence over MCP session ids. -->

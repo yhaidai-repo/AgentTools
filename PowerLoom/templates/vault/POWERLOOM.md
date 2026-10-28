@@ -20,6 +20,11 @@ what you did instead; the impact on your answer). Not for a retry that worked, a
 (web search, shell, editor). Never put in data a tool returned or secrets. `failure_reports` lists what was reported.
 
 ## Working on a PBI
+When creating or closing a WWW/KI/OQ maintenance record (`www_create`, `register_add`, `register_close`,
+`finding_submit`, or feedback through `pbi_finish`), include `context` with the known `pbiId`, `taskId` and actual
+`chatId`. Omit unknown ids. The MCP session is captured automatically as the fallback when no actual chat id is known.
+Preserve existing `Created in` and `Updated in` lines when editing a register note.
+
 1. Start with `pbi_read` and `{"ref": "PBI-<id>"}`: the PBI's prepared context, the same the agents get. It holds the
    ADO fields, the note (description, acceptance criteria), the user's own notes (`<user-notes>`), the parent, links,
    attachments, questions with the team's answers, and every related item as a reference (`<pbi-related>`).

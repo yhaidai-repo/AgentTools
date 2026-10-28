@@ -2189,6 +2189,10 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("vault");
 
+                    b.Property<string>("WorkContext")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("work_context");
+
                     b.Property<DateTime?>("WrittenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("written_at");

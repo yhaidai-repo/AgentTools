@@ -1,5 +1,7 @@
+import type { RecordWorkContext } from "./RecordWorkContext";
 // One What-went-wrong record as the www-record skill defines it; empty optional fields are written as "–".
 export interface WwwEntry {
+  context?: RecordWorkContext;
   title: string;
   kind: "complaint" | "notice";
   project: string;

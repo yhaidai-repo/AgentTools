@@ -1,3 +1,5 @@
+using PowerLoom.Infrastructure.VaultScan.Models;
+
 namespace PowerLoom.Features.Docs.Records.Models;
 
 // One What-went-wrong record as the log renders it (the www-record skill's format).
@@ -11,4 +13,5 @@ public sealed record WwwEntry(
     string? RootCause,
     string? Resolution,
     string? PreventiveAction,
-    string? Assumptions);
+    string? Assumptions,
+    RecordWorkContext? Context = null);
