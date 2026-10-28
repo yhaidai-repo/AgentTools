@@ -10,7 +10,8 @@ const TOKEN_FIELDS = ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWr
 
 // Turns SDK usage into per-turn usage events whose sum equals the SDK's own per-model totals.
 // The SDK repeats a turn's message id per content block with partial usage, so the latest copy is kept
-// and emitted when the next turn starts; at the end, whatever the turns missed is emitted as one correction.
+// and emitted when the next turn starts; at each result, whatever the turns missed is emitted as one correction. The
+// results' totals are the session's running totals, so a correction counts as emitted and is not repeated.
 export class TurnUsageTracker {
   private pending: { id: string; event: EventBody & TokenCounts & { model: string } } | null = null;
   private readonly emitted = new Map<string, TokenCounts>();
@@ -49,7 +50,13 @@ export class TurnUsageTracker {
     const missing = mapCounts((field) => Math.max(0, total[field] - already[field]));
     const hasMissing = TOKEN_FIELDS.some((field) => missing[field] > 0);
 
-    return hasMissing ? [toUsageEvent(model, missing)] : [];
+    if (!hasMissing) {
+      return [];
+    }
+
+    this.addEmitted(model, missing);
+
+    return [toUsageEvent(model, missing)];
   }
 
   private addEmitted(model: string, counts: TokenCounts): void {
