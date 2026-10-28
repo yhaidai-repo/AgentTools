@@ -3,25 +3,19 @@ import { desc, eq } from "drizzle-orm";
 import { commitRelevantPages } from "../relevantPages";
 import { commitCaptures } from "../vaultCapture";
 import { addRunOutputs } from "../tasks/runOutputs";
-import { insertGapItems } from "./gapItems";
 import type { DesignDraft } from "./models/DesignDraft";
 import type { DesignOutput } from "./models/DesignOutput";
 
 type ItemRow = typeof localItem.$inferSelect;
 
-// Writes a successful run: the design (when there is one), questions and tasks for the user, drafts, pages. Returns the
-// gap items: without a design the task waits until they close, then design runs again (user decision 2026-10-02; the
-// generic executor settles the task).
-export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number, runId: number, draft: DesignDraft): Promise<{ gapIds: string[] }> {
+// Writes a successful run: the design (when there is one), drafts, pages. What stops a design went to the user with
+// hand_off (user decision 2026-10-28): the task waits for it, then design runs again (the generic executor settles it).
+export async function commitDesign(db: PowerLoomDb, task: ItemRow, adoId: number, runId: number, draft: DesignDraft): Promise<void> {
   const designIds = draft.design ? [await insertDesign(db, adoId, runId, draft.design)] : [];
-  const gapIds = await insertGapItems(db, adoId, task.id, runId, draft.gaps);
   const captureIds = await commitCaptures(db, runId, adoId, task.id, draft.captures);
-  const outputs = [...designIds, ...gapIds, ...captureIds];
 
   await commitRelevantPages(db, adoId, draft.pages, "design");
-  await addRunOutputs(db, runId, outputs);
-
-  return { gapIds };
+  await addRunOutputs(db, runId, [...designIds, ...captureIds]);
 }
 
 async function insertDesign(db: PowerLoomDb, adoId: number, runId: number, output: DesignOutput): Promise<string> {

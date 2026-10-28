@@ -43,11 +43,13 @@ import { createGitHubWriteTools, GITHUB_WRITE_INTEGRATION } from "../github/gith
 import { GitHubWorkspace } from "../github/GitHubWorkspace";
 import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
-import { EVERY_AGENT, runRef } from "@powerloom/core";
+import { EVERY_AGENT, runRef, type RunHandoff } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
 import { commitStep } from "../tasks/commitStep";
-import { commitCreatedTasks, resolveTaskDependencies } from "../taskCreation/commitCreatedTasks";
+import { commitCreatedTasks, resolveTask } from "../taskCreation/commitCreatedTasks";
 import { createTaskTool } from "../taskCreation/createTaskTool";
+import { createHandOffTool } from "../handoff/handOffTool";
+import { joinAskedToReceivers } from "../handoff/askedDependencies";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { TaskCreationLimits } from "../taskCreation/models/TaskCreationLimits";
 import { commitCaptures, createVaultCaptureTool } from "../vaultCapture";
@@ -72,8 +74,8 @@ type ItemRow = typeof localItem.$inferSelect;
 
 // The tools every agent gets from its Config alone (user decision 2026-10-14: the user gives any agent any tool, no
 // runner decides on its own): docs, the repos it opened plus the vault's catalog, its PBI, every integration switched
-// on, the PBI's web pages, vault drafts, record_estimate when granted, create_task for the task types it may create, and
-// write_result for what the run produced. A runner adds only its own result tools. Reads are recorded, so create_task's
+// on, the PBI's web pages, vault drafts, record_estimate when granted, hand_off to a person or the task types it may
+// create, create_task for those task types, and write_result for what the run produced. A runner adds only its own result tools. Reads are recorded, so create_task's
 // evidence can cite them in every agent.
 export class AgentToolset {
   readonly tasks: CreatedTask[];
@@ -168,18 +170,19 @@ export class AgentToolset {
   async commit(runId: number, stoppedEarly = false): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
-    const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
+    const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, agent: this.context.agent.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
     const root = this.session.commitRootRunId ?? runId;
     const taskIds: string[] = [];
     for (const task of this.input.tasks ? [] : this.tasks) {
       // Include IDs recovered from prior receipts in both dependency resolution and journal identity.
-      const resolved = { ...task, dependsOn: resolveTaskDependencies(task.dependsOn, taskIds) };
+      const resolved = resolveTask(task, taskIds);
       taskIds.push(...await commitStep(deps.db, root, runId, "task", resolved, async tx => {
         const ids = await commitCreatedTasks(tx, target, [resolved]);
         await addRunOutputs(tx, runId, ids);
         return ids;
       }));
     }
+    if (!this.input.tasks) await joinAskedToReceivers(deps.db, this.tasks, taskIds);
     const captureIds: string[] = [];
     if (!this.input.captures && this.task.pbiId !== null) for (const capture of this.captures) {
       captureIds.push(...await commitStep(deps.db, root, runId, "capture", capture, async tx => {
@@ -189,7 +192,8 @@ export class AgentToolset {
       }));
     }
 
-    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks: this.input.tasks ? [] : this.tasks, taskIds, repos: this.input.repos, result: this.result.latest, stoppedEarly });
+    const tasks = this.input.tasks ? [] : this.tasks;
+    const writerIds = await this.commitWriters({ deps, task: this.task, runId, agentId: this.context.agent.id, tasks, taskIds, handoffs: handoffsOf(tasks, taskIds), repos: this.input.repos, result: this.result.latest, stoppedEarly });
     const resultOutput = await commitStep(deps.db, root, runId, "result", this.result.latest, async tx => {
       const output = await commitResult(tx, { runId, taskId: this.task.id, pbiId: this.task.pbiId, agent: this.context.agent.id }, this.result.latest);
       if (output) await addRunOutputs(tx, runId, [output]);
@@ -290,20 +294,26 @@ export class AgentToolset {
 
   private writingGroups(log: ReadLog): ToolGroup[] {
     const { deps, agent } = this.context;
-    const hasCreateTask = this.input.createTask ?? agent.canAssign.length > 0;
+    const hasCreateTask = agent.canAssign.length > 0;
 
     const shared = [
+      { source: EVERY_AGENT, tools: [createHandOffTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] },
       { source: HAND_ON_SOURCE, tools: hasCreateTask ? [createTaskTool(agent.canAssign, this.tasks, this.guard, log, this.limits)] : [] },
       { source: EVERY_AGENT, tools: createWebDocumentTools(deps.db, this.webDocuments) },
       { source: EVERY_AGENT, tools: [createReportFailureTool(new DbFailureReportStore(deps.db), outsideAccessContext(agent.id, this.session.runId, this.task), this.failureReports)] },
       { source: EVERY_AGENT, tools: deps.captureRules && this.task.pbiId !== null ? [createVaultCaptureTool(this.captures, deps.captureRules)] : [] },
       { source: grantSource(agent, ESTIMATE_INTEGRATION), tools: createEstimateTools(this.estimate) },
     ];
-    // A writer's tool with a shared tool's name gives way to it (design's user task tool is create_task).
+    // A writer's tool with a shared tool's name gives way to it.
     const own = this.writers.map((writer) => ({ source: grantSource(agent, writer.integration), tools: ownTools(writer.tools(log, { estimate: this.estimate, tasks: this.tasks }), toolsOf(shared)) }));
 
     return [...shared, ...own, { source: EVERY_AGENT, tools: [createResultTool(this.result, log)] }];
   }
+}
+
+// What the run's hand_off calls became: each hand-off's intent and the item written for it.
+function handoffsOf(tasks: CreatedTask[], taskIds: string[]): RunHandoff[] {
+  return tasks.flatMap((task, index) => (task.handoff && taskIds[index] ? [{ intent: task.handoff.intent, toItemId: taskIds[index] }] : []));
 }
 
 // The output tools the agent's Config grants, by integration key.

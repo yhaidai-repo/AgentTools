@@ -26,8 +26,8 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
         throw new Error(`PowerLoom didn't take the ${kind} record ${sourceId}: ${problemDetail(error, response)}`);
       }
     },
-    async openChat(target, destination) {
-      const { data, error, response } = await powerloom.POST("/api/chats", { body: { ...chatRequest(target), destination } });
+    async openChat(target, destination, handoff = null) {
+      const { data, error, response } = await powerloom.POST("/api/chats", { body: { ...chatRequest(target), destination, handoff } });
 
       return data ? { ok: true, value: { url: data.url, clipboardText: data.clipboardText } } : powerloomFailure(error, response);
     },

@@ -2,6 +2,8 @@ import { isCustomTaskType } from "@powerloom/core";
 import type { TaskTarget } from "./models/TaskTarget";
 
 export const USER = "user";
+// hand_off names the user as a person, the receiver of a human task or a question.
+export const PERSON = "person";
 
 // The task types agents may create; any agent that handles a type takes its tasks (user decision 2026-10-13).
 const TASK_TARGETS: TaskTarget[] = [

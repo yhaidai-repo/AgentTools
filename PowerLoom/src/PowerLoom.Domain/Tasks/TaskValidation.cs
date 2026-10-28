@@ -71,12 +71,15 @@ public static class TaskValidation
         return open.Count > 0 ? [$"Waiting for access: {string.Join(", ", open)}"] : [];
     }
 
-    // Always checked, not a waitFor box: the agent that created the task said what must close first.
+    // Always checked, not a waitFor box: the agent that created the task said what must close first, and a gated hand-off
+    // how it must close (HandoffGates), so every start, a Re-run's too, passes the gate.
     private static async Task<IEnumerable<string>> DependenciesOpenAsync(PowerLoomDbContext db, LocalItem task, CancellationToken cancellation)
     {
         var open = await TaskDependencies.OpenDependenciesAsync(db, task, cancellation);
+        var refusals = await HandoffGates.RefusalsAsync(db, task, cancellation);
+        var waiting = open.Count > 0 ? [$"Waiting for {string.Join(", ", open)}"] : new List<string>();
 
-        return open.Count > 0 ? [$"Waiting for {string.Join(", ", open)}"] : [];
+        return [.. waiting, .. refusals];
     }
 
     // Findings are vault upkeep for the user, not PBI work, so they hold no agent (user decision 2026-10-02).

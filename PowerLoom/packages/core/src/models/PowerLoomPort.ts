@@ -24,8 +24,9 @@ import type { VaultWorkPort } from "./VaultWorkPort";
 export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort, CaptureWorkPort, AgentWorkPort {
   // Queues a stored record for its vault's file: the WWW log, or a finding into a project's register.
   addRecord(kind: "www" | "open-question" | "known-issue", sourceId: string): Promise<void>;
-  // "Continue with <agent>": writes the chat note and returns the link that opens the chat.
-  openChat(target: ChatTarget, destination?: ChatDestination): Promise<Outcome<ChatLaunch>>;
+  // "Continue with <agent>": writes the chat note (with the item's hand-off section, when it has one) and returns the
+  // link that opens the chat.
+  openChat(target: ChatTarget, destination?: ChatDestination, handoff?: string | null): Promise<Outcome<ChatLaunch>>;
   // Deletes the PBI in PowerLoom (data now, its notes right after); refused while an agent runs on it.
   deletePbi(adoId: number): Promise<Outcome<string>>;
   // Closes the PBI in PowerLoom (kept for the agents, open items but findings cancelled, open children closed); what was done.

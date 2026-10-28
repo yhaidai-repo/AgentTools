@@ -53,9 +53,20 @@ public static class DispatchAgentHandler
 
     // The PBI's linked documents are collected and its Confluence pages checked when a task on it is about to start
     // (user decision 2026-10-02): a page still missing is fetched before the checks, and a valid task's pages are
-    // brought to their current version.
+    // brought to their current version. A task a hand-off gate refused (a review asked for changes or was cancelled) is
+    // blocked with the gate's reasons first: waiting would never release it.
     private static async Task<bool> TryStartAsync(PowerLoomDbContext db, IMessageBus bus, AgentSummary agent, LocalItem task, CancellationToken cancellation)
     {
+        var refusals = await HandoffGates.RefusalsAsync(db, task, cancellation);
+
+        if (refusals.Count > 0)
+        {
+            await TaskClaims.BlockAsync(db, task.Id, refusals, Actor, cancellation);
+            await PbiChanges.PublishAsync(db, bus, task.PbiId, Actor, cancellation);
+
+            return false;
+        }
+
         await CollectDocumentsAsync(bus, agent, task);
         await SyncPagesAsync(bus, task, PageSyncScope.Missing);
 

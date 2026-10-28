@@ -22,7 +22,6 @@ function setup(limits: Partial<TaskCreationLimits> = {}, canAssign = ["research"
 function researchTask(overrides: Record<string, unknown> = {}) {
   return {
     assignee: "research",
-    kind: "task",
     title: "Why do expired catalog stay active?",
     goal: "The grid shows catalog past their ExpirationDate.",
     done_when: "The writer that should archive them is named, with evidence.",
@@ -32,14 +31,10 @@ function researchTask(overrides: Record<string, unknown> = {}) {
     evidence: EVIDENCE,
     blocking: true,
     depends_on: [],
-    options: [],
-    steps: [],
     doc_path: null,
     ...overrides,
   };
 }
-
-const userStep = { action: "Check the container's TTL", source: "portal", resource: "Cosmos zz-stage (stage)", query: null, timeRange: null, reportBack: "The TTL value" };
 
 describe("create_task", () => {
   it("notes an agent task with its decision fields", async () => {
@@ -52,27 +47,26 @@ describe("create_task", () => {
     assert.deepEqual({ assignee: tasks[0].assignee, doneWhen: tasks[0].doneWhen, blocking: tasks[0].blocking, evidence: tasks[0].evidence }, { assignee: "research", doneWhen: "The writer that should archive them is named, with evidence.", blocking: true, evidence: EVIDENCE });
   });
 
-  it("offers only the task types the config allows, and the user", () => {
+  it("offers only the task types the config allows; the user is hand_off's", () => {
     const { tool } = setup({}, ["research"]);
     const input = z.object(tool.input);
 
     assert.equal(input.safeParse(researchTask()).success, true);
-    assert.equal(input.safeParse(researchTask({ assignee: "user", kind: "question" })).success, true);
+    assert.equal(input.safeParse(researchTask({ assignee: "user" })).success, false);
     assert.equal(input.safeParse(researchTask({ assignee: "design" })).success, false);
     assert.equal(input.safeParse(researchTask({ assignee: "refinement" })).success, false);
   });
 
-  it("rejects a question for an agent, a user task without steps and a docs task without a note", async () => {
+  it("notes a plain task without a hand-off, and rejects a docs task without a note", async () => {
     const { tasks, tool } = setup();
 
-    const question = await tool.handler(researchTask({ kind: "question" }));
-    const userTask = await tool.handler(researchTask({ assignee: "user" }));
+    await tool.handler(researchTask());
+
     const docs = await tool.handler(researchTask({ assignee: "docs" }));
 
-    assert.match(question.text, /a question goes to the user/);
-    assert.match(userTask.text, /a task for the user needs steps/);
+    assert.equal(tasks[0].handoff, null);
     assert.match(docs.text, /docs needs doc_path/);
-    assert.equal(tasks.length, 0);
+    assert.equal(tasks.length, 1);
   });
 
   it("rejects evidence from a source the run never read", async () => {
@@ -97,17 +91,15 @@ describe("create_task", () => {
     assert.deepEqual(tasks[1].dependsOn, ["new:1", "Q-34881-001"]);
   });
 
-  it("stops agent tasks at the depth and per-PBI caps but still lets the user get one", async () => {
+  it("stops agent tasks at the depth and per-PBI caps", async () => {
     const atDepth = setup({ depth: 3 });
     const atPbiCap = setup({ createdOnPbi: 15 });
 
     const deep = await atDepth.tool.handler(researchTask());
     const capped = await atPbiCap.tool.handler(researchTask());
-    const toUser = await atPbiCap.tool.handler(researchTask({ assignee: "user", steps: [userStep] }));
 
     assert.match(deep.text, /depth limit 3 reached/);
     assert.match(capped.text, /agents already created 15 tasks on this PBI \(cap 15\)/);
-    assert.equal(toUser.isError, undefined);
   });
 
   it("stops at the per-run cap", async () => {

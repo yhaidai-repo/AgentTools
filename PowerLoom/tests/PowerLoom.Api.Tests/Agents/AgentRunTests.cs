@@ -134,6 +134,55 @@ public sealed class AgentRunTests(PowerLoomHost host)
         Assert.DoesNotContain(entries, entry => entry.Key == "agent:vault-review");
     }
 
+    [Fact]
+    public async Task A_re_run_of_a_task_whose_review_was_cancelled_is_blocked_again_by_the_gate_instead_of_starting()
+    {
+        const int adoId = 62005;
+        var taskId = $"AT-{adoId}-001";
+        var runner = host.Host.Services.GetRequiredService<FakeRunnerClient>();
+
+        await SeedPbiAsync(adoId, withOpenQuestion: false);
+        await SeedCancelledReviewAsync(adoId, taskId);
+        await RerunAsync(adoId, taskId);
+
+        await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(_ => host.Host.Scenario(scenario =>
+        {
+            scenario.Post.Json(new { }).ToUrl($"/api/agents/{Agent}/run");
+            scenario.StatusCodeShouldBe(202);
+        }));
+        var task = await LoadTaskAsync(taskId);
+
+        Assert.Equal((ItemStatus.Blocked, $"[\"HT-{adoId}-001 was cancelled: the review never approved it\"]"), (task.Status, task.HeldBy));
+        Assert.DoesNotContain(runner.Requests, request => request.TaskId == taskId);
+    }
+
+    // The research task depends on a review human task, cancelled, that a gate approve hand-off created; the task was
+    // blocked by the gate and is now about to be Re-run.
+    private async Task SeedCancelledReviewAsync(int adoId, string taskId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var (planning, review) = ($"PT-{adoId}-001", $"HT-{adoId}-001");
+
+        db.LocalItems.Add(new LocalItem { Id = planning, Kind = "planning", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Plan", Status = ItemStatus.Done, Assignee = "agent:planning", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = review, Kind = ItemKinds.Human, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Review the plan", Status = ItemStatus.Cancelled, Assignee = "human", HeldBy = "[]" });
+        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlAsync($"insert into handoff (from_task_id, from_agent, to_kind, to_item_id, intent, gate, body, status) values ({planning}, 'planning', 'human', {review}, 'review', 'approve', 'Review the plan.', 'closed')");
+        await db.LocalItems.Where(item => item.Id == taskId).ExecuteUpdateAsync(set => set
+            .SetProperty(item => item.Status, ItemStatus.Blocked)
+            .SetProperty(item => item.Data, $$$"""{"dependsOn":["{{{review}}}"]}""")
+            .SetProperty(item => item.HeldBy, $"[\"{review} was cancelled: the review never approved it\"]"));
+    }
+
+    private async Task RerunAsync(int adoId, string taskId)
+    {
+        using var scope = host.Host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
+        var rerun = await PowerLoom.Domain.Tasks.TaskRerun.RerunAsync(db, adoId, taskId, startOver: false, CancellationToken.None);
+
+        Assert.True(rerun.Ok);
+    }
+
     private async Task SeedPbiAsync(int adoId, bool withOpenQuestion, bool withResearchTask = true)
     {
         using var scope = host.Host.Services.CreateScope();

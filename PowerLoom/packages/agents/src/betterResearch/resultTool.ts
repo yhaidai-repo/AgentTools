@@ -38,7 +38,7 @@ const INPUT = {
   start_points: z.array(z.object({ location: z.string(), why: z.string() })).default([]).describe("Code locations whoever acts next should start from"),
   relevant_docs: z.array(z.object({ path: z.string(), why: z.string() })).default([]).describe("Docs whoever acts next should read"),
   relevant_pages: relevantPagesInput,
-  next_reason: z.string().min(1).describe("Why the tasks you created with create_task are needed, or why no next step is"),
+  next_reason: z.string().min(1).describe("Why the tasks you created or handed off are needed, or why no next step is"),
 };
 
 // Better Research's result. Each call replaces the previous one, so the agent can write early and refine it.

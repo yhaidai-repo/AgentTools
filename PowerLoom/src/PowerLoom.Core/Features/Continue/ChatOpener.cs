@@ -43,8 +43,9 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
         if (!brief.Ok)
             return Outcome<ChatLink>.Failure(brief.Problem);
 
-        var handoff = await HandoffAsync(brief.Value, kind, id, launcher.Value.Label, request.Destination is not null, cancellation);
-        var launch = launcher.Value.Open(RequestFor(brief.Value, handoff) with { Destination = request.Destination });
+        var briefed = WithHandoff(brief.Value, request.Handoff);
+        var handoff = await HandoffAsync(briefed, kind, id, launcher.Value.Label, request.Destination is not null, cancellation);
+        var launch = launcher.Value.Open(RequestFor(briefed, handoff) with { Destination = request.Destination });
 
         if (!launch.Ok)
             return Outcome<ChatLink>.Failure(launch.Problem);
@@ -53,6 +54,10 @@ public sealed class ChatOpener(IEnumerable<IChatTarget> targets, ChatLaunchers l
 
         return Outcome<ChatLink>.Success(new ChatLink(launch.Value.Url, launch.Value.ClipboardText));
     }
+
+    // The hand-off the item came with goes first among the sections: it says where the work stands.
+    private static ChatBrief WithHandoff(ChatBrief brief, string? handoff) =>
+        string.IsNullOrWhiteSpace(handoff) ? brief : brief with { Sections = [new ChatSection(ChatNote.HandoffHeading, handoff), .. brief.Sections] };
 
     private async Task<ChatHandoff> HandoffAsync(ChatBrief brief, ChatKind kind, string id, string label, bool existingChat, CancellationToken cancellation)
     {

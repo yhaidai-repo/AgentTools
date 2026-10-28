@@ -39,13 +39,13 @@ const INPUT = {
   test_data: z.object({
     applicable: z.boolean().describe("Does the work need data to be tested or reproduced?"),
     given: z.array(evidencedItem).default([]).describe("What the PBI's description, notes, attachments or answers give: records, ids, environments, payloads, steps"),
-    missing: z.array(z.string()).default([]).describe("What is still needed; ask the user for it with create_task"),
+    missing: z.array(z.string()).default([]).describe("What is still needed; ask the user for it with hand_off"),
     reason: z.string().min(1).describe("Why it is or isn't applicable"),
   }),
   dependencies: z.array(evidencedItem).describe("Systems, events, data, other PBIs or releases it relies on; not blocking"),
   blockers: z.array(z.object({
     what: z.string().min(1),
-    resolved_by: z.string().min(1).describe("The task that resolves it: new:<n> for one you created with create_task, or an existing item id"),
+    resolved_by: z.string().min(1).describe("The task that resolves it: new:<n> for one you created with create_task or hand_off, or an existing item id"),
     evidence: evidenceInput,
   })).describe("What stops development now; each one resolved by a task"),
   assumptions: z.array(z.string()).describe("Assumptions you made, each marked (assumption)"),
@@ -57,7 +57,7 @@ const INPUT = {
 };
 
 // Better Refinement's result. Each call replaces the previous one; create the tasks a blocker points at first. A
-// blocker's `new:<n>` is checked against the tasks create_task noted in this run (the toolset's, shared with writers).
+// blocker's `new:<n>` is checked against the tasks create_task and hand_off noted in this run (the toolset's, shared with writers).
 export function createRefinementTool(draft: BetterRefinementDraft, readLog: ReadLog, availableSkills: string[], createdTasks: readonly CreatedTask[]) {
   return defineTool({
     name: REFINEMENT_TOOL,

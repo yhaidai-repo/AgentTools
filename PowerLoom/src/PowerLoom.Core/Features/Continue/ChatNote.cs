@@ -11,10 +11,13 @@ public static class ChatNote
     // chat app the same server, so a note names the tool alone, without a client's prefix (stage 4 of the powerloom-mcp design).
     public static string Tool(string command) => command.Replace('.', '_');
 
+    // An item's hand-offs, rendered by core's hand-off renderer (user decision 2026-10-28).
+    public const string HandoffHeading = "Hand-off";
+
     private const string SectionStart = "\n## ";
     // Every kind's steps, reading and context, and each kind's own key section: an item's text and how it ends, a review's
     // pull request, a vault setup's steps (user decision 2026-10-24). The headings differ per kind, so one list serves all.
-    private static readonly string[] ShownSections = ["Start", "Read first", "Context", "The item", "At the end", "Pull request", "Setup"];
+    private static readonly string[] ShownSections = ["Start", "Read first", "Context", HandoffHeading, "The item", "At the end", "Pull request", "Setup"];
 
     private static readonly string[] SharedRules =
     [

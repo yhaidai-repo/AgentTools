@@ -5,7 +5,7 @@ import type { RunWriter } from "./RunWriter";
 import type { CreatedTask } from "../../taskCreation/models/CreatedTask";
 
 // What a runner hands the shared toolset: the repos it opened and, when its own draft keeps them, the arrays the
-// create_task and vault_capture tools fill (then the runner commits them with its draft).
+// create_task, hand_off and vault_capture tools fill (then the runner commits them with its draft).
 export interface ToolsetInput {
   repos: RepoAccess;
   /** The vault root the docs tools read; the docs vault unless the task works on another vault (actualize). */
@@ -14,8 +14,6 @@ export interface ToolsetInput {
   depth?: number;
   /** The run's duplicate guard, shared with the runner's own create tools; loaded from the PBI otherwise. */
   guard?: DuplicateGuard;
-  /** create_task regardless of canAssign (the Better agents hand gaps to the user with it); by default canAssign decides. */
-  createTask?: boolean;
   tasks?: CreatedTask[];
   captures?: CaptureDraft[];
   /** The granted writers, when the runner built them first (to open their repos); by default the Config's. */

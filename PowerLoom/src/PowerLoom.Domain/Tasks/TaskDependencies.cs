@@ -6,7 +6,8 @@ using PowerLoom.Persistence.Enums;
 namespace PowerLoom.Domain.Tasks;
 
 // The items a task an agent created must wait for (`data.dependsOn`, chaining v2; user decision 2026-10-13): it starts
-// once each is closed in any way. A cancelled or dismissed dependency releases it too, so nothing waits forever.
+// once each is closed in any way. A cancelled or dismissed dependency releases it too, so nothing waits forever, unless a
+// hand-off gates it: HandoffGates then decides how it may close (hand-off v1, user decision 2026-10-28).
 public static class TaskDependencies
 {
     private const string DependsOn = "dependsOn";

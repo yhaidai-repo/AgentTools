@@ -1,6 +1,6 @@
+import { handoffContextBlock, loadHandoffContext, type PreviousResult } from "@powerloom/core";
 import { runResult, type PowerLoomDb } from "@powerloom/db";
 import { desc, eq } from "drizzle-orm";
-import type { PreviousResult } from "./models/PreviousResult";
 
 export async function loadPreviousResult(db: PowerLoomDb, taskId: string): Promise<PreviousResult | null> {
   const [previous] = await db.select({ runId: runResult.runId, status: runResult.status, body: runResult.body })
@@ -9,14 +9,12 @@ export async function loadPreviousResult(db: PowerLoomDb, taskId: string): Promi
   return previous ?? null;
 }
 
-// The task's latest result, so a rerun continues instead of starting over (as Autotest's previous report did). "Start
-// over" leaves it out: the run begins fresh, without the last run's conversation or its result (user request 2026-10-25).
-export function previousResultBlock(previous: PreviousResult | null, startOver: boolean): string {
-  if (!previous || startOver) {
-    return "";
-  }
+// What the task is handed before its run, as the shared hand-off renderer writes it: the hand-offs that created it, the
+// outcomes of the hand-offs it waits for, and its latest result, so a rerun continues instead of starting over (as
+// Autotest's previous report did). "Start over" leaves the result out: the run begins fresh, without the last run's
+// conversation or its result (user request 2026-10-25).
+export async function runContextBlock(db: PowerLoomDb, task: { id: string; data: unknown; startOver: boolean }): Promise<string> {
+  const previous = task.startOver ? null : await loadPreviousResult(db, task.id);
 
-  const run = previous.runId === null ? "an earlier run" : `RUN-${previous.runId}`;
-
-  return [`<previous-result run="${run}" status="${previous.status}">`, previous.body, "</previous-result>", "Continue from it: don't redo what it settled; write the whole result again as this run's."].join("\n");
+  return handoffContextBlock(await loadHandoffContext(db, task, previous));
 }

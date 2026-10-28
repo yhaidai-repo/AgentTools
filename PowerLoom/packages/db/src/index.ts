@@ -29,3 +29,8 @@ export type { DataAccessOutcome } from "./models/DataAccessOutcome";
 export { FAILURE_KINDS, type FailureKind } from "./models/FailureKind";
 export { FAILURE_WORKAROUNDS, type FailureWorkaround } from "./models/FailureWorkaround";
 export { FAILURE_IMPACTS, type FailureImpact } from "./models/FailureImpact";
+export { HANDOFF_INTENTS, type HandoffIntent } from "./models/HandoffIntent";
+export { HANDOFF_GATES, type HandoffGate } from "./models/HandoffGate";
+export { HANDOFF_TARGET_KINDS, type HandoffTargetKind } from "./models/HandoffTargetKind";
+export type { HandoffStatus } from "./models/HandoffStatus";
+export type { HandoffRefs } from "./models/HandoffRefs";

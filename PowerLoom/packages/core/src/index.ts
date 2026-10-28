@@ -201,6 +201,7 @@ export type { ImportRunStatus } from "./models/ImportRunStatus";
 export type { ImportSourceStatus } from "./models/ImportSourceStatus";
 export type { ImportSourceActivity } from "./models/ImportSourceActivity";
 export * from "./humanTasks";
+export * from "./handoffs";
 export type { HumanTaskData } from "./models/HumanTaskData";
 export type { HumanTaskStep } from "./models/HumanTaskStep";
 export type { HumanTaskQuery } from "./models/HumanTaskQuery";

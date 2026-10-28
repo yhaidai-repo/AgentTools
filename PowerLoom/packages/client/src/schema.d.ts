@@ -2399,6 +2399,7 @@ export interface components {
             id: string;
             folder?: null | string;
             destination?: null | components["schemas"]["ChatDestination"];
+            handoff?: null | string;
         };
         OutsideComponentState: {
             component: string;
