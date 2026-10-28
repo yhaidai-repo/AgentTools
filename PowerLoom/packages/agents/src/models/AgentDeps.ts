@@ -17,6 +17,7 @@ import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 import type { GitHubAccess } from "../github/models/GitHubAccess";
 import type { GoogleDriveAccess } from "../googleDrive/models/GoogleDriveAccess";
+import type { RunWorktreeSlot } from "../sandbox/models/RunWorktreeSlot";
 import type { SandboxAccess } from "../sandbox/models/SandboxAccess";
 import type { WebSearchAccess } from "../webSearch/models/WebSearchAccess";
 
@@ -70,6 +71,8 @@ export interface AgentDeps {
   devHub: DevHubAccess | null;
   /** The host's sandbox service (SANDBOX_URL, SANDBOX_TOKEN) for agents with the integration on; null where it isn't set. */
   sandbox: SandboxAccess | null;
+  /** The run's worktree, set by the runner when the run has a workspace; the sandbox copies that repo from it and sandbox_sync recopies it. */
+  runWorktree?: RunWorktreeSlot;
   /** PowerLoom's own web search (search_web) while Settings → Data access → Web search is on; null otherwise. */
   webSearch: WebSearchAccess | null;
   /** The vault's Azure DevOps while its integration is on (the ADO tools). */

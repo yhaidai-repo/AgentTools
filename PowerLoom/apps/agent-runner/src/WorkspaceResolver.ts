@@ -1,3 +1,4 @@
+import type { RunWorktreeSlot } from "@powerloom/agents";
 import type { AgentRequest, AgentWorkspace } from "@agenttools/runtime";
 import { join } from "node:path";
 import { identityEnv } from "./GsdWorktreePreparer";
@@ -10,9 +11,10 @@ import type { WorkspaceRepos } from "./models/WorkspaceRepos";
 // GSD's installer writes its hooks and permissions to settings.local.json, which the "project" source alone never reads.
 const GSD_SETTING_SOURCES: AgentRequest["settingSources"] = ["project", "local"];
 
-// Turns a request's workspace into the folder, settings and environment the runtime runs it with.
+// Turns a request's workspace into the folder, settings and environment the runtime runs it with, and tells the run's
+// sandbox tools (`runWorktree`) which worktree is the run's until the run ends.
 export class WorkspaceResolver {
-  constructor(private readonly repos: WorkspaceRepos, private readonly gsd: GsdPreparer, private readonly options: WorkspaceOptions) {}
+  constructor(private readonly repos: WorkspaceRepos, private readonly gsd: GsdPreparer, private readonly options: WorkspaceOptions, private readonly runWorktree: RunWorktreeSlot) {}
 
   async resolve(request: AgentRequest): Promise<ResolvedWorkspace> {
     const workspace = request.workspace;
@@ -29,11 +31,18 @@ export class WorkspaceResolver {
     try {
       const env = await this.openWorktree(workspace, worktree);
 
-      return { request: inWorktree(request, worktree, env), release: () => this.repos.release([workspace.repo]) };
+      this.runWorktree.current = { repo: workspace.repo.name, path: worktree };
+
+      return { request: inWorktree(request, worktree, env), release: () => this.release(workspace) };
     } catch (error) {
       this.repos.release([workspace.repo]);
       throw error;
     }
+  }
+
+  private release(workspace: AgentWorkspace): void {
+    this.runWorktree.current = null;
+    this.repos.release([workspace.repo]);
   }
 
   private async openWorktree(workspace: AgentWorkspace, worktree: string): Promise<GitIdentityEnv> {
