@@ -54,6 +54,10 @@ export class DevHubClient {
     return this.call("POST", "/browser", request);
   }
 
+  browserImage(owner: string, caseName: string, file: string): Promise<DevHubAnswer<{ base64: string }>> {
+    return this.call("GET", "/browser/image?owner=" + encodeURIComponent(owner) + "&caseName=" + encodeURIComponent(caseName) + "&file=" + encodeURIComponent(file));
+  }
+
   browserStatus(): Promise<DevHubAnswer<BrowserStatus>> {
     return this.call("GET", "/browser");
   }

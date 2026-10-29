@@ -19,6 +19,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
 . "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.Process.ps1"
+. "$PSScriptRoot/LocalStack.Identity.ps1"
 
 function Get-EntryStatus([hashtable] $Entry) {
     return [ordered]@{
@@ -32,9 +33,18 @@ function Get-EntryStatus([hashtable] $Entry) {
 }
 
 $state = (Read-StackState) ?? @{ services = @() }
+$currentIdentity = @{}
+if ($state.buildRoots -and $state.buildIdentity) {
+    try {
+        $current = Get-StackBuildIdentity $state.buildRoots $(if ($state.strictBranch) { $state.branch } else { $null })
+        if (($current | ConvertTo-Json -Compress) -eq ($state.buildIdentity | ConvertTo-Json -Compress)) { $currentIdentity = $state.buildIdentity }
+    } catch { $currentIdentity = @{} }
+}
 $status = [ordered]@{
     running = $state.services.Count -gt 0
     branch = $state.branch
+    buildIdentity = $currentIdentity
+    strictBranch = [bool]$state.strictBranch
     environment = $state.environment
     services = @($state.services | ForEach-Object { Get-EntryStatus $_ })
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { GuideFields } from "./GuideFields";
 import { useActionState, useState, type FormEvent } from "react";
 import type { TaskActionResult } from "@/models/TaskActionResult";
 import type { TaskFormValues } from "@/models/TaskFormValues";
@@ -43,6 +44,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     const found = missingFields(new FormData(event.currentTarget));
+    if (type === "support-guide") for (const field of Array.from(event.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("fieldset [required]"))) if (!field.value.trim()) { found[field.name] = "Complete the guide inputs."; field.reportValidity(); break; }
 
     setProblems(found);
 
@@ -57,7 +59,8 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
       <div className="new-pbi-columns">
         <div className="panel new-pbi-main">
           <Field label="Title" problem={problems.title}><input name="title" className="title-input" defaultValue={shown.title} maxLength={120} placeholder="What the agent should do, in one line" aria-invalid={Boolean(problems.title)} /></Field>
-          <Field label="Description" hint="what to do" problem={problems.description}><textarea name="description" defaultValue={shown.description} rows={7} aria-invalid={Boolean(problems.description)} /></Field>
+          <Field label="Description" hint="what to do" problem={problems.description}><textarea name="description" defaultValue={type === "support-guide" ? shown.description.replace(/\x60{3}support-guide\s*\n[\s\S]*?\n\x60{3}/g, "").trim() : shown.description} rows={7} aria-invalid={Boolean(problems.description)} /></Field>
+          {type === "support-guide" && <GuideFields description={shown.description} raw={shown.guideInputs} />}
           <Field label="Acceptance criteria" hint="when it is done" problem={problems.acceptanceCriteria}><textarea name="acceptanceCriteria" defaultValue={shown.acceptanceCriteria} rows={5} placeholder="Names the cause, with the code or log that shows it." aria-invalid={Boolean(problems.acceptanceCriteria)} /></Field>
         </div>
         <div>

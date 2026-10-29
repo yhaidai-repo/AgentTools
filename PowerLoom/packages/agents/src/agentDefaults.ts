@@ -19,6 +19,7 @@ import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
+import { SUPPORT_GUIDE_INTEGRATION } from "./supportGuide/SupportGuideWriter";
 import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
 import { LIVE_TEST_INTEGRATION } from "./liveTest/liveTestTools";
 
@@ -348,6 +349,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent reviews its task's pull request against its PBIs, the repo's review rules and the other reviewers' threads, with follow-ups anchored to the last reviewed commit; the PR is checked out for the repo tools. Needs Read repositories.",
   },
   {
+    key: SUPPORT_GUIDE_INTEGRATION,
+    owner: "support-guide",
+    label: "Write support guides",
+    description: "Observes local or remote workflows, saves inspected screenshots and versioned guide packages, and prepares a Confluence publication handoff. Does not publish pages.",
+  },
+  {
     key: AUTOTEST_INTEGRATION,
     owner: "autotest",
     label: "Write test reports",
@@ -537,3 +544,19 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     waitFor: ["linkedDocuments"],
   },
 ];
+
+// Same source defaults as Autotest; stored configuration remains authoritative after deployment.
+const guideBase = AGENT_DEFAULTS.find(agent => agent.id === "autotest")!;
+AGENT_DEFAULTS.push({
+  ...guideBase,
+  id: "support-guide", label: "Support guide",
+  description: "Writes support guides from observed local or remote workflows, with inspected screenshots and a portable Confluence publication handoff.",
+  enabled: false, schedule: null,
+  model: { ...guideBase.model }, limits: { ...guideBase.limits }, budgets: { ...guideBase.budgets },
+  capabilities: { webAccess: false, integrations: {
+    [READ_REPOS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true,
+    [ADO_INTEGRATION]: true, [SUPPORT_GUIDE_INTEGRATION]: true,
+  } },
+  skills: ["powerloom-support-guide"], handles: ["support-guide"],
+  options: { ...guideBase.options }, canAssign: ["research", "refinement"], waitFor: ["linkedDocuments"],
+});

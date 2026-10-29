@@ -2,4 +2,7 @@
 export interface ReadSource {
   id: string;
   text: string;
+  tool?: string;
+  resultText?: string;
+  fresh?: boolean;
 }

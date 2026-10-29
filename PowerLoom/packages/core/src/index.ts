@@ -234,3 +234,8 @@ export type { RecordClosingInput } from "./models/RecordClosingInput";
 export type { AgentWorkPort } from "./models/AgentWorkPort";
 export type { CaptureWorkPort } from "./models/CaptureWorkPort";
 export * from "./logs";
+
+export * from "./supportGuides/request";
+export * from "./supportGuides/models";
+export * from "./supportGuides/zip";
+export * from "./supportGuides/markdown";

@@ -12,6 +12,8 @@ import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
 import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
+import { SUPPORT_GUIDE_INTEGRATION, SupportGuideWriter } from "../supportGuide/SupportGuideWriter";
+import { supportGuideTools } from "../supportGuide/toolPolicy";
 import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter";
 import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
@@ -295,7 +297,7 @@ export class AgentToolset {
       { source: grantSource(agent, GITHUB_READ_INTEGRATION), tools: createGitHubReadTools(deps, agent, access) },
       { source: grantSource(agent, GITHUB_WRITE_INTEGRATION), tools: createGitHubWriteTools(deps, agent, access, this.gitHub) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
-      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
+      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: agent.capabilities.integrations?.[SUPPORT_GUIDE_INTEGRATION] ? supportGuideTools(createDevHubTools(deps, agent, access), this.task.body ?? "") : createDevHubTools(deps, agent, access) },
       { source: grantSource(agent, SANDBOX_INTEGRATION), tools: createSandboxTools(deps, agent, access, this.input.repos) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
@@ -357,5 +359,6 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[CODE_REVIEW_INTEGRATION] === true ? [new ReviewWriter(context)] : []),
     ...(integrations[BETTER_REVIEW_INTEGRATION] === true ? [new BetterReviewWriter(context)] : []),
     ...(integrations[AUTOTEST_INTEGRATION] === true ? [new AutotestWriter(context)] : []),
+    ...(integrations[SUPPORT_GUIDE_INTEGRATION] === true ? [new SupportGuideWriter(context)] : []),
   ];
 }

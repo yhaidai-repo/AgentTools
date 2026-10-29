@@ -12,7 +12,7 @@ import { versionKey } from "./resultLinks";
 type ItemResultRow = Awaited<ReturnType<typeof itemRows>>[number];
 type RunResultRow = Awaited<ReturnType<typeof runResultRows>>[number];
 
-const ITEM_TITLES: Record<string, string> = { "research-result": "Research results", "test-report": "Test reports" };
+const ITEM_TITLES: Record<string, string> = { "research-result": "Research results", "test-report": "Test reports", "support-guide-result": "Support guides" };
 const RUN_RESULTS_TITLE = "Run results";
 
 // A PBI's results on its page (user decision 2026-10-21: every version under its task, one shown): its estimates,
