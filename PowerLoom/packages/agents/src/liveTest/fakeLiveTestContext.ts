@@ -9,8 +9,9 @@ function pbiIdOf(reference: string): number | null {
 
 // A PowerLoom that answers the live test's writes in memory and notes each call, for the liveTest tests.
 // Reporting a bug queues a refinement task for it (R-<adoId>) the way the backend does; `queuesRefinement` false leaves
-// it out.
-export function fakeLiveTestContext(calls: string[], queuesRefinement = true): CommandContext {
+// it out. The agents are an enabled one taking test tasks and a disabled one taking selftest-only; every item is of
+// `itemKind`.
+export function fakeLiveTestContext(calls: string[], queuesRefinement = true, itemKind = "test"): CommandContext {
   let nextId = 900;
   let refinements: { id: string; pbiId: number }[] = [];
   const queueRefinements = (adoIds: number[]) => refinements.push(...(queuesRefinement ? adoIds.map((adoId) => ({ id: `R-${adoId}`, pbiId: adoId })) : []));
@@ -46,13 +47,16 @@ export function fakeLiveTestContext(calls: string[], queuesRefinement = true): C
     stopTask: (itemId: string) => done(`stopTask ${itemId}`),
     editTask: (edit: { itemId: string }) => done(`editTask ${edit.itemId}`),
     deletePromptVersions: (agentId: string) => done(`deletePromptVersions ${agentId}`),
+    rerunTask: (adoId: number | null, itemId: string) => done(`rerunTask ${adoId} ${itemId}`),
     deleteSchedule: (id: number) => done(`deleteSchedule ${id}`),
   };
   const agents = {
     get: async (id: string) => ({ id, label: id, origin: "user" }),
+    list: async () => [{ id: "autotest", enabled: true, handles: ["test"] }, { id: "selftest-probe", enabled: false, handles: ["selftest-only"] }],
     remove: async (id: string) => void calls.push(`removeAgent ${id}`),
   };
-  const db = { delete: () => ({ where: async () => {} }), select: () => ({ from: () => ({ where: async () => [...refinements] }) }) };
+  const rows = () => Object.assign(Promise.resolve([...refinements]), { limit: async () => [{ kind: itemKind }] });
+  const db = { delete: () => ({ where: async () => {} }), select: () => ({ from: () => ({ where: rows }) }) };
 
   return { db, actor: "agent:powerloom-selftest", powerloom, agents, skills: { names: async () => [] }, backlogMount: "/vault" } as unknown as CommandContext;
 }

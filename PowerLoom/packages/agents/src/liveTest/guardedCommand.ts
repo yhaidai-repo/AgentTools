@@ -17,7 +17,7 @@ export function guardedCommand<I, O>(command: Command<I, O>, rule: LiveTestRule,
 }
 
 async function runGuarded<I, O>(command: Command<I, O>, rule: LiveTestRule, scope: LiveTestScope, context: CommandContext, input: I): Promise<Outcome<O>> {
-  const problem = rule.refusal?.(input) ?? (await scope.notOwnedProblem(rule.targets(input)));
+  const problem = (await scope.notOwnedProblem(rule.targets(input))) ?? (await rule.refusal?.(input, context)) ?? null;
 
   if (problem) {
     return { ok: false, error: `${command.name} refused: ${problem}` };

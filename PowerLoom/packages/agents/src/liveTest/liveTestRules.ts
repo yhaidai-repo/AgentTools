@@ -1,5 +1,7 @@
+import type { CommandContext } from "@powerloom/core";
 import type { LiveTestRule } from "./models/LiveTestRule";
 import { deleteQueuedRefinement } from "./queuedRefinement";
+import { takenTypeProblem, takenTypeProblemOfItem } from "./taskTypeRefusals";
 import { agentEntity, agentTarget, itemTarget, pbiEntity, pbiReferenceTarget, pbiTarget, scheduleEntity, scheduleTarget, taskEntity } from "./liveTestTargets";
 
 // The write commands a live test may call, each with what it creates, what it changes and what it refuses. A test
@@ -7,9 +9,9 @@ import { agentEntity, agentTarget, itemTarget, pbiEntity, pbiReferenceTarget, pb
 
 const STARTS_WORK = "a live test doesn't start real work";
 
-// A task the test creates can be picked up by a real agent taking its type within minutes (it dispatches every 2),
-// which starts a run and spends budget: the test deletes it right after checking it.
-const DELETE_TASK_AT_ONCE = "Delete the task with item_delete right after checking it: an enabled agent taking its type picks it up within minutes and starts a run.";
+// An enabled agent taking a task's type picks the task up within minutes (it dispatches every 2), which starts a run and
+// spends budget: the test makes and reopens only tasks of a type no enabled agent takes, and deletes them after checking.
+const TASK_TYPE_NOTE = "Only for a task type no enabled agent takes (a disabled agent you create with agent_create can handle a type of its own); delete the task with item_delete after checking it.";
 
 function pbiOnly(command: string): LiveTestRule {
   return { command, targets: (input) => pbiTarget(input.adoId) };
@@ -35,9 +37,9 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   {
     command: "task.create",
     targets: (input) => pbiReferenceTarget(input.pbi),
-    refusal: (input) => taskRefusal(input),
+    refusal: (input, context) => taskRefusal(input, context),
     created: (output) => [...taskEntity(output.taskId, output.pbiId), ...scheduleEntity(output.scheduleId)],
-    note: DELETE_TASK_AT_ONCE,
+    note: TASK_TYPE_NOTE,
   },
   {
     command: "schedule.save",
@@ -75,7 +77,7 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   pbiOnly("pbi.confluenceLoad"),
   itemOfPbi("item.close"),
   { ...itemOfPbi("item.delete"), removed: (input) => taskEntity(input.itemId, input.adoId) },
-  { ...itemOfPbi("task.rerun"), note: DELETE_TASK_AT_ONCE },
+  { ...itemOfPbi("task.rerun"), refusal: (input, context) => takenTypeProblemOfItem(context, input.itemId), note: TASK_TYPE_NOTE },
   { command: "task.notes.save", targets: (input) => itemTarget(input.itemId) },
   { command: "task.stop", targets: (input) => itemTarget(input.itemId) },
   itemOfPbi("task.edit"),
@@ -125,13 +127,18 @@ export const LIVE_TEST_EXCLUDED = [
   "failure.report",
 ];
 
-// Only on a PBI the run created (a task without one is any agent's at once), and never a schedule that is on.
-function taskRefusal(input: { pbi: string | null; cron: string | null; enabled: boolean }): string | null {
+// Only on a PBI the run created (a task without one is any agent's at once), a schedule only while it is off, and a task
+// only of a type no enabled agent takes.
+function taskRefusal(input: { pbi: string | null; type: string; cron: string | null; enabled: boolean }, context: CommandContext): string | null | Promise<string | null> {
   if (input.pbi === null) {
     return "a live test creates a task only on a PBI it created: give pbi.";
   }
 
-  return input.cron !== null && input.enabled ? `${STARTS_WORK}: a schedule (cron) is saved with enabled false.` : null;
+  if (input.cron !== null) {
+    return input.enabled ? `${STARTS_WORK}: a schedule (cron) is saved with enabled false.` : null;
+  }
+
+  return takenTypeProblem(context, input.type);
 }
 
 function agentRefusal(input: { enabled?: boolean; schedule?: string | null }): string | null {

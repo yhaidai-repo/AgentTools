@@ -6,11 +6,11 @@ import { liveTestCommands } from "./liveTestCommands";
 import { LIVE_TEST_EXCLUDED, LIVE_TEST_RULES } from "./liveTestRules";
 import { LiveTestScope } from "./LiveTestScope";
 
-function setUp() {
+function setUp(itemKind = "test") {
   const calls: string[] = [];
   const scope = new LiveTestScope(async () => undefined);
   const commands = liveTestCommands(scope);
-  const call = (name: string, input: unknown) => runCommand(commands.find((command) => command.name === name) as Command<unknown, unknown>, fakeLiveTestContext(calls), input);
+  const call = (name: string, input: unknown) => runCommand(commands.find((command) => command.name === name) as Command<unknown, unknown>, fakeLiveTestContext(calls, true, itemKind), input);
 
   return { calls, scope, commands, call };
 }
@@ -33,7 +33,7 @@ describe("the live-test guard", () => {
     const { calls, call } = setUp();
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] reference" });
     const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
-    const task = { vault: "personal-projects", type: "test", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
+    const task = { vault: "personal-projects", type: "selftest-only", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
 
     const refused = await call("task.create", { ...task, pbi: `PBI-${adoId}` });
     const bug = await call("bug.report", { parent: `PBI-${adoId}`, title: "[selftest] bug" });
@@ -48,9 +48,9 @@ describe("the live-test guard", () => {
 
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] delete" });
     const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
-    const task = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: `#${adoId}` });
+    const task = await call("task.create", { vault: "personal-projects", type: "selftest-only", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: `#${adoId}` });
 
-    const byLink = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task 2", description: "d", acceptanceCriteria: "a", pbi: `https://dev.azure.com/org/p/_workitems/edit/${adoId}` });
+    const byLink = await call("task.create", { vault: "personal-projects", type: "selftest-only", title: "[selftest] task 2", description: "d", acceptanceCriteria: "a", pbi: `https://dev.azure.com/org/p/_workitems/edit/${adoId}` });
 
     assert.equal(task.ok, true);
     assert.equal(byLink.ok, true);
@@ -64,13 +64,13 @@ describe("the live-test guard", () => {
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] refusals" });
     const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
     const pbi = String(adoId);
-    const task = { vault: "personal-projects", type: "test", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
+    const task = { vault: "personal-projects", type: "selftest-only", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
 
     const refused = [
       await call("pbi.finish", { adoId, rating: 5, effortHours: 1, whatWentWrong: "it broke", fault: "Agent" }),
       await call("agent.create", { id: "selftest-probe", label: "Probe", description: "d", prompt: "p", handles: ["test"], enabled: true }),
       await call("agent.create", { id: "selftest-probe", label: "Probe", description: "d", prompt: "p", handles: ["test"], schedule: "0 7 * * 1" }),
-      await call("schedule.save", { id: null, vault: "personal-projects", name: "[selftest] s", cron: "0 7 * * 1", type: "test", description: "d", acceptanceCriteria: "a", pbi }),
+      await call("schedule.save", { id: null, vault: "personal-projects", name: "[selftest] s", cron: "0 7 * * 1", type: "selftest-only", description: "d", acceptanceCriteria: "a", pbi }),
       await call("task.create", { ...task, pbi, cron: "0 7 * * 1" }),
       await call("task.create", { ...task, pbi: null }),
     ];
@@ -83,7 +83,7 @@ describe("the live-test guard", () => {
     const { calls, call } = setUp();
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] stop" });
     const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
-    const task = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) });
+    const task = await call("task.create", { vault: "personal-projects", type: "selftest-only", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) });
     const itemId = task.ok ? (task.value as { taskId: string }).taskId : "";
     const text = { title: "[selftest] new", description: "d", acceptanceCriteria: "a" };
 
@@ -94,6 +94,35 @@ describe("the live-test guard", () => {
 
     assert.deepEqual([stopped.ok, edited.ok, strangerStopped.ok, strangerEdited.ok], [true, true, false, false]);
     assert.deepEqual(calls, ["createPbi", "createTask", `stopTask ${itemId}`, `editTask ${itemId}`]);
+  });
+
+  it("makes a task only of a type no enabled agent takes", async () => {
+    const { calls, call } = setUp();
+    const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] types" });
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+    const task = { vault: "personal-projects", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) };
+
+    const taken = await call("task.create", { ...task, type: "test" });
+    const free = await call("task.create", { ...task, type: "selftest-only" });
+
+    assert.deepEqual(taken, { ok: false, error: "task.create refused: autotest would take a test task and start a run: a live test uses a task type no enabled agent takes (create a disabled agent that handles a type of its own)." });
+    assert.equal(free.ok, true);
+    assert.deepEqual(calls, ["createPbi", "createTask"]);
+  });
+
+  it("reopens a task only when its type is one no enabled agent takes", async () => {
+    for (const [itemKind, reopened] of [["selftest-only", true], ["test", false]] as const) {
+      const { calls, call } = setUp(itemKind);
+      const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] rerun" });
+      const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+      const task = await call("task.create", { vault: "personal-projects", type: "selftest-only", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) });
+      const itemId = task.ok ? (task.value as { taskId: string }).taskId : "";
+
+      const rerun = await call("task.rerun", { adoId, itemId });
+
+      assert.equal(rerun.ok, reopened, itemKind);
+      assert.equal(calls.includes(`rerunTask ${adoId} ${itemId}`), reopened, itemKind);
+    }
   });
 
   it("exposes every read command, the allowed writes, and none of the excluded ones", () => {

@@ -8,7 +8,7 @@ export interface LiveTestRule {
   /** What the call changes: each must be the run's own. */
   targets(input: any): LiveTestTarget[];
   /** Why the call is refused whatever it targets (it would start real work or write a real vault); null when it may run. */
-  refusal?(input: any): string | null;
+  refusal?(input: any, context: CommandContext): string | null | Promise<string | null>;
   /** What a successful call created, from its result. */
   created?(output: any, input: any): LiveTestEntity[];
   /** What a successful call removed. */
