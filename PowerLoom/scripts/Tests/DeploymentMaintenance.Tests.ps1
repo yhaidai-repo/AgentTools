@@ -14,6 +14,7 @@ Describe 'The disruptive deployment interval' {
         Mock Invoke-Compose { param($arguments) $script:events.Add(($arguments -join ' ')) }
         Mock Get-RunningRuns { $script:events.Add('query'); return $script:dbRuns }
         Mock Show-RunningRuns {}
+        Mock Get-ServicesWithoutContainer { @() }
         Mock Invoke-RunnerMaintenance {
             param($Method, $Owner)
             $script:events.Add($Method)
@@ -82,5 +83,47 @@ Describe 'The disruptive deployment interval' {
         Mock Invoke-Compose { param($arguments) if ($arguments[0] -eq 'up') { throw 'original restart error' } }
         Mock Invoke-RunnerMaintenance { param($Method, $Owner) if ($Method -eq 'DELETE') { throw 'release failed' }; @{status = 200; body = @{owner = $Owner}} }
         { Invoke-Deployment -WarningAction SilentlyContinue } | Should -Throw '*original restart error*'
+    }
+}
+Describe 'Starting services without a container' {
+    BeforeEach {
+        $script:WithApi = $false; $script:WithRunner = $false; $script:Force = $false
+        $script:events = [Collections.Generic.List[string]]::new()
+        Mock Invoke-Compose { param($arguments) $script:events.Add(($arguments -join ' ')) }
+        Mock Write-Host {}
+    }
+    It 'names only the missing services, after the web recreation, without dependencies or recreation' {
+        Mock Get-ServicesWithoutContainer { @('otel-lgtm', 'searxng') }
+
+        Invoke-Deployment
+
+        $events[-2] | Should -Be 'up -d --no-deps web mcp'
+        $events[-1] | Should -Be 'up -d --no-deps --no-recreate otel-lgtm searxng'
+    }
+    It 'runs no extra compose up when every service has a container' {
+        Mock Get-ServicesWithoutContainer { @() }
+
+        Invoke-Deployment
+
+        @($events | Where-Object { $_ -like 'up *' }).Count | Should -Be 1
+    }
+    It 'runs after the runner barrier is released' {
+        $script:WithRunner = $true
+        $script:held = $false
+        Mock Get-ServicesWithoutContainer { @('searxng') }
+        Mock Get-RunningRuns { @() }
+        Mock Show-RunningRuns {}
+        Mock Invoke-RunnerMaintenance {
+            param($Method, $Owner)
+            $script:events.Add($Method)
+            $script:held = $Method -eq 'PUT'
+
+            return @{ status = 200; body = @{ owner = $Owner; running = $null } }
+        }
+
+        Invoke-Deployment
+
+        $events[-2] | Should -Be 'DELETE'
+        $events[-1] | Should -Be 'up -d --no-deps --no-recreate searxng'
     }
 }

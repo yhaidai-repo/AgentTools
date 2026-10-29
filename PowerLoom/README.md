@@ -39,8 +39,8 @@ docker compose up -d --build
 ```
 - Web UI: http://localhost:3100 (`WEB_PORT`); backend: http://127.0.0.1:5180 (`POWERLOOM_PORT`, `/health`, `/openapi/v1.json`).
 - Observability (development only): Grafana with Tempo, Prometheus and Loki (`otel-lgtm`, about 1 GB) starts only with the
-  `observability` compose profile; switch it on in `.env` (the four values under "Observability" in `.env.example`), then
-  `docker compose up -d`. Grafana: `GRAFANA_PORT`.
+  `observability` compose profile; switch it on in `.env` (the four values under "Observability" in `.env.example`); the
+  next `scripts/deploy-web.ps1` starts it (a deploy starts every enabled service that has no container). Grafana: `GRAFANA_PORT`.
 - DB on `127.0.0.1:${DB_PORT}` (default 5442). ADO org/project/team/user and tokens live in the DB, per vault (Settings).
 - Settings → AI providers, one for the whole PowerLoom (global `config` rows): the Claude token (`claudeToken`; without it
   the agent-runner uses `CLAUDE_CODE_OAUTH_TOKEN` from `.env` and reports that at start-up as `claudeEnvToken`) and the
