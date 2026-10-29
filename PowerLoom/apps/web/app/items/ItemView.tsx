@@ -10,6 +10,7 @@ import { CloseItemForm } from "./CloseItemForm";
 import { EditTaskForm } from "./EditTaskForm";
 import { ItemHeader } from "./ItemHeader";
 import { FindingForm } from "./FindingForm";
+import { HandoffSection } from "./HandoffSection";
 import { StepView } from "./HumanTaskContent";
 import { ItemContent } from "./ItemContent";
 import { TaskNotesForm } from "./TaskNotesForm";
@@ -26,6 +27,7 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
       <ItemHeader detail={detail} />
       {item.status === "deleted" && <p className="result-error">Deleted: hidden everywhere; agents won&apos;t create it again.</p>}
       <EditTask detail={detail} />
+      {showsHandoff(item) && <HandoffSection item={item} />}
       <ItemContent item={item} editable={isEditableTask(item)} />
       <TaskNotes detail={detail} />
       <AgentResult detail={detail} />
@@ -35,6 +37,12 @@ export function ItemView({ detail, chosen }: { detail: ItemDetail; chosen: strin
       <Resolution detail={detail} />
     </>
   );
+}
+
+// A structured human task shows its fields, not its body, which is where a hand-off's package is written; the other
+// kinds (a question, a free-text task) show the body with the package in it.
+function showsHandoff(item: ItemDetail["item"]): boolean {
+  return item.kind === "human" && isHumanTaskData(item.data);
 }
 
 // An agent task's text as fields, while it isn't running (user decision 2026-10-26); the criteria are `doneWhen`, or
