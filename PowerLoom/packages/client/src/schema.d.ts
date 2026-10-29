@@ -684,6 +684,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pbis/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_pbis_plan
+         * @description POST_api_pbis_plan
+         */
+        post: operations["POST_api_pbis_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pbis/{adoId}/finish": {
         parameters: {
             query?: never;
@@ -3816,6 +3836,30 @@ export interface operations {
         };
     };
     POST_api_pbis_prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreparedPbis"];
+                };
+            };
+        };
+    };
+    POST_api_pbis_plan: {
         parameters: {
             query?: never;
             header?: never;

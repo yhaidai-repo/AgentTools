@@ -1,6 +1,6 @@
 "use server";
 
-import { adoIntegrationProblem, closePbiCommand, createPbiCommand, preparePbisCommand, finishPbiCommand, importNowCommand, reopenPbiCommand, savePbiReposCommand, readSyncSettings, saveSyncSettings, syncPbisCommand, type Outcome, type PbiFeedback } from "@powerloom/core";
+import { adoIntegrationProblem, closePbiCommand, createPbiCommand, planPbisCommand, preparePbisCommand, finishPbiCommand, importNowCommand, reopenPbiCommand, savePbiReposCommand, readSyncSettings, saveSyncSettings, syncPbisCommand, type Outcome, type PbiFeedback } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { runWebCommand, uploadAttachments } from "@/lib/commandContext";
@@ -40,26 +40,41 @@ async function saveSyncSprint(vault: string, sprint: string): Promise<void> {
 export async function prepareSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
   const adoIds = selectedIds(form);
 
-  return adoIds.length === 0 ? { ok: false, message: "Select at least one PBI." } : preparePbis(adoIds);
+  return adoIds.length === 0 ? { ok: false, message: "Select at least one PBI." } : startPbis(preparePbisCommand, adoIds);
+}
+
+// Start's menu (user request 2026-10-29): the selected PBIs go to the planning agent instead of refinement.
+export async function planSelected(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const adoIds = selectedIds(form);
+
+  return adoIds.length === 0 ? { ok: false, message: "Select at least one PBI." } : startPbis(planPbisCommand, adoIds);
 }
 
 // The PBI page's Prepare (user decision 2026-10-06: the Backlog's actions on the PBI too).
 export async function preparePbiAction(adoId: number): Promise<ActionResult> {
-  const result = await preparePbis([adoId]);
+  return startPbi(preparePbisCommand, adoId);
+}
+
+export async function planPbiAction(adoId: number): Promise<ActionResult> {
+  return startPbi(planPbisCommand, adoId);
+}
+
+async function startPbi(command: typeof preparePbisCommand, adoId: number): Promise<ActionResult> {
+  const result = await startPbis(command, [adoId]);
 
   revalidatePath(`/pbis/${adoId}`);
 
   return result;
 }
 
-async function preparePbis(adoIds: number[]): Promise<ActionResult> {
-  const prepared = await runWebCommand(preparePbisCommand, { adoIds });
+async function startPbis(command: typeof preparePbisCommand, adoIds: number[]): Promise<ActionResult> {
+  const started = await runWebCommand(command, { adoIds });
 
-  if (!prepared.ok) {
-    return { ok: false, message: prepared.error };
+  if (!started.ok) {
+    return { ok: false, message: started.error };
   }
 
-  return { ok: true, message: [prepared.value.message, ...prepared.value.skipped].join(" ") };
+  return { ok: true, message: [started.value.message, ...started.value.skipped].join(" ") };
 }
 
 // The Backlog's Close and Reopen (user decision 2026-10-16): the selected PBIs in one request; a refused one is reported.

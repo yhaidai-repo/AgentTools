@@ -61,6 +61,7 @@ import { getVaultRegistersCommand } from "./getVaultRegistersCommand";
 import { listVaultTrashCommand } from "./listVaultTrashCommand";
 import { listSkillsCommand } from "./listSkillsCommand";
 import { getSkillCommand } from "./getSkillCommand";
+import { planPbisCommand } from "./planPbisCommand";
 import { preparePbisCommand } from "./preparePbisCommand";
 import { syncPbisCommand } from "./syncPbisCommand";
 import { importNowCommand } from "./importNowCommand";
@@ -133,6 +134,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   sqlDescribeCommand,
   sqlDatabasesCommand,
   preparePbisCommand,
+  planPbisCommand,
   syncPbisCommand,
   importNowCommand,
   getPbiUserNotesCommand,

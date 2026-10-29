@@ -94,6 +94,7 @@ export * from "./pbiConfluencePages";
 export * from "./pbiAdmin";
 export * from "./finishPbi";
 // Commands: contracts for every caller (web actions now, an MCP server later).
+export { planPbisCommand } from "./commands/planPbisCommand";
 export { preparePbisCommand } from "./commands/preparePbisCommand";
 export { syncPbisCommand } from "./commands/syncPbisCommand";
 export { importNowCommand } from "./commands/importNowCommand";

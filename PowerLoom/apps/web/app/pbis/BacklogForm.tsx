@@ -1,18 +1,21 @@
 "use client";
 
-import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { FinishDialog } from "@/components/FinishDialog";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiToFinish } from "@/models/PbiToFinish";
-import { closeSelected, deleteSelected, prepareSelected, reopenSelected } from "./actions";
+import { closeSelected, deleteSelected, planSelected, prepareSelected, reopenSelected } from "./actions";
+import { StartButton } from "./StartButton";
 
 // Wraps the server-rendered table so its row checkboxes submit with this form. The actions live in a bar that shows
 // only while rows are ticked (user decision 2026-10-18), sliding in; each button explains itself in its tooltip. Start
-// prepares the selected PBIs; Finish goes through the Finish dialog, one PBI at a time.
+// prepares the selected PBIs for refinement, or from its menu for planning; Finish goes through the Finish dialog, one
+// PBI at a time.
 export function BacklogForm({ children }: { children: ReactNode }) {
   const form = useRef<HTMLFormElement>(null);
   const [selected, setSelected] = useState(0);
   const [prepared, prepareAction, isPreparing] = useActionState<ActionResult | null, FormData>(prepareSelected, null);
+  const [planned, planAction, isPlanning] = useActionState<ActionResult | null, FormData>(planSelected, null);
   const [deleted, deleteAction, isDeleting] = useActionState<ActionResult | null, FormData>(deleteSelected, null);
   const [closed, closeAction, isClosing] = useActionState<ActionResult | null, FormData>(closeSelected, null);
   const [reopened, reopenAction, isReopening] = useActionState<ActionResult | null, FormData>(reopenSelected, null);
@@ -31,6 +34,11 @@ export function BacklogForm({ children }: { children: ReactNode }) {
     setFinished(messages.join(" ") || null);
   }
 
+  // The menu's item unmounts on its click, so both actions run from the form's current ticks rather than a submit.
+  function startWith(action: (data: FormData) => void) {
+    startTransition(() => action(new FormData(form.current ?? undefined)));
+  }
+
   function onClear() {
     form.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(untick);
     setSelected(0);
@@ -42,14 +50,14 @@ export function BacklogForm({ children }: { children: ReactNode }) {
       <form ref={form} action={prepareAction} onChange={() => setSelected(selectedPbis(form.current).length)}>
         <div className={`selection-bar${selected > 0 ? " show" : ""}`} aria-hidden={selected === 0}>
           <span key={selected} className="selection-count">{selected} selected</span>
-          <button type="submit" disabled={isPreparing} title="Writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined)">{isPreparing ? "Starting…" : "Start"}</button>
+          <StartButton isPending={isPreparing || isPlanning} onRefine={() => startWith(prepareAction)} onPlan={() => startWith(planAction)} />
           <button type="button" className="secondary" onClick={onFinish} title="Marks the PBIs done in PowerLoom; asks for your effort">Finish</button>
           <button type="submit" className="secondary" formAction={closeAction} disabled={isClosing} onClick={confirmClose} title="Keeps them for the agents to read but stops all work on them">{isClosing ? "Closing…" : "Close"}</button>
           <button type="submit" className="secondary" formAction={reopenAction} disabled={isReopening} title="Brings closed PBIs back as new">{isReopening ? "Reopening…" : "Reopen"}</button>
           <button type="submit" className="danger" formAction={deleteAction} disabled={isDeleting} onClick={confirmDelete} title="Removes them from PowerLoom only; Azure DevOps is not changed">{isDeleting ? "Deleting…" : "Delete"}</button>
           <button type="button" className="link-button selection-clear" onClick={onClear}>Clear</button>
         </div>
-        <ActionResults results={[prepared, deleted, closed, reopened]} finished={finished} />
+        <ActionResults results={[prepared, planned, deleted, closed, reopened]} finished={finished} />
         {children}
       </form>
       {toFinish && <FinishDialog pbis={toFinish} onDone={onFinishDone} />}
