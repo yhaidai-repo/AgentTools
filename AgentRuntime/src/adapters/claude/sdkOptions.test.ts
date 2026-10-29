@@ -126,6 +126,21 @@ describe("buildSdkOptions", () => {
   it("names this runtime as the SDK client", () => {
     assert.equal(optionsFor().env?.CLAUDE_AGENT_SDK_CLIENT_APP, "agenttools-runtime/1.0");
   });
+
+  it("lets the agent wait for background sub-agents for the whole run, not the SDK's ten minutes", () => {
+    const options = optionsFor({ limits: { maxTurns: 10, timeoutMs: 7_200_000 } });
+
+    assert.equal(options.env?.CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS, "7200000");
+  });
+
+  it("denies a permission prompt with its reason and tells the agent to carry on", async () => {
+    const options = optionsFor();
+
+    const result = await options.canUseTool?.("Edit", {}, { signal: new AbortController().signal, toolUseID: "toolu_1", requestId: "request-1", decisionReason: "outside the folder" });
+
+    assert.equal(result?.behavior, "deny");
+    assert.match(result?.behavior === "deny" ? result.message : "", /Edit needs a permission this unattended run cannot grant \(outside the folder\)\. Carry on/);
+  });
 });
 
 describe("childEnv", () => {
