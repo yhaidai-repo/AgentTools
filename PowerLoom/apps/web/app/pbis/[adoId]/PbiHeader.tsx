@@ -4,6 +4,7 @@ import { AdoTag } from "@/components/AdoTag";
 import { ContinueChat } from "@/components/ContinueChat";
 import { NoteLink } from "@/components/NoteLink";
 import { PipelinePill } from "@/components/PipelinePill";
+import { RunWatch } from "@/components/RunWatch";
 import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { TypeTag } from "@/components/TypeTag";
@@ -29,6 +30,7 @@ export async function PbiHeader({ detail, stations, changedAt }: { detail: PbiDe
 
   return (
     <section className="pbi-hero">
+      <RunWatch />
       <div className="hero-top">
         <div className="hero-title">
           <div className="hero-id"><span className="id">{pbi.adoId}</span><AdoTag url={adoUrl} /><TypeTag type={pbi.type} bugSource={detail.bug?.source ?? null} /><PipelinePill status={pbi.pipelineStatus} /></div>

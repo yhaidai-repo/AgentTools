@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ContinueChat } from "@/components/ContinueChat";
 import { HeroStat } from "@/components/HeroStat";
+import { RunWatch } from "@/components/RunWatch";
 import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatUsd } from "@/lib/format";
@@ -26,6 +27,7 @@ export function ReviewHeader({ detail }: { detail: ReviewDetail }) {
     <>
       <Breadcrumbs crumbs={[{ label: "Reviews", href: reviewsUrl({ status: isReviewClosed(detail) ? "closed" : "active", focus: pr.id }) }, { label: `PR ${pr.id}` }]} />
       <section className="pbi-hero">
+        <RunWatch />
         <div className="hero-top">
           <div className="hero-title">
             <div className="hero-id"><span className="id">{reviewHeading(pr)}</span><PrSiteTag url={pr.url} origin={pr.origin} /><ReviewStatePill row={detail} /><NewPushesMark row={detail} /></div>

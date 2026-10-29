@@ -2,6 +2,7 @@ import type { AgentDefinition } from "@agenttools/config";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { HeroStat } from "@/components/HeroStat";
+import { RunWatch } from "@/components/RunWatch";
 import { RunningStrip } from "@/components/RunningStrip";
 import { TimeAgo } from "@/components/TimeAgo";
 import { agentColor } from "@/lib/agentColors";
@@ -34,6 +35,7 @@ export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused
     <>
       <Breadcrumbs crumbs={[{ label: "Agents", href: agentsUrl({ tab: "overview" }) }, { label: agent.label }]} />
       <section className="pbi-hero" style={{ "--c": agentColor(slot) } as React.CSSProperties}>
+        <RunWatch />
         <div className="hero-top">
           <div className="hero-title">
             <div className="hero-id"><span className="agent-tag">{agent.id}</span><span className={agent.enabled ? "task-pill task-done" : "task-pill task-off"}>{agent.enabled ? "on" : "off"}</span></div>
