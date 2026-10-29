@@ -35,7 +35,7 @@ description: How the PowerLoom Autotest agent validates or creates local test ca
 - An action the rules call paid or shared (a submit, an upload, a call to an outside service): one record per action, never a bulk or batch action, and only as many as the cases need, within the cap. Without such rules, ask the user before the first such action.
 
 ## Services and stack
-- Start from the repos and areas the refinement and the design name; the service that owns the screen comes first, then what it calls, then the consumers an action triggers.
+- Start from the repos and areas the refinement and the plan name; the service that owns the screen comes first, then what it calls, then the consumers an action triggers.
 - Name only services `list_services` offers; the rest stays on Azure dev.
 - `start_stack` with the branch under test; a service that doesn't come up is a `not_run` for its cases with the `stack_logs` lines, not a bug.
 - A background host runs no worker by default. A case that waits on a job names its worker in `start_stack` `config` (`{"<host service>": {"workers": {"<Worker>": {"RunAtStart": true, "Cron": "15"}}}}`); `stack_status` shows the workers in effect. Workers that reach outside the stack (email, uploads, reports to customers) stay off unless the criterion is about them.

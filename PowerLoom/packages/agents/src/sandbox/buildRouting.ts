@@ -10,6 +10,12 @@ const OUTPUT_FILTERS = /^(tail|head|grep|rg|wc|sort|uniq|cat|tee|echo)(\s|$)/i;
 // A substitution runs a hidden command the check doesn't see.
 const SUBSTITUTION = /\$\(|`/;
 
+/** A build piped into a filter (`dotnet build | tail -5`) ends with the build's own exit code, not the filter's: the
+ *  sandbox's outer pipefail doesn't reach the pipeline inside the command (run 4491 reported a failed build as exit 0). */
+export function withOwnExitCode(command: string): string {
+  return `set -o pipefail; ${command}`;
+}
+
 /** The command builds or tests and holds nothing else but folder changes and output filters. */
 export function isSandboxBuildCommand(command: string, configured: string[]): boolean {
   if (SUBSTITUTION.test(command)) {
@@ -33,8 +39,8 @@ function isBuildSegment(segment: string, configured: string[]): boolean {
   return BUILD_COMMANDS.some((pattern) => pattern.test(segment)) || configured.some((entry) => startsWithCommand(segment, entry));
 }
 
-// The configured command itself, or with more arguments (`dotnet test App.sln --filter X`).
-function startsWithCommand(command: string, configured: string): boolean {
+/** The configured command itself, or with more arguments (`dotnet test App.sln --filter X`). */
+export function startsWithCommand(command: string, configured: string): boolean {
   const given = normalized(command);
   const expected = normalized(configured);
 

@@ -1,7 +1,6 @@
 // Builds, tests and scripts run in PowerLoom's sandbox (its run_command tool, and the run's ShellRoute for plain build and
 // test commands, asked before this list), never on the runner, which lacks their toolchains: the shell of a run in its
 // worktree only commits, runs GSD and lists files. Every segment of a pipeline must be one of these.
-const REASON = "is not allowed in the worktree's shell. Builds and tests run in the sandbox: give them alone (dotnet build, dotnet test, npm test, npm run build, or the repo's configured command, with cd and output filters at most) and they run there; for other scripts use run_command if you have it.";
 
 // Network and remote subcommands; `push` is also refused on its own with a clearer reason (workspaceGuard).
 const DENIED_GIT_SUBCOMMANDS = ["push", "fetch", "pull", "clone", "remote"];
@@ -9,6 +8,11 @@ const DENIED_GIT_SUBCOMMANDS = ["push", "fetch", "pull", "clone", "remote"];
 const GIT_OPTIONS_WITH_VALUE = ["-C", "-c", "--git-dir", "--work-tree", "--namespace"];
 
 const LISTING_COMMANDS = ["ls", "dir", "cat", "type", "find", "rg", "grep", "head", "tail", "wc", "pwd"];
+
+/** The worktree shell's rule in the words the agents are told up front (their worktree shell contract) and every
+ *  refusal repeats, so instruction and refusal agree. */
+export const WORKTREE_SHELL_RULE = `The worktree's shell runs only git (without ${DENIED_GIT_SUBCOMMANDS.join(", ")}), GSD's node tool and listing commands (${LISTING_COMMANDS.join(", ")}). A plain build or test command (dotnet build, dotnet test, npm test, npm run build, or the repo's configured command), alone or after one \`cd <folder> &&\` and with output filters at most, runs in the sandbox. Everything else is refused: edit files with Edit or Write, and run other scripts with run_command if you have it.`;
+const REASON = `is not allowed in the worktree's shell. ${WORKTREE_SHELL_RULE}`;
 // A listing command stops being read-only when it writes its output or runs something per file.
 const LISTING_WRITES = />>?(?![>&]|\s*(?:\/dev\/null|nul|\$null)(?:\s|$))|\s-(?:exec|execdir|ok|delete|fprint\w*)\b/i;
 

@@ -6,4 +6,6 @@ export interface ToolProgressEvent extends EventBase {
   callId: string;
   name: string;
   elapsedMs: number;
+  /** What the tool itself reported (ToolCallContext.progress); absent on the provider's own heartbeat. */
+  detail?: string;
 }

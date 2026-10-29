@@ -1,5 +1,5 @@
 import type { DataAccessOutcome } from "@powerloom/db";
-import { defineTool, type ToolAnnotations, type ToolDefinition } from "@agenttools/runtime";
+import { defineTool, type ToolAnnotations, type ToolCallContext, type ToolDefinition } from "@agenttools/runtime";
 import type { z } from "zod";
 import type { OutsideAccessServices } from "./models/OutsideAccessServices";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
@@ -25,7 +25,7 @@ export interface OutsideTool<TInput extends z.ZodRawShape> {
   resource: (input: z.infer<z.ZodObject<TInput>>) => OutsideResource;
   /** The request as sent, from its input: the query, the filter, the queue, the link. */
   request: (input: z.infer<z.ZodObject<TInput>>) => string;
-  handler: (input: z.infer<z.ZodObject<TInput>>) => Promise<OutsideToolResult>;
+  handler: (input: z.infer<z.ZodObject<TInput>>, call?: ToolCallContext) => Promise<OutsideToolResult>;
   /** What the call does to the outside system or to PowerLoom; MCP clients show and gate calls by it. */
   annotations?: ToolAnnotations;
 }
@@ -41,10 +41,10 @@ export function defineOutsideTool<TInput extends z.ZodRawShape>(services: Outsid
     description: tool.description,
     input: tool.input,
     ...(tool.annotations ? { annotations: tool.annotations } : {}),
-    handler: async (input) => {
+    handler: async (input, call) => {
       const startedAt = new Date();
       const resource = tool.resource(input);
-      const result = await settle(tool.handler(input));
+      const result = await settle(tool.handler(input, call));
 
       await recordOutsideCall(services, context, { tool: tool.name, resource, request: tool.request(input), result, startedAt });
 

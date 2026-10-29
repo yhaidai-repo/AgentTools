@@ -1,4 +1,4 @@
-import type { ToolDefinition, ToolResult } from "@agenttools/runtime";
+import type { ToolCallContext, ToolDefinition, ToolResult } from "@agenttools/runtime";
 import type { ReadLog } from "./ReadLog";
 
 const SOURCE_SUFFIX = /\n\n\[source (S\d+)\]$/;
@@ -9,7 +9,7 @@ const SOURCE_SUFFIX = /\n\n\[source (S\d+)\]$/;
 export function recordReads(tools: ToolDefinition<any>[], log: ReadLog): ToolDefinition<any>[] {
   return tools.map((tool) => ({
     ...tool,
-    handler: async (input: Record<string, unknown>) => withSource(await tool.handler(input), input, log, tool.name),
+    handler: async (input: Record<string, unknown>, call?: ToolCallContext) => withSource(await tool.handler(input, call), input, log, tool.name),
     restore: (input: unknown, output: string) => restoreSource(input, output, log, tool.name),
   }));
 }

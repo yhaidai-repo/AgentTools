@@ -49,7 +49,7 @@ describe("handoffHumanTaskBody", () => {
     assert.match(body, /^\*\*Handed off by\*\* PT-1-001 \(planning, RUN-812\): review the sender's output; the tasks after it wait for your decision\./);
     assert.match(body, /The plan archives expired orders in OrderArchiver\.\n\nRead: Results RUN-812; Notes shop\/orders\/expiry\.md/);
     assert.match(body, /### Step 1: Review the plan and decide[\s\S]*\*\*Report back:\*\* `approve`, or `changes: <what to change>`/);
-    assert.match(body, /### Step 2: Check the facts it rests on[\s\S]*`ok`, or your corrections/);
+    assert.match(body, /### Step 2: Check the facts and assumptions it rests on[\s\S]*`ok`, or your corrections/);
     assert.match(body, /## Done when\n\napprove$/);
   });
 });

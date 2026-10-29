@@ -1,6 +1,6 @@
 export { SandboxClient } from "./SandboxClient";
 export { GENERAL_IMAGE, imageNamed, readImageCatalog } from "./imageCatalog";
-export { SANDBOX_OWNER_LABEL, SANDBOX_LABEL, SANDBOX_EXPIRES_LABEL, WORKSPACE, PACKAGES, FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER, PACKAGE_ADDITIONS_HEADER } from "./sandboxConstants";
+export { SANDBOX_OWNER_LABEL, SANDBOX_LABEL, SANDBOX_EXPIRES_LABEL, WORKSPACE, PACKAGES, FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER, PACKAGE_ADDITIONS_HEADER, RESTORE_CALL_TIMEOUT_MS } from "./sandboxConstants";
 export type { CommandRequest } from "./models/CommandRequest";
 export type { CommandResult } from "./models/CommandResult";
 export type { EditApplied } from "./models/EditApplied";
@@ -13,7 +13,10 @@ export type { PackageAddition } from "./models/PackageAddition";
 export type { PatchApplied } from "./models/PatchApplied";
 export type { PatchRequest } from "./models/PatchRequest";
 export type { RepoUploaded } from "./models/RepoUploaded";
+export type { PackageCacheSize } from "./models/PackageCacheSize";
+export type { RestoreProgress } from "./models/RestoreProgress";
 export type { RestoreResult } from "./models/RestoreResult";
+export type { RestoreStepNow } from "./models/RestoreStepNow";
 export type { RestoreStepResult } from "./models/RestoreStepResult";
 export type { SandboxAnswer } from "./models/SandboxAnswer";
 export type { SandboxFailure } from "./models/SandboxFailure";

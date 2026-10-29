@@ -4,7 +4,7 @@ import type { RunCounts } from "../models/RunCounts";
 import { JOB_STAGES, NOT_FAILED_OUTCOMES } from "../runs";
 
 // Per stage (= agent id), in the period, plus all-time runs, for the selected vault's runs (a run belongs to the vault of
-// its task, or of its PBI). Failures: every outcome but NOT_FAILED_OUTCOMES (budget stops aren't failures).
+// its task, or of its PBI). Failures: every outcome but NOT_FAILED_OUTCOMES (budget and user stops aren't failures).
 export async function loadRunCounts(db: PowerLoomDb, from: Date, vault: string): Promise<Map<string, RunCounts>> {
   const inPeriod = sql`${agentRun.startedAt} >= ${from}`;
   const rows = await db

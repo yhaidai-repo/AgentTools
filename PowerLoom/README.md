@@ -40,6 +40,7 @@ docker compose up -d --build
 - Web UI: http://localhost:3100 (`WEB_PORT`); backend: http://127.0.0.1:5180 (`POWERLOOM_PORT`, `/health`, `/openapi/v1.json`).
 - Local diagnostics: standalone Aspire Dashboard receives logs, metrics and traces through the existing OpenTelemetry
   exporter. Enable the `observability` profile and exporter in `.env` (see `.env.example`); UI: `TELEMETRY_PORT` (3200).
+  The next `scripts/deploy-web.ps1` starts it (a deploy starts every enabled service that has no container).
   Its telemetry volume survives restarts, with limits of 10,000 logs, 5,000 traces and 1,000 metrics. It replaces the
   Prometheus rate charts; business charts and health checks use PowerLoom's own data.
 - Dashboard → Application has native request-rate, average response-time and process-memory charts for the backend API.
@@ -124,23 +125,31 @@ and verifier sub-agents build and test with their plain Bash tool; the orchestra
 proxy and every command reads offline (NuGet's only source is the cache, npm runs offline).
 
 To prepare a host and a vault:
+0. GSD itself: `npm install @opengsd/gsd-core@1.19.0` in a folder under `REPOS_ROOT` on the PC and set `GSD_CORE_DIR` in
+   `.env` to that package's path as the agent-runner sees it (`/repos/...`); the runner refuses any other version.
 1. Build the image: `docker build -t powerloom-sandbox - < Dockerfile.sandbox` (.NET SDKs 10 and 9 with runtime 8,
    Node 24, Deno, Python 3, PowerShell 7). It is the catalogue's `general` image (`sandbox-images.json`); a vault that
    needs other toolchains builds an image `FROM` it and adds an entry there.
 2. `.env`: `sandbox` in `COMPOSE_PROFILES`, `SANDBOX_URL=http://sandbox:3300`, `SANDBOX_TOKEN` and `SANDBOX_PROXY_SECRET`
    (long random values), then `docker compose up -d`. Without the proxy secret every restore gets the fixed host list
    `SANDBOX_PACKAGE_HOSTS` instead of its vault's.
-3. Settings → Data access → Sandbox: the image (empty = `general`) and the package hosts (default `api.nuget.org`,
-   `registry.npmjs.org`). The vault's own Azure DevOps feeds are signed in with its Azure DevOps token and need no entry.
-4. Private feeds of other organizations or with a token of their own: vault setting `vault:<vault>:packageFeeds` in the
-   `config` table, `{"feeds": [{"url": "<feed URL, or a prefix covering several feeds>", "username": "<optional>",
-   "token": "<PAT with Packaging (read)>"}]}`. A source of the repo's `nuget.config` (or `.npmrc`) under the URL gets the
-   sign-in, during restores only; the feed's hosts (for Azure Artifacts also its blob storage) join the vault's package
-   hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a sandbox command
-   or a log. Set it with SQL, e.g. `INSERT INTO config (key, value) VALUES ('vault:<vault>:packageFeeds', '{"feeds": [...]}')
-   ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now();`
-5. Build and test commands: vault setting `vault:<vault>:repoCommands`, `{"repos": {"<repo>": {"build": "<command>",
-   "test": "<command>"}}}`. The shell sends any of them (also with more arguments) to the sandbox.
+3. Settings → Data access → Sandbox (or the MCP tool `sandbox_saveSettings`; `settings_get` lists them): the image
+   (empty = `general`) and the package hosts (default `api.nuget.org`, `registry.npmjs.org`): names, `*.example.com` for
+   every host under it, or `*` inside a label; a host a feed redirects downloads to (a CDN, a blob storage) needs its own
+   entry. The vault's own Azure DevOps feeds are signed in with its Azure DevOps token and need no entry. Stored as the
+   vault setting `sandbox`.
+4. Private feeds of other organizations or with a token of their own: the MCP tools `sandbox_savePackageFeed` (URL, or
+   a prefix covering several feeds; optional user name; a PAT with Packaging (read)) and `sandbox_removePackageFeed`;
+   `settings_get` lists the feeds without their tokens. A source of the repo's `nuget.config` (or `.npmrc`) under the
+   URL gets the sign-in, during restores only; the feed's hosts (for Azure Artifacts also its blob storage) join the
+   vault's package hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a
+   sandbox command, a log or a tool's answer. Stored as the vault setting `packageFeeds`,
+   `{"feeds": [{"url", "username", "token"}]}`.
+5. Build and test commands: Settings → Repositories, under each repo's row (or the MCP tool `repo_saveCommands`;
+   `settings_get` lists them). The shell sends any of them (also with more arguments) to the sandbox, and the
+   implementation agent's GSD gets its repo's as `workflow.build_command` and `workflow.test_command`. Each is a single
+   command or `cd <folder> && <command>`: a compound isn't routed, so saving one is refused. Stored as the vault setting
+   `repoCommands`.
 6. Agents page: switch on the agent's Sandbox integration.
 
 The cache volume is `powerloom-packages-<vault>-<hash>` (label `powerloom.package-cache`); it outlives the sandboxes so
@@ -168,6 +177,7 @@ npm run powerloom:dev:web          # needs DATABASE_URL, POWERLOOM_URL in env
 - The PBI notes' region markers (`<!-- adoa:begin … -->`) keep their name: they are the file format of every rendered note.
 - `apps/agent-runner/src/GsdWorktreePreparer.ts` prepares a per-PBI git worktree before the first GSD command (not wired into a run yet): creates `.planning/` (without it `gsd-tools.cjs` remaps to the main checkout), sets `commit_docs: false` in `.planning/config.json` (existing keys kept), appends `.planning/` and `.claude/` to the git exclude file, installs `@opengsd/gsd-core` 1.19.0 locally, and sets the run's commit identity with `git config --worktree`. The exclude file is `git rev-parse --git-path info/exclude`, which in a linked worktree is the main repo's `info/exclude`, shared by all its worktrees; `.gitignore` is never edited. The installer writes hooks and permissions to `.claude/settings.local.json`, so the run must use `settingSources: ["project", "local"]`.
 - Hand-off (v1, 2026-10-28): every agent hands work on with `hand_off` (`packages/agents/src/handoff`): it creates the target item (agent task, human task, question), a `handoff` row (intent `continue` | `ask` | `review` | `return`, gate `approve` | `answer` | `none`, package body and refs) and the dependency. `create_task` only creates agent work nothing waits for. `packages/core/src/handoffs/renderHandoff.ts` renders the receiving agent's first block, the human task body and the Continue note's "Hand-off" section; `settleTask` ends a run by its hand-offs' intents; the dispatcher blocks a task whose gated dependency closed without `approve` (or without an answer) (`src/PowerLoom.Domain/Tasks/HandoffGates.cs`).
+- Implementation (wave 3, 2026-10-29): the `implementation` agent takes `implement` tasks (`packages/agents/src/implementation`). It reads the plan review first: approve → GSD executes the plan on `powerloom/pbi-<id>` in the PBI's worktree (local commits only, no ship step); changes, corrected facts or a PBI changed since its plan (`planning_snapshot.pbi_content_hash`) → a `design` task with the changes; a cancelled review → blocked. The planning agent marks its implement task `data.readsReview`, so `HandoffGates` lets a review that asked for changes through to it. `write_implementation` stores `implementation_snapshot`; the hand-over human task gets the branch, the worktree and the pull request description, and the worktree is held with `git worktree lock` (reason names the task) until someone unlocks it. A task's `data.gsdModels` (`{"executor": "<model id>", "verifier": "<model id>"}`) sets its execution models; the default is Opus 5.5 for both.
 
 ## Demonstration
 See [Demonstration agent](docs/support-guides.md) for local/remote tasks, screenshots, portable Confluence handoffs and rollout.

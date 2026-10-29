@@ -3,6 +3,8 @@
 # (WWW-010, 2026-10-19: a vault review was lost that way). -Force recreates it anyway.
 # -WithApi also rebuilds and recreates PowerLoom's API (it migrates the database at start), under the same guard, since
 # a run in progress reports its end to it; it goes first, so a new web and runner find the migrated schema.
+# Last, it starts every service the current profiles enable that has no container yet (a service added to the compose
+# file, or a profile switched on in .env, such as observability), without recreating any existing container.
 param(
     [switch]$WithApi,
     [switch]$WithRunner,
@@ -43,6 +45,24 @@ function Invoke-Compose([string[]]$arguments) {
     if ($LASTEXITCODE -ne 0) {
         throw "docker compose $($arguments -join ' ') failed."
     }
+}
+
+function Get-ComposeServices([string[]]$arguments) {
+    $services = docker compose @arguments
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker compose $($arguments -join ' ') failed."
+    }
+
+    return @($services | Where-Object { $_ })
+}
+
+# Services the current profiles enable whose container doesn't exist, not even stopped.
+function Get-ServicesWithoutContainer {
+    $enabled = Get-ComposeServices @('config', '--services')
+    $created = Get-ComposeServices @('ps', '-a', '--services')
+
+    return @($enabled | Where-Object { $_ -notin $created })
 }
 
 function Invoke-PowerLoomDeployment {

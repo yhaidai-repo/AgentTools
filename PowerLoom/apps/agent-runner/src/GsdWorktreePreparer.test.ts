@@ -80,6 +80,35 @@ it("creates .planning and config.json when the worktree has neither", async () =
   });
 });
 
+it("merges the run's seed into config.json one level deep and writes its files into .planning", async () => {
+  await withRepo(async ({ worktree, core }) => {
+    await mkdir(join(worktree, ".planning"));
+    await writeFile(join(worktree, ".planning", "config.json"), JSON.stringify({ mode: "yolo", workflow: { research: false, verifier: true } }));
+    const seed = {
+      config: { model_profile: "adaptive", model_overrides: { "gsd-planner": "claude-opus-5-5" }, workflow: { research: true }, commit_docs: true },
+      files: [{ path: "PBI.md", content: "# PBI-1\n" }, { path: "context/answers.md", content: "none\n" }],
+    };
+
+    await new GsdWorktreePreparer().prepare({ worktree, gsdCore: core, identity, seed });
+
+    const config = JSON.parse(await readFile(join(worktree, ".planning", "config.json"), "utf8"));
+    assert.deepEqual(config, { mode: "yolo", workflow: { research: true, verifier: true }, model_profile: "adaptive", model_overrides: { "gsd-planner": "claude-opus-5-5" }, commit_docs: false });
+    assert.equal(await readFile(join(worktree, ".planning", "PBI.md"), "utf8"), "# PBI-1\n");
+    assert.equal(await readFile(join(worktree, ".planning", "context", "answers.md"), "utf8"), "none\n");
+    assert.equal(git(worktree, "status", "--porcelain").trim(), "");
+  });
+});
+
+it("refuses a seed file outside .planning before writing any", async () => {
+  await withRepo(async ({ worktree, core }) => {
+    const seed = { config: {}, files: [{ path: "PBI.md", content: "x" }, { path: "../escape.md", content: "x" }] };
+
+    await assert.rejects(new GsdWorktreePreparer().prepare({ worktree, gsdCore: core, identity, seed }), /not inside \.planning/);
+    assert.equal(await exists(join(worktree, ".planning", "PBI.md")), false);
+    assert.equal(await exists(join(worktree, "escape.md")), false);
+  });
+});
+
 it("returns the commit identity as environment and leaves every git config alone", async () => {
   await withRepo(async ({ main, worktree, core }) => {
     const before = await readFile(join(main, ".git", "config"), "utf8");

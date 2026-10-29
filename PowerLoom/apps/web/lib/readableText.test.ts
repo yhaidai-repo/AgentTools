@@ -16,4 +16,8 @@ describe("readableMarkdown", () => {
   it("links PBI mentions, but not inside code or an existing link", () => {
     assert.equal(readableMarkdown("Blocks PBI-30270 and `PBI-1` and [PBI-2](/pbis/2)"), "Blocks [PBI-30270](/pbis/30270) and `PBI-1` and [PBI-2](/pbis/2)");
   });
+
+  it("links a versioned reference as a whole to the latest result of that kind", () => {
+    assert.equal(readableMarkdown("Plan PBI-22884:plan has two plans; see PBI-22884."), "Plan [PBI-22884:plan](/results/plan/PBI-22884) has two plans; see [PBI-22884](/pbis/22884).");
+  });
 });

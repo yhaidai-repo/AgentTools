@@ -1,6 +1,6 @@
 "use server";
 
-import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand, syncPullRequestsCommand } from "@powerloom/core";
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand, saveRepoCommandsCommand, saveSandboxSettingsCommand, syncPullRequestsCommand, type RepoBuildCommands } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
@@ -130,6 +130,20 @@ export async function addLocalRepoAction(_previous: ActionResult | null, form: F
 export async function removeLocalRepoAction(id: string): Promise<void> {
   await runWebCommand(removeRepoCommand, { vault: await requireVault(), id });
   revalidatePath("/settings");
+}
+
+// A repo's build and test commands for coding runs; empty fields clear them.
+export async function saveRepoCommandsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const input = { vault: await requireVault(), repo: field(form, "repo"), build: field(form, "build"), test: field(form, "test") };
+  const saved = await runWebCommand(saveRepoCommandsCommand, input);
+
+  revalidatePath("/settings");
+
+  return saved.ok ? { ok: true, message: savedCommandsMessage(saved.value) } : { ok: false, message: saved.error };
+}
+
+function savedCommandsMessage(commands: RepoBuildCommands): string {
+  return commands.build || commands.test ? "Saved. The next coding run on this repo builds and tests with them." : "Saved. No commands: runs keep the usual dotnet and npm ones.";
 }
 
 // Read SQL (user decision 2026-10-12), kept by PowerLoom; which agents read is each agent's own switch.
@@ -359,18 +373,15 @@ export async function saveWebSearchAction(_previous: ActionResult | null, form: 
   return result;
 }
 
-// Settings → Data access → Sandbox of the vault: counts from each run's next sandbox and restore.
+// Settings → Data access → Sandbox of the vault: counts from each run's next sandbox and restore. The same command as
+// the MCP tool sandbox_saveSettings, so the hosts are checked in one place.
 export async function saveSandboxAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const packageHosts = field(form, "packageHosts").split(/[\s,]+/).filter(Boolean);
-  const saved = await powerloom.PUT("/api/vaults/{vault}/sandbox", {
-    params: { path: { vault: await requireVault() } },
-    body: { packageHosts, image: field(form, "image") || null },
-  });
-  const result = powerloomResult(saved, "Saved. The vault's next sandboxes and restores use it.");
+  const packageHosts = field(form, "packageHosts").split(/[\s,]+/);
+  const saved = await runWebCommand(saveSandboxSettingsCommand, { vault: await requireVault(), packageHosts, image: field(form, "image") });
 
   revalidatePath("/settings");
 
-  return result;
+  return saved.ok ? { ok: true, message: "Saved. The vault's next sandboxes and restores use it." } : { ok: false, message: saved.error };
 }
 
 // The app chats open in: "Continue with …" and "Configure with …" follow it.

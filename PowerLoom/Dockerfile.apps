@@ -4,7 +4,8 @@ FROM node:24-alpine
 ENV NODE_OPTIONS=--no-network-family-autoselection \
     NEXT_TELEMETRY_DISABLED=1
 # GNU tar: a run copies a cached repo into its sandbox as a tar without .git (--exclude).
-RUN apk add --no-cache git tar
+# bash: GSD's hooks fire through `bash hooks/gsd-node-runner.sh`; its installer refuses a worktree without a bash.
+RUN apk add --no-cache git tar bash
 # Local repos (folders of the repos root) are cloned from the read-only mount, whose files a Linux or WSL host may own
 # under another uid: git refuses such a repo ("dubious ownership") unless system config trusts it; the container only
 # reads the mount and its own clones.

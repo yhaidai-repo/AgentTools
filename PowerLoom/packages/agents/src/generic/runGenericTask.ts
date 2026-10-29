@@ -20,6 +20,7 @@ import { recordToolOffer } from "../toolset/recordToolOffer";
 import { toolsPromptSection } from "../toolset/toolsPromptSection";
 import type { GenericRun } from "./models/GenericRun";
 import { runContextBlock } from "./previousResult";
+import { runCapabilities, workspaceInput, writerWorkspace } from "./runWorkspace";
 import { settleTask } from "./settleTask";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -124,13 +125,15 @@ async function prepare(context: TaskContext, session: AgentRunSession, task: Ite
   const toolset = await AgentToolset.open(context, session, task, { repos: run.repos, docsRoot: taskVaultRoot(deps, task), writers, depth: chainDepth(task) });
   const firstMessage = await buildFirstMessage(deps.db, task, run, await toolset.contextBlocks(), toolset.webDocumentsBlock());
   const tools = toolset.tools(firstMessage);
+  const workspace = await writerWorkspace(writers, task);
 
   run.toolset = toolset;
   await recordToolOffer(deps.db, task.vault, agent.id, toolset.offered);
   await session.phase("first-message", { chars: firstMessage.length });
 
   return {
-    capabilities: agent.capabilities,
+    capabilities: runCapabilities(agent.capabilities, workspace),
+    ...workspaceInput(workspace),
     systemPrompt: [prompt.text, await environmentPromptSection(deps.docsRoot, deps.docsVaultName, agent.id), ...(await toolset.promptSections()), skills.promptSection, toolsPromptSection(tools)].filter(Boolean).join("\n\n"),
     firstMessage,
     tools,

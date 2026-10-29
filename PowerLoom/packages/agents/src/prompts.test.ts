@@ -32,10 +32,38 @@ describe("composePrompt", () => {
 
 describe("loadPrompt", () => {
   it("keeps today's prompts unchanged", async () => {
-    const prompt = await loadPrompt("design", { team: "Catalog" });
+    const prompt = await loadPrompt("tech-writer", { team: "Catalog" });
 
-    assert.equal(prompt.version, "v11");
+    assert.equal(prompt.version, "v13");
     assert.doesNotMatch(prompt.text, /How you work/);
+  });
+
+  it("gives the planning prompt the framework, GSD's steps and the gated review hand-off", async () => {
+    const prompt = await loadPrompt("planning", { team: "Catalog" });
+
+    assert.match(prompt.version, /^v2\+framework\./);
+    assert.match(prompt.text, /How you work/);
+    assert.match(prompt.text, /gsd-discuss-phase` with `<phase> --auto`/);
+    assert.match(prompt.text, /`intent: "review"`, `gate: "approve"`/);
+    assert.match(prompt.text, /`depends_on: \["new:1"\]`/);
+    assert.doesNotMatch(prompt.text, /write_design/);
+  });
+
+  it("gives the implementation prompt the outcome first, GSD's execution, the sandbox builds and the hand-over without a push", async () => {
+    const prompt = await loadPrompt("implementation", { team: "Catalog" });
+
+    assert.match(prompt.version, /^v3\+framework\./);
+    assert.match(prompt.text, /call `sandbox_open` and `sandbox_restore` once/);
+    assert.match(prompt.text, /Never hand over unbuilt code .* a restore or build failure the code can't fix is a blocker/);
+    assert.match(prompt.text, /\("unreachable"\) is retried in this run, not assumed/);
+    assert.match(prompt.text, /a new NuGet package goes through `sandbox_restore` with `packages`, then a PackageReference in the worktree/);
+    assert.doesNotMatch(prompt.text, /don't run in the worktree's shell/);
+    assert.match(prompt.text, /How you work/);
+    assert.match(prompt.text, /`outcome="replan"`: build nothing\. `hand_off` to `design` with `intent: "continue"`/);
+    assert.match(prompt.text, /Skill `gsd-execute-phase` with `<phase>`/);
+    assert.match(prompt.text, /answer `skip: needs a person: <why>`/);
+    assert.match(prompt.text, /`intent: "review"`, `gate: "none"`/);
+    assert.match(prompt.text, /Never `git push`, never open a pull request, never run GSD's ship step/);
   });
 
   it("gives the autotest prompt the continue and hand-off rules", async () => {
@@ -64,9 +92,9 @@ describe("loadAgentPrompt", () => {
   });
 
   it("falls back to the agent's prompt file while the stored prompt is empty", async () => {
-    const prompt = await loadAgentPrompt("design", { text: "  ", version: 0 }, { team: "Catalog" });
+    const prompt = await loadAgentPrompt("tech-writer", { text: "  ", version: 0 }, { team: "Catalog" });
 
-    assert.equal(prompt.version, "v11");
+    assert.equal(prompt.version, "v13");
   });
 
   it("pulls in the framework stored in Settings instead of the file", async () => {

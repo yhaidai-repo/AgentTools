@@ -8,6 +8,7 @@ import { MAIN_SESSION_ID, sessionIdOf } from "./sessionIds";
 type Payload = Record<string, any>;
 
 const MAIN_STATUS_OF_REASON: Record<string, RunSessionStatus> = { success: "completed", aborted: "stopped" };
+const SUBAGENT_TOOL = "Agent";
 
 // Reads a run's trace event by event into its sessions. The runtime opens a sub-session from its first frame when that
 // frame came before the session's start message (`inferred`), and the complete start replaces it; an event of a session
@@ -18,13 +19,14 @@ export class RunSessionReader {
   private readonly completeStarts = new Set<string>();
   private readonly ended = new Set<string>();
   private readonly toolCalls = new Map<string, number>();
+  private readonly calls = new Map<string, { sessionId: string; name: string }>();
 
   constructor() {
     this.add(newSession(MAIN_SESSION_ID, null, "main"));
   }
 
   read(event: StoredTraceEvent): void {
-    const session = this.sessionFor(sessionIdOf(event));
+    const session = this.sessionFor(this.sessionIdFor(event));
 
     session.startedAt ??= event.at;
     session.eventCount += 1;
@@ -58,11 +60,31 @@ export class RunSessionReader {
         return;
       case "tool_call":
         this.toolCalls.set(session.id, (this.toolCalls.get(session.id) ?? 0) + 1);
+        this.calls.set(String(event.payload.callId), { sessionId: session.id, name: String(event.payload.name) });
         return;
     }
   }
 
+  // Before 2026-10-29 the runtime read a long tool call's own heartbeat as a sub-agent of the call (an inferred start,
+  // then progress under the call's id): those events belong to the session that made the call.
+  private sessionIdFor(event: StoredTraceEvent): string {
+    const id = sessionIdOf(event);
+    const call = this.calls.get(id);
+    const isHeartbeat = event.type === "tool_progress" || (event.type === "session_start" && event.payload.inferred === true);
+
+    if (!call || call.name === SUBAGENT_TOOL || this.completeStarts.has(id) || !isHeartbeat) {
+      return id;
+    }
+
+    return call.sessionId;
+  }
+
+  // A start read into the caller's session (sessionIdFor) names no session of its own.
   private start(session: RunSession, payload: Payload): void {
+    if (payload.sessionId !== session.id) {
+      return;
+    }
+
     if (payload.inferred && this.completeStarts.has(session.id)) {
       return;
     }

@@ -16,7 +16,7 @@ const SOURCES: Record<string, string> = {
   refinement: "refinement's list, not saved yet",
 };
 
-// The repos research and design clone for this PBI (user decision 2026-10-02): × and "+ Add repo" change the chips,
+// The repos research and planning clone for this PBI (user decision 2026-10-02): × and "+ Add repo" change the chips,
 // nothing is stored until "Save repos"; saving confirms every repo on it and answers refinement's repo question. A
 // refinement guess not confirmed yet is an amber chip.
 export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: PbiRepoEntry[]; catalog: string[] }) {
@@ -27,7 +27,7 @@ export function PbiReposForm({ adoId, repos, catalog }: { adoId: number; repos: 
   return (
     <KeptForm action={action} className="close-item">
       <input type="hidden" name="adoId" value={adoId} />
-      {rows.length === 0 && <p className="empty">No repos: research and design clone none for this PBI.</p>}
+      {rows.length === 0 && <p className="empty">No repos: research and planning clone none for this PBI.</p>}
       <div className="chip-list">
         {rows.map((row) => (
           <span key={row.name} className={row.source === "agent-assumed" ? "pick-chip guess" : "pick-chip"} title={SOURCES[row.source] ?? row.source}>

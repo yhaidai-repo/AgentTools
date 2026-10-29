@@ -7,6 +7,6 @@ export const APPROVE_ANSWER = "approve";
 export function approvalSteps(subject: string): HumanTaskStep[] {
   return [
     { action: `Review ${subject} and decide`, source: "other", resource: "The hand-off above", query: null, timeRange: null, reportBack: "`approve`, or `changes: <what to change>`" },
-    { action: "Check the facts it rests on", source: "other", resource: "The hand-off above", query: null, timeRange: null, reportBack: "`ok`, or your corrections" },
+    { action: "Check the facts and assumptions it rests on", source: "other", resource: "The hand-off above", query: null, timeRange: null, reportBack: "`ok`, or your corrections" },
   ];
 }

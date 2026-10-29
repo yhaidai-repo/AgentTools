@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { createPlanningFolder, disableCommitDocs, ignoreFolderContents } from "./gsdWorktreeFiles";
+import { createPlanningFolder, ignoreFolderContents, writePlanningConfig, writeSeedFiles } from "./gsdWorktreeFiles";
 import type { GitIdentity } from "./models/GitIdentity";
 import type { GitIdentityEnv } from "./models/GitIdentityEnv";
 import type { GsdWorktreeOptions } from "./models/GsdWorktreeOptions";
@@ -28,8 +28,10 @@ export class GsdWorktreePreparer {
     // Without its own .planning/, gsd-tools.cjs remaps every command to the MAIN checkout (resolveMainWorktreeCwd).
     const planning = await createPlanningFolder(worktree);
 
-    // Keeps GSD from committing planning docs into the PBI branch.
-    await disableCommitDocs(planning);
+    // The run's settings (model profiles) with commit_docs off, which keeps GSD from committing planning docs into the
+    // PBI branch; then the files the run starts from.
+    await writePlanningConfig(planning, options.seed?.config ?? {});
+    await writeSeedFiles(planning, options.seed?.files ?? []);
 
     // info/exclude is read from the shared git dir only, so a nested .gitignore is the per-worktree way. It does not
     // cover tracked files: a tracked .claude/CLAUDE.md is still committed when changed.

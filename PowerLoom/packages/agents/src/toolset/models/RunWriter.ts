@@ -7,6 +7,7 @@ import type { SharedRunState } from "./SharedRunState";
 import type { WriterRunContext } from "./WriterRunContext";
 import type { WriterSettlement } from "./WriterSettlement";
 import type { WriterTarget } from "./WriterTarget";
+import type { WriterWorkspace } from "./WriterWorkspace";
 
 // An output tool any agent can be granted (user decision 2026-10-22: writers are shared and granted like readers), with
 // the commit that stores what it recorded once the run succeeds. Returns the ids it wrote, for the run's outputs.
@@ -28,6 +29,8 @@ export interface RunWriter {
   repoSources?(task: typeof localItem.$inferSelect): Promise<RepoSource[]>;
   /** How the repos open for the writer's work (a PR checkout as the tools' root). */
   repoOptions?(task: typeof localItem.$inferSelect, runId: number): OpenReposOptions;
+  /** A worktree of its own the run works in (planning's PBI worktree), with the policy its tool calls pass there. */
+  workspace?(task: typeof localItem.$inferSelect): Promise<WriterWorkspace | null>;
   /** What the writer leaves behind (a checkout), removed when the run ends, whatever happened. */
   cleanUp?(): Promise<void>;
 }

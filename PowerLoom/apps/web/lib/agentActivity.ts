@@ -1,4 +1,4 @@
-import { JOB_STAGES, NOT_FAILED_OUTCOMES } from "@powerloom/core";
+import { JOB_STAGES, NOT_FAILED_OUTCOMES, USER_STOP_OUTCOME } from "@powerloom/core";
 import { agentRun, localItem, workItem } from "@powerloom/db";
 import type { UsageRecord } from "@agenttools/usage";
 import { and, eq, gte, notInArray, sql } from "drizzle-orm";
@@ -11,12 +11,14 @@ import { runInVault, vaultRunIds } from "./vaultRuns";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FAILURE_FILTER = notInArray(agentRun.outcome, NOT_FAILED_OUTCOMES);
 const BUDGET_STOP_FILTER = eq(agentRun.outcome, "budget-exceeded");
+const USER_STOP_FILTER = eq(agentRun.outcome, USER_STOP_OUTCOME);
 
 interface RunDay {
   day: string;
   runs: number;
   failures: number;
   budgetStops: number;
+  userStops: number;
 }
 
 interface RunTotals {
@@ -66,6 +68,7 @@ async function runsPerDay(from: Date, vault: string): Promise<RunDay[]> {
       runs: sql<number>`count(*)::int`,
       failures: sql<number>`(count(*) FILTER (WHERE ${FAILURE_FILTER}))::int`,
       budgetStops: sql<number>`(count(*) FILTER (WHERE ${BUDGET_STOP_FILTER}))::int`,
+      userStops: sql<number>`(count(*) FILTER (WHERE ${USER_STOP_FILTER}))::int`,
     })
     .from(agentRun)
     .leftJoin(localItem, eq(localItem.id, agentRun.itemId))
@@ -94,7 +97,7 @@ async function vaultRecords(from: Date, vault: string): Promise<UsageRecord[]> {
 }
 
 function emptyDay(day: string): DayActivity {
-  return { day, runs: 0, failures: 0, budgetStops: 0, costByAgent: {}, tokensByAgent: {}, durationMsByAgent: {} };
+  return { day, runs: 0, failures: 0, budgetStops: 0, userStops: 0, costByAgent: {}, tokensByAgent: {}, durationMsByAgent: {} };
 }
 
 function setRuns(day: DayActivity | undefined, row: RunDay): void {
@@ -105,6 +108,7 @@ function setRuns(day: DayActivity | undefined, row: RunDay): void {
   day.runs = row.runs;
   day.failures = row.failures;
   day.budgetStops = row.budgetStops;
+  day.userStops = row.userStops;
 }
 
 function addDayUsage(day: DayActivity | undefined, record: UsageRecord): void {

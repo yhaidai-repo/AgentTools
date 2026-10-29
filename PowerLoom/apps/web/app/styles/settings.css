@@ -204,6 +204,28 @@
   font-size: 12.5px;
 }
 
+/* A repo's build and test commands under its row: the summary shows them, open to edit. */
+.resource-commands {
+  grid-column: 2 / -1;
+}
+
+.resource-commands > summary {
+  overflow: hidden;
+  font: 12px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.resource-commands > form {
+  margin-top: 8px;
+}
+
+.resource-commands .field {
+  margin-bottom: 4px;
+}
+
 .source-tag {
   padding: 0 7px;
   font-size: 11px;

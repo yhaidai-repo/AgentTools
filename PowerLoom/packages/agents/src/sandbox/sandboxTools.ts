@@ -7,6 +7,9 @@ import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
+import { isSandboxBuildCommand, withOwnExitCode } from "./buildRouting";
+import { exitCodeOf, recordBuildRun } from "./buildRunLog";
+import { buildNotes, errorCountText } from "./routedOutput";
 import { refusalOf } from "./commandRefusals";
 import { createEditTools } from "./editTools";
 import type { RunSandbox } from "./models/RunSandbox";
@@ -51,7 +54,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
   const sync = worktree ? [syncTool(deps, context, access, sandbox, worktree)] : [];
 
   if (worktree && deps.runShellRoute) {
-    deps.runShellRoute.current = new SandboxShellRoute({ tools: { open, sync: sync[0], restore }, access, sandbox, worktree, outside: deps.outside, context }, access.buildCommands);
+    deps.runShellRoute.current = new SandboxShellRoute({ tools: { open, sync: sync[0], restore }, access, sandbox, worktree, outside: deps.outside, context, log: deps.runBuildLog ?? null }, access.buildCommands);
   }
 
   return [
@@ -117,9 +120,15 @@ function runCommandTool(deps: AgentDeps, context: OutsideAccessContext, access: 
         return noSandbox();
       }
 
-      const answer = await access.client.run(sandbox.info.id, { command: input.command, cwd: input.cwd, timeoutMs: input.timeout ?? DEFAULT_TIMEOUT_MS });
+      const isBuild = isSandboxBuildCommand(input.command, access.buildCommands ?? []);
+      const command = isBuild ? withOwnExitCode(input.command) : input.command;
+      const answer = await access.client.run(sandbox.info.id, { command, cwd: input.cwd, timeoutMs: input.timeout ?? DEFAULT_TIMEOUT_MS });
 
-      return answer.ok ? commandText(answer.value) : failure(answer);
+      if (isBuild) {
+        recordBuildRun(deps.runBuildLog, input.command, answer.ok ? exitCodeOf(answer.value) : null, answer.ok ? null : answer.message);
+      }
+
+      return answer.ok ? commandText(answer.value, isBuild) : failure(answer);
     },
   });
 }
@@ -202,9 +211,10 @@ function sourceOf(repos: RepoAccess, worktree: RunWorktree | null, name: string)
   return `commit ${(repos.commits[name] ?? "unknown").slice(0, 12)}`;
 }
 
-function commandText(result: CommandResult): OutsideToolResult {
+function commandText(result: CommandResult, isBuild: boolean): OutsideToolResult {
   const seconds = (result.durationMs / 1000).toFixed(1);
-  const status = result.timedOut ? `Timed out after ${seconds} s and was killed` : `Exit code ${result.exitCode} (${seconds} s)`;
+  const status = result.timedOut ? `Timed out after ${seconds} s and was killed` : `Exit code ${result.exitCode} (${seconds} s)${isBuild ? errorCountText(result.output) : ""}`;
+  const notes = isBuild ? buildNotes(result).map((note) => `[${note}]\n`).join("") : "";
 
-  return { text: `${status}\n${result.output}`, isError: result.timedOut, truncated: result.truncated };
+  return { text: `${status}\n${notes}${result.output}`, isError: result.timedOut, truncated: result.truncated };
 }

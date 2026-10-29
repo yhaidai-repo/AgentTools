@@ -16,7 +16,8 @@ import { ESTIMATE_INTEGRATION } from "./estimate/estimateTool";
 import { RESEARCH_RESULT_INTEGRATION } from "./betterResearch/ResearchResultWriter";
 import { WRITE_NOTES_INTEGRATION } from "./techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION } from "./vaultReview/VaultReviewWriter";
-import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
+import { WRITE_PLAN_INTEGRATION } from "./planning/PlanWriter";
+import { WRITE_IMPLEMENTATION_INTEGRATION } from "./implementation/ImplementationWriter";
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
@@ -132,12 +133,30 @@ const BETTER_REFINEMENT_OPTIONS: AgentOptionSpec[] = [
   },
 ];
 
-const DESIGN_OPTIONS: AgentOptionSpec[] = [
+const PLANNING_OPTIONS: AgentOptionSpec[] = [
   batchSizeOption("PBIs"),
   {
     key: "maxFailures",
-    label: "Failures before blocking a design task",
-    description: "After this many failed runs, the design task is set to blocked and no longer picked.",
+    label: "Failures before blocking a planning task",
+    description: "After this many failed runs, the planning task is set to blocked and no longer picked.",
+    min: 1,
+    max: 10,
+  },
+  {
+    key: "repoRefreshMinutes",
+    label: "Repo refresh (minutes)",
+    description: "A cached repo is fetched again only when its last fetch is older than this. Lower = fresher code, more git traffic.",
+    min: 1,
+    max: 1440,
+  },
+];
+
+const IMPLEMENTATION_OPTIONS: AgentOptionSpec[] = [
+  batchSizeOption("PBIs"),
+  {
+    key: "maxFailures",
+    label: "Failures before blocking an implementation task",
+    description: "After this many failed runs, the implementation task is set to blocked and no longer picked.",
     min: 1,
     max: 10,
   },
@@ -299,7 +318,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     label: "Azure DevOps (read)",
     description: "The agent may read Azure DevOps with the vault's PAT (Settings → Azure DevOps): any work item with its links and comments, WIQL queries, pull requests with their reviewers, changed files and comment threads, and its PBI's Test Cases (Tested By), which are saved to the PBI as TC-<id> for later agents and chats. Pull requests need the PAT's Code (Read) scope.",
   },
-  // Refinement must estimate, design may (user decision 2026-10-18).
+  // Refinement must estimate, planning may (user decision 2026-10-18, design's grant moved to planning 2026-10-29).
   {
     key: ESTIMATE_INTEGRATION,
     label: "Give estimates",
@@ -326,10 +345,16 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent may review its task's vault: list its stale and unlinked notes, dead links and open records, decide each (keep, remove, actualize; fix; close), and write the review summary. The decisions are applied when the run succeeds.",
   },
   {
-    key: WRITE_DESIGN_INTEGRATION,
-    owner: "design",
-    label: "Write designs",
-    description: "The agent may design its PBI with write_design (approach, alternatives, plan, risks, tests) or name the questions that stop a design; the first message carries the PBI, its refinement and every research result. With a design the task is done, without one it waits for its gaps.",
+    key: WRITE_PLAN_INTEGRATION,
+    owner: "planning",
+    label: "Write plans",
+    description: "The agent plans its PBI with GSD in the PBI's worktree and stores the plan with write_plan (decisions, requirements coverage, plans by wave with tasks, the plan checker's verdict, risks and tests), or names the questions that stop it. A plan goes to a person for review; the implementation task waits behind that review.",
+  },
+  {
+    key: WRITE_IMPLEMENTATION_INTEGRATION,
+    owner: "implementation",
+    label: "Write implementations",
+    description: "The agent builds its PBI's approved plan with GSD on the PBI branch in its worktree, one local commit per task, never pushed, and stores what it built with write_implementation (plans done, commits, deviations, checkpoints, the verification matrix, open UAT items). A person gets the branch to review, push and open the pull request; review changes go back to planning.",
   },
   {
     key: WRITE_REFINEMENT_INTEGRATION,
@@ -359,7 +384,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     key: AUTOTEST_INTEGRATION,
     owner: "autotest",
     label: "Write test reports",
-    description: "The agent proves its PBI's acceptance criteria: the test cases, design and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
+    description: "The agent proves its PBI's acceptance criteria: the test cases, plan and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
   },
   // PowerLoom testing itself (owner, 2026-10-25): the commands against the running system, guarded to the run's own data.
   {
@@ -409,23 +434,49 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     // adds docs, and a stuck merge would hold it forever (user decision 2026-10-13).
     waitFor: ["linkedDocuments"],
   },
+  // Replaces design (user decision 2026-10-28): it takes design's tasks and plans them with GSD in the PBI's worktree,
+  // read-only on code. Opus 5.5 at effort high orchestrates; GSD's sub-agents get their models from the run's
+  // .planning/config.json (planningSeed). A plan-phase takes 20+ minutes per phase (spike 2026-10-28), hence the limits.
   {
-    id: "design",
-    label: "Design",
-    description: "Writes one implementation design per PBI from refinement and research: approach, alternatives, plan, risks, tests, estimates.",
+    id: "planning",
+    label: "Planning",
+    description: "Plans one PBI with GSD in the PBI's worktree from refinement and research: decisions, requirements coverage, plans by wave with tasks, checked by the plan checker. Answers GSD's questions from the PBI's context with evidence and asks a person what it can't; the plan goes to a person for review, then to implementation.",
     enabled: true,
     schedule: "45 */2 * * *",
-    model: { provider: "anthropic", model: "claude-opus-5-5" },
-    limits: { maxTurns: 60, timeoutMinutes: 20 },
-    budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [SANDBOX_INTEGRATION]: true, [WRITE_DESIGN_INTEGRATION]: true } },
-    skills: ["powerloom-design-checklist"],
-    options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
-    optionSpecs: withToolsetOptions(DESIGN_OPTIONS),
+    model: { provider: "anthropic", model: "claude-opus-5-5", effort: "high" },
+    limits: { maxTurns: 300, timeoutMinutes: 120 },
+    budgets: { perRunUsd: 30, dailyUsd: 60 },
+    capabilities: { webAccess: false, readCode: true, shell: true, subAgents: true, editCode: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [SANDBOX_INTEGRATION]: true, [WRITE_PLAN_INTEGRATION]: true } },
+    skills: ["powerloom-planning-checklist"],
+    options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: withToolsetOptions(PLANNING_OPTIONS),
     integrationSpecs: INTEGRATIONS,
-    canAssign: [],
+    canAssign: ["implement"],
     handles: ["design"],
     waitFor: ["humanItems", "linkedDocuments", "drafts", "otherAgentTasks"],
+  },
+  // Wave 3 (user decisions 2026-10-28/29): takes the `implement` task the planning agent hands on behind its review. It reads
+  // the review first; an approved plan is executed by GSD on the PBI branch in the run's worktree (one local commit per
+  // task, never pushed, no ship step), checked with verify-work, and handed to a person to review, push and open the pull
+  // request. Opus 5.5 at effort high orchestrates; executors and verifiers get their models per run from
+  // .planning/config.json (implementationSeed). Builds and tests run in the sandbox, hence its grant.
+  {
+    id: "implementation",
+    label: "Implementation",
+    description: "Builds one PBI's approved plan with GSD on the PBI branch: executes each phase wave by wave with one local commit per task, verifies the work, and hands the branch with a ready pull request description to a person to review, push and open the PR. Review changes go back to planning.",
+    enabled: true,
+    schedule: "15 */2 * * *",
+    model: { provider: "anthropic", model: "claude-opus-5-5", effort: "high" },
+    limits: { maxTurns: 400, timeoutMinutes: 180 },
+    budgets: { perRunUsd: 40, dailyUsd: 80 },
+    capabilities: { webAccess: false, readCode: true, shell: true, subAgents: true, editCode: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: false, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: false, [SANDBOX_INTEGRATION]: true, [WRITE_IMPLEMENTATION_INTEGRATION]: true } },
+    skills: ["powerloom-implementation-checklist"],
+    options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
+    optionSpecs: withToolsetOptions(IMPLEMENTATION_OPTIONS),
+    integrationSpecs: INTEGRATIONS,
+    canAssign: ["design"],
+    handles: ["implement"],
+    waitFor: ["humanItems", "linkedDocuments", "otherAgentTasks"],
   },
   {
     id: "tech-writer",

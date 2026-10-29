@@ -10,7 +10,7 @@ import { runInVault } from "./vaultRuns";
 const FAILURES_READ = 200;
 
 // The vault's latest distinct failures in the period, newest first (user decision 2026-10-18: a repeated error is one
-// row with its count). NOT_FAILED_OUTCOMES are left out: budget stops aren't failures.
+// row with its count). NOT_FAILED_OUTCOMES are left out: budget and user stops aren't failures.
 export async function loadFailureGroups(from: Date, limit: number, vault: string): Promise<FailureGroup[]> {
   return groupFailures(await loadRecentFailures(from, vault)).slice(0, limit);
 }

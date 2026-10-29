@@ -1,22 +1,17 @@
-import { readValue, vaultSettingKey } from "@powerloom/core";
+import { readPackageFeedSettings, type PackageFeed } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import type { FeedCredential } from "@powerloom/sandbox";
 import { adoFeedHosts } from "./adoFeedCredential";
-import type { PackageFeed } from "./models/PackageFeed";
-import type { PackageFeedSettings } from "./models/PackageFeedSettings";
-
-// The vault's private package feeds and their tokens (a `config` row, like the vault's other tokens).
-export const PACKAGE_FEEDS_KEY = "packageFeeds";
 
 // Azure Artifacts' feed hosts; its packages download from the organization's blob storage.
 const AZURE_ARTIFACTS = /^https:\/\/pkgs\.dev\.azure\.com\/([^/]+)|^https:\/\/([^.]+)\.pkgs\.visualstudio\.com/i;
 const DEFAULT_USERNAME = "powerloom";
 
-/** The vault's feeds that have a URL and a token; none until the setting is saved. */
+/** The vault's feeds that have an https URL and a token (a row edited by hand may lack either); none until the setting is saved. */
 export async function readPackageFeeds(db: PowerLoomDb, vault: string): Promise<PackageFeed[]> {
-  const stored = await readValue<Partial<PackageFeedSettings>>(db, vaultSettingKey(vault, PACKAGE_FEEDS_KEY));
+  const settings = await readPackageFeedSettings(db, vault);
 
-  return (stored?.feeds ?? []).filter((feed) => isHttpsUrl(feed?.url) && typeof feed.token === "string" && feed.token.length > 0);
+  return settings.feeds.filter((feed) => isHttpsUrl(feed?.url) && typeof feed.token === "string" && feed.token.length > 0);
 }
 
 /** The feed's sign-in for restores: the sources under its URL get it. */

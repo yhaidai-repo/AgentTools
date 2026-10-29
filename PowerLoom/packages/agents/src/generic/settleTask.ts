@@ -30,7 +30,8 @@ export type Settlement =
   | { kind: "block"; reason: string };
 
 // The one decision how a committed run ends its task (user decisions 2026-10-25, 2026-10-28). A budget stop stays
-// blocked whatever it handed off (what it asked is kept for the Re-run). A writer's own blockers (a test's blocking
+// blocked whatever it handed off (what it asked is kept for the Re-run). A writer that names a reason only a person
+// settles blocks the task with it. A writer's own blockers (a test's blocking
 // items) hold the task whatever write_result says. A hand-off settles the task by its intent: one that hands the work on
 // (continue, review, return) ends it done when no writer misses its output, even when it also asked something (the
 // receiving agent task waits for that: joinAskedToReceivers); one that only asks makes it wait for the answers, then run
@@ -38,6 +39,7 @@ export type Settlement =
 // for a person: nothing would run it again.
 export function decideSettlement(input: SettlementInput): Settlement {
   const waits = input.writers.flatMap((writer) => (writer.kind === "waits" ? [writer] : []));
+  const blocked = input.writers.flatMap((writer) => (writer.kind === "blocked" ? [writer.reason] : []));
   const missing = input.writers.flatMap((writer) => (writer.kind === "missing" ? [writer.output] : []));
   const asked = input.handoffs.filter((handoff) => handoff.intent === "ask").map((handoff) => handoff.toItemId);
   const handedOn = input.handoffs.some((handoff) => handoff.intent !== "ask");
@@ -46,6 +48,10 @@ export function decideSettlement(input: SettlementInput): Settlement {
 
   if (input.outcome === "budget-exceeded") {
     return { kind: "budget", dependsOn: waitFor };
+  }
+
+  if (blocked.length > 0) {
+    return { kind: "block", reason: blocked.join("; ") };
   }
 
   if (waits.length > 0) {

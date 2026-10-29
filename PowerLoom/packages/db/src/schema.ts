@@ -22,6 +22,8 @@ import type { HandoffIntent } from "./models/HandoffIntent";
 import type { HandoffRefs } from "./models/HandoffRefs";
 import type { HandoffStatus } from "./models/HandoffStatus";
 import type { HandoffTargetKind } from "./models/HandoffTargetKind";
+import type { PlanContent } from "./models/PlanContent";
+import type { BuildContent } from "./models/BuildContent";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -331,6 +333,41 @@ export const design = pgTable("design", {
 }, (t) => [
   uniqueIndex("design_pbi_version_uq").on(t.pbiId, t.version),
   check("design_complexity_ck", sql`${t.complexity} between 1 and 5`),
+]);
+
+// The planning agent's plan of a PBI, one version per write_plan (migration 20261029120000_PlanningSnapshots): the plan
+// read from the worktree's .planning/ and the `gsd-tools planning inspect` snapshot it was read with (schema_version 1).
+export const planningSnapshot = pgTable("planning_snapshot", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  version: integer("version").notNull(),
+  schemaVersion: smallint("schema_version").notNull(),
+  inspect: jsonb("inspect").$type<unknown>().notNull(),
+  plan: jsonb("plan").$type<PlanContent>().notNull(),
+  // The PBI's content hash (title, description, acceptance criteria) the plan was made from; implementation compares it
+  // with the PBI's current one. Null on plans stored before it was kept.
+  pbiContentHash: text("pbi_content_hash"),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("planning_snapshot_pbi_version_uq").on(t.pbiId, t.version),
+]);
+
+// Each write_implementation stores a version of the PBI's implementation (wave 3, user decisions 2026-10-28/29): what
+// was built on the PBI branch, read from .planning/ and git, with the `gsd-tools planning inspect` snapshot it was read
+// from (schema_version 1 only) and the plan version it executed.
+export const implementationSnapshot = pgTable("implementation_snapshot", {
+  id: serial("id").primaryKey(),
+  pbiId: integer("pbi_id").notNull().references(() => workItem.adoId),
+  version: integer("version").notNull(),
+  schemaVersion: smallint("schema_version").notNull(),
+  inspect: jsonb("inspect").$type<unknown>().notNull(),
+  build: jsonb("build").$type<BuildContent>().notNull(),
+  planVersion: integer("plan_version"),
+  runId: bigint("run_id", { mode: "number" }).references(() => agentRun.id),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("implementation_snapshot_pbi_version_uq").on(t.pbiId, t.version),
 ]);
 
 // Every estimate an agent recorded with record_estimate, one per run (user decision 2026-10-18); pages show a PBI's latest,

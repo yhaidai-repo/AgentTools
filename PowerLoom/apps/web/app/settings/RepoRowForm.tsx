@@ -1,8 +1,10 @@
 "use client";
 
 import type { RepoRow } from "@powerloom/core";
+import type { BuildCommands } from "@powerloom/db";
 import { useTransition } from "react";
 import { removeLocalRepoAction, setRepoEnabledAction } from "./actions";
+import { RepoCommandsForm } from "./RepoCommandsForm";
 
 // Where a repo comes from; `adoProject` holds a GitHub repo's owner.
 const TAGS: Record<RepoRow["kind"], { className: string; text: (project: string) => string }> = {
@@ -12,8 +14,8 @@ const TAGS: Record<RepoRow["kind"], { className: string; text: (project: string)
 };
 
 // One catalog repo: its switch saves at once; a local repo can be removed (an ADO or GitHub one comes back with the
-// next sync).
-export function RepoRowForm({ repo }: { repo: RepoRow }) {
+// next sync). Its build and test commands fold out under the row.
+export function RepoRowForm({ repo, commands }: { repo: RepoRow; commands: BuildCommands }) {
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -26,6 +28,7 @@ export function RepoRowForm({ repo }: { repo: RepoRow }) {
       <SourceTag repo={repo} />
       <span className="resource-target">{repo.defaultBranch?.replace(/^refs\/heads\//, "") ?? "–"}</span>
       <span className="resource-actions">{repo.kind === "local" && <button type="button" className="danger small" disabled={isPending} onClick={() => startTransition(() => removeLocalRepoAction(repo.id))}>Remove</button>}</span>
+      <RepoCommandsForm repo={repo.name} commands={commands} />
     </div>
   );
 }

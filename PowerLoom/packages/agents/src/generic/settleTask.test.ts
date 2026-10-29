@@ -39,6 +39,12 @@ describe("decideSettlement", () => {
     assert.deepEqual(settled, { kind: "budget", dependsOn: ["AT-1-002", "Q-1-004"] });
   });
 
+  it("blocks for a writer's reason only a person settles, even with a carry-on hand-off and a complete result", () => {
+    const settled = decideSettlement(input({ handoffs: [carryOn("DT-1-002")], writers: [{ kind: "blocked", reason: "HT-1-003 was cancelled: the review never approved the plan" }] }));
+
+    assert.deepEqual(settled, { kind: "block", reason: "HT-1-003 was cancelled: the review never approved the plan" });
+  });
+
   it("waits for a writer's own items rather than what the run asked", () => {
     const settled = decideSettlement(input({ result: result("partial"), handoffs: [ask("Q-1-001"), ask("AT-1-002")], writers: [{ kind: "waits", ids: ["Q-1-001"], reason: "The test waits for its blocking items" }] }));
 

@@ -120,7 +120,9 @@ button.danger {
   transition: opacity var(--motion-base) var(--motion-out), transform var(--motion-base) var(--motion-out), max-height var(--motion-base) var(--motion-out), margin var(--motion-base) var(--motion-out), padding var(--motion-base) var(--motion-out), border-width var(--motion-base) var(--motion-out);
 }
 
+/* Shown, the bar lets Start's menu open below it. */
 .selection-bar.show {
+  overflow: visible;
   max-height: 64px;
   margin-bottom: 12px;
   padding: 8px 10px 8px 16px;

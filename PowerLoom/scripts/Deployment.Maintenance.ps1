@@ -22,6 +22,21 @@ function Assert-DeploymentIdle([object]$RunningTask) {
 }
 
 function Invoke-Deployment {
+    Update-AppContainers
+    Start-ServicesWithoutContainer
+}
+
+# Brings up services a profile or a compose change added since the stack was last started (Grafana, SearXNG). Only
+# services with no container at all are named, and --no-deps --no-recreate keep compose from touching any other one,
+# so a guarded container (db, powerloom, agent-runner, sandbox) is never recreated here, whatever changed in its config.
+function Start-ServicesWithoutContainer {
+    $missing = Get-ServicesWithoutContainer
+    if ($missing.Count -eq 0) { return }
+    Write-Host "Starting services without a container: $($missing -join ', ')"
+    Invoke-Compose (@('up', '-d', '--no-deps', '--no-recreate') + $missing)
+}
+
+function Update-AppContainers {
     # Builds are nondisruptive and may take minutes. Never rely on a pre-build run snapshot.
     if ($WithApi) { Invoke-Compose @('build', 'powerloom') }
     Invoke-Compose @('build', 'agent-runner')

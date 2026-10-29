@@ -1,16 +1,23 @@
 import {
+  latestPbiVersion,
   loadPbiResultSets as loadPbiResultSetsOf,
   loadReviewResultSet as loadReviewResultSetOf,
   loadSiblingVersions as loadSiblingVersionsOf,
   loadTaskResultSets as loadTaskResultSetsOf,
   type AgentResult,
+  type PbiResultKind,
   type ResultOwner,
   type ResultSet,
   type ResultVersion,
 } from "@powerloom/core";
 import { getDb } from "./db";
 
-// A PBI's results on its page: its estimates, refinements and designs, then each task's results.
+// The newest version of a kind a PBI has, null when it has none.
+export function loadLatestPbiVersion(kind: PbiResultKind, adoId: number): Promise<ResultVersion | null> {
+  return latestPbiVersion(getDb(), kind, adoId);
+}
+
+// A PBI's results on its page: its estimates, refinements and plans (designs from before planning), then each task's results.
 export function loadPbiResultSets(adoId: number): Promise<ResultSet[]> {
   return loadPbiResultSetsOf(getDb(), adoId);
 }

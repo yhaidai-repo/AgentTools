@@ -24,4 +24,6 @@ export interface SandboxConfig {
   proxySecret: string | null;
   /** sandbox-images.json, the images a vault may pick; null = the general image only. */
   imageCatalogPath: string | null;
+  /** The compose project the service runs in, put on its containers so they group with it; null = outside compose. */
+  composeProject: string | null;
 }

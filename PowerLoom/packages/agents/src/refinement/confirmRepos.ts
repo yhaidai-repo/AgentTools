@@ -77,7 +77,7 @@ function repoQuestion(adoId: number, toAsk: RepoRow[], picked: RepoRow[], docume
 
   return {
     question: `Confirm repos for PBI-${adoId}: ${toAsk.map((row) => row.name).join(", ")}`,
-    why: `Research and design clone only confirmed repos.${vaultNote}`,
+    why: `Research and planning clone only confirmed repos.${vaultNote}`,
     options: ["Confirm", "Correct the list: answer with the repos to use, comma-separated"],
   };
 }

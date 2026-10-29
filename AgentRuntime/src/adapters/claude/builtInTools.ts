@@ -1,5 +1,6 @@
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentCapabilities } from "../../models/AgentCapabilities";
+import type { ProjectSettingSource } from "../../models/ProjectSettingSource";
 
 type Grant = keyof AgentCapabilities;
 
@@ -27,6 +28,12 @@ export function builtInTools(capabilities: AgentCapabilities | undefined): strin
 
 export function autoAllowedBuiltInTools(capabilities: AgentCapabilities | undefined): string[] {
   return grantsOf(capabilities).filter((grant) => !ACCEPTED_BY_MODE.includes(grant)).flatMap((grant) => GRANTED_TOOLS[grant]);
+}
+
+// The folder's own commands (GSD's /gsd-* workflows) are skills the project settings load; without Skill the agent could
+// see them listed but never run one.
+export function projectSkillTools(settingSources: ProjectSettingSource[] | undefined): string[] {
+  return settingSources?.includes("project") ? ["Skill"] : [];
 }
 
 export function writesUnattended(capabilities: AgentCapabilities | undefined): boolean {

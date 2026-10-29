@@ -27,7 +27,14 @@ export const agentDefinitionSchema = z.object({
     perRunUsd: z.number().nonnegative(),
     dailyUsd: z.number().nonnegative(),
   }),
-  capabilities: z.object({ webAccess: z.boolean(), integrations: z.record(z.string(), z.boolean()).default({}) }),
+  capabilities: z.object({
+    webAccess: z.boolean(),
+    integrations: z.record(z.string(), z.boolean()).default({}),
+    readCode: z.boolean().optional(),
+    editCode: z.boolean().optional(),
+    shell: z.boolean().optional(),
+    subAgents: z.boolean().optional(),
+  }),
   skills: z.array(z.string().min(1)),
   // The agent's own instructions (user decision 2026-10-22); empty = the prompt file shipped with the code, if any.
   prompt: z.string().default(""),

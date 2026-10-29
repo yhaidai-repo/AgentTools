@@ -60,6 +60,8 @@ services:
       # The agents' sandboxes (the `sandbox` profile): both set, or agents get no sandbox tools. URL: http://sandbox:3300
       SANDBOX_URL: ${SANDBOX_URL:-}
       SANDBOX_TOKEN: ${SANDBOX_TOKEN:-}
+      # GSD for coding runs: `@opengsd/gsd-core` 1.19.0 as the container sees it, e.g. under /repos; empty = no GSD workspace
+      GSD_CORE_DIR: ${GSD_CORE_DIR:-}
     volumes:
       - ${VAULT_PATH:?set in .env}:/vault
       # Every vault, writable: a run reads the docs of its task's vault and the tech-writer merges drafts into it (user decision 2026-10-02) and actualizes
@@ -190,6 +192,9 @@ services:
       SANDBOX_PROXY_URL: http://sandbox-egress:3128
       # Signs each restore's pass with its vault's package hosts; the same value as sandbox-egress's.
       SANDBOX_PROXY_SECRET: ${SANDBOX_PROXY_SECRET:-}
+      # Compose labels its own containers with the project but doesn't pass the name in: the service needs it to put its
+      # sandbox and restore containers in the same group (Docker Desktop). Compose fills the variable itself, even with -p.
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
     networks: [default, docker-api]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]

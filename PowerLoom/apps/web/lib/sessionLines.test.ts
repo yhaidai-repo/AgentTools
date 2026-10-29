@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { StoredTraceEvent } from "@agenttools/usage";
 import { MAIN_SESSION_ID, runSessionsOf, subSessionsByCall } from "@powerloom/core/src/agentRuns/runSessions";
 import { sessionLines } from "./sessionLines";
+import { latestDetail, summaryOf, unfoldPhases } from "./traceLooks";
 
 function event(seq: number, type: string, payload: Record<string, unknown> = {}): StoredTraceEvent {
   return { runId: "7", seq, at: new Date(seq * 1000), type, payload };
@@ -36,5 +37,32 @@ describe("sessionLines", () => {
     const lines = sessionLines(read.events["call-1"], new Map(), "all");
 
     assert.deepEqual(lines.map((line) => line.kind), ["event", "phases"]);
+  });
+
+  it("keeps the folded progress events on the fold, which opens to one line per event", () => {
+    const fold = sessionLines(read.events["call-1"], new Map(), "all")[1];
+
+    assert.equal(fold.kind, "phases");
+    assert.deepEqual(unfoldPhases(fold.kind === "phases" ? fold.events : []).map((line) => line.kind === "event" && line.event.seq), [3, 4]);
+  });
+});
+
+describe("tool progress lines", () => {
+  const progress = [
+    event(11, "tool_progress", { callId: "call-r", name: "sandbox_restore", elapsedMs: 29_000 }),
+    event(12, "tool_progress", { callId: "call-r", name: "sandbox_restore", elapsedMs: 31_000, detail: "step 1/1 dotnet restore App.sln · 30 s · 11 min left" }),
+    event(13, "tool_progress", { callId: "call-r", name: "sandbox_restore", elapsedMs: 59_000 }),
+  ];
+
+  it("show on the fold what the tool last reported, past the heartbeats after it", () => {
+    assert.equal(latestDetail(progress), "sandbox_restore · step 1/1 dotnet restore App.sln · 30 s · 11 min left");
+  });
+
+  it("show nothing on a fold of heartbeats only", () => {
+    assert.equal(latestDetail([progress[0], progress[2]]), null);
+  });
+
+  it("show the report on its unfolded line, and the elapsed time alone on a heartbeat's", () => {
+    assert.deepEqual(progress.map(summaryOf), ["sandbox_restore · 29s", "sandbox_restore · 31s · step 1/1 dotnet restore App.sln · 30 s · 11 min left", "sandbox_restore · 59s"]);
   });
 });

@@ -30,6 +30,7 @@ import { repoGitAuth } from "./env";
 import { SearchThrottle } from "../webSearch/SearchThrottle";
 import { SearxngClient } from "../webSearch/SearxngClient";
 import type { DepsEnv } from "./models/DepsEnv";
+import { RETIRED_AGENT_IDS, disableRetiredAgents } from "./retiredAgents";
 import { migrateReviewSkills } from "./migrateReviewSkills";
 
 const REPO_REFRESH_MINUTES = 30;
@@ -102,6 +103,7 @@ export class AgentDepsFactory {
     await this.usageStore.ensureSchema();
     await this.config.ensureSchema();
     await this.config.ensureDefaults(agents, global);
+    await disableRetiredAgents(this.config, RETIRED_AGENT_IDS);
     await migrateReviewSkills(this.config);
   }
 

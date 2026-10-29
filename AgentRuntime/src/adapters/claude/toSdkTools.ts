@@ -1,21 +1,22 @@
 import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolDefinition } from "../../models/ToolDefinition";
 import type { ToolImage } from "../../models/ToolImage";
+import { ToolReports } from "./ToolReports";
 
 export const TOOL_SERVER_NAME = "agent";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 
 // The sub-agent tool: the model's tool_use blocks name it `Agent`, while the init message lists it as `Task` (CLI
 // 2.1.286, spike 2026-10-28). Both mean the same tool.
-const SUBAGENT_TOOL = "Agent";
+export const SUBAGENT_TOOL = "Agent";
 const LEGACY_SUBAGENT_TOOL = "Task";
 
 // Our tools run in-process as one MCP server; the model sees them as `mcp__agent__<name>`. Their results name tools
 // the way the model can call them (sdkToolNamer).
-export function createToolServer(tools: ToolDefinition<any>[]): McpSdkServerConfigWithInstance {
+export function createToolServer(tools: ToolDefinition<any>[], reports: ToolReports = new ToolReports()): McpSdkServerConfigWithInstance {
   const toSdkText = sdkToolNamer(tools);
 
-  return createSdkMcpServer({ name: TOOL_SERVER_NAME, version: "1.0.0", tools: tools.map((definition) => toSdkTool(definition, toSdkText)) });
+  return createSdkMcpServer({ name: TOOL_SERVER_NAME, version: "1.0.0", tools: tools.map((definition) => toSdkTool(definition, toSdkText, reports)) });
 }
 
 // Prompts, task messages and tool results name tools neutrally (`read_pbi`), but this adapter can only call them with
@@ -67,10 +68,10 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function toSdkTool(definition: ToolDefinition<any>, toSdkText: (text: string) => string) {
-  return tool(definition.name, definition.description, definition.input, async (input) => {
+function toSdkTool(definition: ToolDefinition<any>, toSdkText: (text: string) => string, reports: ToolReports) {
+  return tool(definition.name, definition.description, definition.input, async (input, extra) => {
     try {
-      const result = await definition.handler(input);
+      const result = await definition.handler(input, reports.contextFor(definition.name, extra));
 
       return { content: [{ type: "text" as const, text: toSdkText(result.text) }, ...imageBlocks(result.images)], isError: result.isError ?? false };
     } catch (error) {

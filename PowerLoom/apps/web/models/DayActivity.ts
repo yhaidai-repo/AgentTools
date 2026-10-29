@@ -7,6 +7,8 @@ export interface DayActivity {
   failures: number;
   /** Runs stopped by their budget: not failures (user decision 2026-10-13). */
   budgetStops: number;
+  /** Runs the user stopped in PowerLoom: not failures either (user decision 2026-10-29). */
+  userStops: number;
   costByAgent: Record<string, number>;
   accountingComplete?: boolean;
   tokensByAgent: Record<string, number>;

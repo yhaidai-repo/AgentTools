@@ -17,3 +17,7 @@ export const SANDBOX_EXPIRES_LABEL = "powerloom.expires";
 
 // … and the NuGet packages it adds to projects first (base64 JSON of PackageAddition[]).
 export const PACKAGE_ADDITIONS_HEADER = "x-package-additions";
+
+// How long a restore call waits for its answer: the outermost limit of a restore, so the service refuses a restore time
+// (SANDBOX_RESTORE_TIMEOUT_MS) it couldn't answer within.
+export const RESTORE_CALL_TIMEOUT_MS = 30 * 60_000;

@@ -2,7 +2,9 @@ import type { ShellRoute, ShellRouted } from "@agenttools/runtime";
 import type { CommandResult, SandboxAnswer } from "@powerloom/sandbox";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { recordOutsideCall } from "../outsideAccess";
-import { isSandboxBuildCommand } from "./buildRouting";
+import { isSandboxBuildCommand, withOwnExitCode } from "./buildRouting";
+import { exitCodeOf, recordBuildRun } from "./buildRunLog";
+import type { RoutedBuild } from "./models/RoutedBuild";
 import type { RunWorktree } from "./models/RunWorktree";
 import type { SandboxRouteParts } from "./models/SandboxRouteParts";
 import { failureDigestCommand, routedText } from "./routedOutput";
@@ -13,15 +15,13 @@ import { resourceOf } from "./sandboxResults";
 const ROUTED_TIMEOUT_MS = 600_000;
 const DIGEST_TIMEOUT_MS = 60_000;
 const REQUEST_CHARS = 500;
-// The exit code a shell gives a command killed by `timeout`.
-const TIMED_OUT_EXIT_CODE = 124;
 const FAILED_EXIT_CODE = 1;
 
 // The worktree shell's builds and tests, run in the run's sandbox (user decision 2026-10-29): GSD's executors and
 // verifier are sub-agents with only the shell, so a build or test command they give (buildRouting) runs on a fresh
 // sync of the worktree and comes back as the shell's result, failure lines included. One at a time: a sync replaces the
 // repo's folder, which a build running beside it would lose. The first one opens the sandbox and restores the repo's
-// packages when nothing has yet.
+// packages when nothing has yet. Each one, run or not, goes to the run's build log.
 export class SandboxShellRoute implements ShellRoute {
   private turn: Promise<unknown> = Promise.resolve();
 
@@ -37,7 +37,15 @@ export class SandboxShellRoute implements ShellRoute {
       return Promise.resolve(null);
     }
 
-    return this.inTurn(() => this.runInSandbox(worktree, command, cwd, timeoutMs));
+    return this.inTurn(() => this.loggedBuild(worktree, command, cwd, timeoutMs));
+  }
+
+  private async loggedBuild(worktree: RunWorktree, command: string, cwd: string, timeoutMs: number | null): Promise<ShellRouted> {
+    const routed = await this.runInSandbox(worktree, command, cwd, timeoutMs);
+
+    recordBuildRun(this.parts.log, command, routed.ran ? routed.exitCode : null, routed.problem);
+
+    return { exitCode: routed.exitCode, output: routed.output };
   }
 
   private inTurn<T>(step: () => Promise<T>): Promise<T> {
@@ -48,23 +56,25 @@ export class SandboxShellRoute implements ShellRoute {
     return next;
   }
 
-  private async runInSandbox(worktree: RunWorktree, command: string, cwd: string, timeoutMs: number | null): Promise<ShellRouted> {
+  private async runInSandbox(worktree: RunWorktree, command: string, cwd: string, timeoutMs: number | null): Promise<RoutedBuild> {
     const ready = await this.freshCopy(worktree);
 
     if (!ready.ok) {
-      return { exitCode: FAILED_EXIT_CODE, output: `The build or test could not run in the run's sandbox: ${ready.reason}` };
+      return notRun(ready.reason);
     }
 
     const repoFolder = `${this.parts.sandbox.info!.workspace}/${worktree.repo}`;
     const folder = sandboxFolderOf(worktree.path, cwd, repoFolder);
-    const sandboxCommand = withSandboxPaths(command, worktree.path, repoFolder);
+    const sandboxCommand = withOwnExitCode(withSandboxPaths(command, worktree.path, repoFolder));
     const answer = await this.loggedRun(sandboxCommand, folder, Math.max(timeoutMs ?? 0, ROUTED_TIMEOUT_MS));
 
     if (!answer.ok) {
-      return { exitCode: FAILED_EXIT_CODE, output: `The build or test could not run in the run's sandbox: ${answer.message}` };
+      return notRun(answer.message);
     }
 
-    return { exitCode: exitCodeOf(answer.value), output: routedText(folder, answer.value, ready.notes, await this.failureDigest(answer.value)) };
+    const output = routedText(folder, answer.value, ready.notes, await this.failureDigest(answer.value));
+
+    return { ran: true, exitCode: exitCodeOf(answer.value), output, problem: ready.notes.join(" ") || null };
   }
 
   // The sandbox with the worktree's current files: opened (which copies them) or synced, and its packages restored once.
@@ -116,6 +126,6 @@ export class SandboxShellRoute implements ShellRoute {
   }
 }
 
-function exitCodeOf(result: CommandResult): number {
-  return result.timedOut || result.exitCode === null ? TIMED_OUT_EXIT_CODE : result.exitCode;
+function notRun(reason: string): RoutedBuild {
+  return { ran: false, exitCode: FAILED_EXIT_CODE, output: `The build or test could not run in the run's sandbox: ${reason}`, problem: reason };
 }

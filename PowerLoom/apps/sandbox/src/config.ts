@@ -1,6 +1,15 @@
+import { checkRestoreFitsClient } from "./http/requestTimeouts";
 import type { SandboxConfig } from "./models/SandboxConfig";
 
 export function configFromEnv(): SandboxConfig {
+  const config = readConfig();
+
+  checkRestoreFitsClient(config);
+
+  return config;
+}
+
+function readConfig(): SandboxConfig {
   const docker = new URL((process.env.DOCKER_HOST ?? "tcp://docker-proxy:2375").replace(/^tcp:/, "http:"));
 
   return {
@@ -21,6 +30,7 @@ export function configFromEnv(): SandboxConfig {
     restoreTimeoutMs: number("SANDBOX_RESTORE_TIMEOUT_MS", 15 * 60_000),
     proxySecret: process.env.SANDBOX_PROXY_SECRET || null,
     imageCatalogPath: process.env.SANDBOX_IMAGES || null,
+    composeProject: process.env.COMPOSE_PROJECT_NAME || null,
   };
 }
 

@@ -62,6 +62,7 @@ import { getVaultRegistersCommand } from "./getVaultRegistersCommand";
 import { listVaultTrashCommand } from "./listVaultTrashCommand";
 import { listSkillsCommand } from "./listSkillsCommand";
 import { getSkillCommand } from "./getSkillCommand";
+import { planPbisCommand } from "./planPbisCommand";
 import { preparePbisCommand } from "./preparePbisCommand";
 import { syncPbisCommand } from "./syncPbisCommand";
 import { importNowCommand } from "./importNowCommand";
@@ -85,6 +86,10 @@ import { syncPullRequestsCommand } from "./syncPullRequestsCommand";
 import { enableRepoCommand } from "./enableRepoCommand";
 import { addLocalRepoCommand } from "./addLocalRepoCommand";
 import { removeRepoCommand } from "./removeRepoCommand";
+import { saveRepoCommandsCommand } from "./saveRepoCommandsCommand";
+import { saveSandboxSettingsCommand } from "./saveSandboxSettingsCommand";
+import { savePackageFeedCommand } from "./savePackageFeedCommand";
+import { removePackageFeedCommand } from "./removePackageFeedCommand";
 import { addVaultCommand } from "./addVaultCommand";
 import { removeVaultCommand } from "./removeVaultCommand";
 import { restoreTrashCommand } from "./restoreTrashCommand";
@@ -134,6 +139,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   sqlDescribeCommand,
   sqlDatabasesCommand,
   preparePbisCommand,
+  planPbisCommand,
   syncPbisCommand,
   importNowCommand,
   getPbiUserNotesCommand,
@@ -156,6 +162,10 @@ export const COMMANDS: readonly Command<any, any>[] = [
   enableRepoCommand,
   addLocalRepoCommand,
   removeRepoCommand,
+  saveRepoCommandsCommand,
+  saveSandboxSettingsCommand,
+  savePackageFeedCommand,
+  removePackageFeedCommand,
   addVaultCommand,
   removeVaultCommand,
   restoreTrashCommand,

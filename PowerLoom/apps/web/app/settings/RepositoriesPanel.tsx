@@ -1,4 +1,4 @@
-import type { RepoRow } from "@powerloom/core";
+import { buildCommandsOf, type RepoCommandSettings, type RepoRow } from "@powerloom/core";
 import Link from "next/link";
 import { AddLocalRepoForm } from "./AddLocalRepoForm";
 import { RepoRowForm } from "./RepoRowForm";
@@ -11,8 +11,8 @@ const SHOWS = [
 
 // Repository configuration (user decision 2026-10-06): the vault's ADO integration and GitHub (user decision 2026-10-25)
 // fill it with their repos, local checkouts are added by hand; the enabled ones are what agents clone and the PBI page
-// offers. One row each with its switch, and All / On / Off pills (user decision 2026-10-18).
-export function RepositoriesPanel({ repos, reposRoot, adoActive, show }: { repos: RepoRow[]; reposRoot: string | null; adoActive: boolean; show: string }) {
+// offers. One row each with its switch and its build and test commands, and All / On / Off pills (user decision 2026-10-18).
+export function RepositoriesPanel({ repos, commands, reposRoot, adoActive, show }: { repos: RepoRow[]; commands: RepoCommandSettings; reposRoot: string | null; adoActive: boolean; show: string }) {
   const shown = repos.filter((row) => show === "all" || (show === "on") === !row.excluded);
 
   return (
@@ -26,7 +26,7 @@ export function RepositoriesPanel({ repos, reposRoot, adoActive, show }: { repos
       </div>
       <div className="panel">
         {repos.length === 0 && <p className="panel-body hint">{adoActive ? "No repositories yet: the next PBI sync lists the ADO repositories." : "No repositories yet: add local ones above, or connect GitHub or Azure DevOps in their tabs."}</p>}
-        {shown.map((row) => <RepoRowForm key={row.id} repo={row} />)}
+        {shown.map((row) => <RepoRowForm key={row.id} repo={row} commands={buildCommandsOf(commands, row.name)} />)}
       </div>
     </>
   );

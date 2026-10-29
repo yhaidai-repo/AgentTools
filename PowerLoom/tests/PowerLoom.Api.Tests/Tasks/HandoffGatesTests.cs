@@ -14,8 +14,8 @@ namespace PowerLoom.Api.Tests.Tasks;
 [Collection(PowerLoomCollection.Name)]
 public sealed class HandoffGatesTests(PowerLoomHost host)
 {
-    private const string Approved = "### 1. Review \"the plan\" and decide\n\napprove\n\n### 2. Check the facts it rests on\n\nok";
-    private const string Changes = "### 1. Review \"the plan\" and decide\n\nchanges: archive after 30 days, not 7\n\n### 2. Check the facts it rests on\n\nok";
+    private const string Approved = "### 1. Review \"the plan\" and decide\n\napprove\n\n### 2. Check the facts and assumptions it rests on\n\nok";
+    private const string Changes = "### 1. Review \"the plan\" and decide\n\nchanges: archive after 30 days, not 7\n\n### 2. Check the facts and assumptions it rests on\n\nok";
 
     [Fact]
     public async Task An_approved_review_releases_the_implementation_and_closes_its_hand_off()
@@ -43,6 +43,27 @@ public sealed class HandoffGatesTests(PowerLoomHost host)
 
         Assert.Equal([$"{changed.Review} asked for changes: changes: archive after 30 days, not 7"], await RefusalsOfAsync(changed.Task));
         Assert.Equal([$"{cancelled.Review} was cancelled: the review never approved it"], await RefusalsOfAsync(cancelled.Task));
+    }
+
+    [Fact]
+    public async Task A_task_that_reads_its_review_starts_on_changes_but_not_on_a_cancelled_review()
+    {
+        var changed = await SeedReviewChainAsync(63107, "approve", readsReview: true);
+        var cancelled = await SeedReviewChainAsync(63108, "approve", readsReview: true);
+
+        await CloseAsync(changed.Review, ItemStatus.Done, Changes);
+        await CloseAsync(cancelled.Review, ItemStatus.Cancelled, null);
+
+        Assert.Empty(await RefusalsOfAsync(changed.Task));
+        Assert.Equal([$"{cancelled.Review} was cancelled: the review never approved it"], await RefusalsOfAsync(cancelled.Task));
+    }
+
+    [Fact]
+    public void A_review_closed_without_a_decision_is_refused_even_for_a_task_that_reads_it()
+    {
+        var refusal = HandoffGates.RefusalOf(new GatedDependency("HT-1", "approve", "done", "### 2. Check\n\nok"), readsReview: true);
+
+        Assert.Equal("HT-1 closed without a review decision", refusal);
     }
 
     [Fact]
@@ -76,7 +97,7 @@ public sealed class HandoffGatesTests(PowerLoomHost host)
     [Theory]
     [InlineData(Approved, "approve")]
     [InlineData("### 1. Decide\n\nApproved.", "Approved.")]
-    [InlineData("### 2. Check the facts it rests on\n\nok", "")]
+    [InlineData("### 2. Check the facts and assumptions it rests on\n\nok", "")]
     [InlineData(null, "")]
     public void The_decision_is_the_first_step_s_answer(string? resolution, string expected)
     {
@@ -102,16 +123,17 @@ public sealed class HandoffGatesTests(PowerLoomHost host)
     }
 
     // A planning task, its review human task with the gate, and the implementation task that depends on the review.
-    private async Task<(string Review, string Task)> SeedReviewChainAsync(int adoId, string gate)
+    private async Task<(string Review, string Task)> SeedReviewChainAsync(int adoId, string gate, bool readsReview = false)
     {
         using var scope = host.Host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
         var (planning, review, task) = ($"PT-{adoId}-001", $"HT-{adoId}-001", $"XT-{adoId}-001");
+        var reads = readsReview ? ""","readsReview":true""" : "";
 
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "Gated PBI", AdoState = "New", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.ReadyForDesign, SyncedAt = DateTime.UtcNow });
         db.LocalItems.Add(new LocalItem { Id = planning, Kind = "planning", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Plan", Status = ItemStatus.Done, Assignee = "agent:planning", HeldBy = "[]" });
         db.LocalItems.Add(new LocalItem { Id = review, Kind = ItemKinds.Human, PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Review the plan", Status = ItemStatus.Open, Assignee = HumanTasks.Assignee, HeldBy = "[]" });
-        db.LocalItems.Add(new LocalItem { Id = task, Kind = "implement", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Implement", Status = ItemStatus.Open, Assignee = "agent:implement", Data = $$$"""{"dependsOn":["{{{review}}}"]}""", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = task, Kind = "implement", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Implement", Status = ItemStatus.Open, Assignee = "agent:implement", Data = $$$"""{"dependsOn":["{{{review}}}"]{{{reads}}}}""", HeldBy = "[]" });
         await db.SaveChangesAsync();
         await db.Database.ExecuteSqlAsync($"insert into handoff (from_task_id, from_agent, to_kind, to_item_id, intent, gate, body) values ({planning}, 'planning', 'human', {review}, 'review', {gate}, 'Review the plan.')");
 

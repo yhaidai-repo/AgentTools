@@ -84,13 +84,15 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
 ];
 
 // The changing commands a live test never gets: they start agent runs that cost budget (pbi.prepare queues a
-// refinement task that any refinement agent can take before it is deleted; schedule.tick, agent.run, review.queue),
+// refinement task that any refinement agent can take before it is deleted, pbi.plan a design task the planning agent
+// takes; schedule.tick, agent.run, review.queue),
 // change what every agent shares (agent.pause, agent.saveGlobal, agent.saveFramework, skill.*), or write into real
 // vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW, findings, reviews, PR syncs,
 // repos, cleanup, dead letters); chat.open opens a desktop chat; failure.report writes into the list every PowerLoom
 // failure goes to, which is no data of a run.
 export const LIVE_TEST_EXCLUDED = [
   "pbi.prepare",
+  "pbi.plan",
   "pbi.sync",
   "pbi.importNow",
   "schedule.tick",
@@ -120,6 +122,10 @@ export const LIVE_TEST_EXCLUDED = [
   "repo.enable",
   "repo.addLocal",
   "repo.remove",
+  "repo.saveCommands",
+  "sandbox.saveSettings",
+  "sandbox.savePackageFeed",
+  "sandbox.removePackageFeed",
   "cleanup.run",
   "deadletter.replay",
   "deadletter.discard",

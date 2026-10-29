@@ -54,8 +54,10 @@ function request(fields: Partial<AgentRequest> = {}): AgentRequest {
   return { runId: "run-1", model: { provider: "anthropic", model: "claude-opus-5-5", effort: "high" }, systemPrompt: "system", firstMessage: "hello", tools: [], limits: { maxTurns: 10, timeoutMs: 2000 }, ...fields };
 }
 
+const seed = { config: { model_profile: "adaptive" }, files: [{ path: "PBI.md", content: "# PBI" }] };
+
 function workspaceRequest(gsd: boolean): AgentRequest {
-  return request({ env: { KEEP: "1" }, settingSources: ["project"], workspace: { repo, branch: "feature/123-totals", baseBranch: "develop", gsd } });
+  return request({ env: { KEEP: "1" }, settingSources: ["project"], workspace: { repo, branch: "feature/123-totals", baseBranch: "develop", gsd, gsdSeed: seed } });
 }
 
 function resolver(repos: WorkspaceRepos, gsd: FakeGsd, gsdCore: string | null = "D:/gsd-core", slot: RunWorktreeSlot = { current: null }, route: RunShellRouteSlot = { current: null }): WorkspaceResolver {
@@ -81,7 +83,7 @@ describe("WorkspaceResolver", () => {
     const resolved = await resolver(repos, gsd).resolve(workspaceRequest(true));
 
     assert.deepEqual(repos.calls, ["acquire app", `open app develop feature/123-totals ${worktree}`]);
-    assert.deepEqual(gsd.prepared, [{ worktree, gsdCore: "D:/gsd-core", identity }]);
+    assert.deepEqual(gsd.prepared, [{ worktree, gsdCore: "D:/gsd-core", identity, seed }]);
     assert.equal(resolved.request.cwd, worktree);
     assert.deepEqual(resolved.request.settingSources, ["project", "local"]);
     assert.deepEqual(resolved.request.env, { KEEP: "1", ...gsdEnv });

@@ -1,6 +1,8 @@
 import type { ContainerCreateOptions, HostConfig } from "dockerode";
 import { PACKAGES, SANDBOX_EXPIRES_LABEL, SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE } from "@powerloom/sandbox";
 import type { SandboxConfig } from "../models/SandboxConfig";
+import type { SandboxContainerRole } from "../models/SandboxContainerRole";
+import { composeGroupLabels } from "./composeGroupLabels";
 
 const MB = 1024 * 1024;
 export const SANDBOX_USER = "1000:1000";
@@ -11,6 +13,12 @@ export const RESTORE_WORK = "/work";
 // source (MSBuild reads the variable as the RestoreSources property, over the repo's nuget.config), its audit, which
 // needs a feed, stays off, and npm reads its cache only.
 const OFFLINE_ENV = [`RestoreSources=${PACKAGES}/nuget`, "NuGetAudit=false", "npm_config_offline=true"];
+
+// NuGet keeps every downloaded .nupkg in an HTTP cache under $HOME, whose tmpfs is 256 MB: a cold restore of 311 MB
+// ran out of space there (run 4414). The HTTP cache only repeats the extracted packages folder, so it, the plugins cache
+// and the scratch folder live on /tmp for one container, bounded by tmpMb, rather than doubling the vault's cache.
+export const NUGET_TMP = "/tmp/nuget";
+const NUGET_SCRATCH_ENV = [`NUGET_HTTP_CACHE_PATH=${NUGET_TMP}/http-cache`, `NUGET_PLUGINS_CACHE_PATH=${NUGET_TMP}/plugins-cache`, `NUGET_SCRATCH=${NUGET_TMP}/scratch`];
 
 // The isolation is the enforcement (user decision 2026-10-28): no network, nothing of the host or the runner (no env,
 // no mounts but its own volumes), not root, a read-only root, no capabilities, no privilege gain, and hard limits.
@@ -25,7 +33,7 @@ export function sandboxContainerOptions(config: SandboxConfig, image: string, pa
     User: SANDBOX_USER,
     WorkingDir: WORKSPACE,
     Env: [...sandboxEnv(), ...OFFLINE_ENV],
-    Labels: labels(id, owner, expiresAt),
+    Labels: labels(config, "sandbox-run", id, owner, expiresAt),
     NetworkDisabled: true,
     HostConfig: {
       ...isolation(config),
@@ -50,7 +58,7 @@ export function restoreContainerOptions(config: SandboxConfig, image: string, pr
     // NuGet checks package signatures' revocation over plain HTTP (CRL/OCSP), which the proxy refuses: offline mode
     // skips those calls instead of letting each one fail.
     Env: [...sandboxEnv(), "NUGET_CERT_REVOCATION_MODE=offline", `HTTPS_PROXY=${proxyUrl}`, `https_proxy=${proxyUrl}`, `HTTP_PROXY=${proxyUrl}`, `http_proxy=${proxyUrl}`, "NO_PROXY=localhost,127.0.0.1"],
-    Labels: labels(id, owner, expiresAt),
+    Labels: labels(config, "sandbox-restore", id, owner, expiresAt),
     HostConfig: {
       ...isolation(config),
       NetworkMode: config.egressNetwork ?? "none",
@@ -76,8 +84,8 @@ function isolation(config: SandboxConfig): HostConfig {
   };
 }
 
-function labels(id: string, owner: string, expiresAt: Date): Record<string, string> {
-  return { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: owner, [SANDBOX_EXPIRES_LABEL]: expiresAt.toISOString() };
+function labels(config: SandboxConfig, role: SandboxContainerRole, id: string, owner: string, expiresAt: Date): Record<string, string> {
+  return { ...composeGroupLabels(config.composeProject, role), [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: owner, [SANDBOX_EXPIRES_LABEL]: expiresAt.toISOString() };
 }
 
 // The only environment a command sees: no variable of the service or the runner. Package caches point at the packages
@@ -91,6 +99,7 @@ function sandboxEnv(): string[] {
     "DOTNET_NOLOGO=1",
     "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1",
     `NUGET_PACKAGES=${PACKAGES}/nuget`,
+    ...NUGET_SCRATCH_ENV,
     `npm_config_cache=${PACKAGES}/npm`,
     "npm_config_update_notifier=false",
     `DENO_DIR=${PACKAGES}/deno`,

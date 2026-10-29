@@ -64,15 +64,27 @@ export function groupPhases(events: StoredTraceEvent[]): TraceLine[] {
   return lines;
 }
 
+// An opened fold shows its events as the lines they would be unfolded.
+export function unfoldPhases(events: StoredTraceEvent[]): TraceLine[] {
+  return events.map(eventLine);
+}
+
 export function summaryOf(event: StoredTraceEvent): string {
   return clip(traceEventSummary(event));
+}
+
+/** What a tool last reported among folded progress events (a restore's step, its time left); null when none did. */
+export function latestDetail(events: StoredTraceEvent[]): string | null {
+  const reported = [...events].reverse().find((event) => event.type === "tool_progress" && (event.payload as Payload).detail);
+
+  return reported ? clip(`${(reported.payload as Payload).name} · ${(reported.payload as Payload).detail}`) : null;
 }
 
 function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   const last = lines.at(-1);
 
   if (!FOLDED_TYPES.has(event.type)) {
-    lines.push({ kind: "event", key: String(event.seq), event });
+    lines.push(eventLine(event));
 
     return;
   }
@@ -84,6 +96,10 @@ function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   }
 
   lines.push({ kind: "phases", key: `phases-${event.seq}`, events: [event] });
+}
+
+function eventLine(event: StoredTraceEvent): TraceLine {
+  return { kind: "event", key: String(event.seq), event };
 }
 
 function isError(event: StoredTraceEvent): boolean {

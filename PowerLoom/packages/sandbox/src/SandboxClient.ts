@@ -1,5 +1,7 @@
+import type { Dispatcher } from "undici";
 import type { CommandRequest } from "./models/CommandRequest";
 import type { CommandResult } from "./models/CommandResult";
+import type { DispatcherFor } from "./models/DispatcherFor";
 import type { EditApplied } from "./models/EditApplied";
 import type { EditRequest } from "./models/EditRequest";
 import type { FeedCredential } from "./models/FeedCredential";
@@ -8,23 +10,25 @@ import type { OpenSandboxRequest } from "./models/OpenSandboxRequest";
 import type { PackageAddition } from "./models/PackageAddition";
 import type { PatchApplied } from "./models/PatchApplied";
 import type { RepoUploaded } from "./models/RepoUploaded";
+import type { RestoreProgress } from "./models/RestoreProgress";
 import type { RestoreResult } from "./models/RestoreResult";
 import type { SandboxAnswer } from "./models/SandboxAnswer";
 import type { SandboxesRemoved } from "./models/SandboxesRemoved";
 import type { SandboxInfo } from "./models/SandboxInfo";
+import type { SandboxRequestOptions } from "./models/SandboxRequestOptions";
 import type { SandboxSummary } from "./models/SandboxSummary";
 import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
-import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER, RESTORE_CALL_TIMEOUT_MS } from "./sandboxConstants";
+import { waitingDispatcher } from "./waitingDispatcher";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
 const COMMAND_MARGIN_MS = 30_000;
-// Copying a repo in streams its whole checkout; a restore downloads its packages too.
+// Copying a repo in streams its whole checkout; a restore downloads its packages too (RESTORE_CALL_TIMEOUT_MS).
 const UPLOAD_TIMEOUT_MS = 10 * 60_000;
-const RESTORE_TIMEOUT_MS = 30 * 60_000;
 const MAX_PROBLEM_CHARS = 300;
 
 // The sandbox service (apps/sandbox): the only PowerLoom service with Docker access. Every call carries its token.
@@ -33,6 +37,7 @@ export class SandboxClient {
     private readonly url: string,
     private readonly token: string,
     private readonly fetcher: typeof fetch = fetch,
+    private readonly dispatcherFor: DispatcherFor = waitingDispatcher,
   ) {}
 
   health(): Promise<SandboxAnswer<unknown>> {
@@ -57,7 +62,12 @@ export class SandboxClient {
     const path = `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}?target=${encodeURIComponent(target)}`;
     const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts), [PACKAGE_ADDITIONS_HEADER]: base64Json(additions) };
 
-    return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_TIMEOUT_MS, headers });
+    return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_CALL_TIMEOUT_MS, headers });
+  }
+
+  /** What the restore of `repo` that is still running does now; null when none runs. */
+  restoreProgress(id: string, repo: string): Promise<SandboxAnswer<RestoreProgress | null>> {
+    return this.call("GET", `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}`);
   }
 
   run(id: string, request: CommandRequest): Promise<SandboxAnswer<CommandResult>> {
@@ -106,21 +116,29 @@ export class SandboxClient {
     return this.send(method, path, { body: json, contentType: json === undefined ? undefined : "application/json", timeoutMs });
   }
 
-  private async send<T>(method: string, path: string, options: { body?: BodyInit; contentType?: string; timeoutMs: number; headers?: Record<string, string> }): Promise<SandboxAnswer<T>> {
+  private async send<T>(method: string, path: string, options: SandboxRequestOptions): Promise<SandboxAnswer<T>> {
+    const dispatcher = this.dispatcherFor(options.timeoutMs);
+
+    try {
+      const response = await this.fetcher(`${this.url}${path}`, this.requestInit(method, options, dispatcher));
+
+      return await answerOf<T>(response);
+    } catch (error) {
+      return { ok: false, message: `The sandbox service at ${this.url} doesn't answer (${(error as Error).message}).`, failure: "failed" };
+    } finally {
+      await dispatcher.destroy();
+    }
+  }
+
+  private requestInit(method: string, options: SandboxRequestOptions, dispatcher: Dispatcher): RequestInit {
     const headers: Record<string, string> = { ...options.headers, Authorization: `Bearer ${this.token}` };
 
     if (options.contentType) {
       headers["Content-Type"] = options.contentType;
     }
 
-    try {
-      // `duplex`: a streamed body (the repo upload) needs it in Node's fetch.
-      const response = await this.fetcher(`${this.url}${path}`, { method, headers, body: options.body, signal: AbortSignal.timeout(options.timeoutMs), duplex: "half" } as RequestInit);
-
-      return await answerOf<T>(response);
-    } catch (error) {
-      return { ok: false, message: `The sandbox service at ${this.url} doesn't answer (${(error as Error).message}).`, failure: "failed" };
-    }
+    // `duplex`: a streamed body (the repo upload) needs it in Node's fetch; `dispatcher` is Node's fetch's own option.
+    return { method, headers, body: options.body, signal: AbortSignal.timeout(options.timeoutMs), duplex: "half", dispatcher } as RequestInit;
   }
 }
 

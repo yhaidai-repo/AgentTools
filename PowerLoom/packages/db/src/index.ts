@@ -13,6 +13,29 @@ export type { DesignAlternative } from "./models/DesignAlternative";
 export type { DesignPlanStep } from "./models/DesignPlanStep";
 export type { DesignRisk } from "./models/DesignRisk";
 export type { DesignTest } from "./models/DesignTest";
+export type { PlanContent } from "./models/PlanContent";
+export type { PlanDecision } from "./models/PlanDecision";
+export type { PlanAutoChoice } from "./models/PlanAutoChoice";
+export type { PlanRequirement } from "./models/PlanRequirement";
+export type { PhasePlan } from "./models/PhasePlan";
+export type { PhasePlanTask } from "./models/PhasePlanTask";
+export type { PlanRisk } from "./models/PlanRisk";
+export type { PlanCheck } from "./models/PlanCheck";
+export { PLAN_CHECK_VERDICTS, type PlanCheckVerdict } from "./models/PlanCheckVerdict";
+export type { BuildContent } from "./models/BuildContent";
+export type { BuildCommands } from "./models/BuildCommands";
+export type { BuildCheck } from "./models/BuildCheck";
+export type { BuildChecks } from "./models/BuildChecks";
+export type { BuildPlan } from "./models/BuildPlan";
+export { BUILD_PLAN_STATUSES, type BuildPlanStatus } from "./models/BuildPlanStatus";
+export type { BuildCommit } from "./models/BuildCommit";
+export type { BuildDeviation } from "./models/BuildDeviation";
+export type { BuildCheckpoint } from "./models/BuildCheckpoint";
+export type { PhaseVerification } from "./models/PhaseVerification";
+export type { VerificationTruth } from "./models/VerificationTruth";
+export type { OpenUatItem } from "./models/OpenUatItem";
+export type { BuildHandOver } from "./models/BuildHandOver";
+export { HAND_OVER_STATES, type HandOverState } from "./models/HandOverState";
 
 export function createDb(url = process.env.DATABASE_URL) {
   if (!url) {

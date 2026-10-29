@@ -24,6 +24,11 @@ describe("workspaceGuard on a Windows folder", () => {
     ["Bash", { command: "git log origin/main..HEAD" }],
     ["PowerShell", { command: "dir src > $null" }],
     ["Read", { file_path: "C:\\Users\\me\\notes.md" }],
+    ["Bash", { command: "git commit -qam \"fix(01-01): add totals. Mirrors Bug 17831 / PR 4230 on the old app\"" }],
+    ["Bash", { command: "git commit -m \"Call the /api endpoint from ~ on\"" }],
+    ["Bash", { command: "git log --format=\"%h // %s\" -5" }],
+    ["Bash", { command: "git commit -m \"Totals in D:\\cache\\vault\\.worktrees\\app\\feature-123\\src stay\"" }],
+    ["Bash", { command: "grep -rn \"a / b\" src" }],
   ] as const) {
     it(`allows ${name} ${JSON.stringify(input)}`, async () => {
       assert.deepEqual(await decide(WINDOWS_FOLDER, name, input), { allow: true });
@@ -43,6 +48,12 @@ describe("workspaceGuard on a Windows folder", () => {
     ["Bash", { command: "git -C D:\\cache\\vault\\app status" }, "D:\\cache\\vault\\app"],
     ["Bash", { command: "cat $HOME/.npmrc" }, "$HOME/.npmrc"],
     ["PowerShell", { command: "type 'C:\\Windows\\x.txt'" }, "C:\\Windows\\x.txt"],
+    ["Bash", { command: "cat \"/etc/passwd\"" }, "/etc/passwd"],
+    ["Bash", { command: "cat \"/c/Program Files/x.txt\"" }, "/c/Program"],
+    ["Bash", { command: "cat '/etc/my notes.txt'" }, "/etc/my"],
+    ["Bash", { command: "grep -rn total \"~/notes\"" }, "~/notes"],
+    ["Bash", { command: "git commit -m \"Copy from ../feature-124/a.ts\"" }, "../feature-124/a.ts"],
+    ["Bash", { command: "git commit -m \"Read $HOME/.npmrc first\"" }, "$HOME/.npmrc"],
   ] as const) {
     it(`denies ${name} ${JSON.stringify(input)}`, async () => {
       const decision = await decide(WINDOWS_FOLDER, name, input);
@@ -92,7 +103,7 @@ describe("workspaceGuard publishing", () => {
 });
 
 describe("workspaceGuard shell", () => {
-  const sandboxReason = "is not allowed in the worktree's shell. Builds and tests run in the sandbox: give them alone (dotnet build, dotnet test, npm test, npm run build, or the repo's configured command, with cd and output filters at most) and they run there; for other scripts use run_command if you have it.";
+  const sandboxReason = "is not allowed in the worktree's shell. The worktree's shell runs only git (without push, fetch, pull, clone, remote), GSD's node tool and listing commands (ls, dir, cat, type, find, rg, grep, head, tail, wc, pwd). A plain build or test command (dotnet build, dotnet test, npm test, npm run build, or the repo's configured command), alone or after one `cd <folder> &&` and with output filters at most, runs in the sandbox. Everything else is refused: edit files with Edit or Write, and run other scripts with run_command if you have it.";
 
   for (const command of [
     "git commit -m \"Add totals; fix rounding | tests\"",

@@ -8,6 +8,7 @@ import { defineOutsideTool } from "../outsideAccess";
 import type { RunSandbox } from "./models/RunSandbox";
 import type { SandboxAccess } from "./models/SandboxAccess";
 import { repoSnapshot } from "./repoSnapshot";
+import { RestoreProgressReporter } from "./RestoreProgressReporter";
 import { failure, noSandbox, resourceOf } from "./sandboxResults";
 
 // `dotnet add package` names the version it chose: "PackageReference for package 'Polly' version '8.4.2' added …".
@@ -31,7 +32,7 @@ export function restoreTool(deps: AgentDeps, context: OutsideAccessContext, acce
     },
     resource: (input) => resourceOf(access, sandbox, `restore ${input.repo}`),
     request: (input) => `restore ${input.repo}${input.target ? `/${input.target}` : ""}`,
-    handler: async (input) => {
+    handler: async (input, call) => {
       if (!sandbox.info) {
         return noSandbox();
       }
@@ -40,10 +41,13 @@ export function restoreTool(deps: AgentDeps, context: OutsideAccessContext, acce
         return { text: `${input.repo} is not in your sandbox: copy it in with sandbox_open first.`, isError: true };
       }
 
+      const { id } = sandbox.info;
       const snapshot = repoSnapshot(join(deps.repoCache.root, input.repo));
-      const answer = await access.client.restore(sandbox.info.id, input.repo, input.target ?? "", snapshot, access.feeds, access.packageHosts, input.packages ?? []);
+      const reporter = new RestoreProgressReporter(() => access.client.restoreProgress(id, input.repo), call);
+      const answer = await reporter.watch(access.client.restore(id, input.repo, input.target ?? "", snapshot, access.feeds, access.packageHosts, input.packages ?? []));
 
       markRestored(sandbox, input.repo);
+      deps.runBuildLog?.restores.push({ repo: input.repo, ok: answer.ok && answer.value.ok, at: new Date().toISOString() });
 
       return answer.ok ? restoreText(answer.value) : failure(answer);
     },

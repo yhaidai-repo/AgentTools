@@ -9,7 +9,7 @@ describe("adoFeedCredential", () => {
   });
 
   it("names the hosts a restore of the organization's feeds reaches", () => {
-    assert.deepEqual(adoFeedHosts("https://dev.azure.com/Acme"), ["pkgs.dev.azure.com", "acme.pkgs.visualstudio.com", "*.vsblob.vsassets.io"]);
+    assert.deepEqual(adoFeedHosts("https://dev.azure.com/Acme"), ["pkgs.dev.azure.com", "acme.pkgs.visualstudio.com", "*.vsblob.vsassets.io", "*vsblobprod*.blob.core.windows.net"]);
     assert.deepEqual(adoFeedHosts("https://example.com"), []);
   });
 

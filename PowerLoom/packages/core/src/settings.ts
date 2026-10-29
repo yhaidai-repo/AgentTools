@@ -13,6 +13,7 @@ import type { PullRequestSettings } from "./models/PullRequestSettings";
 import type { AzureUserAccount } from "./models/AzureUserAccount";
 import type { ReadAzureSettings } from "./models/ReadAzureSettings";
 import type { ReadSqlSettings } from "./models/ReadSqlSettings";
+import type { RepoCommandSettings } from "./models/RepoCommandSettings";
 import type { SandboxSettings } from "./models/SandboxSettings";
 import type { SyncSettings } from "./models/SyncSettings";
 import type { WebSearchSettings } from "./models/WebSearchSettings";
@@ -33,6 +34,7 @@ const GITHUB_STATUS_KEY = "githubStatus";
 const GOOGLE_DRIVE_KEY = "googleDrive";
 // "localStack": the stored key from before the rename to DevHub (2026-10-14): saved settings keep working.
 const DEVHUB_KEY = "localStack";
+const REPO_COMMANDS_KEY = "repoCommands";
 // DevHub on the Windows host, as Docker containers reach it (DevSecrets Start-DevHub.ps1).
 export const DEFAULT_DEVHUB_URL = "http://host.docker.internal:47811";
 // Written by the agent-runner (the user's sign-in for App Insights): the account the page shows, and the MSAL cache.
@@ -257,6 +259,17 @@ export async function readClaudeToken(db: PowerLoomDb): Promise<string | null> {
 
 export async function saveClaudeEnvTokenReport(db: PowerLoomDb, present: boolean): Promise<void> {
   await saveValue(db, CLAUDE_ENV_TOKEN_KEY, { present });
+}
+
+// The vault's build and test commands per repo; no repo has any until they are saved.
+export async function readRepoCommandSettings(db: PowerLoomDb, vault: string): Promise<RepoCommandSettings> {
+  const stored = await readValue<Partial<RepoCommandSettings>>(db, vaultSettingKey(vault, REPO_COMMANDS_KEY));
+
+  return { repos: stored?.repos ?? {} };
+}
+
+export async function saveRepoCommandSettings(db: PowerLoomDb, vault: string, settings: RepoCommandSettings): Promise<void> {
+  await saveValue(db, vaultSettingKey(vault, REPO_COMMANDS_KEY), settings);
 }
 
 export async function readValue<T>(db: PowerLoomDb, key: string): Promise<T | null> {
