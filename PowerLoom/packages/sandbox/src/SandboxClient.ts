@@ -1,5 +1,7 @@
+import type { Dispatcher } from "undici";
 import type { CommandRequest } from "./models/CommandRequest";
 import type { CommandResult } from "./models/CommandResult";
+import type { DispatcherFor } from "./models/DispatcherFor";
 import type { EditApplied } from "./models/EditApplied";
 import type { EditRequest } from "./models/EditRequest";
 import type { FeedCredential } from "./models/FeedCredential";
@@ -12,12 +14,14 @@ import type { RestoreResult } from "./models/RestoreResult";
 import type { SandboxAnswer } from "./models/SandboxAnswer";
 import type { SandboxesRemoved } from "./models/SandboxesRemoved";
 import type { SandboxInfo } from "./models/SandboxInfo";
+import type { SandboxRequestOptions } from "./models/SandboxRequestOptions";
 import type { SandboxSummary } from "./models/SandboxSummary";
 import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
 import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
+import { waitingDispatcher } from "./waitingDispatcher";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -33,6 +37,7 @@ export class SandboxClient {
     private readonly url: string,
     private readonly token: string,
     private readonly fetcher: typeof fetch = fetch,
+    private readonly dispatcherFor: DispatcherFor = waitingDispatcher,
   ) {}
 
   health(): Promise<SandboxAnswer<unknown>> {
@@ -106,21 +111,29 @@ export class SandboxClient {
     return this.send(method, path, { body: json, contentType: json === undefined ? undefined : "application/json", timeoutMs });
   }
 
-  private async send<T>(method: string, path: string, options: { body?: BodyInit; contentType?: string; timeoutMs: number; headers?: Record<string, string> }): Promise<SandboxAnswer<T>> {
+  private async send<T>(method: string, path: string, options: SandboxRequestOptions): Promise<SandboxAnswer<T>> {
+    const dispatcher = this.dispatcherFor(options.timeoutMs);
+
+    try {
+      const response = await this.fetcher(`${this.url}${path}`, this.requestInit(method, options, dispatcher));
+
+      return await answerOf<T>(response);
+    } catch (error) {
+      return { ok: false, message: `The sandbox service at ${this.url} doesn't answer (${(error as Error).message}).`, failure: "failed" };
+    } finally {
+      await dispatcher.destroy();
+    }
+  }
+
+  private requestInit(method: string, options: SandboxRequestOptions, dispatcher: Dispatcher): RequestInit {
     const headers: Record<string, string> = { ...options.headers, Authorization: `Bearer ${this.token}` };
 
     if (options.contentType) {
       headers["Content-Type"] = options.contentType;
     }
 
-    try {
-      // `duplex`: a streamed body (the repo upload) needs it in Node's fetch.
-      const response = await this.fetcher(`${this.url}${path}`, { method, headers, body: options.body, signal: AbortSignal.timeout(options.timeoutMs), duplex: "half" } as RequestInit);
-
-      return await answerOf<T>(response);
-    } catch (error) {
-      return { ok: false, message: `The sandbox service at ${this.url} doesn't answer (${(error as Error).message}).`, failure: "failed" };
-    }
+    // `duplex`: a streamed body (the repo upload) needs it in Node's fetch; `dispatcher` is Node's fetch's own option.
+    return { method, headers, body: options.body, signal: AbortSignal.timeout(options.timeoutMs), duplex: "half", dispatcher } as RequestInit;
   }
 }
 
