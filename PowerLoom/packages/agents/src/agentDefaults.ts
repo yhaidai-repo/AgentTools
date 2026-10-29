@@ -410,7 +410,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5" },
     limits: { maxTurns: 60, timeoutMinutes: 20 },
     budgets: { perRunUsd: 3, dailyUsd: 6 },
-    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_DESIGN_INTEGRATION]: true } },
+    capabilities: { webAccess: false, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [SANDBOX_INTEGRATION]: true, [WRITE_DESIGN_INTEGRATION]: true } },
     skills: ["powerloom-design-checklist"],
     options: { batchSize: 1, maxFailures: 3, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(DESIGN_OPTIONS),
