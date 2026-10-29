@@ -183,6 +183,7 @@ export type { ChatDestination } from "./models/ChatDestination";
 export type { PbiFeedback } from "./models/PbiFeedback";
 export type { NewWwwRecord } from "./models/NewWwwRecord";
 export type { PowerLoomPort } from "./models/PowerLoomPort";
+export type { DiagnosticsPort, PerformanceHistory, TelemetryPage, TelemetryLog, TelemetrySpan, TelemetryTrace, TelemetryLogsInput, TelemetryTracesInput } from "./models/DiagnosticsPort";
 export type { FindingData } from "./models/FindingData";
 export type { SubmitFindingRequest } from "./models/SubmitFindingRequest";
 export * from "./pbiImports";

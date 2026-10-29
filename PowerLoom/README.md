@@ -38,9 +38,24 @@ docker volume create adoa_pgdata   # first time only; external, so `compose down
 docker compose up -d --build
 ```
 - Web UI: http://localhost:3100 (`WEB_PORT`); backend: http://127.0.0.1:5180 (`POWERLOOM_PORT`, `/health`, `/openapi/v1.json`).
-- Observability (development only): Grafana with Tempo, Prometheus and Loki (`otel-lgtm`, about 1 GB) starts only with the
-  `observability` compose profile; switch it on in `.env` (the four values under "Observability" in `.env.example`), then
-  `docker compose up -d`. Grafana: `GRAFANA_PORT`.
+- Local diagnostics: standalone Aspire Dashboard receives logs, metrics and traces through the existing OpenTelemetry
+  exporter. Enable the `observability` profile and exporter in `.env` (see `.env.example`); UI: `TELEMETRY_PORT` (3200).
+  Its telemetry volume survives restarts, with limits of 10,000 logs, 5,000 traces and 1,000 metrics. It replaces the
+  Prometheus rate charts; business charts and health checks use PowerLoom's own data.
+- Dashboard → Application has native request-rate, average response-time and process-memory charts for the backend API.
+  One-minute totals are kept in Postgres for 24 hours and displayed in five-minute intervals, even with telemetry export
+  off. History survives API restarts; gaps mean no observations, latency is weighted by request count and memory is the
+  highest sampled working set per interval. Collection starts on deployment, without historical backfill.
+- MCP inspection: `performance_read` reads that native history (1–24 hours); `telemetry_logs`, `traces_list` and
+  `trace_get` inspect Aspire through the backend's fixed internal address. All four are read-only and bounded;
+  Aspire tools report disabled/unavailable explicitly and never start a container. `truncated` marks partial results,
+  text/attributes are abbreviated, and time/text/duration filters apply to a bounded recent scan. Existing `logs_read`
+  and `run_events` remain independent of Aspire. `TELEMETRY_API_KEY` optionally authenticates inspection of a secured
+  external Aspire service; this stack's existing local-only anonymous diagnostics configuration is unchanged.
+- Upgrade from `otel-lgtm` through `pwsh scripts/deploy-web.ps1 -WithApi`: the deploy replaces the old container on the
+  same local port, preserves its historical `adoa_otel-data` volume and keeps old endpoint/port settings compatible.
+  The viewer is switched before any app restart: if it fails, the old container is restored and the app rollout stops.
+  The old history is not imported into Aspire.
 - DB on `127.0.0.1:${DB_PORT}` (default 5442). ADO org/project/team/user and tokens live in the DB, per vault (Settings).
 - Settings → AI providers, one for the whole PowerLoom (global `config` rows): the Claude token (`claudeToken`; without it
   the agent-runner uses `CLAUDE_CODE_OAUTH_TOKEN` from `.env` and reports that at start-up as `claudeEnvToken`) and the

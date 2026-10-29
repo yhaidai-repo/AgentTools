@@ -56,25 +56,6 @@
   color: inherit;
 }
 
-/* A rate tile: the latest value large, the day's line under it. */
-.rate-value {
-  font-size: 24px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.rate-value small {
-  margin-left: 6px;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted);
-}
-
-.rates-note {
-  margin: 12px 0 0;
-  font-size: 12px;
-}
-
 .sparkline {
   display: block;
   width: 100%;
@@ -181,6 +162,12 @@
   color: var(--muted);
   list-style: none;
 }
+
+.performance-hint { color: var(--muted); font-size: .85rem; margin: 0 0 16px; }
+.performance-value { margin: 0 0 4px; font-size: 1.5rem; font-weight: 600; }
+.performance-value span { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; }
+.performance-chart circle:hover { r: 5; }
+.performance-chart .chart-grid text, .performance-chart .chart-axis { font-size: 12px; }
 
 .chart-swatch {
   display: inline-block;

@@ -3,7 +3,6 @@ import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
 import { toneOfState, worstTone } from "@/lib/tone";
 import type { Tone } from "@/models/Tone";
 import { AttentionList } from "./AttentionList";
-import type { Rates } from "./RatesSection";
 
 // The numbers that say whether PowerLoom is well: the system with what needs attention, the agent-runner and the dead
 // letters.

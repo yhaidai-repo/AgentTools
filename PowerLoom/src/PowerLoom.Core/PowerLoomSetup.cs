@@ -16,6 +16,7 @@ using PowerLoom.Features.Pbis;
 using PowerLoom.Features.Repos;
 using PowerLoom.Features.Skills;
 using PowerLoom.Features.Status;
+using PowerLoom.Features.Status.Performance;
 using PowerLoom.Features.Tasks;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
@@ -78,6 +79,7 @@ public static class PowerLoomSetup
 
     public static WebApplication MapPowerLoom(this WebApplication app)
     {
+        app.UseMiddleware<PerformanceMiddleware>();
         app.MapWolverineEndpoints();
         app.MapPowerLoomHealth();
         // /openapi/v1.json: the API is internal, so the document is always on.

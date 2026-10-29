@@ -1,2 +1,2 @@
-// otel-lgtm (Grafana with Tempo, Prometheus and Loki) as the dashboard sees it: switched off in .env, or on and answering or not.
+// Aspire Dashboard as PowerLoom sees it: switched off, answering, or unreachable.
 export type ObservabilityState = "off" | "answers" | "no answer";

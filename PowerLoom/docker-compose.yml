@@ -102,8 +102,9 @@ services:
       CONTINUE_LAUNCHER: ${CONTINUE_LAUNCHER:-claude-desktop}  # the agent app chats open in (model agnostic)
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
       POWERLOOM_URL: http://powerloom:8080  # the trash actions; more features follow the delivery plan
-      PROMETHEUS_URL: ${PROMETHEUS_URL:-}  # observability on (.env): the dashboard asks Prometheus for PowerLoom's rates; empty = off
-      GRAFANA_URL: ${GRAFANA_URL:-}  # observability on (.env): the dashboard's link to the logs (Grafana Explore), as the PC reaches it
+      TELEMETRY_INTERNAL_URL: ${OTEL_EXPORTER_OTLP_ENDPOINT:+http://telemetry:18888}
+      # Legacy Grafana URL/port values keep existing installations on the same local address.
+      TELEMETRY_URL: ${TELEMETRY_URL:-${GRAFANA_URL:-http://127.0.0.1:${TELEMETRY_PORT:-${GRAFANA_PORT:-3200}}}}
       SANDBOX_IMAGES: /app/PowerLoom/sandbox-images.json  # Settings → Data access → Sandbox lists its images
     ports:
       - "127.0.0.1:${WEB_PORT:-3100}:3000"
@@ -238,7 +239,9 @@ services:
     environment:
       ConnectionStrings__PowerLoom: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Vaults__Root: /vaults
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}  # observability on (.env): traces, metrics, logs to otel-lgtm; empty = none
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}  # logs, metrics and traces to Aspire Dashboard; empty = off
+      TELEMETRY_INTERNAL_URL: ${OTEL_EXPORTER_OTLP_ENDPOINT:+http://telemetry:18888}
+      TELEMETRY_API_KEY: ${TELEMETRY_API_KEY:-}  # optional, for an API-key-secured diagnostics service
       VaultCapture__Home: /app/VaultCapture  # findings into a project's registers go through the module
       Vaults__HostRoot: ${VAULTS_ROOT:?set in .env}  # the vaults root as the PC sees it: new vaults' files, chat links
       Vaults__TemplateHome: /app/templates/vault  # root files of a new vault (Settings → Add vault)
@@ -291,17 +294,29 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Traces, metrics and logs of PowerLoom: Grafana with Tempo, Prometheus and Loki in one container. Development only (its
-  # image is about 1 GB): started only with the `observability` profile (COMPOSE_PROFILES in .env). Pinned, so a rebuild
-  # doesn't pull a new gigabyte.
-  otel-lgtm:
-    image: grafana/otel-lgtm:0.36.0
+  # One local diagnostics viewer and bounded persistent telemetry store, replacing the Grafana/LGTM stack.
+  telemetry:
+    image: mcr.microsoft.com/aspire/dashboard:13.6.2
     profiles: ["observability"]
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:18888
+      ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL: http://0.0.0.0:4317
+      ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL: http://0.0.0.0:4318
+      # Local UI only; OTLP receivers are reachable on the private compose network, with no published ingest ports.
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+      ASPIRE_DASHBOARD_APPLICATION_NAME: PowerLoom
+      ASPIRE_DASHBOARD_DATA_DIRECTORY: /home/app/dashboard-data
+      ASPIRE_DASHBOARD_PERSISTENCE_MODE: resume
+      Dashboard__TelemetryLimits__MaxLogCount: "10000"
+      Dashboard__TelemetryLimits__MaxTraceCount: "5000"
+      Dashboard__TelemetryLimits__MaxMetricsCount: "1000"
     ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3200}:3000"  # Grafana: admin / admin
+      - "127.0.0.1:${TELEMETRY_PORT:-${GRAFANA_PORT:-3200}}:18888"
     volumes:
-      - otel-data:/data
-      - ./tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro  # the image's config plus a 7-day trace retention
+      - telemetry-data:/home/app
+    networks:
+      default:
+        aliases: [otel-lgtm]  # existing OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-lgtm:4317 keeps working
     restart: unless-stopped
 
   # search_web's SearXNG (user decision 2026-10-28): general engines, searching from this PC's address. Reached only by
@@ -345,8 +360,8 @@ volumes:
   # One read-only checkout per repo, shared by research and design; refreshed at most every 30 min.
   repo-cache:
     name: adoa_repo-cache
-  otel-data:
-    name: adoa_otel-data
+  telemetry-data:
+    name: powerloom_telemetry-data
   # Agent run transcripts (CLAUDE_CONFIG_DIR of the agent-runner); a task's are deleted when it succeeds.
   agent-sessions:
     name: powerloom_agent-sessions

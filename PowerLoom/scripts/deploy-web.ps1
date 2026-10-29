@@ -12,6 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/Deployment.Checkout.ps1"
 . "$PSScriptRoot/Deployment.Maintenance.ps1"
+. "$PSScriptRoot/Deployment.Observability.ps1"
 # Chat sessions (the MCP server's runs, stage chat) don't hold the guard: they report their end later and survive a restart.
 $RunningRunsSql = "select id || ' ' || stage || ' ' || coalesce(item_id, '-') || ' since ' || to_char(started_at, 'HH24:MI') from agent_run where outcome = 'running' and stage <> 'chat' order by id"
 
@@ -44,6 +45,12 @@ function Invoke-Compose([string[]]$arguments) {
     }
 }
 
+function Invoke-PowerLoomDeployment {
+    # A failed monitoring cutover must abort before the app receives a new exporter hostname.
+    Set-TelemetryDashboard
+    Invoke-Deployment
+}
+
 Set-Location (Join-Path $PSScriptRoot "..")
 Assert-DeploymentCheckout (Join-Path $PSScriptRoot '..')
-Invoke-Deployment
+Invoke-PowerLoomDeployment

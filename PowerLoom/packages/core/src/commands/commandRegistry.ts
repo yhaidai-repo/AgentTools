@@ -51,6 +51,7 @@ import { getUsageSummaryCommand } from "./getUsageSummaryCommand";
 import { listDataAccessCommand } from "./listDataAccessCommand";
 import { listDeadLettersCommand } from "./listDeadLettersCommand";
 import { getStatusCommand } from "./getStatusCommand";
+import { readPerformanceCommand, readTelemetryLogsCommand, listTelemetryTracesCommand, getTelemetryTraceCommand } from "./diagnosticsCommands";
 import { getResultCommand } from "./getResultCommand";
 import { listResultVersionsCommand } from "./listResultVersionsCommand";
 import { listReviewsCommand } from "./listReviewsCommand";
@@ -187,6 +188,10 @@ export const COMMANDS: readonly Command<any, any>[] = [
   listFailureReportsCommand,
   listDeadLettersCommand,
   getStatusCommand,
+  readPerformanceCommand,
+  readTelemetryLogsCommand,
+  listTelemetryTracesCommand,
+  getTelemetryTraceCommand,
   getResultCommand,
   listResultVersionsCommand,
   listReviewsCommand,

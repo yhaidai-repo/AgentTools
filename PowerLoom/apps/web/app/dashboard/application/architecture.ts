@@ -37,7 +37,7 @@ const topLevel: SchemeNode[] = [
   node("powerloom", "PowerLoom", "service", undefined, ".NET backend: Wolverine, Postgres", 3, 3),
   node("agent-runner", "agent-runner", "service", undefined, "runs one agent task at a time", 3, 1),
   node("database", "Postgres", "service", undefined, "state, queues, usage, config", 0, 2),
-  node("otel-lgtm", "otel-lgtm", "service", undefined, "Grafana, Tempo, Loki, Prometheus", 4.5, 3),
+  node("telemetry-dashboard", "Aspire Dashboard", "service", undefined, "logs, metrics and traces with bounded persistent storage", 4.5, 3),
   node("backup", "backup", "service", undefined, "daily pg_dump", 0, 1),
   // Desktop chats: "Continue with …" opens one in the chosen app; it reaches PowerLoom through the MCP server.
   node("mcp", "mcp", "service", undefined, "PowerLoom's tools for desktop chats (port 3110)", 1.5, 3),
@@ -109,7 +109,7 @@ const infrastructureParts: SchemeNode[] = [
   node("vault-scan", "Vault scan", "component", "pl-infrastructure", "notes, links, usage"),
   node("attachments", "Attachments", "component", "pl-infrastructure", "text extraction, storage"),
   node("runner-client", "Runner client", "component", "pl-infrastructure", "POST /runs, GET /health, the sign-ins"),
-  node("telemetry", "Telemetry", "component", "pl-infrastructure", "OpenTelemetry → otel-lgtm"),
+  node("telemetry", "Telemetry", "component", "pl-infrastructure", "OpenTelemetry → Aspire Dashboard"),
 ];
 
 const runnerModules: SchemeNode[] = [
@@ -186,7 +186,7 @@ export const SCHEME_LINKS: SchemeLink[] = [
   link("vault-capture", "vaults"),
   link("vault-scan", "vaults"),
   link("pbis", "vaults", "backlog notes"),
-  link("telemetry", "otel-lgtm"),
+  link("telemetry", "telemetry-dashboard"),
   link("agent-runtime", "claude"),
   link("agent-runtime", "codex"),
   link("ai-providers-feature", "runner-client", "Codex sign-in"),
