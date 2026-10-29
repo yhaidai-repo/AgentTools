@@ -60,7 +60,7 @@ export async function ToolsTab({ vault, params, tabs }: { vault: string; params:
           <LinkPicker label="Agent" value={agent} choices={agents.map((choice) => ({ key: choice, label: choice === ALL_AGENTS ? "All agents" : choice, href: agentsUrl({ ...keep, agent: choice }) }))} />
         </div>
       </div>
-      <Panel title={<span>Most used <small>outside reads carry their rows; the returned data stays in the run&apos;s trace</small></span>} aside={<BarLegend parts={CALL_OUTCOMES} />} table>
+      <Panel title={<span>Most used <small>name · type tag · what it reads (a connection&apos;s server/database, or the tool) · rows returned; the data itself stays in the run&apos;s trace</small></span>} aside={<BarLegend parts={CALL_OUTCOMES} />} table>
         <ResourceTable rows={used} palette={palette} empty="No calls in the period." />
       </Panel>
       <details className="panel fold-panel">
@@ -85,12 +85,12 @@ function ResourceTable({ rows, palette, empty }: { rows: ResourceUsage[]; palett
   return (
     <table className="data-table vault-table tools-table">
       <thead>
-        <tr><th>Resource</th><th className="col-uses">Calls</th><th className="col-agents">Agents</th><th className="col-when num">Last used</th></tr>
+        <tr><th>Resource · type · reads</th><th className="col-uses">Calls</th><th className="col-agents">Agents</th><th className="col-when num">Last used</th></tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={`${row.kind}:${row.resource}`}>
-            <td className="title"><span className="mono resource-name">{row.resource}</span><span className="note-path">{KIND_LABELS[row.kind] ?? row.kind} · {row.target}{row.rows > 0 ? ` · ${row.rows} rows` : ""}</span></td>
+            <td className="title"><span className="mono resource-name">{row.resource}</span><span className="resource-detail"><span className="source-tag">{KIND_LABELS[row.kind] ?? row.kind}</span><code>{row.target}</code>{row.rows > 0 && <span>{row.rows} rows</span>}</span></td>
             <td className="col-uses">{row.calls > 0 ? <StackedBar parts={partsOf(row)} /> : <span className="muted">0</span>}</td>
             <td className="col-agents"><AgentDots agents={row.agents} palette={palette} /></td>
             <td className="col-when num">{row.lastUsed ? <TimeAgo date={row.lastUsed} /> : <span className="muted">never</span>}</td>

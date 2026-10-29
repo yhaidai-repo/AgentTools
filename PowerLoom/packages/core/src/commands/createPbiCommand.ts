@@ -11,7 +11,7 @@ export const createPbiCommand: Command<CreatePbiInput, { adoId: number }> = {
     vault: z.string().min(1).optional(),
     title: z.string().trim().min(1).max(255),
     type: z.enum(PBI_TYPES).default("Product Backlog Item"),
-    priority: z.number().int().min(1).max(4).default(2),
+    priority: z.number().int().min(1).max(5).default(2),
     descriptionMd: z.string().trim().transform((text) => text || null).nullable().default(null),
     acceptanceCriteriaMd: z.string().trim().transform((text) => text || null).nullable().default(null),
     parentId: z.number().int().positive().nullable().default(null),

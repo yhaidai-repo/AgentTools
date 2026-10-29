@@ -327,3 +327,24 @@ main > .fold-panel + .panel {
   .vault-table .col-uses { width: 140px; }
   .vault-table .col-change { width: 110px; }
 }
+
+/* Import a folder: the label, the path field and the button each get room. */
+.import-folder-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.import-folder-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.import-folder-form .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

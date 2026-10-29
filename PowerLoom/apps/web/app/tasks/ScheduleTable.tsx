@@ -1,4 +1,4 @@
-import { ANY_AGENT, workerLabel, type TaskSchedule } from "@powerloom/core";
+import type { TaskSchedule } from "@powerloom/core";
 import Link from "next/link";
 import { Panel } from "@/components/Panel";
 import { StatusRow } from "@/components/StatusRow";
@@ -21,7 +21,7 @@ export function ScheduleTable({ schedules }: { schedules: TaskSchedule[] }) {
             <span className={schedule.enabled ? "dot ok" : "dot"} />
             <Link href={`/tasks/schedules/${schedule.id}`} className="schedule-name">{schedule.name}</Link>
             <span className="item-title" title={schedule.cron}>
-              {schedule.taskType ? workerLabel(ANY_AGENT, schedule.taskType) : schedule.agentId} · {cronText(schedule.cron)}{schedule.enabled ? "" : " · off"}
+              {schedule.taskType ? null : `${schedule.agentId} · `}{cronText(schedule.cron)}{schedule.enabled ? "" : " · off"}
               <span className="file-meta">{paramsText(schedule.params)}</span>
             </span>
             <span className="item-state">{schedule.lastRunAt ? <>last tick <TimeAgo date={schedule.lastRunAt} />{schedule.lastResult ? `: ${schedule.lastResult}` : ""}</> : "no tick yet"}</span>

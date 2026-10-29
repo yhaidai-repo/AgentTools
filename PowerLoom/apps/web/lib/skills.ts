@@ -25,17 +25,20 @@ export function isEditableSkillFolder(path: string): boolean {
   return skillFolders().some((folder) => folder.path === path && folder.editable);
 }
 
+// The repo folders are under AGENTTOOLS_PATH (the AgentTools checkout on this PC), the personal ones under SKILLS_PATH.
 function hostPathOf(path: string): string {
+  const repo = process.env.AGENTTOOLS_PATH || "AGENTTOOLS_PATH in .env";
+
   if (path === "/skills") {
     return `${process.env.SKILLS_PATH ?? "SKILLS_PATH in .env"} (your personal skills, also used by Claude Code)`;
   }
 
   if (path === "/app/DevSecrets/skills") {
-    return "D:/Projects/AgentTools/DevSecrets/skills (DevSecrets tool skills, in the AgentTools repo)";
+    return `${repo}/DevSecrets/skills (DevSecrets tool skills, in the AgentTools repo)`;
   }
 
   if (path === POWERLOOM_SKILLS_FOLDER) {
-    return "D:/Projects/AgentTools/PowerLoom/skills (PowerLoom's own skills, in the repo)";
+    return `${repo}/PowerLoom/skills (PowerLoom's own skills, in the repo)`;
   }
 
   return path;

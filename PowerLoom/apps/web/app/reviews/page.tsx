@@ -9,7 +9,7 @@ import { TimeAgo } from "@/components/TimeAgo";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { rememberedParams } from "@/lib/rememberedFilters";
-import { countReviewStatuses, matchesReviewStatus } from "@/lib/reviewLooks";
+import { countReviewStatuses, matchesReviewSearch, matchesReviewStatus } from "@/lib/reviewLooks";
 import { REVIEW_LIST_STATUSES, REVIEW_PAGE_SIZES, loadReviewRows } from "@/lib/reviews";
 import { reviewsUrl } from "@/lib/reviewsUrl";
 import type { ReviewFilter } from "@/models/ReviewFilter";
@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<ReviewFilter["status"], string> = { active: "Active", closed: "Closed", all: "All" };
 
-type SearchParams = Promise<{ status?: string; page?: string; size?: string; focus?: string }>;
+type SearchParams = Promise<{ status?: string; q?: string; page?: string; size?: string; focus?: string }>;
 
 // Every review of a PR you review in Azure DevOps (user decision 2026-10-02), and of local repos' branches without it
 // (user decision 2026-10-25), active ones by default. Nothing is reviewed until you start it here.
@@ -41,7 +41,8 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
   const db = getDb();
   const rows = await loadReviewRows(db, vault);
   const filter = filterOf(await rememberedParams("/reviews", asked), Number(focus) || null);
-  const shown = rows.filter((row) => matchesReviewStatus(row, filter.status));
+  const found = rows.filter((row) => matchesReviewSearch(row, filter.search));
+  const shown = found.filter((row) => matchesReviewStatus(row, filter.status));
   const pages = Math.max(Math.ceil(shown.length / filter.size), 1);
   const page = Math.min(pageOf(shown, filter), pages);
   const adoActive = isAdoActive(await readAdoSettings(db, vault));
@@ -57,13 +58,14 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
       </div>
       <RememberFilters vault={vault} />
       <div className="backlog-bar">
-        <StatusPills rows={rows} filter={filter} />
+        <StatusPills rows={found} filter={filter} />
+        <SearchField filter={filter} />
         {adoActive && <AddReviewForm repos={repos.filter((entry) => entry.kind === "ado")} />}
         {localRepos.length > 0 && <AddLocalReviewForm repos={localRepos} />}
         {adoActive || gitHubActive ? <CheckLine rows={rows} /> : <NoAdoLine vault={vault} hasLocalRepos={localRepos.length > 0} />}
       </div>
-      {shown.length === 0 ? <p className="empty-note">No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review.</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}
-      {shown.length > 0 && <Pager page={page} size={filter.size} sizes={REVIEW_PAGE_SIZES} pages={pages} total={shown.length} noun="reviews" hrefOf={(change) => reviewsUrl({ status: filter.status, page: change.page, size: change.size ?? filter.size })} />}
+      {shown.length === 0 ? <p className="empty-note">{filter.search ? `No review matches "${filter.search}".` : "No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review."}</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}
+      {shown.length > 0 && <Pager page={page} size={filter.size} sizes={REVIEW_PAGE_SIZES} pages={pages} total={shown.length} noun="reviews" hrefOf={(change) => reviewsUrl({ status: filter.status, search: filter.search, page: change.page, size: change.size ?? filter.size })} />}
       {filter.focus !== null && <FocusRow rowId={`pr-${filter.focus}`} />}
     </>
   );
@@ -85,6 +87,7 @@ function filterOf(params: Record<string, string | undefined>, focus: number | nu
     page: Math.max(Number(params.page) || 1, 1),
     size: REVIEW_PAGE_SIZES.includes(Number(params.size)) ? Number(params.size) : REVIEW_PAGE_SIZES[0],
     focus,
+    search: (params.q ?? "").trim(),
   };
 }
 
@@ -101,11 +104,21 @@ function StatusPills({ rows, filter }: { rows: ReviewRow[]; filter: ReviewFilter
   return (
     <nav className="status-pills" aria-label="Filter by status">
       {REVIEW_LIST_STATUSES.map((status) => (
-        <Link key={status} href={reviewsUrl({ status, size: filter.size })} className={status === filter.status ? "status-pill on" : "status-pill"}>
+        <Link key={status} href={reviewsUrl({ status, search: filter.search, size: filter.size })} className={status === filter.status ? "status-pill on" : "status-pill"}>
           {STATUS_LABELS[status]} <b>{counts[status]}</b>
         </Link>
       ))}
     </nav>
+  );
+}
+
+// Finds reviews by words of the title, a PR number or a PBI number; applies on Enter, the status stays.
+function SearchField({ filter }: { filter: ReviewFilter }) {
+  return (
+    <form method="get" action="/reviews" className="pbi-filter">
+      <input type="hidden" name="status" value={filter.status} />
+      <input name="q" type="search" defaultValue={filter.search} placeholder="Search title, PR or PBI number" aria-label="Search reviews" size={28} />
+    </form>
   );
 }
 

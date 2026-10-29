@@ -12,7 +12,7 @@ export function IdentitySection({ agent, isNew }: { agent: AgentDefinition; isNe
         ? <label className="field"><span>Id<small>lower-case letters, digits and dashes; fixed once created</small></span><input name="id" pattern={ID_PATTERN} placeholder="security-review" required /></label>
         : <input type="hidden" name="id" value={agent.id} />}
       <label className="field"><span>Label</span><input name="label" defaultValue={isNew ? "" : agent.label} placeholder="Security review" required /></label>
-      <label className="field"><span>Description<small>one line on the Agents page</small></span><input name="description" defaultValue={agent.description} /></label>
+      <label className="field"><span>Description<small>shown on the Agents page</small></span><textarea name="description" rows={1} className="grow-input" defaultValue={agent.description} /></label>
     </section>
   );
 }

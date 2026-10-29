@@ -296,6 +296,21 @@ tr:hover .row-action,
 /* Tools. */
 .tools-table .col-agents { width: 140px; }
 
+/* Under a resource's name: its type as a tag, what it reads, rows returned. */
+.resource-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.resource-detail code {
+  font: 12px var(--font-mono);
+}
+
 .resource-name {
   display: block;
   overflow: hidden;

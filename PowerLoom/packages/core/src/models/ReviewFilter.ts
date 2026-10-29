@@ -6,4 +6,6 @@ export interface ReviewFilter {
   page: number;
   size: number;
   focus: number | null;
+  /** Words of the title, or a PR or PBI number; empty = every review. */
+  search: string;
 }

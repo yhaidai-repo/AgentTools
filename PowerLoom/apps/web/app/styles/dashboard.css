@@ -446,3 +446,32 @@
   fill: var(--muted);
   text-anchor: middle;
 }
+
+/* A dead letter's error is one line; a click shows all of it. */
+.dead-letter-error {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dead-letter-error.open {
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dead-letter:has(.dead-letter-error.open) .item-title {
+  overflow: visible;
+  white-space: normal;
+}
