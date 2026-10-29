@@ -64,7 +64,9 @@ public sealed partial class StackService(
             operation.ExitCode,
             operation.Owner,
             status.Services,
-            tracker.Output
+            tracker.Output,
+            status.BuildIdentity,
+            status.StrictBranch
         );
     }
 
@@ -152,6 +154,7 @@ public sealed partial class StackService(
     {
         var arguments = new List<string> { "-Services", string.Join(',', request.Services) };
 
+        if (request.StrictBranch) arguments.Add("-StrictBranch");
         if (!string.IsNullOrEmpty(request.Branch))
             arguments.AddRange(["-Branch", request.Branch]);
 

@@ -66,6 +66,7 @@ public static class PbiDeletion
         await db.PbiFeedbacks.Where(row => row.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await ReleaseRunsAsync(db, adoId, itemIds, cancellation);
         await db.AgentRuns.Where(run => run.PbiId == adoId || (run.ItemId != null && itemIds.Contains(run.ItemId))).ExecuteDeleteAsync(cancellation);
+        await db.Set<GuideAsset>().Where(asset => itemIds.Contains(asset.TaskId)).ExecuteDeleteAsync(cancellation);
         await db.LocalItems.Where(item => item.PbiId == adoId).ExecuteDeleteAsync(cancellation);
         await db.WorkItems.Where(row => row.AdoId == adoId).ExecuteDeleteAsync(cancellation);
         await RememberAsync(db, adoId, title, cancellation);

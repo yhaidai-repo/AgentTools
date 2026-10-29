@@ -16,18 +16,18 @@ export class ReadLog {
     this.sources.set(MESSAGE_SOURCE, { id: MESSAGE_SOURCE, text: firstMessage });
   }
 
-  add(text: string): string {
+  add(text: string, metadata: Partial<ReadSource> = {}): string {
     const id = `S${this.nextNumber}`;
 
-    this.restore(id, text);
+    this.restore(id, text, metadata);
 
     return id;
   }
 
   /** A source read earlier in a continued conversation, under the id the agent saw then; later reads number on after
    *  the highest, since a read cut off by a restart can leave a gap. */
-  restore(id: string, text: string): void {
-    this.sources.set(id, { id, text });
+  restore(id: string, text: string, metadata: Partial<ReadSource> = {}): void {
+    this.sources.set(id, { ...metadata, id, text });
     this.nextNumber = Math.max(this.nextNumber, Number(id.slice(1)) + 1);
   }
 

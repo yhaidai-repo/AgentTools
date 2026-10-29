@@ -12,5 +12,7 @@ public sealed record StackStatus(
     int? ExitCode,
     string? Owner,
     ScriptServiceStatus[] Services,
-    IReadOnlyList<string> Output
+    IReadOnlyList<string> Output,
+    Dictionary<string, string>? BuildIdentity = null,
+    bool StrictBranch = false
 );

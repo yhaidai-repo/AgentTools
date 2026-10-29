@@ -44,7 +44,7 @@ function Add-BranchWorktree([string] $RepoRoot, [string] $Branch) {
     return $path
 }
 
-function Resolve-BranchRoot([string] $RepoRoot, [string] $Branch) {
+function Resolve-BranchRoot([string] $RepoRoot, [string] $Branch, [bool] $Strict = $false) {
     $existing = Get-WorktreeOfBranch $RepoRoot $Branch
 
     if ($existing) {
@@ -55,12 +55,13 @@ function Resolve-BranchRoot([string] $RepoRoot, [string] $Branch) {
         return Add-BranchWorktree $RepoRoot $Branch
     }
 
+    if ($Strict) { throw "Branch '$Branch' not found in $RepoRoot; strict branch mode refuses fallback." }
     Write-Warning "$(Split-Path -Leaf $RepoRoot): branch '$Branch' not found, using the main checkout"
 
     return $RepoRoot
 }
 
-function Get-StackRoots([hashtable] $Repos, [string[]] $RepoNames, [string] $Branch, [string[]] $Overrides) {
+function Get-StackRoots([hashtable] $Repos, [string[]] $RepoNames, [string] $Branch, [string[]] $Overrides, [bool] $Strict = $false) {
     $roots = @{} + $Repos
 
     foreach ($override in ($Overrides | ForEach-Object { $_ -split ',' } | Where-Object { $_ })) {
@@ -73,7 +74,7 @@ function Get-StackRoots([hashtable] $Repos, [string[]] $RepoNames, [string] $Bra
     }
 
     foreach ($name in ($RepoNames | Where-Object { -not ($Overrides -match "^$_=") })) {
-        $roots[$name] = Resolve-BranchRoot $Repos[$name] $Branch
+        $roots[$name] = Resolve-BranchRoot $Repos[$name] $Branch $Strict
     }
 
     return $roots

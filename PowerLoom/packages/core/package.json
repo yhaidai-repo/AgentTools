@@ -8,17 +8,23 @@
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@powerloom/confluence": "*",
     "@agenttools/config": "*",
     "@agenttools/usage": "*",
+    "@powerloom/confluence": "*",
     "@powerloom/db": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "drizzle-orm": "^0.45.3",
+    "mdast-util-from-markdown": "^2.0.3",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",
     "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./support-guides": "./src/supportGuides/request.ts",
+    "./src/*": "./src/*.ts"
   }
 }
