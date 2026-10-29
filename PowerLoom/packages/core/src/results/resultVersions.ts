@@ -1,6 +1,7 @@
 import { agentRun, codeReviewVersion, design, implementationSnapshot, localItem, pbiEstimate, planningSnapshot, refinement, runResult, type PowerLoomDb } from "@powerloom/db";
 import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { AgentResult } from "../models/AgentResult";
+import type { PbiResultKind } from "../models/PbiResultKind";
 import type { ResultOwner } from "../models/ResultOwner";
 import type { ResultSet } from "../models/ResultSet";
 import type { ResultVersion } from "../models/ResultVersion";
@@ -134,15 +135,28 @@ export async function loadSiblingVersions(db: PowerLoomDb, result: AgentResult, 
     return runResultVersions(db, owner.taskId === null ? eq(runResult.id, result.row.id) : eq(runResult.taskId, owner.taskId));
   }
 
-  const pbiId = owner.pbiId;
+  return owner.pbiId === null ? [] : pbiVersions(db, result.kind, owner.pbiId);
+}
 
-  if (pbiId === null) {
-    return [];
-  }
+// The newest refinement, plan, build, design or estimate of a PBI: what a `PBI-<id>:<kind>` reference links to.
+// Null when the PBI has none of that kind yet.
+export async function latestPbiVersion(db: PowerLoomDb, kind: PbiResultKind, adoId: number): Promise<ResultVersion | null> {
+  const versions = await pbiVersions(db, kind, adoId);
 
-  const loaders = { refinement: () => refinementVersions(db, eq(refinement.pbiId, pbiId)), plan: () => planVersions(db, eq(planningSnapshot.pbiId, pbiId)), build: () => buildVersions(db, eq(implementationSnapshot.pbiId, pbiId)), design: () => designVersions(db, eq(design.pbiId, pbiId)), estimate: () => estimateVersions(db, eq(pbiEstimate.pbiId, pbiId)) };
+  return versions.at(-1) ?? null;
+}
 
-  return loaders[result.kind]();
+// A PBI's versions of one kind, oldest first.
+function pbiVersions(db: PowerLoomDb, kind: PbiResultKind, pbiId: number): Promise<ResultVersion[]> {
+  const loaders = {
+    refinement: () => refinementVersions(db, eq(refinement.pbiId, pbiId)),
+    plan: () => planVersions(db, eq(planningSnapshot.pbiId, pbiId)),
+    build: () => buildVersions(db, eq(implementationSnapshot.pbiId, pbiId)),
+    design: () => designVersions(db, eq(design.pbiId, pbiId)),
+    estimate: () => estimateVersions(db, eq(pbiEstimate.pbiId, pbiId)),
+  };
+
+  return loaders[kind]();
 }
 
 // Every successful review run of the pull request, with when its version was kept (its start for runs from before).

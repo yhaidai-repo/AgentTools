@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { loadResult, resultOwner } from "@/lib/resultContent";
-import { resultKindOf, resultPath, versionKey } from "@/lib/resultLinks";
-import { loadSiblingVersions } from "@/lib/resultVersions";
+import { latestResultPbi, pbiResultKindOf, resultKindOf, resultPath, versionKey } from "@/lib/resultLinks";
+import { loadLatestPbiVersion, loadSiblingVersions } from "@/lib/resultVersions";
 import type { AgentResult } from "@/models/AgentResult";
 import type { Crumb } from "@/models/Crumb";
 import type { ResultVersion } from "@/models/ResultVersion";
@@ -17,10 +17,17 @@ const ITEM_TITLES: Record<string, string> = { "research-result": "Research resul
 const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", plan: "Plan", build: "Build", design: "Design", estimate: "Estimate", review: "Review", run: "Run result" };
 
 // One agent result version on a page of its own (user decision 2026-10-21): the whole width, so its tables get room,
-// unfolded, with its other versions one click away. A run result starts with where it comes from.
+// unfolded, with its other versions one click away. A run result starts with where it comes from. The address of a
+// PBI's latest result (/results/plan/PBI-1, where PBI-1:plan references link) opens that version's own page.
 export default async function ResultPage({ params }: { params: Promise<{ kind: string; id: string }> }) {
   const { kind: kindParam, id } = await params;
   const kind = resultKindOf(kindParam);
+  const latestOfPbi = latestResultPbi(decodeURIComponent(id));
+
+  if (kind && latestOfPbi !== null) {
+    redirect(await latestVersionPath(kind, latestOfPbi));
+  }
+
   const result = kind ? await loadResult(kind, decodeURIComponent(id)) : null;
 
   if (!result) {
@@ -43,6 +50,19 @@ export default async function ResultPage({ params }: { params: Promise<{ kind: s
       </section>
     </>
   );
+}
+
+// The own page of the PBI's newest version of the kind; a kind no PBI owns (a review, a run result) or a PBI without
+// one of that kind has no page to open.
+async function latestVersionPath(kind: string, adoId: number): Promise<string> {
+  const pbiKind = pbiResultKindOf(kind);
+  const latest = pbiKind ? await loadLatestPbiVersion(pbiKind, adoId) : null;
+
+  if (!latest) {
+    notFound();
+  }
+
+  return resultPath(latest);
 }
 
 function VersionBar({ versions, version }: { versions: ResultVersion[]; version: ResultVersion }) {
