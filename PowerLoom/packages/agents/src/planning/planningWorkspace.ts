@@ -1,5 +1,6 @@
 import type { AgentWorkspace, GsdSeed, RepoRef } from "@agenttools/runtime";
 import type { PowerLoomDb, workItem } from "@powerloom/db";
+import { WORKTREE_SHELL_CONTRACT } from "../implementation/worktreeShellContract";
 import { agentRepos, pbiRepoSources, type CatalogRepoRef } from "../repos/agentRepos";
 
 type PbiRow = typeof workItem.$inferSelect;
@@ -43,6 +44,7 @@ export function workspaceBlock(workspace: AgentWorkspace | null): string {
     `Repo: ${workspace.repo.name}`,
     `Branch: ${workspace.branch} (from ${workspace.baseBranch})`,
     "Your working folder is this branch's worktree. GSD is installed there; .planning/config.json and .planning/PBI.md are written for this run.",
+    WORKTREE_SHELL_CONTRACT,
     "</planning-workspace>",
   ].join("\n");
 }

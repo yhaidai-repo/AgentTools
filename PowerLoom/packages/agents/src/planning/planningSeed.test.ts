@@ -4,6 +4,7 @@ import type { ToolPolicyCall } from "@agenttools/runtime";
 import { planningDocsOnly } from "./planningDocsOnly";
 import { PBI_CONTEXT_FILE, planningSeed } from "./planningSeed";
 import { pbiBranch, workspaceBlock } from "./planningWorkspace";
+import { WORKTREE_SHELL_CONTRACT, WORKTREE_SHELL_SKILL_FILE } from "../implementation/worktreeShellContract";
 
 function call(name: string, input: unknown): ToolPolicyCall {
   return { callId: "c1", name, input, taskId: null, agentType: null };
@@ -27,8 +28,17 @@ describe("planningSeed", () => {
     assert.deepEqual(config.workflow, { research: true, plan_check: true, auto_advance: false, text_mode: true, skip_discuss: false });
   });
 
-  it("writes the PBI context as the file GSD starts from", () => {
-    assert.deepEqual(planningSeed("# PBI-1\nArchive orders.").files, [{ path: PBI_CONTEXT_FILE, content: "# PBI-1\nArchive orders." }]);
+  it("writes the PBI context as the file GSD starts from, and the worktree shell contract as a skill", () => {
+    assert.deepEqual(planningSeed("# PBI-1\nArchive orders.").files, [{ path: PBI_CONTEXT_FILE, content: "# PBI-1\nArchive orders." }, WORKTREE_SHELL_SKILL_FILE]);
+  });
+
+  it("gives GSD's planning sub-agents the worktree shell contract through agent_skills", () => {
+    const skills = planningSeed("ctx").config.agent_skills as Record<string, string[]>;
+
+    assert.deepEqual(skills["gsd-planner"], [".planning/skills/powerloom-worktree-shell"]);
+    assert.deepEqual(skills["gsd-codebase-mapper"], [".planning/skills/powerloom-worktree-shell"]);
+    assert.equal(WORKTREE_SHELL_SKILL_FILE.path, "skills/powerloom-worktree-shell/SKILL.md");
+    assert.ok(WORKTREE_SHELL_SKILL_FILE.content.includes(WORKTREE_SHELL_CONTRACT));
   });
 });
 
@@ -44,6 +54,7 @@ describe("workspaceBlock", () => {
     const block = workspaceBlock({ repo: { name: "shop", remoteUrl: "https://example.invalid/shop", defaultBranch: "main" }, branch: "powerloom/pbi-41", baseBranch: "main", gsd: true });
 
     assert.match(block, /Repo: shop\nBranch: powerloom\/pbi-41 \(from main\)/);
+    assert.ok(block.includes(WORKTREE_SHELL_CONTRACT));
     assert.match(workspaceBlock(null), /no enabled repo/);
   });
 });

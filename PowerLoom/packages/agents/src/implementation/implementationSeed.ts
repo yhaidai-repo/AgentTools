@@ -1,6 +1,7 @@
 import type { GsdSeed } from "@agenttools/runtime";
 import type { BuildCommands } from "@powerloom/db";
 import type { ImplementationModels } from "./models/ImplementationModels";
+import { WORKTREE_SHELL_SKILL_FILE, worktreeShellSkills } from "./worktreeShellContract";
 
 const OPUS = "claude-opus-5-5";
 const FAN_OUT_MODEL = "claude-haiku-5-5";
@@ -25,8 +26,9 @@ export function implementationModels(taskData: unknown): ImplementationModels {
 
 // What the runner merges into the PBI worktree's .planning/config.json before the run: unattended execution in the
 // run's own worktree (no executor worktrees, which the spike's runtime didn't isolate anyway), no auto-advance, the
-// verifier on, questions as text, commit_docs off, and the repo's build and test commands from the vault's settings.
-// The planning run's keys stay (the preparer merges one level deep).
+// verifier on, questions as text, commit_docs off, the repo's build and test commands from the vault's settings, and
+// the worktree shell contract as a skill of every GSD sub-agent. The planning run's keys stay (the preparer merges one
+// level deep).
 export function implementationSeed(models: ImplementationModels, commands: BuildCommands): GsdSeed {
   return {
     config: {
@@ -34,8 +36,9 @@ export function implementationSeed(models: ImplementationModels, commands: Build
       model_overrides: modelOverrides(models),
       commit_docs: false,
       workflow: { auto_advance: false, text_mode: true, use_worktrees: false, verifier: true, ...commandKeys(commands) },
+      agent_skills: worktreeShellSkills(),
     },
-    files: [],
+    files: [WORKTREE_SHELL_SKILL_FILE],
   };
 }
 

@@ -1,4 +1,5 @@
 import type { GsdSeed } from "@agenttools/runtime";
+import { WORKTREE_SHELL_SKILL_FILE, worktreeShellSkills } from "../implementation/worktreeShellContract";
 
 const ORCHESTRATOR_MODEL = "claude-opus-5-5";
 const FAN_OUT_MODEL = "claude-haiku-5-5";
@@ -23,7 +24,8 @@ const MODEL_OVERRIDES: Record<string, string> = {
 };
 
 // Unattended planning: yolo and coarse phases, the plan checker on, no auto-advance into execution, questions as text
-// (the run has no AskUserQuestion) and no background planner watch loop, which ended the spike's turns while it waited.
+// (the run has no AskUserQuestion), no background planner watch loop, which ended the spike's turns while it waited, and
+// the worktree shell contract as a skill of every GSD sub-agent.
 const PLANNING_CONFIG: Record<string, unknown> = {
   mode: "yolo",
   granularity: "coarse",
@@ -32,9 +34,10 @@ const PLANNING_CONFIG: Record<string, unknown> = {
   commit_docs: false,
   workflow: { research: true, plan_check: true, auto_advance: false, text_mode: true, skip_discuss: false },
   planner: { stall_detection_enabled: false },
+  agent_skills: worktreeShellSkills(),
 };
 
 // What the runner writes into the PBI worktree's .planning/ before the run's first GSD command.
 export function planningSeed(pbiContext: string): GsdSeed {
-  return { config: PLANNING_CONFIG, files: [{ path: PBI_CONTEXT_FILE, content: pbiContext }] };
+  return { config: PLANNING_CONFIG, files: [{ path: PBI_CONTEXT_FILE, content: pbiContext }, WORKTREE_SHELL_SKILL_FILE] };
 }

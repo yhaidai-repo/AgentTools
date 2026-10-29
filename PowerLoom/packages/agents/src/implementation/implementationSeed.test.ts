@@ -5,6 +5,7 @@ import { implementationBlock } from "./implementationBlock";
 import { DEFAULT_IMPLEMENTATION_MODELS, implementationModels, implementationSeed } from "./implementationSeed";
 import { implementationPolicy } from "./implementationPolicy";
 import { repoCommands } from "./prepareImplementation";
+import { WORKTREE_SHELL_CONTRACT, WORKTREE_SHELL_SKILL_FILE } from "./worktreeShellContract";
 
 const COMMANDS = { build: "dotnet build Shop.sln", test: "dotnet test Shop.sln" };
 
@@ -31,11 +32,20 @@ describe("implementationSeed", () => {
     assert.deepEqual(config.workflow, { auto_advance: false, text_mode: true, use_worktrees: false, verifier: true, build_command: "dotnet build Shop.sln", test_command: "dotnet test Shop.sln" });
   });
 
-  it("leaves GSD's command defaults when the repo has none configured, and writes no seed file", () => {
+  it("leaves GSD's command defaults when the repo has none configured", () => {
     const seed = implementationSeed(DEFAULT_IMPLEMENTATION_MODELS, { build: null, test: null });
 
     assert.deepEqual(seed.config.workflow, { auto_advance: false, text_mode: true, use_worktrees: false, verifier: true });
-    assert.deepEqual(seed.files, []);
+  });
+
+  it("gives GSD's executors and verifiers the worktree shell contract as a skill", () => {
+    const seed = implementationSeed(DEFAULT_IMPLEMENTATION_MODELS, COMMANDS);
+    const skills = seed.config.agent_skills as Record<string, string[]>;
+
+    assert.deepEqual(seed.files, [WORKTREE_SHELL_SKILL_FILE]);
+    assert.deepEqual(skills["gsd-executor"], [".planning/skills/powerloom-worktree-shell"]);
+    assert.deepEqual(skills["gsd-verifier"], [".planning/skills/powerloom-worktree-shell"]);
+    assert.ok(WORKTREE_SHELL_SKILL_FILE.content.includes(WORKTREE_SHELL_CONTRACT));
   });
 });
 
@@ -65,6 +75,7 @@ describe("implementationBlock", () => {
     assert.match(block, /HT-7-002 approved plan v2/);
     assert.match(block, /Branch: powerloom\/pbi-7 \(from main\); commit locally only, never push\./);
     assert.match(block, /Build command: `dotnet build`\nTest command: none configured/);
+    assert.ok(block.includes(WORKTREE_SHELL_CONTRACT));
   });
 
   it("sends a run with changes back to planning with the changes as written, and stops a blocked one", () => {

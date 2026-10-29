@@ -1,5 +1,6 @@
 import type { PreparedImplementation } from "./models/PreparedImplementation";
 import type { ReviewOutcome } from "./models/ReviewOutcome";
+import { WORKTREE_SHELL_CONTRACT } from "./worktreeShellContract";
 
 // The task's type for planning: a planning task takes the review's changes back.
 export const PLANNING_TASK_TYPE = "design";
@@ -42,6 +43,7 @@ function approvedBlock(prepared: PreparedImplementation, reviewId: string, planV
     `Build command: ${commands.build ? `\`${commands.build}\`` : "none configured"}`,
     `Test command: ${commands.test ? `\`${commands.test}\`` : "none configured"}`,
     "Your working folder is this branch's worktree, with the plan in .planning/ and .planning/config.json set for this run.",
+    WORKTREE_SHELL_CONTRACT,
     "</implementation>",
   ].join("\n");
 }
