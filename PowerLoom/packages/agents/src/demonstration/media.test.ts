@@ -6,6 +6,7 @@ import { GuideCapture } from "./capture/GuideCapture";
 import { composeGif, deriveImage, gifRegionProblem } from "./media/derive";
 import { encodeGif } from "./media/gif";
 import type { Raster } from "./media/models/Raster";
+import type { CapturedFrame } from "./models/CapturedFrame";
 import { decodePng, encodePng } from "./media/raster";
 
 const SECRET = [200, 30, 40, 255];
@@ -159,7 +160,7 @@ describe("GIF segments", () => {
     assert.match(stopped.frames[1].step.label, /value hidden/);
 
     const composed = composeGif(stopped.frames, [{ x: 0, y: 0, width: 10, height: 10, style: "solid", frames: [2] }], 960);
-    assert.ok(composed.keyFrames.every((frame) => countColor(frame, SECRET) === 0));
+    assert.ok(composed.output.every(({ raster }) => countColor(raster, SECRET) === 0), "every movement and pulse frame stays redacted");
     assert.equal(composed.timeline.length, 3);
     assert.equal(composed.timeline[2].delayMs, 2500);
 
@@ -188,5 +189,41 @@ describe("portable GIF packages", () => {
   it("accepts GIF paths in the archive and still refuses other media", () => {
     assert.doesNotThrow(() => guideZip([{ path: "images/save-form.gif", content: Buffer.from("GIF89a") }]));
     assert.throws(() => guideZip([{ path: "images/raw.webm", content: Buffer.from("x") }]));
+  });
+});
+
+describe("GIF click pulses", () => {
+  function frame(click: boolean, pointer: { x: number; y: number } | null): CapturedFrame {
+    return { raster: page(), rawSha256: "synthetic", masks: 0, step: { index: 0, tool: "browser_click", label: "Save", value: null, url: "https://app.example.test", pointer, pointerInterpolated: false, click } };
+  }
+
+  it("shows a brief expanding and fading pulse, then holds only the cursor without extending the step", () => {
+    const input = frame(true, { x: 80, y: 40 });
+    const animated = composeGif([input], [], 960);
+    const quiet = composeGif([frame(false, input.step.pointer)], [], 960);
+
+    assert.equal(animated.output.reduce((sum, output) => sum + output.delayMs, 0), 1200);
+    assert.equal(animated.output.slice(0, -1).reduce((sum, output) => sum + output.delayMs, 0), 180);
+    assert.deepEqual(animated.output.at(-1)!.raster.data, quiet.output[0].raster.data, "the pulse vanishes before the long hold");
+    assert.notDeepEqual(animated.output[0].raster.data, animated.output[1].raster.data, "the pulse animates");
+    assert.ok(animated.output.every(({ raster }) => countColor(raster, [230, 57, 70, 255]) === 0), "no persistent red marker");
+    const at = (index: number, x: number) => [...animated.output[index].raster.data.subarray((40 * 120 + x) * 4, (40 * 120 + x) * 4 + 4)];
+    assert.ok(at(0, 72)[0] < at(2, 63)[0], "the expanding blue pulse fades toward the page color");
+    assert.deepEqual(at(3, 72), PAGE);
+    assert.equal(animated.timeline[0].delayMs, 1200);
+  });
+
+  it("keeps typing, missing targets and the final state free of pulses, and clips at viewport edges", () => {
+    const typing = frame(false, { x: 80, y: 40 });
+    typing.step.tool = "browser_type";
+    const final = frame(false, typing.step.pointer);
+    final.step.tool = "final";
+    const still = composeGif([typing, final], [], 960);
+    assert.deepEqual(still.output.map(({ delayMs }) => delayMs), [1200, 2500]);
+    assert.equal(composeGif([frame(true, null)], [], 960).output.length, 1);
+    for (const pointer of [{ x: 0, y: 0 }, { x: 119, y: 79 }]) {
+      const edge = composeGif([frame(true, pointer)], [], 960);
+      assert.ok(edge.output.every(({ raster }) => raster.data.length === 120 * 80 * 4));
+    }
   });
 });

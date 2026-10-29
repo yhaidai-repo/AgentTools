@@ -307,6 +307,12 @@ label.inline {
   white-space: normal;
 }
 
+.text-block.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 /* Markdown wraps inside its panel: no sideways scroll (user, 2026-10-18), so its tables and inline code break lines.
    A cell keeps at least 8 characters: breaking anywhere let a verdict column shrink to one letter a line, while long
    file names still break instead of widening the table. */

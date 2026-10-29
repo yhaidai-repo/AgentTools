@@ -43,7 +43,7 @@ export function gifTools(host: GuideMediaHost) {
     }),
     defineTool({
       name: "add_guide_gif",
-      description: "Build images/<name>.gif from the stopped segment: regions first (per frame or all), then scaling, then the drawn pointer (interpolated between targets), click rings and pauses. Returns the key frames to inspect; approve with approve_guide_image. Keep a static screenshot and the written steps next to every GIF.",
+      description: "Build images/<name>.gif from the stopped segment: regions first (per frame or all), then scaling, then the drawn pointer (interpolated between targets), brief fading click pulses and pauses. Returns the key frames to inspect; approve with approve_guide_image. Keep a static screenshot and the written steps next to every GIF.",
       input: {
         name: SEGMENT, caption: z.string().min(1), alt: z.string().min(1), buildIdentity: z.string().min(1),
         regions: z.array(REGION_INPUT.extend({ frames: z.array(z.number().int().min(0)).min(1).optional() })).max(40).default([]),
@@ -79,7 +79,7 @@ export function gifTools(host: GuideMediaHost) {
         }
 
         return {
-          text: `images/${saved.name} saved (${saved.width}×${saved.height}, ${composed.output.length} frames, ${saved.bytes} bytes, sha256 ${saved.sha256}). These are its key frames; the frames between them only move the pointer. If no sensitive value shows, call approve_guide_image with this name and sha256.`,
+          text: `images/${saved.name} saved (${saved.width}×${saved.height}, ${composed.output.length} frames, ${saved.bytes} bytes, sha256 ${saved.sha256}). These are its key frames; the frames between them move the pointer and fade a brief click pulse. If no sensitive value shows, call approve_guide_image with this name and sha256.`,
           images: composed.keyFrames.map((raster) => ({ data: encodePng(raster).toString("base64"), mimeType: "image/png" })),
         };
       },

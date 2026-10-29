@@ -2,13 +2,15 @@ import type { GuideRegion, GuideTimelineStep } from "@powerloom/core";
 import type { CapturedFrame } from "../models/CapturedFrame";
 import type { PixelBox } from "./models/PixelBox";
 import type { Raster } from "./models/Raster";
-import { drawClick, drawPointer } from "./overlay";
+import { drawClickPulse, drawPointer } from "./overlay";
 import { copyRaster, cropRaster, scaleDown } from "./raster";
 import { applyRegion, regionProblem } from "./regions";
 
 const STEP_DELAY_MS = 1200;
 const FINAL_DELAY_MS = 2500;
 const MOVE_DELAY_MS = 150;
+const CLICK_FRAME_MS = 60;
+const CLICK_PHASES = [0, 0.35, 0.7];
 // Pointer motion between two recorded targets is drawn, not recorded: the timeline marks these frames interpolated.
 const MOVE_FRAMES = [1 / 3, 2 / 3];
 
@@ -60,11 +62,12 @@ export function composeGif(frames: CapturedFrame[], regions: GuideRegion[], maxW
     const { raster: scaled, scale } = scaleDown(sanitized(frame, regions), maxWidth);
     const pointer = frame.step.pointer ? { x: frame.step.pointer.x * scale, y: frame.step.pointer.y * scale } : null;
     const moves = movementFrames(scaled, previous, pointer);
-    const key = keyFrame(scaled, pointer, frame.step.click);
+    const key = keyFrame(scaled, pointer);
+    const pulse = pointer && frame.step.click ? CLICK_PHASES.map((phase) => ({ raster: keyFrame(scaled, pointer, phase), delayMs: CLICK_FRAME_MS })) : [];
     const delayMs = frame.step.tool === "final" ? FINAL_DELAY_MS : STEP_DELAY_MS;
 
-    output.push(...moves, { raster: key, delayMs });
-    keyFrames.push(key);
+    output.push(...moves, ...pulse, { raster: key, delayMs: delayMs - pulse.length * CLICK_FRAME_MS });
+    keyFrames.push(pulse[0]?.raster ?? key);
     timeline.push({ ...stepOf(frame), pointerInterpolated: moves.length > 0, delayMs });
     previous = pointer ?? previous;
   }
@@ -89,14 +92,14 @@ function movementFrames(scaled: Raster, from: Point | null, to: Point | null): {
     return [];
   }
 
-  return MOVE_FRAMES.map((t) => ({ raster: keyFrame(scaled, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, false), delayMs: MOVE_DELAY_MS }));
+  return MOVE_FRAMES.map((t) => ({ raster: keyFrame(scaled, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }), delayMs: MOVE_DELAY_MS }));
 }
 
-function keyFrame(scaled: Raster, pointer: Point | null, click: boolean): Raster {
+function keyFrame(scaled: Raster, pointer: Point | null, pulse?: number): Raster {
   const raster = copyRaster(scaled);
 
-  if (pointer && click) {
-    drawClick(raster, pointer.x, pointer.y);
+  if (pointer && pulse !== undefined) {
+    drawClickPulse(raster, pointer.x, pointer.y, pulse);
   }
 
   if (pointer) {
