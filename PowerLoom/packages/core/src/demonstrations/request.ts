@@ -10,6 +10,9 @@ export const guideRequestSchema = z.object({
   branch: z.string().default(""), services: z.array(z.string().min(1)).default([]),
   audience: z.string().min(1), environment: z.string().min(1), permittedActions: z.string().min(1),
   data: z.string().min(1), owner: z.string().min(1), release: z.string().default(""),
+  // The build as the requester states it (commit, version), for a remote app that shows none: a guide may rest on it,
+  // marked as stated, not observed (user decision 2026-10-30).
+  build: z.string().trim().default(""),
   // CSS selectors masked solid in every screenshot before the agent sees it; password inputs always are.
   maskSelectors: z.array(z.string().min(1).max(200)).max(20).default([]),
   destination: z.discriminatedUnion("action", [

@@ -6,7 +6,7 @@ export function buildGuidePackage(input: {
 }): GuidePackageData {
   const contents: ArchiveFile[] = [
     { path: "guide.md", content: Buffer.from(input.guide.markdown) },
-    { path: "verification.md", content: Buffer.from(input.guide.verification) },
+    { path: "verification.md", content: Buffer.from(statedIdentityNote(input.guide) + input.guide.verification) },
     ...input.images.map(i => ({ path: "images/" + i.name, content: input.contents.get(i.id)! })),
   ];
   if (contents.some(f => !f.content)) throw new Error("Missing image bytes");
@@ -15,7 +15,7 @@ export function buildGuidePackage(input: {
   const manifest = {
     schemaVersion: 1, packageId: input.packageId, taskId: input.taskId, runId: input.runId, pbiId: input.pbiId, vault: input.vault,
     guideline: "powerloom-demonstration/v1", request: input.request, commits: input.commits,
-    guideStatus: input.guide.status, buildIdentity: input.guide.buildIdentity, verifiedAt: input.guide.verifiedAt,
+    guideStatus: input.guide.status, buildIdentity: input.guide.buildIdentity, identityBasis: input.guide.identityBasis, verifiedAt: input.guide.verifiedAt,
     configuration: input.guide.configuration, workflows: input.guide.workflows, rules: input.guide.rules, blockers: input.guide.blockers,
     images: input.images, contentChecksum, checksumAlgorithm: GUIDE_CHECKSUM_ALGORITHM, checksumScope: contents.map(f => f.path),
     retention: "Publication assets stay in database history; DevHub recordings have independent retention.",
@@ -27,6 +27,15 @@ export function buildGuidePackage(input: {
   ];
   return { schemaVersion: 1, packageId: input.packageId, taskId: input.taskId, runId: input.runId, pbiId: input.pbiId, vault: input.vault, guide: input.guide, images: input.images, files, contentChecksum, publicationStatus: ready ? "pending" : "awaiting-details" };
 }
+// A reader of the evidence must see that the build and release were the task's word, not something the browser showed.
+function statedIdentityNote(guide: GuideReport): string {
+  if (guide.identityBasis !== "stated") {
+    return "";
+  }
+
+  return `Build and release as stated by the task, not observed: the application shows neither. Build: ${guide.buildIdentity}.\n\n`;
+}
+
 export function publishTask(r: GuideRequest, id: string, checksum: string, images: GuideImage[]): string {
   const d = r.destination;
   if (d.action === "unspecified") throw new Error("Publication destination missing");

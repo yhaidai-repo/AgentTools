@@ -31,8 +31,10 @@ export function renamedCheckpoint(previousBody: string, body: string, data: Data
 
   try {
     const request = readGuideRequest(body);
-    const fingerprint = (value: string) => createHash("sha256").update(JSON.stringify({ request, body: value, goal: data?.goal })).digest("hex");
-    if (saved.requestHash === fingerprint(previousBody)) {
+    const fingerprint = (value: string, input: unknown = request) => createHash("sha256").update(JSON.stringify({ request: input, body: value, goal: data?.goal })).digest("hex");
+    const { build, ...beforeBuildInput } = request;
+    const matchesBeforeBuildInput = build === "" && saved.requestHash === fingerprint(previousBody, beforeBuildInput);
+    if (saved.requestHash === fingerprint(previousBody) || matchesBeforeBuildInput) {
       return { ...data, guideCheckpoint: { ...saved, requestHash: fingerprint(body) } };
     }
   } catch {

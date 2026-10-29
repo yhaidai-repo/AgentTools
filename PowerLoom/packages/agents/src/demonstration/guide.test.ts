@@ -11,7 +11,7 @@ import { buildGuidePackage } from "./package";
 const request = guideRequestSchema.parse({ mode: "remote-url", url: "https://app.example.test", allowedOrigins: ["https://app.example.test"], audience: "Support", environment: "dev", permittedActions: "view", data: "demo", owner: "Support" });
 const image: GuideImage = { id: "asset", name: "one.png", sha256: "abc", bytes: 3, width: 10, height: 10, caption: "Form", alt: "Form", source: "S2", sourceOwner: "powerloom-run-1", sourceCase: "demo", inspectedAt: "2026-10-29T00:00:00.000Z", buildIdentity: "unknown" };
 function report(source: string): GuideReport {
-  return { title: "Demo", status: "ready", summary: "Observed", markdown: "# Demo\n## Overview\nView the form.\n## Before you begin\nSupport access.\n## Procedure\n1. Open the form.\n![Form](images/one.png)\n## Confirm completion\nThe form is visible.", buildIdentity: "unknown", buildSource: source, releaseVerified: false, verifiedAt: "2026-10-29T00:00:00.000Z", configuration: "Support/en/1280x720", workflows: [{ id: "one", title: "View", state: "observed", steps: ["Open"], expected: "Form", observed: "Form visible", source, images: ["one.png"] }], rules: [], blockers: [], verification: "Observed form." };
+  return { title: "Demo", status: "ready", summary: "Observed", markdown: "# Demo\n## Overview\nView the form.\n## Before you begin\nSupport access.\n## Procedure\n1. Open the form.\n![Form](images/one.png)\n## Confirm completion\nThe form is visible.", buildIdentity: "unknown", buildSource: source, identityBasis: "observed", releaseVerified: false, verifiedAt: "2026-10-29T00:00:00.000Z", configuration: "Support/en/1280x720", workflows: [{ id: "one", title: "View", state: "observed", steps: ["Open"], expected: "Form", observed: "Form visible", source, images: ["one.png"] }], rules: [], blockers: [], verification: "Observed form." };
 }
 const metadata = { tool: "browser_snapshot", resultText: "- Page URL: https://app.example.test\n- Form", fresh: true };
 describe("guide readiness and handoff", () => {
@@ -100,5 +100,25 @@ describe("media approval and claimed identity", () => {
     const released = { ...request, release: "5.2.1" }, verified = { ...claimed, buildSource: shown, releaseVerified: true };
     assert.ok(guideProblems(verified, released, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner).some(p => p.includes("releaseSource")));
     assert.deepEqual(guideProblems({ ...verified, releaseSource: shown }, released, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner), []);
+  });
+
+  it("lets a remote guide rest on the build the task states when the app shows none, and nothing else", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    const stated = { ...request, release: "2026-10-30", build: "762c4a0a" };
+    const guide = { ...report(source), identityBasis: "stated" as const, buildIdentity: "762c4a0a", buildSource: source };
+    const images = [{ ...image, buildIdentity: "762c4a0a" }];
+
+    assert.deepEqual(guideProblems(guide, stated, images, log, image.sourceOwner), []);
+    assert.ok(guideProblems({ ...guide, buildIdentity: "other" }, stated, [{ ...image, buildIdentity: "other" }], log, image.sourceOwner).some(p => p.includes("task's own")));
+    assert.ok(guideProblems(guide, { ...stated, build: "" }, images, log, image.sourceOwner).some(p => p.includes("name it (build)")));
+    assert.ok(guideProblems(guide, { ...stated, mode: "local-stack", branch: "main", services: ["web"] }, images, log, image.sourceOwner).some(p => p.includes("Only a remote-url")));
+  });
+
+  it("says in the package's verification that a stated build was not observed", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    const guide = { ...report(source), identityBasis: "stated" as const, buildIdentity: "762c4a0a" };
+    const built = buildGuidePackage({ packageId: "SG-1", taskId: "XT-1", runId: 1, pbiId: null, vault: "demo", request, guide, images: [image], contents: new Map([["asset", Buffer.from("png")]]), commits: {} });
+
+    assert.match(built.files.find((file) => file.path === "verification.md")!.text, /^Build and release as stated by the task, not observed/);
   });
 });
