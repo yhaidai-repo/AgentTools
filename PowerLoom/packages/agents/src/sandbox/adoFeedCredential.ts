@@ -19,7 +19,12 @@ export function adoFeedCredential(orgUrl: string, pat: string): FeedCredential |
 export function adoFeedHosts(orgUrl: string): string[] {
   const organization = organizationOf(orgUrl);
 
-  return organization ? ["pkgs.dev.azure.com", `${organization.toLowerCase()}.pkgs.visualstudio.com`, "*.vsblob.vsassets.io"] : [];
+  if (!organization) {
+    return [];
+  }
+
+  // Azure Artifacts redirects package downloads to randomly named storage accounts (`<random>vsblobprod<region><n>`).
+  return ["pkgs.dev.azure.com", `${organization.toLowerCase()}.pkgs.visualstudio.com`, "*.vsblob.vsassets.io", "*vsblobprod*.blob.core.windows.net"];
 }
 
 function organizationOf(orgUrl: string): string | undefined {

@@ -20,8 +20,10 @@ describe("package feeds", () => {
   });
 
   it("opens an Azure Artifacts feed's hosts and blob storage, any other feed's own host", () => {
-    assert.deepEqual(feedHostsOf(azure), ["pkgs.dev.azure.com", "acme.pkgs.visualstudio.com", "*.vsblob.vsassets.io"]);
-    assert.deepEqual(feedHostsOf({ url: "https://Acme.pkgs.visualstudio.com/_packaging/team/nuget/v3/index.json", token: "pat" }), ["pkgs.dev.azure.com", "acme.pkgs.visualstudio.com", "*.vsblob.vsassets.io"]);
+    const azureHosts = ["pkgs.dev.azure.com", "acme.pkgs.visualstudio.com", "*.vsblob.vsassets.io", "*vsblobprod*.blob.core.windows.net"];
+
+    assert.deepEqual(feedHostsOf(azure), azureHosts);
+    assert.deepEqual(feedHostsOf({ url: "https://Acme.pkgs.visualstudio.com/_packaging/team/nuget/v3/index.json", token: "pat" }), azureHosts);
     assert.deepEqual(feedHostsOf({ url: "https://nuget.example.com/v3/index.json", token: "pat" }), ["nuget.example.com"]);
   });
 });
