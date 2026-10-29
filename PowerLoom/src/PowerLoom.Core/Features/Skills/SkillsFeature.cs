@@ -9,6 +9,8 @@ public static class SkillsFeature
         services.AddOptions<SkillsOptions>().BindConfiguration(SkillsOptions.Section);
         services.AddSingleton<SkillFiles>();
         services.AddScoped<SkillEditing>();
+        services.AddScoped<ShippedSkillsRefresher>();
+        services.AddHostedService<ShippedSkillsRefresh>();
 
         return services;
     }

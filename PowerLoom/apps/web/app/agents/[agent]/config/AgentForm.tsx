@@ -21,6 +21,7 @@ import { DeleteAgentButton } from "./DeleteAgentButton";
 import { PromptField, type PromptVersion } from "./PromptField";
 import type { PromptFile } from "@/models/PromptFile";
 import { SkillsField } from "./SkillsField";
+import { ShippedNoteLine } from "./ShippedNoteLine";
 import { KeptForm } from "@/components/KeptForm";
 
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
@@ -61,6 +62,7 @@ export function AgentForm({ agent, catalog, skills, skillFolders, blockerKinds, 
           <AccessSection agent={agent} />
         </div>
         <div>
+          <ShippedNoteLine note={agent.shipped?.note} />
           <PipelineFields agent={agent} blockerKinds={blockerKinds} taskTypes={taskTypes} />
           <PromptField stored={agent.prompt ?? ""} storedVersion={agent.promptVersion ?? 0} file={promptFile} versions={promptVersions} hint={<><code>{"{{framework}}"}</code> pulls in the <Link href="/settings?tab=agents">shared framework</Link>; the run&apos;s vault adds its <code>ENVIRONMENT.md</code> rules.</>} />
           <SkillsField agentId={agent.id} selected={agent.skills} catalog={skills} folders={skillFolders} />

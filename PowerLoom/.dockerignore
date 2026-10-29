@@ -3,10 +3,10 @@
 **/TestResults
 .vs
 **/Internal/Generated/
-# The TypeScript side builds from Dockerfile.apps with the AgentTools root as context, not here.
+# The TypeScript side builds from Dockerfile.apps with the AgentTools root as context, not here. skills/ stays: the
+# image ships PowerLoom's own skills, which a start puts back over an edit when they change (ShippedSkillsRefresher).
 apps/
 packages/
-skills/
 templates/
 tools/
 backups/

@@ -9,6 +9,7 @@ import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
 import type { ConfigChange } from "../models/ConfigChange";
 import { isRemovable } from "../removable";
+import { shippedSkillNames } from "../shippedRefreshLog";
 import { validateAgent, validateGlobal } from "../schemas";
 
 interface ConfigFile {
@@ -25,7 +26,8 @@ export class JsonFileAgentConfigStore implements AgentConfigStore {
 
   async ensureDefaults(agents: AgentDefinition[], global: AgentsGlobal): Promise<void> {
     await this.mutate((file) => {
-      const merged = [...agents.map((defaults) => mergeWithDefaults(file.agents[defaults.id] ?? {}, defaults)), ...refreshUserAgents(Object.values(file.agents), agents)];
+      const shippedSkills = shippedSkillNames(agents);
+      const merged = [...agents.map((defaults) => mergeWithDefaults(file.agents[defaults.id] ?? {}, defaults, shippedSkills)), ...refreshUserAgents(Object.values(file.agents), agents)];
 
       return {
         global: mergeGlobal(file.global, global),

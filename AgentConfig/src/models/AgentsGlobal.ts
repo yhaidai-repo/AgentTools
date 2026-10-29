@@ -9,4 +9,8 @@ export interface AgentsGlobal {
   framework?: string;
   /** The stored framework's version; every edit is a new one. 0 while the file applies. */
   frameworkVersion?: number;
+  /** Hash of the framework file the code shipped when it was last applied; a different one replaces an edited framework. */
+  shippedFramework?: string;
+  /** When a start last put the shipped framework over an edited one (ISO time), for Settings. */
+  frameworkReplacedAt?: string;
 }

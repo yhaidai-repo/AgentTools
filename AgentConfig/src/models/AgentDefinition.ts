@@ -5,6 +5,7 @@ import type { AgentLimits } from "./AgentLimits";
 import type { AgentOptionSpec } from "./AgentOptionSpec";
 import type { AgentOptionValue } from "./AgentOptionValue";
 import type { ModelChoice } from "./ModelChoice";
+import type { ShippedFields } from "./ShippedFields";
 
 export interface AgentDefinition {
   /** Stable key, e.g. "refinement". */
@@ -38,4 +39,6 @@ export interface AgentDefinition {
   optionSpecs: AgentOptionSpec[];
   /** The integrations the host can give this agent. Always taken from the code's defaults, like optionSpecs. */
   integrationSpecs: AgentIntegrationSpec[];
+  /** System agents: the code-owned fields as the code shipped them when last applied (see shippedFields). */
+  shipped?: ShippedFields;
 }

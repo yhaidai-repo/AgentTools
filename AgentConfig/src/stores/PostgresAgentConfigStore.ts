@@ -1,5 +1,6 @@
 import type { Pool } from "pg";
-import { FALLBACK_GLOBAL, mergeGlobal, mergeWithDefaults, refreshUserAgents } from "../defaults";
+import { FALLBACK_GLOBAL, mergeGlobal, refreshSystemAgent, refreshUserAgents } from "../defaults";
+import { logFrameworkRefresh, logRefresh, shippedSkillNames } from "../shippedRefreshLog";
 import type { AgentConfigStore } from "../models/AgentConfigStore";
 import type { AgentDefinition } from "../models/AgentDefinition";
 import type { AgentsGlobal } from "../models/AgentsGlobal";
@@ -17,17 +18,24 @@ export class PostgresAgentConfigStore implements AgentConfigStore {
   }
 
   async ensureDefaults(agents: AgentDefinition[], global: AgentsGlobal): Promise<void> {
-    for (const defaults of agents) {
-      const stored = await this.get(defaults.id);
+    const shippedSkills = shippedSkillNames(agents);
 
-      await this.write(mergeWithDefaults(stored ?? {}, defaults));
+    for (const defaults of agents) {
+      const refresh = refreshSystemAgent((await this.get(defaults.id)) ?? {}, defaults, shippedSkills);
+
+      logRefresh(refresh);
+      await this.write(refresh.agent);
     }
 
     for (const agent of refreshUserAgents(await this.list(), agents)) {
       await this.write(agent);
     }
 
-    await this.writeGlobal(mergeGlobal(await this.readGlobal(), global));
+    const stored = await this.readGlobal();
+    const merged = mergeGlobal(stored, global);
+
+    logFrameworkRefresh(stored, merged);
+    await this.writeGlobal(merged);
 
     // Announced like a save: hosts that started first (e.g. a scheduler) would otherwise miss newly added agents.
     await this.notify({ kind: "global", id: null });

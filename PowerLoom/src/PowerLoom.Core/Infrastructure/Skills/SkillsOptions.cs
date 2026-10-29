@@ -10,4 +10,7 @@ public sealed class SkillsOptions
 
     // The only folder PowerLoom may write: its own skills, mounted from the repo (user decision 2026-10-01).
     public string Editable { get; set; } = "";
+
+    // PowerLoom's own skills as this image ships them (copied in at build, not mounted); empty = no refresh at start.
+    public string Shipped { get; set; } = "";
 }

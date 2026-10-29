@@ -1,5 +1,6 @@
 export { agentDefinitionSchema, agentsGlobalSchema, validateAgent, validateGlobal } from "./schemas";
-export { isPaused, mergeWithDefaults, sharedSpecs } from "./defaults";
+export { isPaused, mergeWithDefaults, refreshSystemAgent, sharedSpecs } from "./defaults";
+export { CODE_OWNED_FIELDS, shippedFieldsOf } from "./shippedFields";
 export { isRemovable } from "./removable";
 export { modelCatalog } from "./catalog";
 export { PostgresAgentConfigStore } from "./stores/PostgresAgentConfigStore";
@@ -17,3 +18,6 @@ export type { ModelChoice } from "./models/ModelChoice";
 export type { CatalogModel } from "./models/CatalogModel";
 export type { ConfigChange } from "./models/ConfigChange";
 export type { ValidationResult } from "./models/ValidationResult";
+export type { ShippedFields } from "./models/ShippedFields";
+export type { ShippedNote } from "./models/ShippedNote";
+export type { SystemAgentRefresh } from "./models/SystemAgentRefresh";

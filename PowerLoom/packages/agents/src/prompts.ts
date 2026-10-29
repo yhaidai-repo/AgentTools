@@ -56,6 +56,14 @@ export async function hasPromptFile(name: string): Promise<boolean> {
   }
 }
 
+// The prompt file as the code ships it, with LF line ends so a Windows checkout isn't a change; null without a file.
+export async function shippedPromptText(name: string): Promise<string | null> {
+  if (!(await hasPromptFile(name))) {
+    return null;
+  }
+
+  return (await readPromptFile(name)).replace(/\r\n/g, "\n");
+}
 
 // `{{framework}}` pulls in the shared `_framework.md`; its version joins the prompt's, so a run records both.
 export async function composePrompt(raw: string, values: Record<string, string>, readFragment: ReadFragment): Promise<LoadedPrompt> {

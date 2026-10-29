@@ -8,6 +8,8 @@ const specs = [
   { key: "readGoogleDrive", label: "Google Drive", description: "" },
 ];
 
+const CODE_OWNED = { label: "Agent", description: "", skills: [], canAssign: [], handles: [], waitFor: [] };
+
 function agent(id: string, origin: "builtin" | "user", integrations: Record<string, boolean>, integrationSpecs = specs): AgentDefinition {
   return { id, origin, capabilities: { webAccess: false, integrations }, integrationSpecs } as unknown as AgentDefinition;
 }
@@ -35,7 +37,7 @@ describe("owned switches", () => {
   ];
 
   function defaultsOf(id: string, integrations: Record<string, boolean>): AgentDefinition {
-    return { ...agent(id, "builtin", integrations, owned), options: {}, optionSpecs: [], model: {}, limits: {}, budgets: {} } as unknown as AgentDefinition;
+    return { ...agent(id, "builtin", integrations, owned), ...CODE_OWNED, options: {}, optionSpecs: [], model: {}, limits: {}, budgets: {} } as unknown as AgentDefinition;
   }
 
   it("keeps an owned switch on for its owner and offers it to nobody else", () => {

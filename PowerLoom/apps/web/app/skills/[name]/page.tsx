@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocalTime } from "@/components/LocalTime";
 import { getAgentConfig } from "@/lib/agentConfig";
-import { contentHash, loadRevisions, loadSkillFile } from "@/lib/skillEditing";
+import type { ShippedSkill } from "@powerloom/core";
+import { contentHash, loadRevisions, loadShippedSkill, loadSkillFile } from "@/lib/skillEditing";
 import { skillFolders } from "@/lib/skills";
 import { RestoreButton } from "./RestoreButton";
 import { SkillEditor } from "./SkillEditor";
@@ -25,6 +26,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
   const usedBy = (await getAgentConfig().list()).filter((agent) => agent.skills.includes(skill.name)).map((agent) => agent.label);
   const hash = contentHash(skill.content);
   const revisions = await loadRevisions(skill.name);
+  const shipped = await loadShippedSkill(skill.name);
 
   return (
     <>
@@ -34,6 +36,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
         <span className="chip">folder: {hostPath}</span>
         <span className="chip">used by: {usedBy.length > 0 ? usedBy.join(", ") : "no agent (PBIs may add it)"}</span>
       </div>
+      <ShippedNote shipped={shipped} />
       {isEditable ? <Editable name={skill.name} content={skill.content} hash={hash} /> : <ViewOnly content={skill.content} />}
       <h2>Earlier versions</h2>
       {revisions.length === 0 ? <p className="muted">None yet.</p> : (
@@ -51,6 +54,15 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
       )}
     </>
   );
+}
+
+// A shipped skill runs on the shipped text after every upgrade that changes it; an edit it replaced is an earlier version.
+function ShippedNote({ shipped }: { shipped: ShippedSkill | null }) {
+  if (!shipped?.replacedRevisionId) {
+    return null;
+  }
+
+  return <p className="field-hint">An upgrade on <LocalTime date={shipped.appliedAt} /> put the shipped text back; the edited one is kept below as an earlier version to restore.</p>;
 }
 
 function Editable({ name, content, hash }: { name: string; content: string; hash: string }) {

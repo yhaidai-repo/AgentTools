@@ -214,6 +214,7 @@ async function AgentsTab() {
         storedVersion={global.frameworkVersion ?? 0}
         file={await readPromptFile(FRAMEWORK_ID)}
         versions={versions.map((row) => ({ version: row.version, text: row.text, createdAt: row.createdAt }))}
+        replacedAt={global.frameworkReplacedAt}
       />
     </>
   );

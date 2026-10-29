@@ -59,6 +59,17 @@ export const agentDefinitionSchema = z.object({
     description: z.string(),
     owner: z.string().min(1).optional(),
   })).default([]),
+  // Kept through every save: without it the next start would take every shipped value again (see shippedFields).
+  shipped: z.object({
+    label: z.string(),
+    description: z.string(),
+    prompt: z.string(),
+    skills: z.array(z.string()),
+    canAssign: z.array(z.string()),
+    handles: z.array(z.string()),
+    waitFor: z.array(z.string()),
+    note: z.object({ fields: z.array(z.string()), at: z.string().datetime() }).optional(),
+  }).optional(),
 }).superRefine(checkOptions).superRefine(checkIntegrations);
 
 export const agentsGlobalSchema = z.object({
@@ -68,6 +79,8 @@ export const agentsGlobalSchema = z.object({
   // The shared framework as edited in Settings; empty = the file shipped with the code. Every edit is a new version.
   framework: z.string().default(""),
   frameworkVersion: z.number().int().nonnegative().default(0),
+  shippedFramework: z.string().optional(),
+  frameworkReplacedAt: z.string().datetime().optional(),
 });
 
 // An option the code doesn't read would be saved and silently ignored, so it is rejected instead.

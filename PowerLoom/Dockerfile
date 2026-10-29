@@ -27,6 +27,9 @@ ARG PWSH_VERSION=7.6.6
 RUN apt-get update && apt-get install -y --no-install-recommends curl less libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*  && curl -sSL -o /tmp/pwsh.tar.gz https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-x64.tar.gz  && mkdir -p /opt/microsoft/powershell/7 && tar zxf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7  && chmod +x /opt/microsoft/powershell/7/pwsh && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh && rm /tmp/pwsh.tar.gz
 WORKDIR /app
 COPY --from=build /app .
+# PowerLoom's own skills as this image ships them, outside the mounted skills folder they are compared with at start.
+COPY skills /shipped-skills
+ENV Skills__Shipped=/shipped-skills
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "PowerLoom.Api.dll"]

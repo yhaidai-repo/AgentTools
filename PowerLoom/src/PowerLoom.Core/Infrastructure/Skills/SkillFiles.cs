@@ -51,6 +51,35 @@ public sealed partial class SkillFiles(IOptions<SkillsOptions> options)
         return null;
     }
 
+    // A shipped skill's text in PowerLoom's own folder, as the start's refresh puts it there; creates a skill new to it.
+    public async Task WriteShippedAsync(ShippedSkillFile shipped, CancellationToken cancellation)
+    {
+        var folder = Path.Combine(options.Value.Editable, shipped.Name);
+
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, FileName), shipped.Content, cancellation);
+    }
+
+    // The editable folder's text of a skill, or null when that folder doesn't have it.
+    public async Task<string?> ReadOwnAsync(string name, CancellationToken cancellation)
+    {
+        var path = Path.Combine(options.Value.Editable, name, FileName);
+
+        return File.Exists(path) ? await File.ReadAllTextAsync(path, cancellation) : null;
+    }
+
+    // Every skill the image ships (Skills:Shipped), none when it has no shipped folder.
+    public async Task<IReadOnlyList<ShippedSkillFile>> ShippedAsync(CancellationToken cancellation)
+    {
+        if (options.Value.Shipped.Length == 0 || options.Value.Editable.Length == 0 || !Directory.Exists(options.Value.Shipped))
+            return [];
+
+        var files = Directory.EnumerateDirectories(options.Value.Shipped).Select(skill => Path.Combine(skill, FileName)).Where(File.Exists);
+        var shipped = await Task.WhenAll(files.Select(async path => new ShippedSkillFile(Path.GetFileName(Path.GetDirectoryName(path)!), await File.ReadAllTextAsync(path, cancellation))));
+
+        return shipped.OrderBy(skill => skill.Name, StringComparer.Ordinal).ToList();
+    }
+
     // A new skill of PowerLoom's own (user decision 2026-10-23: created with a new agent) in the editable folder; refused
     // when a folder already has the name, so an existing skill is never shadowed. Returns why it was refused, or null.
     public async Task<string?> CreateAsync(string name, string content, CancellationToken cancellation)

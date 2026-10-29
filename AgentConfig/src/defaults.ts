@@ -1,9 +1,28 @@
 import type { AgentDefinition } from "./models/AgentDefinition";
 import type { AgentsGlobal } from "./models/AgentsGlobal";
+import type { SystemAgentRefresh } from "./models/SystemAgentRefresh";
+import { codeOwnedFields, replacedFields, shippedFieldsOf } from "./shippedFields";
 
-// Stored values win; fields that newer defaults added (and the stored copy lacks) are filled in.
-// Option and integration specs always come from the defaults (the code); values the code no longer declares are dropped.
-export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: AgentDefinition): AgentDefinition {
+// A system agent's stored copy merged with the code: the user's settings come from the stored copy, the code-owned
+// fields from the code as shippedFields decides. shippedSkillNames: every skill the system agents ship, which tells a
+// user's own skill from a shipped one on a copy stored before the shipped record.
+export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: AgentDefinition, shippedSkillNames: ReadonlySet<string> = new Set()): AgentDefinition {
+  return refreshSystemAgent(stored, defaults, shippedSkillNames).agent;
+}
+
+export function refreshSystemAgent(stored: Partial<AgentDefinition>, defaults: AgentDefinition, shippedSkillNames: ReadonlySet<string>, now = new Date()): SystemAgentRefresh {
+  const merged = { ...userSettings(stored, defaults), ...codeOwnedFields(stored, defaults, shippedSkillNames) } as AgentDefinition;
+  const replaced = replacedFields(stored, merged);
+  const shipped = defaults.shipped ?? shippedFieldsOf(defaults, "");
+  const note = replaced.length > 0 ? { fields: replaced, at: now.toISOString() } : stored.shipped?.note;
+
+  return { agent: { ...merged, shipped: note ? { ...shipped, note } : shipped }, replaced };
+}
+
+// What the user sets: the switch, schedule, model, limits, budgets, options and integrations persist; fields newer
+// defaults added are filled in. Option and integration specs and the built-in tool grants always come from the code;
+// values the code no longer declares are dropped.
+function userSettings(stored: Partial<AgentDefinition>, defaults: AgentDefinition): AgentDefinition {
   const options = { ...defaults.options, ...stored.options };
   const declared = new Set(defaults.optionSpecs.map((spec) => spec.key));
   const integrationSpecs = specsOfAgent(defaults.id, defaults.integrationSpecs);
@@ -12,13 +31,14 @@ export function mergeWithDefaults(stored: Partial<AgentDefinition>, defaults: Ag
 
   return {
     ...defaults,
-    ...stored,
+    enabled: stored.enabled ?? defaults.enabled,
+    schedule: stored.schedule === undefined ? defaults.schedule : stored.schedule,
     model: { ...defaults.model, ...stored.model },
     limits: { ...defaults.limits, ...stored.limits },
     budgets: { ...defaults.budgets, ...stored.budgets },
     capabilities: {
       ...defaults.capabilities,
-      ...stored.capabilities,
+      webAccess: stored.capabilities?.webAccess ?? defaults.capabilities.webAccess,
       integrations: Object.fromEntries(Object.entries(integrations).filter(([key]) => offered.has(key))),
     },
     options: Object.fromEntries(Object.entries(options).filter(([key]) => declared.has(key))),
@@ -63,8 +83,19 @@ function withSwitches(agent: AgentDefinition, specs: AgentDefinition["integratio
   };
 }
 
-export function mergeGlobal(stored: Partial<AgentsGlobal> | null, defaults: AgentsGlobal): AgentsGlobal {
-  return { ...defaults, ...stored };
+// Stored values win, except the framework: when the code ships a framework file other than the one last applied
+// (defaults.shippedFramework, its hash), a framework edited in Settings gives way to the file; its versions stay in the
+// prompt history. Defaults without the hash (a host reading the settings) leave the framework as stored.
+export function mergeGlobal(stored: Partial<AgentsGlobal> | null, defaults: AgentsGlobal, now = new Date()): AgentsGlobal {
+  const merged = { ...defaults, ...stored };
+
+  if (defaults.shippedFramework === undefined || stored?.shippedFramework === defaults.shippedFramework) {
+    return merged;
+  }
+
+  const replacedAt = stored?.framework ? { frameworkReplacedAt: now.toISOString() } : {};
+
+  return { ...merged, framework: "", frameworkVersion: 0, shippedFramework: defaults.shippedFramework, ...replacedAt };
 }
 
 export function isPaused(global: AgentsGlobal, now = new Date()): boolean {
