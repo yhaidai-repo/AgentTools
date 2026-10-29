@@ -4,8 +4,7 @@ using PowerLoom.Contracts.Imports;
 
 namespace PowerLoom.Features.ImportSources;
 
-// A request from outside (an import inbox file): checked field by field, because any tool may write it. A file without
-// a sourceRef uses its file name.
+// A normalized request from an import source, checked field by field. A missing sourceRef uses the supplied file name.
 public static class ImportRequestParser
 {
     public static Outcome<PbiImportRequest> Parse(JsonElement value, string? fallbackRef)

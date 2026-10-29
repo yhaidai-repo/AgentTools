@@ -16,7 +16,7 @@ export function HealthBand({ status, rates }: { status: SystemStatus; rates: Rat
     <div className="band">
       <SystemTile status={status} />
       <StatTile label="agent-runner" value={runnerValue(status)} note={`${status.runs.length} running · ${stuck} stuck`} tone={problemTone(status.runner.state)} />
-      <StatTile label="Dead letters" value={String(status.messaging.deadLetters)} note={`${status.messaging.incoming} waiting · ${status.messaging.deadLettersLast24h} in 24 h`} tone={status.messaging.deadLetters > 0 ? "warn" : "plain"} />
+      <StatTile label={<a href="#dead-letters">Dead letters</a>} value={String(status.messaging.deadLetters)} note={`${status.messaging.incoming} waiting · ${status.messaging.deadLettersLast24h} in 24 h`} tone={status.messaging.deadLetters > 0 ? "warn" : "plain"} />
       <StatTile label="HTTP p95" value={p95 === null ? "–" : `${Math.round(p95)} ms`} note={requests === null ? "no requests measured" : `${Math.round(requests)} requests in the last 30 min`} />
     </div>
   );

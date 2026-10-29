@@ -24,12 +24,12 @@ public sealed class ImportRequestTests
     [Fact]
     public void A_request_is_checked_field_by_field()
     {
-        var ok = ImportRequestParser.Parse(Element("""{"source":"inbox","adoIds":[1,2],"prepare":false}"""), "req-1.json");
+        var ok = ImportRequestParser.Parse(Element("""{"source":"outlook","adoIds":[1,2],"prepare":false}"""), "mail-1.json");
         var noRef = ImportRequestParser.Parse(Element("""{"adoIds":[1]}"""), null);
         var badIds = ImportRequestParser.Parse(Element("""{"source":"s","sourceRef":"r","adoIds":[0]}"""), null);
         var empty = ImportRequestParser.Parse(Element("""{"source":"s","sourceRef":"r"}"""), null);
 
-        Assert.Equal(("inbox", "req-1.json", false), (ok.Value!.Source, ok.Value.SourceRef, ok.Value.Prepare));
+        Assert.Equal(("outlook", "mail-1.json", false), (ok.Value!.Source, ok.Value.SourceRef, ok.Value.Prepare));
         Assert.Equal("source and sourceRef are required.", noRef.Problem!.Detail);
         Assert.Equal("adoIds must be whole numbers above 0.", badIds.Problem!.Detail);
         Assert.Equal("Give adoIds, html or text.", empty.Problem!.Detail);

@@ -23,7 +23,12 @@ export function ChatAppForm({ apps }: { apps: ChatApps | null }) {
               {choosableApps(apps).map((app) => <option key={app.id} value={app.id}>{app.connected ? app.label : `${app.label} (not connected)`}</option>)}
             </select>
           </label>
-        ) : <p className="hint text-warn">Unknown: PowerLoom isn&apos;t reachable.</p>}
+        ) : null}
+        {apps ? (
+          <ul className="app-states">
+            {apps.apps.map((app) => <li key={app.id}><span className={app.connected ? "dot ok" : "dot off"} aria-hidden="true" />{app.label}<small>{app.connected ? "connected" : "not connected"}</small></li>)}
+          </ul>
+        ) :<p className="hint text-warn">Unknown: PowerLoom isn&apos;t reachable.</p>}
       </div>
       <div className="settings-foot">
         <ResultLine result={result} />

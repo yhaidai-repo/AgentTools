@@ -30,7 +30,7 @@ public sealed class FailedImportsCleaner(PowerLoomDbContext db, IOptions<ImportO
         return new CleanerResult(actions);
     }
 
-    // `failed/` at the root (the inbox source) and in each source's folder (outlook, meetings).
+    // `failed/` at the root (legacy generic imports) and in each source's folder (outlook, meetings).
     private static IEnumerable<string> FailedFolders(string root)
     {
         if (!Directory.Exists(root))

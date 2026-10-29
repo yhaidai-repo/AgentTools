@@ -65,7 +65,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
 
   return (
     <>
-      <div className="page-head"><h1>Settings</h1><span className="hint">of <code>{current}</code></span></div>
+      <div className="page-head"><h1>Settings</h1><span className="hint">vault <code>{current}</code></span></div>
       <SettingsTabs active={tab} marks={marks} />
       {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
       {tab === "github" && <GitHubForm key={`github-${current}-${github.owner}-${github.login}`} values={gitHubValues(github)} />}

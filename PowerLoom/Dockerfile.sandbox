@@ -1,6 +1,8 @@
 # The agents' sandbox image (design agent-sandbox, 2026-10-28): the general toolchains a run's commands may need, for
 # any project. The sandbox service starts one container of it per run, with no network, as user 1000, on a read-only
-# root. A vault that needs other toolchains builds its own image FROM this one and sets SANDBOX_IMAGE.
+# root. A vault that needs other toolchains builds its own image FROM this one and lists it in sandbox-images.json.
+# Two .NET SDKs side by side, the newest and the one before: a repo whose global.json pins the earlier SDK builds too,
+# and a project targeting the earlier framework finds its targeting pack in the image instead of a restore.
 # Build (no context needed): docker build -t powerloom-sandbox - < Dockerfile.sandbox
 ARG DOTNET_SDK=10.0
 ARG DOTNET_PREVIOUS_1=9.0
@@ -8,7 +10,7 @@ ARG DOTNET_PREVIOUS_2=8.0
 ARG NODE=24-bookworm-slim
 ARG DENO=bin-2.5.6
 
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_PREVIOUS_1} AS dotnet-previous-1
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_PREVIOUS_1} AS dotnet-previous-1
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_PREVIOUS_2} AS dotnet-previous-2
 FROM node:${NODE} AS node
 FROM denoland/deno:${DENO} AS deno
@@ -20,7 +22,12 @@ ARG DOTNET_PREVIOUS_2
 ARG NODE
 ARG DENO
 
-# Earlier .NET runtimes next to the SDK's own, so test projects that target them run.
+# The earlier SDK with its runtimes, targeting packs, workload manifests and templates next to the newest SDK's own; an
+# older runtime alone, so test projects that still target it run.
+COPY --from=dotnet-previous-1 /usr/share/dotnet/sdk /usr/share/dotnet/sdk
+COPY --from=dotnet-previous-1 /usr/share/dotnet/sdk-manifests /usr/share/dotnet/sdk-manifests
+COPY --from=dotnet-previous-1 /usr/share/dotnet/packs /usr/share/dotnet/packs
+COPY --from=dotnet-previous-1 /usr/share/dotnet/templates /usr/share/dotnet/templates
 COPY --from=dotnet-previous-1 /usr/share/dotnet/shared /usr/share/dotnet/shared
 COPY --from=dotnet-previous-2 /usr/share/dotnet/shared /usr/share/dotnet/shared
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -38,7 +45,7 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && chown 1000:1000 /workspace /packages /work
 
 # Shown to the agent when it opens its sandbox.
-LABEL powerloom.toolchains=".NET SDK ${DOTNET_SDK} (runtimes ${DOTNET_PREVIOUS_1}, ${DOTNET_PREVIOUS_2}), Node ${NODE}, Deno ${DENO}, Python 3, PowerShell 7, git, ripgrep, jq"
+LABEL powerloom.toolchains=".NET SDKs ${DOTNET_SDK} and ${DOTNET_PREVIOUS_1} (runtime ${DOTNET_PREVIOUS_2} too), Node ${NODE}, Deno ${DENO}, Python 3, PowerShell 7, git, ripgrep, jq"
 
 USER 1000:1000
 WORKDIR /workspace

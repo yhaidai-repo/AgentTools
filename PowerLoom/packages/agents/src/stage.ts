@@ -26,7 +26,10 @@ export async function loadStageSkills(deps: AgentDeps, agent: AgentDefinition, p
   const available = (await listSkills(deps.skillFolders)).skills.map((skill) => skill.name);
   const pbiNames = (pbi?.skills ?? []).map((skill) => skill.name).filter((name) => !agent.skills.includes(name));
   const fromPbi = pbiNames.filter((name) => available.includes(name));
-  const skills = await loadSkills(deps.skillFolders, [...agent.skills, ...fromPbi]);
+  const names = [...agent.skills, ...fromPbi];
+  // Older agent configurations or PBI recommendations may still name the compatibility skill.
+  if (names.includes("powerloom-better-review") && !names.includes("powerloom-code-review")) names.push("powerloom-code-review");
+  const skills = await loadSkills(deps.skillFolders, names);
 
   return {
     skills,

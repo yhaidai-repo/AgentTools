@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionResult } from "@/models/ActionResult";
-import { discardDeadLetter, replayDeadLetter } from "./actions";
+import { discardDeadLetter, replayDeadLetter } from "./deadLetterActions";
 
 export function DeadLetterControls({ id, replayable }: { id: string; replayable: boolean }) {
   const [replay, replayAction, replaying] = useActionState<ActionResult | null>(() => replayDeadLetter(id), null);

@@ -3,8 +3,11 @@ import type Docker from "dockerode";
 import { SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE, imageNamed, readImageCatalog, type OpenSandboxRequest, type SandboxImage, type SandboxSummary } from "@powerloom/sandbox";
 import type { Outcome } from "../models/Outcome";
 import type { SandboxConfig } from "../models/SandboxConfig";
+import type { PackagesVolume } from "../models/PackagesVolume";
+import { PACKAGE_CACHE_LABEL, packagesVolumeOf } from "./packagesVolume";
+import { RestoreQueue } from "./RestoreQueue";
 import { Sandbox } from "./Sandbox";
-import { packagesVolume, sandboxContainerOptions } from "./sandboxContainerOptions";
+import { sandboxContainerOptions } from "./sandboxContainerOptions";
 
 const TOOLCHAINS_LABEL = "powerloom.toolchains";
 const MAX_TTL_MINUTES = 24 * 60;
@@ -16,6 +19,7 @@ export class SandboxRegistry {
   // What each image holds, from its label: read once per image.
   private readonly toolchains = new Map<string, string>();
   private readonly catalog: SandboxImage[];
+  private readonly restores = new RestoreQueue();
 
   constructor(
     private readonly docker: Docker,
@@ -38,19 +42,27 @@ export class SandboxRegistry {
   private async start(request: OpenSandboxRequest, image: SandboxImage): Promise<Sandbox> {
     const id = randomBytes(6).toString("hex");
     const expiresAt = new Date(Date.now() + Math.min(request.ttlMinutes, MAX_TTL_MINUTES) * 60_000);
+    const packages = packagesVolumeOf(id, request.packageCache);
 
-    await this.docker.createVolume({ Name: packagesVolume(id), Labels: { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: request.owner } });
+    await this.createPackagesVolume(packages, id, request);
 
-    const container = await this.docker.createContainer(sandboxContainerOptions(this.config, image.image, id, request.owner, expiresAt));
+    const container = await this.docker.createContainer(sandboxContainerOptions(this.config, image.image, packages.name, id, request.owner, expiresAt));
 
     await container.start();
 
     const info = { id, owner: request.owner, expiresAt: expiresAt.toISOString(), workspace: WORKSPACE, image: image.image, toolchains: await this.toolchainsOf(image) };
-    const sandbox = new Sandbox(info, container.id, this.docker, this.config);
+    const sandbox = new Sandbox(info, container.id, packages, this.docker, this.config, this.restores);
 
     this.sandboxes.set(id, sandbox);
 
     return sandbox;
+  }
+
+  // Creating a shared cache that exists already gives the existing one: the vault's next sandbox finds its packages.
+  private async createPackagesVolume(packages: PackagesVolume, id: string, request: OpenSandboxRequest): Promise<void> {
+    const labels: Record<string, string> = packages.shared ? { [PACKAGE_CACHE_LABEL]: request.packageCache ?? "" } : { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: request.owner };
+
+    await this.docker.createVolume({ Name: packages.name, Labels: labels });
   }
 
   find(id: string): Outcome<Sandbox> {
@@ -102,9 +114,16 @@ export class SandboxRegistry {
 
     try {
       await this.docker.getContainer(sandbox.containerId).remove({ force: true, v: true });
-      await this.docker.getVolume(packagesVolume(sandbox.info.id)).remove();
+      await this.removeOwnPackages(sandbox.packagesVolume);
     } catch (error) {
       console.error(`removing the sandbox of ${sandbox.info.owner} failed:`, error);
+    }
+  }
+
+  // A shared cache stays for the vault's next sandbox; it is in use while another of its sandboxes is open.
+  private async removeOwnPackages(packages: PackagesVolume): Promise<void> {
+    if (!packages.shared) {
+      await this.docker.getVolume(packages.name).remove();
     }
   }
 

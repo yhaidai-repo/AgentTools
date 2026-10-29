@@ -11,6 +11,12 @@ tags: [meta]
 Doc storage for the projects of this vault. Obsidian vault = `{{vaultPath}}`. Entry point: [[index]].
 Other vaults are separate: no links, relations or shared notes between vaults.
 
+## Instruction maintenance
+- This `AGENTS.md` belongs to the vault. PowerLoom creates it only if missing; edits here survive
+  PowerLoom restarts and redeployments. Keep vault-specific instructions here.
+- Read `POWERLOOM.md` for PowerLoom workflows, tools and the ownership/update rules for its managed files.
+  When changing instructions, follow its "Maintaining these instructions" section.
+
 ## Hierarchy
 ```
 {{vaultPath}}/ common: AGENTS.md, CLAUDE.md, index.md, www-log.md, draft/;

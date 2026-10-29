@@ -7,22 +7,24 @@ export const SANDBOX_USER = "1000:1000";
 export const SANDBOX_HOME = "/home/sandbox";
 export const RESTORE_WORK = "/work";
 
-/** The sandbox's packages volume: written by its restores, read-only for its commands. */
-export function packagesVolume(id: string): string {
-  return `powerloom-sandbox-${id}-packages`;
-}
+// A command builds from the packages restores put in the cache, never from a feed: NuGet takes the cache as its only
+// source (MSBuild reads the variable as the RestoreSources property, over the repo's nuget.config), its audit, which
+// needs a feed, stays off, and npm reads its cache only.
+const OFFLINE_ENV = [`RestoreSources=${PACKAGES}/nuget`, "NuGetAudit=false", "npm_config_offline=true"];
 
 // The isolation is the enforcement (user decision 2026-10-28): no network, nothing of the host or the runner (no env,
 // no mounts but its own volumes), not root, a read-only root, no capabilities, no privilege gain, and hard limits.
-// Nothing the caller sends reaches these options except the owner and the expiry, which are labels only.
-export function sandboxContainerOptions(config: SandboxConfig, image: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
+// Nothing the caller sends reaches these options except the owner and the expiry, which are labels only, and the
+// package cache's key, only as part of a volume name (packagesVolumeOf).
+// `packages`: the packages volume (PackagesVolume), written by restores, read-only here.
+export function sandboxContainerOptions(config: SandboxConfig, image: string, packages: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
   return {
     name: `powerloom-sandbox-${id}`,
     Image: image,
     Cmd: ["sleep", "infinity"],
     User: SANDBOX_USER,
     WorkingDir: WORKSPACE,
-    Env: sandboxEnv(),
+    Env: [...sandboxEnv(), ...OFFLINE_ENV],
     Labels: labels(id, owner, expiresAt),
     NetworkDisabled: true,
     HostConfig: {
@@ -30,7 +32,7 @@ export function sandboxContainerOptions(config: SandboxConfig, image: string, id
       NetworkMode: "none",
       // An anonymous workspace volume, removed with the container and filled from the image's /workspace (owned by the
       // user); the packages volume read-only.
-      Mounts: [{ Type: "volume", Source: "", Target: WORKSPACE }, { Type: "volume", Source: packagesVolume(id), Target: PACKAGES, ReadOnly: true }],
+      Mounts: [{ Type: "volume", Source: "", Target: WORKSPACE }, { Type: "volume", Source: packages, Target: PACKAGES, ReadOnly: true }],
     },
   };
 }
@@ -38,7 +40,7 @@ export function sandboxContainerOptions(config: SandboxConfig, image: string, id
 // A restore's container (phase 3): the same isolation and the sandbox's image, but on the egress network (its only way
 // out is the proxy, reached at `proxyUrl` with the restore's pass), with the repo's unchanged copy in its own volume and
 // the sandbox's packages volume writable. Lives for one restore.
-export function restoreContainerOptions(config: SandboxConfig, image: string, proxyUrl: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
+export function restoreContainerOptions(config: SandboxConfig, image: string, proxyUrl: string, packages: string, id: string, owner: string, expiresAt: Date): ContainerCreateOptions {
   return {
     name: `powerloom-restore-${id}-${Date.now()}`,
     Image: image,
@@ -52,7 +54,7 @@ export function restoreContainerOptions(config: SandboxConfig, image: string, pr
     HostConfig: {
       ...isolation(config),
       NetworkMode: config.egressNetwork ?? "none",
-      Mounts: [{ Type: "volume", Source: "", Target: RESTORE_WORK }, { Type: "volume", Source: packagesVolume(id), Target: PACKAGES }],
+      Mounts: [{ Type: "volume", Source: "", Target: RESTORE_WORK }, { Type: "volume", Source: packages, Target: PACKAGES }],
     },
   };
 }

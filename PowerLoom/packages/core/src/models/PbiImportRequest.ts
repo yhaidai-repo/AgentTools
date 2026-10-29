@@ -1,5 +1,5 @@
 // One item from an import source (a mail, a file, a future job's find): the PBIs it names, by id or by links in its
-// content. Each import source turns its items into requests; the inbox source reads them as JSON files as they are.
+// content. Each import source turns its items into requests.
 export interface PbiImportRequest {
   /** Who sent it, e.g. "outlook"; shown in the Imports panel. */
   source: string;

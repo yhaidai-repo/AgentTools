@@ -16,6 +16,8 @@ export function AttentionList({ items }: { items: Attention[] }) {
 }
 
 function linkTo(component: string): string {
+  if (component === "messaging") return "/dashboard?tab=application#dead-letters";
+
   const parent = nodeById(component)?.parent;
 
   return `/dashboard?tab=application${parent ? `&focus=${parent}` : ""}&mark=${component}`;

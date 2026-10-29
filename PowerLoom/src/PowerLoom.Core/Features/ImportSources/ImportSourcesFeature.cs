@@ -11,7 +11,6 @@ public static class ImportSourcesFeature
         services.AddOptions<ImportOptions>().BindConfiguration(ImportOptions.Section);
         services.AddScoped<ImportSettingsStore>();
         services.AddScoped<IPbiImportSource, OutlookMailSource>();
-        services.AddScoped<IPbiImportSource, InboxRequestSource>();
 
         return services;
     }

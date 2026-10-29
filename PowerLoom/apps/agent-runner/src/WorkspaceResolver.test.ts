@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import type { RunWorktreeSlot } from "@powerloom/agents";
+import type { RunShellRouteSlot, RunWorktreeSlot } from "@powerloom/agents";
 import type { AgentEvent, AgentRequest, AgentRuntime, RepoRef } from "@agenttools/runtime";
 import type { GitIdentityEnv } from "./models/GitIdentityEnv";
 import type { GsdWorktreeOptions } from "./models/GsdWorktreeOptions";
@@ -60,8 +60,8 @@ function workspaceRequest(gsd: boolean): AgentRequest {
   return request({ env: { KEEP: "1" }, settingSources: ["project"], workspace: { repo, branch: "feature/123-totals", baseBranch: "develop", gsd, gsdSeed: seed } });
 }
 
-function resolver(repos: WorkspaceRepos, gsd: FakeGsd, gsdCore: string | null = "D:/gsd-core", slot: RunWorktreeSlot = { current: null }): WorkspaceResolver {
-  return new WorkspaceResolver(repos, gsd, { worktreeRoot: ROOT, gsdCore, identity }, slot);
+function resolver(repos: WorkspaceRepos, gsd: FakeGsd, gsdCore: string | null = "D:/gsd-core", slot: RunWorktreeSlot = { current: null }, route: RunShellRouteSlot = { current: null }): WorkspaceResolver {
+  return new WorkspaceResolver(repos, gsd, { worktreeRoot: ROOT, gsdCore, identity }, slot, route);
 }
 
 describe("WorkspaceResolver", () => {
@@ -107,6 +107,15 @@ describe("WorkspaceResolver", () => {
     resolved.release();
 
     assert.deepEqual(repos.calls.filter((call) => call.startsWith("release")), ["release app"]);
+  });
+
+  it("gives a workspace run the route its sandbox tools left for builds and tests, and a run without one none", async () => {
+    const shellRoute = { run: async () => null };
+    const routed = await resolver(new FakeRepos(), new FakeGsd(), "D:/gsd-core", { current: null }, { current: shellRoute }).resolve(workspaceRequest(true));
+    const unrouted = await resolver(new FakeRepos(), new FakeGsd()).resolve(workspaceRequest(true));
+
+    assert.equal(routed.request.shellRoute, shellRoute);
+    assert.equal("shellRoute" in unrouted.request, false);
   });
 
   it("tells the sandbox tools the run's worktree and repo until the workspace is released", async () => {

@@ -286,6 +286,45 @@ describe("createSandboxTools", () => {
     await tool("sandbox_restore").handler({ repo: "orders-api" });
 
     assert.match(restored[0], /cached\.cs/);
-    assert.match(tool("sandbox_restore").description, /a package you add can't be fetched/);
+    assert.match(tool("sandbox_restore").description, /unchanged files at the run's commit, not your edits/);
+  });
+
+  it("sends the packages to add with the restore and names the versions it chose", async () => {
+    const sent: unknown[] = [];
+    const client: Partial<SandboxClient> = {
+      ...fakeClient([]),
+      restore: async (id, repo, target, tar, credentials, hosts, additions) => {
+        sent.push(additions);
+        await tar.cancel();
+
+        return { ok: true, value: { ok: true, steps: [{ label: "dotnet add src/Api/Api.csproj package Polly", exitCode: 0, durationMs: 9_000, output: "info : PackageReference for package 'Polly' version '8.4.2' added to file 'Api.csproj'." }], skipped: [], packagesPath: "/packages" } };
+      },
+    };
+    const tool = toolsOf(depsWith(client).deps);
+
+    await tool("sandbox_open").handler({});
+
+    const result = await tool("sandbox_restore").handler({ repo: "orders-api", packages: [{ project: "src/Api/Api.csproj", id: "Polly" }] });
+
+    assert.deepEqual(sent, [[{ project: "src/Api/Api.csproj", id: "Polly" }]]);
+    assert.match(result.text, /- added package 'Polly' version '8\.4\.2'/);
+  });
+
+  it("opens the sandbox on the vault's package cache", async () => {
+    const opened: unknown[] = [];
+    const client: Partial<SandboxClient> = { ...fakeClient([]), open: async (request) => { opened.push(request.packageCache); return { ok: true, value: info }; } };
+    const { deps } = depsWith(client);
+
+    deps.sandbox!.packageCache = "work-projects";
+    await toolsOf(deps)("sandbox_open").handler({});
+
+    assert.deepEqual(opened, ["work-projects"]);
+  });
+
+  it("refuses dotnet add package in run_command and points at the restore", async () => {
+    const result = await toolsOf(depsWith(fakeClient([])).deps)("run_command").handler({ command: "cd orders-api && dotnet add src/Api/Api.csproj package Polly" });
+
+    assert.equal(result.isError, true);
+    assert.match(result.text, /sandbox_restore's `packages`/);
   });
 });

@@ -1,6 +1,6 @@
 "use server";
 
-import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand } from "@powerloom/core";
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand, syncPullRequestsCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
@@ -229,13 +229,13 @@ export async function testGitHubAction(_previous: ActionResult | null, form: For
   return checked.data ? { ok: checked.data.ok, message: checked.data.message } : powerloomResult(checked, "");
 }
 
-// Settings → Sync → Pull requests → Check now: GitHub's check (Azure DevOps' runs on its schedule).
-export async function checkGitHubPullRequestsAction(): Promise<ActionResult> {
-  const queued = await powerloom.POST("/api/vaults/{vault}/github/pull-requests/sync", { params: { path: { vault: await requireVault() } } });
+// Settings → Sync → Pull requests → Check now: Azure DevOps and GitHub, whichever the vault has (as on Reviews).
+export async function checkPullRequestsAction(): Promise<ActionResult> {
+  const checked = messageResult(await runWebCommand(syncPullRequestsCommand, { vault: await requireVault() }));
 
   revalidatePath("/settings");
 
-  return powerloomResult(queued, "Checking GitHub; new PRs appear on Reviews in a few seconds.");
+  return checked;
 }
 
 export async function syncGitHubAction(): Promise<ActionResult> {
@@ -243,7 +243,7 @@ export async function syncGitHubAction(): Promise<ActionResult> {
 
   revalidatePath("/settings");
 
-  return powerloomResult(queued, "Listing the repos: reload in a moment.");
+  return powerloomResult(queued, "Fetching the GitHub repos: they show in the Repositories tab in a few seconds.");
 }
 
 // Read Azure (user decisions 2026-10-12/14), kept by PowerLoom: one switch per kind here, and each agent's own

@@ -5,4 +5,7 @@ export interface OpenSandboxRequest {
   ttlMinutes: number;
   /** A name from the image catalog (the vault's Settings → Sandbox); the catalog's first image when left out. */
   image?: string;
+  /** The package cache it shares with every sandbox of the same key (the run's vault): what one run restores, the next
+   *  builds from offline. Left out, the sandbox gets a cache of its own, removed with it. */
+  packageCache?: string;
 }

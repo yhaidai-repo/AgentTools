@@ -1,9 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER, type FeedCredential } from "@powerloom/sandbox";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER, type FeedCredential, type PackageAddition } from "@powerloom/sandbox";
 import { BadRequest } from "./BadRequest";
 import type { SandboxRegistry } from "../docker/SandboxRegistry";
 import type { Sandbox } from "../docker/Sandbox";
 import type { Outcome } from "../models/Outcome";
+import type { RestoreOptions } from "../models/RestoreOptions";
 import { readJson, sendJson, sendProblem } from "./httpIo";
 import { commandRequest, editRequest, openRequest, patchText, sessionStartRequest, stdinRequest, writeFileRequest } from "./requestBodies";
 
@@ -14,7 +15,7 @@ const SANDBOX_ACTIONS: Record<string, Record<string, SandboxAction>> = {
   PUT: {
     repos: async (sandbox, request, parts, url) => sandbox.repos.import(parts[3] ?? "", request, url.searchParams.get("message") || "base"),
     files: async (sandbox, request) => sandbox.files.writeFile(writeFileRequest(await readJson(request))),
-    restore: async (sandbox, request, parts, url) => sandbox.packages.restore(sandbox.info, { repo: parts[3] ?? "", target: url.searchParams.get("target") ?? "" }, request, feedCredentials(request), headerJson<string[]>(request, PACKAGE_HOSTS_HEADER) ?? []),
+    restore: async (sandbox, request, parts, url) => sandbox.packages.restore(sandbox.info, { repo: parts[3] ?? "", target: url.searchParams.get("target") ?? "" }, request, restoreOptions(request)),
   },
   POST: {
     commands: async (sandbox, request) => sandbox.commands.run(commandRequest(await readJson(request))),
@@ -93,9 +94,13 @@ function ownerFilter(url: URL): (sandbox: Sandbox) => boolean {
   return prefix ? (sandbox) => sandbox.info.owner.startsWith(prefix) : () => false;
 }
 
-// The feeds' sign-ins of a restore; none when it has no header.
-function feedCredentials(request: IncomingMessage): FeedCredential[] {
-  return headerJson<FeedCredential[]>(request, FEED_CREDENTIALS_HEADER) ?? [];
+// A restore's feed sign-ins, package hosts and package additions; each empty when its header isn't sent.
+function restoreOptions(request: IncomingMessage): RestoreOptions {
+  return {
+    credentials: headerJson<FeedCredential[]>(request, FEED_CREDENTIALS_HEADER) ?? [],
+    hosts: headerJson<string[]>(request, PACKAGE_HOSTS_HEADER) ?? [],
+    additions: headerJson<PackageAddition[]>(request, PACKAGE_ADDITIONS_HEADER) ?? [],
+  };
 }
 
 // A restore's header holding base64 JSON; null when it isn't sent.

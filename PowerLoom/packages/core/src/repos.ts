@@ -6,7 +6,7 @@ import type { RepoRow } from "./models/RepoRow";
 // local repos are added through PowerLoom. Agents and the PBI repo choice see the enabled ones only.
 
 export async function listVaultRepos(db: PowerLoomDb, vault: string): Promise<RepoRow[]> {
-  return db.select().from(repo).where(eq(repo.vault, vault)).orderBy(asc(repo.name));
+  return db.select().from(repo).where(eq(repo.vault, vault)).orderBy(asc(repo.excluded), asc(repo.name));
 }
 
 export async function enabledRepos(db: PowerLoomDb, vault: string): Promise<RepoRow[]> {

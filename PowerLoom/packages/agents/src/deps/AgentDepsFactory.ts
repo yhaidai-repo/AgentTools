@@ -24,11 +24,14 @@ import { ProviderConnections } from "../providerConnections";
 import { SharedAzureServers } from "./SharedAzureServers";
 import { loadCaptureRules } from "../vaultCapture";
 import { adoFeedCredential, adoFeedHosts } from "../sandbox/adoFeedCredential";
+import { readBuildCommands } from "../sandbox/buildCommandSettings";
+import { feedCredentialOf, feedHostsOf, readPackageFeeds } from "../sandbox/packageFeeds";
 import { repoGitAuth } from "./env";
 import { SearchThrottle } from "../webSearch/SearchThrottle";
 import { SearxngClient } from "../webSearch/SearxngClient";
 import type { DepsEnv } from "./models/DepsEnv";
 import { RETIRED_AGENT_IDS, disableRetiredAgents } from "./retiredAgents";
+import { migrateReviewSkills } from "./migrateReviewSkills";
 
 const REPO_REFRESH_MINUTES = 30;
 
@@ -101,6 +104,7 @@ export class AgentDepsFactory {
     await this.config.ensureSchema();
     await this.config.ensureDefaults(agents, global);
     await disableRetiredAgents(this.config, RETIRED_AGENT_IDS);
+    await migrateReviewSkills(this.config);
   }
 
   // The run reads docs from its vault, writes drafts, merges and the usage log into it, and reads the PBI note from the
@@ -192,8 +196,8 @@ export class AgentDepsFactory {
   }
 
   // The vault's Azure DevOps, read only.
-  // The host's sandbox service with the vault's part: its image, its package hosts, and its own Azure DevOps feeds signed
-  // in by its token (restores only).
+  // The host's sandbox service with the vault's part: its image, its package hosts, its own Azure DevOps feeds signed in
+  // by its token and its private feeds by theirs (restores only), its package cache, and its build and test commands.
   private async sandboxAccessOf(vault: string): Promise<AgentDeps["sandbox"]> {
     if (!this.env.sandbox) {
       return null;
@@ -201,11 +205,15 @@ export class AgentDepsFactory {
 
     const ado = await readAdoSettings(this.db, vault);
     const settings = await readSandboxSettings(this.db, vault);
+    const privateFeeds = await readPackageFeeds(this.db, vault);
     const feed = ado ? adoFeedCredential(ado.orgUrl, ado.pat) : null;
     const adoHosts = feed && ado ? adoFeedHosts(ado.orgUrl) : [];
+    // A private feed's own token comes first: it wins over the Azure DevOps token for a feed both cover.
+    const feeds = [...privateFeeds.map(feedCredentialOf), ...(feed ? [feed] : [])];
+    const packageHosts = [...new Set([...settings.packageHosts, ...adoHosts, ...privateFeeds.flatMap(feedHostsOf)])];
     const client = this.sandboxClient ??= new SandboxClient(this.env.sandbox.url, this.env.sandbox.token);
 
-    return { client, url: this.env.sandbox.url, feeds: feed ? [feed] : [], packageHosts: [...new Set([...settings.packageHosts, ...adoHosts])], image: settings.image };
+    return { client, url: this.env.sandbox.url, feeds, packageHosts, image: settings.image, packageCache: vault, buildCommands: await readBuildCommands(this.db, vault) };
   }
 
   private async adoAccessOf(vault: string): Promise<AgentDeps["ado"]> {

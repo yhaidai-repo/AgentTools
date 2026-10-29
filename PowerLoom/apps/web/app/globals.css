@@ -7,8 +7,8 @@
   /* Popups (menus, dialogs) need an opaque plane: a translucent one shows the page through. */
   --surface-solid: #0e1015;
   --text: #eef0f4;
-  --muted: #8a90a0;
-  --faint: #5c6270;
+  --muted: #b0b6c3;
+  --faint: #8a90a0;
   --accent: #7dd3fc;
   --accent-2: #a78bfa;
   --on-accent: #06121a;
@@ -377,6 +377,15 @@ label.inline {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px 12px;
+}
+
+select {
+  color-scheme: dark;
+}
+
+select option {
+  color: var(--text);
+  background: var(--bg);
 }
 
 input,

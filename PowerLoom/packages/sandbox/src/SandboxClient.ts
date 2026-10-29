@@ -5,6 +5,7 @@ import type { EditRequest } from "./models/EditRequest";
 import type { FeedCredential } from "./models/FeedCredential";
 import type { FileWritten } from "./models/FileWritten";
 import type { OpenSandboxRequest } from "./models/OpenSandboxRequest";
+import type { PackageAddition } from "./models/PackageAddition";
 import type { PatchApplied } from "./models/PatchApplied";
 import type { RepoUploaded } from "./models/RepoUploaded";
 import type { RestoreResult } from "./models/RestoreResult";
@@ -16,7 +17,7 @@ import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
-import { FEED_CREDENTIALS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -51,10 +52,10 @@ export class SandboxClient {
 
   /** Restores a repo's packages from its unchanged files (the tar), in a container of its own with the feeds' sign-ins;
    *  `target` is a solution, project or folder of the repo, or the repo's root when empty; `hosts` the vault's package
-   *  hosts, the only ones the restore may reach. */
-  restore(id: string, repo: string, target: string, tar: ReadableStream<Uint8Array>, credentials: FeedCredential[], hosts: string[]): Promise<SandboxAnswer<RestoreResult>> {
+   *  hosts, the only ones the restore may reach; `additions` NuGet packages it adds to projects first, into the cache. */
+  restore(id: string, repo: string, target: string, tar: ReadableStream<Uint8Array>, credentials: FeedCredential[], hosts: string[], additions: PackageAddition[] = []): Promise<SandboxAnswer<RestoreResult>> {
     const path = `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}?target=${encodeURIComponent(target)}`;
-    const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts) };
+    const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts), [PACKAGE_ADDITIONS_HEADER]: base64Json(additions) };
 
     return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_TIMEOUT_MS, headers });
   }

@@ -14,3 +14,6 @@ export const PACKAGE_HOSTS_HEADER = "x-package-hosts";
 export const SANDBOX_LABEL = "powerloom.sandbox";
 export const SANDBOX_OWNER_LABEL = "powerloom.owner";
 export const SANDBOX_EXPIRES_LABEL = "powerloom.expires";
+
+// … and the NuGet packages it adds to projects first (base64 JSON of PackageAddition[]).
+export const PACKAGE_ADDITIONS_HEADER = "x-package-additions";

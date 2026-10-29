@@ -218,6 +218,14 @@
   border-color: color-mix(in srgb, var(--state-ready) 35%, transparent);
 }
 
+a.source-tag {
+  text-decoration: none;
+}
+
+a.source-tag:hover {
+  border-color: currentColor;
+}
+
 /* An add form, folded until wanted. */
 .add-form {
   margin-top: 6px;
@@ -232,6 +240,53 @@
   border-radius: 999px;
   list-style: none;
   cursor: pointer;
+}
+
+.add-on-top {
+  margin-bottom: 12px;
+}
+
+.add-on-top .add-form {
+  margin-top: 0;
+}
+
+/* Text beside a field, at the height of the field's control. */
+.field-value {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin: 0;
+}
+
+/* Each chat app and whether it's connected. */
+.app-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  list-style: none;
+}
+
+.app-states li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.app-states small {
+  color: var(--muted);
+}
+
+/* A Drive folder: its name, its id and Remove. */
+.resource-row.folder-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+}
+
+.add-folder input {
+  flex: 1;
+  min-width: 240px;
 }
 
 .add-form > summary::-webkit-details-marker {

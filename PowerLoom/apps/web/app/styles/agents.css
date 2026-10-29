@@ -464,6 +464,11 @@ tr:hover .row-action,
   row-gap: 6px;
 }
 
+.field-grid > .field > input,
+.field-grid > .field > select {
+  align-self: start;
+}
+
 .form-picker .dropdown,
 .form-picker .dropdown-trigger {
   width: 100%;

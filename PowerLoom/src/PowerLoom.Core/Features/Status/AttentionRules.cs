@@ -33,7 +33,7 @@ public static class AttentionRules
             attention.Add(new Attention(RunnerComponent, StateLevel.Degraded, $"The agent-runner doesn't answer: {runner.Detail}"));
 
         if (messaging.DeadLetters > 0)
-            attention.Add(new Attention(MessagingComponent, StateLevel.Degraded, $"{messaging.DeadLetters} dead letter(s) ({messaging.DeadLettersLast24h} in the last 24 h): see the Agents page."));
+            attention.Add(new Attention(MessagingComponent, StateLevel.Degraded, $"{messaging.DeadLetters} dead letter(s) ({messaging.DeadLettersLast24h} in the last 24 h): see Dashboard → Application."));
 
         attention.AddRange(runs.Where(run => run.Stuck).Select(run => new Attention(RunsComponent, StateLevel.Degraded, $"{run.TaskId} ({run.AgentId}) is in progress since {run.Since:u}, past its timeout.")));
         attention.AddRange(SyncFailures(syncs));
