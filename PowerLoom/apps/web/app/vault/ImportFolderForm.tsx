@@ -14,7 +14,7 @@ export function ImportFolderForm({ vault, launcher }: { vault: string; launcher:
   }
 
   return (
-    <KeptForm action={onImport}>
+    <KeptForm action={onImport} className="import-folder-form">
       <label>
         Import a folder: its path on this PC (read only; the chat writes into {vault} and keeps a report in import-reports/)
         <input name="folder" placeholder="D:/Docs/Old specs" required />

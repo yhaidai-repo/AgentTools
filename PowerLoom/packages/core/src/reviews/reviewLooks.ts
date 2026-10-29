@@ -9,6 +9,15 @@ export function unresolvedReviewComments(row: ReviewRow): number {
   return row.comments.open + row.comments.answered;
 }
 
+// A search matches a review by words of its PR's title, or by the PR's number or a linked PBI's ("37786", "PBI-37786", "#37786").
+export function matchesReviewSearch(row: ReviewRow, search: string): boolean {
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const title = row.pr.title.toLowerCase();
+  const numbers = [row.pr.id, ...row.pr.workItemIds].map(String);
+
+  return words.every((word) => title.includes(word) || numbers.includes(word.replace(/^(pbi-|pr-|#)/, "")));
+}
+
 export function matchesReviewStatus(row: ReviewRow, status: ReviewListStatus): boolean {
   return status === "all" || (isReviewClosed(row) ? "closed" : "active") === status;
 }

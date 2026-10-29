@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkPicker } from "@/components/LinkPicker";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { kindTag, type TaskBucket } from "@/lib/taskLooks";
 import { UPDATED_FIRST, tasksUrl } from "@/lib/tasksUrl";
@@ -39,14 +40,21 @@ export function TaskFilters({ filter, total, buckets, kinds }: TaskFiltersProps)
         </span>
       </div>
       <div className="backlog-bar">
-        <nav className="status-pills" aria-label="Filter by kind">
-          <Pill href={tasksUrl({ ...keep, status: filter.status, kind: "" })} on={filter.kind === ""} label="All kinds" />
-          {[...kinds.keys()].map((kind) => <Pill key={kind} href={tasksUrl({ ...keep, status: filter.status, kind })} on={filter.kind === kind} label={kindTag(kind).label} count={kinds.get(kind)} />)}
-        </nav>
+        <KindPicker filter={filter} kinds={kinds} keep={keep} />
         <PbiFilterField filter={filter} />
       </div>
     </>
   );
+}
+
+// Many kinds don't fit a row of pills: one dropdown lists them with their counts.
+function KindPicker({ filter, kinds, keep }: { filter: TaskFilter; kinds: Map<string, number>; keep: Partial<TaskFilter> }) {
+  const choices = [
+    { key: "", label: "All kinds", href: tasksUrl({ ...keep, status: filter.status, kind: "" }) },
+    ...[...kinds.entries()].map(([kind, count]) => ({ key: kind, label: `${kindTag(kind).label} · ${count}`, href: tasksUrl({ ...keep, status: filter.status, kind }) })),
+  ];
+
+  return <LinkPicker label="Kind" value={filter.kind} choices={choices} />;
 }
 
 // Waits on you first, or simply the latest change first (user request 2026-10-18); a click flips it. Only under All:

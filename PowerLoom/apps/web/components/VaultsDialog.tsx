@@ -6,17 +6,17 @@ import { RemoveVaultForm } from "./RemoveVaultForm";
 // The vaults PowerLoom works for (user decision 2026-10-05), managed from the top bar's menu (user decision 2026-10-06): a
 // folder of the vaults root is added as a vault and prepared by the worker; "Configure with <agent>" opens a chat that
 // sets the vault up on the PC; removing one makes PowerLoom forget it.
-export function VaultsDialog({ vaults, vaultsRoot }: { vaults: string[]; vaultsRoot: string }) {
+export function VaultsDialog({ vaults, vaultsRoot, freeFolders }: { vaults: string[]; vaultsRoot: string; freeFolders: string[] }) {
   return (
-    <>
+    <div className="vaults-body">
       <h2>Vaults</h2>
       <p className="muted">Each vault is an account: the top bar picks the one every page shows.</p>
       {vaults.length > 0 && <VaultRows vaults={vaults} vaultsRoot={vaultsRoot} />}
-      <AddVaultForm vaultsRoot={vaultsRoot} />
+      <AddVaultForm vaultsRoot={vaultsRoot} freeFolders={freeFolders} />
       <div className="actions">
         <CloseDialogButton />
       </div>
-    </>
+    </div>
   );
 }
 

@@ -837,3 +837,34 @@ dialog.chat-picker { width: min(48rem, calc(100vw - 3rem)); }
 .chat-option > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .chat-option small { color: var(--muted); }
 .clipboard-fallback { display: grid; gap: 10px; }
+
+/* The vaults dialog: its parts have room between them. */
+.vaults-body {
+  display: grid;
+  gap: 16px;
+}
+
+.vaults-body > p,
+.vaults-body h2 {
+  margin: 0;
+}
+
+.vaults-body label {
+  display: grid;
+  gap: 8px;
+}
+
+.folder-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vaults-body form {
+  display: grid;
+  gap: 10px;
+}
+
+.vaults-body form p {
+  margin: 0;
+}

@@ -9,6 +9,7 @@ import { vaultUrl } from "@/lib/vaultUrl";
 import type { RegisterRow } from "@/models/RegisterRow";
 import { ScheduleTable } from "../tasks/ScheduleTable";
 import { ImportFolderChat } from "./ImportFolderChat";
+import { VaultReviewRuns } from "./VaultReviewRuns";
 import { RegisterFilters } from "./RegisterFilters";
 import { RegisterTable } from "./RegisterTable";
 import { TrashTable } from "./TrashTable";
@@ -37,6 +38,7 @@ export async function MaintenanceTab({ root, vault, params, tabs }: { root: stri
       <div className="tab-bar">{tabs}</div>
       <div className="section-label">Maintenance jobs</div>
       <ScheduleTable schedules={schedules} />
+      <VaultReviewRuns vault={vault} />
       <p className="hint">Tasks → New task (type vault-review, with a cron) schedules the vault review. The drafts job (every 10 min) gives each draft a tech-writer task.</p>
       <div className="section-label">Import</div>
       <ImportFolderChat vault={vault} />

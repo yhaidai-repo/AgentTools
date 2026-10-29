@@ -1,4 +1,4 @@
-export { branchName, countReviewStatuses, isReviewClosed, matchesReviewStatus, reviewNeedsYou } from "@powerloom/core";
+export { branchName, countReviewStatuses, isReviewClosed, matchesReviewSearch, matchesReviewStatus, reviewNeedsYou } from "@powerloom/core";
 
 // How a review's id reads in the list: a branch review has no PR number worth showing (user decision 2026-10-21), a local
 // repo's review (local-repo, user decision 2026-10-25) is "local".

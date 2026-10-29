@@ -11,7 +11,7 @@ const TYPES = [
   { value: "Bug", label: "Bug", tag: "bug" },
   { value: "Task", label: "Task", tag: "task" },
 ];
-const PRIORITIES = [1, 2, 3, 4];
+const PRIORITIES = [1, 2, 3, 4, 5];
 
 // Two columns (user decision 2026-10-18): what the PBI says on the left; what it is, which repos research and design
 // clone, and its documents on the right; Create in a bar that stays on screen. The fields keep what you typed when

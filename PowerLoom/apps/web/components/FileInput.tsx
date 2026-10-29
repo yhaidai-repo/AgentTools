@@ -63,7 +63,8 @@ export function FileInput({ name, accept, required }: { name: string; accept: st
 
   return (
     <div className="file-input" tabIndex={0} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
-      <input ref={input} type="file" name={name} accept={accept} required={required} multiple onChange={(event) => setNames(fileNames(event.currentTarget))} />
+      <input ref={input} type="file" name={name} accept={accept} required={required} multiple className="file-native" tabIndex={-1} onChange={(event) => setNames(fileNames(event.currentTarget))} />
+      <button type="button" className="secondary" onClick={() => input.current?.click()}>Choose files</button>
       <span className="muted">or paste (Ctrl+V) / drop files here</span>
       {names.length > 0 && (
         <span>

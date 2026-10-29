@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { NavLinks } from "@/components/NavLinks";
 import { VaultSelect } from "@/components/VaultSelect";
 import { VaultsDialog } from "@/components/VaultsDialog";
+import { freeVaultFolders } from "@/lib/freeVaultFolders";
 import { vaultsHostRoot } from "@/lib/obsidian";
 import { vaultChoice } from "@/lib/currentVault";
 import "./globals.css";
@@ -46,7 +47,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <span className="bar-sep" />
             <NavLinks />
             <span className="bar-sep" />
-            <VaultSelect vaults={vaults} current={current} dialog={<VaultsDialog vaults={vaults} vaultsRoot={vaultsHostRoot() ?? "the vaults root"} />} />
+            <VaultSelect vaults={vaults} current={current} dialog={<VaultsDialog vaults={vaults} vaultsRoot={vaultsHostRoot() ?? "the vaults root"} freeFolders={await freeVaultFolders(vaults)} />} />
           </header>
         </div>
         <main>{children}</main>

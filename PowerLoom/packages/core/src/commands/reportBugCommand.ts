@@ -12,7 +12,7 @@ export const reportBugCommand: Command<ReportBugInput, ReportedBug> = {
     parent: z.string().trim().min(1),
     title: z.string().trim().min(1).max(240),
     descriptionMd: z.string().trim().transform((text) => text || null).nullable().default(null),
-    priority: z.number().int().min(1).max(4).default(2),
+    priority: z.number().int().min(1).max(5).default(2),
   }),
   async run(context, input) {
     const reported = await context.powerloom.reportBug(input, context.actor);

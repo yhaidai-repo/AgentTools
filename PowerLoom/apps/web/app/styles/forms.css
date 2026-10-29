@@ -202,3 +202,26 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* A text field that grows with what it holds instead of cutting it off. */
+textarea.grow-input {
+  field-sizing: content;
+  min-height: 36px;
+  resize: vertical;
+}
+
+/* The native file box is hidden (kept for the form and its validation); the button beside it opens it. */
+.file-input {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
