@@ -10,7 +10,8 @@ interface DropdownProps {
   align?: "left" | "right";
   /** A framed pill button (a filter on a page) rather than the bare one of the top menu. */
   pill?: boolean;
-  children: ReactNode;
+  /** The items; a function gets `close` and keeps the menu open on clicks inside (a search box, a list). */
+  children: ReactNode | ((close: () => void) => ReactNode);
 }
 
 // One dropdown look for every picker (user, 2026-10-18: no unstyled system lists): an opaque menu under its button;
@@ -29,8 +30,8 @@ export function Dropdown({ trigger, label, align = "left", pill = false, childre
         <Chevron />
       </button>
       {open && (
-        <div className={`dropdown-menu align-${align}`} role="menu" onClick={close}>
-          {children}
+        <div className={`dropdown-menu align-${align}`} role="menu" onClick={typeof children === "function" ? undefined : close}>
+          {typeof children === "function" ? children(close) : children}
         </div>
       )}
     </div>

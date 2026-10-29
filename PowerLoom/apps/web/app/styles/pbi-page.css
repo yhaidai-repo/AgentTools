@@ -121,7 +121,8 @@
 .hero-actions .actions > .muted,
 .hero-actions .actions > .result-ok,
 .hero-actions .actions > .result-error,
-.hero-actions > .result-error {
+.hero-actions > .result-error,
+.hero-actions > .hero-note {
   flex-basis: 100%;
   font-size: 12.5px;
   text-align: right;
@@ -604,4 +605,10 @@ input[type="file"]::file-selector-button {
   .pbi-columns {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* A button's answer sits as the last row of the actions, so the buttons stay level. */
+.hero-actions > .hero-note {
+  order: 1;
+  color: var(--muted);
 }

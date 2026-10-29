@@ -21,9 +21,9 @@ export function PreparePbiButton({ adoId }: { adoId: number }) {
   }
 
   return (
-    <span className="actions">
+    <>
       <button type="button" className="secondary" onClick={onPrepare} disabled={isPending} title="Writes the PBI note from the Vault template and queues a refinement task (also for a PBI already refined)">{isPending ? "Starting…" : "Start"}</button>
-      {message && <span className="muted">{message}</span>}
-    </span>
+      {message && <span className="hero-note">{message}</span>}
+    </>
   );
 }
