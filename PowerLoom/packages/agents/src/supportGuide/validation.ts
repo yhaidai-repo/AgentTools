@@ -41,8 +41,13 @@ function mediaProblems(images: GuideImage[], r: GuideReport, owner: string): str
   return problems;
 }
 
-// A claimed deployment or release must be visible in the cited fresh observation, not only asserted by the agent.
+// A claimed deployment or release must be visible in the cited fresh observation, not only asserted by the agent; a
+// stated one rests on the task's own input instead.
 function identityProblems(r: GuideReport, request: GuideRequest, log: ReadLog): string[] {
+  if (r.identityBasis === "stated") {
+    return statedIdentityProblems(r, request);
+  }
+
   const problems: string[] = [];
   const release = request.release.trim();
 
@@ -59,6 +64,20 @@ function identityProblems(r: GuideReport, request: GuideRequest, log: ReadLog): 
   }
 
   return problems;
+}
+
+// A remote app that shows neither its build nor its release (user decision 2026-10-30) can't prove them in the browser:
+// the guide may rest on the build the task states. A local stack always reports its own, so it gets no such pass.
+function statedIdentityProblems(r: GuideReport, request: GuideRequest): string[] {
+  if (request.mode !== "remote-url") {
+    return ["Only a remote-url guide may rest on a stated build; a local stack's build comes from DevHub"];
+  }
+
+  if (!request.build) {
+    return ["A stated build needs the task's input to name it (build)"];
+  }
+
+  return r.buildIdentity === request.build ? [] : [`A stated build is the task's own: buildIdentity "${request.build}"`];
 }
 
 function browserShows(log: ReadLog, id: string, request: GuideRequest, text: string): boolean {

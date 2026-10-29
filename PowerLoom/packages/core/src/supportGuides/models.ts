@@ -3,6 +3,7 @@ export const guideReportSchema = z.object({
   title: z.string().min(1).max(120), status: z.enum(["partial", "blocked", "ready"]), summary: z.string().min(1),
   markdown: z.string().max(120_000), buildIdentity: z.string().min(1).describe("Resolved commits or verified remote deployment identity; 'unknown' if unavailable"),
   buildSource: z.string().regex(/^S\d+$/).describe("Current DevHub status source or browser deployment identity source; any source when unknown"),
+  identityBasis: z.enum(["observed", "stated"]).default("observed").describe("stated: a remote app shows no build or release, so buildIdentity is the task's input build and the release is the task's own; the package says they were stated, not observed"),
   releaseVerified: z.boolean(),
   releaseSource: z.string().regex(/^S\d+$/).optional().describe("Fresh browser source showing the applicable release; required when the task names a release"),
   verifiedAt: z.string().datetime(),
