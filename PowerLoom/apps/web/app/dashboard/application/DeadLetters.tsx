@@ -8,7 +8,7 @@ const SHOWN = 10;
 // a vault. The latest ones show, whatever their age.
 export function DeadLetters({ letters }: { letters: DeadLetter[] | null }) {
   return (
-    <div id="dead-letters">
+    <div id="dead-letters" className="gap-top">
       <Panel title={<span>Dead letters <small>gave up after the retries · Replay runs one again, Discard drops it</small></span>} aside={<small>{letters && letters.length > SHOWN ? `latest ${SHOWN} of ${letters.length}` : letters?.length ?? "–"}</small>}>
         {letters === null && <p className="text-error">Dead letters could not be loaded. Try again when PowerLoom answers.</p>}
         {letters?.length === 0 && <p className="quiet-line"><span className="dot ok" />No dead letters.</p>}

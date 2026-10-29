@@ -55,14 +55,18 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
       <div className="page-head">
         <h1>Reviews</h1>
         <AutoRefresh active intervalMs={GRID_REFRESH_MS} />
+        <div className="page-action head-actions">
+          {adoActive && <AddReviewForm repos={repos.filter((entry) => entry.kind === "ado")} />}
+          {localRepos.length > 0 && <AddLocalReviewForm repos={localRepos} />}
+        </div>
       </div>
       <RememberFilters vault={vault} />
       <div className="backlog-bar">
         <StatusPills rows={found} filter={filter} />
-        <SearchField filter={filter} />
-        {adoActive && <AddReviewForm repos={repos.filter((entry) => entry.kind === "ado")} />}
-        {localRepos.length > 0 && <AddLocalReviewForm repos={localRepos} />}
-        {adoActive || gitHubActive ? <CheckLine rows={rows} /> : <NoAdoLine vault={vault} hasLocalRepos={localRepos.length > 0} />}
+        <div className="bar-right">
+          <SearchField filter={filter} />
+          {adoActive || gitHubActive ? <CheckLine rows={rows} /> : <NoAdoLine vault={vault} hasLocalRepos={localRepos.length > 0} />}
+        </div>
       </div>
       {shown.length === 0 ? <p className="empty-note">{filter.search ? `No review matches "${filter.search}".` : "No reviews. Check now lists the active PRs where you&apos;re a reviewer or the author; you start each review."}</p> : <ReviewsForm><ReviewTable rows={shown.slice((page - 1) * filter.size, page * filter.size)} /></ReviewsForm>}
       {shown.length > 0 && <Pager page={page} size={filter.size} sizes={REVIEW_PAGE_SIZES} pages={pages} total={shown.length} noun="reviews" hrefOf={(change) => reviewsUrl({ status: filter.status, search: filter.search, page: change.page, size: change.size ?? filter.size })} />}

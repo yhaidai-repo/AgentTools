@@ -7,11 +7,13 @@ interface SettingsHeadProps {
   enabled?: boolean;
   /** Saves the switch as soon as it flips (a card whose switch is its own form). */
   onToggle?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  /** On the right instead of a switch: e.g. whether a provider is connected. */
+  badge?: ReactNode;
 }
 
 // A settings card's head (user decision 2026-10-18): its title, the feature's switch on the right, and one line on what
 // it does. While the switch is off the card's body dims (CSS).
-export function SettingsHead({ title, description, enabled, onToggle }: SettingsHeadProps) {
+export function SettingsHead({ title, description, enabled, onToggle, badge }: SettingsHeadProps) {
   return (
     <div className="settings-head">
       <h3>{title}</h3>
@@ -21,6 +23,7 @@ export function SettingsHead({ title, description, enabled, onToggle }: Settings
           <span className="switch-knob" aria-hidden="true" />
         </label>
       )}
+      {badge}
       {description && <p>{description}</p>}
     </div>
   );

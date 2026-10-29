@@ -567,3 +567,24 @@ tr.focused td {
     width: 150px;
   }
 }
+
+/* Reviews: the add buttons sit in the title row; the search and the check line share the right of the filter row. */
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.bar-right .pbi-filter,
+.bar-right .sync-line {
+  margin-left: 0;
+}
