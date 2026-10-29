@@ -4,6 +4,7 @@ import type Docker from "dockerode";
 import { PACKAGES, type FeedCredential, type RestoreProgress, type RestoreResult, type RestoreStepResult } from "@powerloom/sandbox";
 import type { Outcome } from "../models/Outcome";
 import type { PreparedRestore } from "../models/PreparedRestore";
+import type { RanStep } from "../models/RanStep";
 import type { RepoProbe } from "../models/RepoProbe";
 import type { RestoreOptions } from "../models/RestoreOptions";
 import type { RestoreStep } from "../models/RestoreStep";
@@ -17,6 +18,7 @@ import { cutOutput } from "../sessions/cutOutput";
 import { RestoreBudget } from "../restore/RestoreBudget";
 import { packageCacheSize } from "../restore/packageCacheSize";
 import { RestoreTracker } from "../restore/RestoreTracker";
+import { runWithStaleLockFallback } from "../restore/staleLockFile";
 import { ContainerExec } from "./ContainerExec";
 import { deadlineAfter, underTimeout } from "./execDeadlines";
 import { proxyTokenOf } from "../proxy/proxyToken";
@@ -155,15 +157,17 @@ export class PackageRestore {
     const plan = restorePlanOf(probe.value);
     const planned = [...prepared.additions, ...plan.steps];
     const nugetEnv = await this.signIn(exec, probe.value, planned, credentials);
-    const steps: RestoreStepResult[] = [];
+    const ran: RanStep[] = [];
 
     await tracker.planned(planned.length);
 
     for (const step of planned) {
-      steps.push(await this.runTrackedStep(exec, step, step.ecosystem === "dotnet" ? nugetEnv : [], tracker));
+      ran.push(await this.runTrackedStep(exec, step, step.ecosystem === "dotnet" ? nugetEnv : [], tracker));
     }
 
-    const skipped = planned.length === 0 ? [...plan.skipped, "Nothing to restore: no solution, project, lock file or deno.json here"] : plan.skipped;
+    const steps = ran.map((step) => step.result);
+    const notes = ran.flatMap((step) => (step.note === null ? [] : [step.note]));
+    const skipped = planned.length === 0 ? [...plan.skipped, "Nothing to restore: no solution, project, lock file or deno.json here"] : [...plan.skipped, ...notes];
 
     return { ok: true, value: { ok: steps.every((step) => step.exitCode === 0), steps, skipped, packagesPath: PACKAGES } };
   }
@@ -185,14 +189,14 @@ export class PackageRestore {
     return nugetCredentialEnv(nugetSourcesOf(listing.stdout.toString("utf8")), credentials);
   }
 
-  private async runTrackedStep(exec: ContainerExec, step: RestoreStep, env: string[], tracker: RestoreTracker): Promise<RestoreStepResult> {
+  private async runTrackedStep(exec: ContainerExec, step: RestoreStep, env: string[], tracker: RestoreTracker): Promise<RanStep> {
     tracker.stepStarted(step.label);
 
-    const result = await this.runStep(exec, step, env, tracker);
+    const ran = await runWithStaleLockFallback(step, (attempt) => this.runStep(exec, attempt, env, tracker));
 
-    tracker.stepEnded(result);
+    tracker.stepEnded(ran.result);
 
-    return result;
+    return ran;
   }
 
   private async runStep(exec: ContainerExec, step: RestoreStep, env: string[], tracker: RestoreTracker): Promise<RestoreStepResult> {

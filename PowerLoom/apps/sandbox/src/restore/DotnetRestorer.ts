@@ -1,6 +1,7 @@
 import type { RepoProbe } from "../models/RepoProbe";
 import type { RestorePlan } from "../models/RestorePlan";
 import type { Restorer } from "../models/Restorer";
+import { LOCKED_MODE } from "./staleLockFile";
 
 const SOLUTION = /\.(sln|slnx)$/i;
 const PROJECT = /\.(csproj|fsproj|vbproj)$/i;
@@ -10,7 +11,7 @@ const PROJECT = /\.(csproj|fsproj|vbproj)$/i;
 export class DotnetRestorer implements Restorer {
   plan(probe: RepoProbe): RestorePlan {
     const targets = probe.file ? [probe.file].filter((file) => SOLUTION.test(file) || PROJECT.test(file)) : folderTargets(probe.files);
-    const locked = probe.files.includes("packages.lock.json") ? ["--locked-mode"] : [];
+    const locked = probe.files.includes("packages.lock.json") ? [LOCKED_MODE] : [];
     const steps = targets.map((target) => ({ label: `dotnet restore ${target}`, ecosystem: "dotnet" as const, argv: ["dotnet", "restore", target, ...locked], cwd: probe.folder }));
     const tools = probe.hasDotnetTools ? [{ label: "dotnet tool restore", ecosystem: "dotnet" as const, argv: ["dotnet", "tool", "restore"], cwd: probe.folder }] : [];
 
