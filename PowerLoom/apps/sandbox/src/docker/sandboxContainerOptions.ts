@@ -14,6 +14,12 @@ export const RESTORE_WORK = "/work";
 // needs a feed, stays off, and npm reads its cache only.
 const OFFLINE_ENV = [`RestoreSources=${PACKAGES}/nuget`, "NuGetAudit=false", "npm_config_offline=true"];
 
+// NuGet keeps every downloaded .nupkg in an HTTP cache under $HOME, whose tmpfs is 256 MB: a cold restore of 311 MB
+// ran out of space there (run 4414). The HTTP cache only repeats the extracted packages folder, so it, the plugins cache
+// and the scratch folder live on /tmp for one container, bounded by tmpMb, rather than doubling the vault's cache.
+export const NUGET_TMP = "/tmp/nuget";
+const NUGET_SCRATCH_ENV = [`NUGET_HTTP_CACHE_PATH=${NUGET_TMP}/http-cache`, `NUGET_PLUGINS_CACHE_PATH=${NUGET_TMP}/plugins-cache`, `NUGET_SCRATCH=${NUGET_TMP}/scratch`];
+
 // The isolation is the enforcement (user decision 2026-10-28): no network, nothing of the host or the runner (no env,
 // no mounts but its own volumes), not root, a read-only root, no capabilities, no privilege gain, and hard limits.
 // Nothing the caller sends reaches these options except the owner and the expiry, which are labels only, and the
@@ -93,6 +99,7 @@ function sandboxEnv(): string[] {
     "DOTNET_NOLOGO=1",
     "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1",
     `NUGET_PACKAGES=${PACKAGES}/nuget`,
+    ...NUGET_SCRATCH_ENV,
     `npm_config_cache=${PACKAGES}/npm`,
     "npm_config_update_notifier=false",
     `DENO_DIR=${PACKAGES}/deno`,

@@ -4,7 +4,7 @@ import { PACKAGES } from "@powerloom/sandbox";
 import type { SandboxConfig } from "../models/SandboxConfig";
 import { packagesVolumeOf } from "./packagesVolume";
 import { RestoreQueue } from "./RestoreQueue";
-import { restoreContainerOptions, sandboxContainerOptions } from "./sandboxContainerOptions";
+import { NUGET_TMP, restoreContainerOptions, sandboxContainerOptions } from "./sandboxContainerOptions";
 
 const config = { cpus: 2, memoryMb: 1024, pidsLimit: 100, tmpMb: 64, runtime: null, egressNetwork: "sandbox-egress" } as SandboxConfig;
 const expiresAt = new Date("2026-10-29T12:00:00Z");
@@ -32,6 +32,19 @@ test("a command reads the cache read-only and offline; a restore writes it throu
   assert.equal(sandbox.HostConfig?.NetworkMode, "none");
   assert.deepEqual(restore.HostConfig?.Mounts?.[1], { Type: "volume", Source: "powerloom-packages-v-1", Target: PACKAGES });
   assert.equal(restore.Env?.some((entry) => entry.startsWith("RestoreSources=")), false);
+});
+
+test("a restore keeps NuGet's download caches on /tmp, bounded by tmpMb, and its packages on the volume", () => {
+  const restore = restoreContainerOptions(config, "powerloom-sandbox", "http://sandbox-egress:3128", "powerloom-packages-v-1", "aaa111", "powerloom-run-1", expiresAt);
+  const env = restore.Env ?? [];
+
+  assert.ok(env.includes(`NUGET_PACKAGES=${PACKAGES}/nuget`));
+  assert.ok(env.includes(`npm_config_cache=${PACKAGES}/npm`));
+  assert.ok(env.includes(`NUGET_HTTP_CACHE_PATH=${NUGET_TMP}/http-cache`));
+  assert.ok(env.includes(`NUGET_PLUGINS_CACHE_PATH=${NUGET_TMP}/plugins-cache`));
+  assert.ok(env.includes(`NUGET_SCRATCH=${NUGET_TMP}/scratch`));
+  assert.match(NUGET_TMP, /^\/tmp\//);
+  assert.equal(restore.HostConfig?.Tmpfs?.["/tmp"], "rw,nosuid,nodev,size=64m");
 });
 
 test("restores of one cache take turns; other caches don't wait", async () => {
