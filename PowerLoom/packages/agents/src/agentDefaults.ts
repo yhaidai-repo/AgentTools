@@ -1,3 +1,4 @@
+import { DEMONSTRATION_LABEL } from "@powerloom/core";
 import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 import { AZURE_ACCESS_INTEGRATION, AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
@@ -549,7 +550,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
 const guideBase = AGENT_DEFAULTS.find(agent => agent.id === "autotest")!;
 AGENT_DEFAULTS.push({
   ...guideBase,
-  id: "support-guide", label: "Support guide",
+  id: "support-guide", label: DEMONSTRATION_LABEL,
   description: "Writes support guides from observed local or remote workflows, with inspected screenshots and a portable Confluence publication handoff.",
   enabled: false, schedule: null,
   model: { ...guideBase.model }, limits: { ...guideBase.limits }, budgets: { ...guideBase.budgets },

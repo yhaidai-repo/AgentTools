@@ -1,17 +1,17 @@
-# Support guide agent
+# Demonstration agent
 
-Support guide turns a feature task into a reader-facing guide and a portable Confluence publication package. It uses the generic executor and a dedicated RunWriter; Autotest keeps its own tasks and reporting.
+Demonstration turns a feature task into a reader-facing guide and a portable Confluence publication package. It uses the generic executor and a dedicated RunWriter; Autotest keeps its own tasks and reporting.
 
 ## Start a task
 1. Deploy the database migration, PowerLoom runner/web, and updated DevHub host/scripts together.
-2. In Agents → Support guide, review model, budget, grants and environment rules. The shipped agent is disabled, with no schedule; model/limits/budgets begin with the shipped Autotest defaults.
-3. Create a support-guide task. Supply feature/PBI or repositories, description, done-when, audience, owner, approved data/actions, and runtime inputs.
+2. In Agents → Demonstration, review model, budget, grants and environment rules. The shipped agent is disabled, with no schedule; model/limits/budgets begin with the shipped Autotest defaults.
+3. Create a Demonstration task. Supply feature/PBI or repositories, description, done-when, audience, owner, approved data/actions, and runtime inputs.
 4. Existing URL mode uses the DevHub-hosted browser without starting a local stack. Include application and sign-in origins. Local mode requires branch, services and entry URL.
 5. Add a Confluence create destination (site/space/title/parent) or update destination (site/space/title/page/base version/owned sections), or decide later.
 6. Enable the agent when ready and use Run now for the task. Agent-scoped research/refinement handoffs need a PBI; a no-PBI task may hand missing inputs to a person.
 7. On the result page, inspect guide and screenshots, download the ZIP, and give the included publication task/archive to an authorized Confluence agent or chat.
 
-Chats/API tasks use the same description envelope: a fenced support-guide JSON block matching packages/core/src/supportGuides/request.ts. The task form writes it; callers should not invent values.
+The stable agent/task id remains `support-guide`; its displayed name is **Demonstration**. Chats/API tasks use the same description envelope: a fenced support-guide JSON block matching packages/core/src/supportGuides/request.ts. The task form writes it; callers should not invent values.
 
 ## Output
 - guide.md, sanitized images/, manifest.json, verification.md and publish-task.md.

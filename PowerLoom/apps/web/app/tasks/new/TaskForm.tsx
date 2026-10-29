@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DEMONSTRATION_LABEL } from "@powerloom/core/support-guides";
 import { GuideFields } from "./GuideFields";
 import { useActionState, useState, type FormEvent } from "react";
 import type { TaskActionResult } from "@/models/TaskActionResult";
@@ -68,7 +69,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
             <span className="field-label">Type</span>
             <input type="hidden" name="type" value={type} />
             <div className="pill-switch">
-              {types.map((name) => <button key={name} type="button" className={name === type ? "on" : undefined} onClick={() => setType(name)}>{name}</button>)}
+              {types.map((name) => <button key={name} type="button" className={name === type ? "on" : undefined} onClick={() => setType(name)}>{name === "support-guide" ? DEMONSTRATION_LABEL : name}</button>)}
             </div>
             {pbiHint && <Field label="PBI" hint={pbiHint}><input name="pbi" value={pbi} onChange={(event) => setPbi(event.target.value)} placeholder="id or Azure DevOps link" /></Field>}
           </div>

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { readGuideRequest } from "@powerloom/core/support-guides";
+import { DEMONSTRATION_LABEL, readGuideRequest } from "@powerloom/core/support-guides";
 
 export function GuideFields({ description, raw = {} }: { description: string; raw?: Record<string, string> }) {
   let previous;
@@ -9,7 +9,7 @@ export function GuideFields({ description, raw = {} }: { description: string; ra
   const destination = previous?.destination;
   const [action, setAction] = useState(raw.guidePublishAction as "create" | "update" | "unspecified" ?? destination?.action ?? "unspecified");
   return <fieldset className="panel">
-    <legend>Support guide</legend>
+    <legend>{DEMONSTRATION_LABEL}</legend>
     <label className="field">Run against<select name="guideMode" value={mode} onChange={e => setMode(e.target.value as typeof mode)}><option value="remote-url">Existing URL</option><option value="local-stack">Local DevHub build</option></select></label>
     <label className="field">Entry URL<input name="guideUrl" type="url" defaultValue={raw.guideUrl ?? previous?.url} required placeholder="https://app.example.com/admin" /></label>
     <label className="field">Allowed sign-in and application origins<input name="guideOrigins" defaultValue={raw.guideOrigins ?? previous?.allowedOrigins.join(", ")} placeholder="https://app.example.com, https://login.example.com" /></label>

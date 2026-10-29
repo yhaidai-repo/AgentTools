@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+export const DEMONSTRATION_LABEL = "Demonstration";
 const url = z.string().url().refine(value => {
   const u = new URL(value);
   return ["http:", "https:"].includes(u.protocol) && !u.username && !u.password && !u.hash && !u.search;
