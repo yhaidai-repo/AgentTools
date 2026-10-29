@@ -14,7 +14,7 @@ export interface LiveTestRule {
   /** What a successful call removed. */
   removed?(input: any): LiveTestEntity[];
   /** Undoes what a successful call starts besides its own change (a queued agent task); a problem fails the call. */
-  settle?(context: CommandContext, input: any): Promise<string | null>;
+  settle?(context: CommandContext, input: any, output: any): Promise<string | null>;
   /** What the test must do besides, added to the tool's description. */
   note?: string;
 }

@@ -6,9 +6,10 @@ import { commandNamed } from "./liveTestCommands";
 const WAIT_MS = 15_000;
 const POLL_MS = 250;
 
-// pbi.prepare writes the PBI's note, which notes and the PBI's pages need, and queues a refinement task for any agent
-// taking refinement, which would start a run and spend budget. A live test deletes that task as soon as the backend
-// has queued it (preparing runs in the background), so no refinement agent ever takes it.
+// bug.report has the backend prepare the new bug in the background, which queues a refinement task for any agent
+// taking refinement; that would start a run and spend budget, and a PBI an agent works on can't be deleted. A live test
+// deletes that task as soon as the backend has queued it, so no refinement agent ever takes it. `adoIds` are the PBIs
+// whose preparing is known to queue a task: the wait is for those only.
 export async function deleteQueuedRefinement(context: CommandContext, adoIds: number[], waitMs = WAIT_MS): Promise<string | null> {
   const tasks = await waitForRefinementTasks(context, adoIds, waitMs);
   const missing = adoIds.filter((adoId) => !tasks.some((task) => task.pbiId === adoId));

@@ -32,7 +32,7 @@ async function runGuarded<I, O>(command: Command<I, O>, rule: LiveTestRule, scop
   scope.record(rule.created?.(outcome.value, input) ?? []);
   scope.forget(rule.removed?.(input) ?? []);
 
-  const unsettled = (await rule.settle?.(context, input)) ?? null;
+  const unsettled = (await rule.settle?.(context, input, outcome.value)) ?? null;
 
   return unsettled ? { ok: false, error: `${command.name} ran, but ${unsettled}` } : outcome;
 }

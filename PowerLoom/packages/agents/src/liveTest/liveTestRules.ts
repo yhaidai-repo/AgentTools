@@ -29,6 +29,8 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
     command: "bug.report",
     targets: (input) => pbiReferenceTarget(input.parent),
     created: (output) => pbiEntity(output.adoId, output.parentId),
+    settle: (context, _input, output) => deleteQueuedRefinement(context, [output.adoId]),
+    note: "The refinement task PowerLoom queues for the new bug is deleted here at once, so no refinement agent starts on it.",
   },
   {
     command: "task.create",
