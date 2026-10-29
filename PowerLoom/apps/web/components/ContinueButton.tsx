@@ -1,27 +1,34 @@
 "use client";
 
 import type { ChatTarget } from "@powerloom/core";
-import { useState } from "react";
+import { ChatMenu } from "./ChatMenu";
+import { ClipboardFallback } from "./ClipboardFallback";
+import { Dropdown } from "./Dropdown";
 import { useOpenChat } from "./useOpenChat";
-import { ChatPicker } from "./ChatPicker";
 
-// "Continue with <agent>" (or "Configure with <agent>"): opens a new chat in the configured agent app; disabled with the
-// reason while it can't.
+// "Continue with <agent>" (or "Configure with <agent>"): the button opens a new chat in the configured agent app; for
+// a PBI or item the arrow beside it also offers an existing chat. Disabled with the reason while no chat can open.
 export function ContinueButton({ target, label, problem, verb }: { target: ChatTarget; label: string; problem: string | null; verb: string }) {
   const launch = useOpenChat();
-  const { open, isPending, message, notice } = launch;
-  const [picking, setPicking] = useState(false);
-  const canPick = target.kind !== "vault" && target.kind !== "import";
+  const { open, isPending, message, notice, manual } = launch;
+  const canPick = target.kind !== "vault" && target.kind !== "import" && problem === null;
 
-  function closePicker() { launch.reset(false); setPicking(false); }
+  const main = <button type="button" onClick={() => { launch.reset(); void open(target); }} disabled={isPending || problem !== null} title={problem ?? undefined}>{isPending ? "Opening…" : `${verb} with ${label}`}</button>;
 
   return (
     <span className="actions">
-      <button type="button" onClick={() => { launch.reset(); if (canPick) setPicking(true); else void open(target); }} disabled={isPending || problem !== null} title={problem ?? undefined}>{isPending ? "Opening…" : `${verb} with ${label}`}</button>
+      {canPick ? (
+        <span className="split-button">
+          {main}
+          <Dropdown label="More ways to continue" align="right" trigger={null}>
+            {(close) => <ChatMenu target={target} launch={launch} close={close} />}
+          </Dropdown>
+        </span>
+      ) : main}
       {problem && <span className="muted">{problem}</span>}
-      {message && !picking && <span className="result-error" role="alert">{message}</span>}
+      {message && <span className="result-error" role="alert">{message}</span>}
       {notice && <span role="status">{notice}</span>}
-      {picking && <ChatPicker target={target} label={label} launch={launch} onClose={closePicker} />}
+      {manual?.clipboardText && <ClipboardFallback launch={launch} />}
     </span>
   );
 }

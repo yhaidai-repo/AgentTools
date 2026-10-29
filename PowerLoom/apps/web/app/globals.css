@@ -825,17 +825,7 @@ tbody[data-folded] tr.child-row {
   outline: none;
 }
 
-dialog.chat-picker { width: min(48rem, calc(100vw - 3rem)); }
-.chat-picker-body { display: grid; gap: 14px; }
-.chat-picker-body h2, .chat-picker-body p { margin: 0; }
-.chat-mode { display: flex; gap: 24px; border: 0; padding: 0; }
-.chat-mode legend { margin-bottom: 8px; }
-.chat-mode label { display: flex; align-items: center; gap: 6px; }
 .chat-options { display: grid; gap: 6px; max-height: 42vh; overflow-y: auto; }
-.chat-option { display: flex; align-items: start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
-.chat-option.selected { border-color: var(--accent); }
-.chat-option > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
-.chat-option small { color: var(--muted); }
 .clipboard-fallback { display: grid; gap: 10px; }
 
 /* The vaults dialog: its parts have room between them. */
@@ -867,4 +857,66 @@ dialog.chat-picker { width: min(48rem, calc(100vw - 3rem)); }
 
 .vaults-body form p {
   margin: 0;
+}
+
+/* "Continue with …" as a split button: the main part opens a new chat, the arrow lists the other ways. */
+.split-button {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.split-button > button {
+  border-radius: 999px 0 0 999px;
+}
+
+.split-button .dropdown-trigger {
+  height: 100%;
+  padding: 0 12px 0 10px;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent-2)));
+  border: none;
+  border-left: 1px solid rgb(0 0 0 / 0.25);
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.split-button .dropdown-trigger:hover,
+.split-button .dropdown-trigger[aria-expanded="true"] {
+  filter: brightness(1.08);
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent-2)));
+}
+
+.split-button .dropdown-chevron {
+  color: inherit;
+}
+
+/* The existing chats, listed in the menu: a search box over rows that open on a click. */
+.chat-menu {
+  display: grid;
+  gap: 6px;
+  width: min(380px, calc(100vw - 48px));
+}
+
+.chat-search {
+  margin: 0 4px;
+}
+
+.chat-menu-note {
+  margin: 4px 10px;
+  font-size: 12.5px;
+}
+
+.menu-item.chat-row {
+  align-items: flex-start;
+}
+
+.chat-row small {
+  color: var(--muted);
+}
+
+.chat-row > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

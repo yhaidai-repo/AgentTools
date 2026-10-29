@@ -92,6 +92,13 @@ button.danger {
 .add-review-form input { min-width: 0; flex: 1 1 160px; }
 .add-review-form input[name="branch"] { flex-basis: 260px; }
 
+/* The row eases in when Add review opens it, from the shared motion tokens. */
+.add-review-form { animation: form-appear var(--motion-base) var(--motion-out); }
+
+@keyframes form-appear {
+  from { opacity: 0; transform: translateX(12px); }
+}
+
 .selection-bar {
   position: sticky;
   top: 78px;
