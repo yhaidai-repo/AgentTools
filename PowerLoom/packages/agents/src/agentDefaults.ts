@@ -357,7 +357,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: LIVE_TEST_INTEGRATION,
     label: "PowerLoom tools (live test)",
-    description: "The agent may call PowerLoom's commands against the live system: every read, and the writes a test needs (create a PBI, bug, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs, enables an agent or writes real vaults (so no pbi_prepare: it queues a refinement task a real agent would take), and makes tasks only of a type no enabled agent takes. Everything it created is removed when the run ends, by the generic runner (the one every agent runs on today) and by nothing else: after a crash, a restart or a deploy in the middle of a run nothing sweeps what it left, so look for [selftest] data then.",
+    description: "The agent may call PowerLoom's commands against the live system: every read, on every vault, also the ones other grants gate (sql_databases, sql_describe and sql_query on every Read SQL connection, SELECT only and logged; logs_read, the services' logs; settings_get, never a secret), and the writes a test needs (create a PBI, bug, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs, enables an agent or writes real vaults (so no pbi_prepare: it queues a refinement task a real agent would take), and makes tasks only of a type no enabled agent takes. Everything it created is removed when the run ends, by the generic runner (the one every agent runs on today) and by nothing else: after a crash, a restart or a deploy in the middle of a run nothing sweeps what it left, so look for [selftest] data then.",
   },
 ];
 
