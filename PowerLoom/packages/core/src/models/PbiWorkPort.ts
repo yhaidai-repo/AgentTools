@@ -9,8 +9,6 @@ import type { PreparedPbis } from "./PreparedPbis";
 export interface PbiWorkPort {
   // Writes the PBIs' notes and queues a refinement task each.
   preparePbis(adoIds: number[]): Promise<Outcome<PreparedPbis>>;
-  // Writes the PBIs' notes and queues a design task each, for the planning agent.
-  planPbis(adoIds: number[]): Promise<Outcome<PreparedPbis>>;
   // Queues the vault's ADO sync: the sprint, the import inbox, or one PBI (adoId).
   syncAdo(vault: string, adoId: number | null, sources: AdoSyncSources): Promise<Outcome<void>>;
   // The user's own notes: the PBI note's `## Notes` section.

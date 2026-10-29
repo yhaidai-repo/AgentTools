@@ -9,9 +9,9 @@ type CommentRow = typeof reviewComment.$inferSelect;
 const MAX_PBI_TEXT = 2000;
 
 // A PR can link several PBIs, so they come as summaries; read_pbi gives each one's whole context (user decision 2026-10-13).
-const LINKED_PBIS_HINT = "Summaries. Read a PBI that is in PowerLoom in full (note, the user's notes, answers, refinement, plan, results) with read_pbi(PBI-<id>).";
+const LINKED_PBIS_HINT = "Summaries. Read a PBI that is in PowerLoom in full (note, the user's notes, answers, refinement, design, results) with read_pbi(PBI-<id>).";
 
-// The first message: the PR, the PBIs it links (what refinement and planning said), the files in scope, and every earlier
+// The first message: the PR, the PBIs it links (what refinement and design said), the files in scope, and every earlier
 // comment with the user's answer (user decision 2026-10-02: answers feed the next run).
 export function buildReviewMessage(context: ReviewContext, checkout: PullRequestCheckout, scope: DiffScope, outdatedIds: string[]): string {
   const { pr } = context;
@@ -44,7 +44,7 @@ function pbiBlock(pbi: LinkedPbi): string {
     `PBI-${pbi.adoId}: ${pbi.title}`,
     pbi.parent ? `Child item of PBI-${pbi.parent.adoId}: ${pbi.parent.title}` : "",
     `Refinement: ${clip(pbi.refinementSummary) ?? "not refined yet"}`,
-    `Plan: ${clip(pbi.planSummary) ?? "no plan yet"}`,
+    `Design approach: ${clip(pbi.designApproach) ?? "no design yet"}`,
   ].filter(Boolean).join("\n");
 }
 

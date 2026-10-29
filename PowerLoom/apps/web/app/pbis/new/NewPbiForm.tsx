@@ -78,7 +78,7 @@ export function NewPbiForm({ vault, repos, accept }: { vault: string; repos: str
             </div>
           </div>
           <div className="panel new-pbi-side">
-            <span className="field-label">Repositories <small>what research and planning clone</small></span>
+            <span className="field-label">Repositories <small>what research and design clone</small></span>
             {repos.length === 0 && <p className="hint">None enabled: turn them on in <Link href="/settings">Settings → Repositories</Link>.</p>}
             <div className="repo-chips">
               {repos.map((name) => <RepoChip key={name} name={name} chosen={chosenRepos.includes(name)} onToggle={toggleRepo} />)}

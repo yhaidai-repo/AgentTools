@@ -25,11 +25,11 @@ Go through each point. A point that fails becomes an acceptance-criteria gap, a 
 - Related PBIs, known issues and open questions in the docs are linked.
 
 ## Child item (bug of a PBI)
-- The message has a `<parent-pbi>` block: read it first. The parent's goal, refinement and plan are settled; refine only this item.
-- Scope = the gap between what the parent's acceptance criteria and plan promise and what the bug reports. Don't reopen the parent's decisions; a bug that questions them is a question.
+- The message has a `<parent-pbi>` block: read it first. The parent's goal, refinement and design are settled; refine only this item.
+- Scope = the gap between what the parent's acceptance criteria and design promise and what the bug reports. Don't reopen the parent's decisions; a bug that questions them is a question.
 - Repos and skills come from the parent; ask about repos only when the bug points outside them.
 
-## Readiness for planning
+## Readiness for design
 - Every research task has one question and a goal.
 - Every question says why it matters and, when possible, offers options.
-- If nothing is open, the PBI is ready for planning: create no research tasks.
+- If nothing is open, the PBI is ready for design: create no research tasks.

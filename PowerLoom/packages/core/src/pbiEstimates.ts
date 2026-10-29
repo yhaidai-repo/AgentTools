@@ -23,7 +23,7 @@ export async function latestRunEstimate(db: PowerLoomDb, runIds: number[]): Prom
   return row ?? null;
 }
 
-// One line, e.g. "12 h human, 3 h agent (planning, RUN-41)". A refinement estimate from before record_estimate has no agent
+// One line, e.g. "12 h human, 3 h agent (design, RUN-41)". A refinement estimate from before record_estimate has no agent
 // hours.
 export function estimateText(row: EstimateRow): string {
   const agentHours = row.agentHours === null ? "agent h not given" : `${Number(row.agentHours)} h agent`;

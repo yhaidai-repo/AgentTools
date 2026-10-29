@@ -1657,38 +1657,6 @@
         }
       }
     },
-    "/api/pbis/plan": {
-      "post": {
-        "tags": [
-          "PowerLoom.Features.Pbis.Prepare.PrepareEndpoint"
-        ],
-        "summary": "POST_api_pbis_plan",
-        "description": "POST_api_pbis_plan",
-        "operationId": "POST_api_pbis_plan",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrepareRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreparedPbis"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/pbis/{adoId}/finish": {
       "post": {
         "tags": [

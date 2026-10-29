@@ -9,8 +9,7 @@ import { createAzureTools } from "../azure/azureTools";
 import { RESEARCH_RESULT_INTEGRATION, ResearchResultWriter } from "../betterResearch/ResearchResultWriter";
 import { TechWriterWriter, WRITE_NOTES_INTEGRATION } from "../techWriter/TechWriterWriter";
 import { VAULT_REVIEW_INTEGRATION, VaultReviewWriter } from "../vaultReview/VaultReviewWriter";
-import { PlanWriter, WRITE_PLAN_INTEGRATION } from "../planning/PlanWriter";
-import { ImplementationWriter, WRITE_IMPLEMENTATION_INTEGRATION } from "../implementation/ImplementationWriter";
+import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
 import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
@@ -369,8 +368,7 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[RESEARCH_RESULT_INTEGRATION] === true ? [new ResearchResultWriter()] : []),
     ...(integrations[WRITE_NOTES_INTEGRATION] === true ? [new TechWriterWriter(context.deps)] : []),
     ...(integrations[VAULT_REVIEW_INTEGRATION] === true ? [new VaultReviewWriter(context)] : []),
-    ...(integrations[WRITE_PLAN_INTEGRATION] === true ? [new PlanWriter(context)] : []),
-    ...(integrations[WRITE_IMPLEMENTATION_INTEGRATION] === true ? [new ImplementationWriter(context)] : []),
+    ...(integrations[WRITE_DESIGN_INTEGRATION] === true ? [new DesignWriter(context)] : []),
     ...(integrations[WRITE_REFINEMENT_INTEGRATION] === true ? [new RefinementWriter(context)] : []),
     ...(integrations[CODE_REVIEW_INTEGRATION] === true ? [new ReviewWriter(context)] : []),
     ...(integrations[BETTER_REVIEW_INTEGRATION] === true ? [new BetterReviewWriter(context)] : []),

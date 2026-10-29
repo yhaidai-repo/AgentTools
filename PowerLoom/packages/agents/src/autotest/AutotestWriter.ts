@@ -20,7 +20,7 @@ type WorkItemRow = typeof workItem.$inferSelect;
 export const AUTOTEST_INTEGRATION = "writeTestReports";
 
 // Autotest's tools as a granted writer (stage 2b, 2026-10-23): write_test_report and report_bug; the first message
-// carries the PBI's test cases, its plan and refinement and the previous report. The report (TR) and the bugs are
+// carries the PBI's test cases, its design and refinement and the previous report. The report (TR) and the bugs are
 // written once the run succeeds; a report that waits for an answer sends the task back to open.
 export class AutotestWriter implements RunWriter {
   readonly integration = AUTOTEST_INTEGRATION;

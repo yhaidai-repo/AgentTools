@@ -110,19 +110,19 @@ describe("hasRefinementOutput", () => {
 
 describe("estimateText", () => {
   it("shows both values and who gave them, for read_pbi's reference line", () => {
-    const row = { id: 1, pbiId: PBI, runId: 41, agent: "planning", humanHours: "12", agentHours: "3.5", complexity: 3, confidence: "medium", basis: "two services", createdAt: new Date() } as typeof pbiEstimate.$inferSelect;
+    const row = { id: 1, pbiId: PBI, runId: 41, agent: "design", humanHours: "12", agentHours: "3.5", complexity: 3, confidence: "medium", basis: "two services", createdAt: new Date() } as typeof pbiEstimate.$inferSelect;
 
-    assert.equal(estimateText(row), "12 h human, 3.5 h agent (planning, RUN-41)");
+    assert.equal(estimateText(row), "12 h human, 3.5 h agent (design, RUN-41)");
     assert.equal(estimateText({ ...row, agent: "refinement", agentHours: null, runId: null }), "12 h human, agent h not given (refinement)");
   });
 });
 
 describe("estimate grant defaults", () => {
-  it("is on for Better Refinement and planning, off for the others", () => {
+  it("is on for Better Refinement and design, off for the others", () => {
     const granted = AGENT_DEFAULTS.filter((agent) => agent.capabilities.integrations?.[ESTIMATE_INTEGRATION] === true).map((agent) => agent.id);
     const offered = AGENT_DEFAULTS.every((agent) => agent.integrationSpecs?.some((spec) => spec.key === ESTIMATE_INTEGRATION));
 
-    assert.deepEqual(granted, ["better-refinement", "planning"]);
+    assert.deepEqual(granted, ["better-refinement", "design"]);
     assert.equal(offered, true);
   });
 });

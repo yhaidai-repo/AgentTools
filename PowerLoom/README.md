@@ -125,8 +125,6 @@ and verifier sub-agents build and test with their plain Bash tool; the orchestra
 proxy and every command reads offline (NuGet's only source is the cache, npm runs offline).
 
 To prepare a host and a vault:
-0. GSD itself: `npm install @opengsd/gsd-core@1.19.0` in a folder under `REPOS_ROOT` on the PC and set `GSD_CORE_DIR` in
-   `.env` to that package's path as the agent-runner sees it (`/repos/...`); the runner refuses any other version.
 1. Build the image: `docker build -t powerloom-sandbox - < Dockerfile.sandbox` (.NET SDKs 10 and 9 with runtime 8,
    Node 24, Deno, Python 3, PowerShell 7). It is the catalogue's `general` image (`sandbox-images.json`); a vault that
    needs other toolchains builds an image `FROM` it and adds an entry there.
@@ -146,9 +144,8 @@ To prepare a host and a vault:
    sandbox command, a log or a tool's answer. Stored as the vault setting `packageFeeds`,
    `{"feeds": [{"url", "username", "token"}]}`.
 5. Build and test commands: Settings → Repositories, under each repo's row (or the MCP tool `repo_saveCommands`;
-   `settings_get` lists them). The shell sends any of them (also with more arguments) to the sandbox, and the
-   implementation agent's GSD gets its repo's as `workflow.build_command` and `workflow.test_command`. Each is a single
-   command or `cd <folder> && <command>`: a compound isn't routed, so saving one is refused. Stored as the vault setting
+   `settings_get` lists them). The shell sends any of them (also with more arguments) to the sandbox. Each is a
+   single command or `cd <folder> && <command>`: a compound isn't routed, so saving one is refused. Stored as the vault setting
    `repoCommands`.
 6. Agents page: switch on the agent's Sandbox integration.
 
@@ -177,7 +174,6 @@ npm run powerloom:dev:web          # needs DATABASE_URL, POWERLOOM_URL in env
 - The PBI notes' region markers (`<!-- adoa:begin … -->`) keep their name: they are the file format of every rendered note.
 - `apps/agent-runner/src/GsdWorktreePreparer.ts` prepares a per-PBI git worktree before the first GSD command (not wired into a run yet): creates `.planning/` (without it `gsd-tools.cjs` remaps to the main checkout), sets `commit_docs: false` in `.planning/config.json` (existing keys kept), appends `.planning/` and `.claude/` to the git exclude file, installs `@opengsd/gsd-core` 1.19.0 locally, and sets the run's commit identity with `git config --worktree`. The exclude file is `git rev-parse --git-path info/exclude`, which in a linked worktree is the main repo's `info/exclude`, shared by all its worktrees; `.gitignore` is never edited. The installer writes hooks and permissions to `.claude/settings.local.json`, so the run must use `settingSources: ["project", "local"]`.
 - Hand-off (v1, 2026-10-28): every agent hands work on with `hand_off` (`packages/agents/src/handoff`): it creates the target item (agent task, human task, question), a `handoff` row (intent `continue` | `ask` | `review` | `return`, gate `approve` | `answer` | `none`, package body and refs) and the dependency. `create_task` only creates agent work nothing waits for. `packages/core/src/handoffs/renderHandoff.ts` renders the receiving agent's first block, the human task body and the Continue note's "Hand-off" section; `settleTask` ends a run by its hand-offs' intents; the dispatcher blocks a task whose gated dependency closed without `approve` (or without an answer) (`src/PowerLoom.Domain/Tasks/HandoffGates.cs`).
-- Implementation (wave 3, 2026-10-29): the `implementation` agent takes `implement` tasks (`packages/agents/src/implementation`). It reads the plan review first: approve → GSD executes the plan on `powerloom/pbi-<id>` in the PBI's worktree (local commits only, no ship step); changes, corrected facts or a PBI changed since its plan (`planning_snapshot.pbi_content_hash`) → a `design` task with the changes; a cancelled review → blocked. The planning agent marks its implement task `data.readsReview`, so `HandoffGates` lets a review that asked for changes through to it. `write_implementation` stores `implementation_snapshot`; the hand-over human task gets the branch, the worktree and the pull request description, and the worktree is held with `git worktree lock` (reason names the task) until someone unlocks it. A task's `data.gsdModels` (`{"executor": "<model id>", "verifier": "<model id>"}`) sets its execution models; the default is Opus 5.5 for both.
 
 ## Demonstration
 See [Demonstration agent](docs/support-guides.md) for local/remote tasks, screenshots, portable Confluence handoffs and rollout.

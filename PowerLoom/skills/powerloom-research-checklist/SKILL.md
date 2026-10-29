@@ -23,7 +23,7 @@ description: How the PowerLoom research agent answers one research question with
 - End with: does fixing the root cause alone remove every symptom? Yes/no and the evidence.
 
 ## Bugs of a PBI (child items)
-- Start from the parent's plan in `<parent-pbi>`: the bug is usually in code the plan changed.
+- Start from the parent's design plan in `<parent-pbi>`: the bug is usually in code the plan changed.
 - The repos are cloned on their default branch; the parent's changes may exist only on its branch. When the evidence depends on them, say so instead of concluding the code is missing.
 
 ## Evidence
@@ -34,6 +34,6 @@ description: How the PowerLoom research agent answers one research question with
 ## Result
 - Conclusion answers the question directly: yes/no/how/where first, then the key detail.
 - Confidence: high = read the code path end to end; medium = strong hints, gaps remain; low = mostly inferred.
-- Hand over to planning: the docs and code locations to start from.
+- Hand over to design: the docs and code locations to start from.
 - Open points that code can't answer → question; work that needs a person → human task; a new unknown → follow-up task (sparingly).
 - A human task says in short why a person must do it and which problem the answer solves. Each log or data step brings the query to run (KQL, SQL), with the resource, environment and time range filled in; never "check the logs for …" without one.

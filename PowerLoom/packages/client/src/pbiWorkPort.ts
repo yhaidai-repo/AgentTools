@@ -10,11 +10,6 @@ export function pbiWorkPort(powerloom: PowerLoomClient): PbiWorkPort {
 
       return data ? { ok: true, value: data } : powerloomFailure(error, response);
     },
-    async planPbis(adoIds) {
-      const { data, error, response } = await powerloom.POST("/api/pbis/plan", { body: { adoIds } });
-
-      return data ? { ok: true, value: data } : powerloomFailure(error, response);
-    },
     async syncAdo(vault, adoId, sources) {
       return accepted(await powerloom.POST("/api/ado/pbis/sync", { body: { vault, adoId, sources } }));
     },

@@ -59,37 +59,6 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         Assert.True(await RememberedAsDeletedAsync(adoId));
     }
 
-    [Fact]
-    public async Task Plan_writes_a_missing_note_and_queues_a_design_task_for_the_planning_agent()
-    {
-        const int adoId = 61002;
-
-        await SeedNewAsync(adoId, "The plan page");
-
-        var session = await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(_ => host.Host.Scenario(scenario =>
-        {
-            scenario.Post.Json(new PrepareRequest([adoId])).ToUrl("/api/pbis/plan");
-            scenario.StatusCodeShouldBe(202);
-        }));
-        var pbi = await LoadAsync(adoId);
-
-        Assert.Equal(ItemKinds.Design, session.Executed.SingleMessage<PreparePbi>().TaskType);
-        Assert.Equal((PipelineStatus.ReadyForDesign, $"pbi/PBI-{adoId}-the-plan-page/PBI-{adoId}.md"), (pbi.PipelineStatus, pbi.VaultPath));
-        Assert.Equal([$"DT-{adoId}-001"], await OpenTasksAsync(adoId, ItemKinds.Design));
-        Assert.Empty(await OpenTasksAsync(adoId, ItemKinds.Refinement));
-        Assert.True(File.Exists(Path.Combine(host.BacklogRoot, PowerLoomHost.Vault, pbi.VaultPath!)));
-    }
-
-    private async Task SeedNewAsync(int adoId, string title)
-    {
-        using var scope = host.Host.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>();
-
-        db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = title, AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
-
-        await db.SaveChangesAsync();
-    }
-
     private async Task SeedAsync(int adoId)
     {
         using var scope = host.Host.Services.CreateScope();
@@ -113,11 +82,11 @@ public sealed class PreparePbiTests(PowerLoomHost host)
         return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().WorkItems.AsNoTracking().SingleAsync(row => row.AdoId == adoId);
     }
 
-    private async Task<List<string>> OpenTasksAsync(int adoId, string kind = ItemKinds.Refinement)
+    private async Task<List<string>> OpenTasksAsync(int adoId)
     {
         using var scope = host.Host.Services.CreateScope();
 
-        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == kind && item.Assignee.StartsWith("agent:") && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
+        return await scope.ServiceProvider.GetRequiredService<PowerLoomDbContext>().LocalItems.AsNoTracking().Where(item => item.PbiId == adoId && item.Kind == ItemKinds.Refinement && item.Assignee.StartsWith("agent:") && item.Status == ItemStatus.Open).Select(item => item.Id).ToListAsync();
     }
 
     private async Task<bool> RememberedAsDeletedAsync(int adoId)

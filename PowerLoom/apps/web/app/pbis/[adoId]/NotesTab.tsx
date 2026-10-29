@@ -11,7 +11,7 @@ export async function NotesTab({ adoId }: { adoId: number }) {
   }
 
   return (
-    <Panel title="My notes" aside={<small>the PBI note&apos;s Notes section; refinement, research and planning read them</small>}>
+    <Panel title="My notes" aside={<small>the PBI note&apos;s Notes section; refinement, research and design read them</small>}>
       <UserNotesForm adoId={adoId} text={notes.text} />
     </Panel>
   );

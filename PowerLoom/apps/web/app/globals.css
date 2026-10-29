@@ -890,16 +890,6 @@ tbody[data-folded] tr.child-row {
   color: inherit;
 }
 
-.split-button.secondary .dropdown-trigger,
-.split-button.secondary .dropdown-trigger:hover,
-.split-button.secondary .dropdown-trigger[aria-expanded="true"] {
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border-hi);
-  border-left: none;
-  box-shadow: none;
-}
-
 /* The existing chats, listed in the menu: a search box over rows that open on a click. */
 .chat-menu {
   display: grid;

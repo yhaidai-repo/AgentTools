@@ -11,7 +11,7 @@ const STATIONS: { key: string; name: string; statuses: PipelineStatus[] }[] = [
   { key: "new", name: "New", statuses: ["new"] },
   { key: "refinement", name: "Refinement", statuses: ["ready-for-refinement", "refining"] },
   { key: "research", name: "Research", statuses: ["needs-research", "researching"] },
-  { key: "design", name: "Planning", statuses: ["ready-for-design", "designing"] },
+  { key: "design", name: "Design", statuses: ["ready-for-design", "designing"] },
   { key: "ready", name: "Ready for dev", statuses: ["ready-for-dev"] },
   { key: "development", name: "Development", statuses: ["development"] },
   { key: "test", name: "Test", statuses: ["ready-for-test", "testing", "tested", "test-failed"] },
@@ -20,7 +20,7 @@ const STATIONS: { key: string; name: string; statuses: PipelineStatus[] }[] = [
 
 // A finished task of these kinds passes its station even when the PBI's status never went there (user decision
 // 2026-10-21): e.g. a design task created as non-blocking, or tests that ran before the test stage existed.
-const STATION_TASK_KINDS: Record<string, string[]> = { refinement: ["refinement"], research: ["research"], design: ["design"], test: ["test"] };
+const STATION_TASK_KINDS: Record<string, string[]> = { refinement: ["refinement"], research: ["research"], design: ["design"], development: ["implement"], test: ["test"] };
 
 interface Stay {
   status: string;
@@ -31,7 +31,7 @@ interface Stay {
 // where it is now.
 export async function loadMetroLine(adoId: number, current: PipelineStatus): Promise<MetroStation[]> {
   const [stays, tasks] = await Promise.all([loadStays(adoId), loadStageTasks(adoId)]);
-  const here = currentStation(current, stays);
+  const here = currentStation(current, stays, furthestWorkDone(tasks));
 
   return skipPassedOver(STATIONS.map((station, index) => toStation(station, index, here, stays, tasks)));
 }
@@ -75,8 +75,10 @@ async function loadStays(adoId: number): Promise<Stay[]> {
   return rows.map((row, index) => ({ status: row.toStatus, hours: hoursBetween(new Date(row.at), rows[index + 1] ? new Date(rows[index + 1].at) : new Date()) }));
 }
 
-// The station of the current status; a pause (waiting on you, stale, closed) stays at the last real station.
-function currentStation(current: PipelineStatus, stays: Stay[]): number {
+// The station of the current status; a pause (waiting on you, stale, closed) stays at the last real station, or at
+// the furthest one whose agent task finished when work went past it without a status change (an implementation task
+// runs while the PBI keeps its design status).
+function currentStation(current: PipelineStatus, stays: Stay[], furthestDone: number): number {
   const own = stationIndex(current);
 
   if (own >= 0) {
@@ -85,7 +87,11 @@ function currentStation(current: PipelineStatus, stays: Stay[]): number {
 
   const lastReal = [...stays].reverse().map((stay) => stationIndex(stay.status)).find((index) => index >= 0);
 
-  return lastReal ?? 0;
+  return Math.max(lastReal ?? 0, furthestDone);
+}
+
+function furthestWorkDone(tasks: StageTask[]): number {
+  return STATIONS.findLastIndex((station) => tasks.some((task) => task.isDone && (STATION_TASK_KINDS[station.key] ?? []).includes(task.kind)));
 }
 
 // Every PBI starts at New, so New counts as passed even without a history entry for it.

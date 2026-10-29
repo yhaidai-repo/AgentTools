@@ -19,7 +19,7 @@ const PC_BRANCH = "The branch is only on this PC, not pushed: start_stack builds
 type TaskData = { goal?: string; depth?: number; reason?: string; outOfScope?: string | null; pullRequestId?: number; branch?: string; repo?: string; dependsOn?: string[]; userNotes?: string };
 
 // The first message: the test task, the PBI with everything attached to it, the task's latest report when it has
-// one, and the repos. The refinement (test data), the plan (its tests) and the test cases are one read_pbi /
+// one, and the repos. The refinement (test data), the design (its tests) and the test cases are one read_pbi /
 // read_test_cases call away, named here.
 export async function buildTestMessage(db: PowerLoomDb, vaultRoot: string, task: ItemRow, pbi: WorkItemRow, repos: RepoAccess): Promise<string> {
   const pbiMessage = (await buildPbiMessage(db, vaultRoot, pbi)).replace(/^Refine this PBI\.\n\n/, "");
@@ -94,7 +94,7 @@ function whereToLook(pbiId: number): string {
     "<where-to-look>",
     `- read_test_cases: the Azure DevOps test cases of PBI-${pbiId} (then read_pbi("TC-<id>") for one in full).`,
     `- read_pbi("PBI-${pbiId}:refinement"): the refinement, with the test data it found or asked for.`,
-    `- read_pbi("PBI-${pbiId}:plan"): the plan, its requirements coverage and the tests of its plans.`,
+    `- read_pbi("PBI-${pbiId}:design"): the design and the tests it proposed.`,
     "- The items above: answers to earlier questions, including an approval of an earlier plan.",
     "- read_pbi(\"TR-<id>\"): an earlier report in full, when the previous-report block above isn't enough.",
     "</where-to-look>",

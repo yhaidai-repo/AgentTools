@@ -17,8 +17,8 @@ const ITEM_TITLES: Record<string, string> = { "research-result": "Research resul
 const RUN_RESULTS_TITLE = "Run results";
 
 // A PBI's results on its page (user decision 2026-10-21: every version under its task, one shown): its estimates,
-// refinements, plans and builds (and the designs from before planning replaced design, when it has any), then each research or
-// test task's results, and each task's run results whose run produced
+// refinements and designs (plans and builds only when it has any: their agents aren't released yet), then each research
+// or test task's results, and each task's run results whose run produced
 // nothing else shown here (user decision 2026-10-24: decided by the run, not the task type, so an agent made in the UI
 // without a refinement or research writer still shows its result).
 export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise<ResultSet[]> {
@@ -38,13 +38,16 @@ export async function loadPbiResultSets(db: PowerLoomDb, adoId: number): Promise
   return [
     { key: "estimate", title: "Estimate", task: null, versions: estimates, empty: "No agent has estimated it yet." },
     { key: "refinement", title: "Refinement", task: null, versions: refinements, empty: "Not refined yet." },
-    { key: "plan", title: "Plan", task: null, versions: plans, empty: "Not planned yet." },
-    { key: "build", title: "Build", task: null, versions: builds, empty: "Not implemented yet." },
-    ...(designs.length > 0 ? [{ key: "design", title: "Design", task: null, versions: designs, empty: "" }] : []),
+    { key: "design", title: "Design", task: null, versions: designs, empty: "Not designed yet." },
+    ...setsWithVersions([{ key: "plan", title: "Plan", task: null, versions: plans, empty: "" }, { key: "build", title: "Build", task: null, versions: builds, empty: "" }]),
     ...itemSets(items),
     ...customTypeSets(ownOnly.filter((row) => isCustomTaskType(kinds.get(row.taskId!) ?? "")), kinds),
     ...runResultSets(ownOnly.filter((row) => !isCustomTaskType(kinds.get(row.taskId!) ?? ""))),
   ];
+}
+
+function setsWithVersions(sets: ResultSet[]): ResultSet[] {
+  return sets.filter((set) => set.versions.length > 0);
 }
 
 async function taskKinds(db: PowerLoomDb, adoId: number): Promise<Map<string, string>> {

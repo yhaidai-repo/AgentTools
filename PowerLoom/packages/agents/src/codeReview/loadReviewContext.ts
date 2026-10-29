@@ -1,4 +1,4 @@
-import { latestPlan, topLevelPbi } from "@powerloom/core";
+import { topLevelPbi } from "@powerloom/core";
 import { design, pullRequest, refinement, reviewComment, workItem, type PowerLoomDb } from "@powerloom/db";
 import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import type { RepoRef } from "@agenttools/runtime";
@@ -36,7 +36,7 @@ async function loadLinkedPbis(db: PowerLoomDb, adoIds: number[]): Promise<Linked
     adoId,
     title: titles.get(adoId) ?? null,
     refinementSummary: titles.has(adoId) ? await latestRefinementSummary(db, adoId) : null,
-    planSummary: titles.has(adoId) ? await latestPlanSummary(db, adoId) : null,
+    designApproach: titles.has(adoId) ? await latestDesignApproach(db, adoId) : null,
     parent: titles.has(adoId) ? await topLevelParent(db, adoId) : null,
   })));
 }
@@ -54,14 +54,7 @@ async function latestRefinementSummary(db: PowerLoomDb, adoId: number): Promise<
   return row?.summary ?? null;
 }
 
-// The plan's summary; a PBI designed before planning replaced design has its design's approach instead.
-async function latestPlanSummary(db: PowerLoomDb, adoId: number): Promise<string | null> {
-  const plan = await latestPlan(db, adoId);
-
-  if (plan) {
-    return plan.plan.summary || null;
-  }
-
+async function latestDesignApproach(db: PowerLoomDb, adoId: number): Promise<string | null> {
   const [row] = await db.select({ approach: design.approach }).from(design).where(eq(design.pbiId, adoId)).orderBy(desc(design.version)).limit(1);
 
   return row?.approach || null;

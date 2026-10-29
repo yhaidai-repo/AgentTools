@@ -122,8 +122,7 @@ const runnerModules: SchemeNode[] = [
 ];
 
 const runnerAgents: SchemeNode[] = [
-  node("agent-planning", "planning", "component", "runner-agents"),
-  node("agent-implementation", "implementation", "component", "runner-agents", "GSD execution on the PBI branch, local commits only"),
+  node("agent-design", "design", "component", "runner-agents"),
   node("agent-tech-writer", "tech-writer", "component", "runner-agents"),
   node("agent-code-review", "code-review", "component", "runner-agents"),
   node("agent-vault-review", "vault-review", "component", "runner-agents"),

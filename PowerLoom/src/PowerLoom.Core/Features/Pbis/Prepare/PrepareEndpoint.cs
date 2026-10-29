@@ -4,31 +4,18 @@ using PowerLoom.Contracts;
 using PowerLoom.Features.Pbis.Prepare.Models;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Persistence;
-using PowerLoom.Persistence.Items;
 using Wolverine;
 using Wolverine.Http;
 
 namespace PowerLoom.Features.Pbis.Prepare;
 
-// Backlog / PBI page → Start: each PBI on its vault's queue with a refinement task ("Start refinement") or a design task
-// for the planning agent ("Start planning"); the notes appear in a few seconds.
+// Backlog / PBI page → Prepare for refinement: each PBI on its vault's queue; the notes appear in a few seconds.
 public static class PrepareEndpoint
 {
     private const string Actor = "human";
 
     [WolverinePost("/api/pbis/prepare")]
-    public static Task<Results<Accepted<PreparedPbis>, ProblemHttpResult>> Post(PrepareRequest request, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
-    {
-        return QueueAsync(request, ItemKinds.Refinement, db, bus, cancellation);
-    }
-
-    [WolverinePost("/api/pbis/plan")]
-    public static Task<Results<Accepted<PreparedPbis>, ProblemHttpResult>> PostPlan(PrepareRequest request, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
-    {
-        return QueueAsync(request, ItemKinds.Design, db, bus, cancellation);
-    }
-
-    private static async Task<Results<Accepted<PreparedPbis>, ProblemHttpResult>> QueueAsync(PrepareRequest request, string taskType, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
+    public static async Task<Results<Accepted<PreparedPbis>, ProblemHttpResult>> Post(PrepareRequest request, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
     {
         var ids = request.AdoIds.Distinct().ToList();
         var known = await db.WorkItems.AsNoTracking().Where(row => ids.Contains(row.AdoId)).Select(row => new { row.AdoId, row.Vault, row.ClosedByUser }).ToListAsync(cancellation);
@@ -39,7 +26,7 @@ public static class PrepareEndpoint
         var preparable = known.Where(pbi => !pbi.ClosedByUser).ToList();
 
         foreach (var pbi in preparable)
-            await bus.PublishAsync(new PreparePbi(pbi.Vault, pbi.AdoId, Actor, taskType));
+            await bus.PublishAsync(new PreparePbi(pbi.Vault, pbi.AdoId, Actor));
 
         var queued = preparable.Select(pbi => pbi.AdoId).ToList();
         var closed = known.Where(pbi => pbi.ClosedByUser).Select(pbi => pbi.AdoId).ToList();

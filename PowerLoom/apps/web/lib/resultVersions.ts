@@ -17,7 +17,7 @@ export function loadLatestPbiVersion(kind: PbiResultKind, adoId: number): Promis
   return latestPbiVersion(getDb(), kind, adoId);
 }
 
-// A PBI's results on its page: its estimates, refinements and plans (designs from before planning), then each task's results.
+// A PBI's results on its page: its estimates, refinements and designs (plans and builds when it has any), then each task's results.
 export function loadPbiResultSets(adoId: number): Promise<ResultSet[]> {
   return loadPbiResultSetsOf(getDb(), adoId);
 }

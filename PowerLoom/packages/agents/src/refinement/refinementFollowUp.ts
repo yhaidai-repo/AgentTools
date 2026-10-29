@@ -39,7 +39,7 @@ export async function handOnRefinement(db: PowerLoomDb, followUp: RefinementFoll
 }
 
 function followUpHandoff(followUp: RefinementFollowUp & { taskId: string }, agent: string, version: number, dependsOn: string[]): NewHandoff {
-  const body = `Refinement v${version} handed questions and tasks on. Once they are closed, refine the PBI again with their answers and hand on to planning.`;
+  const body = `Refinement v${version} handed questions and tasks on. Once they are closed, refine the PBI again with their answers and hand on to design.`;
 
   return { from: { taskId: followUp.taskId, agent, runId: followUp.runId }, toKind: "agent", intent: "continue", gate: "none", package: { body, refs: { results: [`RUN-${followUp.runId}`], items: dependsOn, notes: [] } } };
 }

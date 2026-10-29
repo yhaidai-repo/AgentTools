@@ -51,12 +51,12 @@ export async function PbiHeader({ detail, stations, changedAt }: { detail: PbiDe
   );
 }
 
-// Shown once there is a plan (or a design from before planning), or once refinement alone made the PBI ready for dev (the chat then plans from the
+// Shown once there is a design, or once refinement alone made the PBI ready for dev (the chat then plans from the
 // refinement); the reason it's disabled comes from the same check the click runs.
 function Continue({ detail }: { detail: PbiDetail }) {
   const isReadyForDev = detail.pbi.pipelineStatus === "ready-for-dev";
 
-  return detail.plan || detail.design || isReadyForDev ? <ContinueChat target={{ kind: "pbi", adoId: detail.pbi.adoId }} /> : null;
+  return detail.design || isReadyForDev ? <ContinueChat target={{ kind: "pbi", adoId: detail.pbi.adoId }} /> : null;
 }
 
 // The PBI's facts on one line: links are the dotted ones.

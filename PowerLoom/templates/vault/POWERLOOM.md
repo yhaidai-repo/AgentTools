@@ -50,8 +50,7 @@ Preserve existing `Created in` and `Updated in` lines when editing a register no
    ADO fields, the note (description, acceptance criteria), the user's own notes (`<user-notes>`), the parent, links,
    attachments, questions with the team's answers, and every related item as a reference (`<pbi-related>`).
 2. Read any reference it lists in full with `pbi_read` and `{"ref": "<ref>"}`: `PBI-<id>:refinement`,
-   `PBI-<id>:plan`, `PBI-<id>:build` (the implementation: branch, commits, verification, hand-over),
-   `PBI-<id>:design` (from before planning), `PBI-<id>:estimate` (the latest estimate from any agent), an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`,
+   `PBI-<id>:design`, `PBI-<id>:estimate` (the latest estimate from any agent), an item id (`Q-…`, `HT-…`, `AT-…`, `F-…`,
    `RR-…`), `DRAFT-<n>`, an attachment `ATT-<n>`, a test case `TC-<id>`, or another `PBI-<id>`.
 3. `pbi_get` with `{"link": "<ADO link, #id or id>"}`: fields, statuses, parent, child items, repos, skills, note path.
 
@@ -90,7 +89,7 @@ at most 200 rows. Every read goes to the data access log.
 | `finding_submit` | records a finding in a project's register (open question or known issue) and closes it |
 | `review_add`, `review_addLocal`, `review_queue`, `review_close`, `review_delete`, `review_answerComment`, `pullRequests_sync` | adds a review (of an Azure DevOps branch, or of a local repo's branch without Azure DevOps), starts, closes or deletes (from PowerLoom only) one, answers a comment, checks for new pull requests |
 | `pbi_create`, `pbi_delete`, `pbi_finish`, `pbi_close`, `pbi_reopen` | creates, deletes, finishes, closes or reopens a PBI in PowerLoom |
-| `pbi_prepare`, `pbi_plan`, `pbi_sync`, `pbi_importNow` | prepares PBIs for refinement or for planning, syncs from Azure DevOps, imports the inbox |
+| `pbi_prepare`, `pbi_sync`, `pbi_importNow` | prepares PBIs for the agents, syncs from Azure DevOps, imports the inbox |
 | `pbi_saveRepos`, `pbi_saveSkills`, `pbi_userNotes_save`, `pbi_attach` | sets a PBI's repos, skills or the user's notes; attaches a file by its path on this PC |
 | `pbi_confluenceLink_add`, `pbi_confluenceLink_remove`, `pbi_confluenceLoad` | links or unlinks a Confluence page, loads a linked page |
 | `bug_report` | reports a bug found on a PBI |

@@ -1,8 +1,9 @@
 import type { AgentConfigStore } from "@agenttools/config";
 
-// Built-in agents a newer one replaced: design, replaced by planning (user decision 2026-10-28). Their stored definitions
-// stay for the runs that name them, but switched off, so they never take the task types their successor took over.
-export const RETIRED_AGENT_IDS = ["design"];
+// Agents this release doesn't ship: planning and implementation are still piloted on their branch (release decision
+// 2026-10-29), and design keeps the design tasks. A database that ran the pilot keeps their stored definitions for the
+// runs that name them, but switched off, so they never take design or implement tasks here.
+export const RETIRED_AGENT_IDS = ["planning", "implementation"];
 
 export async function disableRetiredAgents(store: Pick<AgentConfigStore, "get" | "save">, ids: string[]): Promise<void> {
   for (const id of ids) {

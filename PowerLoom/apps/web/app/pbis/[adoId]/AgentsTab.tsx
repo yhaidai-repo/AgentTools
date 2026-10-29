@@ -42,7 +42,7 @@ export async function AgentsTab({ detail, chosen }: { detail: PbiDetail; chosen:
       </div>
       <div>
         <Runs detail={detail} />
-        <Panel title="Repos" aside={<small>what research and planning clone</small>}><Repos detail={detail} /></Panel>
+        <Panel title="Repos" aside={<small>what research and design clone</small>}><Repos detail={detail} /></Panel>
         <Panel title="Skills" aside={<small>for later agents</small>}><PbiSkills adoId={detail.pbi.adoId} skills={detail.pbi.skills} editedAt={detail.pbi.skillsEditedAt} /></Panel>
         <InternalChildren detail={detail} />
       </div>
@@ -133,7 +133,7 @@ function Runs({ detail }: { detail: PbiDetail }) {
   );
 }
 
-// What research and planning clone: repos the vault documents or you confirmed; refinement's guesses wait for you.
+// What research and design clone: repos the vault documents or you confirmed; refinement's guesses wait for you.
 // Repos disabled in Settings aren't listed, so saving never sends one the catalog refuses.
 async function Repos({ detail }: { detail: PbiDetail }) {
   const catalog = await enabledRepos(getDb(), detail.pbi.vault);
