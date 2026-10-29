@@ -20,6 +20,7 @@ import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWrite
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
 import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
+import { LIVE_TEST_INTEGRATION } from "./liveTest/liveTestTools";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -351,6 +352,12 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     owner: "autotest",
     label: "Write test reports",
     description: "The agent proves its PBI's acceptance criteria: the test cases, design and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
+  },
+  // PowerLoom testing itself (owner, 2026-10-25): the commands against the running system, guarded to the run's own data.
+  {
+    key: LIVE_TEST_INTEGRATION,
+    label: "PowerLoom tools (live test)",
+    description: "The agent may call PowerLoom's commands against the live system: every read, on every vault, also the ones other grants gate (sql_databases, sql_describe and sql_query on every Read SQL connection, SELECT only and logged; logs_read, the services' logs; settings_get, never a secret), and the writes a test needs (create a PBI, bug, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs, enables an agent or writes real vaults (so no pbi_prepare: it queues a refinement task a real agent would take), and makes tasks only of a type no enabled agent takes. Everything it created is removed when the run ends, by the generic runner (the one every agent runs on today) and by nothing else: after a crash, a restart or a deploy in the middle of a run nothing sweeps what it left, so look for [selftest] data then.",
   },
 ];
 

@@ -53,6 +53,9 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
     keepWhatTheStopLeft(ran.outcome, run);
 
+    // Before finish, so the cleanup lands in the run's trace; again in finally for a run that failed before it.
+    await run.toolset?.cleanUpLiveTest();
+
     const committed = { isDone: false };
     const commit = isCheckpoint
       ? async () => { await run.toolset?.commitCheckpoint(session.runId); }
@@ -69,6 +72,7 @@ export async function runGenericTask(context: TaskContext, task: ItemRow): Promi
 
     return final;
   } finally {
+    await run.toolset?.cleanUpLiveTest();
     await cleanUpWriters(run);
     await cleanUpToolset(run);
     closeRepos(deps, run.repos);
