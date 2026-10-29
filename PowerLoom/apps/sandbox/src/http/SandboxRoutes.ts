@@ -12,6 +12,10 @@ type SandboxAction = (sandbox: Sandbox, request: IncomingMessage, parts: string[
 
 // The routes under /sandboxes/{id}: the second path part names the action, the rest is its own.
 const SANDBOX_ACTIONS: Record<string, Record<string, SandboxAction>> = {
+  GET: {
+    // A restore answers only at its end (its PUT); this reads what it does meanwhile.
+    restore: async (sandbox, _request, parts) => sandbox.packages.progress(parts[3] ?? ""),
+  },
   PUT: {
     repos: async (sandbox, request, parts, url) => sandbox.repos.import(parts[3] ?? "", request, url.searchParams.get("message") || "base"),
     files: async (sandbox, request) => sandbox.files.writeFile(writeFileRequest(await readJson(request))),

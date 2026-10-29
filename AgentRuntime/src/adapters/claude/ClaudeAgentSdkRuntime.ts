@@ -11,6 +11,7 @@ import { probeWindows, readUsageCall, report } from "./claudeSubscription";
 import { MessageMapper } from "./MessageMapper";
 import type { ClaudeRuntimeOptions } from "./models/ClaudeRuntimeOptions";
 import { buildSdkOptions } from "./sdkOptions";
+import { ToolReports } from "./ToolReports";
 import { TOOL_SERVER_NAME, sdkToolNamer } from "./toSdkTools";
 import { firstMessageAfter, waitForToolServer } from "./toolServerGate";
 
@@ -31,9 +32,10 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     const events = new EventSequence(request.runId);
     const abort = new RunAbort(request.limits.timeoutMs, request.signal);
     const mapper = new MessageMapper();
+    const reports = new ToolReports();
 
     try {
-      for await (const event of streamEvents(this.buildOptions(request, abort), request, mapper, events)) {
+      for await (const event of streamEvents(this.buildOptions(request, abort, reports), request, { mapper, reports, events })) {
         this.remember(event);
         yield event;
       }
@@ -74,10 +76,10 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
     }
   }
 
-  private buildOptions(request: AgentRequest, abort: RunAbort): Options {
+  private buildOptions(request: AgentRequest, abort: RunAbort, toolReports: ToolReports): Options {
     const conversation = this.conversations ? request.conversation : undefined;
 
-    return buildSdkOptions(request, abort, { projectDir: this.projectDir, conversation, apiProxied: this.options.apiProxied ?? false });
+    return buildSdkOptions(request, abort, { projectDir: this.projectDir, conversation, apiProxied: this.options.apiProxied ?? false, toolReports });
   }
 
   private remember(event: AgentEvent): void {
@@ -88,8 +90,9 @@ export class ClaudeAgentSdkRuntime implements AgentRuntime {
 }
 
 // The first message waits for the tool server (toolServerGate) and names the tools as the model calls them
-// (sdkToolNamer), so the model's first calls find every tool.
-async function* streamEvents(options: Options, request: AgentRequest, mapper: MessageMapper, events: EventSequence): AsyncIterable<AgentEvent> {
+// (sdkToolNamer), so the model's first calls find every tool. The tools' own progress reports go out before each message.
+async function* streamEvents(options: Options, request: AgentRequest, run: { mapper: MessageMapper; reports: ToolReports; events: EventSequence }): AsyncIterable<AgentEvent> {
+  const { mapper, reports, events } = run;
   let serverReady: (status: string) => void = () => undefined;
   const ready = new Promise<string>((resolve) => { serverReady = resolve; });
   const firstMessage = sdkToolNamer(request.tools)(request.firstMessage);
@@ -98,6 +101,6 @@ async function* streamEvents(options: Options, request: AgentRequest, mapper: Me
   void waitForToolServer(session, TOOL_SERVER_NAME).then(serverReady);
 
   for await (const message of session) {
-    yield* mapper.map(message).map((body) => events.next(body));
+    yield* [...mapper.mapToolReports(reports.drain()), ...mapper.map(message)].map((body) => events.next(body));
   }
 }

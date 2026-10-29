@@ -9,7 +9,8 @@ import type { SdkToolProgressMessage } from "./models/SdkToolProgressMessage";
 import type { SdkUserMessage } from "./models/SdkUserMessage";
 import { RunResults } from "./RunResults";
 import { SubSessions } from "./SubSessions";
-import { toNeutralToolName } from "./toSdkTools";
+import type { ToolProgressBody } from "./ToolReports";
+import { SUBAGENT_TOOL, toNeutralToolName } from "./toSdkTools";
 import { TurnUsageTracker } from "./TurnUsageTracker";
 
 const RATE_LIMIT_STATUS: Record<SdkRateLimitInfo["status"], "allowed" | "warning" | "rejected"> = {
@@ -36,7 +37,7 @@ export class MessageMapper {
       case "user":
         return this.sessions.stamp(message, mapUser(message));
       case "tool_progress":
-        return this.sessions.stamp(message, [mapToolProgress(message)]);
+        return this.mapToolProgress(message);
       case "system":
         return this.mapSystem(message);
       case "rate_limit_event":
@@ -46,6 +47,11 @@ export class MessageMapper {
       default:
         return [];
     }
+  }
+
+  /** Our tools' own progress reports (ToolReports), each in the session of the call it reports on. */
+  mapToolReports(reports: ToolProgressBody[]): EventBody[] {
+    return reports.flatMap((report) => this.sessions.stampCall(report));
   }
 
   // Exactly one result per run, after the usage of a turn the stop cut short and the sub-sessions the stream left open.
@@ -68,6 +74,12 @@ export class MessageMapper {
     const bodies = message.message.content.flatMap(mapContentBlock);
 
     return this.sessions.stamp(message, bodies);
+  }
+
+  private mapToolProgress(message: SdkToolProgressMessage): EventBody[] {
+    const progress = toolProgressOf(message);
+
+    return isOwnHeartbeat(message, progress) ? this.sessions.stampCall(progress) : this.sessions.stamp(message, [progress]);
   }
 
   private mapSystem(message: SdkSystemMessage): EventBody[] {
@@ -117,13 +129,19 @@ function mapContentBlock(block: SdkAssistantMessage["message"]["content"][number
   return [];
 }
 
-function mapToolProgress(message: SdkToolProgressMessage): EventBody {
+function toolProgressOf(message: SdkToolProgressMessage): ToolProgressBody {
   return {
     type: "tool_progress",
     callId: message.tool_use_id.replace(HEARTBEAT_SUFFIX, ""),
     name: toNeutralToolName(message.tool_name),
     elapsedMs: message.elapsed_time_seconds * 1000,
   };
+}
+
+// The SDK names a tool's own call as the parent of that call's heartbeat (run 4414's sandbox_restore, CLI 2.1.286),
+// which read as a sub-agent of the call. Only the sub-agent tool's heartbeat belongs to the session its call started.
+function isOwnHeartbeat(message: SdkToolProgressMessage, progress: ToolProgressBody): boolean {
+  return message.parent_tool_use_id === progress.callId && progress.name !== SUBAGENT_TOOL;
 }
 
 function mapUser(message: SdkUserMessage): EventBody[] {

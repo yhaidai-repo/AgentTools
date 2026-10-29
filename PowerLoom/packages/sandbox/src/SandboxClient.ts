@@ -10,6 +10,7 @@ import type { OpenSandboxRequest } from "./models/OpenSandboxRequest";
 import type { PackageAddition } from "./models/PackageAddition";
 import type { PatchApplied } from "./models/PatchApplied";
 import type { RepoUploaded } from "./models/RepoUploaded";
+import type { RestoreProgress } from "./models/RestoreProgress";
 import type { RestoreResult } from "./models/RestoreResult";
 import type { SandboxAnswer } from "./models/SandboxAnswer";
 import type { SandboxesRemoved } from "./models/SandboxesRemoved";
@@ -62,6 +63,11 @@ export class SandboxClient {
     const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts), [PACKAGE_ADDITIONS_HEADER]: base64Json(additions) };
 
     return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_CALL_TIMEOUT_MS, headers });
+  }
+
+  /** What the restore of `repo` that is still running does now; null when none runs. */
+  restoreProgress(id: string, repo: string): Promise<SandboxAnswer<RestoreProgress | null>> {
+    return this.call("GET", `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}`);
   }
 
   run(id: string, request: CommandRequest): Promise<SandboxAnswer<CommandResult>> {

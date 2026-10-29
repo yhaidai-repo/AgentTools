@@ -73,6 +73,13 @@ export function summaryOf(event: StoredTraceEvent): string {
   return clip(traceEventSummary(event));
 }
 
+/** What a tool last reported among folded progress events (a restore's step, its time left); null when none did. */
+export function latestDetail(events: StoredTraceEvent[]): string | null {
+  const reported = [...events].reverse().find((event) => event.type === "tool_progress" && (event.payload as Payload).detail);
+
+  return reported ? clip(`${(reported.payload as Payload).name} · ${(reported.payload as Payload).detail}`) : null;
+}
+
 function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   const last = lines.at(-1);
 

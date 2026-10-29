@@ -7,6 +7,7 @@ import { MessageMapper } from "./MessageMapper";
 // Frames shaped as SDK 0.3.286 sent them in the GSD spike (traces/2-new-project-*.jsonl), cut to the fields the mapper reads.
 const AGENT_CALL = "toolu_agent";
 const BASH_CALL = "toolu_bash";
+const RESTORE_CALL = "toolu_restore";
 
 function assistant(id: string, content: unknown[], parent: string | null = null, usage: Record<string, number> = { input_tokens: 2, output_tokens: 8 }, model = "claude-opus-5-5"): SDKMessage {
   return { type: "assistant", message: { id, model, content, usage }, parent_tool_use_id: parent, session_id: "s" } as unknown as SDKMessage;
@@ -30,6 +31,11 @@ function taskNotification(taskId: string, toolUseId: string, usage?: Record<stri
 
 function heartbeat(callId: string): SDKMessage {
   return { type: "tool_progress", tool_use_id: `${callId}-heartbeat-0`, tool_name: "Agent", parent_tool_use_id: callId, elapsed_time_seconds: 30, heartbeat: true, session_id: "s" } as unknown as SDKMessage;
+}
+
+// An in-process tool's heartbeat names its own call as its parent (run 4414, CLI 2.1.286).
+function ownHeartbeat(callId: string, toolName: string): SDKMessage {
+  return { type: "tool_progress", tool_use_id: callId, tool_name: toolName, parent_tool_use_id: callId, elapsed_time_seconds: 29, session_id: "s" } as unknown as SDKMessage;
 }
 
 function result(numTurns: number, costUsd: number, modelUsage: Record<string, Record<string, number>>, subtype = "success"): SDKMessage {
@@ -170,6 +176,40 @@ describe("MessageMapper sub-sessions", () => {
 
     assert.deepEqual(finished.map((event) => event.type), ["session_end", "result"]);
     assert.equal(ofType(finished, "session_end")[0].status, "unfinished");
+  });
+
+  it("keeps a long tool call's own heartbeat in the caller's session, not as a sub-agent of the call", () => {
+    const mapper = new MessageMapper();
+
+    const events = mapAll(mapper, [
+      assistant("m1", [{ type: "tool_use", id: RESTORE_CALL, name: "mcp__agent__sandbox_restore", input: {} }]),
+      ownHeartbeat(RESTORE_CALL, "mcp__agent__sandbox_restore"),
+    ]);
+
+    assert.deepEqual(events.map((event) => [event.type, event.sessionId]), [["tool_call", undefined], ["tool_progress", undefined]]);
+    assert.deepEqual(ofType(mapper.finish(null), "session_end"), []);
+  });
+
+  it("puts a tool's heartbeat and its own reports in the sub-agent that made the call", () => {
+    const mapper = new MessageMapper();
+
+    const events = mapAll(mapper, [
+      taskStarted("a09e", AGENT_CALL, "gsd-executor"),
+      assistant("m1", [{ type: "tool_use", id: RESTORE_CALL, name: "mcp__agent__sandbox_restore", input: {} }], AGENT_CALL),
+      ownHeartbeat(RESTORE_CALL, "mcp__agent__sandbox_restore"),
+    ]);
+    const reported = mapper.mapToolReports([{ type: "tool_progress", callId: RESTORE_CALL, name: "sandbox_restore", elapsedMs: 30_000, detail: "step 1/1" }]);
+
+    assert.deepEqual(ofType(events, "tool_progress").map((event) => event.sessionId), [AGENT_CALL]);
+    assert.deepEqual(reported, [{ type: "tool_progress", callId: RESTORE_CALL, name: "sandbox_restore", elapsedMs: 30_000, detail: "step 1/1", sessionId: AGENT_CALL }]);
+  });
+
+  it("leaves a main-session call's report in the main session", () => {
+    const mapper = new MessageMapper();
+
+    const reported = mapper.mapToolReports([{ type: "tool_progress", callId: RESTORE_CALL, name: "sandbox_restore", elapsedMs: 1, detail: "copying" }]);
+
+    assert.equal(reported[0].sessionId, undefined);
   });
 });
 

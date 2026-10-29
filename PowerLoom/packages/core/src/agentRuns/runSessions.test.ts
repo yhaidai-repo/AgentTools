@@ -99,6 +99,20 @@ describe("runSessionsOf", () => {
     assert.equal(lost.endedAt?.getTime(), 3000);
   });
 
+  it("keeps a long tool call's own heartbeat in the session that made the call, not as a sub-agent (traces before 2026-10-29)", () => {
+    const trace = [
+      event("tool_call", { name: "sandbox_restore", callId: "call-r" }, 1),
+      event("session_start", { sessionId: "call-r", parentSessionId: null, kind: "subagent", name: null, description: "", taskId: null, background: null, inferred: true }),
+      event("tool_progress", { sessionId: "call-r", callId: "call-r", name: "sandbox_restore", elapsedMs: 29_000 }),
+      event("tool_result", { callId: "call-r", output: "Restored" }),
+    ];
+
+    const read = runSessionsOf(trace, false);
+
+    assert.deepEqual(read.sessions.map((session) => [session.id, session.kind, session.parentId]), [[MAIN_SESSION_ID, "main", null]]);
+    assert.deepEqual(read.events[MAIN_SESSION_ID].map((stored) => stored.type), ["tool_call", "session_start", "tool_progress", "tool_result"]);
+  });
+
   it("marks the main session failed when the run failed before any result", () => {
     const read = runSessionsOf([event("phase", { name: "prepare" }), event("error", { message: "no repo" })], true);
 

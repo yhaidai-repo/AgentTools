@@ -60,6 +60,22 @@ test("a restore's dispatcher waits the restore's 30 minutes and is let go after 
   assert.equal(recorded.destroyed, 1);
 });
 
+test("a restore's progress is a short GET of the repo's restore, and none running reads as null", async () => {
+  const urls: string[] = [];
+  const fetcher = (async (input: unknown, init?: RequestInit) => {
+    urls.push(`${init?.method} ${String(input)}`);
+
+    return new Response("null", { status: 200 });
+  }) as typeof fetch;
+  const { client, recorded } = recordingClient(fetcher);
+
+  const answer = await client.restoreProgress("box", "my repo");
+
+  assert.deepEqual(answer, { ok: true, value: null });
+  assert.deepEqual(urls, [`GET ${SERVICE_URL}/sandboxes/box/restore/my%20repo`]);
+  assert.deepEqual(recorded.timeouts, [60_000]);
+});
+
 test("a command's dispatcher waits the command's timeout plus the margin", async () => {
   const { client, recorded } = recordingClient(answering({ exitCode: 0 }, []));
 

@@ -649,9 +649,20 @@ tr:hover .row-action,
 }
 
 .trace-group > summary {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
   padding: 6px 0;
   list-style: none;
   cursor: pointer;
+}
+
+.trace-group > summary > span {
+  flex-shrink: 0;
+}
+
+.trace-group > summary > .trace-text {
+  flex-shrink: 1;
 }
 
 .trace-group > summary::-webkit-details-marker {

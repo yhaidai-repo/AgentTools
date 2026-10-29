@@ -1,4 +1,4 @@
-import type { ToolDefinition, ToolResult } from "@agenttools/runtime";
+import type { ToolCallContext, ToolDefinition, ToolResult } from "@agenttools/runtime";
 import type { RunUse } from "./models/RunUse";
 
 // Past this share of the turns or the budget the note asks for the result: the run stops at 100% and only a written
@@ -8,7 +8,7 @@ const WRITE_NOW_SHARE = 0.8;
 // Every tool result ends with what the run has used of its turns and budget. Agents use their limits well only when they
 // can see them (budget-aware tool use, BATS 2025); before, runs ran out of turns without a saved answer.
 export function withLimitNotes(tools: ToolDefinition<any>[], use: () => RunUse, resultTool: string): ToolDefinition<any>[] {
-  return tools.map((tool) => ({ ...tool, handler: async (input: Record<string, unknown>) => withNote(await tool.handler(input), use(), resultTool) }));
+  return tools.map((tool) => ({ ...tool, handler: async (input: Record<string, unknown>, call?: ToolCallContext) => withNote(await tool.handler(input, call), use(), resultTool) }));
 }
 
 export function limitNote(use: RunUse, resultTool: string): string {

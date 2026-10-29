@@ -44,7 +44,7 @@ export function traceEventSummary(event: StoredTraceEvent): string {
     case "session_end":
       return `${payload.status}${payload.summary ? `: ${payload.summary}` : ""}`;
     case "tool_progress":
-      return `${payload.name} · ${Math.round(Number(payload.elapsedMs) / 1000)}s`;
+      return [payload.name, `${Math.round(Number(payload.elapsedMs) / 1000)}s`, payload.detail].filter(Boolean).join(" · ");
     default:
       return payload.message ? String(payload.message) : "";
   }

@@ -33,7 +33,7 @@ export function buildSdkOptions(request: AgentRequest, abort: RunAbort, host: Sd
     maxTurns: request.limits.maxTurns,
     abortController: abort.controller,
     tools: [...builtInTools(request.capabilities), ...projectSkillTools(request.settingSources)],
-    mcpServers: { [TOOL_SERVER_NAME]: createToolServer(request.tools) },
+    mcpServers: { [TOOL_SERVER_NAME]: createToolServer(request.tools, host.toolReports) },
     allowedTools: [...sdkToolNames(request.tools), ...autoAllowedBuiltInTools(request.capabilities), ...projectSkillTools(request.settingSources)],
     permissionMode: permissionMode(request.capabilities),
     cwd,

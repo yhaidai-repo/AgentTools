@@ -80,6 +80,13 @@ export class SubSessions {
     return [...opened, ...bodies.map((body) => ({ ...body, sessionId }))];
   }
 
+  /** An event about a call, in the session that made the call; the main session's calls are not remembered. */
+  stampCall(body: EventBody & { callId: string }): EventBody[] {
+    const sessionId = this.sessionOfCall.get(body.callId);
+
+    return [sessionId ? { ...body, sessionId } : body];
+  }
+
   // A frame can come before its session's task_started; the session then opens from the frame, so no event names a
   // session the trace has not seen.
   private openInferred(sessionId: string, frame: SdkSubSessionFrame): EventBody[] {
