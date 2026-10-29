@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { confirmedClick } from "@/lib/confirmSubmit";
 import type { ActionResult } from "@/models/ActionResult";
 import { actOnSelected } from "./actions";
 
@@ -35,9 +36,13 @@ export function TaskSelectionForm({ children }: { children: ReactNode }) {
 function confirmCancel(event: MouseEvent<HTMLButtonElement>): void {
   const count = selectedCount(event.currentTarget.form);
 
-  if (count === 0 || !window.confirm(`Cancel ${count} task(s)? No agent will take them again.`)) {
+  if (count === 0) {
     event.preventDefault();
+
+    return;
   }
+
+  confirmedClick(event, { title: `Cancel ${count} task(s)?`, message: "No agent will take them again.", confirmLabel: "Cancel tasks", isDanger: true });
 }
 
 function selectedCount(form: HTMLFormElement | null): number {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { confirmDialog, noticeDialog } from "@/lib/confirmDialog";
 import { cancelTaskAction } from "./actions";
 
 // Asks first: a cancelled agent task is over, no agent takes it again (Re-run opens a blocked one instead). An entry of
@@ -8,8 +9,10 @@ import { cancelTaskAction } from "./actions";
 export function CancelTaskButton({ adoId, itemId }: { adoId: number | null; itemId: string }) {
   const [isPending, startTransition] = useTransition();
 
-  function onCancel() {
-    if (!window.confirm(`Cancel ${itemId}? No agent will take it again.`)) {
+  async function onCancel() {
+    const isConfirmed = await confirmDialog({ title: `Cancel ${itemId}?`, message: "No agent will take it again.", confirmLabel: "Cancel task", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -17,7 +20,7 @@ export function CancelTaskButton({ adoId, itemId }: { adoId: number | null; item
       const result = await cancelTaskAction(adoId, itemId);
 
       if (!result.ok) {
-        window.alert(result.message);
+        void noticeDialog(result.message);
       }
     });
   }

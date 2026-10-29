@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { Dropdown } from "@/components/Dropdown";
+import { confirmDialog } from "@/lib/confirmDialog";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeReviewAction, deleteReview } from "../actions";
 import { KeptForm } from "@/components/KeptForm";
@@ -15,8 +16,10 @@ export function ReviewMoreActions({ prId, isClosed }: { prId: number; isClosed: 
   const [deleted, setDeleted] = useState<ActionResult | null>(null);
   const [isDeleting, startDelete] = useTransition();
 
-  function onDelete() {
-    if (!window.confirm(`Delete the review of PR ${prId} from PowerLoom? Its comments, tasks and runs are removed, and the pull request check won't list the PR again. Azure DevOps is not changed.`)) {
+  async function onDelete() {
+    const isConfirmed = await confirmDialog({ title: `Delete the review of PR ${prId}?`, message: "Its comments, tasks and runs are removed, and the pull request check won't list the PR again. Azure DevOps is not changed.", confirmLabel: "Delete review", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 

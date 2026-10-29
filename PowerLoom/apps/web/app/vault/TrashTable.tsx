@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { TimeAgo } from "@/components/TimeAgo";
+import { confirmDialog } from "@/lib/confirmDialog";
 import type { TrashRow } from "@/models/TrashRow";
 import { trashAction } from "./actions";
 
@@ -10,8 +11,8 @@ export function TrashTable({ rows }: { rows: TrashRow[] }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function act(path: string, action: "restore" | "delete"): void {
-    if (action === "delete" && !window.confirm(`Delete ${path} for good?`)) {
+  async function act(path: string, action: "restore" | "delete"): Promise<void> {
+    if (action === "delete" && !(await confirmDialog({ title: "Delete for good?", message: path, confirmLabel: "Delete", isDanger: true }))) {
       return;
     }
 

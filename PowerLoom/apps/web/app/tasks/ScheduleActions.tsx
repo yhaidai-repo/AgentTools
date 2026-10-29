@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useFormStatus } from "react-dom";
+import { confirmedSubmit } from "@/lib/confirmSubmit";
 import { createNowAction, deleteScheduleAction } from "./schedules/actions";
 
 // "Create now" adds a task to the list below (what happened shows in Last tick); "Delete" asks first.
@@ -27,7 +28,5 @@ function CreateNowButton() {
 }
 
 function confirmDelete(event: FormEvent<HTMLFormElement>, name: string): void {
-  if (!window.confirm(`Delete the scheduled task "${name}"? Tasks it already created stay.`)) {
-    event.preventDefault();
-  }
+  confirmedSubmit(event, { title: `Delete the scheduled task "${name}"?`, message: "Tasks it already created stay.", confirmLabel: "Delete", isDanger: true });
 }

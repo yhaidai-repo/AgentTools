@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDialog } from "@/lib/confirmDialog";
 import { stopTaskAction } from "./actions";
 
 // Stops a task's run in progress (user decision 2026-10-26): the agent ends at once, the run keeps its result (or its
@@ -9,8 +10,10 @@ export function StopTaskButton({ adoId, itemId }: { adoId: number | null; itemId
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function onStop() {
-    if (!window.confirm(`Stop ${itemId}'s run now? It keeps what it has; Re-run continues from there.`)) {
+  async function onStop() {
+    const isConfirmed = await confirmDialog({ title: `Stop the run of ${itemId}?`, message: "It keeps what it has; Re-run continues from there.", confirmLabel: "Stop run", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 

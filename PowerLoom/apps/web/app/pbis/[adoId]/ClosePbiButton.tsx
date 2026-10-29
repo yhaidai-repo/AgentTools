@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDialog, noticeDialog } from "@/lib/confirmDialog";
 import { closePbiAction, reopenPbiAction } from "../actions";
 
 // Close keeps the PBI for the agents to read (unlike Delete); Reopen brings back one the user closed. A PBI closed in
@@ -14,8 +15,10 @@ export function ClosePbiButton({ adoId, closedByUser, isClosed, inMenu = false }
     return null;
   }
 
-  function onClose() {
-    if (!window.confirm(`Close PBI-${adoId} in PowerLoom? Its open tasks and questions are cancelled and its open child items close with it. It stays for the agents to read; Azure DevOps is not changed.`)) {
+  async function onClose() {
+    const isConfirmed = await confirmDialog({ title: `Close PBI-${adoId} in PowerLoom?`, message: "Its open tasks and questions are cancelled and its open child items close with it. It stays for the agents to read; Azure DevOps is not changed.", confirmLabel: "Close PBI", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -28,7 +31,7 @@ export function ClosePbiButton({ adoId, closedByUser, isClosed, inMenu = false }
 
   function report(problem: string | null) {
     if (inMenu && problem) {
-      window.alert(problem);
+      void noticeDialog(problem);
     }
 
     setMessage(problem);

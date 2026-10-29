@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDialog, noticeDialog } from "@/lib/confirmDialog";
 import { deletePbiAction } from "../actions";
 
 // Asks first: the PBI and everything PowerLoom made for it go, and sync won't bring it back (ADO stays untouched).
@@ -9,10 +10,10 @@ export function DeletePbiButton({ adoId, inMenu = false }: { adoId: number; inMe
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function onDelete() {
-    const question = `Delete PBI-${adoId} from PowerLoom? Its child items, tasks, questions, runs, attachments, repos and notes are removed, and sync won't import it again (Sync PBI brings it back). Azure DevOps is not changed.`;
+  async function onDelete() {
+    const isConfirmed = await confirmDialog({ title: `Delete PBI-${adoId} from PowerLoom?`, message: "Its child items, tasks, questions, runs, attachments, repos and notes are removed, and sync won't import it again (Sync PBI brings it back). Azure DevOps is not changed.", confirmLabel: "Delete PBI", isDanger: true });
 
-    if (!window.confirm(question)) {
+    if (!isConfirmed) {
       return;
     }
 
@@ -22,7 +23,7 @@ export function DeletePbiButton({ adoId, inMenu = false }: { adoId: number; inMe
       setMessage(result.ok ? null : result.message);
 
       if (inMenu && !result.ok) {
-        window.alert(result.message);
+        void noticeDialog(result.message);
       }
     });
   }
