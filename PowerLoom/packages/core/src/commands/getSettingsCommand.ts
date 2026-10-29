@@ -8,7 +8,7 @@ import { vaultInput } from "./inputs";
 export const getSettingsCommand: Command<{ vault: string }, VaultSettingsView> = {
   name: "settings.get",
   effect: "read",
-  description: "Read a vault's Settings as the Settings page shows them: the Azure DevOps connection, sync, imports, pull requests, the repo catalogue with each repo's build and test commands, Read SQL connections, Read Azure, DevHub and cleanup. Never a secret: only whether a token is saved. Settings are changed on the Settings page (repos also with repo_enable, repo_addLocal, repo_remove and repo_saveCommands).",
+  description: "Read a vault's Settings as the Settings page shows them: the Azure DevOps connection, sync, imports, pull requests, the repo catalogue with each repo's build and test commands, the sandbox (image, package hosts, private package feeds), Read SQL connections, Read Azure, DevHub and cleanup. Never a secret: only whether a token is saved. Settings are changed on the Settings page (repos also with repo_enable, repo_addLocal, repo_remove and repo_saveCommands; the sandbox also with sandbox_saveSettings, sandbox_savePackageFeed and sandbox_removePackageFeed).",
   input: z.object({ vault: vaultInput }),
   async run(context, input) {
     if (!(await readVault(context.db, input.vault))) {

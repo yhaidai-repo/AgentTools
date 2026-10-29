@@ -87,6 +87,9 @@ import { enableRepoCommand } from "./enableRepoCommand";
 import { addLocalRepoCommand } from "./addLocalRepoCommand";
 import { removeRepoCommand } from "./removeRepoCommand";
 import { saveRepoCommandsCommand } from "./saveRepoCommandsCommand";
+import { saveSandboxSettingsCommand } from "./saveSandboxSettingsCommand";
+import { savePackageFeedCommand } from "./savePackageFeedCommand";
+import { removePackageFeedCommand } from "./removePackageFeedCommand";
 import { addVaultCommand } from "./addVaultCommand";
 import { removeVaultCommand } from "./removeVaultCommand";
 import { restoreTrashCommand } from "./restoreTrashCommand";
@@ -160,6 +163,9 @@ export const COMMANDS: readonly Command<any, any>[] = [
   addLocalRepoCommand,
   removeRepoCommand,
   saveRepoCommandsCommand,
+  saveSandboxSettingsCommand,
+  savePackageFeedCommand,
+  removePackageFeedCommand,
   addVaultCommand,
   removeVaultCommand,
   restoreTrashCommand,

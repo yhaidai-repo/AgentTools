@@ -133,15 +133,18 @@ To prepare a host and a vault:
 2. `.env`: `sandbox` in `COMPOSE_PROFILES`, `SANDBOX_URL=http://sandbox:3300`, `SANDBOX_TOKEN` and `SANDBOX_PROXY_SECRET`
    (long random values), then `docker compose up -d`. Without the proxy secret every restore gets the fixed host list
    `SANDBOX_PACKAGE_HOSTS` instead of its vault's.
-3. Settings → Data access → Sandbox: the image (empty = `general`) and the package hosts (default `api.nuget.org`,
-   `registry.npmjs.org`). The vault's own Azure DevOps feeds are signed in with its Azure DevOps token and need no entry.
-4. Private feeds of other organizations or with a token of their own: vault setting `vault:<vault>:packageFeeds` in the
-   `config` table, `{"feeds": [{"url": "<feed URL, or a prefix covering several feeds>", "username": "<optional>",
-   "token": "<PAT with Packaging (read)>"}]}`. A source of the repo's `nuget.config` (or `.npmrc`) under the URL gets the
-   sign-in, during restores only; the feed's hosts (for Azure Artifacts also its blob storage) join the vault's package
-   hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a sandbox command
-   or a log. Set it with SQL, e.g. `INSERT INTO config (key, value) VALUES ('vault:<vault>:packageFeeds', '{"feeds": [...]}')
-   ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now();`
+3. Settings → Data access → Sandbox (or the MCP tool `sandbox_saveSettings`; `settings_get` lists them): the image
+   (empty = `general`) and the package hosts (default `api.nuget.org`, `registry.npmjs.org`): names, `*.example.com` for
+   every host under it, or `*` inside a label; a host a feed redirects downloads to (a CDN, a blob storage) needs its own
+   entry. The vault's own Azure DevOps feeds are signed in with its Azure DevOps token and need no entry. Stored as the
+   vault setting `sandbox`.
+4. Private feeds of other organizations or with a token of their own: the MCP tools `sandbox_savePackageFeed` (URL, or
+   a prefix covering several feeds; optional user name; a PAT with Packaging (read)) and `sandbox_removePackageFeed`;
+   `settings_get` lists the feeds without their tokens. A source of the repo's `nuget.config` (or `.npmrc`) under the
+   URL gets the sign-in, during restores only; the feed's hosts (for Azure Artifacts also its blob storage) join the
+   vault's package hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a
+   sandbox command, a log or a tool's answer. Stored as the vault setting `packageFeeds`,
+   `{"feeds": [{"url", "username", "token"}]}`.
 5. Build and test commands: Settings → Repositories, under each repo's row (or the MCP tool `repo_saveCommands`;
    `settings_get` lists them). The shell sends any of them (also with more arguments) to the sandbox, and the
    implementation agent's GSD gets its repo's as `workflow.build_command` and `workflow.test_command`. Each is a single
