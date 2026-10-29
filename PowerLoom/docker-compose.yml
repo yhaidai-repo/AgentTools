@@ -192,6 +192,9 @@ services:
       SANDBOX_PROXY_URL: http://sandbox-egress:3128
       # Signs each restore's pass with its vault's package hosts; the same value as sandbox-egress's.
       SANDBOX_PROXY_SECRET: ${SANDBOX_PROXY_SECRET:-}
+      # Compose labels its own containers with the project but doesn't pass the name in: the service needs it to put its
+      # sandbox and restore containers in the same group (Docker Desktop). Compose fills the variable itself, even with -p.
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
     networks: [default, docker-api]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3300/health"]

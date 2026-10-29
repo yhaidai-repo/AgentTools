@@ -1,6 +1,8 @@
 import type { ContainerCreateOptions, HostConfig } from "dockerode";
 import { PACKAGES, SANDBOX_EXPIRES_LABEL, SANDBOX_LABEL, SANDBOX_OWNER_LABEL, WORKSPACE } from "@powerloom/sandbox";
 import type { SandboxConfig } from "../models/SandboxConfig";
+import type { SandboxContainerRole } from "../models/SandboxContainerRole";
+import { composeGroupLabels } from "./composeGroupLabels";
 
 const MB = 1024 * 1024;
 export const SANDBOX_USER = "1000:1000";
@@ -25,7 +27,7 @@ export function sandboxContainerOptions(config: SandboxConfig, image: string, pa
     User: SANDBOX_USER,
     WorkingDir: WORKSPACE,
     Env: [...sandboxEnv(), ...OFFLINE_ENV],
-    Labels: labels(id, owner, expiresAt),
+    Labels: labels(config, "sandbox-run", id, owner, expiresAt),
     NetworkDisabled: true,
     HostConfig: {
       ...isolation(config),
@@ -50,7 +52,7 @@ export function restoreContainerOptions(config: SandboxConfig, image: string, pr
     // NuGet checks package signatures' revocation over plain HTTP (CRL/OCSP), which the proxy refuses: offline mode
     // skips those calls instead of letting each one fail.
     Env: [...sandboxEnv(), "NUGET_CERT_REVOCATION_MODE=offline", `HTTPS_PROXY=${proxyUrl}`, `https_proxy=${proxyUrl}`, `HTTP_PROXY=${proxyUrl}`, `http_proxy=${proxyUrl}`, "NO_PROXY=localhost,127.0.0.1"],
-    Labels: labels(id, owner, expiresAt),
+    Labels: labels(config, "sandbox-restore", id, owner, expiresAt),
     HostConfig: {
       ...isolation(config),
       NetworkMode: config.egressNetwork ?? "none",
@@ -76,8 +78,8 @@ function isolation(config: SandboxConfig): HostConfig {
   };
 }
 
-function labels(id: string, owner: string, expiresAt: Date): Record<string, string> {
-  return { [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: owner, [SANDBOX_EXPIRES_LABEL]: expiresAt.toISOString() };
+function labels(config: SandboxConfig, role: SandboxContainerRole, id: string, owner: string, expiresAt: Date): Record<string, string> {
+  return { ...composeGroupLabels(config.composeProject, role), [SANDBOX_LABEL]: id, [SANDBOX_OWNER_LABEL]: owner, [SANDBOX_EXPIRES_LABEL]: expiresAt.toISOString() };
 }
 
 // The only environment a command sees: no variable of the service or the runner. Package caches point at the packages

@@ -30,6 +30,7 @@ function readConfig(): SandboxConfig {
     restoreTimeoutMs: number("SANDBOX_RESTORE_TIMEOUT_MS", 15 * 60_000),
     proxySecret: process.env.SANDBOX_PROXY_SECRET || null,
     imageCatalogPath: process.env.SANDBOX_IMAGES || null,
+    composeProject: process.env.COMPOSE_PROJECT_NAME || null,
   };
 }
 
