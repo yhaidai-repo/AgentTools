@@ -1,26 +1,38 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { isObservabilityOn, observabilityState } from "./observability";
+import { isObservabilityOn, loadObservabilityState, telemetryDashboardUrl } from "./observability";
 
-describe("observability (otel-lgtm, development only)", () => {
-  const original = process.env.PROMETHEUS_URL;
+describe("standalone telemetry diagnostics", () => {
+  const originalInternal = process.env.TELEMETRY_INTERNAL_URL;
+  const originalPublic = process.env.TELEMETRY_URL;
 
   afterEach(() => {
-    process.env.PROMETHEUS_URL = original;
+    if (originalInternal === undefined) delete process.env.TELEMETRY_INTERNAL_URL;
+    else process.env.TELEMETRY_INTERNAL_URL = originalInternal;
+    if (originalPublic === undefined) delete process.env.TELEMETRY_URL;
+    else process.env.TELEMETRY_URL = originalPublic;
   });
 
-  it("is off when .env gives no Prometheus address", () => {
-    process.env.PROMETHEUS_URL = " ";
-
+  it("does not contact the viewer when telemetry is disabled", async () => {
+    process.env.TELEMETRY_INTERNAL_URL = " ";
     assert.equal(isObservabilityOn(), false);
-    assert.equal(observabilityState(false, false), "off");
+    assert.equal(await loadObservabilityState(async () => { throw new Error("unexpected network request"); }), "off");
   });
 
-  it("is on with an address, and says whether Prometheus answers", () => {
-    process.env.PROMETHEUS_URL = "http://otel-lgtm:9090";
+  it("checks the configured viewer and reports its availability", async () => {
+    process.env.TELEMETRY_INTERNAL_URL = "http://telemetry:18888/";
+    assert.equal(await loadObservabilityState(async (url) => {
+      assert.equal(url, "http://telemetry:18888");
+      return new Response("ok");
+    }), "answers");
+    assert.equal(await loadObservabilityState(async () => new Response("down", { status: 503 })), "no answer");
+    assert.equal(await loadObservabilityState(async () => { throw new Error("unreachable"); }), "no answer");
+  });
 
-    assert.equal(isObservabilityOn(), true);
-    assert.equal(observabilityState(true, true), "answers");
-    assert.equal(observabilityState(true, false), "no answer");
+  it("links to the browser-visible address rather than the container address", () => {
+    process.env.TELEMETRY_URL = " http://127.0.0.1:3200/ ";
+    assert.equal(telemetryDashboardUrl(), "http://127.0.0.1:3200");
+    process.env.TELEMETRY_URL = "";
+    assert.equal(telemetryDashboardUrl(), null);
   });
 });

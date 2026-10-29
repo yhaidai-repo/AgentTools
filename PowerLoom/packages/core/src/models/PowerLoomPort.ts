@@ -18,10 +18,11 @@ import type { PbiWorkPort } from "./PbiWorkPort";
 import type { ReviewWorkPort } from "./ReviewWorkPort";
 import type { TaskWorkPort } from "./TaskWorkPort";
 import type { VaultWorkPort } from "./VaultWorkPort";
+import type { DiagnosticsPort } from "./DiagnosticsPort";
 
 // PowerLoom, the .NET backend taking over the worker's jobs (the vault's adoa-backend-delivery note). The caller (the
 // web, the MCP server) supplies the client; core stays free of HTTP.
-export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort, CaptureWorkPort, AgentWorkPort {
+export interface PowerLoomPort extends PbiWorkPort, TaskWorkPort, ReviewWorkPort, VaultWorkPort, CaptureWorkPort, AgentWorkPort, DiagnosticsPort {
   // Queues a stored record for its vault's file: the WWW log, or a finding into a project's register.
   addRecord(kind: "www" | "open-question" | "known-issue", sourceId: string): Promise<void>;
   // "Continue with <agent>": writes the chat note (with the item's hand-off section, when it has one) and returns the

@@ -930,3 +930,23 @@ tbody[data-folded] tr.child-row {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* PowerLoom's confirm window: a short question, what it changes, and the button that goes ahead. */
+dialog.confirm-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+dialog.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+dialog.confirm-dialog p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+dialog.confirm-dialog .actions {
+  justify-content: flex-end;
+}

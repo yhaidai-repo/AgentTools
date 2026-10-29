@@ -19,6 +19,8 @@ const KIND_TAGS: Record<string, { label: string; tone: string }> = {
   meeting: { label: "Meeting", tone: "kind-meeting" },
   test: { label: "Test", tone: "kind-review" },
   "test-report": { label: "Test report", tone: "kind-review" },
+  "support-guide": { label: "Demonstration", tone: "kind-review" },
+  "support-guide-result": { label: "Demonstration guide", tone: "kind-review" },
 };
 
 const CLOSED_LABELS: Record<string, string> = { done: "Done", answered: "Answered", final: "Done", cancelled: "Cancelled", dismissed: "Dismissed", superseded: "Superseded", deleted: "Deleted" };

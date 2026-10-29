@@ -13,7 +13,7 @@ import { RunResultHeader } from "../../RunResultHeader";
 
 export const dynamic = "force-dynamic";
 
-const ITEM_TITLES: Record<string, string> = { "research-result": "Research result", "test-report": "Test report" };
+const ITEM_TITLES: Record<string, string> = { "research-result": "Research result", "test-report": "Test report", "support-guide-result": "Demonstration guide" };
 const TITLES: Record<Exclude<AgentResult["kind"], "item">, string> = { refinement: "Refinement", plan: "Plan", build: "Build", design: "Design", estimate: "Estimate", review: "Review", run: "Run result" };
 
 // One agent result version on a page of its own (user decision 2026-10-21): the whole width, so its tables get room,

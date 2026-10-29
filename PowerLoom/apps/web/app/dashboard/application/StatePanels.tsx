@@ -14,7 +14,7 @@ type VaultStatus = SystemStatus["vaults"][number];
 interface StatePanelsProps {
   status: SystemStatus;
   vault: string;
-  /** otel-lgtm: switched off, or whether Prometheus answered the rates query. */
+  /** Whether the local telemetry viewer answers. */
   observability: ObservabilityState;
 }
 
@@ -42,7 +42,7 @@ function ServicesPanel({ status, observability }: { status: SystemStatus; observ
       <StatusRow name="Postgres" value={status.database.detail} tone={toneOfState(status.database.state)} />
       <StatusRow name="Schedule ticker" value={status.ticker.lastTickAt ? <TimeAgo date={status.ticker.lastTickAt} /> : "no tick yet"} tone={toneOfState(status.ticker.state)} />
       <StatusRow name="agent-runner" value={runner.reachable ? (runner.runningTask ? `running ${runner.runningTask}` : "idle") : runner.detail ?? "unreachable"} tone={toneOfState(runner.state)} />
-      <StatusRow name="otel-lgtm" value={observability} tone={OBSERVABILITY_TONES[observability]} />
+      <StatusRow name="Aspire Dashboard" value={observability} tone={OBSERVABILITY_TONES[observability]} />
     </Panel>
   );
 }

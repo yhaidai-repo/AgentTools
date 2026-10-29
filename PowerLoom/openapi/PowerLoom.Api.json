@@ -686,6 +686,217 @@
         }
       }
     },
+    "/api/status/telemetry/logs": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.Telemetry.TelemetryEndpoints"
+        ],
+        "summary": "GET_api_status_telemetry_logs",
+        "description": "GET_api_status_telemetry_logs",
+        "operationId": "GET_api_status_telemetry_logs",
+        "parameters": [
+          {
+            "name": "hours",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "traceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryPageOfTelemetryLog"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/status/telemetry/traces": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.Telemetry.TelemetryEndpoints"
+        ],
+        "summary": "GET_api_status_telemetry_traces",
+        "description": "GET_api_status_telemetry_traces",
+        "operationId": "GET_api_status_telemetry_traces",
+        "parameters": [
+          {
+            "name": "hours",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "errorsOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "minDurationMs",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryPageOfTelemetryTrace"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/status/telemetry/traces/{traceId}": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.Telemetry.TelemetryEndpoints"
+        ],
+        "summary": "GET_api_status_telemetry_traces_traceId",
+        "description": "GET_api_status_telemetry_traces_traceId",
+        "operationId": "GET_api_status_telemetry_traces_traceId",
+        "parameters": [
+          {
+            "name": "traceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryPageOfTelemetrySpan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/status/performance": {
+      "get": {
+        "tags": [
+          "PowerLoom.Features.Status.Performance.PerformanceEndpoint"
+        ],
+        "summary": "GET_api_status_performance",
+        "description": "GET_api_status_performance",
+        "operationId": "GET_api_status_performance",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceHistory"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/skills/{name}": {
       "put": {
         "tags": [
@@ -6317,6 +6528,76 @@
           }
         }
       },
+      "PerformanceHistory": {
+        "required": [
+          "from",
+          "to",
+          "intervalSeconds",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformancePoint"
+            }
+          }
+        }
+      },
+      "PerformancePoint": {
+        "required": [
+          "at",
+          "requestsPerMinute",
+          "averageLatencyMs",
+          "workingSetBytes",
+          "observedMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestsPerMinute": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "averageLatencyMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "workingSetBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "observedMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PrepareRequest": {
         "required": [
           "adoIds"
@@ -7689,6 +7970,282 @@
           }
         }
       },
+      "TelemetryEvent": {
+        "required": [
+          "name",
+          "at",
+          "attributes"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TelemetryLog": {
+        "required": [
+          "at",
+          "service",
+          "severity",
+          "traceId",
+          "spanId",
+          "body",
+          "attributes"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "service": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "spanId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TelemetryPageOfTelemetryLog": {
+        "required": [
+          "state",
+          "message",
+          "items",
+          "truncated",
+          "scanned"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryLog"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TelemetryPageOfTelemetrySpan": {
+        "required": [
+          "state",
+          "message",
+          "items",
+          "truncated",
+          "scanned"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetrySpan"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TelemetryPageOfTelemetryTrace": {
+        "required": [
+          "state",
+          "message",
+          "items",
+          "truncated",
+          "scanned"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryTrace"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TelemetrySpan": {
+        "required": [
+          "traceId",
+          "spanId",
+          "parentSpanId",
+          "service",
+          "name",
+          "at",
+          "durationMs",
+          "hasError",
+          "statusMessage",
+          "attributes",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "traceId": {
+            "type": "string"
+          },
+          "spanId": {
+            "type": "string"
+          },
+          "parentSpanId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasError": {
+            "type": "boolean"
+          },
+          "statusMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryEvent"
+            }
+          }
+        }
+      },
+      "TelemetryTrace": {
+        "required": [
+          "traceId",
+          "name",
+          "at",
+          "durationMs",
+          "hasError",
+          "spanCount",
+          "services"
+        ],
+        "type": "object",
+        "properties": {
+          "traceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasError": {
+            "type": "boolean"
+          },
+          "spanCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "TestConnectionRequest": {
         "required": [
           "orgUrl",
@@ -7964,6 +8521,12 @@
     },
     {
       "name": "PowerLoom.Features.Status.StatusEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Status.Telemetry.TelemetryEndpoints"
+    },
+    {
+      "name": "PowerLoom.Features.Status.Performance.PerformanceEndpoint"
     },
     {
       "name": "PowerLoom.Features.Skills.SkillsEndpoints"

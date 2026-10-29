@@ -1,3 +1,4 @@
+import { DEMONSTRATION_LABEL } from "@powerloom/core";
 import type { AgentDefinition, AgentIntegrationSpec, AgentOptionSpec, AgentsGlobal } from "@agenttools/config";
 import { CONFLUENCE_INTEGRATION } from "./confluenceTools";
 import { AZURE_ACCESS_INTEGRATION, AZURE_INTEGRATIONS, AZURE_INTEGRATION_SPECS, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATION, READ_SERVICE_BUS_INTEGRATION } from "./azure/azureIntegrations";
@@ -20,7 +21,9 @@ import { WRITE_IMPLEMENTATION_INTEGRATION } from "./implementation/Implementatio
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
+import { SUPPORT_GUIDE_INTEGRATION } from "./supportGuide/SupportGuideWriter";
 import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
+import { LIVE_TEST_INTEGRATION } from "./liveTest/liveTestTools";
 
 // PowerLoom's agents with the values the user approved; AgentConfig keeps what clients saved and only fills gaps.
 export const GLOBAL_DEFAULTS: AgentsGlobal = { paused: false, pausedUntil: null, dailyBudgetUsd: 10 };
@@ -372,10 +375,22 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent reviews its task's pull request against its PBIs, the repo's review rules and the other reviewers' threads, with follow-ups anchored to the last reviewed commit; the PR is checked out for the repo tools. Needs Read repositories.",
   },
   {
+    key: SUPPORT_GUIDE_INTEGRATION,
+    owner: "support-guide",
+    label: "Write demonstration guides",
+    description: "Observes local or remote workflows, saves inspected screenshots and versioned guide packages, and prepares a Confluence publication handoff. Does not publish pages.",
+  },
+  {
     key: AUTOTEST_INTEGRATION,
     owner: "autotest",
     label: "Write test reports",
     description: "The agent proves its PBI's acceptance criteria: the test cases, plan and previous report are in the first message; write_test_report and report_bug record what it found. A report that waits for an answer sends the task back to open.",
+  },
+  // PowerLoom testing itself (owner, 2026-10-25): the commands against the running system, guarded to the run's own data.
+  {
+    key: LIVE_TEST_INTEGRATION,
+    label: "PowerLoom tools (live test)",
+    description: "The agent may call PowerLoom's commands against the live system: every read, on every vault, also the ones other grants gate (sql_databases, sql_describe and sql_query on every Read SQL connection, SELECT only and logged; logs_read, the services' logs; settings_get, never a secret), and the writes a test needs (create a PBI, bug, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs, enables an agent or writes real vaults (so no pbi_prepare: it queues a refinement task a real agent would take), and makes tasks only of a type no enabled agent takes. Everything it created is removed when the run ends, by the generic runner (the one every agent runs on today) and by nothing else: after a crash, a restart or a deploy in the middle of a run nothing sweeps what it left, so look for [selftest] data then.",
   },
 ];
 
@@ -431,7 +446,7 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     model: { provider: "anthropic", model: "claude-opus-5-5", effort: "high" },
     limits: { maxTurns: 300, timeoutMinutes: 120 },
     budgets: { perRunUsd: 30, dailyUsd: 60 },
-    capabilities: { webAccess: false, readCode: true, shell: true, subAgents: true, editCode: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [WRITE_PLAN_INTEGRATION]: true } },
+    capabilities: { webAccess: false, readCode: true, shell: true, subAgents: true, editCode: true, integrations: { [READ_REPOS_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true, [READ_SQL_INTEGRATION]: false, ...AZURE_INTEGRATIONS, [DEVHUB_INTEGRATION]: false, [ADO_INTEGRATION]: false, [ESTIMATE_INTEGRATION]: true, [SANDBOX_INTEGRATION]: true, [WRITE_PLAN_INTEGRATION]: true } },
     skills: ["powerloom-planning-checklist"],
     options: { batchSize: 1, maxFailures: 3, maxDepth: 3, maxTasksPerRun: 5, maxTasksPerPbi: 15, repoRefreshMinutes: 30 },
     optionSpecs: withToolsetOptions(PLANNING_OPTIONS),
@@ -581,3 +596,19 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
     waitFor: ["linkedDocuments"],
   },
 ];
+
+// Same source defaults as Autotest; stored configuration remains authoritative after deployment.
+const guideBase = AGENT_DEFAULTS.find(agent => agent.id === "autotest")!;
+AGENT_DEFAULTS.push({
+  ...guideBase,
+  id: "support-guide", label: DEMONSTRATION_LABEL,
+  description: "Writes support guides from observed local or remote workflows, with inspected screenshots and a portable Confluence publication handoff.",
+  enabled: false, schedule: null,
+  model: { ...guideBase.model }, limits: { ...guideBase.limits }, budgets: { ...guideBase.budgets },
+  capabilities: { webAccess: false, integrations: {
+    [READ_REPOS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true,
+    [ADO_INTEGRATION]: true, [SUPPORT_GUIDE_INTEGRATION]: true,
+  } },
+  skills: ["powerloom-support-guide"], handles: ["support-guide"],
+  options: { ...guideBase.options }, canAssign: ["research", "refinement"], waitFor: ["linkedDocuments"],
+});

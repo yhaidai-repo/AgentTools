@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { confirmedClick } from "@/lib/confirmSubmit";
 import type { ActionResult } from "@/models/ActionResult";
 import { closeSelected, deleteSelected, queueSelected } from "./actions";
 
@@ -48,9 +49,13 @@ function ActionResults({ results }: { results: (ActionResult | null)[] }) {
 function confirmDelete(event: MouseEvent<HTMLButtonElement>): void {
   const count = selectedCount(event.currentTarget.form);
 
-  if (count === 0 || !window.confirm(`Delete ${count} review(s) from PowerLoom? Their comments, tasks and runs are removed, and the pull request check won't list the PRs again. Azure DevOps is not changed.`)) {
+  if (count === 0) {
     event.preventDefault();
+
+    return;
   }
+
+  confirmedClick(event, { title: `Delete ${count} review(s) from PowerLoom?`, message: "Their comments, tasks and runs are removed, and the pull request check won't list the PRs again. Azure DevOps is not changed.", confirmLabel: "Delete", isDanger: true });
 }
 
 function selectedCount(form: HTMLFormElement | null): number {

@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { FinishDialog } from "@/components/FinishDialog";
+import { confirmedClick } from "@/lib/confirmSubmit";
 import type { ActionResult } from "@/models/ActionResult";
 import type { PbiToFinish } from "@/models/PbiToFinish";
 import { closeSelected, deleteSelected, planSelected, prepareSelected, reopenSelected } from "./actions";
@@ -85,18 +86,26 @@ function ActionResults({ results, finished }: { results: (ActionResult | null)[]
 function confirmDelete(event: MouseEvent<HTMLButtonElement>): void {
   const count = selectedPbis(event.currentTarget.form).length;
 
-  if (count === 0 || !window.confirm(`Delete ${count} PBI(s) from PowerLoom? Their child items, tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.`)) {
+  if (count === 0) {
     event.preventDefault();
+
+    return;
   }
+
+  confirmedClick(event, { title: `Delete ${count} PBI(s) from PowerLoom?`, message: "Their child items, tasks, questions, runs, attachments, repos and notes are removed; Azure DevOps is not changed.", confirmLabel: "Delete", isDanger: true });
 }
 
 // Asks first: the selected PBIs stop (open tasks and questions cancelled, open children closed); ADO stays untouched.
 function confirmClose(event: MouseEvent<HTMLButtonElement>): void {
   const count = selectedPbis(event.currentTarget.form).length;
 
-  if (count === 0 || !window.confirm(`Close ${count} PBI(s) in PowerLoom? Their open tasks and questions are cancelled and their open child items close with them. They stay for the agents to read; Azure DevOps is not changed.`)) {
+  if (count === 0) {
     event.preventDefault();
+
+    return;
   }
+
+  confirmedClick(event, { title: `Close ${count} PBI(s) in PowerLoom?`, message: "Their open tasks and questions are cancelled and their open child items close with them. They stay for the agents to read; Azure DevOps is not changed.", confirmLabel: "Close", isDanger: true });
 }
 
 // The ticked rows; each checkbox carries its PBI's title for the dialog.

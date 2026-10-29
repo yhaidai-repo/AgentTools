@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDialog } from "@/lib/confirmDialog";
 import { deleteAgentAction } from "../../configActions";
 
 // Only for agents created in the UI; the ones shipped in code come back on the next start anyway. Its runs and the tasks
@@ -9,8 +10,10 @@ export function DeleteAgentButton({ agentId, label }: { agentId: string; label: 
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function onDelete() {
-    if (!window.confirm(`Delete the agent ${label}? Its runs stay; it won't take tasks any more.`)) {
+  async function onDelete() {
+    const isConfirmed = await confirmDialog({ title: `Delete the agent ${label}?`, message: "Its runs stay; it won't take tasks any more.", confirmLabel: "Delete agent", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 

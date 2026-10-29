@@ -9,26 +9,26 @@ const SOURCE_SUFFIX = /\n\n\[source (S\d+)\]$/;
 export function recordReads(tools: ToolDefinition<any>[], log: ReadLog): ToolDefinition<any>[] {
   return tools.map((tool) => ({
     ...tool,
-    handler: async (input: Record<string, unknown>) => withSource(await tool.handler(input), input, log),
-    restore: (input: unknown, output: string) => restoreSource(input, output, log),
+    handler: async (input: Record<string, unknown>) => withSource(await tool.handler(input), input, log, tool.name),
+    restore: (input: unknown, output: string) => restoreSource(input, output, log, tool.name),
   }));
 }
 
-function withSource(result: ToolResult, input: Record<string, unknown>, log: ReadLog): ToolResult {
+function withSource(result: ToolResult, input: Record<string, unknown>, log: ReadLog, tool: string): ToolResult {
   if (result.isError) {
     return result;
   }
 
-  const id = log.add(sourceText(input, result.text));
+  const id = log.add(sourceText(input, result.text), { tool, resultText: result.text, fresh: true });
 
   return { ...result, text: `${result.text}\n\n[source ${id}]` };
 }
 
-function restoreSource(input: unknown, output: string, log: ReadLog): void {
+function restoreSource(input: unknown, output: string, log: ReadLog, tool: string): void {
   const match = SOURCE_SUFFIX.exec(output);
 
   if (match) {
-    log.restore(match[1], sourceText(input, output.slice(0, match.index)));
+    log.restore(match[1], sourceText(input, output.slice(0, match.index)), { tool, resultText: output.slice(0, match.index), fresh: false });
   }
 }
 

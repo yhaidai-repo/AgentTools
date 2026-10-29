@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDialog, noticeDialog } from "@/lib/confirmDialog";
 import { deleteItemAction } from "./actions";
 
 // Asks first: a deleted item disappears from the pages and the Vault, and agents won't create it again. In the header's
@@ -9,8 +10,10 @@ export function DeleteItemButton({ adoId, itemId, inMenu = false }: { adoId: num
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function onDelete() {
-    if (!window.confirm(`Delete ${itemId}? It disappears from PowerLoom and the Vault, and agents won't create it again.`)) {
+  async function onDelete() {
+    const isConfirmed = await confirmDialog({ title: `Delete ${itemId}?`, message: "It disappears from PowerLoom and the Vault, and agents won't create it again.", confirmLabel: "Delete", isDanger: true });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -20,7 +23,7 @@ export function DeleteItemButton({ adoId, itemId, inMenu = false }: { adoId: num
       setMessage(result.ok ? null : result.message);
 
       if (inMenu && !result.ok) {
-        window.alert(result.message);
+        void noticeDialog(result.message);
       }
     });
   }

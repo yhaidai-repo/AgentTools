@@ -7,6 +7,11 @@ Codex (PowerLoom writes both entries): every PowerLoom command is a tool there, 
 `item_close`), next to the readers the agents have (vault docs, Read SQL, Read Azure, Azure DevOps, the whole system:
 `task_list`, `run_get`, `agent_list`, `settings_get`, …). Why something failed: `run_events` for a run's own steps,
 `logs_read` for what the services logged (a task that failed before its run started, a dispatch or sync that broke).
+For backend application performance, `performance_read` reads the dashboard's saved request-rate, latency and memory
+history. For detailed diagnostics, `telemetry_logs` searches Aspire logs, `traces_list` finds distributed requests,
+and `trace_get` inspects their operations. Use bounded filters; `truncated` means partial coverage and long details
+are abbreviated. Aspire tools report disabled/unavailable explicitly and never start its container; native performance,
+stored errors and agent-run events remain available independently. A distributed trace ID is different from a RUN ID.
 
 - Each tool says what it needs. A tool that changes PowerLoom says what to ask or confirm first: ask for what the user
   didn't say (never invent it), confirm a delete or a close naming the item, and show the final text before a submit.

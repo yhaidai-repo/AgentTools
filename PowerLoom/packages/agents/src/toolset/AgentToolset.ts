@@ -1,4 +1,5 @@
 import type { AgentEvent, ToolDefinition } from "@agenttools/runtime";
+import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { OfferedTool } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { ADO_INTEGRATION, createAdoTools } from "../ado/adoTools";
@@ -13,11 +14,15 @@ import { ImplementationWriter, WRITE_IMPLEMENTATION_INTEGRATION } from "../imple
 import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
+import { SUPPORT_GUIDE_INTEGRATION, SupportGuideWriter } from "../supportGuide/SupportGuideWriter";
+import { supportGuideTools } from "../supportGuide/toolPolicy";
 import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter";
 import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
 import { DEVHUB_INTEGRATION, createDevHubTools } from "../devHubTools";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "../sandbox/sandboxTools";
+import { LiveTestRun } from "../liveTest/LiveTestRun";
+import { LIVE_TEST_INTEGRATION } from "../liveTest/liveTestTools";
 import { DuplicateGuard } from "../DuplicateGuard";
 import { DbFailureReportStore } from "../failureReport/DbFailureReportStore";
 import { FailureReportRun } from "../failureReport/FailureReportRun";
@@ -91,6 +96,8 @@ export class AgentToolset {
   private readonly writers: RunWriter[];
   /** What report_failure has recorded in this run: its cap and one report per cause. */
   private readonly failureReports = new FailureReportRun();
+  /** PowerLoom's commands against the live system, when the Config grants powerloomLiveTest. */
+  private readonly liveTest: LiveTestRun | null;
   private log: ReadLog | null = null;
   private offer: OfferedTool[] = [];
   /** The run's GitHub working copies while its agent has GitHub (write); removed by cleanUp(). */
@@ -113,6 +120,7 @@ export class AgentToolset {
     this.estimate = new RunEstimate(offersEstimate(context.agent, task.pbiId));
     this.writers = input.writers ?? grantedWriters(context);
     this.gitHub = context.agent.capabilities.integrations?.[GITHUB_WRITE_INTEGRATION] === true ? new GitHubWorkspace(context.deps.repoCache, session.runId, task.id, `PowerLoom (${context.agent.label})`) : null;
+    this.liveTest = input.liveTest === undefined ? LiveTestRun.granted(context.agent, context.deps) : input.liveTest;
   }
 
   /** Removes what the run left on this PC (its GitHub working copies); what it pushed stays on GitHub. */
@@ -141,15 +149,30 @@ export class AgentToolset {
 
     const reading = this.readingGroups();
     const writing = [{ source: SKILLS_SOURCE, tools: this.context.skills.tools }, ...this.writingGroups(this.log)];
+    const live = this.liveTestGroups([...toolsOf(reading), ...toolsOf(writing)]);
 
-    this.offer = offeredTools([...reading, ...writing]);
+    this.offer = offeredTools([...reading, live.reads, ...writing, live.writes]);
 
-    return withLimitNotes([...recordReads(toolsOf(reading), this.log), ...toolsOf(writing)], () => this.use(), RESULT_TOOL);
+    return withLimitNotes([...recordReads(toolsOf([...reading, live.reads]), this.log), ...toolsOf([...writing, live.writes])], () => this.use(), RESULT_TOOL);
   }
 
   /** What tools() gave the run, each with what gave it, for the Tools tab. */
   get offered(): OfferedTool[] {
     return this.offer;
+  }
+
+  /** Removes what the live test created and records it in the trace; a no-op without a live test or once it holds
+   *  nothing. Never throws: the run's own outcome stands. */
+  async cleanUpLiveTest(): Promise<void> {
+    if (!this.liveTest?.holdsData) {
+      return;
+    }
+
+    try {
+      await this.session.phase("live-test-cleanup", { ...(await this.liveTest.cleanUp()) });
+    } catch (error) {
+      console.error(`live-test cleanup of RUN-${this.session.runId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /** What the run has read, for the runner's own result tools; exists once tools() was called. */
@@ -262,6 +285,19 @@ export class AgentToolset {
     return ids;
   }
 
+  // A Demonstration run gets its task-scoped browser boundary, with the writer's capture so screenshots are masked.
+  private devHubTools(access: OutsideAccessContext): ToolDefinition<any>[] {
+    const { deps, agent } = this.context;
+    const tools = createDevHubTools(deps, agent, access);
+    const guideWriter = this.writers.find((writer): writer is SupportGuideWriter => writer instanceof SupportGuideWriter);
+
+    if (!guideWriter) {
+      return tools;
+    }
+
+    return supportGuideTools(tools, this.task.body ?? "", guideWriter.capture, access.owner, deps.devHub?.client ?? null);
+  }
+
   private readingGroups(): ToolGroup[] {
     const { deps, agent } = this.context;
     const access = outsideAccessContext(agent.id, this.session.runId, this.task);
@@ -276,12 +312,20 @@ export class AgentToolset {
       { source: grantSource(agent, GITHUB_READ_INTEGRATION), tools: createGitHubReadTools(deps, agent, access) },
       { source: grantSource(agent, GITHUB_WRITE_INTEGRATION), tools: createGitHubWriteTools(deps, agent, access, this.gitHub) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
-      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: createDevHubTools(deps, agent, access) },
+      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: this.devHubTools(access) },
       { source: grantSource(agent, SANDBOX_INTEGRATION), tools: createSandboxTools(deps, agent, access, this.input.repos) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },
       { source: grantSource(agent, POWERLOOM_WEB_INTEGRATION), tools: [...createReadWebPageTools(agent, this.webPages), ...createWebSearchTools(deps, agent, access)] },
     ];
+  }
+
+  // The live test's command tools, minus the names the run already has.
+  private liveTestGroups(existing: ToolDefinition<any>[]): { reads: ToolGroup; writes: ToolGroup } {
+    const source = grantSource(this.context.agent, LIVE_TEST_INTEGRATION);
+    const tools = this.liveTest ? this.liveTest.tools(new Set(existing.map((tool) => tool.name))) : { reads: [], writes: [] };
+
+    return { reads: { source, tools: tools.reads }, writes: { source, tools: tools.writes } };
   }
 
   // The vault's catalog of enabled repos: what open_repo can add, and what refinement names in its repos.
@@ -331,5 +375,6 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[CODE_REVIEW_INTEGRATION] === true ? [new ReviewWriter(context)] : []),
     ...(integrations[BETTER_REVIEW_INTEGRATION] === true ? [new BetterReviewWriter(context)] : []),
     ...(integrations[AUTOTEST_INTEGRATION] === true ? [new AutotestWriter(context)] : []),
+    ...(integrations[SUPPORT_GUIDE_INTEGRATION] === true ? [new SupportGuideWriter(context)] : []),
   ];
 }

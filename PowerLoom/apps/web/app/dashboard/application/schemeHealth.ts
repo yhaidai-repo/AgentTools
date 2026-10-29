@@ -1,5 +1,6 @@
 import type { ProviderStatus } from "@/lib/aiProviders";
 import type { StateLevel, SystemStatus } from "@/lib/systemStatus";
+import type { ObservabilityState } from "@/models/ObservabilityState";
 import { SCHEME_NODES } from "./architecture";
 
 export type NodeHealth = StateLevel | "off";
@@ -8,6 +9,7 @@ export type NodeHealth = StateLevel | "off";
 export interface SchemeExtras {
   providers: ProviderStatus[] | null;
   mcpAnswers: boolean;
+  observability?: ObservabilityState;
 }
 
 // The provider nodes of the scheme, by the provider ids of Settings → AI providers.
@@ -64,6 +66,7 @@ function ownStates(status: SystemStatus): Record<string, NodeHealth> {
 // A provider that isn't connected is off, not a failure: Codex is optional (owner's decision 2026-10-24).
 function extraStates(extras: SchemeExtras): Record<string, NodeHealth> {
   const states: Record<string, NodeHealth> = { mcp: extras.mcpAnswers ? "ok" : "failed" };
+  states["telemetry-dashboard"] = extras.observability === "answers" ? "ok" : extras.observability === "no answer" ? "degraded" : "off";
 
   for (const provider of extras.providers ?? []) {
     states[PROVIDER_NODES[provider.provider] ?? provider.provider] = provider.connected ? "ok" : "off";

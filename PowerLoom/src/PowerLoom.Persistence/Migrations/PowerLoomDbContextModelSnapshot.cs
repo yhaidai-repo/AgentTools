@@ -688,6 +688,60 @@ namespace PowerLoom.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.GuideAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("image/png")
+                        .HasColumnName("media_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("sha256");
+
+                    b.Property<string>("TaskId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("task_id");
+
+                    b.Property<string>("Vault")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vault");
+
+                    b.HasKey("Id")
+                        .HasName("guide_asset_pkey");
+
+                    b.HasIndex("TaskId")
+                        .HasDatabaseName("guide_asset_task_idx");
+
+                    b.ToTable("guide_asset", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.LocalItem", b =>
                 {
                     b.Property<string>("Id")
@@ -2321,6 +2375,23 @@ namespace PowerLoom.Persistence.Migrations
                     b.Navigation("Pbi");
 
                     b.Navigation("Run");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.GuideAsset", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.LocalItem", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("guide_asset_task_id_fk");
+
+                    b.HasOne("PowerLoom.Persistence.Entities.Vault", null)
+                        .WithMany()
+                        .HasForeignKey("Vault")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("guide_asset_vault_fk");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.LocalItem", b =>

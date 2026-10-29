@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ConfirmHost } from "@/components/ConfirmHost";
 import { NavLinks } from "@/components/NavLinks";
 import { VaultSelect } from "@/components/VaultSelect";
 import { VaultsDialog } from "@/components/VaultsDialog";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           </header>
         </div>
         <main>{children}</main>
+        <ConfirmHost />
       </body>
     </html>
   );

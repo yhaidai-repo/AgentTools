@@ -15,22 +15,26 @@
     "@powerloom/ado": "*",
     "@powerloom/attachments": "*",
     "@powerloom/azure": "*",
+    "@powerloom/client": "*",
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
     "@powerloom/devhub": "*",
-    "@powerloom/sandbox": "*",
     "@powerloom/mongo": "*",
     "@powerloom/notes": "*",
+    "@powerloom/sandbox": "*",
     "@powerloom/sql": "*",
     "@powerloom/vault": "*",
     "drizzle-orm": "^0.45.3",
+    "gifenc": "^1.0.3",
     "pg": "^8.23.0",
+    "pngjs": "^7.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",
     "@types/pg": "^8.23.1",
+    "@types/pngjs": "^6.0.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }

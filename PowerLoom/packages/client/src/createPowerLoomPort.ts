@@ -2,6 +2,7 @@ import type { ChatTarget, CloseItemRequest, CreatePbiInput, DeadLetter, ItemStat
 import type { PowerLoomClient } from "./createPowerLoomClient";
 import type { components } from "./schema";
 import { agentWorkPort } from "./agentWorkPort";
+import { diagnosticsPort } from "./diagnosticsPort";
 import { captureWorkPort } from "./captureWorkPort";
 import { pbiWorkPort } from "./pbiWorkPort";
 import { powerloomFailure, problemDetail } from "./powerloomFailure";
@@ -18,6 +19,7 @@ export function createPowerLoomPort(powerloom: PowerLoomClient): PowerLoomPort {
     ...vaultWorkPort(powerloom),
     ...captureWorkPort(powerloom),
     ...agentWorkPort(powerloom),
+    ...diagnosticsPort(powerloom),
     // PowerLoom answers 202 when the record is queued; anything else is an unexpected failure of the change.
     async addRecord(kind, sourceId) {
       const { response, error } = await powerloom.POST("/api/records", { body: { kind, sourceId } });

@@ -20,6 +20,10 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Compile Include="../../../DevSecrets/DevHub/Browser/BrowserImages.cs" Link="DevHubHost/BrowserImages.cs" />
+    <Compile Include="../../../DevSecrets/DevHub/Models/HubResult.cs" Link="DevHubHost/HubResult.cs" />
+    <Compile Include="../../../DevSecrets/DevHub/Models/HubResultOfT.cs" Link="DevHubHost/HubResultOfT.cs" />
   </ItemGroup>
 
 </Project>

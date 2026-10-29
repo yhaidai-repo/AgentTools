@@ -1,3 +1,4 @@
+import { DEMONSTRATION_LABEL } from "../supportGuides/request";
 import { AGENT_TASK_TYPES } from "../agentStages";
 
 // A task type's name: what `handles` and `canAssign` list, and what a task's kind is.
@@ -17,6 +18,7 @@ export function isCustomTaskType(type: string): boolean {
 
 // "security-review" → "Security review": how a custom type's results and tasks are titled.
 export function taskTypeTitle(type: string): string {
+  if (type === "support-guide") return DEMONSTRATION_LABEL;
   const words = type.replace(/-/g, " ");
 
   return words.charAt(0).toUpperCase() + words.slice(1);

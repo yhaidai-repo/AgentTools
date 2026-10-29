@@ -42,6 +42,8 @@ param(
     # Only services with "configurable" in services.json take one; a background host without "workers" runs none.
     [string] $Config,
 
+    [switch] $StrictBranch,
+
     [switch] $SkipBuild,
 
     [switch] $NoPatches
@@ -52,6 +54,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/DevSecrets.Common.ps1"
 . "$PSScriptRoot/DevSecrets.Resolve.ps1"
 . "$PSScriptRoot/LocalStack.Worktree.ps1"
+. "$PSScriptRoot/LocalStack.Identity.ps1"
 . "$PSScriptRoot/LocalStack.RabbitMq.ps1"
 . "$PSScriptRoot/LocalStack.Redis.ps1"
 . "$PSScriptRoot/LocalStack.WorkerConfig.ps1"
@@ -299,7 +302,7 @@ Assert-PortsFree $names
 Assert-RequiredEnv $names
 
 $repoNames = Get-RepoNames $names
-$roots = Get-StackRoots $Store.repos $repoNames $Branch $Repo
+$roots = Get-StackRoots $Store.repos $repoNames $Branch $Repo $StrictBranch.IsPresent
 $named = Read-NamedValues $Values
 
 Assert-ProjectsResolve $names $roots $named
@@ -317,11 +320,16 @@ Get-ChildItem -LiteralPath $StackDir -Filter "*.log" | Remove-Item -Force
 # PowerShell names ignore case: $config would be the [string] parameter $Config and turn the table into text.
 $stackConfig = Read-StackConfig $Config $names
 
+$buildRoots = Get-StackBuildRoots $roots $repoNames
+$expectedBranch = $(if ($StrictBranch) { $Branch } else { $null })
+$buildIdentity = $(if ($StrictBranch -and -not $SkipBuild) { Get-StackBuildIdentity $buildRoots $expectedBranch } else { @{} })
 if (-not $SkipBuild) {
     $appServices | ForEach-Object { Build-Project (Resolve-ProjectPath $roots $Catalog[$_].run.project) }
 }
 
-$state = @{ branch = $Branch; environment = $Values; roots = $roots; services = @() }
+$afterBuildIdentity = $(if ($StrictBranch -and -not $SkipBuild) { Get-StackBuildIdentity $buildRoots $expectedBranch } else { @{} })
+if (($buildIdentity | ConvertTo-Json -Compress) -ne ($afterBuildIdentity | ConvertTo-Json -Compress)) { throw "Source changed during build. Retry the stack on stable sources." }
+$state = @{ branch = $Branch; environment = $Values; roots = $roots; buildRoots = $buildRoots; strictBranch = $StrictBranch.IsPresent; buildIdentity = $(if ($SkipBuild) { @{} } else { $buildIdentity }); services = @() }
 Start-StackAttempt $names $appServices $roots $named $stackConfig $state
 
 Write-Host "Local stack ready. Logs: $StackDir. Stop with Stop-LocalStack.ps1."

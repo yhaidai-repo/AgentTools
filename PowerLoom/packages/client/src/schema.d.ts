@@ -352,6 +352,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/status/telemetry/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_status_telemetry_logs
+         * @description GET_api_status_telemetry_logs
+         */
+        get: operations["GET_api_status_telemetry_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/status/telemetry/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_status_telemetry_traces
+         * @description GET_api_status_telemetry_traces
+         */
+        get: operations["GET_api_status_telemetry_traces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/status/telemetry/traces/{traceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_status_telemetry_traces_traceId
+         * @description GET_api_status_telemetry_traces_traceId
+         */
+        get: operations["GET_api_status_telemetry_traces_traceId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/status/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET_api_status_performance
+         * @description GET_api_status_performance
+         */
+        get: operations["GET_api_status_performance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/skills/{name}": {
         parameters: {
             query?: never;
@@ -2447,6 +2527,27 @@ export interface components {
         PbiUserNotes: {
             text: string;
         };
+        PerformanceHistory: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            /** Format: int32 */
+            intervalSeconds: number;
+            points: components["schemas"]["PerformancePoint"][];
+        };
+        PerformancePoint: {
+            /** Format: date-time */
+            at: string;
+            /** Format: double */
+            requestsPerMinute: null | number;
+            /** Format: double */
+            averageLatencyMs: null | number;
+            /** Format: int64 */
+            workingSetBytes: null | number;
+            /** Format: int32 */
+            observedMinutes: number;
+        };
         PrepareRequest: {
             adoIds: number[];
         };
@@ -2774,6 +2875,79 @@ export interface components {
         TaskUserNotes: {
             id: string;
             text: string;
+        };
+        TelemetryEvent: {
+            name: string;
+            /** Format: date-time */
+            at: string;
+            attributes: {
+                [key: string]: string;
+            };
+        };
+        TelemetryLog: {
+            /** Format: date-time */
+            at: string;
+            service: string;
+            severity: string;
+            traceId: null | string;
+            spanId: null | string;
+            body: string;
+            attributes: {
+                [key: string]: string;
+            };
+        };
+        TelemetryPageOfTelemetryLog: {
+            state: string;
+            message: null | string;
+            items: components["schemas"]["TelemetryLog"][];
+            truncated: boolean;
+            /** Format: int32 */
+            scanned: number;
+        };
+        TelemetryPageOfTelemetrySpan: {
+            state: string;
+            message: null | string;
+            items: components["schemas"]["TelemetrySpan"][];
+            truncated: boolean;
+            /** Format: int32 */
+            scanned: number;
+        };
+        TelemetryPageOfTelemetryTrace: {
+            state: string;
+            message: null | string;
+            items: components["schemas"]["TelemetryTrace"][];
+            truncated: boolean;
+            /** Format: int32 */
+            scanned: number;
+        };
+        TelemetrySpan: {
+            traceId: string;
+            spanId: string;
+            parentSpanId: null | string;
+            service: string;
+            name: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: double */
+            durationMs: number;
+            hasError: boolean;
+            statusMessage: null | string;
+            attributes: {
+                [key: string]: string;
+            };
+            events: components["schemas"]["TelemetryEvent"][];
+        };
+        TelemetryTrace: {
+            traceId: string;
+            name: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: double */
+            durationMs: number;
+            hasError: boolean;
+            /** Format: int32 */
+            spanCount: number;
+            services: string[];
         };
         TestConnectionRequest: {
             orgUrl: string;
@@ -3329,6 +3503,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemStatus"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GET_api_status_telemetry_logs: {
+        parameters: {
+            query?: {
+                hours?: number;
+                resource?: string;
+                severity?: string;
+                traceId?: string;
+                search?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryPageOfTelemetryLog"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GET_api_status_telemetry_traces: {
+        parameters: {
+            query?: {
+                hours?: number;
+                resource?: string;
+                errorsOnly?: boolean;
+                minDurationMs?: number;
+                search?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryPageOfTelemetryTrace"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GET_api_status_telemetry_traces_traceId: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                traceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryPageOfTelemetrySpan"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GET_api_status_performance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerformanceHistory"];
                 };
             };
             /** @description Not Found */
