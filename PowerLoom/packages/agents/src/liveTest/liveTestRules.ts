@@ -77,13 +77,16 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
   { ...itemOfPbi("item.delete"), removed: (input) => taskEntity(input.itemId, input.adoId) },
   { ...itemOfPbi("task.rerun"), note: DELETE_TASK_AT_ONCE },
   { command: "task.notes.save", targets: (input) => itemTarget(input.itemId) },
+  { command: "task.stop", targets: (input) => itemTarget(input.itemId) },
+  itemOfPbi("task.edit"),
 ];
 
 // The changing commands a live test never gets: they start agent runs that cost budget (pbi.prepare queues a
 // refinement task that any refinement agent can take before it is deleted; schedule.tick, agent.run, review.queue),
 // change what every agent shares (agent.pause, agent.saveGlobal, agent.saveFramework, skill.*), or write into real
 // vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW, findings, reviews, PR syncs,
-// repos, cleanup, dead letters); chat.open opens a desktop chat.
+// repos, cleanup, dead letters); chat.open opens a desktop chat; failure.report writes into the list every PowerLoom
+// failure goes to, which is no data of a run.
 export const LIVE_TEST_EXCLUDED = [
   "pbi.prepare",
   "pbi.sync",
@@ -119,6 +122,7 @@ export const LIVE_TEST_EXCLUDED = [
   "deadletter.replay",
   "deadletter.discard",
   "chat.open",
+  "failure.report",
 ];
 
 // Only on a PBI the run created (a task without one is any agent's at once), and never a schedule that is on.

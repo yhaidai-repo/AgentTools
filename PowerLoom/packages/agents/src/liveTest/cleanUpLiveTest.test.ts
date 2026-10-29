@@ -20,7 +20,7 @@ describe("cleanUpLiveTest", () => {
 
     const report = await cleanUpLiveTest(scope, fakeLiveTestContext(calls));
 
-    assert.deepEqual(calls, ["removeAgent selftest-probe", "deleteSchedule 7", "deleteItem null T-2", "deletePbi 501", "deletePbi 500"]);
+    assert.deepEqual(calls, ["removeAgent selftest-probe", "deletePromptVersions selftest-probe", "deleteSchedule 7", "deleteItem null T-2", "deletePbi 501", "deletePbi 500"]);
     assert.deepEqual(report, { removed: ["agent selftest-probe", "schedule 7", "task T-2", "pbi 501", "pbi 500"], failed: [] });
     assert.equal(scope.isEmpty, true);
   });

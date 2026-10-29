@@ -39,6 +39,9 @@ export function fakeLiveTestContext(calls: string[], queuesRefinement = true): C
 
       return done(`deleteItem ${adoId} ${itemId}`);
     },
+    stopTask: (itemId: string) => done(`stopTask ${itemId}`),
+    editTask: (edit: { itemId: string }) => done(`editTask ${edit.itemId}`),
+    deletePromptVersions: (agentId: string) => done(`deletePromptVersions ${agentId}`),
     deleteSchedule: (id: number) => done(`deleteSchedule ${id}`),
   };
   const agents = {

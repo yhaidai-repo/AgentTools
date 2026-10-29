@@ -64,6 +64,23 @@ describe("the live-test guard", () => {
     assert.deepEqual(calls, ["createPbi"]);
   });
 
+  it("stops and edits a task only when the run created it or its PBI", async () => {
+    const { calls, call } = setUp();
+    const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] stop" });
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+    const task = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) });
+    const itemId = task.ok ? (task.value as { taskId: string }).taskId : "";
+    const text = { title: "[selftest] new", description: "d", acceptanceCriteria: "a" };
+
+    const stopped = await call("task.stop", { itemId });
+    const edited = await call("task.edit", { adoId, itemId, ...text });
+    const strangerStopped = await call("task.stop", { itemId: "T-1" });
+    const strangerEdited = await call("task.edit", { adoId: 38519, itemId: "T-1", ...text });
+
+    assert.deepEqual([stopped.ok, edited.ok, strangerStopped.ok, strangerEdited.ok], [true, true, false, false]);
+    assert.deepEqual(calls, ["createPbi", "createTask", `stopTask ${itemId}`, `editTask ${itemId}`]);
+  });
+
   it("exposes every read command, the allowed writes, and none of the excluded ones", () => {
     const { commands } = setUp();
     const names = new Set(commands.map((command) => command.name));
