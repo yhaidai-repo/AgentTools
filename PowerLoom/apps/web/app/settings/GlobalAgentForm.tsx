@@ -19,7 +19,7 @@ export function GlobalAgentForm({ global, spentTodayUsd }: { global: AgentsGloba
       <SettingsHead title="Daily budget" description={<>All agents together, API-price estimate. Each agent&apos;s own model, schedule and limits are on <Link href="/agents">Agents</Link>.</>} />
       <div className="settings-body field-grid">
         <label className="field"><span>Budget per day, $</span><input name="dailyBudgetUsd" type="number" step="0.5" min={0} defaultValue={global.dailyBudgetUsd} required /></label>
-        <div className="field"><span>Used today</span><DailyBudgetStatus spentUsd={spentTodayUsd} limitUsd={global.dailyBudgetUsd} /></div>
+        <div className="field"><span>Spending</span><p className="field-value"><DailyBudgetStatus spentUsd={spentTodayUsd} limitUsd={global.dailyBudgetUsd} /></p></div>
       </div>
       <div className="settings-foot">
         <ResultLine result={result} />

@@ -23,14 +23,14 @@ export function GoogleDriveAccess({ values, message }: { values: GoogleDriveValu
         {values.account && <button type="button" className="link-button" disabled={isPending} onClick={() => startTransition(async () => void (await signOutGoogleDriveAction()))}>Sign out</button>}
       </div>
       {values.folders.length === 0 ? <p className="hint">No folders yet: agents read nothing until one is added.</p> : values.folders.map((folder) => (
-        <div key={folder.id} className="resource-row">
+        <div key={folder.id} className="resource-row folder-row">
           <span className="resource-name-text">{folder.name}</span>
           <span className="resource-target">{folder.id}</span>
           <span className="resource-actions"><button type="button" className="danger small" disabled={isPending} onClick={() => startTransition(async () => void (await removeDriveFolderAction(folder.id)))}>Remove</button></span>
         </div>
       ))}
       {values.account && (
-        <KeptForm action={addAction} clearOn={result} className="actions">
+        <KeptForm action={addAction} clearOn={result} className="actions add-folder">
           <input name="folder" required placeholder="Folder link, e.g. https://drive.google.com/drive/folders/…" aria-label="Drive folder" />
           <button type="submit" className="secondary" disabled={isAdding}>{isAdding ? "Checking…" : "Add folder"}</button>
           <ResultLine result={result} />

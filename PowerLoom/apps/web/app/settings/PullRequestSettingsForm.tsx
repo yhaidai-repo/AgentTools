@@ -9,14 +9,14 @@ import { SettingsHead } from "@/components/SettingsHead";
 import { TimeAgo } from "@/components/TimeAgo";
 import type { ActionResult } from "@/models/ActionResult";
 import type { GitHubCheckValues } from "@/models/GitHubCheckValues";
-import { checkGitHubPullRequestsAction, savePullRequestSettingsAction } from "./actions";
+import { checkPullRequestsAction, savePullRequestSettingsAction } from "./actions";
 
 // Lists the PRs you review, from Azure DevOps and GitHub alike (user decision 2026-10-26: one feature, one card); the
 // repo list is the enabled repos of both as toggle chips (GitHub ones as owner/name), none chosen = every repo (user
 // decision 2026-10-02).
 export function PullRequestSettingsForm({ enabled, settings, repoNames, gitHubCheck }: { enabled: boolean; settings: PullRequestSettings; repoNames: string[]; gitHubCheck: GitHubCheckValues | null }) {
   const [saveResult, saveAction, isSaving] = useActionState<ActionResult | null, FormData>(savePullRequestSettingsAction, null);
-  const [checkResult, checkAction, isChecking] = useActionState<ActionResult | null, FormData>(checkGitHubPullRequestsAction, null);
+  const [checkResult, checkAction, isChecking] = useActionState<ActionResult | null, FormData>(checkPullRequestsAction, null);
 
   return (
     <KeptForm action={saveAction} actions={{ check: checkAction }} className="panel settings-card">
@@ -40,7 +40,7 @@ export function PullRequestSettingsForm({ enabled, settings, repoNames, gitHubCh
       <div className="settings-foot">
         <span className="settings-note">The chips are the repos switched on in Settings → Repositories. The review agent itself is set up on Agents.</span>
         <ResultLine result={saveResult ?? checkResult} />
-        {gitHubCheck && <button type="submit" data-action="check" disabled={isChecking} className="secondary">{isChecking ? "Queuing…" : "Check GitHub now"}</button>}
+        <button type="submit" data-action="check" disabled={isChecking} className="secondary" title="Lists new PRs in Azure DevOps and on GitHub now">{isChecking ? "Checking…" : "Check now"}</button>
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
     </KeptForm>

@@ -17,6 +17,7 @@ export function RepositoriesPanel({ repos, reposRoot, adoActive, show }: { repos
 
   return (
     <>
+      <div className="add-on-top"><AddLocalRepoForm reposRoot={reposRoot} /></div>
       <div className="tab-bar">
         <nav className="status-pills" aria-label="Filter repositories">
           {SHOWS.map((choice) => <Link key={choice.key} href={`/settings?tab=repos&show=${choice.key}`} className={choice.key === show ? "status-pill on" : "status-pill"}>{choice.label} <b>{countOf(repos, choice.key)}</b></Link>)}
@@ -24,10 +25,9 @@ export function RepositoriesPanel({ repos, reposRoot, adoActive, show }: { repos
         <span className="tab-filters hint">What agents clone and the PBI page offers</span>
       </div>
       <div className="panel">
-        {repos.length === 0 && <p className="panel-body hint">{adoActive ? "No repositories yet: the next PBI sync lists the ADO repositories." : "No repositories yet: add local ones below, or connect GitHub or Azure DevOps in their tabs."}</p>}
+        {repos.length === 0 && <p className="panel-body hint">{adoActive ? "No repositories yet: the next PBI sync lists the ADO repositories." : "No repositories yet: add local ones above, or connect GitHub or Azure DevOps in their tabs."}</p>}
         {shown.map((row) => <RepoRowForm key={row.id} repo={row} />)}
       </div>
-      <AddLocalRepoForm reposRoot={reposRoot} />
     </>
   );
 }

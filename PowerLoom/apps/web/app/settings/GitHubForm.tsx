@@ -29,7 +29,7 @@ export function GitHubForm({ values }: { values: GitHubValues }) {
       </div>
       <div className="settings-foot">
         <ResultLine result={saveResult ?? testResult ?? syncResult} />
-        {values.enabled && values.hasToken && <button type="submit" data-action="sync" disabled={isSyncing} className="secondary">{isSyncing ? "Listing…" : "List repos now"}</button>}
+        {values.enabled && values.hasToken && <button type="submit" data-action="sync" disabled={isSyncing} className="secondary" title="Fetches the owner's repos into the Repositories tab now (otherwise with each sync)">{isSyncing ? "Fetching…" : "Fetch repos now"}</button>}
         <button type="submit" data-action="test" disabled={isTesting} className="secondary">{isTesting ? "Testing…" : "Test GitHub"}</button>
         <button type="submit" disabled={isSaving}>{isSaving ? "Saving…" : "Save"}</button>
       </div>
