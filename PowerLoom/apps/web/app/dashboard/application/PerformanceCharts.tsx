@@ -14,9 +14,9 @@ export function PerformanceCharts({ history }: { history: PerformanceHistory | n
     {history === null ? <Panel tone="error"><p className="text-error">Performance history is unavailable.</p></Panel>
       : !measured ? <Panel><p>Collecting performance data. Charts appear after the first minute.</p></Panel>
       : <div className="grid three">
-        <TimeSeries title="Requests per minute" points={series("requestsPerMinute")} format={value => `${number(value)}/min`} color="var(--series-3)" />
-        <TimeSeries title="Average response time" points={series("averageLatencyMs")} format={value => `${number(value)} ms`} color="var(--series-2)" />
-        <TimeSeries title="Memory use" points={series("workingSetBytes", 1048576)} format={value => `${number(value)} MiB`} color="var(--series-5)" />
+        <TimeSeries title="Requests per minute" points={series("requestsPerMinute")} format={value => `${number(value)}/min`} color="var(--series-7)" />
+        <TimeSeries title="Average response time" points={series("averageLatencyMs")} format={value => `${number(value)} ms`} color="var(--series-6)" />
+        <TimeSeries title="Memory use" points={series("workingSetBytes", 1048576)} format={value => `${number(value)} MiB`} color="var(--series-3)" />
       </div>}
   </>;
 }

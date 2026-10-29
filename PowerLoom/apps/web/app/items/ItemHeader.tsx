@@ -6,6 +6,7 @@ import { Dropdown } from "@/components/Dropdown";
 import { HeroStat } from "@/components/HeroStat";
 import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
+import { RunWatch } from "@/components/RunWatch";
 import { RunningStrip } from "@/components/RunningStrip";
 import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
@@ -35,6 +36,7 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
     <>
       <Breadcrumbs crumbs={crumbsOf(item)} />
       <AutoRefresh active={isRunning} intervalMs={GRID_REFRESH_MS} />
+      <RunWatch />
       <section className="pbi-hero">
         <div className="hero-top">
           <div className="hero-title">

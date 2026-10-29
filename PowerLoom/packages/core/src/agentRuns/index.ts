@@ -5,7 +5,7 @@ export { MAX_RUNS, loadRunList } from "./runList";
 export { loadRun, loadRunUsage, tokensOf } from "./runDetail";
 export { loadRunExport } from "./runExport";
 export { conversationChain, conversationCostUsd } from "./conversationChain";
-export { loadRunningRuns } from "./runningRuns";
+export { loadRunningRunIds, loadRunningRuns } from "./runningRuns";
 export { TRACE_EVENT_KINDS, traceEventName, traceEventSummary } from "./traceEvents";
 export { MAIN_SESSION_ID, runSessionsOf, sessionDurationMs, sessionIdOf, sessionOfOutput, subSessionsByCall } from "./runSessions";
 export type { AgentRunRow } from "../models/AgentRunRow";
