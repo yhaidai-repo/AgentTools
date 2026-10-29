@@ -96,7 +96,8 @@ at most 200 rows. Every read goes to the data access log.
 | `bug_report` | reports a bug found on a PBI |
 | `task_create`, `schedule_save`, `schedule_delete`, `schedule_tick` | creates a task or a schedule by task type, changes or deletes a schedule, creates its task now |
 | `vault_add`, `vault_remove`, `vault_trashRestore`, `vault_trashDelete` | adds or removes a vault (its folder stays), restores or deletes a trashed note |
-| `repo_enable`, `repo_addLocal`, `repo_remove`, `cleanup_run` | the vault's repo catalogue; runs the vault's cleanup |
+| `repo_enable`, `repo_addLocal`, `repo_remove`, `repo_saveCommands`, `cleanup_run` | the vault's repo catalogue and a repo's build and test commands; runs the vault's cleanup |
+| `sandbox_saveSettings`, `sandbox_savePackageFeed`, `sandbox_removePackageFeed` | the vault's sandbox package hosts and image; adds or removes a private package feed |
 | `vault_capture` | saves verified facts this vault lacks as a draft in draft/, for a person to verify and merge (always this chat's vault) |
 | `register_add`, `register_close` | records an open question or known issue in a project's register; closes a record the user settled (always this chat's vault) |
 | `www_create` | adds a What-went-wrong record |
