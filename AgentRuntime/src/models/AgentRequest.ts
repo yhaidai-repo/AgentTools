@@ -4,6 +4,7 @@ import type { Conversation } from "./Conversation";
 import type { ModelRef } from "./ModelRef";
 import type { ProjectSettingSource } from "./ProjectSettingSource";
 import type { RunLimits } from "./RunLimits";
+import type { ShellRoute } from "./ShellRoute";
 import type { ToolDefinition } from "./ToolDefinition";
 import type { ToolPolicy } from "./ToolPolicy";
 
@@ -31,6 +32,8 @@ export interface AgentRequest {
   env?: Record<string, string>;
   /** Checked before every tool call, together with the runtime's own guards for the run's grants. */
   toolPolicy?: ToolPolicy;
+  /** Shell commands the host runs elsewhere instead of the run's shell (see ShellRoute); adapters without a shell ignore it. */
+  shellRoute?: ShellRoute;
   /** The worktree the host prepares for the run; see AgentWorkspace. */
   workspace?: AgentWorkspace;
 }

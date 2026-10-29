@@ -98,6 +98,41 @@ dotnet tool run dotnet-ef migrations add <Name> --project src/PowerLoom.Persiste
 To check a migration against a live database, apply the migrations to a scratch database and diff
 `pg_dump --schema-only -n public` of both through `scripts/normalize-schema-dump.py`.
 
+## Sandbox for coding runs
+A run's builds and tests happen only in its sandbox (`apps/sandbox`): a container with no network, on a copy of the
+run's worktree. The run's own shell refuses them, except that a build or test command it is given (the vault's
+`repoCommands`, or one starting with `dotnet build|test|restore`, `npm test`, `npm run build|test`, alone or with `cd`
+and output filters such as `| tail`) is run in the sandbox on a fresh sync of the worktree and comes back as that
+command's result: exit code, output, and when the output was cut, its failed tests and compiler errors. So GSD's executor
+and verifier sub-agents build and test with their plain Bash tool; the orchestrator also has `sandbox_sync` and
+`run_command`. Packages come from the vault's package cache, a Docker volume `sandbox_restore` fills through the egress
+proxy and every command reads offline (NuGet's only source is the cache, npm runs offline).
+
+To prepare a host and a vault:
+1. Build the image: `docker build -t powerloom-sandbox - < Dockerfile.sandbox` (.NET SDKs 10 and 9 with runtime 8,
+   Node 24, Deno, Python 3, PowerShell 7). It is the catalogue's `general` image (`sandbox-images.json`); a vault that
+   needs other toolchains builds an image `FROM` it and adds an entry there.
+2. `.env`: `sandbox` in `COMPOSE_PROFILES`, `SANDBOX_URL=http://sandbox:3300`, `SANDBOX_TOKEN` and `SANDBOX_PROXY_SECRET`
+   (long random values), then `docker compose up -d`. Without the proxy secret every restore gets the fixed host list
+   `SANDBOX_PACKAGE_HOSTS` instead of its vault's.
+3. Settings → Data access → Sandbox: the image (empty = `general`) and the package hosts (default `api.nuget.org`,
+   `registry.npmjs.org`). The vault's own Azure DevOps feeds are signed in with its Azure DevOps token and need no entry.
+4. Private feeds of other organizations or with a token of their own: vault setting `vault:<vault>:packageFeeds` in the
+   `config` table, `{"feeds": [{"url": "<feed URL, or a prefix covering several feeds>", "username": "<optional>",
+   "token": "<PAT with Packaging (read)>"}]}`. A source of the repo's `nuget.config` (or `.npmrc`) under the URL gets the
+   sign-in, during restores only; the feed's hosts (for Azure Artifacts also its blob storage) join the vault's package
+   hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a sandbox command
+   or a log. Set it with SQL, e.g. `INSERT INTO config (key, value) VALUES ('vault:<vault>:packageFeeds', '{"feeds": [...]}')
+   ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now();`
+5. Build and test commands: vault setting `vault:<vault>:repoCommands`, `{"repos": {"<repo>": {"build": "<command>",
+   "test": "<command>"}}}`. The shell sends any of them (also with more arguments) to the sandbox.
+6. Agents page: switch on the agent's Sandbox integration.
+
+The cache volume is `powerloom-packages-<vault>-<hash>` (label `powerloom.package-cache`); it outlives the sandboxes so
+a vault's next run builds without fetching again, and restores into it take turns. Remove it with `docker volume rm` to
+start the cache over. A package a repo doesn't reference yet is fetched with `sandbox_restore`'s `packages` (the restore
+runs `dotnet add package`); `run_command` refuses `dotnet add package`, having no network.
+
 ## PBI import
 The PBI sync (Settings import schedule, default every 5 min, or **Import now** on the Backlog) reads every import source
 (`src/PowerLoom.Core/Features/ImportSources`), syncs the PBIs each item links and prepares the new ones. Both sources read

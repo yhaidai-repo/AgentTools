@@ -92,7 +92,7 @@ describe("workspaceGuard publishing", () => {
 });
 
 describe("workspaceGuard shell", () => {
-  const sandboxReason = "is not allowed in the worktree's shell; use run_command in the sandbox for builds, tests and scripts.";
+  const sandboxReason = "is not allowed in the worktree's shell. Builds and tests run in the sandbox: give them alone (dotnet build, dotnet test, npm test, npm run build, or the repo's configured command, with cd and output filters at most) and they run there; for other scripts use run_command if you have it.";
 
   for (const command of [
     "git commit -m \"Add totals; fix rounding | tests\"",

@@ -7,7 +7,7 @@ const REFUSALS: { pattern: RegExp; reason: string }[] = [
   { pattern: /^(docker|podman|kubectl)\b/, reason: "There is no container engine in the sandbox." },
   { pattern: /^(apt|apt-get|apk|yum|dnf|brew)\b/, reason: "The image's tools are fixed and the sandbox has no network: packages can't be installed." },
   { pattern: /^(npm|pnpm|yarn)\s+(install|i|add)\s+\S/, reason: "The sandbox has no network: new npm packages can't be installed. Use what the repo already has." },
-  { pattern: /^dotnet\s+add\s+\S+\s+package\b|^dotnet\s+add\s+package\b/, reason: "The sandbox has no network: new NuGet packages can't be added. Use what the repo already references." },
+  { pattern: /^dotnet\s+add\s+\S+\s+package\b|^dotnet\s+add\s+package\b/, reason: "run_command has no network: dotnet add package can't fetch here. Name the package in sandbox_restore's `packages` (the restore adds and fetches it), then add the PackageReference in your own copy." },
   { pattern: /^(pip|pip3)\s+install\b/, reason: "The sandbox has no network: Python packages can't be installed." },
   { pattern: /^(curl|wget|ssh|scp|nc|telnet)\b/, reason: "The sandbox has no network. Read the web with the web tools, if you have them." },
 ];

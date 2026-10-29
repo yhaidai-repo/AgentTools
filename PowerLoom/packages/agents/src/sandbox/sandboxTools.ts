@@ -15,6 +15,7 @@ import type { RunWorktreeSlot } from "./models/RunWorktreeSlot";
 import type { SandboxAccess } from "./models/SandboxAccess";
 import { isWorktreeRepo, snapshotOf } from "./repoSnapshot";
 import { restoreTool } from "./restoreTool";
+import { SandboxShellRoute } from "./SandboxShellRoute";
 import { failure, noSandbox, resourceOf } from "./sandboxResults";
 import { createSessionTools } from "./sessionTools";
 import { syncTool } from "./syncTool";
@@ -32,7 +33,8 @@ const REQUEST_CHARS = 500;
 // The same tools for every provider, shaped like the ones the models know (Bash, Codex's exec_command and
 // apply_patch, Claude's Edit). The container is removed when the run ends; every call goes to the data access log.
 // `deps.runWorktree`: where the runner tells the run's worktree when it commits code there; that repo is copied from it
-// and sandbox_sync recopies it. Without the slot (a run with no worktree support) the repos come from the cache.
+// and sandbox_sync recopies it. Without the slot (a run with no worktree support) the repos come from the cache. With
+// it, the run's worktree shell sends its builds and tests here too (`deps.runShellRoute`, SandboxShellRoute).
 export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, context: OutsideAccessContext, repos: RepoAccess): ToolDefinition<any>[] {
   const isOn = agent.capabilities.integrations?.[SANDBOX_INTEGRATION] === true;
 
@@ -41,15 +43,21 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
   }
 
   const access = deps.sandbox;
-  const sandbox: RunSandbox = { info: null, repos: [] };
+  const sandbox: RunSandbox = { info: null, repos: [], restored: [] };
   const ttlMinutes = agent.limits.timeoutMinutes + TTL_MARGIN_MINUTES;
   const worktree = deps.runWorktree ?? null;
+  const open = openTool(deps, context, access, sandbox, repos, worktree, ttlMinutes);
+  const restore = restoreTool(deps, context, access, sandbox);
   const sync = worktree ? [syncTool(deps, context, access, sandbox, worktree)] : [];
 
+  if (worktree && deps.runShellRoute) {
+    deps.runShellRoute.current = new SandboxShellRoute({ tools: { open, sync: sync[0], restore }, access, sandbox, worktree, outside: deps.outside, context }, access.buildCommands);
+  }
+
   return [
-    openTool(deps, context, access, sandbox, repos, worktree, ttlMinutes),
+    open,
     ...sync,
-    restoreTool(deps, context, access, sandbox),
+    restore,
     runCommandTool(deps, context, access, sandbox),
     ...createSessionTools(deps, context, access, sandbox),
     ...createEditTools(deps, context, access, sandbox),
@@ -132,6 +140,7 @@ function closeTool(deps: AgentDeps, context: OutsideAccessContext, access: Sandb
 
       sandbox.info = null;
       sandbox.repos = [];
+      sandbox.restored = [];
 
       return answer.ok ? { text: "The sandbox is removed." } : failure(answer);
     },
@@ -143,7 +152,7 @@ async function ensureOpen(access: SandboxAccess, sandbox: RunSandbox, owner: str
     return null;
   }
 
-  const answer = await access.client.open({ owner, ttlMinutes, image: access.image });
+  const answer = await access.client.open({ owner, ttlMinutes, image: access.image, packageCache: access.packageCache });
 
   if (!answer.ok) {
     return failure(answer);
