@@ -352,7 +352,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: SUPPORT_GUIDE_INTEGRATION,
     owner: "support-guide",
-    label: "Write support guides",
+    label: "Write demonstration guides",
     description: "Observes local or remote workflows, saves inspected screenshots and versioned guide packages, and prepares a Confluence publication handoff. Does not publish pages.",
   },
   {

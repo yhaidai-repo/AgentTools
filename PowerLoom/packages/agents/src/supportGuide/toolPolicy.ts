@@ -1,13 +1,18 @@
 import type { ToolDefinition } from "@agenttools/runtime";
+import type { DevHubClient } from "@powerloom/devhub";
 import { guideUrlAllowed, readGuideRequest } from "@powerloom/core";
+import { GuideCapture } from "./capture/GuideCapture";
 
-// Task-scoped UI boundary. DevHub remains a browser host in remote mode, without local stack control.
-export function supportGuideTools(tools: ToolDefinition<any>[], body: string): ToolDefinition<any>[] {
+// Task-scoped UI boundary. DevHub remains a browser host in remote mode, without local stack control. The capture
+// boundary (masked screenshots, GIF frames) sits inside it: the policy checks the page before a capture runs.
+export function supportGuideTools(tools: ToolDefinition<any>[], body: string, capture = new GuideCapture(), owner = "", client: DevHubClient | null = null): ToolDefinition<any>[] {
   let request;
   try { request = readGuideRequest(body); } catch { return []; }
+  capture.bind(owner, client, request.maskSelectors);
   const origins = request.allowedOrigins;
   const snapshot = tools.find(tool => tool.name === "browser_snapshot");
-  return tools.filter(tool => tool.name !== "http_request").filter(tool => request.mode !== "remote-url" || !["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack"].includes(tool.name)).map(tool => ({
+  const scoped = tools.filter(tool => tool.name !== "http_request").filter(tool => request.mode !== "remote-url" || !["list_services", "start_stack", "stack_status", "stack_logs", "stop_stack"].includes(tool.name));
+  return capture.wrap(scoped).map(tool => ({
     ...tool,
     handler: async (input: any) => {
       if (tool.name === "start_stack" && (input.branch !== request.branch || input.services.some((s: string) => !request.services.includes(s)))) return denied("Start only the requested branch and services.");

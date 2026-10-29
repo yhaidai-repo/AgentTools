@@ -35,7 +35,7 @@ function form(values: Record<string, string | string[]>): FormData {
 it("schedule edits with empty or invalid cron preserve fields and never create immediate tasks", async () => {
   const calls: string[] = [];
   const actions = await source("../app/tasks/new/actions.ts", {
-    "@powerloom/core": core, "next/cache": { revalidatePath() {} }, "next/navigation": { redirect() { throw new Redirect(); } },
+    "@powerloom/core": core, "next/cache": { revalidatePath() {} }, "next/navigation": { redirect() { throw new Redirect(); }, unstable_rethrow(error: unknown) { if (error instanceof Redirect) throw error; } },
     "@/lib/currentVault": { requireVault: async () => "synthetic" }, "@/lib/formFields": { formText: (data: FormData, key: string) => String(data.get(key) ?? "").trim() || null },
     "@/lib/items": { itemPath: () => "/tasks/task-1" },
     "@/lib/commandContext": { runWebCommand: async (command: core.Command<unknown, unknown>, input: any) => {
@@ -55,7 +55,7 @@ it("schedule edits with empty or invalid cron preserve fields and never create i
     assert.equal(result.values.scheduleId, 7);
     const components = await source("../app/tasks/new/TaskForm.tsx", {
       react: { useActionState: () => [result, () => {}, false], useState: (value: unknown) => [value, () => {}] },
-      "next/link": { __esModule: true, default: (props: any) => createElement("a", props) }, "../RepoChoices": { RepoChoices: () => null }, "./actions": actions,
+      "next/link": { __esModule: true, default: (props: any) => createElement("a", props) }, "../RepoChoices": { RepoChoices: () => null }, "./actions": actions, "./GuideFields": { GuideFields: () => null }, "@powerloom/core/support-guides": { DEMONSTRATION_LABEL: "Demonstration" },
     });
     const html = renderToStaticMarkup(components.TaskForm({ values: result.values, types: ["research"], repos: [] }));
     assert.match(html, /Save schedule/);
@@ -95,7 +95,7 @@ async function agentFixture(existing = false) {
     } }, db: { select: () => ({ from: () => ({ where: () => ({ orderBy: () => ({ limit: async () => [...history.values()].sort((a, b) => b.version - a.version).slice(0, 1) }) }) }) }) },
   } as unknown as core.CommandContext;
   const actions = await source("../app/agents/configActions.ts", {
-    "@powerloom/core": core, "next/cache": { revalidatePath() {} }, "next/navigation": { redirect() { throw new Redirect(); } },
+    "@powerloom/core": core, "next/cache": { revalidatePath() {} }, "next/navigation": { redirect() { throw new Redirect(); }, unstable_rethrow(error: unknown) { if (error instanceof Redirect) throw error; } },
     "@/lib/agentConfig": { getAgentConfig: () => agents }, "@/lib/commandContext": { runWebCommand: (command: any, input: unknown) => core.runCommand(command, context, input) },
   });
   const values = { id: template.id, label: "Synthetic agent", prompt, handles: ["research"], model: template.model.model, maxTurns: "10", timeoutMinutes: "5", perRunUsd: "1", dailyUsd: "5", newSkillName: "synthetic-skill", newSkillDescription: "Use when: reviewing ordinary changes", newSkillContent: "## Checklist\n- Check ordinary code changes carefully." };

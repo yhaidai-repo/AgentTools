@@ -10,6 +10,8 @@ export const guideRequestSchema = z.object({
   branch: z.string().default(""), services: z.array(z.string().min(1)).default([]),
   audience: z.string().min(1), environment: z.string().min(1), permittedActions: z.string().min(1),
   data: z.string().min(1), owner: z.string().min(1), release: z.string().default(""),
+  // CSS selectors masked solid in every screenshot before the agent sees it; password inputs always are.
+  maskSelectors: z.array(z.string().min(1).max(200)).max(20).default([]),
   destination: z.discriminatedUnion("action", [
     z.object({ action: z.literal("unspecified") }),
     z.object({ action: z.literal("create"), site: url, space: z.string().min(1), title: z.string().min(1), parentId: z.string().regex(/^\d+$/) }),

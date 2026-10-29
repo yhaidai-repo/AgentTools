@@ -12,6 +12,7 @@ public sealed class GuideAssetConfiguration : IEntityTypeConfiguration<GuideAsse
         e.Property(x => x.Vault).HasColumnName("vault");
         e.Property(x => x.Name).HasColumnName("name");
         e.Property(x => x.Sha256).HasColumnName("sha256");
+        e.Property(x => x.MediaType).HasColumnName("media_type").HasDefaultValue("image/png");
         e.Property(x => x.Content).HasColumnName("content");
         e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
         e.HasIndex(x => x.TaskId).HasDatabaseName("guide_asset_task_idx");

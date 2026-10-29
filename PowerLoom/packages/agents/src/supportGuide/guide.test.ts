@@ -83,3 +83,22 @@ describe("tool provenance and remote boundaries", () => {
   });
   it("invalid guide inputs expose no DevHub tools", () => assert.deepEqual(supportGuideTools([{ name: "start_stack", input: {}, description: "", handler: async () => ({ text: "" }) }], "missing"), []));
 });
+describe("media approval and claimed identity", () => {
+  it("blocks ready for an unapproved derivative or a GIF without a static screenshot", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    assert.ok(guideProblems(report(source), request, [{ ...image, approved: false }], log, image.sourceOwner).some(p => p.includes("approve_guide_image")));
+    const gif = { ...image, name: "one.gif", mediaType: "image/gif" as const }, r = report(source);
+    r.markdown = r.markdown.replace("images/one.png", "images/one.gif"); r.workflows[0].images = ["one.gif"];
+    assert.ok(guideProblems(r, request, [gif], log, image.sourceOwner).some(p => p.includes("inspected screenshots")));
+  });
+  it("requires a remote identity and a named release to appear in the cited browser observation", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    const footer = "- Page URL: https://app.example.test\nVersion 5.2.1", shown = log.add(footer, { ...metadata, resultText: footer });
+    const claimed = { ...report(source), buildIdentity: "5.2.1", buildSource: source };
+    assert.ok(guideProblems(claimed, request, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner).some(p => p.includes("Remote identity")));
+    assert.deepEqual(guideProblems({ ...claimed, buildSource: shown }, request, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner), []);
+    const released = { ...request, release: "5.2.1" }, verified = { ...claimed, buildSource: shown, releaseVerified: true };
+    assert.ok(guideProblems(verified, released, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner).some(p => p.includes("releaseSource")));
+    assert.deepEqual(guideProblems({ ...verified, releaseSource: shown }, released, [{ ...image, buildIdentity: "5.2.1" }], log, image.sourceOwner), []);
+  });
+});

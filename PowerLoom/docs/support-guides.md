@@ -16,9 +16,10 @@ The stable agent/task id remains `support-guide`; its displayed name is **Demons
 ## Output
 - guide.md, sanitized images/, manifest.json, verification.md and publish-task.md.
 - Guide status: partial, blocked, ready. Publication begins awaiting-details or pending.
+- Publication is tracked outside PowerLoom in v1: pending means the handoff is ready; nothing records the published page or a failure.
 - The authoring agent has Confluence read access only. It does not upload attachments or publish pages.
 - Pending means an external publisher still owns the write. A closed handoff never automatically declares the page published.
-- Package download returns X-Archive-SHA256. The manifest defines the deterministic content checksum and its exact file scope.
+- Package download returns X-Archive-SHA256. The manifest states the content checksum, its algorithm (ordinal path order) and its exact file scope.
 - Update handoffs include the expected base version; publishers reconcile concurrent page changes and reuse page/attachment identity on retries.
 - The package is portable: download and attach it to the publishing chat. Relative app links alone are not a cross-machine transfer mechanism.
 
@@ -31,8 +32,11 @@ The stable agent/task id remains `support-guide`; its displayed name is **Demons
 - Unknown remote deployment identity stays explicit; it cannot justify a release-specific claim.
 - A new image import invalidates a previously ready report; final commit rechecks its evidence/image consistency.
 - Checkpoint text and approved image bytes survive timeout/restart. V1 deliberately reobserves workflows and recaptures screenshots in a new run before ready.
-- Images are PNG, at most 2 MB each / 20 files / 16 MB per checkpoint. Only inspected clean demonstration screenshots are imported.
-- Solid redaction/arrow editing is not implemented in v1. Recapture a clean screen or keep affected instructions blocked.
+- Capture boundary (`GuideCapture`): every browser_take_screenshot is masked solid (password inputs plus the task's mask selectors, located with browser_evaluate) before the agent sees it; if the masks cannot be located the screenshot is refused. Raw captures stay in the DevHub case folder under recording retention. Element screenshots are refused; crop afterwards.
+- add_guide_image re-reads the capture (refused if its bytes changed), re-applies the masks, then the agent's regions (solid = removal, blur = coarse mosaic, not removal) and crop, and stores a flattened PNG without metadata. With regions or crop the derivative needs approve_guide_image after viewing it; new bytes need a new approval and make a ready guide partial.
+- GIFs: start_guide_gif / stop_guide_gif / add_guide_gif. A masked frame is captured before each recorded action (at most 12) and at the end; frames get per-frame regions, scaling, a drawn pointer (interpolated between targets, marked in the timeline), click rings and pauses, then are encoded as full frames (no disposal leftovers). Secret typing is recorded as a hidden step. Nothing is replayed.
+- Media: PNG up to 4 MB, GIF up to 8 MB, 20 files and 32 MB per package. A ready guide needs at least one static screenshot and every referenced item approved.
+- Limits: masks cover the top document only (not iframes); the accessibility snapshot text is not masked; frames show states, not in-between animation.
 - Markdown image destinations, including reference images, must resolve to the package allowlist. Preview/download access is scoped to the selected vault and task.
 - Guide assets stay in PostgreSQL history independently of DevHub's recording cleanup, with no automatic expiry. Task deletion is soft; explicit history disposal must account for preserved packages.
 

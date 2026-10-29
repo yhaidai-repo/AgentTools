@@ -1,4 +1,4 @@
-import { guideChecksum, type GuideImage, type GuidePackageData, type GuideReport, type GuideRequest, type ArchiveFile } from "@powerloom/core";
+import { GUIDE_CHECKSUM_ALGORITHM, guideChecksum, type GuideImage, type GuidePackageData, type GuideReport, type GuideRequest, type ArchiveFile } from "@powerloom/core";
 
 export function buildGuidePackage(input: {
   packageId: string; taskId: string; runId: number; pbiId: number | null; vault: string;
@@ -17,7 +17,7 @@ export function buildGuidePackage(input: {
     guideline: "powerloom-support-guide/v1", request: input.request, commits: input.commits,
     guideStatus: input.guide.status, buildIdentity: input.guide.buildIdentity, verifiedAt: input.guide.verifiedAt,
     configuration: input.guide.configuration, workflows: input.guide.workflows, rules: input.guide.rules, blockers: input.guide.blockers,
-    images: input.images, contentChecksum, checksumScope: contents.map(f => f.path),
+    images: input.images, contentChecksum, checksumAlgorithm: GUIDE_CHECKSUM_ALGORITHM, checksumScope: contents.map(f => f.path),
     retention: "Publication assets stay in database history; DevHub recordings have independent retention.",
   };
   const files = [
@@ -36,11 +36,11 @@ export function publishTask(r: GuideRequest, id: string, checksum: string, image
     "Site: " + d.site, "Space: " + d.space, "Owner: " + r.owner, "Audience: " + r.audience,
     d.action === "create" ? "Parent page id: " + d.parentId : "Page id: " + d.pageId + "; expected base version: " + d.version + "; owned scope: " + d.sections,
     "", "Use guide.md as the exact reader-facing content; verification.md is authoring evidence only.",
-    "", "## Attachment map", ...images.map(i => "- images/" + i.name + " → " + i.name + " · sha256 " + i.sha256 + " · alt: " + i.alt + " · caption: " + i.caption),
+    "", "## Attachment map", ...images.map(i => "- images/" + i.name + " → " + i.name + " · " + (i.mediaType ?? "image/png") + " · sha256 " + i.sha256 + " · alt: " + i.alt + " · caption: " + i.caption),
     "", "## Apply",
     "1. Verify checksum and target access. Search for this package identity before creating anything; retry the same page/attachments rather than duplicate them.",
     "2. Read the target. Updates require the expected base version; reconcile newer content first. Preserve unrelated sections, comments, attachments and access restrictions.",
-    "3. Convert Markdown into supported Confluence content. Upload only listed sanitized images and replace relative links with native attachment references.",
+    "3. Convert Markdown into supported Confluence content. Upload only listed sanitized images and GIFs and replace relative links with native attachment references. Embed a GIF as an image attachment; keep the static screenshot and written steps beside it.",
     "4. Save the complete page. Inspect rendered headings, numbering, tables, links, captions and image order/legibility. An upload alone is not completion.",
     "5. Return page URL/id, saved version, package identity/checksum, attachment map and rendered verification evidence to the originating task. No automatic publisher route is assumed.",
     "", "If blocked, return the precise problem and partial result. After an unclear write response, read the page before retrying.",

@@ -6,7 +6,7 @@ public static partial class BrowserImages
     public sealed record Image(string Base64);
     public static HubResult<Image> Read(string root, string owner, string caseName, string file)
     {
-        if (!Segment().IsMatch(owner) || !Segment().IsMatch(caseName) || !FileName().IsMatch(file))
+        if (!Segment().IsMatch(owner) || !CaseName().IsMatch(caseName) || !FileName().IsMatch(file))
             return HubResult<Image>.From(HubResult.Invalid("Use owner/case and a PNG filename; paths are not accepted."));
         var folder = Path.GetFullPath(Path.Combine(root, owner, caseName));
         var path = Path.Combine(folder, file);
@@ -26,4 +26,6 @@ public static partial class BrowserImages
     }
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9_-]*$")] private static partial Regex Segment();
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9_-]*[.]png$")] private static partial Regex FileName();
+    // browser_open allows dots in a case name; without separators it stays one folder under the owner.
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$")] private static partial Regex CaseName();
 }

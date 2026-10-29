@@ -3,7 +3,7 @@
 import { guideRequestBlock, guideRequestSchema, readGuideRequest } from "@powerloom/core";
 import { createTaskCommand, saveScheduleCommand } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
 import { formText } from "@/lib/formFields";
@@ -19,10 +19,25 @@ export async function saveTaskAction(_previous: TaskActionResult | null, form: F
   let saved: ActionResult;
   try { saved = scheduled ? await saveSchedule(form) : await createTask(form); }
   catch (error) {
-    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT")) throw error;
-    return { ok: false, message: error instanceof Error ? error.message : "Invalid guide inputs.", values: submittedValues(form) };
+    unstable_rethrow(error);
+    return { ok: false, message: errorText(error), values: submittedValues(form) };
   }
   return { ...saved, values: submittedValues(form) };
+}
+
+// zod is not a dependency of the web app, so its error is recognised by shape: issues as "path: message".
+function errorText(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Invalid guide inputs.";
+  }
+
+  const issues = (error as { issues?: { path?: PropertyKey[]; message: string }[] }).issues;
+
+  if (error.name !== "ZodError" || !Array.isArray(issues)) {
+    return error.message;
+  }
+
+  return issues.map(issue => (issue.path?.length ? issue.path.map(String).join(".") + ": " : "") + issue.message).join("; ");
 }
 
 // The new task's page opens.
@@ -98,7 +113,7 @@ function guideDescription(form: FormData): string {
     allowedOrigins: list("guideOrigins").length ? list("guideOrigins") : [new URL(value("guideUrl")).origin],
     branch: value("guideBranch"), services: list("guideServices"),
     audience: value("guideAudience"), environment: value("guideEnvironment"), permittedActions: value("guideActions"),
-    data: value("guideData"), owner: value("guideOwner"), release: value("guideRelease"), destination,
+    data: value("guideData"), owner: value("guideOwner"), release: value("guideRelease"), maskSelectors: list("guideMasks"), destination,
   });
   return description.replace(/\x60{3}support-guide\s*\n[\s\S]*?\n\x60{3}/g, "").trim() + guideRequestBlock(request);
 }

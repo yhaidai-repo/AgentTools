@@ -6,6 +6,7 @@ public sealed class GuideAsset
     public string Vault { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string Sha256 { get; set; } = null!;
+    public string MediaType { get; set; } = "image/png";
     public byte[] Content { get; set; } = [];
     public DateTime CreatedAt { get; set; }
 }

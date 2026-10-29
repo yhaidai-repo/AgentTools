@@ -47,7 +47,6 @@
 - <Meaningful link to prerequisite or next procedure.>
 
 **Owner:** <responsible team/person> · **Applies to:** <release/build> · **Last verified:** <date>
-````
 
 ## Mapping to the guideline
 | Skeleton section | Guideline section |

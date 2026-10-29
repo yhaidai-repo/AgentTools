@@ -1,4 +1,5 @@
 import type { AgentEvent, ToolDefinition } from "@agenttools/runtime";
+import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { OfferedTool } from "@powerloom/core";
 import { localItem } from "@powerloom/db";
 import { ADO_INTEGRATION, createAdoTools } from "../ado/adoTools";
@@ -283,6 +284,19 @@ export class AgentToolset {
     return ids;
   }
 
+  // A Demonstration run gets its task-scoped browser boundary, with the writer's capture so screenshots are masked.
+  private devHubTools(access: OutsideAccessContext): ToolDefinition<any>[] {
+    const { deps, agent } = this.context;
+    const tools = createDevHubTools(deps, agent, access);
+    const guideWriter = this.writers.find((writer): writer is SupportGuideWriter => writer instanceof SupportGuideWriter);
+
+    if (!guideWriter) {
+      return tools;
+    }
+
+    return supportGuideTools(tools, this.task.body ?? "", guideWriter.capture, access.owner, deps.devHub?.client ?? null);
+  }
+
   private readingGroups(): ToolGroup[] {
     const { deps, agent } = this.context;
     const access = outsideAccessContext(agent.id, this.session.runId, this.task);
@@ -297,7 +311,7 @@ export class AgentToolset {
       { source: grantSource(agent, GITHUB_READ_INTEGRATION), tools: createGitHubReadTools(deps, agent, access) },
       { source: grantSource(agent, GITHUB_WRITE_INTEGRATION), tools: createGitHubWriteTools(deps, agent, access, this.gitHub) },
       { source: READ_AZURE_SOURCE, tools: createAzureTools(deps, agent, access) },
-      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: agent.capabilities.integrations?.[SUPPORT_GUIDE_INTEGRATION] ? supportGuideTools(createDevHubTools(deps, agent, access), this.task.body ?? "") : createDevHubTools(deps, agent, access) },
+      { source: grantSource(agent, DEVHUB_INTEGRATION), tools: this.devHubTools(access) },
       { source: grantSource(agent, SANDBOX_INTEGRATION), tools: createSandboxTools(deps, agent, access, this.input.repos) },
       { source: grantSource(agent, ADO_INTEGRATION), tools: createAdoTools(deps, agent, access) },
       { source: EVERY_AGENT, tools: createFetchDocumentTools(this.webDocuments, this.webPages) },

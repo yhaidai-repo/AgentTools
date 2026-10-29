@@ -39,7 +39,7 @@ Omit inapplicable optional detail; never fill gaps with invented behavior.
 - Use synthetic or approved demonstration records. Remove credentials, OTPs, setup QR codes, patient data and private identifiers before an image enters the publishable package.
 - Secret substitution in tool text does not protect an image: inspect the actual image. Mask with solid redaction, not blur.
 - Originals stay restricted evidence; publish sanitized images only. Use stable descriptive names, e.g. `03-rule-form.png`.
-- Store final images with the page package; never rely on expiring run links or host file paths. Package layout: [[powerloom-support-guide-agent-design]].
+- Store final images with the page package; never rely on expiring run links or host file paths. Package layout: `PowerLoom/docs/support-guides.md`.
 
 ## Ready for publication
 - A reader with the stated role can follow the steps without developer help.

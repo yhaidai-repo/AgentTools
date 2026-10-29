@@ -742,5 +742,5 @@ export const guideAsset = pgTable("guide_asset", {
   id: uuid("id").primaryKey(),
   taskId: text("task_id").notNull().references(() => localItem.id, { onDelete: "restrict" }),
   vault: text("vault").notNull().references(() => vault.name, { onDelete: "restrict" }),
-  name: text("name").notNull(), sha256: text("sha256").notNull(), content: bytea("content").notNull(), createdAt: createdAt(),
+  name: text("name").notNull(), sha256: text("sha256").notNull(), mediaType: text("media_type").notNull().default("image/png"), content: bytea("content").notNull(), createdAt: createdAt(),
 }, t => [index("guide_asset_task_idx").on(t.taskId)]);

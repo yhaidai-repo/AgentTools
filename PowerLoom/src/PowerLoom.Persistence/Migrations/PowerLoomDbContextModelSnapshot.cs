@@ -706,6 +706,13 @@ namespace PowerLoom.Persistence.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("image/png")
+                        .HasColumnName("media_type");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
