@@ -1,4 +1,4 @@
-import { FRAMEWORK_ID, isAdoActive, isGitHubActive, listVaultRepos, readGitHubCheckStatus, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type GoogleDriveSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
+import { FRAMEWORK_ID, isAdoActive, isGitHubActive, listVaultRepos, readGitHubCheckStatus, readAdoSettings, readCleanupSettings, readConfluenceStatus, readCurrentSprint, readImportSettings, readImportSourceActivity, readImportStatus, readAzureUserAccount, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readRepoCommandSettings, readSyncSettings, readVault, type AdoSettings, type ConfluenceStatus, type GitHubSettings, type GoogleDriveSettings, type ReadAzureSettings, type ReadSqlSettings, type RepoRow } from "@powerloom/core";
 import type { PowerLoomDb } from "@powerloom/db";
 import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
@@ -70,7 +70,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
       {tab === "ado" && <AdoIntegrationForm key={current} values={integrationValues(ado)} />}
       {tab === "github" && <GitHubForm key={`github-${current}-${github.owner}-${github.login}`} values={gitHubValues(github)} />}
       {tab === "sync" && <SyncTab db={db} current={current} ado={isAdoActive(ado) ? ado : null} github={isGitHubActive(github) ? github : null} repos={repos} />}
-      {tab === "repos" && <RepositoriesPanel repos={repos} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
+      {tab === "repos" && <RepositoriesPanel repos={repos} commands={await readRepoCommandSettings(db, current)} reposRoot={process.env.REPOS_ROOT?.trim() || null} adoActive={isAdoActive(ado)} show={["on", "off"].includes(params.show ?? "") ? params.show! : "all"} />}
       {tab === "data" && <DataTab db={db} current={current} readSql={readSql} readAzure={readAzure} driveMessage={params.drive ?? null} />}
       {tab === "devhub" && <DevHubForm key={`stack-${current}`} values={{ enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 }} />}
       {tab === "agents" && <AgentsTab />}

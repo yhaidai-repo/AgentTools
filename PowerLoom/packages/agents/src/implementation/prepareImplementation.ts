@@ -1,4 +1,4 @@
-import { readRepoCommandSettings } from "@powerloom/core";
+import { buildCommandsOf, readRepoCommandSettings } from "@powerloom/core";
 import type { BuildCommands, PowerLoomDb, localItem, workItem } from "@powerloom/db";
 import { pbiWorkRepo, pbiWorkspace } from "../planning/planningWorkspace";
 import type { CatalogRepoRef } from "../repos/agentRepos";
@@ -32,12 +32,9 @@ export async function prepareImplementation(db: PowerLoomDb, task: ItemRow, pbi:
   return { outcome, workspace: pbiWorkspace(repo, pbi, implementationSeed(implementationModels(task.data), commands)), commands };
 }
 
-// The repo's commands by its catalogue name, matched case-insensitively like the repo names agents give.
+// The repo's commands by its catalogue name (the name agents give may differ in case).
 export function repoCommands(settings: { repos: Record<string, Partial<BuildCommands>> }, repo: Pick<CatalogRepoRef, "name" | "catalogName">): BuildCommands {
-  const wanted = (repo.catalogName ?? repo.name).toLowerCase();
-  const entry = Object.entries(settings.repos).find(([name]) => name.toLowerCase() === wanted)?.[1] ?? {};
-
-  return { build: entry.build || null, test: entry.test || null };
+  return buildCommandsOf(settings, repo.catalogName ?? repo.name);
 }
 
 function noRepo(): ReviewOutcome {

@@ -1,5 +1,5 @@
 import { repo, type PowerLoomDb } from "@powerloom/db";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { RepoRow } from "./models/RepoRow";
 
 // Repository configuration per vault (user decision 2026-10-06): the ADO integration fills the catalog with its repos;
@@ -18,4 +18,11 @@ export async function catalogRepos(db: PowerLoomDb, vault: string, names: string
   const wanted = new Set(names.map((name) => name.toLowerCase()));
 
   return (await enabledRepos(db, vault)).filter((row) => wanted.has(row.name.toLowerCase()));
+}
+
+// One catalogue repo by name, in any case, enabled or not (a repo's commands may be set before it is switched on).
+export async function catalogRepoNamed(db: PowerLoomDb, vault: string, name: string): Promise<RepoRow | null> {
+  const rows = await db.select().from(repo).where(and(eq(repo.vault, vault), eq(sql`lower(${repo.name})`, name.toLowerCase())));
+
+  return rows[0] ?? null;
 }

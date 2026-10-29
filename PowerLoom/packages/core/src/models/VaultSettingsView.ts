@@ -13,7 +13,7 @@ export interface VaultSettingsView {
   sync: SyncSettings;
   imports: { settings: ImportSettings; sources: ImportSourceActivity[] };
   pullRequests: PullRequestSettings;
-  repos: { id: string; name: string; kind: string; enabled: boolean; defaultBranch: string | null }[];
+  repos: { id: string; name: string; kind: string; enabled: boolean; defaultBranch: string | null; build: string | null; test: string | null }[];
   readSql: { enabled: boolean; connections: { name: string; server: string; database: string; enabled: boolean }[] };
   readAzure: { enabledKinds: Record<string, boolean | undefined>; subscription: string; signedInAs: string | null; resources: { name: string; kind: string; display: string; enabled: boolean }[] };
   devHub: { enabled: boolean; url: string; hasToken: boolean };

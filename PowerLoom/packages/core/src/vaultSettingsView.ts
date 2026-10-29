@@ -1,9 +1,12 @@
 import type { PowerLoomDb } from "@powerloom/db";
 import type { VaultSettingsView } from "./models/VaultSettingsView";
+import type { RepoCommandSettings } from "./models/RepoCommandSettings";
+import type { RepoRow } from "./models/RepoRow";
 import { readImportSourceActivity } from "./pbiImports";
+import { buildCommandsOf } from "./repoCommands";
 import { listVaultRepos } from "./repos";
 import { adoView, azureView, sqlView } from "./settingsViews";
-import { readAdoSettings, readAzureUserAccount, readCleanupSettings, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readImportSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readSyncSettings } from "./settings";
+import { readAdoSettings, readAzureUserAccount, readCleanupSettings, readDevHubSettings, readGitHubSettings, readGoogleDriveSettings, readImportSettings, readPullRequestSettings, readReadAzureSettings, readReadSqlSettings, readRepoCommandSettings, readSyncSettings } from "./settings";
 import { readVault } from "./vaults";
 
 // What the Settings page shows for a vault, without its secrets (settings.get).
@@ -19,7 +22,7 @@ export async function readVaultSettingsView(db: PowerLoomDb, vault: string): Pro
     sync: await readSyncSettings(db, vault),
     imports: { settings: await readImportSettings(db, vault), sources: await readImportSourceActivity(db, vault) },
     pullRequests: await readPullRequestSettings(db, vault),
-    repos: (await listVaultRepos(db, vault)).map((repo) => ({ id: repo.id, name: repo.name, kind: repo.kind, enabled: !repo.excluded, defaultBranch: repo.defaultBranch })),
+    repos: reposView(await listVaultRepos(db, vault), await readRepoCommandSettings(db, vault)),
     readSql: sqlView(await readReadSqlSettings(db, vault)),
     readAzure: azureView(await readReadAzureSettings(db, vault), (await readAzureUserAccount(db, vault))?.username ?? null),
     devHub: { enabled: devHub.enabled, url: devHub.url, hasToken: devHub.token.length > 0 },
@@ -27,4 +30,9 @@ export async function readVaultSettingsView(db: PowerLoomDb, vault: string): Pro
     googleDrive: { enabled: drive.enabled, account: drive.account, folders: drive.folders },
     cleanup: await readCleanupSettings(db, vault),
   };
+}
+
+// Each catalogue repo with its switch and its build and test commands (repo_saveCommands sets them).
+function reposView(repos: RepoRow[], commands: RepoCommandSettings): VaultSettingsView["repos"] {
+  return repos.map((repo) => ({ id: repo.id, name: repo.name, kind: repo.kind, enabled: !repo.excluded, defaultBranch: repo.defaultBranch, ...buildCommandsOf(commands, repo.name) }));
 }

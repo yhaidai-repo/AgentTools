@@ -1,6 +1,6 @@
 "use server";
 
-import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand, syncPullRequestsCommand } from "@powerloom/core";
+import { addLocalRepoCommand, enableRepoCommand, removeRepoCommand, runCleanupCommand, saveRepoCommandsCommand, syncPullRequestsCommand, type RepoBuildCommands } from "@powerloom/core";
 import { revalidatePath } from "next/cache";
 import { runWebCommand } from "@/lib/commandContext";
 import { requireVault } from "@/lib/currentVault";
@@ -130,6 +130,20 @@ export async function addLocalRepoAction(_previous: ActionResult | null, form: F
 export async function removeLocalRepoAction(id: string): Promise<void> {
   await runWebCommand(removeRepoCommand, { vault: await requireVault(), id });
   revalidatePath("/settings");
+}
+
+// A repo's build and test commands for coding runs; empty fields clear them.
+export async function saveRepoCommandsAction(_previous: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const input = { vault: await requireVault(), repo: field(form, "repo"), build: field(form, "build"), test: field(form, "test") };
+  const saved = await runWebCommand(saveRepoCommandsCommand, input);
+
+  revalidatePath("/settings");
+
+  return saved.ok ? { ok: true, message: savedCommandsMessage(saved.value) } : { ok: false, message: saved.error };
+}
+
+function savedCommandsMessage(commands: RepoBuildCommands): string {
+  return commands.build || commands.test ? "Saved. The next coding run on this repo builds and tests with them." : "Saved. No commands: runs keep the usual dotnet and npm ones.";
 }
 
 // Read SQL (user decision 2026-10-12), kept by PowerLoom; which agents read is each agent's own switch.

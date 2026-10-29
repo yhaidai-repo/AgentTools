@@ -86,6 +86,7 @@ import { syncPullRequestsCommand } from "./syncPullRequestsCommand";
 import { enableRepoCommand } from "./enableRepoCommand";
 import { addLocalRepoCommand } from "./addLocalRepoCommand";
 import { removeRepoCommand } from "./removeRepoCommand";
+import { saveRepoCommandsCommand } from "./saveRepoCommandsCommand";
 import { addVaultCommand } from "./addVaultCommand";
 import { removeVaultCommand } from "./removeVaultCommand";
 import { restoreTrashCommand } from "./restoreTrashCommand";
@@ -158,6 +159,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   enableRepoCommand,
   addLocalRepoCommand,
   removeRepoCommand,
+  saveRepoCommandsCommand,
   addVaultCommand,
   removeVaultCommand,
   restoreTrashCommand,

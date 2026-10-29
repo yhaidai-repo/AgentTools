@@ -142,10 +142,11 @@ To prepare a host and a vault:
    hosts. The token goes to the restore container as a NuGet credential variable, never into an image, a sandbox command
    or a log. Set it with SQL, e.g. `INSERT INTO config (key, value) VALUES ('vault:<vault>:packageFeeds', '{"feeds": [...]}')
    ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now();`
-5. Build and test commands: vault setting `vault:<vault>:repoCommands`, `{"repos": {"<repo>": {"build": "<command>",
-   "test": "<command>"}}}`, the repo by its catalogue name (any case). The shell sends any of them (also with more
-   arguments) to the sandbox, and the implementation agent's GSD gets its repo's as `workflow.build_command` and
-   `workflow.test_command`; keep each a single command or `cd <folder> && <command>`, a compound isn't routed.
+5. Build and test commands: Settings → Repositories, under each repo's row (or the MCP tool `repo_saveCommands`;
+   `settings_get` lists them). The shell sends any of them (also with more arguments) to the sandbox, and the
+   implementation agent's GSD gets its repo's as `workflow.build_command` and `workflow.test_command`. Each is a single
+   command or `cd <folder> && <command>`: a compound isn't routed, so saving one is refused. Stored as the vault setting
+   `repoCommands`.
 6. Agents page: switch on the agent's Sandbox integration.
 
 The cache volume is `powerloom-packages-<vault>-<hash>` (label `powerloom.package-cache`); it outlives the sandboxes so
