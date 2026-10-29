@@ -8,8 +8,8 @@ function pbiIdOf(reference: string): number | null {
 }
 
 // A PowerLoom that answers the live test's writes in memory and notes each call, for the liveTest tests.
-// Reporting a bug or preparing queues a refinement task (R-<adoId>) the way the backend does; `queuesRefinement` false
-// leaves it out.
+// Reporting a bug queues a refinement task for it (R-<adoId>) the way the backend does; `queuesRefinement` false leaves
+// it out.
 export function fakeLiveTestContext(calls: string[], queuesRefinement = true): CommandContext {
   let nextId = 900;
   let refinements: { id: string; pbiId: number }[] = [];
@@ -38,11 +38,6 @@ export function fakeLiveTestContext(calls: string[], queuesRefinement = true): C
       refinements = refinements.filter((task) => task.id !== itemId);
 
       return done(`deleteItem ${adoId} ${itemId}`);
-    },
-    preparePbis: (adoIds: number[]) => {
-      queueRefinements(adoIds);
-
-      return done(`preparePbis ${adoIds.join(",")}`, { queued: adoIds, closed: [], unknown: [] });
     },
     deleteSchedule: (id: number) => done(`deleteSchedule ${id}`),
   };

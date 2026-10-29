@@ -357,7 +357,7 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
   {
     key: LIVE_TEST_INTEGRATION,
     label: "PowerLoom tools (live test)",
-    description: "The agent may call PowerLoom's commands against the live system: every read, and the writes a test needs (create a PBI, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs or writes real vaults, and everything it created is removed when the run ends.",
+    description: "The agent may call PowerLoom's commands against the live system: every read, and the writes a test needs (create a PBI, task, schedule or agent, change and delete them). It may change only what it created in the run, never starts agent runs or writes real vaults (so no pbi_prepare: it queues a refinement task a real agent would take), and everything it created is removed when the run ends.",
   },
 ];
 
