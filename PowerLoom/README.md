@@ -109,6 +109,8 @@ and verifier sub-agents build and test with their plain Bash tool; the orchestra
 proxy and every command reads offline (NuGet's only source is the cache, npm runs offline).
 
 To prepare a host and a vault:
+0. GSD itself: `npm install @opengsd/gsd-core@1.19.0` in a folder under `REPOS_ROOT` on the PC and set `GSD_CORE_DIR` in
+   `.env` to that package's path as the agent-runner sees it (`/repos/...`); the runner refuses any other version.
 1. Build the image: `docker build -t powerloom-sandbox - < Dockerfile.sandbox` (.NET SDKs 10 and 9 with runtime 8,
    Node 24, Deno, Python 3, PowerShell 7). It is the catalogue's `general` image (`sandbox-images.json`); a vault that
    needs other toolchains builds an image `FROM` it and adds an entry there.
