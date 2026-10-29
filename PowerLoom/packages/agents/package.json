@@ -15,6 +15,7 @@
     "@powerloom/ado": "*",
     "@powerloom/attachments": "*",
     "@powerloom/azure": "*",
+    "@powerloom/client": "*",
     "@powerloom/confluence": "*",
     "@powerloom/core": "*",
     "@powerloom/db": "*",
