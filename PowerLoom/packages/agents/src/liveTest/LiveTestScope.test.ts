@@ -16,6 +16,7 @@ describe("LiveTestScope", () => {
     assert.equal(await scope.notOwnedProblem([{ kind: "pbi", id: "38519" }]), "PBI-38519 wasn't created by this test run; a live test changes only its own data.");
     assert.match((await scope.notOwnedProblem([{ kind: "item", id: "Q-38519-001" }])) ?? "", /^Q-38519-001 wasn't created/);
     assert.match((await scope.notOwnedProblem([{ kind: "item", id: "T-9" }])) ?? "", /^T-9 wasn't created/);
+    assert.match((await scope.notOwnedProblem([{ kind: "reference", id: "PBI-500" }])) ?? "", /^PBI-500 is no PBI link, #id or id/);
   });
 
   it("forgets a deleted PBI with its tasks and child PBIs", () => {

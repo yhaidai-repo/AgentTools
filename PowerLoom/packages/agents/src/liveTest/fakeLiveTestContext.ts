@@ -30,7 +30,11 @@ export function fakeLiveTestContext(calls: string[], queuesRefinement = true): C
 
       return done("reportBug", { adoId, parentId });
     },
-    createTask: (task: { pbi: string }) => done("createTask", { id: `T-${++nextId}`, pbiId: Number(/(\d+)$/.exec(task.pbi)?.[1]) }),
+    createTask: (task: { pbi: string }) => {
+      const pbiId = pbiIdOf(task.pbi);
+
+      return pbiId === null ? Promise.resolve({ ok: false, error: `Not a PBI link or id: ${task.pbi}` }) : done("createTask", { id: `T-${++nextId}`, pbiId });
+    },
     saveSchedule: (schedule: { id: number | null; name: string; cron: string; enabled: boolean }) => done("saveSchedule", { id: schedule.id ?? ++nextId, name: schedule.name, cron: schedule.cron, enabled: schedule.enabled }),
     savePbiUserNotes: (adoId: number, text: string) => done(`savePbiUserNotes ${adoId}`, text),
     deletePbi: (adoId: number) => done(`deletePbi ${adoId}`),

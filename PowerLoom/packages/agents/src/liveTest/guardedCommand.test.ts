@@ -29,12 +29,26 @@ describe("the live-test guard", () => {
     assert.deepEqual(calls, ["createPbi", `savePbiUserNotes ${adoId}`]);
   });
 
+  it("refuses a PBI named PBI-n, which the backend doesn't read, saying what to give instead", async () => {
+    const { calls, call } = setUp();
+    const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] reference" });
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+    const task = { vault: "personal-projects", type: "test", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
+
+    const refused = await call("task.create", { ...task, pbi: `PBI-${adoId}` });
+    const bug = await call("bug.report", { parent: `PBI-${adoId}`, title: "[selftest] bug" });
+
+    assert.deepEqual(refused, { ok: false, error: `task.create refused: PBI-${adoId} is no PBI link, #id or id: give the PBI's number (500, #500) or its link.` });
+    assert.equal(bug.ok, false);
+    assert.deepEqual(calls, ["createPbi"]);
+  });
+
   it("records what a call created and forgets what a call deleted", async () => {
     const { scope, call } = setUp();
 
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] delete" });
     const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
-    const task = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: `PBI-${adoId}` });
+    const task = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: `#${adoId}` });
 
     const byLink = await call("task.create", { vault: "personal-projects", type: "test", title: "[selftest] task 2", description: "d", acceptanceCriteria: "a", pbi: `https://dev.azure.com/org/p/_workitems/edit/${adoId}` });
 
@@ -48,11 +62,12 @@ describe("the live-test guard", () => {
   it("refuses every call that would start real work or write a real vault", async () => {
     const { calls, call } = setUp();
     const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] refusals" });
-    const pbi = created.ok ? `PBI-${(created.value as { adoId: number }).adoId}` : "";
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+    const pbi = String(adoId);
     const task = { vault: "personal-projects", type: "test", title: "[selftest] t", description: "d", acceptanceCriteria: "a" };
 
     const refused = [
-      await call("pbi.finish", { adoId: Number(pbi.slice(4)), rating: 5, effortHours: 1, whatWentWrong: "it broke", fault: "Agent" }),
+      await call("pbi.finish", { adoId, rating: 5, effortHours: 1, whatWentWrong: "it broke", fault: "Agent" }),
       await call("agent.create", { id: "selftest-probe", label: "Probe", description: "d", prompt: "p", handles: ["test"], enabled: true }),
       await call("agent.create", { id: "selftest-probe", label: "Probe", description: "d", prompt: "p", handles: ["test"], schedule: "0 7 * * 1" }),
       await call("schedule.save", { id: null, vault: "personal-projects", name: "[selftest] s", cron: "0 7 * * 1", type: "test", description: "d", acceptanceCriteria: "a", pbi }),

@@ -1,7 +1,7 @@
 import type { ItemPbiLookup } from "./models/ItemPbiLookup";
 import type { LiveTestEntity } from "./models/LiveTestEntity";
 import type { LiveTestTarget } from "./models/LiveTestTarget";
-import { targetLabel } from "./liveTestTargets";
+import { notOwnedMessage } from "./liveTestTargets";
 
 // Cleanup removes agents and schedules first (they could start work), then tasks, then PBIs, which take their items
 // and child PBIs with them.
@@ -34,7 +34,7 @@ export class LiveTestScope {
   async notOwnedProblem(targets: LiveTestTarget[]): Promise<string | null> {
     for (const target of targets) {
       if (!(await this.owns(target))) {
-        return `${targetLabel(target)} wasn't created by this test run; a live test changes only its own data.`;
+        return notOwnedMessage(target);
       }
     }
 
@@ -50,6 +50,10 @@ export class LiveTestScope {
   }
 
   private async owns(target: LiveTestTarget): Promise<boolean> {
+    if (target.kind === "reference") {
+      return false;
+    }
+
     if (target.kind === "item") {
       return this.ownsItem(target.id);
     }
