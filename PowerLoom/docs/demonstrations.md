@@ -11,7 +11,7 @@ Demonstration turns a feature task into a reader-facing guide and a portable Con
 6. Enable the agent when ready and use Run now for the task. Agent-scoped research/refinement handoffs need a PBI; a no-PBI task may hand missing inputs to a person.
 7. On the result page, inspect guide and screenshots, download the ZIP, and give the included publication task/archive to an authorized Confluence agent or chat.
 
-The stable agent/task id remains `support-guide`; its displayed name is **Demonstration**. Chats/API tasks use the same description envelope: a fenced support-guide JSON block matching packages/core/src/supportGuides/request.ts. The task form writes it; callers should not invent values.
+The agent and task id is `demonstration`, the same as its displayed name, **Demonstration**. Chats/API tasks use the same description envelope: a fenced demonstration JSON block matching packages/core/src/demonstrations/request.ts. The task form writes it; callers should not invent values.
 
 ## Output
 - guide.md, sanitized images/, manifest.json, verification.md and publish-task.md.
@@ -41,9 +41,17 @@ The stable agent/task id remains `support-guide`; its displayed name is **Demons
 - Guide assets stay in PostgreSQL history independently of DevHub's recording cleanup, with no automatic expiry. Task deletion is soft; explicit history disposal must account for preserved packages.
 
 ## Instruction ownership
-PowerLoom maintainers own packages/agents/prompts/support-guide.md and skills/powerloom-support-guide/. The agent explicitly loads the skill; guideline.md and page-template.md are the canonical authoring resources. Edit these repository sources, then deploy. Settings prompt overrides are preserved until reset; deployment does not rewrite existing packages. Vault AGENTS/POWERLOOM instruction templates are unaffected.
+PowerLoom maintainers own packages/agents/prompts/demonstration.md and skills/powerloom-demonstration/. The agent explicitly loads the skill; guideline.md and page-template.md are the canonical authoring resources. Edit these repository sources, then deploy. UI edits run until deployment ships a changed prompt or skill, which replaces the edit and keeps it in history. Existing packages keep their content. Vault AGENTS/POWERLOOM instruction templates are unaffected.
+
+## Upgrading an existing installation
+- Runner/MCP startup moves the previous agent identity, task/result kinds, grants, schedules, tool offers and reporting labels in one PostgreSQL transaction under an advisory lock, before filling defaults. User settings travel with the agent.
+- Task and schedule input fences follow the rename. Matching saved checkpoints keep their media/report; changed inputs still invalidate them. Run-event payloads and free-text history keep their original words.
+- Conflicting agent ids, tool-offer keys or integration values stop the rename and roll it back; resolve the conflicting configuration before restarting. No agent definition is discarded.
+- API startup installs the replacement shipped skill before removing the previous own folder. Edited text and existing skill revisions remain in the replacement skill's history. Without a shipped replacement, the previous skill stays.
+- Both startup paths are idempotent. No table, column or constraint is renamed.
 
 ## Verification
 Focused tests cover runtime inputs, host/path boundaries, Markdown image references, source provenance, stale screenshots, build identity, ZIP paths/checksums and publication handoffs.
 writer.integration.test.ts exercises real PostgreSQL persistence when GUIDE_TEST_DATABASE_URL points at an explicitly disposable migrated database. It is skipped otherwise.
 Host image tests and database migration/custom-routing tests use the .NET test suite's disposable PostgreSQL fixture.
+The startup rename tests cover settings, collision handling, schedules, checkpoint fingerprints, history and a second unchanged pass. DEMONSTRATION_RENAME_TEST_DATABASE_URL enables the PostgreSQL test against an empty disposable database; its fixture and all changes roll back.

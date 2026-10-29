@@ -55,7 +55,7 @@ it("schedule edits with empty or invalid cron preserve fields and never create i
     assert.equal(result.values.scheduleId, 7);
     const components = await source("../app/tasks/new/TaskForm.tsx", {
       react: { useActionState: () => [result, () => {}, false], useState: (value: unknown) => [value, () => {}] },
-      "next/link": { __esModule: true, default: (props: any) => createElement("a", props) }, "../RepoChoices": { RepoChoices: () => null }, "./actions": actions, "./GuideFields": { GuideFields: () => null }, "@powerloom/core/support-guides": { DEMONSTRATION_LABEL: "Demonstration" },
+      "next/link": { __esModule: true, default: (props: any) => createElement("a", props) }, "../RepoChoices": { RepoChoices: () => null }, "./actions": actions, "./GuideFields": { GuideFields: () => null }, "@powerloom/core/demonstrations": { DEMONSTRATION_LABEL: "Demonstration" },
     });
     const html = renderToStaticMarkup(components.TaskForm({ values: result.values, types: ["research"], repos: [] }));
     assert.match(html, /Save schedule/);

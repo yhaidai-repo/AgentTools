@@ -33,9 +33,9 @@ public static class ItemKinds
     // What an Autotest run found and planned.
     public const string TestReport = "test-report";
 
-    public const string SupportGuideResult = "support-guide-result";
+    public const string DemonstrationResult = "demonstration-result";
 
-    private static readonly HashSet<string> BuiltIn = [Research, Design, Human, Question, ResearchResult, Refinement, Docs, Finding, Review, VaultReview, Meeting, Test, TestReport, SupportGuideResult];
+    private static readonly HashSet<string> BuiltIn = [Research, Design, Human, Question, ResearchResult, Refinement, Docs, Finding, Review, VaultReview, Meeting, Test, TestReport, DemonstrationResult];
 
     /// <summary>False for a task type of its own that an agent created in the UI handles.</summary>
     public static bool IsBuiltIn(string kind) => BuiltIn.Contains(kind);

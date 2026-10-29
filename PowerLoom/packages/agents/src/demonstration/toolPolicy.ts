@@ -5,7 +5,7 @@ import { GuideCapture } from "./capture/GuideCapture";
 
 // Task-scoped UI boundary. DevHub remains a browser host in remote mode, without local stack control. The capture
 // boundary (masked screenshots, GIF frames) sits inside it: the policy checks the page before a capture runs.
-export function supportGuideTools(tools: ToolDefinition<any>[], body: string, capture = new GuideCapture(), owner = "", client: DevHubClient | null = null): ToolDefinition<any>[] {
+export function demonstrationTools(tools: ToolDefinition<any>[], body: string, capture = new GuideCapture(), owner = "", client: DevHubClient | null = null): ToolDefinition<any>[] {
   let request;
   try { request = readGuideRequest(body); } catch { return []; }
   capture.bind(owner, client, request.maskSelectors);

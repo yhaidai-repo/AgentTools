@@ -14,7 +14,7 @@ public static class ItemDeletion
 
     // Every question and task may be deleted, a test, meeting or vault-review task and a task type of its own too; results
     // are agent output, not work items, and a review has its own delete.
-    private static readonly string[] NotDeletable = [ItemKinds.ResearchResult, ItemKinds.TestReport, ItemKinds.SupportGuideResult, ItemKinds.Review];
+    private static readonly string[] NotDeletable = [ItemKinds.ResearchResult, ItemKinds.TestReport, ItemKinds.DemonstrationResult, ItemKinds.Review];
 
     public static bool IsDeletable(LocalItem item) => IsDeletableKind(item.Kind) && item.Status is not (ItemStatus.InProgress or ItemStatus.Deleted);
 

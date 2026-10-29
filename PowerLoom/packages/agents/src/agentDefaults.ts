@@ -20,7 +20,7 @@ import { WRITE_DESIGN_INTEGRATION } from "./design/DesignWriter";
 import { WRITE_REFINEMENT_INTEGRATION } from "./betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION } from "./codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION } from "./betterReview/BetterReviewWriter";
-import { SUPPORT_GUIDE_INTEGRATION } from "./supportGuide/SupportGuideWriter";
+import { DEMONSTRATION_INTEGRATION } from "./demonstration/DemonstrationWriter";
 import { AUTOTEST_INTEGRATION } from "./autotest/AutotestWriter";
 import { LIVE_TEST_INTEGRATION } from "./liveTest/liveTestTools";
 
@@ -350,8 +350,8 @@ const INTEGRATIONS: AgentIntegrationSpec[] = [
     description: "The agent reviews its task's pull request against its PBIs, the repo's review rules and the other reviewers' threads, with follow-ups anchored to the last reviewed commit; the PR is checked out for the repo tools. Needs Read repositories.",
   },
   {
-    key: SUPPORT_GUIDE_INTEGRATION,
-    owner: "support-guide",
+    key: DEMONSTRATION_INTEGRATION,
+    owner: "demonstration",
     label: "Write demonstration guides",
     description: "Observes local or remote workflows, saves inspected screenshots and versioned guide packages, and prepares a Confluence publication handoff. Does not publish pages.",
   },
@@ -550,14 +550,14 @@ export const AGENT_DEFAULTS: AgentDefinition[] = [
 const guideBase = AGENT_DEFAULTS.find(agent => agent.id === "autotest")!;
 AGENT_DEFAULTS.push({
   ...guideBase,
-  id: "support-guide", label: DEMONSTRATION_LABEL,
-  description: "Writes support guides from observed local or remote workflows, with inspected screenshots and a portable Confluence publication handoff.",
+  id: "demonstration", label: DEMONSTRATION_LABEL,
+  description: "Writes demonstration guides from observed local or remote workflows, with inspected screenshots and a portable Confluence publication handoff.",
   enabled: false, schedule: null,
   model: { ...guideBase.model }, limits: { ...guideBase.limits }, budgets: { ...guideBase.budgets },
   capabilities: { webAccess: false, integrations: {
     [READ_REPOS_INTEGRATION]: true, [DEVHUB_INTEGRATION]: true, [CONFLUENCE_INTEGRATION]: true,
-    [ADO_INTEGRATION]: true, [SUPPORT_GUIDE_INTEGRATION]: true,
+    [ADO_INTEGRATION]: true, [DEMONSTRATION_INTEGRATION]: true,
   } },
-  skills: ["powerloom-support-guide"], handles: ["support-guide"],
+  skills: ["powerloom-demonstration"], handles: ["demonstration"],
   options: { ...guideBase.options }, canAssign: ["research", "refinement"], waitFor: ["linkedDocuments"],
 });

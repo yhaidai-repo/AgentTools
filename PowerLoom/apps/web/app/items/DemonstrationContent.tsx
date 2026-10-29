@@ -2,7 +2,7 @@ import type { GuidePackageData } from "@powerloom/core";
 import type { ItemRow } from "@/lib/pbiDetail";
 import { MarkdownBlock } from "@/components/MarkdownBlock";
 
-export function SupportGuideContent({ item }: { item: ItemRow }) {
+export function DemonstrationContent({ item }: { item: ItemRow }) {
   const pkg = (item.data as { guidePackage?: GuidePackageData } | null)?.guidePackage;
   if (!pkg) return <p className="muted">No guide package.</p>;
   const imageUrls = Object.fromEntries(pkg.images.map(image => ["images/" + image.name, "/guides/" + encodeURIComponent(item.id) + "/images/" + image.name]));

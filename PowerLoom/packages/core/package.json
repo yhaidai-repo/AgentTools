@@ -24,7 +24,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./support-guides": "./src/supportGuides/request.ts",
+    "./demonstrations": "./src/demonstrations/request.ts",
     "./src/*": "./src/*.ts"
   }
 }

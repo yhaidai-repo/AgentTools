@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { DEMONSTRATION_LABEL, readGuideRequest } from "@powerloom/core/support-guides";
+import { DEMONSTRATION_LABEL, readGuideRequest } from "@powerloom/core/demonstrations";
 
 export function GuideFields({ description, raw = {} }: { description: string; raw?: Record<string, string> }) {
   let previous;

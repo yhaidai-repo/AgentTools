@@ -5,7 +5,7 @@ import type { ToolDefinition } from "@agenttools/runtime";
 import { ReadLog } from "../evidence/ReadLog";
 import { recordReads } from "../evidence/recordReads";
 import { guideProblems } from "./validation";
-import { supportGuideTools } from "./toolPolicy";
+import { demonstrationTools } from "./toolPolicy";
 import { buildGuidePackage } from "./package";
 
 const request = guideRequestSchema.parse({ mode: "remote-url", url: "https://app.example.test", allowedOrigins: ["https://app.example.test"], audience: "Support", environment: "dev", permittedActions: "view", data: "demo", owner: "Support" });
@@ -65,7 +65,7 @@ describe("tool provenance and remote boundaries", () => {
   it("remote mode never offers stack start/stop and refuses foreign navigation", async () => {
     let calls = 0;
     const tools: ToolDefinition<any>[] = ["start_stack", "stop_stack", "browser_navigate"].map(name => ({ name, input: {}, description: "", handler: async () => { calls++; return { text: "- Page URL: https://app.example.test" }; } }));
-    const allowed = supportGuideTools(tools, guideRequestBlock(request));
+    const allowed = demonstrationTools(tools, guideRequestBlock(request));
     assert.deepEqual(allowed.map(t => t.name), ["browser_navigate"]);
     assert.equal((await allowed[0].handler({ url: "https://outside.example.test" })).isError, true);
     assert.equal(calls, 0);
@@ -74,14 +74,14 @@ describe("tool provenance and remote boundaries", () => {
   it("forces strict branch resolution for local guide starts and rejects other services", async () => {
     let sent: any = null;
     const local = { ...request, mode: "local-stack" as const, branch: "feature/demo", services: ["web"] };
-    const start = supportGuideTools([{ name: "start_stack", input: {}, description: "", handler: async value => { sent = value; return { text: "started" }; } }], guideRequestBlock(local))[0];
+    const start = demonstrationTools([{ name: "start_stack", input: {}, description: "", handler: async value => { sent = value; return { text: "started" }; } }], guideRequestBlock(local))[0];
     await start.handler({ branch: local.branch, services: ["web"], strictBranch: false });
     assert.equal(sent.strictBranch, true);
     sent = null;
     assert.equal((await start.handler({ branch: local.branch, services: ["unrequested"] })).isError, true);
     assert.equal(sent, null);
   });
-  it("invalid guide inputs expose no DevHub tools", () => assert.deepEqual(supportGuideTools([{ name: "start_stack", input: {}, description: "", handler: async () => ({ text: "" }) }], "missing"), []));
+  it("invalid guide inputs expose no DevHub tools", () => assert.deepEqual(demonstrationTools([{ name: "start_stack", input: {}, description: "", handler: async () => ({ text: "" }) }], "missing"), []));
 });
 describe("media approval and claimed identity", () => {
   it("blocks ready for an unapproved derivative or a GIF without a static screenshot", () => {

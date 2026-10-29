@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DEMONSTRATION_LABEL } from "@powerloom/core/support-guides";
+import { DEMONSTRATION_LABEL } from "@powerloom/core/demonstrations";
 import { GuideFields } from "./GuideFields";
 import { useActionState, useState, type FormEvent } from "react";
 import type { TaskActionResult } from "@/models/TaskActionResult";
@@ -45,7 +45,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     const found = missingFields(new FormData(event.currentTarget));
-    if (type === "support-guide") for (const field of Array.from(event.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("fieldset [required]"))) if (!field.value.trim()) { found[field.name] = "Complete the guide inputs."; field.reportValidity(); break; }
+    if (type === "demonstration") for (const field of Array.from(event.currentTarget.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("fieldset [required]"))) if (!field.value.trim()) { found[field.name] = "Complete the guide inputs."; field.reportValidity(); break; }
 
     setProblems(found);
 
@@ -60,8 +60,8 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
       <div className="new-pbi-columns">
         <div className="panel new-pbi-main">
           <Field label="Title" problem={problems.title}><input name="title" className="title-input" defaultValue={shown.title} maxLength={120} placeholder="What the agent should do, in one line" aria-invalid={Boolean(problems.title)} /></Field>
-          <Field label="Description" hint="what to do" problem={problems.description}><textarea name="description" defaultValue={type === "support-guide" ? shown.description.replace(/\x60{3}support-guide\s*\n[\s\S]*?\n\x60{3}/g, "").trim() : shown.description} rows={7} aria-invalid={Boolean(problems.description)} /></Field>
-          {type === "support-guide" && <GuideFields description={shown.description} raw={shown.guideInputs} />}
+          <Field label="Description" hint="what to do" problem={problems.description}><textarea name="description" defaultValue={type === "demonstration" ? shown.description.replace(/\x60{3}demonstration\s*\n[\s\S]*?\n\x60{3}/g, "").trim() : shown.description} rows={7} aria-invalid={Boolean(problems.description)} /></Field>
+          {type === "demonstration" && <GuideFields description={shown.description} raw={shown.guideInputs} />}
           <Field label="Acceptance criteria" hint="when it is done" problem={problems.acceptanceCriteria}><textarea name="acceptanceCriteria" defaultValue={shown.acceptanceCriteria} rows={5} placeholder="Names the cause, with the code or log that shows it." aria-invalid={Boolean(problems.acceptanceCriteria)} /></Field>
         </div>
         <div>
@@ -69,7 +69,7 @@ export function TaskForm({ values, types, customTypes = [], repos }: { values: T
             <span className="field-label">Type</span>
             <input type="hidden" name="type" value={type} />
             <div className="pill-switch">
-              {types.map((name) => <button key={name} type="button" className={name === type ? "on" : undefined} onClick={() => setType(name)}>{name === "support-guide" ? DEMONSTRATION_LABEL : name}</button>)}
+              {types.map((name) => <button key={name} type="button" className={name === type ? "on" : undefined} onClick={() => setType(name)}>{name === "demonstration" ? DEMONSTRATION_LABEL : name}</button>)}
             </div>
             {pbiHint && <Field label="PBI" hint={pbiHint}><input name="pbi" value={pbi} onChange={(event) => setPbi(event.target.value)} placeholder="id or Azure DevOps link" /></Field>}
           </div>

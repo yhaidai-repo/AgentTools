@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PowerLoom.Features.Skills.Models;
 using PowerLoom.Infrastructure.Skills;
@@ -23,13 +24,48 @@ public sealed class ShippedSkillsRefresher(PowerLoomDbContext db, SkillFiles fil
         var setting = await GlobalSettings.ReadAsync<ShippedSkillsSetting>(db, SettingKey, cancellation) ?? new ShippedSkillsSetting([]);
         var changed = shipped.Where(skill => !IsApplied(setting, skill)).ToList();
 
-        if (changed.Count == 0)
-            return;
-
         foreach (var skill in changed)
             setting.Skills[skill.Name] = await ApplyAsync(skill, cancellation);
 
+        var movedAny = await MoveRenamedAsync(setting, shipped, cancellation);
+        if (changed.Count == 0 && !movedAny)
+            return;
+
         await GlobalSettings.SaveAsync(db, SettingKey, setting, cancellation);
+    }
+
+    // A skill an older start shipped under a name since changed leaves PowerLoom's folder and the record, so the Skills page
+    // lists one skill; the text an edit changed in it stays as a revision of the skill that took its place.
+    private async Task<bool> MoveRenamedAsync(ShippedSkillsSetting setting, IReadOnlyList<ShippedSkillFile> shipped, CancellationToken cancellation)
+    {
+        var movedAny = false;
+
+        foreach (var (legacy, renamed) in RenamedSkills.Names)
+            if (shipped.Any(skill => skill.Name == renamed))
+                movedAny |= await MoveAsync(setting, legacy, renamed, cancellation);
+
+        return movedAny;
+    }
+
+    private async Task<bool> MoveAsync(ShippedSkillsSetting setting, string legacy, string renamed, CancellationToken cancellation)
+    {
+        var current = await files.ReadOwnAsync(legacy, cancellation);
+        var hadRecord = setting.Skills.Remove(legacy, out var record);
+        var movedHistory = await db.SkillRevisions.Where(row => row.Name == legacy)
+            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Name, renamed), cancellation);
+
+        if (current is null && !hadRecord)
+            return movedHistory > 0;
+
+        var isEdited = current is not null && record?.Hash != SkillEditing.ContentHash(current);
+
+        if (isEdited)
+            await KeepEditAsync(renamed, current!, cancellation);
+
+        files.RemoveOwn(legacy);
+        logger.LogInformation("skills: {Legacy} is now {Renamed}{Kept}", legacy, renamed, isEdited ? "; the edited text is kept as a revision of it" : "");
+
+        return true;
     }
 
     private static bool IsApplied(ShippedSkillsSetting setting, ShippedSkillFile skill)

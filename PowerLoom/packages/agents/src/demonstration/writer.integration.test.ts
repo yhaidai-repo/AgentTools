@@ -7,7 +7,7 @@ import { guideRequestBlock, guideRequestSchema, type GuidePackageData } from "@p
 import { AGENT_DEFAULTS } from "../agentDefaults";
 import { ReadLog } from "../evidence/ReadLog";
 import type { TaskContext } from "../models/TaskContext";
-import { SupportGuideWriter } from "./SupportGuideWriter";
+import { DemonstrationWriter } from "./DemonstrationWriter";
 import { encodePng } from "./media/raster";
 import { decideSettlement } from "../generic/settleTask";
 
@@ -19,11 +19,11 @@ it("persists inspected image bytes/checkpoints/packages and prevents a resumed r
   let runIds: number[] = [];
   try {
     await db.insert(vault).values({ name: vaultName, features: { adoSync: false, mailSync: false, pullRequests: false } });
-    const [task] = await db.insert(localItem).values({ id: taskId, vault: vaultName, kind: "support-guide", title: "Document demo", assignee: "agent:support-guide", status: "in-progress", body: "Document the form." + guideRequestBlock(request), data: {} }).returning();
-    const [run] = await db.insert(agentRun).values({ stage: "support-guide", itemId: taskId }).returning(); runIds.push(run.id);
+    const [task] = await db.insert(localItem).values({ id: taskId, vault: vaultName, kind: "demonstration", title: "Document demo", assignee: "agent:demonstration", status: "in-progress", body: "Document the form." + guideRequestBlock(request), data: {} }).returning();
+    const [run] = await db.insert(agentRun).values({ stage: "demonstration", itemId: taskId }).returning(); runIds.push(run.id);
     const client = { browserImage: async (owner: string) => { assert.equal(owner, "powerloom-run-" + run.id); return { ok: true, value: { base64: png.toString("base64") } }; } };
-    const context = { agent: AGENT_DEFAULTS.find(a => a.id === "support-guide")!, deps: { db, devHub: { client } } } as unknown as TaskContext;
-    const writer = new SupportGuideWriter(context);
+    const context = { agent: AGENT_DEFAULTS.find(a => a.id === "demonstration")!, deps: { db, devHub: { client } } } as unknown as TaskContext;
+    const writer = new DemonstrationWriter(context);
     await writer.contextBlocks(task, { runId: run.id } as any);
     const log = new ReadLog("Task");
     const observed = log.add("- Page URL: https://demo.example.test\nForm is visible", { tool: "browser_snapshot", fresh: true, resultText: "- Page URL: https://demo.example.test\nForm is visible" });
@@ -56,10 +56,10 @@ it("persists inspected image bytes/checkpoints/packages and prevents a resumed r
     assert.equal(storedGif.mediaType, "image/gif");
     assert.equal(storedGif.content.subarray(0, 6).toString("latin1"), "GIF89a");
     const report = { title: "Demo guide", status: "ready", summary: "Observed form", markdown: "## Overview\nView the form.\n## Before you begin\nSupport access.\n## Procedure\n1. Open the form.\n![Form](images/form.png)\n## Confirm completion\nForm visible.", buildIdentity: "unknown", buildSource: observed, releaseVerified: false, verifiedAt: new Date().toISOString(), configuration: "support/en/1280", workflows: [{ id: "form", title: "View form", state: "observed", steps: ["Open"], expected: "Form visible", observed: "Form visible", source: observed, images: ["form.png"] }], rules: [], blockers: [], verification: "Observed a synthetic test page." };
-    assert.equal((await tools.find(t => t.name === "write_support_guide")!.handler(report as any)).isError, undefined);
+    assert.equal((await tools.find(t => t.name === "write_demonstration")!.handler(report as any)).isError, undefined);
     const [checkpointed] = await db.select().from(localItem).where(eq(localItem.id, taskId));
     assert.equal((checkpointed.data as any).guideCheckpoint.report.status, "ready");
-    const ids = await writer.commit({ deps: context.deps, task, runId: run.id, agentId: "support-guide", repos: { commits: {} }, stoppedEarly: false } as any);
+    const ids = await writer.commit({ deps: context.deps, task, runId: run.id, agentId: "demonstration", repos: { commits: {} }, stoppedEarly: false } as any);
     const [result] = await db.select().from(localItem).where(eq(localItem.id, ids[0]));
     const pkg = (result.data as any).guidePackage as GuidePackageData;
     assert.equal(pkg.guide.status, "ready");
@@ -71,13 +71,13 @@ it("persists inspected image bytes/checkpoints/packages and prevents a resumed r
     assert.equal(writer.settlement()?.kind, "missing", "a late image import invalidates a ready report");
     const [afterReplacement] = await db.select().from(localItem).where(eq(localItem.id, taskId));
     assert.equal((afterReplacement.data as any).guideCheckpoint.report.status, "partial");
-    const [nextRun] = await db.insert(agentRun).values({ stage: "support-guide", itemId: taskId }).returning(); runIds.push(nextRun.id);
-    const resumed = new SupportGuideWriter(context);
+    const [nextRun] = await db.insert(agentRun).values({ stage: "demonstration", itemId: taskId }).returning(); runIds.push(nextRun.id);
+    const resumed = new DemonstrationWriter(context);
     await resumed.contextBlocks(afterReplacement, { runId: nextRun.id } as any);
     assert.equal(resumed.settlement()?.kind, "missing");
     const settlement = decideSettlement({ outcome: "success", result: { status: "complete", body: "Done", data: null, evidence: [], waitingFor: [] }, writers: [resumed.settlement()!], handoffs: [], openWaitingFor: [] });
     assert.equal(settlement.kind, "block");
-    const bad = await resumed.tools(log).find(t => t.name === "write_support_guide")!.handler(report as any);
+    const bad = await resumed.tools(log).find(t => t.name === "write_demonstration")!.handler(report as any);
     assert.equal(bad.isError, true, "old screenshots cannot satisfy current-run readiness");
   } finally {
     await db.delete(localItem).where(eq(localItem.parentId, taskId));

@@ -24,12 +24,12 @@ export const guideRequestSchema = z.object({
 });
 export type GuideRequest = z.infer<typeof guideRequestSchema>;
 export function readGuideRequest(body: string): GuideRequest {
-  const match = /\x60{3}support-guide\s*\n([\s\S]*?)\n\x60{3}/.exec(body);
-  if (!match) throw new Error("Add a support-guide input block (Tasks → New → support-guide).");
+  const match = /\x60{3}demonstration\s*\n([\s\S]*?)\n\x60{3}/.exec(body);
+  if (!match) throw new Error("Add a demonstration input block (Tasks → New → demonstration).");
   return guideRequestSchema.parse(JSON.parse(match[1]));
 }
 export function guideRequestBlock(request: GuideRequest): string {
-  return "\n\n\x60\x60\x60support-guide\n" + JSON.stringify(request, null, 2) + "\n\x60\x60\x60";
+  return "\n\n\x60\x60\x60demonstration\n" + JSON.stringify(request, null, 2) + "\n\x60\x60\x60";
 }
 export function guideUrlAllowed(value: string, origins: string[]): boolean {
   try { const u = new URL(value); return ["https:", "http:"].includes(u.protocol) && !u.username && !u.password && origins.some(o => new URL(o).origin === u.origin); } catch { return false; }

@@ -7,12 +7,12 @@ using PowerLoom.Persistence.Enums;
 
 namespace PowerLoom.Api.Tests.Pbis;
 
-// guide_asset rows reference their support-guide task (ON DELETE RESTRICT), so deleting the PBI removes them first.
+// guide_asset rows reference their demonstration task (ON DELETE RESTRICT), so deleting the PBI removes them first.
 [Collection(PowerLoomCollection.Name)]
 public sealed class PbiGuideAssetDeletionTests(PowerLoomHost host)
 {
     [Fact]
-    public async Task Deleting_the_pbi_deletes_its_support_guide_task_and_assets()
+    public async Task Deleting_the_pbi_deletes_its_demonstration_task_and_assets()
     {
         const int adoId = 69003;
         const string taskId = "SG-69003";
@@ -31,7 +31,7 @@ public sealed class PbiGuideAssetDeletionTests(PowerLoomHost host)
     private static async Task SeedAsync(PowerLoomDbContext db, int adoId, string taskId)
     {
         db.WorkItems.Add(new WorkItem { AdoId = adoId, Vault = PowerLoomHost.Vault, Type = "Product Backlog Item", Title = "The login page", AdoState = "Committed", Rev = 1, ContentHash = "h", Skills = "[]", ConfluencePages = "[]", PipelineStatus = PipelineStatus.New, SyncedAt = DateTime.UtcNow });
-        db.LocalItems.Add(new LocalItem { Id = taskId, Kind = "support-guide", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Guide", Status = ItemStatus.Open, Assignee = "agent:support-guide", HeldBy = "[]" });
+        db.LocalItems.Add(new LocalItem { Id = taskId, Kind = "demonstration", PbiId = adoId, Vault = PowerLoomHost.Vault, Title = "Guide", Status = ItemStatus.Open, Assignee = "agent:demonstration", HeldBy = "[]" });
         await db.SaveChangesAsync();
 
         db.Set<GuideAsset>().Add(new GuideAsset { Id = Guid.NewGuid(), TaskId = taskId, Vault = PowerLoomHost.Vault, Name = "shot.png", Sha256 = "abc", Content = [1, 2, 3], CreatedAt = DateTime.UtcNow });

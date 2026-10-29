@@ -32,6 +32,7 @@ import { SearxngClient } from "../webSearch/SearxngClient";
 import type { DepsEnv } from "./models/DepsEnv";
 import { RETIRED_AGENT_IDS, disableRetiredAgents } from "./retiredAgents";
 import { migrateReviewSkills } from "./migrateReviewSkills";
+import { renameStoredDemonstration } from "./demonstrationRename/renameStoredDemonstration";
 import { withShippedFields, withShippedFramework } from "./shippedDefaults";
 
 const REPO_REFRESH_MINUTES = 30;
@@ -59,7 +60,7 @@ export class AgentDepsFactory {
 
   private constructor(
     private readonly db: PowerLoomDb,
-    pool: Pool,
+    private readonly pool: Pool,
     private readonly env: DepsEnv,
     readonly azureLogin: AzureUserLogin,
     runtimes: RuntimeRegistry,
@@ -99,11 +100,13 @@ export class AgentDepsFactory {
     return new AgentDepsFactory(db, pool, env, hosts.azureLogin, hosts.runtimes, captureRules, hosts.shareAzureServers === true);
   }
 
-  /** The usage and config schemas, and every agent the code defines: a new one is added, the user's settings are kept,
-   *  and what the code ships (prompt, skills, pipeline, framework) replaces what an older version stored. */
+  /** The usage and config schemas, what an older version stored under a name since changed, and every agent the code
+   *  defines: a new one is added, the user's settings are kept, and what the code ships (prompt, skills, pipeline,
+   *  framework) replaces what an older version stored. */
   async ensureStores(agents: AgentDefinition[], global: AgentsGlobal): Promise<void> {
     await this.usageStore.ensureSchema();
     await this.config.ensureSchema();
+    await renameStoredDemonstration(this.pool);
     await this.config.ensureDefaults(await withShippedFields(agents), await withShippedFramework(global));
     await disableRetiredAgents(this.config, RETIRED_AGENT_IDS);
     await migrateReviewSkills(this.config);

@@ -98,7 +98,7 @@ function submittedValues(form: FormData): TaskFormValues {
 
 function guideDescription(form: FormData): string {
   const description = formText(form, "description") ?? "";
-  if (formText(form, "type") !== "support-guide") return description;
+  if (formText(form, "type") !== "demonstration") return description;
   if (!form.has("guideMode")) { readGuideRequest(description); return description; }
   const value = (key: string) => String(form.get(key) ?? "").trim();
   const list = (key: string) => value(key).split(",").map(v => v.trim()).filter(Boolean);
@@ -115,5 +115,5 @@ function guideDescription(form: FormData): string {
     audience: value("guideAudience"), environment: value("guideEnvironment"), permittedActions: value("guideActions"),
     data: value("guideData"), owner: value("guideOwner"), release: value("guideRelease"), maskSelectors: list("guideMasks"), destination,
   });
-  return description.replace(/\x60{3}support-guide\s*\n[\s\S]*?\n\x60{3}/g, "").trim() + guideRequestBlock(request);
+  return description.replace(/\x60{3}demonstration\s*\n[\s\S]*?\n\x60{3}/g, "").trim() + guideRequestBlock(request);
 }

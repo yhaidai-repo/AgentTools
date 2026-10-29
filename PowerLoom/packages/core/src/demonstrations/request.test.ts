@@ -4,7 +4,7 @@ import { guideRequestBlock, guideRequestSchema, guideUrlAllowed, readGuideReques
 
 const base = { mode: "remote-url", url: "https://app.example.test/admin", allowedOrigins: ["https://app.example.test"], audience: "Support", environment: "dev", permittedActions: "view only", data: "synthetic tenant", owner: "Support" };
 
-describe("support guide inputs", () => {
+describe("demonstration inputs", () => {
   it("round trips structured input through the same text task envelope used by chats and schedules", () => {
     const request = guideRequestSchema.parse(base);
     assert.deepEqual(readGuideRequest("Document the form." + guideRequestBlock(request)), request);

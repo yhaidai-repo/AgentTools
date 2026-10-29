@@ -68,6 +68,15 @@ public sealed partial class SkillFiles(IOptions<SkillsOptions> options)
         return File.Exists(path) ? await File.ReadAllTextAsync(path, cancellation) : null;
     }
 
+    // Takes a skill out of the editable folder, whole; a name that is not a skill name, or a skill it does not have, is left.
+    public void RemoveOwn(string name)
+    {
+        var folder = Path.Combine(options.Value.Editable, name);
+
+        if (SkillName().IsMatch(name) && Directory.Exists(folder))
+            Directory.Delete(folder, recursive: true);
+    }
+
     // Every skill the image ships (Skills:Shipped), none when it has no shipped folder.
     public async Task<IReadOnlyList<ShippedSkillFile>> ShippedAsync(CancellationToken cancellation)
     {

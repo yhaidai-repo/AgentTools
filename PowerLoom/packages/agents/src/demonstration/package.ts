@@ -14,7 +14,7 @@ export function buildGuidePackage(input: {
   const ready = input.guide.status === "ready" && input.request.destination.action !== "unspecified";
   const manifest = {
     schemaVersion: 1, packageId: input.packageId, taskId: input.taskId, runId: input.runId, pbiId: input.pbiId, vault: input.vault,
-    guideline: "powerloom-support-guide/v1", request: input.request, commits: input.commits,
+    guideline: "powerloom-demonstration/v1", request: input.request, commits: input.commits,
     guideStatus: input.guide.status, buildIdentity: input.guide.buildIdentity, verifiedAt: input.guide.verifiedAt,
     configuration: input.guide.configuration, workflows: input.guide.workflows, rules: input.guide.rules, blockers: input.guide.blockers,
     images: input.images, contentChecksum, checksumAlgorithm: GUIDE_CHECKSUM_ALGORITHM, checksumScope: contents.map(f => f.path),
@@ -31,7 +31,7 @@ export function publishTask(r: GuideRequest, id: string, checksum: string, image
   const d = r.destination;
   if (d.action === "unspecified") throw new Error("Publication destination missing");
   return [
-    "# " + (d.action === "create" ? "Create" : "Update") + " support guide: " + d.title,
+    "# " + (d.action === "create" ? "Create" : "Update") + " demonstration guide: " + d.title,
     "", "Package: " + id, "Content checksum (algorithm/scope in manifest.json): " + checksum,
     "Site: " + d.site, "Space: " + d.space, "Owner: " + r.owner, "Audience: " + r.audience,
     d.action === "create" ? "Parent page id: " + d.parentId : "Page id: " + d.pageId + "; expected base version: " + d.version + "; owned scope: " + d.sections,

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { guideChecksum, guideZip } from "./zip";
 import { guideImageReferences } from "./markdown";
 
-describe("portable support guide assets", () => {
+describe("portable demonstration assets", () => {
   it("resolves inline, full, collapsed and shortcut image references", () => {
     const result = guideImageReferences("![one](images/one.png)\n![two][pic]\n![pic][]\n![pic]\n\n[pic]: https://outside.example.test/pixel.png");
     assert.deepEqual(result.urls, ["images/one.png", "https://outside.example.test/pixel.png", "https://outside.example.test/pixel.png", "https://outside.example.test/pixel.png"]);

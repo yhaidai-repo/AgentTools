@@ -1,4 +1,4 @@
-# Support guide authoring guideline
+# Demonstration guide authoring guideline
 
 ## Purpose and audience
 Help a support specialist or administrator complete one real task and recognize its result. State who the guide is for. Split independent workflows into separate procedures or linked pages.
@@ -6,7 +6,7 @@ Help a support specialist or administrator complete one real task and recognize 
 ## Required page structure
 | Section | Include |
 |---|---|
-| Title | A searchable task or feature name; use "Support Guide" where useful. |
+| Title | A searchable task or feature name; use "Demonstration Guide" where useful. |
 | Overview | What the reader can accomplish, when to use it, the resulting change. |
 | Before you begin | Role/permissions, enabled features, required records or files, starting state, external access. |
 | Procedure | Numbered actions from a known entry point through the saved or completed result. |
@@ -39,7 +39,7 @@ Omit inapplicable optional detail; never fill gaps with invented behavior.
 - Use synthetic or approved demonstration records. Remove credentials, OTPs, setup QR codes, patient data and private identifiers before an image enters the publishable package.
 - Secret substitution in tool text does not protect an image: inspect the actual image. Mask with solid redaction, not blur.
 - Originals stay restricted evidence; publish sanitized images only. Use stable descriptive names, e.g. `03-rule-form.png`.
-- Store final images with the page package; never rely on expiring run links or host file paths. Package layout: `PowerLoom/docs/support-guides.md`.
+- Store final images with the page package; never rely on expiring run links or host file paths. Package layout: `PowerLoom/docs/demonstrations.md`.
 
 ## Ready for publication
 - A reader with the stated role can follow the steps without developer help.

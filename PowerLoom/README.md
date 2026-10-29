@@ -177,4 +177,4 @@ npm run powerloom:dev:web          # needs DATABASE_URL, POWERLOOM_URL in env
 - Hand-off (v1, 2026-10-28): every agent hands work on with `hand_off` (`packages/agents/src/handoff`): it creates the target item (agent task, human task, question), a `handoff` row (intent `continue` | `ask` | `review` | `return`, gate `approve` | `answer` | `none`, package body and refs) and the dependency. `create_task` only creates agent work nothing waits for. `packages/core/src/handoffs/renderHandoff.ts` renders the receiving agent's first block, the human task body and the Continue note's "Hand-off" section; `settleTask` ends a run by its hand-offs' intents; the dispatcher blocks a task whose gated dependency closed without `approve` (or without an answer) (`src/PowerLoom.Domain/Tasks/HandoffGates.cs`).
 
 ## Demonstration
-See [Demonstration agent](docs/support-guides.md) for local/remote tasks, screenshots, portable Confluence handoffs and rollout.
+See [Demonstration agent](docs/demonstrations.md) for local/remote tasks, screenshots, portable Confluence handoffs and rollout.

@@ -110,7 +110,7 @@ function startStackTool(deps: AgentDeps, context: OutsideAccessContext, access: 
     input: {
       services: z.array(z.string().min(1)).min(1).describe("Service names from list_services, e.g. [\"web\", \"orders-consumer\"]"),
       branch: z.string().optional().describe("Run this branch's code (its worktree per repo); leave out for the main checkouts"),
-      strictBranch: z.boolean().optional().describe("Refuse fallback to a different branch; required by support guides"),
+      strictBranch: z.boolean().optional().describe("Refuse fallback to a different branch; required by demonstration guides"),
       config: CONFIG_INPUT,
     },
     resource: (input) => resourceOf(access, input.services.join(",")),

@@ -1,4 +1,4 @@
-import { SupportGuideContent } from "./SupportGuideContent";
+import { DemonstrationContent } from "./DemonstrationContent";
 import { isHumanTaskData } from "@powerloom/core";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { isOpen } from "@/lib/items";
@@ -41,7 +41,7 @@ const CONTENT: Record<string, Render> = {
   research: ResearchTaskContent,
   "research-result": ResearchResultContent,
   "test-report": TestReportContent,
-  "support-guide-result": item => <SupportGuideContent item={item} />,
+  "demonstration-result": item => <DemonstrationContent item={item} />,
   finding: FindingContent,
   docs: DocsTaskContent,
 };

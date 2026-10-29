@@ -13,8 +13,8 @@ import { DesignWriter, WRITE_DESIGN_INTEGRATION } from "../design/DesignWriter";
 import { RefinementWriter, WRITE_REFINEMENT_INTEGRATION } from "../betterRefinement/RefinementWriter";
 import { CODE_REVIEW_INTEGRATION, ReviewWriter } from "../codeReview/ReviewWriter";
 import { BETTER_REVIEW_INTEGRATION, BetterReviewWriter } from "../betterReview/BetterReviewWriter";
-import { SUPPORT_GUIDE_INTEGRATION, SupportGuideWriter } from "../supportGuide/SupportGuideWriter";
-import { supportGuideTools } from "../supportGuide/toolPolicy";
+import { DEMONSTRATION_INTEGRATION, DemonstrationWriter } from "../demonstration/DemonstrationWriter";
+import { demonstrationTools } from "../demonstration/toolPolicy";
 import { AUTOTEST_INTEGRATION, AutotestWriter } from "../autotest/AutotestWriter";
 import { ownTools } from "./ownTools";
 import { CONFLUENCE_INTEGRATION, createConfluenceTools } from "../confluenceTools";
@@ -288,13 +288,13 @@ export class AgentToolset {
   private devHubTools(access: OutsideAccessContext): ToolDefinition<any>[] {
     const { deps, agent } = this.context;
     const tools = createDevHubTools(deps, agent, access);
-    const guideWriter = this.writers.find((writer): writer is SupportGuideWriter => writer instanceof SupportGuideWriter);
+    const guideWriter = this.writers.find((writer): writer is DemonstrationWriter => writer instanceof DemonstrationWriter);
 
     if (!guideWriter) {
       return tools;
     }
 
-    return supportGuideTools(tools, this.task.body ?? "", guideWriter.capture, access.owner, deps.devHub?.client ?? null);
+    return demonstrationTools(tools, this.task.body ?? "", guideWriter.capture, access.owner, deps.devHub?.client ?? null);
   }
 
   private readingGroups(): ToolGroup[] {
@@ -373,6 +373,6 @@ export function grantedWriters(context: TaskContext): RunWriter[] {
     ...(integrations[CODE_REVIEW_INTEGRATION] === true ? [new ReviewWriter(context)] : []),
     ...(integrations[BETTER_REVIEW_INTEGRATION] === true ? [new BetterReviewWriter(context)] : []),
     ...(integrations[AUTOTEST_INTEGRATION] === true ? [new AutotestWriter(context)] : []),
-    ...(integrations[SUPPORT_GUIDE_INTEGRATION] === true ? [new SupportGuideWriter(context)] : []),
+    ...(integrations[DEMONSTRATION_INTEGRATION] === true ? [new DemonstrationWriter(context)] : []),
   ];
 }

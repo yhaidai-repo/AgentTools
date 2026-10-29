@@ -18,14 +18,14 @@ import type { NewGuideMedia } from "./models/NewGuideMedia";
 import { buildGuidePackage } from "./package";
 import { guideProblems } from "./validation";
 
-export const SUPPORT_GUIDE_INTEGRATION = "writeSupportGuides";
+export const DEMONSTRATION_INTEGRATION = "writeDemonstrations";
 const MAX_MEDIA = 20;
 const MAX_PACKAGE_BYTES = 32 * 1024 * 1024;
 const MAX_BYTES = { "image/png": 4 * 1024 * 1024, "image/gif": 8 * 1024 * 1024 };
 type Task = typeof localItem.$inferSelect;
 
-export class SupportGuideWriter implements RunWriter, GuideMediaHost {
-  readonly integration = SUPPORT_GUIDE_INTEGRATION;
+export class DemonstrationWriter implements RunWriter, GuideMediaHost {
+  readonly integration = DEMONSTRATION_INTEGRATION;
   readonly capture = new GuideCapture();
   private task: Task | null = null;
   private request: GuideRequest | null = null;
@@ -49,15 +49,15 @@ export class SupportGuideWriter implements RunWriter, GuideMediaHost {
     } catch (e) {
       this.inputProblem = String(e);
 
-      return ["Support guide input blocked: " + String(e)];
+      return ["Demonstration input blocked: " + String(e)];
     }
 
     this.checkpoint = this.restoredCheckpoint(task);
 
     const [previous] = await this.context.deps.db.select({ id: localItem.id, data: localItem.data }).from(localItem)
-      .where(and(eq(localItem.parentId, task.id), eq(localItem.kind, "support-guide-result"))).orderBy(desc(localItem.createdAt)).limit(1);
+      .where(and(eq(localItem.parentId, task.id), eq(localItem.kind, "demonstration-result"))).orderBy(desc(localItem.createdAt)).limit(1);
 
-    return ["<support-guide-input>\n" + JSON.stringify(this.request) + "\n</support-guide-input>",
+    return ["<demonstration-input>\n" + JSON.stringify(this.request) + "\n</demonstration-input>",
       "<guide-checkpoint>\n" + JSON.stringify(this.checkpoint) + "\n</guide-checkpoint>",
       previous ? "<previous-package>\n" + JSON.stringify(previous) + "\n</previous-package>" : "No previous package."];
   }
@@ -130,7 +130,7 @@ export class SupportGuideWriter implements RunWriter, GuideMediaHost {
     const pkg = buildGuidePackage({ packageId: id, taskId: target.task.id, runId: target.runId, pbiId: target.task.pbiId, vault: target.task.vault, request: this.request, guide: report, images, contents, commits: target.repos.commits });
 
     await target.deps.db.insert(localItem).values({
-      id, kind: "support-guide-result", pbiId: target.task.pbiId, vault: target.task.vault, parentId: target.task.id,
+      id, kind: "demonstration-result", pbiId: target.task.pbiId, vault: target.task.vault, parentId: target.task.id,
       title: report.title, status: "final", assignee: "agent:" + target.agentId,
       body: report.markdown, data: { guidePackage: pkg }, createdByRun: target.runId,
     }).onConflictDoNothing();
@@ -143,13 +143,13 @@ export class SupportGuideWriter implements RunWriter, GuideMediaHost {
       return { kind: "missing", output: this.inputProblem };
     }
 
-    return this.checkpoint.report?.status === "ready" ? null : { kind: "missing", output: "a ready support guide (write_support_guide)" };
+    return this.checkpoint.report?.status === "ready" ? null : { kind: "missing", output: "a ready demonstration guide (write_demonstration)" };
   }
 
   private writeGuideTool(log: ReadLog) {
     return defineTool({
-      name: "write_support_guide",
-      description: "Save a structured support guide checkpoint. Ready requires observed workflows, approved media for this build and no unresolved behavior. Checkpoints survive timeouts; publication is a separate handoff.",
+      name: "write_demonstration",
+      description: "Save a structured demonstration guide checkpoint. Ready requires observed workflows, approved media for this build and no unresolved behavior. Checkpoints survive timeouts; publication is a separate handoff.",
       input: guideReportSchema.shape,
       handler: async (input) => {
         if (!this.request) {
