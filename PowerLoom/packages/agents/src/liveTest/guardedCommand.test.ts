@@ -125,6 +125,48 @@ describe("the live-test guard", () => {
     }
   });
 
+  it("finishes an owned PBI without a what-went-wrong text, and refuses the text that would write a WWW record", async () => {
+    const { calls, call } = setUp();
+    const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] finish" });
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+
+    const written = await call("pbi.finish", { adoId, rating: 5, effortHours: 1, whatWentWrong: "it broke", fault: "Agent" });
+    const finished = await call("pbi.finish", { adoId, rating: 5, effortHours: 1 });
+    const stranger = await call("pbi.finish", { adoId: 38519, rating: 5, effortHours: 1 });
+
+    assert.deepEqual(written, { ok: false, error: "pbi.finish refused: a live test finishes a PBI with whatWentWrong null: what went wrong is written into the vault's WWW log." });
+    assert.equal(finished.ok, true);
+    assert.equal(stranger.ok, false);
+    assert.deepEqual(calls, ["createPbi", `finishPbi ${adoId}`]);
+  });
+
+  it("changes an agent only when the run created it, and never enables it or gives it a schedule", async () => {
+    const { scope, call } = setUp();
+
+    scope.record([{ kind: "agent", id: "selftest-probe" }]);
+
+    const stranger = await call("agent.update", { id: "better-research", label: "Changed" });
+    const enabled = await call("agent.update", { id: "selftest-probe", enabled: true });
+    const scheduled = await call("agent.update", { id: "selftest-probe", schedule: "0 7 * * 1" });
+
+    assert.deepEqual(stranger, { ok: false, error: "agent.update refused: agent better-research wasn't created by this test run; a live test changes only its own data." });
+    assert.deepEqual(enabled, { ok: false, error: "agent.update refused: a live test doesn't start real work: an agent it makes or changes stays disabled." });
+    assert.deepEqual(scheduled, { ok: false, error: "agent.update refused: a live test doesn't start real work: an agent it makes or changes has no schedule." });
+  });
+
+  it("runs calls one after the other, so a delete and a create on the same PBI never leave a task of a PBI that is gone", async () => {
+    const { scope, call } = setUp();
+    const created = await call("pbi.create", { vault: "personal-projects", title: "[selftest] race" });
+    const adoId = created.ok ? (created.value as { adoId: number }).adoId : 0;
+    const task = { vault: "personal-projects", type: "selftest-only", title: "[selftest] task", description: "d", acceptanceCriteria: "a", pbi: String(adoId) };
+
+    const [deleted, made] = await Promise.all([call("pbi.delete", { adoId }), call("task.create", task)]);
+
+    assert.equal(deleted.ok, true);
+    assert.equal(made.ok, false);
+    assert.equal(scope.isEmpty, true);
+  });
+
   it("exposes every read command, the allowed writes, and none of the excluded ones", () => {
     const { commands } = setUp();
     const names = new Set(commands.map((command) => command.name));

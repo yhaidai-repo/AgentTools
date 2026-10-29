@@ -44,6 +44,7 @@ export function fakeLiveTestContext(calls: string[], queuesRefinement = true, it
 
       return done(`deleteItem ${adoId} ${itemId}`);
     },
+    finishPbi: (feedback: { adoId: number }) => done(`finishPbi ${feedback.adoId}`, { message: "finished", wwwRecordId: null }),
     stopTask: (itemId: string) => done(`stopTask ${itemId}`),
     editTask: (edit: { itemId: string }) => done(`editTask ${edit.itemId}`),
     deletePromptVersions: (agentId: string) => done(`deletePromptVersions ${agentId}`),

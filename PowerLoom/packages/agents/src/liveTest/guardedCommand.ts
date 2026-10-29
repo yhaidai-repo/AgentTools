@@ -12,7 +12,7 @@ export function guardedCommand<I, O>(command: Command<I, O>, rule: LiveTestRule,
   return {
     ...command,
     description: [command.description, OWN_DATA_ONLY, rule.note].filter(Boolean).join(" "),
-    run: (context, input) => runGuarded(command, rule, scope, context, input),
+    run: (context, input) => scope.exclusively(() => runGuarded(command, rule, scope, context, input)),
   };
 }
 

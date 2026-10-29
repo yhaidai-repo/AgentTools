@@ -11,11 +11,22 @@ const CLEANUP_ORDER: LiveTestEntity["kind"][] = ["agent", "schedule", "task", "p
 // is left when the run ends.
 export class LiveTestScope {
   private entities: LiveTestEntity[] = [];
+  private turn: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly itemPbi: ItemPbiLookup) {}
 
   get isEmpty(): boolean {
     return this.entities.length === 0;
+  }
+
+  /** Runs the actions one after the other: a guarded call checks what the run owns and then changes it, and two at once
+   *  (an agent's tool calls can overlap) could both pass the check on what the other is removing. */
+  exclusively<T>(action: () => Promise<T>): Promise<T> {
+    const result = this.turn.then(action);
+
+    this.turn = result.catch(() => undefined);
+
+    return result;
   }
 
   record(created: LiveTestEntity[]): void {
