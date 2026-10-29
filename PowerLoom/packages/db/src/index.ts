@@ -24,6 +24,8 @@ export type { PlanCheck } from "./models/PlanCheck";
 export { PLAN_CHECK_VERDICTS, type PlanCheckVerdict } from "./models/PlanCheckVerdict";
 export type { BuildContent } from "./models/BuildContent";
 export type { BuildCommands } from "./models/BuildCommands";
+export type { BuildCheck } from "./models/BuildCheck";
+export type { BuildChecks } from "./models/BuildChecks";
 export type { BuildPlan } from "./models/BuildPlan";
 export { BUILD_PLAN_STATUSES, type BuildPlanStatus } from "./models/BuildPlanStatus";
 export type { BuildCommit } from "./models/BuildCommit";

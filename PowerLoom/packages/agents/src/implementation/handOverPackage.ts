@@ -1,4 +1,5 @@
 import type { BuildContent, OpenUatItem } from "@powerloom/db";
+import { checksText } from "./buildGate";
 
 // The pull request a person opens from the branch (user decision 2026-10-29: the agent never pushes): the summary, the
 // changes by plan, the verification verdict, the open UAT items and the deviations.
@@ -23,6 +24,7 @@ export function handOverBlock(build: BuildContent): string {
     `**Branch:** \`${build.branch}\` in ${build.repo}, from \`${build.baseBranch}\`, head \`${build.headSha ?? "-"}\`, ${build.commits.length} local commits; nothing is pushed.`,
     `**Worktree:** \`${build.worktree}\` (kept for this task until it closes).`,
     `**Hand-over:** ${build.handOver.state}: ${build.handOver.verdict}`,
+    `**Build in the sandbox:** ${checksText(build)}`,
     "### Pull request",
     `**Title:** ${build.handOver.prTitle}`,
     pullRequestBody(build),

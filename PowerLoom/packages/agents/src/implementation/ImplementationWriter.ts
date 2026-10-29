@@ -9,6 +9,7 @@ import type { RunWriter } from "../toolset/models/RunWriter";
 import type { WriterSettlement } from "../toolset/models/WriterSettlement";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import type { WriterWorkspace } from "../toolset/models/WriterWorkspace";
+import { settlementBlocker } from "./buildGate";
 import { commitBuild, holdReason, noteHandOver } from "./commitBuild";
 import { PLANNING_TASK_TYPE, implementationBlock } from "./implementationBlock";
 import { createImplementationTools } from "./implementationTools";
@@ -75,7 +76,8 @@ export class ImplementationWriter implements RunWriter {
     return [];
   }
 
-  // Approved: the build and its hand-over; changes: the planning task; never approved: blocked for a person.
+  // Approved: the build and its hand-over, blocked when no plan got done or a configured build never passed (pilot runs
+  // 4464-4486 closed unbuilt hand-overs as done); changes: the planning task; never approved: blocked for a person.
   settlement(): WriterSettlement | null {
     if (this.outcome?.kind === "blocked") {
       return { kind: "blocked", reason: this.outcome.reason };
@@ -91,6 +93,12 @@ export class ImplementationWriter implements RunWriter {
   private approvedSettlement(): WriterSettlement | null {
     if (!this.draft.build) {
       return { kind: "missing", output: "the implementation (write_implementation)" };
+    }
+
+    const blocker = settlementBlocker(this.draft.build.content);
+
+    if (blocker) {
+      return { kind: "blocked", reason: blocker };
     }
 
     return this.handoffs.handOverId ? null : { kind: "missing", output: "the hand-over (hand_off to a person, intent review: review the branch, push it, open the pull request)" };
@@ -139,7 +147,7 @@ export class ImplementationWriter implements RunWriter {
     const { workspace, commands, outcome } = prepared;
     const place = { repo: workspace.repo.name, branch: workspace.branch, baseBranch: workspace.baseBranch, worktree: worktree.path, planVersion: outcome.planVersion, commands };
 
-    return { source: this.sourceAt(worktree.path), place };
+    return { source: this.sourceAt(worktree.path), place, buildRuns: this.context.deps.runBuildLog?.runs ?? [] };
   }
 }
 

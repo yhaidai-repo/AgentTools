@@ -17,6 +17,7 @@ import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 import type { GitHubAccess } from "../github/models/GitHubAccess";
 import type { GoogleDriveAccess } from "../googleDrive/models/GoogleDriveAccess";
+import type { RunBuildLog } from "../sandbox/models/RunBuildLog";
 import type { RunShellRouteSlot } from "../sandbox/models/RunShellRouteSlot";
 import type { RunWorktreeSlot } from "../sandbox/models/RunWorktreeSlot";
 import type { SandboxAccess } from "../sandbox/models/SandboxAccess";
@@ -76,6 +77,8 @@ export interface AgentDeps {
   runWorktree?: RunWorktreeSlot;
   /** Where the run's sandbox tools leave the route of its worktree shell's builds and tests, for the runner to give the run. */
   runShellRoute?: RunShellRouteSlot;
+  /** The builds and tests the run's sandbox ran, which write_implementation records with the build. */
+  runBuildLog?: RunBuildLog;
   /** PowerLoom's own web search (search_web) while Settings → Data access → Web search is on; null otherwise. */
   webSearch: WebSearchAccess | null;
   /** The vault's Azure DevOps while its integration is on (the ADO tools). */

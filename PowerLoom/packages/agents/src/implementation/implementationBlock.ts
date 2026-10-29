@@ -1,3 +1,4 @@
+import type { BuildCommands } from "@powerloom/db";
 import type { PreparedImplementation } from "./models/PreparedImplementation";
 import type { ReviewOutcome } from "./models/ReviewOutcome";
 import { WORKTREE_SHELL_CONTRACT } from "./worktreeShellContract";
@@ -42,8 +43,20 @@ function approvedBlock(prepared: PreparedImplementation, reviewId: string, planV
     `Branch: ${workspace?.branch ?? "-"} (from ${workspace?.baseBranch ?? "-"}); commit locally only, never push.`,
     `Build command: ${commands.build ? `\`${commands.build}\`` : "none configured"}`,
     `Test command: ${commands.test ? `\`${commands.test}\`` : "none configured"}`,
+    buildRule(commands),
+    "A restore or build failure is a blocker to report (write_result, status blocked, with the exact error), never a reason to hand over unbuilt code; an earlier conversation's \"feed unreachable\" or sandbox failure is to be retried in this run, not assumed.",
     "Your working folder is this branch's worktree, with the plan in .planning/ and .planning/config.json set for this run.",
     WORKTREE_SHELL_CONTRACT,
     "</implementation>",
   ].join("\n");
+}
+
+// write_implementation saves nothing until the sandbox ran the configured commands (buildGate); without a build command
+// the hand-over says it is unbuilt and names the missing setting.
+function buildRule(commands: BuildCommands): string {
+  if (!commands.build) {
+    return "No build command is configured for this repo: the hand-over will say the branch is unbuilt; a person sets the command under Settings → Repositories.";
+  }
+
+  return `write_implementation saves the build only after \`${commands.build}\` passed${commands.test ? ` and \`${commands.test}\` ran` : ""} in this run's sandbox (PowerLoom records each build and test it runs).`;
 }

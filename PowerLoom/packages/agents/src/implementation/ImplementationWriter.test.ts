@@ -9,6 +9,7 @@ import type { TaskContext } from "../models/TaskContext";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { ImplementationWriter } from "./ImplementationWriter";
+import type { SandboxBuildRun } from "../sandbox/models/SandboxBuildRun";
 import type { BuildSource } from "./models/BuildSource";
 import type { PreparedImplementation } from "./models/PreparedImplementation";
 
@@ -21,6 +22,9 @@ const WORKSPACE = { repo: { name: "shop", remoteUrl: "https://example.invalid/sh
 const APPROVED: PreparedImplementation = { outcome: { kind: "approved", reviewId: "HT-7-002", planVersion: 2 }, workspace: WORKSPACE, commands: { build: null, test: "dotnet test" } };
 const REPLAN: PreparedImplementation = { outcome: { kind: "replan", reviewId: "HT-7-002", reason: "HT-7-002 asked for changes", corrections: "changes: 30 days" }, workspace: null, commands: { build: null, test: null } };
 const BLOCKED: PreparedImplementation = { outcome: { kind: "blocked", reason: "HT-7-002 was cancelled: the review never approved the plan." }, workspace: null, commands: { build: null, test: null } };
+
+const BUILT: PreparedImplementation = { ...APPROVED, commands: { build: "dotnet build Shop.sln", test: "dotnet test Shop.sln" } };
+const TESTED = { command: "dotnet test", exitCode: 0, problem: null, at: "2026-10-29T10:00:00.000Z" };
 
 const SOURCE: BuildSource = {
   planning: {
@@ -76,10 +80,14 @@ function recordingDb() {
   return { db, repoCache, inserted, updated, held };
 }
 
-function writerWith(db: PowerLoomDb, prepared: PreparedImplementation, worktree: string | null = WORKTREE): ImplementationWriter {
-  const context = { deps: { db, runWorktree: { current: worktree ? { repo: "shop", path: worktree } : null } } } as unknown as TaskContext;
+function writerWith(db: PowerLoomDb, prepared: PreparedImplementation, runs: SandboxBuildRun[] = [TESTED], source: BuildSource = SOURCE): ImplementationWriter {
+  const context = { deps: { db, runWorktree: { current: { repo: "shop", path: WORKTREE } }, runBuildLog: { runs } } } as unknown as TaskContext;
 
-  return new ImplementationWriter(context, () => SOURCE, async () => prepared);
+  return new ImplementationWriter(context, () => source, async () => prepared);
+}
+
+function sandboxRun(command: string, exitCode: number | null, problem: string | null = null): SandboxBuildRun {
+  return { command, exitCode, problem, at: "2026-10-29T10:00:00.000Z" };
 }
 
 function targetOf(recorded: ReturnType<typeof recordingDb>, tasks: CreatedTask[]): WriterTarget {
@@ -170,5 +178,61 @@ describe("ImplementationWriter", () => {
     await writer.commit(targetOf(recorded, await handedOff(PLANNING)));
 
     assert.deepEqual(writer.settlement(), { kind: "blocked", reason: "HT-7-002 was cancelled: the review never approved the plan." });
+  });
+
+  it("saves nothing while the repo's build command never passed or its test never ran in the run's sandbox", async () => {
+    const recorded = recordingDb();
+    const restoreFailed = sandboxRun("dotnet build Shop.sln", 1, "The package restore before it did not fully succeed: NU1301 Unable to load the service index");
+    const unbuilt = writerWith(recorded.db, BUILT, []);
+    const red = writerWith(recorded.db, BUILT, [restoreFailed]);
+    const untested = writerWith(recorded.db, BUILT, [sandboxRun("dotnet build Shop.sln", 0)]);
+    const fixed = writerWith(recorded.db, BUILT, [restoreFailed, sandboxRun("cd src && dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln --no-build", 0)]);
+
+    for (const writer of [unbuilt, red, untested, fixed]) {
+      await writer.contextBlocks(TASK);
+    }
+
+    const refusals = [await writeImplementation(unbuilt), await writeImplementation(red), await writeImplementation(untested)];
+    const saved = await writeImplementation(fixed);
+
+    assert.ok(refusals.every((refusal) => refusal.isError));
+    assert.match(refusals[0].text, /^Not saved: no build ran in this run's sandbox \(the repo's build command: `dotnet build Shop\.sln`\)\.\nRun the build command in Bash/);
+    assert.match(refusals[1].text, /^Not saved: the last build did not pass: `dotnet build Shop\.sln` failed with exit code 1 \(The package restore before it did not fully succeed: NU1301/);
+    assert.match(refusals[1].text, /end with write_result, status blocked, quoting the exact error\. What an earlier conversation said about a feed or the sandbox is no reason/);
+    assert.match(refusals[2].text, /^Not saved: no test ran in this run's sandbox \(the repo's test command: `dotnet test Shop\.sln`\)/);
+    assert.match(saved.text, /\nBuild: `cd src && dotnet build Shop\.sln` passed; test `dotnet test Shop\.sln --no-build` passed\.\n/);
+    assert.equal(fixed.settlement()?.kind, "missing");
+  });
+
+  it("saves nothing when GSD finished no plan, whatever was committed by hand", async () => {
+    const recorded = recordingDb();
+    const handEdited: BuildSource = {
+      ...SOURCE,
+      planning: { ...SOURCE.planning, inspect: async () => ({ schema_version: 1, phases: [{ dir: "01-archive", phase_id: "01", uat: { unresolved: [] }, plans: [{ id: "01-01", file: "01-01-PLAN.md", hasSummary: false, tasks: [{ name: "a" }] }, { id: "01-02", file: "01-02-PLAN.md", hasSummary: false, tasks: [{ name: "b" }] }] }] }) },
+    };
+    const writer = writerWith(recorded.db, BUILT, [sandboxRun("dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln", 0)], handEdited);
+
+    await writer.contextBlocks(TASK);
+    const refused = await writeImplementation(writer);
+    await writer.commit(targetOf(recorded, []));
+
+    assert.equal(refused.isError, true);
+    assert.match(refused.text, /^Not saved: 0 of 2 plans are done\.\nRun Skill gsd-execute-phase for each phase with plans not done/);
+    assert.deepEqual(writer.settlement(), { kind: "missing", output: "the implementation (write_implementation)" });
+  });
+
+  it("hands over unbuilt when no build command is configured, naming the missing setting, and a failing test leaves gaps", async () => {
+    const recorded = recordingDb();
+    const writer = writerWith(recorded.db, APPROVED, [sandboxRun("dotnet test", 1)]);
+
+    await writer.contextBlocks(TASK);
+    const saved = await writeImplementation(writer);
+    await writer.commit(targetOf(recorded, await handedOff(HAND_OVER)));
+
+    const note = new PgDialect().sqlToQuery(recorded.updated.find((entry) => entry.table === localItem)?.changes.body).params;
+    assert.match(saved.text, /hand-over gaps\.\nBuild: not built: shop has no build command \(set it under Settings → Repositories, or with repo_saveCommands\); test `dotnet test` failed with exit code 1\./);
+    assert.match(String(note[0]), /\*\*Build in the sandbox:\*\* not built: shop has no build command/);
+    assert.match((await writer.contextBlocks(TASK))[0], /No build command is configured for this repo/);
+    assert.equal(writer.settlement(), null);
   });
 });

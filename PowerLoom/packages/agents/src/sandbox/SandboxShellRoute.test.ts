@@ -9,6 +9,7 @@ import type { DataAccessLog } from "../DataAccessLog";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { DataAccessEntry } from "../models/DataAccessEntry";
 import type { RepoAccess } from "../models/RepoAccess";
+import type { RunBuildLog } from "./models/RunBuildLog";
 import type { RunShellRouteSlot } from "./models/RunShellRouteSlot";
 import { SANDBOX_INTEGRATION, createSandboxTools } from "./sandboxTools";
 
@@ -40,10 +41,15 @@ function routeWith(client: Partial<SandboxClient>, buildCommands: string[] = [])
   const outside = { log, requests: { request: async () => ({ id: "HT-1-001", created: true }) } };
   const sandbox = { client: client as SandboxClient, url: "http://sandbox:3300", feeds: [], packageHosts: [], image: "", packageCache: "work-projects", buildCommands };
   const slot: RunShellRouteSlot = { current: null };
-  const deps = { outside, sandbox, repoCache: { root: cacheRoot }, runWorktree: { current: { repo: "shop", path: worktreeRoot } }, runShellRoute: slot } as unknown as AgentDeps;
+  const builds: RunBuildLog = { runs: [] };
+  const deps = { outside, sandbox, repoCache: { root: cacheRoot }, runWorktree: { current: { repo: "shop", path: worktreeRoot } }, runShellRoute: slot, runBuildLog: builds } as unknown as AgentDeps;
   const tools = createSandboxTools(deps, agent, context, repos);
 
-  return { route: slot.current!, tools, entries };
+  return { route: slot.current!, tools, entries, builds };
+}
+
+function loggedRuns(builds: RunBuildLog) {
+  return builds.runs.map((run) => ({ command: run.command, exitCode: run.exitCode, problem: run.problem }));
 }
 
 describe("SandboxShellRoute", () => {
@@ -142,12 +148,30 @@ describe("SandboxShellRoute", () => {
 
   it("answers a failure to reach the sandbox as a failed command, not as the worktree shell's", async () => {
     const client: Partial<SandboxClient> = { ...fakeClient([]), open: async () => ({ ok: false, message: "The sandbox service at http://sandbox:3300 doesn't answer (fetch failed).", failure: "failed" }) };
-    const { route } = routeWith(client);
+    const { route, builds } = routeWith(client);
 
     const routed = await route.run("dotnet test", worktreeRoot, null);
 
     assert.equal(routed?.exitCode, 1);
     assert.match(routed?.output ?? "", /could not run in the run's sandbox: The sandbox service at http:\/\/sandbox:3300 doesn't answer/);
+    assert.deepEqual(loggedRuns(builds), [{ command: "dotnet test", exitCode: null, problem: "The sandbox service at http://sandbox:3300 doesn't answer (fetch failed)." }]);
+  });
+
+  it("records each routed build and test in the run's build log, and run_command's too", async () => {
+    const failed: CommandResult = { ...passed, exitCode: 1, output: "error CS1002: ; expected" };
+    const { route, tools, builds } = routeWith(fakeClient([], [passed, failed, passed]));
+    const runCommand = tools.find((tool) => tool.name === "run_command")!;
+
+    await route.run("dotnet build Shop.sln", worktreeRoot, null);
+    await route.run("dotnet test", worktreeRoot, null);
+    await runCommand.handler({ command: "cd shop && dotnet build Shop.sln" });
+    await runCommand.handler({ command: "ls shop" });
+
+    assert.deepEqual(loggedRuns(builds), [
+      { command: "dotnet build Shop.sln", exitCode: 0, problem: null },
+      { command: "dotnet test", exitCode: 1, problem: null },
+      { command: "cd shop && dotnet build Shop.sln", exitCode: 0, problem: null },
+    ]);
   });
 
   it("builds on with a note when the first restore didn't fully succeed", async () => {
@@ -155,11 +179,12 @@ describe("SandboxShellRoute", () => {
       ...fakeClient([]),
       restore: async (id, repo, target, tar) => { await tar.cancel(); return { ok: true, value: { ok: false, steps: [{ label: "dotnet restore Shop.sln", exitCode: 1, durationMs: 2_000, output: "NU1301" }], skipped: [], packagesPath: "/packages" } }; },
     };
-    const { route } = routeWith(client);
+    const { route, builds } = routeWith(client);
 
     const routed = await route.run("dotnet build", worktreeRoot, null);
 
     assert.equal(routed?.exitCode, 0);
     assert.match(routed?.output ?? "", /\[The package restore before it did not fully succeed: The restore did not fully succeed\./);
+    assert.match(builds.runs[0].problem ?? "", /^The package restore before it did not fully succeed/);
   });
 });

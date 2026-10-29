@@ -52,8 +52,10 @@ describe("loadPrompt", () => {
   it("gives the implementation prompt the outcome first, GSD's execution, the sandbox builds and the hand-over without a push", async () => {
     const prompt = await loadPrompt("implementation", { team: "Catalog" });
 
-    assert.match(prompt.version, /^v2\+framework\./);
+    assert.match(prompt.version, /^v3\+framework\./);
     assert.match(prompt.text, /call `sandbox_open` and `sandbox_restore` once/);
+    assert.match(prompt.text, /Never hand over unbuilt code .* a restore or build failure the code can't fix is a blocker/);
+    assert.match(prompt.text, /\("unreachable"\) is retried in this run, not assumed/);
     assert.match(prompt.text, /a new NuGet package goes through `sandbox_restore` with `packages`, then a PackageReference in the worktree/);
     assert.doesNotMatch(prompt.text, /don't run in the worktree's shell/);
     assert.match(prompt.text, /How you work/);

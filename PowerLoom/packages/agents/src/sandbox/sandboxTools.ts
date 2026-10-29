@@ -1,12 +1,14 @@
 import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
-import type { CommandResult } from "@powerloom/sandbox";
+import type { CommandResult, SandboxAnswer } from "@powerloom/sandbox";
 import { z } from "zod";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
+import { isSandboxBuildCommand } from "./buildRouting";
+import { exitCodeOf, recordBuildRun } from "./buildRunLog";
 import { refusalOf } from "./commandRefusals";
 import { createEditTools } from "./editTools";
 import type { RunSandbox } from "./models/RunSandbox";
@@ -51,7 +53,7 @@ export function createSandboxTools(deps: AgentDeps, agent: AgentDefinition, cont
   const sync = worktree ? [syncTool(deps, context, access, sandbox, worktree)] : [];
 
   if (worktree && deps.runShellRoute) {
-    deps.runShellRoute.current = new SandboxShellRoute({ tools: { open, sync: sync[0], restore }, access, sandbox, worktree, outside: deps.outside, context }, access.buildCommands);
+    deps.runShellRoute.current = new SandboxShellRoute({ tools: { open, sync: sync[0], restore }, access, sandbox, worktree, outside: deps.outside, context, log: deps.runBuildLog ?? null }, access.buildCommands);
   }
 
   return [
@@ -119,9 +121,20 @@ function runCommandTool(deps: AgentDeps, context: OutsideAccessContext, access: 
 
       const answer = await access.client.run(sandbox.info.id, { command: input.command, cwd: input.cwd, timeoutMs: input.timeout ?? DEFAULT_TIMEOUT_MS });
 
+      recordBuildCommand(deps, access, input.command, answer);
+
       return answer.ok ? commandText(answer.value) : failure(answer);
     },
   });
+}
+
+// A build or test given to run_command counts like one from the worktree's shell.
+function recordBuildCommand(deps: AgentDeps, access: SandboxAccess, command: string, answer: SandboxAnswer<CommandResult>): void {
+  if (!deps.runBuildLog || !isSandboxBuildCommand(command, access.buildCommands)) {
+    return;
+  }
+
+  recordBuildRun(deps.runBuildLog, command, answer.ok ? exitCodeOf(answer.value) : null, answer.ok ? null : answer.message);
 }
 
 function closeTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox) {

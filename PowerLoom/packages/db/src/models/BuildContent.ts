@@ -1,4 +1,5 @@
 import type { BuildCheckpoint } from "./BuildCheckpoint";
+import type { BuildChecks } from "./BuildChecks";
 import type { BuildCommands } from "./BuildCommands";
 import type { BuildCommit } from "./BuildCommit";
 import type { BuildDeviation } from "./BuildDeviation";
@@ -19,6 +20,8 @@ export interface BuildContent {
   worktree: string;
   headSha: string | null;
   commands: BuildCommands;
+  /** Missing on builds saved before PowerLoom recorded the sandbox's builds and tests (2026-10-29). */
+  checks?: BuildChecks;
   plans: BuildPlan[];
   commits: BuildCommit[];
   deviations: BuildDeviation[];

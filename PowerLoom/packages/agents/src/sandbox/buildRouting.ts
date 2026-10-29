@@ -33,8 +33,8 @@ function isBuildSegment(segment: string, configured: string[]): boolean {
   return BUILD_COMMANDS.some((pattern) => pattern.test(segment)) || configured.some((entry) => startsWithCommand(segment, entry));
 }
 
-// The configured command itself, or with more arguments (`dotnet test App.sln --filter X`).
-function startsWithCommand(command: string, configured: string): boolean {
+/** The configured command itself, or with more arguments (`dotnet test App.sln --filter X`). */
+export function startsWithCommand(command: string, configured: string): boolean {
   const given = normalized(command);
   const expected = normalized(configured);
 

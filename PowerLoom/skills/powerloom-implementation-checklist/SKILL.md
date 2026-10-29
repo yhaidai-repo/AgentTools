@@ -12,6 +12,7 @@ description: "How the PowerLoom implementation agent builds an approved plan wit
 - `sandbox_open` and `sandbox_restore` once before the first execute-phase, so packages are restored before the executors build.
 - Builds and tests are plain Bash, from you and from GSD's executors: the shell runs them in the sandbox on a fresh sync of the worktree. Keep each a single command (or `cd <folder> && <command>`); a compound with other commands isn't routed.
 - A new NuGet package: `sandbox_restore` with `packages` first (the sandbox has no network otherwise), then the PackageReference in the worktree.
+- PowerLoom records each sandbox build and test: `write_implementation` refuses until the build command passed and the test command ran in this run. A restore or build failure the code can't fix ends the run blocked with the exact error, never a hand-over of unbuilt code; an earlier conversation's "feed unreachable" is retried, not assumed.
 
 ## Executing
 - One phase at a time, in roadmap order; GSD runs its waves in order. Don't restart a phase that is still working.
