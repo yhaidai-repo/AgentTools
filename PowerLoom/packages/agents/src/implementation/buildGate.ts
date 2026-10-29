@@ -1,4 +1,5 @@
 import type { BuildChecks, BuildCommands, BuildContent } from "@powerloom/db";
+import type { RunBuildLog } from "../sandbox/models/RunBuildLog";
 import { checkLine, hasPassed } from "./buildChecks";
 
 // What the agent does when write_implementation finds no successful build (pilot runs 4464, 4470, 4486: a restore
@@ -9,6 +10,13 @@ const BLOCKER_RULE = "A restore or sandbox failure the code can't fix (a feed, t
 export const BUILD_FIRST = `Run the build command in Bash (it runs in the run's sandbox on a fresh copy of the worktree) or with run_command after sandbox_sync; fix what fails in the worktree, commit, and call write_implementation again. ${BLOCKER_RULE}`;
 
 export const EXECUTE_FIRST = `Run Skill gsd-execute-phase for each phase with plans not done (its executors write each plan's SUMMARY.md); files edited by hand don't make a plan done. ${BLOCKER_RULE}`;
+
+/** The restore the run skipped (run 4491 built with --no-restore once and called the repo unbuildable). */
+export function restoreFirst(log: RunBuildLog, repo: string): string[] {
+  const isRestored = log.restores.some((restore) => restore.repo === repo);
+
+  return isRestored ? [] : [`No sandbox_restore of ${repo} ran in this run: restore first (sandbox_restore, with the solution or project as target when the repo's root has none), then build. Missing packages without a restore are no reason to stop.`];
+}
 
 export function donePlans(build: BuildContent): number {
   return build.plans.filter((plan) => plan.status === "done").length;

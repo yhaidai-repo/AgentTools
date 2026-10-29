@@ -2,7 +2,7 @@ import { defineTool, type ToolDefinition, type ToolResult } from "@agenttools/ru
 import { z } from "zod";
 import type { BuildContent } from "@powerloom/db";
 import { buildChecksOf } from "./buildChecks";
-import { BUILD_FIRST, EXECUTE_FIRST, checksText, donePlans, unbuiltProblem, withChecks } from "./buildGate";
+import { BUILD_FIRST, EXECUTE_FIRST, checksText, donePlans, restoreFirst, unbuiltProblem, withChecks } from "./buildGate";
 import { uatLine } from "./handOverPackage";
 import type { BuildDraft } from "./models/BuildDraft";
 import type { BuildTarget } from "./models/BuildTarget";
@@ -46,11 +46,11 @@ function writeImplementationTool(draft: BuildDraft, target: () => Promise<BuildT
 // PowerLoom, not the agent, says whether the branch was built: a configured build must have passed and a configured
 // test must have run in this run's sandbox, and at least one plan must be done by GSD, or nothing is saved.
 async function saveBuild(draft: BuildDraft, run: BuildTarget, reported: ReportedBuild): Promise<ToolResult> {
-  const checks = buildChecksOf(run.buildRuns, run.place.commands);
+  const checks = buildChecksOf(run.buildLog.runs, run.place.commands);
   const unbuilt = unbuiltProblem(checks, run.place.commands);
 
   if (unbuilt) {
-    return { text: `Not saved: ${unbuilt}.\n${BUILD_FIRST}`, isError: true };
+    return { text: [`Not saved: ${unbuilt}.`, ...restoreFirst(run.buildLog, run.place.repo), BUILD_FIRST].join("\n"), isError: true };
   }
 
   const reading = await readBuild(run.source, run.place, reported);

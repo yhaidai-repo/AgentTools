@@ -147,7 +147,7 @@ export class ImplementationWriter implements RunWriter {
     const { workspace, commands, outcome } = prepared;
     const place = { repo: workspace.repo.name, branch: workspace.branch, baseBranch: workspace.baseBranch, worktree: worktree.path, planVersion: outcome.planVersion, commands };
 
-    return { source: this.sourceAt(worktree.path), place, buildRuns: this.context.deps.runBuildLog?.runs ?? [] };
+    return { source: this.sourceAt(worktree.path), place, buildLog: this.context.deps.runBuildLog ?? { runs: [], restores: [] } };
   }
 }
 

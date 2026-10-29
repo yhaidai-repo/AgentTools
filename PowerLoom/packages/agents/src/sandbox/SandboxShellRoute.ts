@@ -2,7 +2,7 @@ import type { ShellRoute, ShellRouted } from "@agenttools/runtime";
 import type { CommandResult, SandboxAnswer } from "@powerloom/sandbox";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { recordOutsideCall } from "../outsideAccess";
-import { isSandboxBuildCommand } from "./buildRouting";
+import { isSandboxBuildCommand, withOwnExitCode } from "./buildRouting";
 import { exitCodeOf, recordBuildRun } from "./buildRunLog";
 import type { RoutedBuild } from "./models/RoutedBuild";
 import type { RunWorktree } from "./models/RunWorktree";
@@ -65,7 +65,7 @@ export class SandboxShellRoute implements ShellRoute {
 
     const repoFolder = `${this.parts.sandbox.info!.workspace}/${worktree.repo}`;
     const folder = sandboxFolderOf(worktree.path, cwd, repoFolder);
-    const sandboxCommand = withSandboxPaths(command, worktree.path, repoFolder);
+    const sandboxCommand = withOwnExitCode(withSandboxPaths(command, worktree.path, repoFolder));
     const answer = await this.loggedRun(sandboxCommand, folder, Math.max(timeoutMs ?? 0, ROUTED_TIMEOUT_MS));
 
     if (!answer.ok) {

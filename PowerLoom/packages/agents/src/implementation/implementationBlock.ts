@@ -43,6 +43,7 @@ function approvedBlock(prepared: PreparedImplementation, reviewId: string, planV
     `Branch: ${workspace?.branch ?? "-"} (from ${workspace?.baseBranch ?? "-"}); commit locally only, never push.`,
     `Build command: ${commands.build ? `\`${commands.build}\`` : "none configured"}`,
     `Test command: ${commands.test ? `\`${commands.test}\`` : "none configured"}`,
+    "Restore before the first build: sandbox_open, then sandbox_restore for this repo (with the solution or project as target when its root has none); missing packages mean restore, not an unbuildable repo.",
     buildRule(commands),
     "A restore or build failure is a blocker to report (write_result, status blocked, with the exact error), never a reason to hand over unbuilt code; an earlier conversation's \"feed unreachable\" or sandbox failure is to be retried in this run, not assumed.",
     "Your working folder is this branch's worktree, with the plan in .planning/ and .planning/config.json set for this run.",

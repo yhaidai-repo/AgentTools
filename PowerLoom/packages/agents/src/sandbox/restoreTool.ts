@@ -47,6 +47,7 @@ export function restoreTool(deps: AgentDeps, context: OutsideAccessContext, acce
       const answer = await reporter.watch(access.client.restore(id, input.repo, input.target ?? "", snapshot, access.feeds, access.packageHosts, input.packages ?? []));
 
       markRestored(sandbox, input.repo);
+      deps.runBuildLog?.restores.push({ repo: input.repo, ok: answer.ok && answer.value.ok, at: new Date().toISOString() });
 
       return answer.ok ? restoreText(answer.value) : failure(answer);
     },

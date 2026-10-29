@@ -1,14 +1,15 @@
 import type { AgentDefinition } from "@agenttools/config";
 import type { ToolDefinition } from "@agenttools/runtime";
-import type { CommandResult, SandboxAnswer } from "@powerloom/sandbox";
+import type { CommandResult } from "@powerloom/sandbox";
 import { z } from "zod";
 import type { AgentDeps } from "../models/AgentDeps";
 import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { RepoAccess } from "../models/RepoAccess";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
-import { isSandboxBuildCommand } from "./buildRouting";
+import { isSandboxBuildCommand, withOwnExitCode } from "./buildRouting";
 import { exitCodeOf, recordBuildRun } from "./buildRunLog";
+import { buildNotes, errorCountText } from "./routedOutput";
 import { refusalOf } from "./commandRefusals";
 import { createEditTools } from "./editTools";
 import type { RunSandbox } from "./models/RunSandbox";
@@ -119,22 +120,17 @@ function runCommandTool(deps: AgentDeps, context: OutsideAccessContext, access: 
         return noSandbox();
       }
 
-      const answer = await access.client.run(sandbox.info.id, { command: input.command, cwd: input.cwd, timeoutMs: input.timeout ?? DEFAULT_TIMEOUT_MS });
+      const isBuild = isSandboxBuildCommand(input.command, access.buildCommands ?? []);
+      const command = isBuild ? withOwnExitCode(input.command) : input.command;
+      const answer = await access.client.run(sandbox.info.id, { command, cwd: input.cwd, timeoutMs: input.timeout ?? DEFAULT_TIMEOUT_MS });
 
-      recordBuildCommand(deps, access, input.command, answer);
+      if (isBuild) {
+        recordBuildRun(deps.runBuildLog, input.command, answer.ok ? exitCodeOf(answer.value) : null, answer.ok ? null : answer.message);
+      }
 
-      return answer.ok ? commandText(answer.value) : failure(answer);
+      return answer.ok ? commandText(answer.value, isBuild) : failure(answer);
     },
   });
-}
-
-// A build or test given to run_command counts like one from the worktree's shell.
-function recordBuildCommand(deps: AgentDeps, access: SandboxAccess, command: string, answer: SandboxAnswer<CommandResult>): void {
-  if (!deps.runBuildLog || !isSandboxBuildCommand(command, access.buildCommands)) {
-    return;
-  }
-
-  recordBuildRun(deps.runBuildLog, command, answer.ok ? exitCodeOf(answer.value) : null, answer.ok ? null : answer.message);
 }
 
 function closeTool(deps: AgentDeps, context: OutsideAccessContext, access: SandboxAccess, sandbox: RunSandbox) {
@@ -215,9 +211,10 @@ function sourceOf(repos: RepoAccess, worktree: RunWorktree | null, name: string)
   return `commit ${(repos.commits[name] ?? "unknown").slice(0, 12)}`;
 }
 
-function commandText(result: CommandResult): OutsideToolResult {
+function commandText(result: CommandResult, isBuild: boolean): OutsideToolResult {
   const seconds = (result.durationMs / 1000).toFixed(1);
-  const status = result.timedOut ? `Timed out after ${seconds} s and was killed` : `Exit code ${result.exitCode} (${seconds} s)`;
+  const status = result.timedOut ? `Timed out after ${seconds} s and was killed` : `Exit code ${result.exitCode} (${seconds} s)${isBuild ? errorCountText(result.output) : ""}`;
+  const notes = isBuild ? buildNotes(result).map((note) => `[${note}]\n`).join("") : "";
 
-  return { text: `${status}\n${result.output}`, isError: result.timedOut, truncated: result.truncated };
+  return { text: `${status}\n${notes}${result.output}`, isError: result.timedOut, truncated: result.truncated };
 }

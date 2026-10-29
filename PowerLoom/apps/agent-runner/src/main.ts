@@ -90,7 +90,7 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
       const runWorktree: RunWorktreeSlot = { current: null };
       const runShellRoute: RunShellRouteSlot = { current: null };
       const runtimes = workspaceRuntimes(runDeps.runtimes, workspaceResolver(runDeps, runWorktree, runShellRoute));
-      const result = await runAgentTask({ ...runDeps, runtimes, runWorktree, runShellRoute, runBuildLog: { runs: [] }, stop }, job);
+      const result = await runAgentTask({ ...runDeps, runtimes, runWorktree, runShellRoute, runBuildLog: { runs: [], restores: [] }, stop }, job);
       return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
     },
     cleanups: [

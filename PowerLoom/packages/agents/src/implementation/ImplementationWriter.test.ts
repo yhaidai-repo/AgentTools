@@ -9,6 +9,7 @@ import type { TaskContext } from "../models/TaskContext";
 import type { CreatedTask } from "../taskCreation/models/CreatedTask";
 import type { WriterTarget } from "../toolset/models/WriterTarget";
 import { ImplementationWriter } from "./ImplementationWriter";
+import type { RunBuildLog } from "../sandbox/models/RunBuildLog";
 import type { SandboxBuildRun } from "../sandbox/models/SandboxBuildRun";
 import type { BuildSource } from "./models/BuildSource";
 import type { PreparedImplementation } from "./models/PreparedImplementation";
@@ -80,10 +81,15 @@ function recordingDb() {
   return { db, repoCache, inserted, updated, held };
 }
 
-function writerWith(db: PowerLoomDb, prepared: PreparedImplementation, runs: SandboxBuildRun[] = [TESTED], source: BuildSource = SOURCE): ImplementationWriter {
-  const context = { deps: { db, runWorktree: { current: { repo: "shop", path: WORKTREE } }, runBuildLog: { runs } } } as unknown as TaskContext;
+function writerWith(db: PowerLoomDb, prepared: PreparedImplementation, log: RunBuildLog = restoredLog(TESTED), source: BuildSource = SOURCE): ImplementationWriter {
+  const context = { deps: { db, runWorktree: { current: { repo: "shop", path: WORKTREE } }, runBuildLog: log } } as unknown as TaskContext;
 
   return new ImplementationWriter(context, () => source, async () => prepared);
+}
+
+// The run restored shop, then ran these builds and tests.
+function restoredLog(...runs: SandboxBuildRun[]): RunBuildLog {
+  return { runs, restores: [{ repo: "shop", ok: true, at: "2026-10-29T09:59:00.000Z" }] };
 }
 
 function sandboxRun(command: string, exitCode: number | null, problem: string | null = null): SandboxBuildRun {
@@ -183,10 +189,10 @@ describe("ImplementationWriter", () => {
   it("saves nothing while the repo's build command never passed or its test never ran in the run's sandbox", async () => {
     const recorded = recordingDb();
     const restoreFailed = sandboxRun("dotnet build Shop.sln", 1, "The package restore before it did not fully succeed: NU1301 Unable to load the service index");
-    const unbuilt = writerWith(recorded.db, BUILT, []);
-    const red = writerWith(recorded.db, BUILT, [restoreFailed]);
-    const untested = writerWith(recorded.db, BUILT, [sandboxRun("dotnet build Shop.sln", 0)]);
-    const fixed = writerWith(recorded.db, BUILT, [restoreFailed, sandboxRun("cd src && dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln --no-build", 0)]);
+    const unbuilt = writerWith(recorded.db, BUILT, { runs: [], restores: [] });
+    const red = writerWith(recorded.db, BUILT, restoredLog(restoreFailed));
+    const untested = writerWith(recorded.db, BUILT, restoredLog(sandboxRun("dotnet build Shop.sln", 0)));
+    const fixed = writerWith(recorded.db, BUILT, restoredLog(restoreFailed, sandboxRun("cd src && dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln --no-build", 0)));
 
     for (const writer of [unbuilt, red, untested, fixed]) {
       await writer.contextBlocks(TASK);
@@ -196,7 +202,8 @@ describe("ImplementationWriter", () => {
     const saved = await writeImplementation(fixed);
 
     assert.ok(refusals.every((refusal) => refusal.isError));
-    assert.match(refusals[0].text, /^Not saved: no build ran in this run's sandbox \(the repo's build command: `dotnet build Shop\.sln`\)\.\nRun the build command in Bash/);
+    assert.match(refusals[0].text, /^Not saved: no build ran in this run's sandbox \(the repo's build command: `dotnet build Shop\.sln`\)\.\nNo sandbox_restore of shop ran in this run: restore first .*\nRun the build command in Bash/);
+    assert.doesNotMatch(refusals[1].text, /No sandbox_restore/);
     assert.match(refusals[1].text, /^Not saved: the last build did not pass: `dotnet build Shop\.sln` failed with exit code 1 \(The package restore before it did not fully succeed: NU1301/);
     assert.match(refusals[1].text, /end with write_result, status blocked, quoting the exact error\. What an earlier conversation said about a feed or the sandbox is no reason/);
     assert.match(refusals[2].text, /^Not saved: no test ran in this run's sandbox \(the repo's test command: `dotnet test Shop\.sln`\)/);
@@ -210,7 +217,7 @@ describe("ImplementationWriter", () => {
       ...SOURCE,
       planning: { ...SOURCE.planning, inspect: async () => ({ schema_version: 1, phases: [{ dir: "01-archive", phase_id: "01", uat: { unresolved: [] }, plans: [{ id: "01-01", file: "01-01-PLAN.md", hasSummary: false, tasks: [{ name: "a" }] }, { id: "01-02", file: "01-02-PLAN.md", hasSummary: false, tasks: [{ name: "b" }] }] }] }) },
     };
-    const writer = writerWith(recorded.db, BUILT, [sandboxRun("dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln", 0)], handEdited);
+    const writer = writerWith(recorded.db, BUILT, restoredLog(sandboxRun("dotnet build Shop.sln", 0), sandboxRun("dotnet test Shop.sln", 0)), handEdited);
 
     await writer.contextBlocks(TASK);
     const refused = await writeImplementation(writer);
@@ -223,7 +230,7 @@ describe("ImplementationWriter", () => {
 
   it("hands over unbuilt when no build command is configured, naming the missing setting, and a failing test leaves gaps", async () => {
     const recorded = recordingDb();
-    const writer = writerWith(recorded.db, APPROVED, [sandboxRun("dotnet test", 1)]);
+    const writer = writerWith(recorded.db, APPROVED, restoredLog(sandboxRun("dotnet test", 1)));
 
     await writer.contextBlocks(TASK);
     const saved = await writeImplementation(writer);

@@ -76,7 +76,7 @@ describe("createSandboxTools", () => {
     const ran = await tool("run_command").handler({ command: "dotnet test", cwd: "orders-api" });
     const closed = await tool("sandbox_close").handler({});
 
-    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api base 0123456789abcdef", "run abc123 dotnet test", "remove abc123"]);
+    assert.deepEqual(calls, ["open powerloom-run-7 30", "upload abc123 orders-api base 0123456789abcdef", "run abc123 set -o pipefail; dotnet test", "remove abc123"]);
     assert.match(opened.text, /\/workspace\/orders-api \(commit 0123456789ab\)/);
     assert.match(opened.text, /Toolchains: dotnet 10, node 24/);
     assert.equal(ran.text, "Exit code 1 (2.5 s)\n1 failed");
