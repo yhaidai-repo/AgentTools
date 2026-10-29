@@ -24,6 +24,14 @@ const PUBLISHING_COMMANDS: { pattern: RegExp; label: string }[] = [
 const PATH_WORD = /^(?:[a-z]:[\\/]|[\\/])|(?:^|[\\/])\.\.(?:[\\/]|$)/i;
 // Home can't be resolved here; it is outside the folder in every setup this runtime runs in.
 const HOME_WORD = /^(?:~|\$home\b|\$env:userprofile\b|%userprofile%)/i;
+// A slash on its own is punctuation (`Bug 12 / PR 34`), never a path.
+const SLASHES_ONLY = /^[\\/]+$/;
+// Quoted text with spaces is prose or a pattern (a commit message, a grep pattern): a word of it names a path only when
+// it can be nothing else, a drive or UNC root, a Git Bash drive, two absolute segments (`/etc/passwd`), home or a climb.
+// `/api` or `~` in a sentence stays a word.
+const TEXT_PATH_WORD = /^(?:[a-z]:[\\/]|\\\\|\/[a-z]\/|[\\/][^\\/]+[\\/][^\\/])|(?:^|[\\/])\.\.(?:[\\/]|$)/i;
+const TEXT_HOME_WORD = /^(?:~[\\/]|\$home\b|\$env:userprofile\b|%userprofile%)/i;
+const QUOTED = /"((?:\\.|[^"\\])*)"|'([^']*)'/g;
 const NULL_DEVICES = ["/dev/null", "nul", "$null"];
 const WORD_SEPARATORS = /[\s;&|()<>"'`=,]+/;
 // A Git Bash path to a drive (`/d/repo`) on a Windows folder.
@@ -78,10 +86,27 @@ function checkCommand(folder: string, toolName: string, command: string): ToolPo
   return outsideWord ? outside(toolName, outsideWord) : { allow: true };
 }
 
+// A quoted string without spaces is one argument (`cat "/etc/passwd"`) and is checked like an unquoted word; quoted
+// text with spaces is checked with the stricter text rule.
 function pathWords(command: string): string[] {
-  const words = command.split(WORD_SEPARATORS);
+  const quoted = [...command.matchAll(QUOTED)].map((match) => match[1] ?? match[2]);
+  const isText = (value: string) => /\s/.test(value);
+  const argumentWords = [...wordsOf(command.replace(QUOTED, " ")), ...quoted.filter((value) => !isText(value))];
+  const textWords = quoted.filter(isText).flatMap(wordsOf);
 
-  return words.filter((word) => (PATH_WORD.test(word) || HOME_WORD.test(word)) && !NULL_DEVICES.includes(word.toLowerCase()));
+  return [...argumentWords.filter(isPathWord), ...textWords.filter(isPathInText)];
+}
+
+function wordsOf(text: string): string[] {
+  return text.split(WORD_SEPARATORS);
+}
+
+function isPathWord(word: string): boolean {
+  return (PATH_WORD.test(word) || HOME_WORD.test(word)) && !SLASHES_ONLY.test(word) && !NULL_DEVICES.includes(word.toLowerCase());
+}
+
+function isPathInText(word: string): boolean {
+  return (TEXT_PATH_WORD.test(word) || TEXT_HOME_WORD.test(word)) && !NULL_DEVICES.includes(word.toLowerCase());
 }
 
 function toFolderStyle(path: PlatformPath, target: string): string {

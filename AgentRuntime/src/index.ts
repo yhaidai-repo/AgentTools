@@ -5,7 +5,7 @@ export { RepoCache } from "./repos/RepoCache";
 export { git } from "./repos/git";
 export { secretsGuard } from "./adapters/claude/secretsGuard";
 export { workspaceGuard } from "./adapters/claude/workspaceGuard";
-export { commandSegments } from "./adapters/claude/shellAllowlist";
+export { WORKTREE_SHELL_RULE, commandSegments } from "./adapters/claude/shellAllowlist";
 export { createRepoTools } from "./repos/repoTools";
 export { defineTool } from "./defineTool";
 export { createDocTools } from "./tools/docTools";
