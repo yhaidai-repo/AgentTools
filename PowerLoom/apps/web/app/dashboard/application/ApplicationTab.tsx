@@ -37,7 +37,7 @@ export async function ApplicationTab({ status, vault, focus, mark }: Application
       {status && <StatePanels status={status} vault={vault} observability={observability} />}
       <DeadLetters letters={letters} />
       <PerformanceCharts history={performance} />
-      <TelemetryPanel state={observability} url={telemetryDashboardUrl()} />
+      <div className="gap-top"><TelemetryPanel state={observability} url={telemetryDashboardUrl()} /></div>
       <div className="section-label">Architecture</div>
       <ArchitectureScheme health={schemeHealth(status, { providers: await loadAiProviders(), mcpAnswers: await mcpAnswers(), observability })} focus={level} highlight={mark} />
     </>
