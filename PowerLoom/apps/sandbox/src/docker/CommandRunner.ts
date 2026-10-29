@@ -6,12 +6,10 @@ import { cutOutput } from "../sessions/cutOutput";
 import type { SessionRegistry } from "../sessions/SessionRegistry";
 import type { ContainerExec } from "./ContainerExec";
 import type { DiskWatch } from "./DiskWatch";
+import { deadlineAfter, underTimeout } from "./execDeadlines";
 
 const OUTPUT_DIR = `${WORKSPACE}/.out`;
 const MAX_COMMAND_CHARS = 30_000;
-const KILL_AFTER = "10s";
-// The backstop behind `timeout`: the stream is dropped this long after the command's own limit.
-const DEADLINE_MARGIN_MS = 30_000;
 // `timeout` exits 124 on its signal, 137 when it had to SIGKILL.
 const TIMED_OUT_CODES = new Set([124, 137]);
 
@@ -91,9 +89,9 @@ export class CommandRunner {
   private async runIn(cwd: string, request: CommandRequest): Promise<CommandResult> {
     const timeoutMs = Math.min(request.timeoutMs, this.maxCommandMs);
     const outputFile = posix.join(OUTPUT_DIR, `${++this.count}.log`);
-    const argv = ["timeout", `--kill-after=${KILL_AFTER}`, `${Math.ceil(timeoutMs / 1000)}s`, "bash", "-c", COMMAND_SCRIPT, "bash", request.command, outputFile];
+    const argv = underTimeout(["bash", "-c", COMMAND_SCRIPT, "bash", request.command, outputFile], timeoutMs);
     const started = Date.now();
-    const result = await this.exec.run(argv, { cwd, deadlineMs: timeoutMs + DEADLINE_MARGIN_MS });
+    const result = await this.exec.run(argv, { cwd, deadlineMs: deadlineAfter(timeoutMs) });
     const timedOut = TIMED_OUT_CODES.has(result.exitCode) && Date.now() - started >= timeoutMs;
     const output = cutOutput(result.stdout.toString("utf8") + result.stderr, MAX_COMMAND_CHARS, `; the whole output is in ${outputFile}`);
 

@@ -14,7 +14,9 @@ import { additionSteps } from "../restore/packageAdditions";
 import { probeRepo, restoreTarget } from "../restore/probeRepo";
 import { restorePlanOf } from "../restore/restorePlan";
 import { cutOutput } from "../sessions/cutOutput";
+import { RestoreBudget } from "../restore/RestoreBudget";
 import { ContainerExec } from "./ContainerExec";
+import { deadlineAfter, underTimeout } from "./execDeadlines";
 import { proxyTokenOf } from "../proxy/proxyToken";
 import type { RestoreQueue } from "./RestoreQueue";
 import { RESTORE_WORK, restoreContainerOptions } from "./sandboxContainerOptions";
@@ -27,6 +29,8 @@ const EXTRACT_SCRIPT = `mkdir -p -- "$1" && tar -x -C "$1"`;
 const NPMRC_SCRIPT = `cat > "$HOME/.npmrc"`;
 // A pass outlives its restore's time limit by this much, so a slow last step isn't cut off at the proxy.
 const PASS_MARGIN_MS = 5 * 60_000;
+// What `timeout` exits with on its signal, reported for a step there was no time left to run.
+const TIMED_OUT_CODE = 124;
 
 // A restore (design agent-sandbox, phase 3): in a container of its own, on the unchanged copy of a repo (the tar the
 // runner sends, never the agent's edited workspace), with the network through the egress proxy and the feeds'
@@ -42,13 +46,22 @@ export class PackageRestore {
 
   /** `options.hosts`: the vault's package hosts, the only ones the restore's pass opens at the proxy. */
   async restore(sandbox: SandboxInfo, what: { repo: string; target: string }, tar: Readable, options: RestoreOptions): Promise<Outcome<RestoreResult>> {
+    const budget = new RestoreBudget(this.config.restoreTimeoutMs);
     const prepared = this.prepare(what, options);
 
     if (!prepared.ok) {
       return prepared;
     }
 
-    return this.queue.run(this.volume, () => this.restoreInContainer(sandbox, prepared.value, tar, options));
+    return this.queue.run(this.volume, () => this.restoreInTurn(sandbox, prepared.value, tar, options, budget));
+  }
+
+  private restoreInTurn(sandbox: SandboxInfo, prepared: PreparedRestore, tar: Readable, options: RestoreOptions, budget: RestoreBudget): Promise<Outcome<RestoreResult>> {
+    if (budget.isUsedUp()) {
+      return Promise.resolve({ ok: false, reason: `The restore waited its whole time (${this.config.restoreTimeoutMs} ms) for the restores of the same package cache before it; call it again` });
+    }
+
+    return this.restoreInContainer(sandbox, prepared, tar, options, budget);
   }
 
   private prepare(what: { repo: string; target: string }, options: RestoreOptions): Outcome<PreparedRestore> {
@@ -71,13 +84,13 @@ export class PackageRestore {
     return additions.ok ? { ok: true, value: { repoRoot, where: where.value, additions: additions.value } } : additions;
   }
 
-  private async restoreInContainer(sandbox: SandboxInfo, prepared: PreparedRestore, tar: Readable, options: RestoreOptions): Promise<Outcome<RestoreResult>> {
+  private async restoreInContainer(sandbox: SandboxInfo, prepared: PreparedRestore, tar: Readable, options: RestoreOptions, budget: RestoreBudget): Promise<Outcome<RestoreResult>> {
     const container = await this.docker.createContainer(restoreContainerOptions(this.config, sandbox.image, this.proxyUrlFor(options.hosts), this.volume, sandbox.id, sandbox.owner, new Date(sandbox.expiresAt)));
 
     try {
       await container.start();
 
-      return await this.restoreIn(new ContainerExec(this.docker, container.id), prepared, tar, options.credentials);
+      return await this.restoreIn(new ContainerExec(this.docker, container.id), prepared, tar, options.credentials, budget);
     } finally {
       await container.remove({ force: true, v: true });
     }
@@ -97,9 +110,9 @@ export class PackageRestore {
     return url.toString().replace(/\/$/, "");
   }
 
-  private async restoreIn(exec: ContainerExec, prepared: PreparedRestore, tar: Readable, credentials: FeedCredential[]): Promise<Outcome<RestoreResult>> {
+  private async restoreIn(exec: ContainerExec, prepared: PreparedRestore, tar: Readable, credentials: FeedCredential[], budget: RestoreBudget): Promise<Outcome<RestoreResult>> {
     const { repoRoot, where } = prepared;
-    const extracted = await exec.run(["sh", "-c", EXTRACT_SCRIPT, "sh", repoRoot], { stdin: tar, deadlineMs: SETUP_DEADLINE_MS });
+    const extracted = await exec.run(["sh", "-c", EXTRACT_SCRIPT, "sh", repoRoot], { stdin: tar, deadlineMs: budget.deadlineWithin(SETUP_DEADLINE_MS) });
 
     if (extracted.exitCode !== 0) {
       throw new Error(`Copying the repo into the restore container failed: ${extracted.stderr.trim()}`);
@@ -117,7 +130,7 @@ export class PackageRestore {
     const steps: RestoreStepResult[] = [];
 
     for (const step of planned) {
-      steps.push(await this.runStep(exec, step, step.ecosystem === "dotnet" ? nugetEnv : []));
+      steps.push(await this.runStep(exec, step, step.ecosystem === "dotnet" ? nugetEnv : [], budget));
     }
 
     const skipped = planned.length === 0 ? [...plan.skipped, "Nothing to restore: no solution, project, lock file or deno.json here"] : plan.skipped;
@@ -142,10 +155,14 @@ export class PackageRestore {
     return nugetCredentialEnv(nugetSourcesOf(listing.stdout.toString("utf8")), credentials);
   }
 
-  private async runStep(exec: ContainerExec, step: RestoreStep, env: string[]): Promise<RestoreStepResult> {
-    const seconds = Math.ceil(this.config.restoreTimeoutMs / 1000);
+  private async runStep(exec: ContainerExec, step: RestoreStep, env: string[], budget: RestoreBudget): Promise<RestoreStepResult> {
+    if (budget.isUsedUp()) {
+      return { label: step.label, exitCode: TIMED_OUT_CODE, durationMs: 0, output: `Not run: the steps before it used up the restore's time (${this.config.restoreTimeoutMs} ms)` };
+    }
+
+    const limitMs = budget.remainingMs();
     const started = Date.now();
-    const result = await exec.run(["timeout", "--kill-after=10s", `${seconds}s`, ...step.argv], { cwd: step.cwd, env, deadlineMs: this.config.restoreTimeoutMs + 30_000 });
+    const result = await exec.run(underTimeout(step.argv, limitMs), { cwd: step.cwd, env, deadlineMs: deadlineAfter(limitMs) });
     const output = cutOutput(result.stdout.toString("utf8") + result.stderr, STEP_OUTPUT_CHARS, "");
 
     console.log(`restore step "${step.label}" ended with ${result.exitCode}`);

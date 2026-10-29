@@ -1,6 +1,15 @@
+import { checkRestoreFitsClient } from "./http/requestTimeouts";
 import type { SandboxConfig } from "./models/SandboxConfig";
 
 export function configFromEnv(): SandboxConfig {
+  const config = readConfig();
+
+  checkRestoreFitsClient(config);
+
+  return config;
+}
+
+function readConfig(): SandboxConfig {
   const docker = new URL((process.env.DOCKER_HOST ?? "tcp://docker-proxy:2375").replace(/^tcp:/, "http:"));
 
   return {

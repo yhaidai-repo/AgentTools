@@ -1,6 +1,7 @@
 import Docker from "dockerode";
 import { configFromEnv } from "./config";
 import { SandboxRegistry } from "./docker/SandboxRegistry";
+import { httpServerOptions } from "./http/requestTimeouts";
 import { SandboxHttpServer } from "./http/SandboxHttpServer";
 import { SandboxRoutes } from "./http/SandboxRoutes";
 
@@ -15,7 +16,7 @@ const registry = new SandboxRegistry(docker, config);
 
 await registry.removeLeftovers();
 
-const server = new SandboxHttpServer(new SandboxRoutes(registry), docker, config.token);
+const server = new SandboxHttpServer(new SandboxRoutes(registry), docker, config.token, httpServerOptions(config));
 const reaper = setInterval(() => void reapExpired(), REAP_EVERY_MS);
 
 server.listen(config.port);

@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerOptions, type ServerResponse } from "node:http";
 import type Docker from "dockerode";
 import { BadRequest } from "./BadRequest";
 import { isAuthorized, sendJson, sendProblem } from "./httpIo";
@@ -12,8 +12,9 @@ export class SandboxHttpServer {
     private readonly routes: SandboxRoutes,
     private readonly docker: Docker,
     private readonly token: string,
+    options: ServerOptions,
   ) {
-    this.server = createServer((request, response) => void this.serve(request, response));
+    this.server = createServer(options, (request, response) => void this.serve(request, response));
   }
 
   listen(port: number): void {

@@ -20,15 +20,14 @@ import type { SessionOutput } from "./models/SessionOutput";
 import type { SessionStartRequest } from "./models/SessionStartRequest";
 import type { StdinRequest } from "./models/StdinRequest";
 import type { WriteFileRequest } from "./models/WriteFileRequest";
-import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER } from "./sandboxConstants";
+import { FEED_CREDENTIALS_HEADER, PACKAGE_ADDITIONS_HEADER, PACKAGE_HOSTS_HEADER, RESTORE_CALL_TIMEOUT_MS } from "./sandboxConstants";
 import { waitingDispatcher } from "./waitingDispatcher";
 
 // Every call but a command answers in seconds; a command's call waits for its own timeout plus this margin.
 const REQUEST_TIMEOUT_MS = 60_000;
 const COMMAND_MARGIN_MS = 30_000;
-// Copying a repo in streams its whole checkout; a restore downloads its packages too.
+// Copying a repo in streams its whole checkout; a restore downloads its packages too (RESTORE_CALL_TIMEOUT_MS).
 const UPLOAD_TIMEOUT_MS = 10 * 60_000;
-const RESTORE_TIMEOUT_MS = 30 * 60_000;
 const MAX_PROBLEM_CHARS = 300;
 
 // The sandbox service (apps/sandbox): the only PowerLoom service with Docker access. Every call carries its token.
@@ -62,7 +61,7 @@ export class SandboxClient {
     const path = `/sandboxes/${encodeURIComponent(id)}/restore/${encodeURIComponent(repo)}?target=${encodeURIComponent(target)}`;
     const headers = { [FEED_CREDENTIALS_HEADER]: base64Json(credentials), [PACKAGE_HOSTS_HEADER]: base64Json(hosts), [PACKAGE_ADDITIONS_HEADER]: base64Json(additions) };
 
-    return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_TIMEOUT_MS, headers });
+    return this.send("PUT", path, { body: tar, contentType: "application/x-tar", timeoutMs: RESTORE_CALL_TIMEOUT_MS, headers });
   }
 
   run(id: string, request: CommandRequest): Promise<SandboxAnswer<CommandResult>> {
