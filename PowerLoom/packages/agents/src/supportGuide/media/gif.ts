@@ -1,3 +1,4 @@
+/// <reference path="./gifenc.d.ts" />
 import gifenc from "gifenc";
 import type { Raster } from "./models/Raster";
 
