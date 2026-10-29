@@ -7,6 +7,7 @@ import { composeGif, gifRegionProblem } from "./media/derive";
 import { encodeGif } from "./media/gif";
 import { encodePng } from "./media/raster";
 import { REGION_INPUT } from "./imageTools";
+import { zoomProblem } from "./media/zoom";
 
 const SEGMENT = z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/).describe("Segment name; the GIF is saved as images/<name>.gif");
 
@@ -43,11 +44,12 @@ export function gifTools(host: GuideMediaHost) {
     }),
     defineTool({
       name: "add_guide_gif",
-      description: "Build images/<name>.gif from the stopped segment: regions first (per frame or all), then scaling, then the drawn pointer (interpolated between targets), brief fading click pulses and pauses. Returns the key frames to inspect; approve with approve_guide_image. Keep a static screenshot and the written steps next to every GIF.",
+      description: "Build images/<name>.gif from the stopped segment. Use zooms to enlarge the control and its visible result on selected frames; leave an overview before/after for orientation. Prefer short useful workflows over long navigation tours. Masks apply before zoom; the cursor and brief click pulse follow the crop. Returns key frames for inspection and approve_guide_image. Keep a static screenshot and concise written steps beside the GIF.",
       input: {
         name: SEGMENT, caption: z.string().min(1), alt: z.string().min(1), buildIdentity: z.string().min(1),
         regions: z.array(REGION_INPUT.extend({ frames: z.array(z.number().int().min(0)).min(1).optional() })).max(40).default([]),
         maxWidth: z.number().int().min(320).max(1280).default(960),
+        zooms: z.array(z.object({ frames: z.array(z.number().int().min(0)).min(1), x: z.number().int().min(0), y: z.number().int().min(0), width: z.number().int().positive(), height: z.number().int().positive() })).max(13).default([]).describe("Zoom selected captured frames to a rectangle in original screenshot pixels. Other frames remain overview. Choose readable controls/results; masks apply before zoom, pointer follows the crop, output size stays fixed."),
       },
       handler: async (input) => {
         const blocked = host.mediaProblem();
@@ -58,19 +60,19 @@ export function gifTools(host: GuideMediaHost) {
         }
 
         const regions: GuideRegion[] = input.regions ?? [];
-        const problem = gifRegionProblem(recording.frames, regions);
+        const problem = gifRegionProblem(recording.frames, regions) ?? zoomProblem(recording.frames, input.zooms ?? []);
 
         if (problem) {
           return error(problem);
         }
 
-        const composed = composeGif(recording.frames, regions, input.maxWidth ?? 960);
+        const composed = composeGif(recording.frames, regions, input.maxWidth ?? 960, input.zooms ?? []);
         const content = encodeGif(composed.output);
         const first = composed.keyFrames[0];
         const saved = await host.saveMedia({
           name: input.name + ".gif", mediaType: "image/gif", width: first.width, height: first.height, caption: input.caption, alt: input.alt,
           source: "recording:" + input.name, sourceCase: recording.caseName, buildIdentity: input.buildIdentity, approved: false,
-          transform: { sourceSha256: recording.frames.map((frame) => frame.rawSha256), captureMasks: maskCount(recording.frames), regions, crop: null, scale: first.width / recording.frames[0].raster.width },
+          transform: { sourceSha256: recording.frames.map((frame) => frame.rawSha256), captureMasks: maskCount(recording.frames), regions, crop: null, scale: first.width / recording.frames[0].raster.width, zooms: input.zooms ?? [] },
           timeline: composed.timeline,
         }, content);
 
@@ -79,8 +81,8 @@ export function gifTools(host: GuideMediaHost) {
         }
 
         return {
-          text: `images/${saved.name} saved (${saved.width}×${saved.height}, ${composed.output.length} frames, ${saved.bytes} bytes, sha256 ${saved.sha256}). These are its key frames; the frames between them move the pointer and fade a brief click pulse. If no sensitive value shows, call approve_guide_image with this name and sha256.`,
-          images: composed.keyFrames.map((raster) => ({ data: encodePng(raster).toString("base64"), mimeType: "image/png" })),
+          text: `images/${saved.name} saved (${saved.width}×${saved.height}, ${composed.output.length} frames, ${saved.bytes} bytes, sha256 ${saved.sha256}). Zoom changes ease over 300 ms, then hold the final view; the click pulse follows the move. Inspect the full-source previews too: camera motion can reveal pixels outside the target crop. Preview order:\n${composed.inspectionFrames.map((frame, index) => `${index + 1}. ${frame.label}`).join("\n")}\nIf no sensitive value shows anywhere along the camera path, call approve_guide_image with this name and sha256.`,
+          images: composed.inspectionFrames.map(({ raster }) => ({ data: encodePng(raster).toString("base64"), mimeType: "image/png" })),
         };
       },
     }),

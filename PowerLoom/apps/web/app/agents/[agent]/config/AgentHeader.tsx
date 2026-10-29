@@ -22,6 +22,7 @@ interface AgentHeaderProps {
   totals?: AgentTotals;
   counts?: RunCounts;
   spentTodayUsd: number | null;
+  budgetReservedUsd?: number;
   paused: boolean;
   /** Its runs in progress, oldest first. */
   running: { id: number; stage: string; itemId: string | null; pbiId: number | null; startedAt: Date }[];
@@ -30,7 +31,7 @@ interface AgentHeaderProps {
 // An agent's header, like the PBI page's (user decision 2026-10-18): where it sits, its colour, name and state, what it
 // does, Run now, its facts, and four numbers of the last 30 days with today's spend against its daily budget. While it
 // works, the PBI and task pages' running strip, one per run in progress (user, 2026-10-21).
-export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused, running }: AgentHeaderProps) {
+export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, budgetReservedUsd = 0, paused, running }: AgentHeaderProps) {
   return (
     <>
       <Breadcrumbs crumbs={[{ label: "Agents", href: agentsUrl({ tab: "overview" }) }, { label: agent.label }]} />
@@ -45,7 +46,7 @@ export function AgentHeader({ agent, slot, totals, counts, spentTodayUsd, paused
           <div className="hero-actions"><RunNowButton agentId={agent.id} disabled={paused || !agent.enabled} /></div>
         </div>
         <Facts agent={agent} counts={counts} />
-        <Stats agent={agent} totals={totals} counts={counts} spentTodayUsd={spentTodayUsd} />
+        <Stats agent={agent} totals={totals} counts={counts} spentTodayUsd={spentTodayUsd} budgetReservedUsd={budgetReservedUsd} />
         {running.map((run) => <RunningStrip key={run.id} run={run} itemHref={run.itemId ? itemPath({ id: run.itemId, pbiId: run.pbiId }) : null} />)}
       </section>
     </>
@@ -63,7 +64,7 @@ function Facts({ agent, counts }: { agent: AgentDefinition; counts?: RunCounts }
   );
 }
 
-function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinition; totals?: AgentTotals; counts?: RunCounts; spentTodayUsd: number | null }) {
+function Stats({ agent, totals, counts, spentTodayUsd, budgetReservedUsd }: { agent: AgentDefinition; totals?: AgentTotals; counts?: RunCounts; spentTodayUsd: number | null; budgetReservedUsd: number }) {
   const cost = totals?.costUsd ?? 0;
   const failures = counts?.failures ?? 0;
 
@@ -71,8 +72,8 @@ function Stats({ agent, totals, counts, spentTodayUsd }: { agent: AgentDefinitio
     <div className="hero-stats item-stats">
       <HeroStat label="Runs · 30 days" value={String(counts?.runs ?? 0)} />
       <HeroStat label="Failed" value={String(failures)} tone={failures > 0 ? "error" : undefined} />
-      <HeroStat label="Cost · 30 days" value={formatUsd(cost, totals?.accountingComplete)} note={totals?.runs ? `${formatUsd(average(cost, totals.runs), totals.accountingComplete)} a run` : undefined} />
-      <HeroStat label="Today" value={formatUsd(spentTodayUsd)} note={`of ${formatUsd(agent.budgets.dailyUsd)}`} tone={isNearBudget(spentTodayUsd, agent.budgets.dailyUsd) ? "warn" : undefined}>
+      <HeroStat label="Cost · 30 days" value={formatUsd(cost, totals?.accountingComplete)} note={totals?.accountingComplete === false ? "Final usage is missing for an interrupted run." : totals?.runs ? `${formatUsd(average(cost, totals.runs))} a run` : undefined} />
+      <HeroStat label="Budget · today" value={formatUsd(spentTodayUsd)} note={spentTodayUsd === null ? `of ${formatUsd(agent.budgets.dailyUsd)} · New runs paused until accounting is recovered or the daily budget resets.` : `of ${formatUsd(agent.budgets.dailyUsd)}${budgetReservedUsd > 0 ? ` · Includes ${formatUsd(budgetReservedUsd)} reserved for incomplete usage.` : ""}`} tone={isNearBudget(spentTodayUsd, agent.budgets.dailyUsd) ? "warn" : undefined}>
         <div className="budget-meter"><b style={{ width: `${budgetFill(spentTodayUsd, agent.budgets.dailyUsd) * 100}%` }} /></div>
       </HeroStat>
     </div>

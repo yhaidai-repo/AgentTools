@@ -8,7 +8,7 @@ import { NoVault } from "@/components/NoVault";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { connectedModels, loadAiProviders } from "@/lib/aiProviders";
 import { loadAgentTotals } from "@/lib/agentTotals";
-import { spentToday } from "@/lib/budgetUsage";
+import { budgetReservedToday, spentToday } from "@/lib/budgetUsage";
 import { currentVault } from "@/lib/currentVault";
 import { fixedPeriodStart } from "@/lib/ranges";
 import { loadRunCounts } from "@/lib/runCounts";
@@ -50,6 +50,7 @@ export default async function AgentConfigPage({ params }: { params: Promise<{ ag
         totals={(await loadAgentTotals(since, vault)).get(agent.id)}
         counts={(await loadRunCounts(since, vault)).get(agent.id)}
         spentTodayUsd={spent}
+        budgetReservedUsd={await budgetReservedToday(agent.id)}
         paused={isPaused(await store.getGlobal())}
         running={await loadRunningRuns(agent.id, vault)}
       />

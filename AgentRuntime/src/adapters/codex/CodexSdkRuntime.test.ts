@@ -143,6 +143,33 @@ test("does not start a child for an already aborted request", async () => {
   }
 });
 
+test("recovers turn-limit accounting only from a matching settled response ledger", async () => {
+  for (const mode of ["settled", "unmetered", "crash"] as const) {
+    const home = await mkdtemp(join(tmpdir(), "codex-settled-"));
+    try {
+      const totals = { input_tokens: 100, cached_input_tokens: 70, output_tokens: 8 };
+      await mkdir(join(home, "sessions"), { recursive: true });
+      const entries = [
+        { type: "response_item", payload: { type: "custom_tool_call" } },
+        { type: "token_usage_record", payload: { thread_token_usage: totals } },
+        { type: "response_item", payload: { type: "custom_tool_call_output" } },
+        { type: "event_msg", payload: { type: "token_count", info: { total_token_usage: totals } } },
+        ...(mode === "unmetered" ? [{ type: "response_item", payload: { type: "message" } }] : []),
+      ];
+      await writeFile(join(home, "sessions", "rollout-date-thread-settled.jsonl"), entries.map(e => JSON.stringify(e)).join("\n") + "\n");
+      const runtime = new CodexSdkRuntime({ codexHome: home }, fake([
+        { type: "thread.started", thread_id: "thread-settled" },
+        { type: "item.completed", item: { id: "message", type: "agent_message", text: "limit" } },
+      ], false, mode === "crash"));
+      const output = await collect(runtime.run({ ...request(), limits: { maxTurns: 0, timeoutMs: 2000 } }));
+      const result = output.filter(e => e.type === "result")[0];
+      assert.equal(result.reason, "max-turns");
+      assert.equal(result.usageComplete, mode === "settled");
+      assert.deepEqual(output.filter(e => e.type === "usage").map(e => [e.inputTokens, e.cacheReadTokens, e.outputTokens]), [[30, 70, 8]]);
+    } finally { await rm(home, { recursive: true, force: true }); }
+  }
+});
+
 test("preserves buffered measured usage after enforcing a turn cap", async () => {
   const home = await mkdtemp(join(tmpdir(), "codex-capped-usage-"));
   try {

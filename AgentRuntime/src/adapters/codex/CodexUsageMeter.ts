@@ -1,6 +1,7 @@
 import type { EventBody } from "../../EventSequence";
 import type { CodexRollouts } from "./CodexRollouts";
 import type { CodexTokenTotals } from "./models/CodexTokenTotals";
+import { equalTotals, validTotals } from "./settledUsage";
 
 const NONE: CodexTokenTotals = { input: 0, cachedInput: 0, output: 0 };
 
@@ -14,17 +15,26 @@ export class CodexUsageMeter {
   private reported: CodexTokenTotals = NONE;
   private hasReported = false;
   private isOff = false;
+  private baselineKnown = true;
+  private monotonic = true;
 
   constructor(private readonly rollouts: CodexRollouts, private readonly model: string) {}
 
   /** A resumed thread: what it had used before this run isn't this run's. */
   async begin(resumedThread: string | null): Promise<void> {
-    this.reported = resumedThread ? (await this.totals(resumedThread)) ?? NONE : NONE;
+    const baseline = resumedThread ? await this.totals(resumedThread) : NONE;
+    this.baselineKnown = baseline !== null && validTotals(baseline);
+    this.reported = this.baselineKnown ? baseline! : NONE;
   }
 
   /** What the thread used since the last report, as a usage event; none when nothing new is in the rollout. */
   async usage(threadId: string | null): Promise<EventBody[]> {
     const totals = this.isOff || !threadId ? null : await this.totals(threadId);
+
+    if (totals && (!validTotals(totals) || totals.input < this.reported.input || totals.cachedInput < this.reported.cachedInput || totals.output < this.reported.output || totals.cachedInput - this.reported.cachedInput > totals.input - this.reported.input)) {
+      this.monotonic = false;
+      return [];
+    }
 
     if (!totals || (totals.input <= this.reported.input && totals.output <= this.reported.output)) {
       return [];
@@ -50,6 +60,12 @@ export class CodexUsageMeter {
     this.isOff = true;
 
     return turnUsage;
+  }
+
+  async settledAtTurnLimit(threadId: string | null): Promise<boolean> {
+    if (!threadId || !this.baselineKnown || !this.monotonic || !this.hasReported || this.isOff) return false;
+    const totals = await this.rollouts.settledTotals(threadId);
+    return totals !== null && equalTotals(totals, this.reported);
   }
 
   private async totals(threadId: string): Promise<CodexTokenTotals | null> {

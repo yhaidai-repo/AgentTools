@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 import type { CodexTokenCount } from "./models/CodexTokenCount";
 import type { CodexTokenTotals } from "./models/CodexTokenTotals";
 import { objectOf } from "./codexWindows";
+import { SettledUsage } from "./settledUsage";
 
 export class CodexRollouts {
   constructor(private readonly codexHome: string) {}
@@ -63,6 +64,17 @@ export class CodexRollouts {
     }
 
     return latest;
+  }
+
+  /** Only call after the SDK process has stopped at a max-turn completed-item boundary. */
+  async settledTotals(threadId: string): Promise<CodexTokenTotals | null> {
+    try {
+      const path = await this.findThread(threadId);
+      if (!path) return null;
+      const evidence = new SettledUsage();
+      for await (const entry of this.entries(path)) evidence.add(entry);
+      return evidence.result();
+    } catch { return null; }
   }
 
   private async readLatest(threadId?: string): Promise<CodexTokenCount | null> {

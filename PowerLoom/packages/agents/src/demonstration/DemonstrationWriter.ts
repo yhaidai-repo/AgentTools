@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { defineTool } from "@agenttools/runtime";
 import { guideAsset, localItem } from "@powerloom/db";
-import { guideImageReferences, guideMediaTypeOf, guideReportSchema, readGuideRequest, type GuideImage, type GuideReport, type GuideRequest } from "@powerloom/core";
+import { guideMediaTypeOf, guideReportSchema, readGuideRequest, type GuideImage, type GuideReport, type GuideRequest } from "@powerloom/core";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { ReadLog } from "../evidence/ReadLog";
 import type { TaskContext } from "../models/TaskContext";
@@ -17,6 +17,7 @@ import type { GuideMediaHost } from "./models/GuideMediaHost";
 import type { NewGuideMedia } from "./models/NewGuideMedia";
 import { buildGuidePackage } from "./package";
 import { guideProblems } from "./validation";
+import { referencedImages } from "./referencedImages";
 
 export const DEMONSTRATION_INTEGRATION = "writeDemonstrations";
 const MAX_MEDIA = 20;
@@ -123,8 +124,7 @@ export class DemonstrationWriter implements RunWriter, GuideMediaHost {
     }
 
     const report = this.committedReport(target.stoppedEarly);
-    const referenced = new Set(guideImageReferences(report.markdown).urls.map((url) => url.slice(7)));
-    const images = this.checkpoint.images.filter((i) => referenced.has(i.name));
+    const images = referencedImages(report, this.checkpoint.images);
     const contents = await this.assetContents(target, images);
     const id = "SG-" + target.runId;
     const pkg = buildGuidePackage({ packageId: id, taskId: target.task.id, runId: target.runId, pbiId: target.task.pbiId, vault: target.task.vault, request: this.request, guide: report, images, contents, commits: target.repos.commits });
@@ -156,7 +156,7 @@ export class DemonstrationWriter implements RunWriter, GuideMediaHost {
           return error(this.inputProblem ?? "Guide input missing.");
         }
 
-        const problems = guideProblems(input, this.request, this.referencedImages(input.markdown), log, this.capture.runOwner ?? "powerloom-run-" + this.runId);
+        const problems = guideProblems(input, this.request, referencedImages(input, this.checkpoint.images), log, this.capture.runOwner ?? "powerloom-run-" + this.runId);
 
         if (problems.length) {
           return error(problems.join("; "));
@@ -185,12 +185,6 @@ export class DemonstrationWriter implements RunWriter, GuideMediaHost {
     return { ...saved, report: { ...saved.report, status: "partial", blockers: [...saved.report.blockers, "Revalidate the runtime and recapture media in this run before ready."] } };
   }
 
-  private referencedImages(markdown: string): GuideImage[] {
-    const names = new Set(guideImageReferences(markdown).urls.map((url) => url.slice(7)));
-
-    return this.checkpoint.images.filter((image) => names.has(image.name));
-  }
-
   // A ready report that no longer passes is committed as partial, with the reasons, instead of failing the run.
   private committedReport(stoppedEarly: boolean): GuideReport {
     const report = this.checkpoint.report!;
@@ -203,7 +197,7 @@ export class DemonstrationWriter implements RunWriter, GuideMediaHost {
       return report;
     }
 
-    const problems = this.log ? guideProblems(report, this.request!, this.referencedImages(report.markdown), this.log, this.capture.runOwner ?? "powerloom-run-" + this.runId) : ["Read evidence is unavailable"];
+    const problems = this.log ? guideProblems(report, this.request!, referencedImages(report, this.checkpoint.images), this.log, this.capture.runOwner ?? "powerloom-run-" + this.runId) : ["Read evidence is unavailable"];
 
     return problems.length ? { ...report, status: "partial", blockers: [...report.blockers, ...problems] } : report;
   }

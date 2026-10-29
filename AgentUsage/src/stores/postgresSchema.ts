@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS agent_usage.usage_record (
 );
 ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS subscription jsonb NOT NULL DEFAULT '[]';
 ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS accounting_complete boolean NOT NULL DEFAULT true;
+ALTER TABLE agent_usage.usage_record ADD COLUMN IF NOT EXISTS budget_reservation_usd numeric(14, 6) CHECK (budget_reservation_usd > 0 AND budget_reservation_usd < 'Infinity'::numeric);
 CREATE INDEX IF NOT EXISTS usage_record_started_idx ON agent_usage.usage_record (started_at);
 CREATE INDEX IF NOT EXISTS usage_record_labels_idx ON agent_usage.usage_record USING gin (labels);
 

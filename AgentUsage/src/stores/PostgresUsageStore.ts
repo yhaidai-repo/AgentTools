@@ -20,6 +20,7 @@ export class PostgresUsageStore implements UsageStore {
   }
 
   async saveRecord(record: UsageRecord): Promise<void> {
+    // SQL reservations are operator-only: ordinary run completion must not grant itself budget credit.
     await this.pool.query(
       `INSERT INTO agent_usage.usage_record (run_id, labels, started_at, ended_at, duration_ms, turns, outcome, error,
          input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd, provider_cost_usd, models, subscription, accounting_complete)
@@ -44,7 +45,7 @@ export class PostgresUsageStore implements UsageStore {
 
   async costSince(from: Date, match: UsageLabels): Promise<number> {
     const result = await this.pool.query(
-      "SELECT coalesce(sum(cost_usd), 0) AS cost, bool_and(accounting_complete) AS complete FROM agent_usage.usage_record WHERE started_at >= $1 AND labels @> $2",
+      "SELECT coalesce(sum(CASE WHEN accounting_complete THEN cost_usd ELSE budget_reservation_usd END), 0) AS cost, bool_and(accounting_complete OR (budget_reservation_usd IS NOT NULL AND budget_reservation_usd > 0 AND budget_reservation_usd >= cost_usd AND budget_reservation_usd < 'Infinity'::numeric)) AS complete FROM agent_usage.usage_record WHERE started_at >= $1 AND labels @> $2",
       [from, JSON.stringify(match)],
     );
 
@@ -128,6 +129,7 @@ function toRecord(row: Row): UsageRecord {
     cacheWriteTokens: Number(row.cache_write_tokens),
     costUsd: Number(row.cost_usd),
     accountingComplete: row.accounting_complete !== false,
+    budgetReservationUsd: row.budget_reservation_usd == null ? null : Number(row.budget_reservation_usd),
     providerCostUsd: row.provider_cost_usd === null ? null : Number(row.provider_cost_usd),
     models: row.models,
     subscription: row.subscription ?? [],

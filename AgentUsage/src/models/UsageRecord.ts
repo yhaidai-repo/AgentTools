@@ -17,6 +17,8 @@ export interface UsageRecord extends TokenTotals {
   costUsd: number;
   /** False means costUsd is only the measured lower bound; it must not approve a daily budget. Legacy records omit it. */
   accountingComplete?: boolean;
+  /** Explicitly authorized provisional charge for budget checks only; does not complete usage accounting. */
+  budgetReservationUsd?: number | null;
   /** What the provider reported, for comparison only. */
   providerCostUsd: number | null;
   models: ModelUsage[];

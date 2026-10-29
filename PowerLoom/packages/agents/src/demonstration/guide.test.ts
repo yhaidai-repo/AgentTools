@@ -7,6 +7,7 @@ import { recordReads } from "../evidence/recordReads";
 import { guideProblems } from "./validation";
 import { demonstrationTools } from "./toolPolicy";
 import { buildGuidePackage } from "./package";
+import { referencedImages } from "./referencedImages";
 
 const request = guideRequestSchema.parse({ mode: "remote-url", url: "https://app.example.test", allowedOrigins: ["https://app.example.test"], audience: "Support", environment: "dev", permittedActions: "view", data: "demo", owner: "Support" });
 const image: GuideImage = { id: "asset", name: "one.png", sha256: "abc", bytes: 3, width: 10, height: 10, caption: "Form", alt: "Form", source: "S2", sourceOwner: "powerloom-run-1", sourceCase: "demo", inspectedAt: "2026-10-29T00:00:00.000Z", buildIdentity: "unknown" };
@@ -14,6 +15,29 @@ function report(source: string): GuideReport {
   return { title: "Demo", status: "ready", summary: "Observed", markdown: "# Demo\n## Overview\nView the form.\n## Before you begin\nSupport access.\n## Procedure\n1. Open the form.\n![Form](images/one.png)\n## Confirm completion\nThe form is visible.", buildIdentity: "unknown", buildSource: source, identityBasis: "observed", releaseVerified: false, verifiedAt: "2026-10-29T00:00:00.000Z", configuration: "Support/en/1280x720", workflows: [{ id: "one", title: "View", state: "observed", steps: ["Open"], expected: "Form", observed: "Form visible", source, images: ["one.png"] }], rules: [], blockers: [], verification: "Observed form." };
 }
 const metadata = { tool: "browser_snapshot", resultText: "- Page URL: https://app.example.test\n- Form", fresh: true };
+describe("workflow media references", () => {
+  it("accepts saved workflow images before draft Markdown embeds them", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    const draft = { ...report(source), status: "partial" as const, markdown: "# Draft\nPreparing the page." };
+    const selected = referencedImages(draft, [image, { ...image, name: "unused.png", sourceOwner: "old-run" }]);
+    assert.deepEqual(selected.map(i => i.name), ["one.png"]);
+    assert.deepEqual(guideProblems(draft, request, selected, log, image.sourceOwner), []);
+  });
+  it("still refuses missing workflow files and unapproved or stale workflow-only media", () => {
+    const log = new ReadLog("Task"), source = log.add(metadata.resultText, metadata);
+    const ready = report(source);
+    ready.markdown = ready.markdown.replace("![Form](images/one.png)", "Form shown in the workflow attachment.");
+    assert.ok(guideProblems(ready, request, referencedImages(ready, []), log, image.sourceOwner).some(p => p === "Unknown workflow image: one.png"));
+    assert.ok(guideProblems(ready, request, referencedImages(ready, [{ ...image, approved: false }]), log, image.sourceOwner).some(p => p.includes("approve")));
+    assert.ok(guideProblems(ready, request, referencedImages(ready, [{ ...image, sourceOwner: "old-run" }]), log, image.sourceOwner).some(p => p.includes("Recapture")));
+  });
+  it("deduplicates workflow and Markdown assets while retaining workflow-only GIFs for packaging", () => {
+    const guide = report("S1");
+    guide.workflows[0].images.push("steps.gif");
+    const saved = [image, { ...image, name: "steps.gif", mediaType: "image/gif" as const }, { ...image, name: "unused.png" }];
+    assert.deepEqual(referencedImages(guide, saved).map(i => i.name), ["one.png", "steps.gif"]);
+  });
+});
 describe("guide readiness and handoff", () => {
   it("rejects S0, non-browser input text and restored browser evidence", () => {
     const log = new ReadLog("- Page URL: https://app.example.test");
@@ -54,6 +78,14 @@ describe("guide readiness and handoff", () => {
   });
 });
 describe("tool provenance and remote boundaries", () => {
+  it("directs a blank new case to the existing allowed URL without granting another origin", async () => {
+    const tools: ToolDefinition<any>[] = [{ name: "browser_snapshot", input: {}, description: "", handler: async () => ({ text: "- Page URL: about:blank\n- empty page" }) }];
+    const result = await demonstrationTools(tools, guideRequestBlock(request))[0].handler({});
+    assert.equal(result.isError, true);
+    assert.match(result.text, /browser_navigate/);
+    assert.ok(result.text.includes(request.url));
+    assert.match(result.text, /No new sign-in origin is needed/);
+  });
   it("records tool output separately from caller input, and restored sources are not fresh", async () => {
     const log = new ReadLog("Task"), tool = recordReads([{ name: "read_pbi", input: {}, description: "", handler: async () => ({ text: "Not a page" }) }], log)[0];
     const result = await tool.handler({ inject: "- Page URL: https://app.example.test" });

@@ -32,8 +32,8 @@ export interface GuideImage {
   timeline?: GuideTimelineStep[];
 }
 export interface GuideRegion { x: number; y: number; width: number; height: number; style: "solid" | "blur"; frames?: number[] }
-export interface GuideTransform { sourceSha256: string[]; captureMasks: number; regions: GuideRegion[]; crop: { x: number; y: number; width: number; height: number } | null; scale: number }
-export interface GuideTimelineStep { index: number; tool: string; label: string; value: string | null; pointer: { x: number; y: number } | null; pointerInterpolated: boolean; url: string | null; delayMs: number }
+export interface GuideTransform { sourceSha256: string[]; captureMasks: number; regions: GuideRegion[]; crop: { x: number; y: number; width: number; height: number } | null; scale: number; zooms?: { frames: number[]; x: number; y: number; width: number; height: number }[] }
+export interface GuideTimelineStep { index: number; tool: string; label: string; value: string | null; pointer: { x: number; y: number } | null; pointerInterpolated: boolean; url: string | null; delayMs: number; cameraTransitionMs?: number }
 export interface GuidePackageData {
   schemaVersion: 1; packageId: string; taskId: string; runId: number; vault: string; pbiId: number | null;
   guide: GuideReport; images: GuideImage[]; files: { path: string; text: string }[]; contentChecksum: string;

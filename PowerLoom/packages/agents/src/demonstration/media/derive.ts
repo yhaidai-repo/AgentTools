@@ -5,6 +5,8 @@ import type { Raster } from "./models/Raster";
 import { drawClickPulse, drawPointer } from "./overlay";
 import { copyRaster, cropRaster, scaleDown } from "./raster";
 import { applyRegion, regionProblem } from "./regions";
+import { zoomFrame, zoomProblem, type GifZoom } from "./zoom";
+import { cameraViews, CAMERA_FRAME_MS } from "./camera";
 
 const STEP_DELAY_MS = 1200;
 const FINAL_DELAY_MS = 2500;
@@ -52,27 +54,48 @@ export function gifRegionProblem(frames: CapturedFrame[], regions: GuideRegion[]
 }
 
 /** The GIF's frames: regions applied to the masked capture first, then scaled, then pointer and click drawn. */
-export function composeGif(frames: CapturedFrame[], regions: GuideRegion[], maxWidth: number) {
+export function composeGif(frames: CapturedFrame[], regions: GuideRegion[], maxWidth: number, zooms: GifZoom[] = []) {
+  if (!frames.length) throw new Error("A GIF needs at least one captured frame.");
+  const problem = zoomProblem(frames, zooms);
+  if (problem) throw new Error(problem);
   const output: { raster: Raster; delayMs: number }[] = [];
   const keyFrames: Raster[] = [];
+  const inspectionFrames: { raster: Raster; label: string }[] = [];
   const timeline: GuideTimelineStep[] = [];
   let previous: Point | null = null;
+  let previousView = "";
+  let previousCapture: { view: PixelBox; width: number; height: number; url: string | null } | null = null;
+  const canvas = scaleDown(frames[0].raster, maxWidth).raster;
 
   for (const frame of frames) {
-    const { raster: scaled, scale } = scaleDown(sanitized(frame, regions), maxWidth);
-    const pointer = frame.step.pointer ? { x: frame.step.pointer.x * scale, y: frame.step.pointer.y * scale } : null;
-    const moves = movementFrames(scaled, previous, pointer);
+    const view = zooms.find((zoom) => zoom.frames.includes(frame.step.index));
+    const viewKey = view ? `${view.x},${view.y},${view.width},${view.height}` : "overview";
+    const clean = sanitized(frame, regions);
+    const full = { x: 0, y: 0, width: clean.width, height: clean.height };
+    const target = view ?? full;
+    const samePage = frame.step.url !== null && previousCapture && previousCapture.url === frame.step.url && previousCapture.width === clean.width && previousCapture.height === clean.height;
+    const camera = cameraViews(samePage && previousCapture ? previousCapture.view : full, target).map(box => ({ raster: zoomFrame(clean, box, canvas.width, canvas.height).raster, delayMs: CAMERA_FRAME_MS }));
+    const rendered = zoomFrame(clean, target, canvas.width, canvas.height);
+    const { raster: scaled, scale, left, top } = rendered;
+    const point = frame.step.pointer;
+    const inside = point && (!view || (point.x >= view.x && point.y >= view.y && point.x < view.x + view.width && point.y < view.y + view.height));
+    const pointer = inside ? { x: (point.x - (view?.x ?? 0)) * scale + left, y: (point.y - (view?.y ?? 0)) * scale + top } : null;
+    const moves = movementFrames(scaled, previousView === viewKey ? previous : null, pointer);
     const key = keyFrame(scaled, pointer);
     const pulse = pointer && frame.step.click ? CLICK_PHASES.map((phase) => ({ raster: keyFrame(scaled, pointer, phase), delayMs: CLICK_FRAME_MS })) : [];
     const delayMs = frame.step.tool === "final" ? FINAL_DELAY_MS : STEP_DELAY_MS;
 
-    output.push(...moves, ...pulse, { raster: key, delayMs: delayMs - pulse.length * CLICK_FRAME_MS });
+    output.push(...camera, ...moves, ...pulse, { raster: key, delayMs: delayMs - pulse.length * CLICK_FRAME_MS });
     keyFrames.push(pulse[0]?.raster ?? key);
-    timeline.push({ ...stepOf(frame), pointerInterpolated: moves.length > 0, delayMs });
-    previous = pointer ?? previous;
+    if (camera.length) inspectionFrames.push({ raster: zoomFrame(clean, full, canvas.width, canvas.height).raster, label: `Step ${frame.step.index}: full sanitized source for checking everything revealed during the camera move (inspection only)` });
+    inspectionFrames.push({ raster: pulse[0]?.raster ?? key, label: `Step ${frame.step.index}: final view` });
+    timeline.push({ ...stepOf(frame), pointerInterpolated: moves.length > 0, delayMs, cameraTransitionMs: camera.length * CAMERA_FRAME_MS });
+    previous = pointer;
+    previousView = viewKey;
+    previousCapture = { view: target, width: clean.width, height: clean.height, url: frame.step.url };
   }
 
-  return { output, keyFrames, timeline };
+  return { output, keyFrames, inspectionFrames, timeline };
 }
 
 function sanitized(frame: CapturedFrame, regions: GuideRegion[]): Raster {

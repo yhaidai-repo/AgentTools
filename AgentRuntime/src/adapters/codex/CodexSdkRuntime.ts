@@ -44,6 +44,7 @@ export class CodexSdkRuntime implements AgentRuntime {
     let directory: string | null = null;
     let server: CodexToolServer | null = null;
     let requested = false;
+    let stoppedAtBoundary = true;
 
     try {
       abort.controller.signal.throwIfAborted();
@@ -63,6 +64,7 @@ export class CodexSdkRuntime implements AgentRuntime {
         yield* (await this.subscriptionEvents(event, mapper)).map((body) => sequence.next(body));
       }
     } catch (error) {
+      stoppedAtBoundary = error === abort.controller.signal.reason || (error instanceof Error && error.name === "AbortError");
       yield* this.failure(error, mapper, abort).map((body) => sequence.next(body));
     } finally {
       abort.dispose(request.signal);
@@ -78,7 +80,7 @@ export class CodexSdkRuntime implements AgentRuntime {
       durationMs: Date.now() - started,
       providerCostUsd: null,
       message: mapper.message,
-      usageComplete: !requested || mapper.usageComplete,
+      usageComplete: !requested || mapper.usageComplete || (stoppedAtBoundary && mapper.reason === "max-turns" && !abort.stopReason && await meter.settledAtTurnLimit(mapper.threadId)),
     });
   }
 

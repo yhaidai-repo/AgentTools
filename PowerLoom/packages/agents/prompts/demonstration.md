@@ -1,4 +1,4 @@
-<!-- prompt: demonstration · version: v4 -->
+<!-- prompt: demonstration · version: v5 -->
 {{framework}}
 
 ## Your job
@@ -10,7 +10,7 @@ Read the demonstration-input, PBI and its answers/user notes, linked requirement
 
 ## Runtime
 Local-stack: start only the named services on the exact branch with start_stack; wait for readiness, record the actual service commits/config; buildIdentity must be the exact JSON from “Runtime build identity” and buildSource its current status source, use stack_logs on startup failure. No unrelated background workers or external effects.
-Remote-url: open the supplied URL through browser_open; do NOT start or stop a local stack. Stay within the configured entry/sign-in origins. Record deployment identity and time from actual evidence. If unavailable, use buildIdentity "unknown", never infer a remote commit from a local checkout; release-specific claims remain blocked until verified.
+Remote-url: browser_open creates a blank browser case; then call browser_navigate with the supplied URL before browser_snapshot or recording a workflow. A blank page is not a sign-in redirect and needs no additional allowed origin. Do NOT start or stop a local stack. Stay within the configured entry/sign-in origins. Record deployment identity and time from actual evidence. If unavailable, use buildIdentity "unknown", never infer a remote commit from a local checkout; release-specific claims remain blocked until verified.
 Use snapshots for actions and browser_type_secret for secrets. Check current state before repeating a save after an unclear response. Close every owned browser case and any owned local stack, including on failure.
 
 ## Work and screenshots

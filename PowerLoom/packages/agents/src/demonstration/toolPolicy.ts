@@ -23,7 +23,10 @@ export function demonstrationTools(tools: ToolDefinition<any>[], body: string, c
         if (!pageAllowed(current.text, origins)) return denied("Current page is outside the guide's allowed origins or could not be verified. Navigate to an allowed URL.");
       }
       const result = await tool.handler(tool.name === "start_stack" ? { ...input, strictBranch: true } : input);
-      if (["browser_navigate", "browser_snapshot"].includes(tool.name) && !result.isError && !pageAllowed(result.text, origins)) return denied("Navigation reached an unapproved or unverifiable page. Add the required sign-in origin to task inputs before continuing.");
+      if (["browser_navigate", "browser_snapshot"].includes(tool.name) && !result.isError && !pageAllowed(result.text, origins)) {
+        if (/Page URL:\s*about:blank(?:\s|$)/.test(result.text)) return denied(`The browser case is still blank. Use browser_navigate with the task's allowed URL ${request.url} before taking a snapshot. No new sign-in origin is needed for a blank page.`);
+        return denied("Navigation reached an unapproved or unverifiable page. Add the required sign-in origin to task inputs before continuing.");
+      }
       return result;
     },
   }));

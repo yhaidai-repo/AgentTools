@@ -78,3 +78,31 @@ test("without a rollout the turn's own usage counts, once", async () => {
     await rm(home, { recursive: true, force: true });
   }
 });
+
+test("does not certify a corrupt resumed baseline or a decreasing cumulative count", async () => {
+  for (const baseline of [-100, 200]) {
+    const home = await mkdtemp(join(tmpdir(), "codex-baseline-"));
+    try {
+      const path = await rollout(home, "thread-bad", [tokenCount(baseline, 0, 0)]);
+      const meter = new CodexUsageMeter(new CodexRollouts(home), "model-test");
+      await meter.begin("thread-bad");
+      const usage = { input_tokens: 100, cached_input_tokens: 70, output_tokens: 8 };
+      await appendFile(path, JSON.stringify({ type: "token_usage_record", payload: { thread_token_usage: usage } }) + "\n" + tokenCount(100, 70, 8) + "\n");
+      await meter.usage("thread-bad");
+      assert.equal(await meter.settledAtTurnLimit("thread-bad"), false);
+    } finally { await rm(home, { recursive: true, force: true }); }
+  }
+});
+
+test("refuses cache reclassification that would double-count previously emitted input", async () => {
+  const home = await mkdtemp(join(tmpdir(), "codex-cache-delta-"));
+  try {
+    const path = await rollout(home, "thread-cache", [tokenCount(100, 0, 1)]);
+    const meter = new CodexUsageMeter(new CodexRollouts(home), "model-test");
+    await meter.begin(null);
+    await meter.usage("thread-cache");
+    await appendFile(path, JSON.stringify({ type: "token_usage_record", payload: { thread_token_usage: { input_tokens: 100, cached_input_tokens: 70, output_tokens: 2 } } }) + "\n" + tokenCount(100, 70, 2) + "\n");
+    assert.deepEqual(await meter.usage("thread-cache"), []);
+    assert.equal(await meter.settledAtTurnLimit("thread-cache"), false);
+  } finally { await rm(home, { recursive: true, force: true }); }
+});

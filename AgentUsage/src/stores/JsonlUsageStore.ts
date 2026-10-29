@@ -7,7 +7,7 @@ import type { UsageRecord } from "../models/UsageRecord";
 import type { UsageStore } from "../models/UsageStore";
 import type { UsageTotals } from "../models/UsageTotals";
 import { inQuery, labelsMatch, totalsOf } from "./aggregate";
-import { IncompleteAccountingError } from "../IncompleteAccountingError";
+import { budgetCost } from "../budgetCost";
 
 const RECORDS_FILE = "usage.jsonl";
 const TRACE_FILE = "trace.jsonl";
@@ -26,10 +26,8 @@ export class JsonlUsageStore implements UsageStore {
 
   async costSince(from: Date, match: UsageLabels): Promise<number> {
     const records = (await this.readRecords()).filter((record) => record.startedAt >= from && labelsMatch(record.labels, match));
-    if (records.some((record) => record.accountingComplete === false)) throw new IncompleteAccountingError();
-
     return records
-      .reduce((total, record) => total + record.costUsd, 0);
+      .reduce((total, record) => total + budgetCost(record), 0);
   }
 
   async totals(query: UsageQuery, groupBy: string): Promise<UsageTotals[]> {
