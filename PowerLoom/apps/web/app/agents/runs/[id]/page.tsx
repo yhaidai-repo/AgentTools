@@ -1,4 +1,4 @@
-import { MAIN_SESSION_ID, isFailedOutcome, loadRun, runSessionsOf, type RunSessionTrace } from "@powerloom/core";
+import { MAIN_SESSION_ID, loadRun, runSessionsOf, type RunSessionTrace } from "@powerloom/core";
 import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NoVault } from "@/components/NoVault";
@@ -6,6 +6,7 @@ import { Panel } from "@/components/Panel";
 import { getAgentConfig } from "@/lib/agentConfig";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
+import { runEndPanel } from "@/lib/runOutcomes";
 import { outputProducers } from "@/lib/sessionLooks";
 import { getUsageStore } from "@/lib/usage";
 import { RunHeader } from "./RunHeader";
@@ -46,6 +47,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   const sessions = runSessionsOf(trace, run.outcome !== "running");
   const hasSubSessions = sessions.sessions.length > 1;
   const isLarge = trace.length > LARGE_TRACE_EVENTS;
+  const endPanel = runEndPanel(run.outcome);
 
   return (
     <>
@@ -56,7 +58,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           {hasSubSessions ? <SessionTraceView runId={run.id} sessions={sessions.sessions} events={isLarge ? mainEvents(sessions) : sessions.events} complete={!isLarge} continuesRunId={run.continuesRunId} /> : <TraceView events={trace} />}
         </Panel>
         <div>
-          {isFailedOutcome(run.outcome) && <section className="panel tone-error failure-panel"><h3>Failure <small>{run.outcome}</small></h3><p className="panel-body">{run.error ?? "no message"}</p></section>}
+          {endPanel && <section className={`panel run-end-panel${endPanel.tone ? ` tone-${endPanel.tone}` : ""}`}><h3>{endPanel.title} <small>{run.outcome}</small></h3><p className="panel-body">{run.error ?? "no message"}</p></section>}
           <Panel title="Outputs"><RunOutputs run={run} producers={hasSubSessions ? outputProducers(sessions, run.outputs ?? []) : {}} /></Panel>
           <RunCaptures runId={run.id} />
           <RunFailureReports runId={run.id} />

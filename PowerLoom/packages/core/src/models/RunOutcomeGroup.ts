@@ -1,2 +1,3 @@
-// The Runs tab's outcome pills: a run is running, failed, or succeeded (success, no-op, stopped by the budget).
-export type RunOutcomeGroup = "running" | "failed" | "succeeded";
+// The Runs tab's outcome pills: a run is running, failed, stopped (by its budget or by the user) or succeeded (success,
+// no-op).
+export type RunOutcomeGroup = "running" | "failed" | "stopped" | "succeeded";

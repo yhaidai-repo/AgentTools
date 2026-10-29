@@ -12,7 +12,7 @@ const input = z.object({
   vault: vaultInput,
   period: periodInput,
   agent: z.string().trim().min(1).optional().describe("Only this agent's runs (its id, e.g. refinement)"),
-  outcome: z.enum(RUN_OUTCOME_GROUP_KEYS).optional().describe("Only runs of this outcome group, as the Runs tab's pills: running, failed or succeeded (success, no-op, budget stop)"),
+  outcome: z.enum(RUN_OUTCOME_GROUP_KEYS).optional().describe("Only runs of this outcome group, as the Runs tab's pills: running, failed, stopped (by its budget or by the user, not a failure) or succeeded (success, no-op)"),
   limit: limitInput(200, 50),
 });
 

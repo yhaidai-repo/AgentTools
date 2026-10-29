@@ -626,10 +626,10 @@ tr:hover .row-action,
 }
 
 /* A run's page. */
-.failure-panel p {
+.run-end-panel p {
   margin: 0;
   font-size: 13px;
-  color: var(--error);
+  color: var(--tone, var(--muted));
   overflow-wrap: anywhere;
 }
 

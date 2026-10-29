@@ -17,15 +17,17 @@ interface ActivityChartsProps {
   keep: Record<string, string>;
 }
 
-// Cost, tokens or run time per day stacked by agent, and runs per day with the budget stops and the failed part apart.
+// Cost, tokens or run time per day stacked by agent, and runs per day with the budget stops, the user's stops and the
+// failed part apart.
 // An agent's color is its slot in the config's order, so it keeps its color whatever the period shows; agents past the
 // palette fold into "Other".
 export function ActivityCharts({ days, agents, metric, keep }: ActivityChartsProps) {
   const labels = days.map((day) => day.day);
   const chosen = AGENT_METRICS[metric];
   const runs: ChartSeries[] = [
-    { key: "ok", label: "Succeeded", color: "var(--accent)", values: days.map((day) => day.runs - day.failures - day.budgetStops) },
+    { key: "ok", label: "Succeeded", color: "var(--accent)", values: days.map((day) => day.runs - day.failures - day.budgetStops - day.userStops) },
     { key: "budget", label: "Over budget", color: "var(--warn)", values: days.map((day) => day.budgetStops) },
+    { key: "stopped", label: "Stopped", color: "var(--faint)", values: days.map((day) => day.userStops) },
     { key: "failed", label: "Failed", color: "var(--error)", values: days.map((day) => day.failures) },
   ];
   const metricSwitch = <SegLinks name="metric" value={metric} options={agentMetricOptions()} path="/dashboard" keep={keep} small />;
