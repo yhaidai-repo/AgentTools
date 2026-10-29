@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ActivityBar } from "@/components/ActivityBar";
 import { ConfirmHost } from "@/components/ConfirmHost";
 import { NavLinks } from "@/components/NavLinks";
 import { VaultSelect } from "@/components/VaultSelect";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link rel="stylesheet" href={FONTS_URL} />
       </head>
       <body>
+        <ActivityBar />
         <div className="bar-wrap">
           <header className="bar">
             <Link href="/dashboard" className="brand">PowerLoom</Link>

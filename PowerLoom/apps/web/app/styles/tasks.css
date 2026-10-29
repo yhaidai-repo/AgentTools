@@ -21,7 +21,7 @@
 .kind-design { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 35%, transparent); }
 .kind-review { color: var(--state-ready); border-color: color-mix(in srgb, var(--state-ready) 35%, transparent); }
 .kind-docs { color: var(--state-todo); border-color: color-mix(in srgb, var(--state-todo) 35%, transparent); }
-.kind-meeting { color: var(--series-8); border-color: color-mix(in srgb, var(--series-8) 35%, transparent); }
+.kind-meeting { color: var(--series-7); border-color: color-mix(in srgb, var(--series-7) 35%, transparent); }
 
 .task-pill {
   display: inline-flex;

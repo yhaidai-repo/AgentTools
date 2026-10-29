@@ -23,18 +23,18 @@
   --status-critical: var(--error);
   --grid: rgb(255 255 255 / 0.05);
   /* Chart series, light icy pastels (the Frost set): an agent keeps its slot's colour everywhere. */
-  --series-1: #bae6fd;
-  --series-2: #a5b4fc;
-  --series-3: #67e8f9;
-  --series-4: #f5d0fe;
-  --series-5: #6ee7b7;
-  --series-6: #c7d2fe;
-  --series-7: #cbd5e1;
-  --series-8: #99f6e4;
-  --series-9: #fbcfe8;
-  --series-10: #ddd6fe;
-  --series-11: #bfdbfe;
-  --series-12: #d9f99d;
+  --series-1: #3b82f6;
+  --series-2: #fb923c;
+  --series-3: #22c55e;
+  --series-4: #f472b6;
+  --series-5: #fde047;
+  --series-6: #a78bfa;
+  --series-7: #67e8f9;
+  --series-8: #14b8a6;
+  --series-9: #bef264;
+  --series-10: #c026d3;
+  --series-11: #818cf8;
+  --series-12: #d4a373;
   /* ADO states in the sprint chart; every done state is the OK colour (user, 2026-10-18). */
   --state-new: #64748b;
   --state-todo: #94a3b8;

@@ -86,7 +86,7 @@ main > .fold-panel + .panel {
 .use-read { background: var(--accent); }
 .use-search { background: var(--accent-2); }
 .use-shell { background: var(--state-todo); }
-.use-write { background: var(--series-8); }
+.use-write { background: var(--series-7); }
 
 .agent-dots {
   display: inline-flex;

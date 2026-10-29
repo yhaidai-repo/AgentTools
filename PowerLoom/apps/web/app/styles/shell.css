@@ -319,3 +319,76 @@
     padding: 6px 10px;
   }
 }
+
+/* Waiting for the server: a line over the window, a spinner in the button that was pressed, a skeleton for a page being
+   built. Timings come from the motion tokens; the line and spinner appear only after a short delay, so quick answers
+   don't flash. */
+.activity-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  animation: fade-in var(--motion-fast) var(--motion-fast) backwards;
+}
+
+.activity-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: activity-sweep calc(var(--motion-base) * 3) var(--motion-ease) infinite;
+}
+
+@keyframes activity-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+button[data-busy] {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+button[data-busy]::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 7px;
+  vertical-align: -1px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: fade-in var(--motion-fast) var(--motion-fast) backwards, spin calc(var(--motion-base) * 1.5) linear infinite;
+}
+
+.page-loading {
+  display: grid;
+  gap: 14px;
+  animation: fade-in var(--motion-base) var(--motion-fast) backwards;
+}
+
+.skeleton {
+  border-radius: 14px;
+  background: var(--surface);
+  animation: breathe-opacity var(--motion-ambient) var(--motion-ease) infinite;
+}
+
+.skeleton-title {
+  width: 220px;
+  height: 34px;
+}
+
+.skeleton-panel {
+  height: 180px;
+}
