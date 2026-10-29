@@ -9,12 +9,14 @@ description: "How the PowerLoom implementation agent builds an approved plan wit
 - Read `<implementation>`: only `outcome="approved"` builds. Replan: hand the changes to `design` as written, nothing else. Blocked: write the reason and stop.
 - Read the plan (`PBI-<id>:plan`) and `planning inspect`: which phases and plans are done (SUMMARY), which are next.
 - Note the build and test commands `<implementation>` names; with none configured, find the repo's own (solution, package scripts) and say so in the verdict.
-- Open the sandbox once and keep it for the run; `sandbox_sync` after every wave's commits.
+- `sandbox_open` and `sandbox_restore` once before the first execute-phase, so packages are restored before the executors build.
+- Builds and tests are plain Bash, from you and from GSD's executors: the shell runs them in the sandbox on a fresh sync of the worktree. Keep each a single command (or `cd <folder> && <command>`); a compound with other commands isn't routed.
+- A new NuGet package: `sandbox_restore` with `packages` first (the sandbox has no network otherwise), then the PackageReference in the worktree.
 
 ## Executing
 - One phase at a time, in roadmap order; GSD runs its waves in order. Don't restart a phase that is still working.
 - One commit per task is GSD's: don't squash, amend or rebase its commits. Your own fixes are separate commits.
-- After each wave: build, then test, in the sandbox. Red → fix in the worktree, commit, sync, run again. A failure the plan can't fix (wrong contract, missing data) goes back to planning, not into a new plan.
+- Red after a phase: fix in the worktree, commit, build and test again. A failure the plan can't fix (wrong contract, missing data) goes back to planning, not into a new plan.
 - `## CHECKPOINT REACHED`: decide it from the plan, the code and the PBI with evidence; record each with how you settled it. A business decision you can't prove stays open for the person.
 
 ## Verifying

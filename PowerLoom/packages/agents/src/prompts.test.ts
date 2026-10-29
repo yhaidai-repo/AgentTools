@@ -52,7 +52,10 @@ describe("loadPrompt", () => {
   it("gives the implementation prompt the outcome first, GSD's execution, the sandbox builds and the hand-over without a push", async () => {
     const prompt = await loadPrompt("implementation", { team: "Catalog" });
 
-    assert.match(prompt.version, /^v1\+framework\./);
+    assert.match(prompt.version, /^v2\+framework\./);
+    assert.match(prompt.text, /call `sandbox_open` and `sandbox_restore` once/);
+    assert.match(prompt.text, /a new NuGet package goes through `sandbox_restore` with `packages`, then a PackageReference in the worktree/);
+    assert.doesNotMatch(prompt.text, /don't run in the worktree's shell/);
     assert.match(prompt.text, /How you work/);
     assert.match(prompt.text, /`outcome="replan"`: build nothing\. `hand_off` to `design` with `intent: "continue"`/);
     assert.match(prompt.text, /Skill `gsd-execute-phase` with `<phase>`/);

@@ -47,7 +47,8 @@ function modelOverrides(models: ImplementationModels): Record<string, string> {
   ]);
 }
 
-// GSD's own keys for the commands; an unset command leaves GSD's default.
+// GSD's own keys for the commands; an unset command leaves GSD's default. The worktree's shell routes each to the sandbox
+// as it is, so a configured command stays one command (or `cd <folder> && <command>`).
 function commandKeys(commands: BuildCommands): Record<string, string> {
   const keys: Record<string, string> = {};
 
