@@ -64,6 +64,11 @@ export function groupPhases(events: StoredTraceEvent[]): TraceLine[] {
   return lines;
 }
 
+// An opened fold shows its events as the lines they would be unfolded.
+export function unfoldPhases(events: StoredTraceEvent[]): TraceLine[] {
+  return events.map(eventLine);
+}
+
 export function summaryOf(event: StoredTraceEvent): string {
   return clip(traceEventSummary(event));
 }
@@ -72,7 +77,7 @@ function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   const last = lines.at(-1);
 
   if (!FOLDED_TYPES.has(event.type)) {
-    lines.push({ kind: "event", key: String(event.seq), event });
+    lines.push(eventLine(event));
 
     return;
   }
@@ -84,6 +89,10 @@ function addLine(lines: TraceLine[], event: StoredTraceEvent): void {
   }
 
   lines.push({ kind: "phases", key: `phases-${event.seq}`, events: [event] });
+}
+
+function eventLine(event: StoredTraceEvent): TraceLine {
+  return { kind: "event", key: String(event.seq), event };
 }
 
 function isError(event: StoredTraceEvent): boolean {

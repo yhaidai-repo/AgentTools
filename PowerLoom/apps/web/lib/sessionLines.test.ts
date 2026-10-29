@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { StoredTraceEvent } from "@agenttools/usage";
 import { MAIN_SESSION_ID, runSessionsOf, subSessionsByCall } from "@powerloom/core/src/agentRuns/runSessions";
 import { sessionLines } from "./sessionLines";
+import { unfoldPhases } from "./traceLooks";
 
 function event(seq: number, type: string, payload: Record<string, unknown> = {}): StoredTraceEvent {
   return { runId: "7", seq, at: new Date(seq * 1000), type, payload };
@@ -36,5 +37,12 @@ describe("sessionLines", () => {
     const lines = sessionLines(read.events["call-1"], new Map(), "all");
 
     assert.deepEqual(lines.map((line) => line.kind), ["event", "phases"]);
+  });
+
+  it("keeps the folded progress events on the fold, which opens to one line per event", () => {
+    const fold = sessionLines(read.events["call-1"], new Map(), "all")[1];
+
+    assert.equal(fold.kind, "phases");
+    assert.deepEqual(unfoldPhases(fold.kind === "phases" ? fold.events : []).map((line) => line.kind === "event" && line.event.seq), [3, 4]);
   });
 });

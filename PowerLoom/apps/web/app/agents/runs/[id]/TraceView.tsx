@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { StoredTraceEvent } from "@agenttools/usage";
 import { LocalTime } from "@/components/LocalTime";
-import { TRACE_FILTERS, eventLook, groupPhases, matchesFilter, summaryOf, type TraceFilter } from "@/lib/traceLooks";
+import { TRACE_FILTERS, eventLook, groupPhases, matchesFilter, summaryOf, unfoldPhases, type TraceFilter } from "@/lib/traceLooks";
 import type { TraceLine } from "@/models/TraceLine";
 
 // A run's events as lines that wrap (user decision 2026-10-18): each kind its icon and colour, a result nested under
@@ -42,7 +42,7 @@ export function TraceFilterPills({ events, filter, onChange }: { events: StoredT
 
 export function TraceLineView({ line }: { line: TraceLine }) {
   if (line.kind === "phases") {
-    return <div className="trace-group">› {line.events.length} {line.events[0].type.replace("_", " ")} events</div>;
+    return <PhasesFold events={line.events} />;
   }
 
   const look = eventLook(line.event);
@@ -56,6 +56,20 @@ export function TraceLineView({ line }: { line: TraceLine }) {
         <span className="trace-text">{summaryOf(line.event)}</span>
       </summary>
       <pre className="trace-payload">{JSON.stringify(line.event.payload, null, 2)}</pre>
+    </details>
+  );
+}
+
+// Folded events are drawn only once the fold opens: a long run can fold thousands of progress events into one line.
+function PhasesFold({ events }: { events: StoredTraceEvent[] }) {
+  const [isOpen, setOpen] = useState(false);
+
+  return (
+    <details className="trace-group" open={isOpen} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>
+        <span className="fold-mark" aria-hidden="true">›</span> {events.length} {events[0].type.replace("_", " ")} events
+      </summary>
+      {isOpen && unfoldPhases(events).map((line) => <TraceLineView key={line.key} line={line} />)}
     </details>
   );
 }
