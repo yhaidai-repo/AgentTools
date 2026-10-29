@@ -258,25 +258,21 @@ a.source-tag:hover {
   margin: 0;
 }
 
-/* Each chat app and whether it's connected. */
-.app-states {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 0;
-  padding: 0;
-  font-size: 13px;
-  list-style: none;
-}
-
-.app-states li {
+/* A provider card's connection state, where other cards have their switch. */
+.connection-badge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  padding: 3px 12px;
+  font-size: 12.5px;
+  color: var(--text);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
 }
 
-.app-states small {
-  color: var(--muted);
+.connection-badge.off {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
 }
 
 /* A Drive folder: its name, its id and Remove. */

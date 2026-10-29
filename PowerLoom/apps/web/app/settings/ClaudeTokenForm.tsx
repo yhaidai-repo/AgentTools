@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { ProviderStatus } from "@/lib/aiProviders";
@@ -17,7 +18,7 @@ export function ClaudeTokenForm({ status }: { status: ProviderStatus | null }) {
 
   return (
     <KeptForm action={saveAction} actions={{ remove: removeAction }} clearOn={saveResult ?? removeResult} className="panel settings-card">
-      <SettingsHead title="Claude" description="Agents on Claude models run with this token. Run claude setup-token on this PC and paste the token it prints." />
+      <SettingsHead title="Claude" badge={<ConnectionBadge connected={status?.connected ?? null} />} description="Agents on Claude models run with this token. Run claude setup-token on this PC and paste the token it prints." />
       <div className="settings-body">
         <p className={status?.connected ? "hint" : "hint text-warn"}>{statusLine(status)}</p>
         <label className="field"><span>Token<small>{hasSaved ? "set; paste a new one to replace it" : "from claude setup-token"}</small></span><input name="token" type="password" autoComplete="off" placeholder={hasSaved ? "•••••••• unchanged" : "sk-ant-oat01-…"} /></label>

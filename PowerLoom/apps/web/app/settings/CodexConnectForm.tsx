@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { ResultLine } from "@/components/ResultLine";
 import { SettingsHead } from "@/components/SettingsHead";
 import type { CodexLoginStart, ProviderStatus } from "@/lib/aiProviders";
@@ -59,7 +60,7 @@ export function CodexConnectForm({ status }: { status: ProviderStatus | null }) 
 
   return (
     <div className="panel settings-card">
-      <SettingsHead title="Codex" description="Agents on Codex models run on your ChatGPT plan, signed in to PowerLoom's own Codex folder (agent-homes/codex), not to your ~/.codex." />
+      <SettingsHead title="Codex" badge={<ConnectionBadge connected={status?.connected ?? null} />} description="Agents on Codex models run on your ChatGPT plan, signed in to PowerLoom's own Codex folder (agent-homes/codex), not to your ~/.codex." />
       <div className="settings-body">
         <p className={status?.connected ? "hint" : "hint text-warn"}>{statusLine(status)}</p>
         <p className="hint">Switch on <strong>Device code authorization</strong> in ChatGPT → Settings → Security first: Connect Codex signs in with a code.</p>
