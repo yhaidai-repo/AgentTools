@@ -1,4 +1,4 @@
-import type { RunWorktreeSlot } from "@powerloom/agents";
+import type { RunShellRouteSlot, RunWorktreeSlot } from "@powerloom/agents";
 import type { AgentRequest, AgentWorkspace } from "@agenttools/runtime";
 import { join } from "node:path";
 import { identityEnv } from "./GsdWorktreePreparer";
@@ -12,9 +12,10 @@ import type { WorkspaceRepos } from "./models/WorkspaceRepos";
 const GSD_SETTING_SOURCES: AgentRequest["settingSources"] = ["project", "local"];
 
 // Turns a request's workspace into the folder, settings and environment the runtime runs it with, and tells the run's
-// sandbox tools (`runWorktree`) which worktree is the run's until the run ends.
+// sandbox tools (`runWorktree`) which worktree is the run's until the run ends. The route the sandbox tools leave
+// (`shellRoute`) sends the worktree shell's builds and tests to the run's sandbox.
 export class WorkspaceResolver {
-  constructor(private readonly repos: WorkspaceRepos, private readonly gsd: GsdPreparer, private readonly options: WorkspaceOptions, private readonly runWorktree: RunWorktreeSlot) {}
+  constructor(private readonly repos: WorkspaceRepos, private readonly gsd: GsdPreparer, private readonly options: WorkspaceOptions, private readonly runWorktree: RunWorktreeSlot, private readonly shellRoute: RunShellRouteSlot) {}
 
   async resolve(request: AgentRequest): Promise<ResolvedWorkspace> {
     const workspace = request.workspace;
@@ -33,7 +34,7 @@ export class WorkspaceResolver {
 
       this.runWorktree.current = { repo: workspace.repo.name, path: worktree };
 
-      return { request: inWorktree(request, worktree, env), release: () => this.release(workspace) };
+      return { request: inWorktree(request, worktree, env, this.shellRoute), release: () => this.release(workspace) };
     } catch (error) {
       this.repos.release([workspace.repo]);
       throw error;
@@ -65,8 +66,9 @@ export class WorkspaceResolver {
   }
 }
 
-function inWorktree(request: AgentRequest, worktree: string, env: GitIdentityEnv): AgentRequest {
+function inWorktree(request: AgentRequest, worktree: string, env: GitIdentityEnv, shellRoute: RunShellRouteSlot): AgentRequest {
   const settingSources = request.workspace?.gsd ? GSD_SETTING_SOURCES : request.settingSources;
+  const route = shellRoute.current ? { shellRoute: shellRoute.current } : {};
 
-  return { ...request, cwd: worktree, settingSources, env: { ...request.env, ...env } };
+  return { ...request, cwd: worktree, settingSources, env: { ...request.env, ...env }, ...route };
 }

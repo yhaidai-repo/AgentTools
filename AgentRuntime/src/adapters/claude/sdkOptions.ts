@@ -1,6 +1,7 @@
 import type { Options } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentRequest } from "../../models/AgentRequest";
 import type { Conversation } from "../../models/Conversation";
+import type { ShellRoute } from "../../models/ShellRoute";
 import type { ToolPolicy } from "../../models/ToolPolicy";
 import type { RunAbort } from "../../RunAbort";
 import { allPolicies } from "./allPolicies";
@@ -34,7 +35,7 @@ export function buildSdkOptions(request: AgentRequest, abort: RunAbort, host: Sd
     settingSources: request.settingSources ?? [],
     settings: { autoMemoryEnabled: false },
     env: { ...childEnv(process.env, CLIENT_APP, host.apiProxied), ...request.env },
-    ...policyOptions(toolPolicies(request, cwd)),
+    ...policyOptions(toolPolicies(request, cwd), request.shellRoute ?? null),
     ...conversationOptions(host.conversation),
   };
 }
@@ -51,8 +52,9 @@ function toolPolicies(request: AgentRequest, cwd: string): ToolPolicy[] {
   return request.toolPolicy ? [...guards, request.toolPolicy] : guards;
 }
 
-function policyOptions(policies: ToolPolicy[]): Partial<Options> {
-  return policies.length > 0 ? { hooks: toolPolicyHooks(allPolicies(policies)) } : {};
+// A shell route needs the hook even for a run with no policy: it hands the commands over there.
+function policyOptions(policies: ToolPolicy[], route: ShellRoute | null): Partial<Options> {
+  return policies.length > 0 || route ? { hooks: toolPolicyHooks(allPolicies(policies), route) } : {};
 }
 
 // A continued conversation is forked into the run's own id, so the earlier run's transcript stays as it was.

@@ -3,16 +3,20 @@ import type { Readable } from "node:stream";
 import type Docker from "dockerode";
 import { PACKAGES, type FeedCredential, type RestoreResult, type RestoreStepResult } from "@powerloom/sandbox";
 import type { Outcome } from "../models/Outcome";
+import type { PreparedRestore } from "../models/PreparedRestore";
 import type { RepoProbe } from "../models/RepoProbe";
+import type { RestoreOptions } from "../models/RestoreOptions";
 import type { RestoreStep } from "../models/RestoreStep";
 import type { SandboxConfig } from "../models/SandboxConfig";
 import type { SandboxInfo } from "@powerloom/sandbox";
 import { npmrcAuth, nugetCredentialEnv, nugetSourcesOf } from "../restore/feedCredentials";
+import { additionSteps } from "../restore/packageAdditions";
 import { probeRepo, restoreTarget } from "../restore/probeRepo";
 import { restorePlanOf } from "../restore/restorePlan";
 import { cutOutput } from "../sessions/cutOutput";
 import { ContainerExec } from "./ContainerExec";
 import { proxyTokenOf } from "../proxy/proxyToken";
+import type { RestoreQueue } from "./RestoreQueue";
 import { RESTORE_WORK, restoreContainerOptions } from "./sandboxContainerOptions";
 
 const REPO_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -26,39 +30,54 @@ const PASS_MARGIN_MS = 5 * 60_000;
 
 // A restore (design agent-sandbox, phase 3): in a container of its own, on the unchanged copy of a repo (the tar the
 // runner sends, never the agent's edited workspace), with the network through the egress proxy and the feeds'
-// sign-ins only there. Its packages land in the sandbox's packages volume, which the agent's container reads. The
-// container is removed when the restore ends, whatever happened.
+// sign-ins only there. Its packages land in the sandbox's packages volume (the vault's cache), which the agent's
+// container reads; restores of one volume take turns. The container is removed when the restore ends, whatever happened.
 export class PackageRestore {
   constructor(
     private readonly docker: Docker,
     private readonly config: SandboxConfig,
+    private readonly queue: RestoreQueue,
+    private readonly volume: string,
   ) {}
 
-  /** `hosts`: the vault's package hosts, the only ones the restore's pass opens at the proxy. */
-  async restore(sandbox: SandboxInfo, what: { repo: string; target: string }, tar: Readable, credentials: FeedCredential[], hosts: string[]): Promise<Outcome<RestoreResult>> {
-    const { repo, target } = what;
+  /** `options.hosts`: the vault's package hosts, the only ones the restore's pass opens at the proxy. */
+  async restore(sandbox: SandboxInfo, what: { repo: string; target: string }, tar: Readable, options: RestoreOptions): Promise<Outcome<RestoreResult>> {
+    const prepared = this.prepare(what, options);
 
+    if (!prepared.ok) {
+      return prepared;
+    }
+
+    return this.queue.run(this.volume, () => this.restoreInContainer(sandbox, prepared.value, tar, options));
+  }
+
+  private prepare(what: { repo: string; target: string }, options: RestoreOptions): Outcome<PreparedRestore> {
     if (!this.config.egressNetwork) {
       return { ok: false, reason: "Package restore is off on this host (SANDBOX_EGRESS_NETWORK is not set)" };
     }
 
-    if (!REPO_NAME.test(repo)) {
-      return { ok: false, reason: `"${repo}" is not a repo folder name` };
+    if (!REPO_NAME.test(what.repo)) {
+      return { ok: false, reason: `"${what.repo}" is not a repo folder name` };
     }
 
-    const repoRoot = posix.join(RESTORE_WORK, repo);
-    const where = restoreTarget(repoRoot, target);
+    const repoRoot = posix.join(RESTORE_WORK, what.repo);
+    const where = restoreTarget(repoRoot, what.target);
+    const additions = additionSteps(repoRoot, options.additions);
 
     if (!where.ok) {
       return where;
     }
 
-    const container = await this.docker.createContainer(restoreContainerOptions(this.config, sandbox.image, this.proxyUrlFor(hosts), sandbox.id, sandbox.owner, new Date(sandbox.expiresAt)));
+    return additions.ok ? { ok: true, value: { repoRoot, where: where.value, additions: additions.value } } : additions;
+  }
+
+  private async restoreInContainer(sandbox: SandboxInfo, prepared: PreparedRestore, tar: Readable, options: RestoreOptions): Promise<Outcome<RestoreResult>> {
+    const container = await this.docker.createContainer(restoreContainerOptions(this.config, sandbox.image, this.proxyUrlFor(options.hosts), this.volume, sandbox.id, sandbox.owner, new Date(sandbox.expiresAt)));
 
     try {
       await container.start();
 
-      return await this.restoreIn(new ContainerExec(this.docker, container.id), repoRoot, where.value, tar, credentials);
+      return await this.restoreIn(new ContainerExec(this.docker, container.id), prepared, tar, options.credentials);
     } finally {
       await container.remove({ force: true, v: true });
     }
@@ -78,7 +97,8 @@ export class PackageRestore {
     return url.toString().replace(/\/$/, "");
   }
 
-  private async restoreIn(exec: ContainerExec, repoRoot: string, where: { folder: string; file: string | null }, tar: Readable, credentials: FeedCredential[]): Promise<Outcome<RestoreResult>> {
+  private async restoreIn(exec: ContainerExec, prepared: PreparedRestore, tar: Readable, credentials: FeedCredential[]): Promise<Outcome<RestoreResult>> {
+    const { repoRoot, where } = prepared;
     const extracted = await exec.run(["sh", "-c", EXTRACT_SCRIPT, "sh", repoRoot], { stdin: tar, deadlineMs: SETUP_DEADLINE_MS });
 
     if (extracted.exitCode !== 0) {
@@ -92,14 +112,15 @@ export class PackageRestore {
     }
 
     const plan = restorePlanOf(probe.value);
-    const nugetEnv = await this.signIn(exec, probe.value, plan.steps, credentials);
+    const planned = [...prepared.additions, ...plan.steps];
+    const nugetEnv = await this.signIn(exec, probe.value, planned, credentials);
     const steps: RestoreStepResult[] = [];
 
-    for (const step of plan.steps) {
+    for (const step of planned) {
       steps.push(await this.runStep(exec, step, step.ecosystem === "dotnet" ? nugetEnv : []));
     }
 
-    const skipped = plan.steps.length === 0 ? [...plan.skipped, "Nothing to restore: no solution, project, lock file or deno.json here"] : plan.skipped;
+    const skipped = planned.length === 0 ? [...plan.skipped, "Nothing to restore: no solution, project, lock file or deno.json here"] : plan.skipped;
 
     return { ok: true, value: { ok: steps.every((step) => step.exitCode === 0), steps, skipped, packagesPath: PACKAGES } };
   }

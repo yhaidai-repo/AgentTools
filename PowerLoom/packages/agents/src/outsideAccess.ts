@@ -3,6 +3,7 @@ import { defineTool, type ToolAnnotations, type ToolDefinition } from "@agenttoo
 import type { z } from "zod";
 import type { OutsideAccessServices } from "./models/OutsideAccessServices";
 import type { OutsideAccessContext } from "./models/OutsideAccessContext";
+import type { OutsideCall } from "./models/OutsideCall";
 import type { OutsideResource } from "./models/OutsideResource";
 import type { OutsideToolResult } from "./models/OutsideToolResult";
 
@@ -44,27 +45,33 @@ export function defineOutsideTool<TInput extends z.ZodRawShape>(services: Outsid
       const startedAt = new Date();
       const resource = tool.resource(input);
       const result = await settle(tool.handler(input));
-      const outcome = outcomeOf(result);
 
-      await services.log.record({
-        ...context,
-        ...resource,
-        tool: tool.name,
-        request: tool.request(input),
-        ...outcome,
-        rows: result.rows ?? null,
-        bytes: Buffer.byteLength(result.text, "utf8"),
-        truncated: result.truncated ?? false,
-        startedAt,
-        durationMs: Date.now() - startedAt.getTime(),
-      });
+      await recordOutsideCall(services, context, { tool: tool.name, resource, request: tool.request(input), result, startedAt });
 
-      if (outcome.outcome !== "denied") {
+      if (outcomeOf(result).outcome !== "denied") {
         return { text: result.text, isError: result.isError, ...(result.images ? { images: result.images } : {}) };
       }
 
       return { text: await withAccessRequest(services, context, resource, tool.name, result.text), isError: true };
     },
+  });
+}
+
+/** Writes one call's data access log row; for steps that reach an outside system without being a tool of their own. */
+export async function recordOutsideCall(services: OutsideAccessServices, context: OutsideAccessContext, call: OutsideCall): Promise<void> {
+  const { result, startedAt } = call;
+
+  await services.log.record({
+    ...context,
+    ...call.resource,
+    tool: call.tool,
+    request: call.request,
+    ...outcomeOf(result),
+    rows: result.rows ?? null,
+    bytes: Buffer.byteLength(result.text, "utf8"),
+    truncated: result.truncated ?? false,
+    startedAt,
+    durationMs: Date.now() - startedAt.getTime(),
   });
 }
 

@@ -3,7 +3,7 @@ import { BadRequest } from "./BadRequest";
 
 // The bodies the routes take, checked field by field: a wrong one is a 400 naming the field.
 export function openRequest(body: Record<string, unknown>): OpenSandboxRequest {
-  return { owner: text(body, "owner"), ttlMinutes: positive(body, "ttlMinutes"), image: optionalText(body, "image") };
+  return { owner: text(body, "owner"), ttlMinutes: positive(body, "ttlMinutes"), image: optionalText(body, "image"), packageCache: optionalText(body, "packageCache") };
 }
 
 export function commandRequest(body: Record<string, unknown>): CommandRequest {
