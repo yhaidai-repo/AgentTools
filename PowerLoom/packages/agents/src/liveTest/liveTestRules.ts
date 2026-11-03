@@ -88,7 +88,8 @@ export const LIVE_TEST_RULES: LiveTestRule[] = [
 // change what every agent shares (agent.pause, agent.saveGlobal, agent.saveFramework, skill.*), or write into real
 // vaults, Azure DevOps or the repos with no undo (registers, vault capture and trash, WWW, findings, reviews, PR syncs,
 // repos, cleanup, dead letters); chat.open opens a desktop chat; failure.report writes into the list every PowerLoom
-// failure goes to, which is no data of a run.
+// failure goes to, which is no data of a run; flow.* writes shared workflow definitions, and a run would start every
+// agent of the flow once the engine exists.
 export const LIVE_TEST_EXCLUDED = [
   "pbi.prepare",
   "pbi.sync",
@@ -129,6 +130,10 @@ export const LIVE_TEST_EXCLUDED = [
   "deadletter.discard",
   "chat.open",
   "failure.report",
+  "flow.save",
+  "flow.delete",
+  "flow.run",
+  "flow.cancel",
 ];
 
 // Only on a PBI the run created (a task without one is any agent's at once), a schedule only while it is off, and a task

@@ -688,6 +688,124 @@ namespace PowerLoom.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.Flow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("definition");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Trigger")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("trigger");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Vault")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vault");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("flow_pkey");
+
+                    b.HasIndex(new[] { "Vault", "Name" }, "flow_vault_name_key")
+                        .IsUnique();
+
+                    b.ToTable("flow", (string)null);
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.FlowExecution", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("definition");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("FlowId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("flow_id");
+
+                    b.Property<int>("FlowVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("flow_version");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("text")
+                        .HasColumnName("item_id");
+
+                    b.Property<int?>("PbiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("pbi_id");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("target_kind");
+
+                    b.Property<string>("Vault")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vault");
+
+                    b.HasKey("Id")
+                        .HasName("flow_execution_pkey");
+
+                    b.HasIndex(new[] { "Vault", "StartedAt" }, "flow_execution_vault_started_idx")
+                        .IsDescending(false, true);
+
+                    b.ToTable("flow_execution", (string)null);
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.GuideAsset", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2377,6 +2495,29 @@ namespace PowerLoom.Persistence.Migrations
                     b.Navigation("Run");
                 });
 
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.Flow", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.Vault", "VaultNavigation")
+                        .WithMany()
+                        .HasForeignKey("Vault")
+                        .IsRequired()
+                        .HasConstraintName("flow_vault_vault_name_fk");
+
+                    b.Navigation("VaultNavigation");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.FlowExecution", b =>
+                {
+                    b.HasOne("PowerLoom.Persistence.Entities.Flow", "Flow")
+                        .WithMany("Executions")
+                        .HasForeignKey("FlowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("flow_execution_flow_id_flow_id_fk");
+
+                    b.Navigation("Flow");
+                });
+
             modelBuilder.Entity("PowerLoom.Persistence.Entities.GuideAsset", b =>
                 {
                     b.HasOne("PowerLoom.Persistence.Entities.LocalItem", null)
@@ -2687,6 +2828,11 @@ namespace PowerLoom.Persistence.Migrations
                     b.Navigation("StatusHistories");
 
                     b.Navigation("VaultCaptures");
+                });
+
+            modelBuilder.Entity("PowerLoom.Persistence.Entities.Flow", b =>
+                {
+                    b.Navigation("Executions");
                 });
 
             modelBuilder.Entity("PowerLoom.Persistence.Entities.LocalItem", b =>

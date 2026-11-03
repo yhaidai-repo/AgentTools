@@ -22,6 +22,8 @@ import type { HandoffIntent } from "./models/HandoffIntent";
 import type { HandoffRefs } from "./models/HandoffRefs";
 import type { HandoffStatus } from "./models/HandoffStatus";
 import type { HandoffTargetKind } from "./models/HandoffTargetKind";
+import type { FlowExecutionStatus } from "./models/FlowExecutionStatus";
+import type { FlowTargetKind } from "./models/FlowTargetKind";
 import type { PlanContent } from "./models/PlanContent";
 import type { BuildContent } from "./models/BuildContent";
 
@@ -623,6 +625,40 @@ export const taskSchedule = pgTable("task_schedule", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+// PowerLoom Flow (design 2026-11-03): a reusable agent workflow, saved and run through the API (Flows feature). The
+// definition is the canvas as packages/core's FlowDefinition schema parses it; every save bumps the version.
+export const flow = pgTable("flow", {
+  id: text("id").primaryKey(), // FL-nnn (reserve_item_id)
+  vault: vaultName(),
+  name: text("name").notNull(),
+  version: integer("version").notNull().default(1),
+  definition: jsonb("definition").$type<Record<string, unknown>>().notNull(), // core parses it with flowDefinitionSchema
+  trigger: jsonb("trigger").$type<Record<string, unknown>>(), // null in v1: triggers are deferred
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex("flow_vault_name_key").on(t.vault, t.name),
+]);
+
+// One run of a flow for a PBI or a task, with the definition as it was when the run started. Phase 1 records it; the
+// engine that creates the nodes' tasks (data.flowExecutionId, data.flowNode) is phase 2.
+export const flowExecution = pgTable("flow_execution", {
+  id: text("id").primaryKey(), // FX-nnn
+  flowId: text("flow_id").notNull().references(() => flow.id, { onDelete: "cascade" }),
+  flowVersion: integer("flow_version").notNull(),
+  definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
+  vault: vaultName(),
+  targetKind: text("target_kind").$type<FlowTargetKind>().notNull(),
+  pbiId: integer("pbi_id"),
+  itemId: text("item_id"),
+  status: text("status").$type<FlowExecutionStatus>().notNull(),
+  error: text("error"),
+  startedAt: ts("started_at").notNull().defaultNow(),
+  finishedAt: ts("finished_at"),
+}, (t) => [
+  index("flow_execution_vault_started_idx").on(t.vault, t.startedAt.desc()),
+]);
 
 // The vault-review agent's decisions (user decision 2026-10-03): a decided note drops out of its list tools for a while,
 // and for as long as the tech-writer task it asked for is open.

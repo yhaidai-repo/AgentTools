@@ -100,6 +100,13 @@ import { getSettingsCommand } from "./getSettingsCommand";
 import { captureDraftCommand } from "./captureDraftCommand";
 import { addRegisterRecordCommand } from "./addRegisterRecordCommand";
 import { closeRegisterRecordCommand } from "./closeRegisterRecordCommand";
+import { saveFlowCommand } from "./saveFlowCommand";
+import { deleteFlowCommand } from "./deleteFlowCommand";
+import { runFlowCommand } from "./runFlowCommand";
+import { cancelFlowExecutionCommand } from "./cancelFlowExecutionCommand";
+import { listFlowsCommand } from "./listFlowsCommand";
+import { getFlowCommand } from "./getFlowCommand";
+import { listFlowExecutionsCommand } from "./listFlowExecutionsCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -176,6 +183,11 @@ export const COMMANDS: readonly Command<any, any>[] = [
   reportFailureCommand,
   addRegisterRecordCommand,
   closeRegisterRecordCommand,
+  // PowerLoom Flow (phase 1, 2026-11-03): the Flow app's writes.
+  saveFlowCommand,
+  deleteFlowCommand,
+  runFlowCommand,
+  cancelFlowExecutionCommand,
   // The read commands (stage 2 of the powerloom-mcp design, 2026-10-23): what the pages show, for the chats.
   listPbisCommand,
   listTasksCommand,
@@ -183,6 +195,9 @@ export const COMMANDS: readonly Command<any, any>[] = [
   listTestCasesCommand,
   listSchedulesCommand,
   getScheduleCommand,
+  listFlowsCommand,
+  getFlowCommand,
+  listFlowExecutionsCommand,
   listRunsCommand,
   getRunCommand,
   readLogsCommand,

@@ -2074,6 +2074,144 @@
         }
       }
     },
+    "/api/flows": {
+      "put": {
+        "tags": [
+          "PowerLoom.Features.Flows.FlowsEndpoints"
+        ],
+        "summary": "PUT_api_flows",
+        "description": "PUT_api_flows",
+        "operationId": "PUT_api_flows",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFlow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flows/{id}": {
+      "delete": {
+        "tags": [
+          "PowerLoom.Features.Flows.FlowsEndpoints"
+        ],
+        "summary": "DELETE_api_flows_id",
+        "description": "DELETE_api_flows_id",
+        "operationId": "DELETE_api_flows_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedFlow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flows/{id}/run": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Flows.FlowsEndpoints"
+        ],
+        "summary": "POST_api_flows_id_run",
+        "description": "POST_api_flows_id_run",
+        "operationId": "POST_api_flows_id_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunFlowInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowExecutionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flow-executions/{id}/cancel": {
+      "post": {
+        "tags": [
+          "PowerLoom.Features.Flows.FlowsEndpoints"
+        ],
+        "summary": "POST_api_flow_executions_id_cancel",
+        "description": "POST_api_flow_executions_id_cancel",
+        "operationId": "POST_api_flow_executions_id_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowExecutionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/vaults/{vault}/drafts": {
       "post": {
         "tags": [
@@ -5902,6 +6040,21 @@
           }
         }
       },
+      "DeletedFlow": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "DeletedItem": {
         "required": [
           "itemId"
@@ -6174,6 +6327,238 @@
               "integer"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "FlowDefinitionInput": {
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "type": "object",
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowNodeInput"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowEdgeInput"
+            }
+          }
+        }
+      },
+      "FlowEdgeInput": {
+        "required": [
+          "id",
+          "from",
+          "to",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "FlowExecutionView": {
+        "required": [
+          "id",
+          "flowId",
+          "flowVersion",
+          "vault",
+          "targetKind",
+          "pbiId",
+          "itemId",
+          "status",
+          "error",
+          "startedAt",
+          "finishedAt",
+          "definition"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "flowId": {
+            "type": "string"
+          },
+          "flowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "targetKind": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/FlowDefinitionInput"
+          }
+        }
+      },
+      "FlowInput": {
+        "required": [
+          "id",
+          "vault",
+          "name",
+          "definition"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vault": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/FlowDefinitionInput"
+          }
+        }
+      },
+      "FlowNodeInput": {
+        "required": [
+          "id",
+          "type",
+          "agent",
+          "kind",
+          "title",
+          "runs",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "agent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "$ref": "#/components/schemas/FlowPosition"
+          }
+        }
+      },
+      "FlowPosition": {
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "FlowTargetInput": {
+        "required": [
+          "kind",
+          "pbiId",
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "pbiId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6966,6 +7351,21 @@
           }
         }
       },
+      "RunFlowInput": {
+        "required": [
+          "vault",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "vault": {
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/FlowTargetInput"
+          }
+        }
+      },
       "RunInProgress": {
         "required": [
           "taskId",
@@ -7385,6 +7785,44 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "SavedFlow": {
+        "required": [
+          "id",
+          "vault",
+          "name",
+          "version",
+          "definition",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/FlowDefinitionInput"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -8549,6 +8987,9 @@
     },
     {
       "name": "PowerLoom.Features.ImportSources.SourceSettings.SourceSettingsEndpoint"
+    },
+    {
+      "name": "PowerLoom.Features.Flows.FlowsEndpoints"
     },
     {
       "name": "PowerLoom.Features.Docs.Records.ChatRecordsEndpoints"

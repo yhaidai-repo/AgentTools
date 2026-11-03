@@ -912,6 +912,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT_api_flows
+         * @description PUT_api_flows
+         */
+        put: operations["PUT_api_flows"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE_api_flows_id
+         * @description DELETE_api_flows_id
+         */
+        delete: operations["DELETE_api_flows_id"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_flows_id_run
+         * @description POST_api_flows_id_run
+         */
+        post: operations["POST_api_flows_id_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flow-executions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST_api_flow_executions_id_cancel
+         * @description POST_api_flow_executions_id_cancel
+         */
+        post: operations["POST_api_flow_executions_id_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vaults/{vault}/drafts": {
         parameters: {
             query?: never;
@@ -2355,6 +2435,10 @@ export interface components {
         DeleteRequest: {
             adoIds: number[];
         };
+        DeletedFlow: {
+            id: string;
+            name: string;
+        };
         DeletedItem: {
             itemId: string;
         };
@@ -2424,6 +2508,62 @@ export interface components {
             message: string;
             /** Format: int32 */
             wwwRecordId: null | number;
+        };
+        FlowDefinitionInput: {
+            nodes: components["schemas"]["FlowNodeInput"][];
+            edges: components["schemas"]["FlowEdgeInput"][];
+        };
+        FlowEdgeInput: {
+            id: string;
+            from: string;
+            to: string;
+            kind: string;
+        };
+        FlowExecutionView: {
+            id: string;
+            flowId: string;
+            /** Format: int32 */
+            flowVersion: number;
+            vault: string;
+            targetKind: string;
+            /** Format: int32 */
+            pbiId: null | number;
+            itemId: null | string;
+            status: string;
+            error: null | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            definition: components["schemas"]["FlowDefinitionInput"];
+        };
+        FlowInput: {
+            id: null | string;
+            vault: string;
+            name: string;
+            definition: components["schemas"]["FlowDefinitionInput"];
+        };
+        FlowNodeInput: {
+            id: string;
+            type: string;
+            agent: null | string;
+            kind: null | string;
+            title: null | string;
+            /** Format: int32 */
+            runs: null | number;
+            position: components["schemas"]["FlowPosition"];
+        };
+        FlowPosition: {
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+        };
+        FlowTargetInput: {
+            kind: string;
+            /** Format: int32 */
+            pbiId: null | number;
+            itemId: null | string;
         };
         GitHubCheck: {
             ok: boolean;
@@ -2620,6 +2760,10 @@ export interface components {
             done: components["schemas"]["ReviewOutcome"][];
             refused: string[];
         };
+        RunFlowInput: {
+            vault: string;
+            target: components["schemas"]["FlowTargetInput"];
+        };
         RunInProgress: {
             taskId: string;
             agentId: string;
@@ -2721,6 +2865,18 @@ export interface components {
         };
         SavedConnection: {
             enabled: boolean;
+        };
+        SavedFlow: {
+            id: string;
+            vault: string;
+            name: string;
+            /** Format: int32 */
+            version: number;
+            definition: components["schemas"]["FlowDefinitionInput"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         SavedRepos: {
             /** Format: int32 */
@@ -4383,6 +4539,100 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PUT_api_flows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedFlow"];
+                };
+            };
+        };
+    };
+    DELETE_api_flows_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedFlow"];
+                };
+            };
+        };
+    };
+    POST_api_flows_id_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunFlowInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowExecutionView"];
+                };
+            };
+        };
+    };
+    POST_api_flow_executions_id_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowExecutionView"];
                 };
             };
         };

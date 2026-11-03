@@ -17,6 +17,7 @@ using PowerLoom.Features.Repos;
 using PowerLoom.Features.Skills;
 using PowerLoom.Features.Status;
 using PowerLoom.Features.Status.Performance;
+using PowerLoom.Features.Flows;
 using PowerLoom.Features.Tasks;
 using PowerLoom.Features.Vaults;
 using PowerLoom.Infrastructure.Backlog;
@@ -65,6 +66,7 @@ public static class PowerLoomSetup
         builder.Services.AddImportSourcesFeature();
         builder.Services.AddMeetingsFeature();
         builder.Services.AddTasksFeature();
+        builder.Services.AddFlowsFeature();
         builder.Services.AddReposFeature();
         builder.Services.AddSkillsFeature();
         builder.Services.AddAgentsFeature();

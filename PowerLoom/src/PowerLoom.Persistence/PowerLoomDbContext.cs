@@ -30,6 +30,10 @@ public partial class PowerLoomDbContext : DbContext
 
     public virtual DbSet<Design> Designs { get; set; }
 
+    public virtual DbSet<Flow> Flows { get; set; }
+
+    public virtual DbSet<FlowExecution> FlowExecutions { get; set; }
+
     public virtual DbSet<LocalItem> LocalItems { get; set; }
 
     public virtual DbSet<PbiEstimate> PbiEstimates { get; set; }

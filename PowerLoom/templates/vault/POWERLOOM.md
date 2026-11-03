@@ -94,6 +94,7 @@ at most 200 rows. Every read goes to the data access log.
 | `pbi_confluenceLink_add`, `pbi_confluenceLink_remove`, `pbi_confluenceLoad` | links or unlinks a Confluence page, loads a linked page |
 | `bug_report` | reports a bug found on a PBI |
 | `task_create`, `schedule_save`, `schedule_delete`, `schedule_tick` | creates a task or a schedule by task type, changes or deletes a schedule, creates its task now |
+| `flow_save`, `flow_delete`, `flow_run`, `flow_cancel` | creates or changes a flow (agent nodes and edges), deletes one, runs it for a PBI or a task, cancels a running execution |
 | `vault_add`, `vault_remove`, `vault_trashRestore`, `vault_trashDelete` | adds or removes a vault (its folder stays), restores or deletes a trashed note |
 | `repo_enable`, `repo_addLocal`, `repo_remove`, `repo_saveCommands`, `cleanup_run` | the vault's repo catalogue and a repo's build and test commands; runs the vault's cleanup |
 | `sandbox_saveSettings`, `sandbox_savePackageFeed`, `sandbox_removePackageFeed` | the vault's sandbox package hosts and image; adds or removes a private package feed |

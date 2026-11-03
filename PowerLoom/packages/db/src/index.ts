@@ -57,3 +57,5 @@ export { HANDOFF_GATES, type HandoffGate } from "./models/HandoffGate";
 export { HANDOFF_TARGET_KINDS, type HandoffTargetKind } from "./models/HandoffTargetKind";
 export type { HandoffStatus } from "./models/HandoffStatus";
 export type { HandoffRefs } from "./models/HandoffRefs";
+export { FLOW_EXECUTION_STATUSES, type FlowExecutionStatus } from "./models/FlowExecutionStatus";
+export { FLOW_TARGET_KINDS, type FlowTargetKind } from "./models/FlowTargetKind";
