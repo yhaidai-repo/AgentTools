@@ -15,9 +15,10 @@ export async function stopOwnedStack(client: DevHubCalls, owner: string): Promis
   return stopStackOwnedBy(client, (candidate) => candidate === owner);
 }
 
-// The runner's start: no run is in progress, so a stack a run left behind (the runner stopped mid-run) is orphaned.
-export async function stopOrphanedStack(client: DevHubCalls): Promise<string | null> {
-  return stopStackOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX));
+// The runner's start: a stack a run left behind (the runner stopped mid-run) is orphaned, unless its run is one the
+// runner is running now (`liveOwners`, empty at a cold start).
+export async function stopOrphanedStack(client: DevHubCalls, liveOwners: ReadonlySet<string> = new Set()): Promise<string | null> {
+  return stopStackOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX) && !liveOwners.has(owner));
 }
 
 // The MCP server's start: no chat session survives a restart, so a stack a session left behind is orphaned.
@@ -47,8 +48,8 @@ export async function closeOwnedBrowser(client: BrowserCalls, owner: string): Pr
   return closeBrowserOwnedBy(client, (candidate) => candidate === owner);
 }
 
-export async function closeOrphanedBrowser(client: BrowserCalls): Promise<string | null> {
-  return closeBrowserOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX));
+export async function closeOrphanedBrowser(client: BrowserCalls, liveOwners: ReadonlySet<string> = new Set()): Promise<string | null> {
+  return closeBrowserOwnedBy(client, (owner) => owner.startsWith(RUN_OWNER_PREFIX) && !liveOwners.has(owner));
 }
 
 export async function closeOrphanedChatBrowser(client: BrowserCalls): Promise<string | null> {

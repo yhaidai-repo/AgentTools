@@ -13,7 +13,9 @@ public sealed class FakeRunnerClient : IRunnerClient
     public List<RunnerRequest> Requests { get; } = [];
 
     // Unreachable unless a test says otherwise.
-    public RunnerHealth Health { get; set; } = new(false, null, "no runner in the tests");
+    public RunnerHealth Health { get; set; } = Unreachable;
+
+    public static RunnerHealth Unreachable => RunnerHealth.Unreachable("no runner in the tests");
 
     // The task the runner says it runs, for Stop.
     public string? Running { get; set; }

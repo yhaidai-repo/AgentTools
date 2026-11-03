@@ -9,6 +9,7 @@ import type { OutsideAccessContext } from "../models/OutsideAccessContext";
 import type { OutsideResource } from "../models/OutsideResource";
 import type { OutsideToolResult } from "../models/OutsideToolResult";
 import { defineOutsideTool } from "../outsideAccess";
+import { acquireDevHub } from "../devHubLease";
 import { addRunOutputs } from "../tasks/runOutputs";
 import type { BrowserCase } from "./models/BrowserCase";
 import type { PlaywrightMcpTool } from "./models/PlaywrightMcpTool";
@@ -46,6 +47,12 @@ function browserOpenTool(deps: AgentDeps, context: OutsideAccessContext, access:
     resource: (input) => resourceOf(access, `browser:${input.case}`),
     request: (input) => `open ${input.case}`,
     handler: async (input) => {
+      const lease = await acquireDevHub(deps, access, owner);
+
+      if (!lease.ok) {
+        return { text: lease.reason, isError: true };
+      }
+
       const opened = await access.client.openBrowser({ owner, case: input.case, headless });
 
       if (!opened.ok) {

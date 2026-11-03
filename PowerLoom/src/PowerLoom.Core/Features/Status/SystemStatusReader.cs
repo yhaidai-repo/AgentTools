@@ -72,7 +72,7 @@ public sealed class SystemStatusReader(
     {
         var health = await runner.HealthAsync(cancellation);
 
-        return new RunnerStatus(health.Reachable ? StateLevel.Ok : StateLevel.Degraded, health.Reachable, health.RunningTask, runnerOptions.Value.Url, health.Detail);
+        return new RunnerStatus(health.Reachable ? StateLevel.Ok : StateLevel.Degraded, health.Reachable, health.RunningTask, health.RunningTasks, health.MaxParallelRuns, runnerOptions.Value.Url, health.Detail);
     }
 
     // The Confluence library writes {email} at start; no email = not configured.

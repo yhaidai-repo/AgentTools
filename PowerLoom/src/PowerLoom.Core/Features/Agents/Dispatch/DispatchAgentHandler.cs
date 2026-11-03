@@ -5,6 +5,7 @@ using PowerLoom.Features.Agents.AgentRun;
 using PowerLoom.Features.Tasks;
 using PowerLoom.Infrastructure.AgentConfig;
 using PowerLoom.Infrastructure.AgentConfig.Models;
+using PowerLoom.Infrastructure.Runner;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using Wolverine;
@@ -12,12 +13,14 @@ using Wolverine;
 namespace PowerLoom.Features.Agents.Dispatch;
 
 // One dispatch at a time (the "dispatch" queue): the agent's open tasks in priority order, each through the validator;
-// a held task keeps its reasons, a valid one is claimed and its run started, up to the agent's batch size.
+// a held task keeps its reasons, a valid one is claimed and its run started, up to the agent's batch size and the
+// runner's free slots (one source for the limit: the runner's /health). A task claimed past a slot the runner gave
+// away meanwhile waits on the saga's busy retry, as before.
 public static class DispatchAgentHandler
 {
     public const string Actor = "dispatch";
 
-    public static async Task Handle(DispatchAgent message, PowerLoomDbContext db, AgentConfigReader agents, IMessageBus bus, ILogger<DispatchAgent> logger, CancellationToken cancellation)
+    public static async Task Handle(DispatchAgent message, PowerLoomDbContext db, AgentConfigReader agents, IRunnerClient runner, IMessageBus bus, ILogger<DispatchAgent> logger, CancellationToken cancellation)
     {
         var agent = await agents.ReadAsync(message.AgentId, cancellation);
         var skip = await SkipReasonAsync(agents, agent, cancellation);
@@ -30,12 +33,30 @@ public static class DispatchAgentHandler
         }
 
         var tasks = await OpenAgentTasks.ListAsync(db, agent.Id, agent.Handles, cancellation);
+        var slots = await FreeSlotsAsync(runner, cancellation);
+        var limit = Math.Min(agent.BatchSize, slots ?? int.MaxValue);
         var started = 0;
 
-        foreach (var task in tasks.TakeWhile(_ => started < agent.BatchSize))
+        if (limit == 0 && tasks.Count > 0)
+        {
+            logger.LogInformation("dispatch {Agent}: every slot of the runner is busy; {Open} open task(s) wait for the next dispatch", agent.Id, tasks.Count);
+
+            return;
+        }
+
+        foreach (var task in tasks.TakeWhile(_ => started < limit))
             started += await TryStartAsync(db, bus, agent, task, cancellation) ? 1 : 0;
 
         logger.LogInformation("dispatch {Agent}: started {Started} of {Open} open task(s)", agent.Id, started, tasks.Count);
+    }
+
+    // The runner's free slots now; null (the runner is down, or an older runner without slots) caps nothing: a claimed
+    // task waits on the saga's busy retry.
+    private static async Task<int?> FreeSlotsAsync(IRunnerClient runner, CancellationToken cancellation)
+    {
+        var health = await runner.HealthAsync(cancellation);
+
+        return health.Reachable ? health.FreeSlots : null;
     }
 
     private static async Task<string?> SkipReasonAsync(AgentConfigReader agents, AgentSummary? agent, CancellationToken cancellation)

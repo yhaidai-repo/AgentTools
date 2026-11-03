@@ -1,6 +1,9 @@
 export { PriceBook, baseModel } from "./PriceBook";
 export { UsageTracker } from "./UsageTracker";
 export { BudgetGuard } from "./BudgetGuard";
+export type { ReservedStart } from "./BudgetGuard";
+export { BudgetReservations, SHARED_BUDGET_RESERVATIONS } from "./BudgetReservations";
+export type { BudgetReservation } from "./BudgetReservations";
 export { IncompleteAccountingError } from "./IncompleteAccountingError";
 export { budgetDayStart } from "./budgetDay";
 export { TraceRecorder } from "./TraceRecorder";

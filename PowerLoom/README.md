@@ -15,7 +15,7 @@ agents, a TypeScript agent runner and a Next.js web UI. Design and status: the `
 | `src/PowerLoom.Contracts` | messages and types shared across projects |
 | `src/PowerLoom.AdoIntegration`, `src/PowerLoom.ConfluenceIntegration` | the Azure DevOps and Confluence libraries |
 | `tests/PowerLoom.Api.Tests` | Alba + Testcontainers (one host and Postgres per run) |
-| `apps/agent-runner` | runs one agent task at a time on `POST /runs` from the backend (which dispatches on the agents' schedules and Run now) and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback) and Codex's login in `agent-homes/codex` (mounted at `/codex-home`); skills read-only, docs vault writable for the tech-writer's merges |
+| `apps/agent-runner` | runs the agent tasks the backend starts with `POST /runs` (it dispatches on the agents' schedules and Run now), up to `RUNNER_MAX_PARALLEL_RUNS` at once (default 1: one task at a time; the dispatch reads the free slots from `/health`, so claimed tasks don't queue on busy retries; parallel runs share the daily budgets through a per-run reservation and take turns on a vault's DevHub), and reports each run back; the Claude token from Settings → AI providers (`.env`'s `CLAUDE_CODE_OAUTH_TOKEN` as the fallback) and Codex's login in `agent-homes/codex` (mounted at `/codex-home`); skills read-only, docs vault writable for the tech-writer's merges |
 | `apps/web` | Next.js UI (Backlog, PBI pages, Tasks, Agents, Settings, Vault) |
 | `packages/*` | the TypeScript libraries the two apps share (`db`, `core`, `agents`, `notes`, `ado`, `confluence`, `attachments`, `vault`) |
 | `skills/` | PowerLoom's own skills for agents (`powerloom-*`) |

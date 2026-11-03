@@ -55,7 +55,11 @@ services:
       VAULT_CAPTURE_HOME: /app/VaultCapture
       VAULTS_DIR: /vaults
       VAULTS_EXCLUDE: ${VAULTS_EXCLUDE:-powerloom-backlog}
-      RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs, one at a time)
+      RUNNER_PORT: "3200"  # PowerLoom starts the runs here (POST /runs)
+      # How many agent tasks run at once in this runner (its slots; /health reports them and the dispatch claims no
+      # more). 1 = one task at a time, as before. Runs share the repo caches (worktrees per branch), the daily budgets
+      # (each run reserves its per-run budget at start) and a vault's DevHub (one run at a time, the next waits).
+      RUNNER_MAX_PARALLEL_RUNS: ${RUNNER_MAX_PARALLEL_RUNS:-1}
       POWERLOOM_URL: http://powerloom:8080  # … and takes the one callback per run
       # The agents' sandboxes (the `sandbox` profile): both set, or agents get no sandbox tools. URL: http://sandbox:3300
       SANDBOX_URL: ${SANDBOX_URL:-}

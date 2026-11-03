@@ -2635,6 +2635,9 @@ export interface components {
             state: components["schemas"]["StateLevel"];
             reachable: boolean;
             runningTask: null | string;
+            runningTasks: string[];
+            /** Format: int32 */
+            maxParallelRuns: null | number;
             url: string;
             detail: null | string;
         };

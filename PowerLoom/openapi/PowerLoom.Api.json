@@ -7017,6 +7017,8 @@
           "state",
           "reachable",
           "runningTask",
+          "runningTasks",
+          "maxParallelRuns",
           "url",
           "detail"
         ],
@@ -7033,6 +7035,19 @@
               "null",
               "string"
             ]
+          },
+          "runningTasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxParallelRuns": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           },
           "url": {
             "type": "string"

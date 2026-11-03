@@ -22,7 +22,7 @@ public sealed class SystemStatusTests(PowerLoomHost host)
         var runner = host.Host.Services.GetRequiredService<FakeRunnerClient>();
         var deadLetter = await StoreDeadLetterAsync();
 
-        runner.Health = new RunnerHealth(false, null, "connection refused");
+        runner.Health = RunnerHealth.Unreachable("connection refused");
 
         var status = await host.Host.GetAsJson<SystemStatus>("/api/status");
 
@@ -42,12 +42,21 @@ public sealed class SystemStatusTests(PowerLoomHost host)
             scenario.Delete.Url($"/api/dead-letters/{deadLetter}");
             scenario.StatusCodeShouldBeOk();
         });
-        runner.Health = new RunnerHealth(true, "AT-1-001", null);
+        runner.Health = new RunnerHealth(true, ["AT-1-001", "AT-1-002"], 3, null);
 
-        var again = await host.Host.GetAsJson<SystemStatus>("/api/status");
+        try
+        {
+            var again = await host.Host.GetAsJson<SystemStatus>("/api/status");
 
-        Assert.Equal((StateLevel.Ok, "AT-1-001"), (again!.Runner.State, again.Runner.RunningTask));
-        Assert.DoesNotContain(again.Attention, item => item.Component == AttentionRules.RunnerComponent);
+            Assert.Equal((StateLevel.Ok, "AT-1-001"), (again!.Runner.State, again.Runner.RunningTask));
+            Assert.Equal(["AT-1-001", "AT-1-002"], again.Runner.RunningTasks);
+            Assert.Equal(3, again.Runner.MaxParallelRuns);
+            Assert.DoesNotContain(again.Attention, item => item.Component == AttentionRules.RunnerComponent);
+        }
+        finally
+        {
+            runner.Health = FakeRunnerClient.Unreachable;
+        }
     }
 
     [Fact]

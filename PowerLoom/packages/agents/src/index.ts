@@ -19,6 +19,10 @@ export { AZURE_ACCESS_INTEGRATION, READ_COSMOS_INTEGRATION, READ_MONGO_INTEGRATI
 export { AZURE_ACCESS_NAMESPACES, COSMOS_NAMESPACE } from "./azure/azureTools";
 export { loadCaptureRules } from "./vaultCapture";
 export { clearReviewCheckouts } from "./codeReview/reviewCheckouts";
+export { DEVHUB_LEASE_WAIT_MS, DevHubLeases } from "./devHubLease";
+export type { LeaseAnswer } from "./devHubLease";
+export { NO_LIVE_RUNS, liveRunsOf } from "./liveRuns";
+export type { LiveRuns } from "./liveRuns";
 export { DocUsageLog } from "./DocUsageLog";
 export { DataAccessLog } from "./DataAccessLog";
 export { AccessRequests } from "./AccessRequests";

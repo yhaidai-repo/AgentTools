@@ -49,22 +49,37 @@ public sealed class RunnerClient(IHttpClientFactory clients, IOptions<RunnerOpti
             using var response = await http.GetAsync($"{BaseUrl}/health", cancellation);
 
             if (!response.IsSuccessStatusCode)
-                return new RunnerHealth(false, null, $"the runner answered {(int)response.StatusCode}");
+                return RunnerHealth.Unreachable($"the runner answered {(int)response.StatusCode}");
 
-            return new RunnerHealth(true, RunningTaskOf(await response.Content.ReadAsStringAsync(cancellation)), null);
+            return HealthOf(await response.Content.ReadAsStringAsync(cancellation));
         }
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException)
         {
-            return new RunnerHealth(false, null, error.Message);
+            return RunnerHealth.Unreachable(error.Message);
         }
     }
 
     private string BaseUrl => options.Value.Url.TrimEnd('/');
 
-    private static string? RunningTaskOf(string body)
+    // `runningTasks` and `maxParallelRuns` from a runner with slots; `running` alone from an older one (one slot).
+    public static RunnerHealth HealthOf(string body)
     {
         using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
 
-        return document.RootElement.TryGetProperty("running", out var running) && running.ValueKind == JsonValueKind.String ? running.GetString() : null;
+        return new RunnerHealth(true, RunningTasksOf(root), MaxParallelRunsOf(root), null);
+    }
+
+    private static List<string> RunningTasksOf(JsonElement root)
+    {
+        if (root.TryGetProperty("runningTasks", out var list) && list.ValueKind == JsonValueKind.Array)
+            return list.EnumerateArray().Where(task => task.ValueKind == JsonValueKind.String).Select(task => task.GetString()!).ToList();
+
+        return root.TryGetProperty("running", out var running) && running.ValueKind == JsonValueKind.String ? [running.GetString()!] : [];
+    }
+
+    private static int? MaxParallelRunsOf(JsonElement root)
+    {
+        return root.TryGetProperty("maxParallelRuns", out var slots) && slots.ValueKind == JsonValueKind.Number && slots.TryGetInt32(out var max) ? max : null;
     }
 }

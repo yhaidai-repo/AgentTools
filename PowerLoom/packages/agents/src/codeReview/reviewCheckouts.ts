@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentDeps } from "../models/AgentDeps";
 
@@ -9,7 +9,22 @@ export function reviewCheckoutsRoot(deps: AgentDeps, runId: number): string {
   return join(deps.repoCacheRoot, REVIEW_CHECKOUTS, `run-${runId}`);
 }
 
-// At agent-runner start no run is active, so worktrees a crash left behind can go; git forgets them on its next prune.
-export async function clearReviewCheckouts(repoCacheRoot: string): Promise<void> {
-  await rm(join(repoCacheRoot, REVIEW_CHECKOUTS), { recursive: true, force: true });
+// At agent-runner start, worktrees a crash left behind can go; git forgets them on its next prune. A run the runner
+// is running now (`liveRunIds`, empty at a cold start) keeps its folder.
+export async function clearReviewCheckouts(repoCacheRoot: string, liveRunIds: ReadonlySet<number> = new Set()): Promise<void> {
+  const root = join(repoCacheRoot, REVIEW_CHECKOUTS);
+
+  if (liveRunIds.size === 0) {
+    await rm(root, { recursive: true, force: true });
+
+    return;
+  }
+
+  const live = new Set([...liveRunIds].map((runId) => `run-${runId}`));
+
+  for (const entry of await readdir(root).catch(() => [] as string[])) {
+    if (!live.has(entry)) {
+      await rm(join(root, entry), { recursive: true, force: true });
+    }
+  }
 }

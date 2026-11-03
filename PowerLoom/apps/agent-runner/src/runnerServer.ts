@@ -10,18 +10,19 @@ import type { RunnerMaintenance } from "./RunnerMaintenance";
 const NO_CODEX = "Codex isn't set up in this agent-runner: CODEX_HOME is not set (docker-compose.yml mounts agent-homes/codex there).";
 
 // The runner's port for PowerLoom (inside the compose network, unauthenticated like web ↔ PowerLoom):
-// `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while a run is in progress. One task at a
-// time; PowerLoom asks again later. `POST /runs/stop {taskId}` → 202 and the task's run stops (keeping what it has), or
-// 409 when that task isn't the one running. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
+// `POST /runs {taskId, agentId, pbiId}` → 202 and the run starts now, or 409 while every slot is busy (the body names
+// the running tasks). Up to `maxParallelRuns` tasks at a time (RUNNER_MAX_PARALLEL_RUNS, default 1); PowerLoom asks
+// again later. `POST /runs/stop {taskId}` → 202 and that task's run stops (keeping what it has), or 409 when that task
+// isn't running here. `POST /sql/test {connectionString}` → 200 {ok, message}: Settings' Read SQL test,
 // signed in through the agents' own SQL driver, also while a run is in progress. `POST /devhub/test {url, token}` →
 // 200 {ok, message}: Settings' DevHub test, from the container the agents' DevHub calls come from. `/azure/login/*`: the user's own
 // device-code sign-in for Azure (start, status, sign out); the runner keeps the token cache. `GET /azure/token`: the `az` shim's
 // question for the Azure MCP server, a token of that sign-in for one API; only with the secret the shim was given. `/codex/*`: Connect Codex in Settings → AI providers
 // (status, device sign-in start and status, disconnect, a login file upload); the runner owns PowerLoom's Codex home.
-// `GET /health` for PowerLoom's health check and Docker's.
+// `GET /health` for PowerLoom's health check and Docker's: `runningTasks` and `maxParallelRuns` (the slots), `running`
+// the first of them for older readers.
 export class RunnerServer {
-  private running: string | null = null;
-  private stopper: AbortController | null = null;
+  private readonly running = new Map<string, RunningJob>();
   private readonly server: Server;
 
   constructor(
@@ -32,10 +33,16 @@ export class RunnerServer {
     private readonly azureTokenSecret: string,
     private readonly codex: RunnerCodex | null = null,
     private readonly maintenance: RunnerMaintenance | null = null,
+    private readonly maxParallelRuns = 1,
   ) {
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch((error) => this.requestFailed(request, response, error));
     });
+  }
+
+  /** The tasks running here now, oldest first: the sweeps leave their runs alone. */
+  runningTaskIds(): string[] {
+    return [...this.running.keys()];
   }
 
   listen(port: number): void {
@@ -48,7 +55,7 @@ export class RunnerServer {
 
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method === "GET" && request.url === "/health") {
-      answer(response, 200, { ok: true, running: this.running, maintenanceOwner: this.maintenance?.owner() ?? null });
+      answer(response, 200, { ok: true, ...this.slots(), maintenanceOwner: this.maintenance?.owner() ?? null });
 
       return;
     }
@@ -240,16 +247,23 @@ export class RunnerServer {
       return;
     }
 
-    if (this.running) {
-      answer(response, 409, { error: `running ${this.running}` });
+    if (this.running.has(job.taskId)) {
+      answer(response, 409, { error: `already running ${job.taskId}`, ...this.slots() });
 
       return;
     }
 
-    this.running = job.taskId;
-    this.stopper = new AbortController();
+    if (this.running.size >= this.maxParallelRuns) {
+      answer(response, 409, { error: `all ${this.maxParallelRuns} slot(s) busy: running ${this.runningTaskIds().join(", ")}`, ...this.slots() });
+
+      return;
+    }
+
+    const stopper = new AbortController();
+
+    this.running.set(job.taskId, { job, stopper });
     try { answer(response, 202, { taskId: job.taskId }); }
-    finally { void this.runThenFree(job, this.stopper.signal); }
+    finally { void this.runThenFree(job, stopper.signal); }
   }
 
   private async stop(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -258,11 +272,12 @@ export class RunnerServer {
       answer(response, 400, { error: "expected {taskId}" });
       return;
     }
-    if (this.running !== body.taskId || !this.stopper) {
-      answer(response, 409, { error: this.running ? `running ${this.running}, not ${body.taskId}` : "no run in progress" });
+    const running = this.running.get(body.taskId);
+    if (!running) {
+      answer(response, 409, { error: this.running.size > 0 ? `running ${this.runningTaskIds().join(", ")}, not ${body.taskId}` : "no run in progress", ...this.slots() });
       return;
     }
-    this.stopper.abort();
+    running.stopper.abort();
     answer(response, 202, { taskId: body.taskId });
   }
 
@@ -278,7 +293,7 @@ export class RunnerServer {
     }
     const accepted = request.method === "PUT" ? this.maintenance.acquire(body.owner) : this.maintenance.release(body.owner);
     answer(response, accepted ? 200 : 409, accepted
-      ? { owner: body.owner, running: this.running }
+      ? { owner: body.owner, ...this.slots() }
       : { error: "Another deployment owns maintenance; its lease was preserved." });
   }
 
@@ -312,9 +327,15 @@ export class RunnerServer {
     } catch (error) {
       console.error(`${job.taskId}: background run failed:`, error);
     } finally {
-      this.running = null;
-      this.stopper = null;
+      this.running.delete(job.taskId);
     }
+  }
+
+  // The slots as every answer reports them; `running` (the first task) stays for readers of the single-task runner.
+  private slots(): { running: string | null; runningTasks: string[]; maxParallelRuns: number } {
+    const runningTasks = this.runningTaskIds();
+
+    return { running: runningTasks[0] ?? null, runningTasks, maxParallelRuns: this.maxParallelRuns };
   }
 
   private requestFailed(request: IncomingMessage, response: ServerResponse, error: unknown): void {
@@ -327,6 +348,11 @@ export class RunnerServer {
     try { answer(response, 500, { error: "Agent-runner request failed." }); }
     catch { response.destroy(); }
   }
+}
+
+interface RunningJob {
+  job: AgentRunJob;
+  stopper: AbortController;
 }
 
 // The request's JSON body; null when it isn't JSON.

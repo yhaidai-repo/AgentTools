@@ -11,6 +11,13 @@ import { nodeById } from "./schemeLayout";
 
 type VaultStatus = SystemStatus["vaults"][number];
 
+// Every task the runner runs, and its slots when it has more than one: "running AT-1, AT-2 (2 of 3 slots)".
+function runnerRuns(runner: SystemStatus["runner"]): string {
+  const slots = runner.maxParallelRuns !== null && runner.maxParallelRuns > 1 ? ` (${runner.runningTasks.length} of ${runner.maxParallelRuns} slots)` : "";
+
+  return runner.runningTasks.length > 0 ? `running ${runner.runningTasks.join(", ")}${slots}` : `idle${slots}`;
+}
+
 interface StatePanelsProps {
   status: SystemStatus;
   vault: string;
@@ -41,7 +48,7 @@ function ServicesPanel({ status, observability }: { status: SystemStatus; observ
     <Panel title="Services" tone={worstProblem([status.database.state, status.ticker.state, runner.state])}>
       <StatusRow name="Postgres" value={status.database.detail} tone={toneOfState(status.database.state)} />
       <StatusRow name="Schedule ticker" value={status.ticker.lastTickAt ? <TimeAgo date={status.ticker.lastTickAt} /> : "no tick yet"} tone={toneOfState(status.ticker.state)} />
-      <StatusRow name="agent-runner" value={runner.reachable ? (runner.runningTask ? `running ${runner.runningTask}` : "idle") : runner.detail ?? "unreachable"} tone={toneOfState(runner.state)} />
+      <StatusRow name="agent-runner" value={runner.reachable ? runnerRuns(runner) : runner.detail ?? "unreachable"} tone={toneOfState(runner.state)} />
       <StatusRow name="Aspire Dashboard" value={observability} tone={OBSERVABILITY_TONES[observability]} />
     </Panel>
   );

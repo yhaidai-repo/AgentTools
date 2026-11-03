@@ -9,6 +9,7 @@ import type { TaskExecutor } from "../models/TaskExecutor";
 import { runGenericTask } from "../generic/runGenericTask";
 import { loadAgentPrompt } from "../prompts";
 import { dailyGuard, loadStageSkills, numberOption } from "../stage";
+import type { BudgetReservation } from "@agenttools/usage";
 import { blockTask, endTask, failAfterError, releaseTask } from "./endTask";
 
 type ItemRow = typeof localItem.$inferSelect;
@@ -38,14 +39,24 @@ export async function runAgentTask(deps: AgentDeps, job: AgentRunJob): Promise<A
 
 async function runChecked(deps: AgentDeps, agentId: string, task: ItemRow): Promise<AgentRunResult | null> {
   const context = await loadTaskContext(deps, agentId, task);
-  const refusal = await refusalReason(context, agentId, task);
+  const start = await startDecision(context, agentId, task);
 
-  if (refusal) {
-    await releaseTask(deps.db, task, refusal);
+  if (!start.allowed) {
+    await releaseTask(deps.db, task, start.reason);
 
     return null;
   }
 
+  // The run's share of the daily budgets is held until its cost is in the store (the session saves it before the
+  // executor returns), so runs starting beside it see it.
+  try {
+    return await runReserved(deps, context, agentId, task);
+  } finally {
+    start.reservation?.release();
+  }
+}
+
+async function runReserved(deps: AgentDeps, context: TaskContext, agentId: string, task: ItemRow): Promise<AgentRunResult | null> {
   // Not connected (Settings → AI providers): the task ends at once with what to do, not as a failed attempt; a retry
   // would only fail the same way.
   const notConnected = await deps.connections.prepare(context.agent.model.provider);
@@ -86,14 +97,18 @@ async function loadTaskContext(deps: AgentDeps, agentId: string, task: ItemRow):
   };
 }
 
-async function refusalReason(context: TaskContext, agentId: string, task: ItemRow): Promise<string | null> {
+type StartDecision = { allowed: true; reservation: BudgetReservation | null } | { allowed: false; reason: string };
+
+// Paused or disabled agents don't start (a pause leaves the runs in progress to finish). Otherwise the run reserves its
+// per-run budget against the daily budgets, so parallel starts can't together overspend them.
+async function startDecision(context: TaskContext, agentId: string, task: ItemRow): Promise<StartDecision> {
   if (!context.agent.enabled || isPaused(context.global)) {
-    return context.agent.enabled ? "agents are paused" : `agent "${agentId}" is disabled`;
+    return { allowed: false, reason: context.agent.enabled ? "agents are paused" : `agent "${agentId}" is disabled` };
   }
 
-  const decision = await dailyGuard(context.deps, context.agent, context.global).canStart({ agent: agentId });
+  const decision = await dailyGuard(context.deps, context.agent, context.global).reserve({ agent: agentId }, context.agent.budgets.perRunUsd);
 
-  return decision.allowed ? null : `budget: ${decision.reason}`;
+  return decision.allowed ? { allowed: true, reservation: decision.reservation } : { allowed: false, reason: `budget: ${decision.reason}` };
 }
 
 async function maxFailuresFor(deps: AgentDeps, agentId: string): Promise<number> {

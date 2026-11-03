@@ -11,6 +11,7 @@ import type { OutsideAccessContext } from "./models/OutsideAccessContext";
 import type { OutsideResource } from "./models/OutsideResource";
 import type { OutsideToolResult } from "./models/OutsideToolResult";
 import { defineOutsideTool } from "./outsideAccess";
+import { acquireDevHub } from "./devHubLease";
 
 // "localStack": the stored key from before the rename to DevHub (2026-10-14): agents' saved switches keep working.
 export const DEVHUB_INTEGRATION = "localStack";
@@ -116,6 +117,12 @@ function startStackTool(deps: AgentDeps, context: OutsideAccessContext, access: 
     resource: (input) => resourceOf(access, input.services.join(",")),
     request: (input) => `start ${input.services.join(", ")}${input.branch ? ` on ${input.branch}` : ""}${workersRequested(input.config)}`,
     handler: async (input) => {
+      const lease = await acquireDevHub(deps, access, owner);
+
+      if (!lease.ok) {
+        return { text: lease.reason, isError: true };
+      }
+
       const started = await access.client.start({ services: input.services, branch: input.branch, ttlMinutes, owner, config: input.config, ...(input.strictBranch ? { strictBranch: true } : {}) });
 
       if (!started.ok) {

@@ -1,5 +1,5 @@
 // First import: @powerloom/agents patches dns.lookup, and imports run in order, so no client is created before it.
-import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, recoverInterruptedRuns, removeOrphanedSandboxes, removeRunSandbox, requireEnv, runAgentTask, spawnCodexLogin, stopOrphanedStack, stopRunStack, type AgentDeps, type RunShellRouteSlot, type RunWorktreeSlot } from "@powerloom/agents";
+import { AGENT_DEFAULTS, AgentDepsFactory, CodexDeviceLogin, CodexHome, DevHubLeases, GLOBAL_DEFAULTS, clearReviewCheckouts, closeOrphanedBrowser, closeRunBrowser, createAzureUserLogin, depsEnvFromProcess, devHubsOfVaults, liveRunsOf, recoverInterruptedRuns, removeOrphanedSandboxes, removeRunSandbox, requireEnv, runAgentTask, spawnCodexLogin, stackOwner, stopOrphanedStack, stopRunStack, type AgentDeps, type LiveRuns, type RunShellRouteSlot, type RunWorktreeSlot } from "@powerloom/agents";
 import { captureConsoleErrors, saveClaudeEnvTokenReport, type AgentRunJob } from "@powerloom/core";
 import { OUTSIDE_KINDS, createDb, dataAccess, localItem, runFailureReport } from "@powerloom/db";
 import { DevHubClient, checkDevHub } from "@powerloom/devhub";
@@ -29,8 +29,10 @@ const { db, pool } = createDb(requireEnv("DATABASE_URL"));
 
 // Warnings and errors also go to the error log, which chats read (logs_read) without Grafana.
 captureConsoleErrors(db, "runner");
-// One task at a time: PowerLoom's dispatcher decides what runs and when (it owns the schedules).
+// PowerLoom's dispatcher decides what runs and when (it owns the schedules); this many tasks may run here at once
+// (RUNNER_MAX_PARALLEL_RUNS, default 1: one task at a time, as before).
 const runnerPort = Number(process.env.RUNNER_PORT ?? "3200");
+const maxParallelRuns = parallelRunsOf(process.env.RUNNER_MAX_PARALLEL_RUNS);
 // The Azure MCP server's `az` shim asks this runner for tokens.
 const env = depsEnvFromProcess(`http://127.0.0.1:${runnerPort}`);
 // Claude's transcripts are kept only where CLAUDE_CONFIG_DIR is set to a volume (compose), so a task's next run can
@@ -48,6 +50,8 @@ if (codexHome) {
 const codex = codexHome ? { home: codexHome, login: new CodexDeviceLogin(codexHome, { spawn: spawnCodexLogin }) } : null;
 const azureLogin = createAzureUserLogin(db);
 const deps = await AgentDepsFactory.create(db, pool, env, { azureLogin, runtimes });
+// One run per DevHub at a time: a second run that needs a vault's DevHub waits for the first (its stack and browser).
+const devHubLeases = new DevHubLeases();
 // The host's sandbox service, for the runs' sandbox cleanup; null where SANDBOX_URL / SANDBOX_TOKEN aren't set.
 const sandbox = env.sandbox ? new SandboxClient(env.sandbox.url, env.sandbox.token) : null;
 
@@ -58,20 +62,23 @@ await deps.ensureStores(AGENT_DEFAULTS, GLOBAL_DEFAULTS);
 // Settings → AI providers shows Claude as connected through .env while no token is saved there; the token stays here.
 await saveClaudeEnvTokenReport(db, Boolean(process.env.CLAUDE_CODE_OAUTH_TOKEN));
 
-for (const taskId of await recoverInterruptedRuns(db)) {
+const sqlReader = new SqlReader();
+const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex,
+  new RunnerMaintenance(join(process.env.CLAUDE_CONFIG_DIR ?? "/agent-sessions", ".deployment-maintenance.json")), maxParallelRuns);
+
+// The sweeps touch only what no run of this process owns: at this cold start that is everything left behind.
+const live = await liveRunsOf(db, server.runningTaskIds());
+
+for (const taskId of await recoverInterruptedRuns(db, live.taskIds)) {
   await report(taskId, INTERRUPTED);
 }
 
-await stopOrphanedStacks();
-await removeOrphanedRunSandboxes();
-await clearReviewCheckouts(env.repoCacheRoot);
-
-const sqlReader = new SqlReader();
-const server = new RunnerServer(runAndReport, (connectionString) => sqlReader.check(connectionString), (url, token) => checkDevHub(new DevHubClient(url, token)), azureLogin, env.azureTokenSecret, codex,
-  new RunnerMaintenance(join(process.env.CLAUDE_CONFIG_DIR ?? "/agent-sessions", ".deployment-maintenance.json")));
+await stopOrphanedStacks(live);
+await removeOrphanedRunSandboxes(live);
+await clearReviewCheckouts(env.repoCacheRoot, live.runIds);
 
 server.listen(runnerPort);
-console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}`);
+console.log(`agent-runner started; providers: ${runtimes.providers().join(", ")}; up to ${maxParallelRuns} parallel run(s)`);
 
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);
@@ -90,13 +97,14 @@ async function runAndReport(job: AgentRunJob, stop: AbortSignal): Promise<void> 
       const runWorktree: RunWorktreeSlot = { current: null };
       const runShellRoute: RunShellRouteSlot = { current: null };
       const runtimes = workspaceRuntimes(runDeps.runtimes, workspaceResolver(runDeps, runWorktree, runShellRoute));
-      const result = await runAgentTask({ ...runDeps, runtimes, runWorktree, runShellRoute, runBuildLog: { runs: [], restores: [] }, stop }, job);
+      const result = await runAgentTask({ ...runDeps, runtimes, runWorktree, runShellRoute, runBuildLog: { runs: [], restores: [] }, stop, devHubLeases }, job);
       return result ? { runId: result.runId, outcome: result.outcome, error: result.error ?? null } : null;
     },
     cleanups: [
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await closeRunBrowser(devHub.client, completed.runId)); },
       async (completed) => { if (devHub && completed.runId !== null) logStackNote(await stopRunStack(devHub.client, completed.runId)); },
       async (completed) => { if (sandbox && completed.runId !== null) logStackNote(await removeRunSandbox(sandbox, completed.runId)); },
+      async (completed) => { if (completed.runId !== null) devHubLeases.release(stackOwner(completed.runId)); },
       async () => { await deps.closeAzure(azure); },
     ],
     report: (completed) => report(job.taskId, completed),
@@ -111,20 +119,27 @@ function workspaceResolver(runDeps: AgentDeps, runWorktree: RunWorktreeSlot, run
   return new WorkspaceResolver(runDeps.repoCache, new GsdWorktreePreparer(), { worktreeRoot, gsdCore: process.env.GSD_CORE_DIR ?? null, identity }, runWorktree, runShellRoute);
 }
 
-// At start no run is in progress: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a
-// vault points at.
-async function stopOrphanedStacks(): Promise<void> {
+// At start: a stack a run left behind (the runner stopped mid-run) is stopped on every DevHub a vault points at,
+// unless its run is live here.
+async function stopOrphanedStacks(live: LiveRuns): Promise<void> {
   for (const client of await devHubsOfVaults(db)) {
-    logStackNote(await closeOrphanedBrowser(client));
-    logStackNote(await stopOrphanedStack(client));
+    logStackNote(await closeOrphanedBrowser(client, live.owners));
+    logStackNote(await stopOrphanedStack(client, live.owners));
   }
 }
 
-// At start no run is in progress: a sandbox a run left behind is removed.
-async function removeOrphanedRunSandboxes(): Promise<void> {
+// At start: a sandbox a run left behind is removed, unless its run is live here.
+async function removeOrphanedRunSandboxes(live: LiveRuns): Promise<void> {
   if (sandbox) {
-    logStackNote(await removeOrphanedSandboxes(sandbox));
+    logStackNote(await removeOrphanedSandboxes(sandbox, live.owners));
   }
+}
+
+// RUNNER_MAX_PARALLEL_RUNS: a whole number of slots, at least 1; anything else is the default of 1.
+function parallelRunsOf(value: string | undefined): number {
+  const slots = Number(value ?? "1");
+
+  return Number.isInteger(slots) && slots >= 1 ? slots : 1;
 }
 
 function logStackNote(note: string | null): void {

@@ -8,6 +8,7 @@ using PowerLoom.Features.Agents.AgentRun;
 using PowerLoom.Features.Agents.Completed.Models;
 using PowerLoom.Features.Agents.Dispatch;
 using PowerLoom.Features.Agents.Dispatch.Models;
+using PowerLoom.Infrastructure.Runner.Models;
 using PowerLoom.Infrastructure.Scheduling;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
@@ -64,6 +65,37 @@ public sealed class AgentRunTests(PowerLoomHost host)
         // No hand-on: agents create the next tasks themselves with create_task (user decision 2026-10-13).
         Assert.Equal(ItemStatus.Done, ended.Status);
         Assert.Empty(await OpenTaskIdsAsync(ready, AgentStages.AnyAgent));
+    }
+
+    // The dispatch reads the runner's free slots: with every slot busy it claims nothing, so no claimed task queues up on
+    // busy retries; the task is still open for the next dispatch.
+    [Fact]
+    public async Task Dispatch_claims_nothing_while_every_slot_of_the_runner_is_busy()
+    {
+        const int adoId = 62006;
+        var taskId = $"AT-{adoId}-001";
+        var runner = host.Host.Services.GetRequiredService<FakeRunnerClient>();
+
+        await SeedPbiAsync(adoId, withOpenQuestion: false);
+        runner.Health = new RunnerHealth(true, ["AT-OTHER-001"], 1, null);
+
+        try
+        {
+            await host.Host.Services.TrackActivity().Timeout(Timeout).ExecuteAndWaitAsync(_ => host.Host.Scenario(scenario =>
+            {
+                scenario.Post.Json(new { }).ToUrl($"/api/agents/{Agent}/run");
+                scenario.StatusCodeShouldBe(202);
+            }));
+        }
+        finally
+        {
+            runner.Health = FakeRunnerClient.Unreachable;
+        }
+
+        var task = await LoadTaskAsync(taskId);
+
+        Assert.Equal((ItemStatus.Open, "[]"), (task.Status, task.HeldBy));
+        Assert.DoesNotContain(runner.Requests, request => request.TaskId == taskId);
     }
 
     [Fact]

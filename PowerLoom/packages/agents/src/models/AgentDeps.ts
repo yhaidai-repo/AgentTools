@@ -13,6 +13,7 @@ import type { RegisterEntry } from "./RegisterEntry";
 import type { AzureAccess } from "./AzureAccess";
 import type { DevHubAccess } from "./DevHubAccess";
 import type { ProviderConnections } from "../providerConnections";
+import type { DevHubLeases } from "../devHubLease";
 import type { SqlAccess } from "./SqlAccess";
 import type { VaultsAccess } from "./VaultsAccess";
 import type { GitHubAccess } from "../github/models/GitHubAccess";
@@ -71,6 +72,8 @@ export interface AgentDeps {
   powerloomUrl: string;
   /** The run's vault's DevHub (DevHub on the host) for agents with the integration on; null while the vault's DevHub is off. */
   devHub: DevHubAccess | null;
+  /** The runner's leases on the DevHubs, one run per DevHub at a time; absent in a chat session (DevHub's owner check alone). */
+  devHubLeases?: DevHubLeases;
   /** The host's sandbox service (SANDBOX_URL, SANDBOX_TOKEN) for agents with the integration on; null where it isn't set. */
   sandbox: SandboxAccess | null;
   /** The run's worktree, set by the runner when the run has a workspace; the sandbox copies that repo from it and sandbox_sync recopies it. */

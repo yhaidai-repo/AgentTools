@@ -97,6 +97,61 @@ describe("the runner's Azure token route", () => {
   });
 });
 
+describe("the runner's slots", () => {
+  const releases = new Map<string, () => void>();
+  const run = (job: { taskId: string }, stop: AbortSignal) => new Promise<void>((resolve) => {
+    releases.set(job.taskId, resolve);
+    stop.addEventListener("abort", () => resolve());
+  });
+  const server = new RunnerServer(run as never, NOT_USED, NOT_USED, {} as never, "not used", null, null, 2);
+  const settled = () => new Promise((resolve) => setImmediate(resolve));
+
+  before(() => server.listen(32415));
+  after(async () => {
+    for (const release of releases.values()) release();
+    await server.close();
+  });
+
+  it("accepts a task per slot, answers 409 with the running tasks past that, and lists them in /health", async () => {
+    const idle = await call(32415, "GET", "/health");
+    const first = await call(32415, "POST", "/runs", { taskId: "S-1", agentId: "coder", pbiId: null });
+    const second = await call(32415, "POST", "/runs", { taskId: "S-2", agentId: "coder", pbiId: 7 });
+    const third = await call(32415, "POST", "/runs", { taskId: "S-3", agentId: "coder", pbiId: null });
+    const again = await call(32415, "POST", "/runs", { taskId: "S-1", agentId: "coder", pbiId: null });
+    const busy = await call(32415, "GET", "/health");
+
+    assert.deepEqual([idle.body.running, idle.body.runningTasks, idle.body.maxParallelRuns], [null, [], 2]);
+    assert.deepEqual([first.status, second.status, third.status, again.status], [202, 202, 409, 409]);
+    assert.equal(third.body.error, "all 2 slot(s) busy: running S-1, S-2");
+    assert.deepEqual(third.body.runningTasks, ["S-1", "S-2"]);
+    assert.equal(again.body.error, "already running S-1");
+    assert.deepEqual([busy.body.running, busy.body.runningTasks], ["S-1", ["S-1", "S-2"]]);
+    assert.deepEqual(server.runningTaskIds(), ["S-1", "S-2"]);
+  });
+
+  it("stops one task by its id and frees its slot while the other goes on", async () => {
+    const stopped = await call(32415, "POST", "/runs/stop", { taskId: "S-1" });
+    await settled();
+    const health = await call(32415, "GET", "/health");
+    const next = await call(32415, "POST", "/runs", { taskId: "S-3", agentId: "coder", pbiId: null });
+    const unknown = await call(32415, "POST", "/runs/stop", { taskId: "S-9" });
+
+    assert.equal(stopped.status, 202);
+    assert.deepEqual([health.body.running, health.body.runningTasks], ["S-2", ["S-2"]]);
+    assert.equal(next.status, 202);
+    assert.equal(unknown.status, 409);
+    assert.equal(unknown.body.error, "running S-2, S-3, not S-9");
+  });
+
+  it("frees a slot when its run ends", async () => {
+    releases.get("S-2")?.();
+    await settled();
+
+    assert.deepEqual(server.runningTaskIds(), ["S-3"]);
+    assert.equal((await call(32415, "GET", "/health")).body.running, "S-3");
+  });
+});
+
 describe("the runner's stop route", () => {
   const stopped: string[] = [];
   let release = () => {};

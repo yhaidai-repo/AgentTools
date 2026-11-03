@@ -8,7 +8,8 @@ namespace PowerLoom.Features.Agents;
 // Dispatching the agents: their schedules, the validator and the run saga; the runner itself stays TypeScript.
 public static class AgentsFeature
 {
-    // One dispatch at a time (claims in order) and one request to the runner at a time (it runs one task).
+    // One dispatch at a time (claims in order) and one request to the runner at a time (its slots are counted in
+    // order; the runner itself runs up to RUNNER_MAX_PARALLEL_RUNS tasks).
     private const string DispatchQueue = "dispatch";
     private const string RunnerQueue = "runner";
 

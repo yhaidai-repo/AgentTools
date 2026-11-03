@@ -59,6 +59,16 @@ describe("stopOrphanedStack", () => {
     assert.deepEqual(run.stops, ["powerloom-run-3"]);
     assert.deepEqual(person.stops, []);
   });
+
+  it("leaves the stack of a run the runner is running now", async () => {
+    const live = devHubWith("ready", "powerloom-run-3");
+    const gone = devHubWith("ready", "powerloom-run-4");
+    const liveOwners = new Set(["powerloom-run-3"]);
+
+    assert.equal(await stopOrphanedStack(live.client, liveOwners), null);
+    assert.equal(await stopOrphanedStack(gone.client, liveOwners), "stopped the local stack of powerloom-run-4");
+    assert.deepEqual([...live.stops, ...gone.stops], ["powerloom-run-4"]);
+  });
 });
 
 function browserWith(owner: string | null) {
@@ -101,6 +111,13 @@ describe("closeOrphanedBrowser", () => {
 
     assert.deepEqual(run.closes, ["powerloom-run-3"]);
     assert.deepEqual(person.closes, []);
+  });
+
+  it("leaves the case of a run the runner is running now", async () => {
+    const live = browserWith("powerloom-run-3");
+
+    assert.equal(await closeOrphanedBrowser(live.client, new Set(["powerloom-run-3"])), null);
+    assert.deepEqual(live.closes, []);
   });
 });
 
