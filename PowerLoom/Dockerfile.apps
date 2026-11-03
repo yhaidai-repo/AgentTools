@@ -1,4 +1,4 @@
-# One image for agent-runner and web. Build context: the AgentTools folder (see docker-compose.yml).
+# One image for agent-runner, web, mcp and flow. Build context: the AgentTools folder (see docker-compose.yml).
 FROM node:24-alpine
 # Node's connection racing (autoselect family) times out on this Docker network; plain connect works.
 ENV NODE_OPTIONS=--no-network-family-autoselection \
@@ -34,6 +34,7 @@ COPY PowerLoom/packages/agents/package.json PowerLoom/packages/agents/
 COPY PowerLoom/packages/client/package.json PowerLoom/packages/client/
 COPY PowerLoom/apps/agent-runner/package.json PowerLoom/apps/agent-runner/
 COPY PowerLoom/apps/web/package.json PowerLoom/apps/web/
+COPY PowerLoom/apps/flow/package.json PowerLoom/apps/flow/
 COPY PowerLoom/apps/mcp/package.json PowerLoom/apps/mcp/
 COPY PowerLoom/apps/sandbox/package.json PowerLoom/apps/sandbox/
 RUN npm ci --no-fund --no-audit
@@ -54,3 +55,4 @@ COPY PowerLoom/templates PowerLoom/templates
 COPY PowerLoom/sandbox-images.json PowerLoom/
 COPY PowerLoom/tsconfig.base.json PowerLoom/
 RUN npm run build -w @powerloom/web
+RUN npm run build -w @powerloom/flow

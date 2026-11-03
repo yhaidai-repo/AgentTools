@@ -1,0 +1,468 @@
+/* Flow's own pages: the flows list, the editor (palette, canvas, nodes, edges, run bar) and the executions list. */
+
+.brand-app {
+  margin-left: 4px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text));
+}
+
+.bar-nav a.external {
+  color: var(--faint);
+}
+
+.bar-nav a.external:hover {
+  color: var(--text);
+}
+
+/* The flows list. */
+.flows-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.flows-head h1 {
+  margin: 0;
+}
+
+.flows-head form {
+  display: flex;
+  gap: 8px;
+}
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--faint);
+}
+
+button.danger {
+  color: var(--error);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
+  box-shadow: none;
+}
+
+button.small {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* The editor: a tool bar, then the palette beside the canvas. */
+.editor {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  height: calc(100vh - 110px);
+}
+
+.editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-bar .name {
+  min-width: 260px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.editor-bar .spacer {
+  flex: 1;
+}
+
+.editor-bar .state {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.editor-bar .state.dirty {
+  color: var(--warn);
+}
+
+.editor-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.palette h2 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.palette .hint {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.palette-agent {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.03);
+  cursor: grab;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.palette-agent:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--surface-hi);
+}
+
+.palette-agent.off {
+  opacity: 0.55;
+}
+
+.palette-agent .id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.palette-agent .label {
+  font-weight: 500;
+}
+
+.palette-agent .kinds {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.palette-agent .kinds code {
+  font-size: 11px;
+}
+
+.palette-error {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--error);
+  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.canvas {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgb(0 0 0 / 0.25);
+  box-shadow: var(--edge);
+}
+
+/* React Flow on the Ice theme. */
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-background-pattern-color: rgb(255 255 255 / 0.08);
+  --xy-edge-stroke: var(--faint);
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-edge-stroke-width: 1.5;
+  --xy-controls-button-background-color: var(--surface-solid);
+  --xy-controls-button-background-color-hover: #1a1d26;
+  --xy-controls-button-color: var(--muted);
+  --xy-controls-button-color-hover: var(--text);
+  --xy-controls-button-border-color: var(--border-hi);
+  --xy-minimap-background-color: var(--surface-solid);
+  --xy-minimap-mask-background-color: rgb(0 0 0 / 0.5);
+  --xy-minimap-node-background-color: rgb(255 255 255 / 0.2);
+  --xy-handle-background-color: var(--accent);
+  --xy-handle-border-color: var(--bg);
+  --xy-attribution-background-color: transparent;
+}
+
+.react-flow__attribution a {
+  color: var(--faint);
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+}
+
+.react-flow__edge-path.optional {
+  stroke-dasharray: 7 5;
+}
+
+.edge-kind {
+  padding: 1px 9px;
+  font: 500 11px/1.6 var(--font-sans);
+  color: var(--muted);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+  box-shadow: none;
+  pointer-events: all;
+}
+
+.edge-kind.required {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.edge-kind.optional {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.edge-kind:hover {
+  filter: none;
+  color: var(--text);
+  background: #1a1d26;
+}
+
+/* Nodes. */
+.node {
+  min-width: 220px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  box-shadow: var(--edge), 0 10px 30px rgb(0 0 0 / 0.4);
+  font-size: 13px;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.react-flow__node.selected .node {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.node.running {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.node.done {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.node-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.node-head .id {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.node-head .label {
+  flex: 1;
+  font-weight: 600;
+}
+
+.node.trigger {
+  min-width: 150px;
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border-hi));
+}
+
+.node.trigger .node-head {
+  border-bottom: none;
+}
+
+.node.trigger .label {
+  color: color-mix(in srgb, var(--accent-2) 80%, var(--text));
+}
+
+.node-body {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.node-body label {
+  gap: 2px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.node-body select,
+.node-body input {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.node-body input.runs {
+  width: 64px;
+}
+
+.node-body .row {
+  display: flex;
+  gap: 8px;
+}
+
+.node-body .row label:first-child {
+  flex: 1;
+}
+
+.node-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.node-foot .runs {
+  font-family: var(--font-mono);
+}
+
+/* The status badge of a node (waiting, running, done) and of an execution. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+}
+
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge.idle {
+  color: var(--faint);
+}
+
+.badge.waiting {
+  color: var(--muted);
+}
+
+.badge.running {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.badge.running::before {
+  box-shadow: 0 0 8px var(--accent);
+  animation: breathe-opacity calc(var(--motion-ambient) / 3) var(--motion-ease) infinite;
+}
+
+.badge.done {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.badge.cancelled {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+/* The run bar: progress over the whole execution. */
+.run-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  animation: fade-in var(--motion-fast);
+}
+
+.run-bar .text {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.progress {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+  transition: width var(--motion-base) var(--motion-out);
+}
+
+.progress.done > span {
+  background: var(--ok);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+/* The executions list: one row per execution, its nodes as chips. */
+.exec-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.exec-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-hi);
+  border-radius: 999px;
+}
+
+.exec-node .id {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.exec-node .runs {
+  font-family: var(--font-mono);
+  color: var(--faint);
+}
+
+.exec-node.done {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.exec-node.running {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* The editor takes the whole window width. */
+main:has(.editor) {
+  max-width: none;
+  padding: 16px 24px 24px;
+}

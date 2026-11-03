@@ -122,6 +122,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # PowerLoom Flow (design powerloom-flow, 2026-11-03): the agent-workflow canvas, phase 0 prototype. Same image as web; it
+  # reads the agents from the DB and keeps the flows in the browser. Header links point at the web app (WEB_URL).
+  flow:
+    <<: *app
+    command: ["npm", "run", "start", "-w", "@powerloom/flow"]
+    environment:
+      DATABASE_URL: *db-url
+      WEB_URL: http://127.0.0.1:${WEB_PORT:-3100}  # the web app as the browser sees it: Tasks and Agents links
+    ports:
+      - "127.0.0.1:${FLOW_PORT:-3120}:3000"
+    depends_on:
+      powerloom:
+        condition: service_healthy
+    restart: unless-stopped
+
   # A Claude chat's way in (design powerloom-mcp, 2026-10-23): the MCP server, loopback only, a bearer token from .env.
   # The same image as web and agent-runner; it reads the vaults like a run (the docs usage log is written) and starts an
   # Azure MCP server per session, so it has the runner's mounts, but no Claude token: the chat brings its own model.

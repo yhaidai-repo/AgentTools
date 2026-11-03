@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "powerloom:db:generate": "npm run generate -w @powerloom/db",
-    "powerloom:dev:web": "npm run dev -w @powerloom/web"
+    "powerloom:dev:web": "npm run dev -w @powerloom/web",
+    "powerloom:dev:flow": "npm run dev -w @powerloom/flow"
   },
   "engines": {
     "node": ">=22"
