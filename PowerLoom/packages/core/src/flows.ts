@@ -1,5 +1,5 @@
 import { agentRun, flow, flowExecution, localItem, type PowerLoomDb } from "@powerloom/db";
-import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, max, ne, sql } from "drizzle-orm";
 import { flowStepsOf, type FlowTaskRow } from "./flowSteps";
 import type { Flow } from "./models/Flow";
 import { flowDefinitionSchema, type FlowDefinition } from "./models/FlowDefinition";
@@ -64,7 +64,8 @@ export function executionOf(row: typeof flowExecution.$inferSelect, tasks: reado
   };
 }
 
-// Every task of the executions (a deleted one is gone for the flow too) with its run count, by execution, oldest first.
+// Every task of the executions (a deleted one is gone for the flow too) with its run count and latest run, by execution,
+// oldest first.
 async function readExecutionTasks(db: PowerLoomDb, executionIds: string[]): Promise<Map<string, FlowTaskRow[]>> {
   const byExecution = new Map<string, FlowTaskRow[]>();
 
@@ -72,7 +73,7 @@ async function readExecutionTasks(db: PowerLoomDb, executionIds: string[]): Prom
 
   const executionId = sql<string>`${localItem.data}->>'flowExecutionId'`;
   const rows = await db
-    .select({ id: localItem.id, kind: localItem.kind, status: localItem.status, assignee: localItem.assignee, parentId: localItem.parentId, data: localItem.data, executionId, runs: count(agentRun.id) })
+    .select({ id: localItem.id, kind: localItem.kind, status: localItem.status, assignee: localItem.assignee, parentId: localItem.parentId, data: localItem.data, executionId, runs: count(agentRun.id), lastRunId: max(agentRun.id) })
     .from(localItem)
     .leftJoin(agentRun, eq(agentRun.itemId, localItem.id))
     .where(and(inArray(executionId, executionIds), ne(localItem.status, "deleted")))
@@ -82,7 +83,7 @@ async function readExecutionTasks(db: PowerLoomDb, executionIds: string[]): Prom
   for (const row of rows) {
     const tasks = byExecution.get(row.executionId) ?? [];
 
-    tasks.push({ id: row.id, kind: row.kind, status: row.status, assignee: row.assignee, parentId: row.parentId, data: row.data, runs: Number(row.runs) });
+    tasks.push({ id: row.id, kind: row.kind, status: row.status, assignee: row.assignee, parentId: row.parentId, data: row.data, runs: Number(row.runs), lastRunId: row.lastRunId === null ? null : Number(row.lastRunId) });
     byExecution.set(row.executionId, tasks);
   }
 

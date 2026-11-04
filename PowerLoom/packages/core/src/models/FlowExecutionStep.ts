@@ -9,6 +9,8 @@ export interface FlowExecutionStep {
   itemId: string | null;
   status: FlowStepStatus;
   runs: number;
+  /** The task's latest run, for a link to its page; null without a run (the Flow app's read; the API view has none). */
+  lastRunId: number | null;
   agent: string;
   kind: string;
 }

@@ -8,6 +8,12 @@ const PAGES = [
   { href: "/executions", label: "Executions" },
 ];
 
+const WEB_PAGES = [
+  { path: "/tasks", label: "Tasks" },
+  { path: "/agents", label: "Agents" },
+  { path: "/pbis", label: "Backlog" },
+];
+
 // The header's own pages (lit pill = the page you are on) and the external links into the web app.
 export function NavLinks({ webUrl }: { webUrl: string }) {
   const pathname = usePathname();
@@ -18,8 +24,9 @@ export function NavLinks({ webUrl }: { webUrl: string }) {
         <Link key={page.href} href={page.href} className={isOn(pathname, page.href) ? "active" : undefined}>{page.label}</Link>
       ))}
       <span className="bar-sep" />
-      <a href={`${webUrl}/tasks`} className="external" title="PowerLoom web: Tasks">Tasks ↗</a>
-      <a href={`${webUrl}/agents`} className="external" title="PowerLoom web: Agents">Agents ↗</a>
+      {WEB_PAGES.map((page) => (
+        <a key={page.path} href={`${webUrl}${page.path}`} className="external" title={`PowerLoom web: ${page.label}`}>{page.label} ↗</a>
+      ))}
     </nav>
   );
 }

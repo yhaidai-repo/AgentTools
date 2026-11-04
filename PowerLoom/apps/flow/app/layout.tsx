@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NavLinks } from "@/components/NavLinks";
+import { vaultChoice } from "@/lib/currentVault";
 import { webUrl } from "@/lib/webUrl";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
@@ -15,8 +16,11 @@ export const metadata: Metadata = {
 
 const FONTS_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
 
-// Flow's own header (design decision: each app has its own header with external links to the others).
-export default function RootLayout({ children }: { children: ReactNode }) {
+// Flow's own header (design decision: each app has its own header with external links to the others). The vault is the
+// one the web app selected (its cookie, shared on 127.0.0.1); the switch stays there.
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const { current } = await vaultChoice();
+
   return (
     <html lang="en">
       <head>
@@ -30,6 +34,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/" className="brand">PowerLoom <span className="brand-app">Flow</span></Link>
             <span className="bar-sep" />
             <NavLinks webUrl={webUrl()} />
+            <span className="bar-sep" />
+            <a href={`${webUrl()}/vault`} className="bar-vault" title="The vault the web app selected; switch it there">{current ?? "no vault"}</a>
           </header>
         </div>
         <main>{children}</main>

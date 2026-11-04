@@ -466,3 +466,286 @@ main:has(.editor) {
   max-width: none;
   padding: 16px 24px 24px;
 }
+
+/* Phase 3: the real pages. The vault in the header (read-only; the switch is the web app's). */
+.bar-vault {
+  padding: 6px 14px 6px 10px;
+  font-size: 12px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.bar-vault::before {
+  content: "vault ";
+  color: var(--faint);
+  opacity: 0.7;
+}
+
+.bar-vault:hover {
+  color: var(--text);
+}
+
+.faint {
+  color: var(--faint);
+}
+
+label.inline {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* Problems a command answered with (a definition PowerLoom refused, a flow that still runs). */
+.problems {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  font-size: 13px;
+  color: var(--error);
+  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--error) 6%, transparent);
+}
+
+div.problems {
+  padding-left: 14px;
+}
+
+/* The status tones (lib/stepLooks) on badges and nodes. */
+.badge.pending,
+.badge.skipped {
+  color: var(--faint);
+  border-style: dashed;
+}
+
+.badge.open {
+  color: var(--state-ready);
+  border-color: color-mix(in srgb, var(--state-ready) 45%, transparent);
+}
+
+.badge.blocked {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+.badge.failed {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 45%, transparent);
+}
+
+.node.tone-running {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.node.tone-open {
+  border-color: color-mix(in srgb, var(--state-ready) 55%, transparent);
+}
+
+.node.tone-done {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.node.tone-blocked {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.node.tone-cancelled,
+.node.tone-failed {
+  border-color: color-mix(in srgb, var(--error) 45%, transparent);
+  opacity: 0.85;
+}
+
+.node.tone-pending,
+.node.tone-skipped {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.node.step .node-head a.id {
+  color: var(--accent);
+}
+
+.step-body {
+  font-size: 12px;
+}
+
+.step-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.step-line .faint {
+  min-width: 34px;
+  font-size: 11px;
+}
+
+.edge-kind.locked {
+  cursor: default;
+}
+
+/* The execution page: tool bar, run bar, canvas, step table. */
+.execution {
+  display: grid;
+  gap: 12px;
+}
+
+.exec-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.execution-canvas {
+  height: 420px;
+}
+
+.run-bar .live {
+  color: var(--accent);
+  animation: breathe-opacity calc(var(--motion-ambient) / 3) var(--motion-ease) infinite;
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.progress-cell .progress {
+  flex: 1;
+}
+
+.exec-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+main:has(.execution) {
+  max-width: none;
+  padding: 16px 24px 24px;
+}
+
+/* The Run dialog: a modal over the page with the target lists. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(4px);
+  animation: fade-in var(--motion-fast);
+}
+
+.modal {
+  display: grid;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  background: var(--surface-solid);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal p {
+  margin: 0;
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 5px 14px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border-hi);
+  box-shadow: none;
+}
+
+.tab.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.tab .count {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.target-list {
+  display: grid;
+  gap: 4px;
+  min-height: 120px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.target {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+  font-weight: 400;
+  color: var(--text);
+  text-align: left;
+  background: rgb(255 255 255 / 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.target:hover {
+  filter: none;
+  background: var(--surface-hi);
+}
+
+.target.chosen {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.target .id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.target .title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target .chip {
+  font-size: 11px;
+  color: var(--faint);
+}

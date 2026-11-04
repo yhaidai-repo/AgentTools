@@ -16,67 +16,64 @@ import {
   type NodeTypes,
 } from "@xyflow/react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState, type DragEvent } from "react";
+import { deleteFlowAction, saveFlowAction } from "@/app/actions";
 import type { AgentPalette } from "@/lib/agents";
-import { listExecutions, upsertExecution } from "@/lib/executionStore";
-import { edgesAtRest, getFlow, newId, saveFlow } from "@/lib/flowStore";
-import { fillTitle } from "@/lib/format";
-import { startMockRun, type RunSnapshot } from "@/lib/mockRun";
-import type { ExecutionRecord } from "@/models/ExecutionRecord";
-import type { AgentNode as AgentNodeType, FlowDefinition, FlowEdge, FlowNode } from "@/models/FlowDefinition";
+import { formatTime } from "@/lib/format";
+import { DEFAULT_TITLE, fromSavedDefinition, newNodeId, toSavedDefinition, triggerNode, type AgentNode as AgentNodeType, type FlowEdge, type FlowNode, type SavedDefinition } from "@/models/FlowDefinition";
 import type { FlowAgent } from "@/models/FlowAgent";
 import { AgentNode } from "./AgentNode";
 import { FlowEdgeView } from "./FlowEdgeView";
 import { DRAG_TYPE, Palette } from "./Palette";
+import { RunDialog } from "./RunDialog";
 import { TriggerNode } from "./TriggerNode";
 
 const nodeTypes: NodeTypes = { agent: AgentNode, trigger: TriggerNode };
 const edgeTypes: EdgeTypes = { flow: FlowEdgeView };
-const RUN_MS = 1000;
 
-export function FlowEditor({ flowId, palette }: { flowId: string; palette: AgentPalette }) {
+/** A saved flow as the editor opens it; null for a new one. */
+export interface EditorFlow {
+  id: string;
+  name: string;
+  version: number;
+  updatedAt: string;
+  definition: SavedDefinition;
+  executions: number;
+}
+
+export function FlowEditor({ flow, palette }: { flow: EditorFlow | null; palette: AgentPalette }) {
   return (
     <ReactFlowProvider>
-      <Editor flowId={flowId} palette={palette} />
+      <Editor flow={flow} palette={palette} />
     </ReactFlowProvider>
   );
 }
 
-// The canvas of one flow: the palette, the nodes and edges (kept in localStorage on Save) and the mocked run.
-function Editor({ flowId, palette }: { flowId: string; palette: AgentPalette }) {
-  const [flow, setFlow] = useState<FlowDefinition | null | undefined>(undefined);
-  const [name, setName] = useState("");
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
-  const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [run, setRun] = useState<RunSnapshot | null>(null);
-  const execution = useRef<ExecutionRecord | null>(null);
-  const cancelRun = useRef<(() => void) | null>(null);
+// The canvas of one flow: the palette, the nodes and edges. Save sends the definition through flow.save (PowerLoom
+// checks it and bumps the version); Run opens the target dialog; Delete removes the flow and its finished executions.
+function Editor({ flow, palette }: { flow: EditorFlow | null; palette: AgentPalette }) {
+  const router = useRouter();
+  const agents = useMemo(() => new Map(palette.agents.map((agent) => [agent.id, { label: agent.label, handles: agent.handles }])), [palette.agents]);
+  const opened = useMemo(() => (flow ? fromSavedDefinition(flow.definition, agents) : { nodes: [triggerNode()], edges: [] }), [flow, agents]);
+  const [saved, setSaved] = useState<EditorFlow | null>(flow);
+  const [name, setName] = useState(flow?.name ?? "");
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(opened.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>(opened.edges);
+  const [problems, setProblems] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [runOpen, setRunOpen] = useState(false);
   const { screenToFlowPosition } = useReactFlow();
 
-  useEffect(() => {
-    const loaded = getFlow(flowId);
-
-    setFlow(loaded);
-    if (loaded) {
-      setName(loaded.name);
-      setNodes(loaded.nodes);
-      setEdges(loaded.edges);
-      setSavedAt(loaded.updatedAt);
-    }
-  }, [flowId, setNodes, setEdges]);
-
-  useEffect(() => () => cancelRun.current?.(), []);
-
-  const running = run !== null && !run.finished;
-  const dirty = useMemo(() => flow != null && (name !== flow.name || JSON.stringify(nodesAtRest(nodes)) !== JSON.stringify(nodesAtRest(flow.nodes)) || JSON.stringify(edgesAtRest(edges)) !== JSON.stringify(edgesAtRest(flow.edges))), [flow, name, nodes, edges]);
+  const definition = useMemo(() => toSavedDefinition(nodes, edges), [nodes, edges]);
+  const dirty = saved === null || name.trim() !== saved.name || JSON.stringify(definition) !== JSON.stringify(saved.definition);
 
   const addAgent = useCallback((agent: FlowAgent, position?: { x: number; y: number }) => {
     const node: AgentNodeType = {
-      id: newId(agent.id),
+      id: newNodeId(agent.id),
       type: "agent",
       position: position ?? { x: 320 + (nodes.length % 3) * 60, y: 80 + nodes.length * 70 },
-      data: { agentId: agent.id, agentLabel: agent.label, handles: agent.handles, kind: agent.handles[0] ?? "", titleTemplate: "{kind} for {flow}", runs: 1, status: "idle", runsDone: 0 },
+      data: { agentId: agent.id, agentLabel: agent.label, handles: agent.handles, kind: agent.handles[0] ?? "", titleTemplate: DEFAULT_TITLE, runs: 1 },
     };
 
     setNodes((current) => [...current, node]);
@@ -101,120 +98,64 @@ function Editor({ flowId, palette }: { flowId: string; palette: AgentPalette }) 
     if (agent) addAgent(agent, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
   }, [palette.agents, addAgent, screenToFlowPosition]);
 
-  const save = () => {
-    if (!flow) return;
+  const save = async () => {
+    const flowName = name.trim();
 
-    const saved = saveFlow({ ...flow, name: name.trim() || flow.name, nodes, edges: edgesAtRest(edges) });
+    if (!flowName) {
+      setProblems(["Give the flow a name."]);
 
-    setFlow(saved);
-    setName(saved.name);
-    setSavedAt(saved.updatedAt);
-  };
-
-  const applySnapshot = useCallback((snapshot: RunSnapshot) => {
-    setNodes((current) => current.map((node) => {
-      const state = snapshot.nodes[node.id];
-
-      if (!state) return node;
-
-      return node.type === "agent"
-        ? { ...node, data: { ...node.data, status: state.status, runsDone: state.runsDone } }
-        : { ...node, data: { ...node.data, status: state.status } };
-    }));
-    setRun(snapshot);
-
-    const record = execution.current;
-
-    if (record) {
-      record.nodes = record.nodes.map((entry) => ({ ...entry, status: snapshot.nodes[entry.nodeId]?.status ?? entry.status, runsDone: snapshot.nodes[entry.nodeId]?.runsDone ?? entry.runsDone }));
-      if (snapshot.finished) {
-        record.status = "done";
-        record.finishedAt = new Date().toISOString();
-      }
-      upsertExecution({ ...record });
+      return;
     }
-  }, [setNodes]);
+    setBusy(true);
 
-  const startRun = () => {
-    cancelRun.current?.();
+    const outcome = await saveFlowAction({ id: saved?.id ?? null, name: flowName, definition });
 
-    const flowName = name.trim() || "flow";
+    setBusy(false);
+    if (!outcome.ok) {
+      setProblems(problemLines(outcome.error));
 
-    execution.current = {
-      id: newId("exec"),
-      flowId,
-      flowName,
-      status: "running",
-      startedAt: new Date().toISOString(),
-      finishedAt: null,
-      nodes: nodes.filter((node): node is AgentNodeType => node.type === "agent").map((node) => ({
-        nodeId: node.id,
-        agentId: node.data.agentId,
-        kind: node.data.kind,
-        title: fillTitle(node.data.titleTemplate, { agent: node.data.agentId, kind: node.data.kind, flow: flowName }),
-        runs: node.data.runs,
-        runsDone: 0,
-        status: "waiting",
-      })),
-    };
-    cancelRun.current = startMockRun(nodes, edges, { runMs: RUN_MS, onSnapshot: applySnapshot });
-  };
-
-  const stopRun = () => {
-    cancelRun.current?.();
-    cancelRun.current = null;
-
-    const record = execution.current;
-
-    if (record && record.status === "running") {
-      record.status = "cancelled";
-      record.finishedAt = new Date().toISOString();
-      upsertExecution({ ...record });
+      return;
     }
-    setRun((current) => (current ? { ...current, finished: true } : current));
+    setProblems([]);
+    setSaved({ id: outcome.value.id, name: outcome.value.name, version: outcome.value.version, updatedAt: outcome.value.updatedAt, definition, executions: saved?.executions ?? 0 });
+    setName(outcome.value.name);
+    if (saved === null) router.replace(`/flows/${encodeURIComponent(outcome.value.id)}`);
   };
 
-  const resetRun = () => {
-    stopRun();
-    execution.current = null;
-    setRun(null);
-    setNodes((current) => current.map((node) => (node.type === "agent" ? { ...node, data: { ...node.data, status: "idle", runsDone: 0 } } : { ...node, data: { ...node.data, status: "idle" } })));
+  const remove = async () => {
+    if (!saved || !window.confirm(`Delete flow "${saved.name}" and its finished executions?`)) return;
+    setBusy(true);
+
+    const outcome = await deleteFlowAction(saved.id);
+
+    if (outcome.ok) {
+      router.push("/");
+    } else {
+      setProblems([outcome.error]);
+      setBusy(false);
+    }
   };
 
-  if (flow === undefined) return <p className="muted">Loading…</p>;
-
-  if (flow === null) {
-    return (
-      <div className="empty">
-        <p>No flow <code>{flowId}</code> in this browser.</p>
-        <Link href="/">Back to the flows</Link>
-      </div>
-    );
-  }
-
-  const percent = run ? Math.round((run.progress.done / Math.max(1, run.progress.total)) * 100) : 0;
-  const executionCount = typeof window === "undefined" ? 0 : listExecutions().filter((record) => record.flowId === flowId).length;
+  const agentCount = nodes.filter((node) => node.type === "agent").length;
 
   return (
     <div className="editor">
       <div className="editor-bar">
         <Link href="/" className="muted">← Flows</Link>
         <input className="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Flow name" aria-label="Flow name" />
-        <span className={`state${dirty ? " dirty" : ""}`}>{dirty ? "unsaved changes" : savedAt ? `saved ${new Date(savedAt).toLocaleTimeString()}` : ""}</span>
+        <span className={`state${dirty ? " dirty" : ""}`}>
+          {saved ? <>v{saved.version} · saved {formatTime(saved.updatedAt)}{dirty ? " · unsaved changes" : ""}</> : "new flow, not saved yet"}
+        </span>
         <span className="spacer" />
-        <button type="button" onClick={save} disabled={!dirty}>Save</button>
-        {running
-          ? <button type="button" className="secondary" onClick={stopRun}>Stop</button>
-          : <button type="button" className="secondary" onClick={startRun} disabled={nodes.length < 2}>Run (mock)</button>}
-        {run && !running && <button type="button" className="secondary" onClick={resetRun}>Reset</button>}
-        <Link href="/executions" className="muted">{executionCount} execution{executionCount === 1 ? "" : "s"} ↗</Link>
+        <button type="button" onClick={save} disabled={busy || !dirty}>{busy ? "Working…" : "Save"}</button>
+        <button type="button" className="secondary" onClick={() => setRunOpen(true)} disabled={busy || saved === null || dirty || agentCount === 0} title={saved === null || dirty ? "Save first" : "Run the saved flow for a PBI or a task"}>Run</button>
+        {saved && <Link href={`/executions?flow=${encodeURIComponent(saved.id)}`} className="muted">{saved.executions} execution{saved.executions === 1 ? "" : "s"}</Link>}
+        {saved && <button type="button" className="danger" onClick={remove} disabled={busy}>Delete</button>}
       </div>
-      {run && (
-        <div className="run-bar">
-          <span className="text">{run.finished ? (execution.current?.status === "cancelled" ? "Cancelled" : "Done") : "Running"}: {run.progress.done} / {run.progress.total} runs</span>
-          <div className={`progress${run.finished ? " done" : ""}`}><span style={{ width: `${percent}%` }} /></div>
-          <span className="text">{percent}%</span>
-        </div>
+      {problems.length > 0 && (
+        <ul className="problems">
+          {problems.map((problem) => <li key={problem}>{problem}</li>)}
+        </ul>
       )}
       <div className="editor-body">
         <Palette agents={palette.agents} source={palette.source} error={palette.error} onAdd={(agent) => addAgent(agent)} />
@@ -230,7 +171,6 @@ function Editor({ flowId, palette }: { flowId: string; palette: AgentPalette }) 
             onDragOver={onDragOver}
             onDrop={onDrop}
             deleteKeyCode={["Backspace", "Delete"]}
-            nodesConnectable={!running}
             fitView
             fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
             proOptions={{ hideAttribution: false }}
@@ -241,16 +181,14 @@ function Editor({ flowId, palette }: { flowId: string; palette: AgentPalette }) 
           </ReactFlow>
         </div>
       </div>
+      {runOpen && saved && <RunDialog flowId={saved.id} flowName={saved.name} onClose={() => setRunOpen(false)} />}
     </div>
   );
 }
 
-/** Nodes without execution state, selection or measurements: what Save compares and stores. */
-function nodesAtRest(nodes: FlowNode[]): unknown[] {
-  return nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    data: node.type === "agent" ? { ...node.data, status: "idle", runsDone: 0 } : { status: "idle" },
-  }));
+// A command's refusal comes as one text; zod's prettified errors put one problem per line.
+function problemLines(error: string): string[] {
+  const lines = error.split("\n").map((line) => line.replace(/^[✖→\s]+/, "").trim()).filter(Boolean);
+
+  return lines.length > 0 ? lines : [error];
 }

@@ -2,68 +2,69 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
-import { createFlow, deleteFlow, listFlows } from "@/lib/flowStore";
+import { useState } from "react";
+import { deleteFlowAction } from "@/app/actions";
 import { formatTime } from "@/lib/format";
-import type { FlowDefinition } from "@/models/FlowDefinition";
+import type { FlowSummary } from "@/lib/views";
+import { RunDialog } from "./RunDialog";
+import { StatusBadge } from "./StatusBadge";
 
-// The saved flows of this browser (localStorage): open one, delete one, start a new one.
-export function FlowsList() {
+// The vault's saved flows (PowerLoom's `flow` table): run one, open it, delete it, start a new one.
+export function FlowsList({ flows }: { flows: FlowSummary[] }) {
   const router = useRouter();
-  const [flows, setFlows] = useState<FlowDefinition[] | null>(null);
-  const [name, setName] = useState("");
+  const [running, setRunning] = useState<FlowSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setFlows(listFlows()), []);
+  const remove = async (flow: FlowSummary) => {
+    if (!window.confirm(`Delete flow "${flow.name}" and its finished executions?`)) return;
 
-  const create = (event: FormEvent) => {
-    event.preventDefault();
+    const outcome = await deleteFlowAction(flow.id);
 
-    const flow = createFlow(name.trim() || `Flow ${(flows?.length ?? 0) + 1}`);
-
-    router.push(`/flows/${flow.id}`);
-  };
-
-  const remove = (flow: FlowDefinition) => {
-    if (!window.confirm(`Delete flow "${flow.name}"?`)) return;
-
-    deleteFlow(flow.id);
-    setFlows(listFlows());
+    if (outcome.ok) {
+      setError(null);
+      router.refresh();
+    } else {
+      setError(outcome.error);
+    }
   };
 
   return (
     <>
       <div className="flows-head">
         <h1>Flows</h1>
-        <form onSubmit={create}>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="New flow name" aria-label="New flow name" />
-          <button type="submit">New flow</button>
-        </form>
+        <Link href="/flows/new"><button type="button">New flow</button></Link>
       </div>
-      {flows === null ? (
-        <p className="muted">Loading…</p>
-      ) : flows.length === 0 ? (
-        <div className="card empty">No flows yet. Name one above and press New flow: the editor opens with the trigger node and the agents of this PowerLoom.</div>
+      {error && <div className="problems">{error}</div>}
+      {flows.length === 0 ? (
+        <div className="card empty">No flows in this vault yet. New flow opens the editor with the trigger node and the agents of this PowerLoom.</div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Agents</th>
-                <th>Edges</th>
+                <th>Version</th>
+                <th>Nodes</th>
                 <th>Updated</th>
+                <th>Last execution</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {flows.map((flow) => (
                 <tr key={flow.id}>
-                  <td className="title"><Link href={`/flows/${flow.id}`}>{flow.name}</Link></td>
-                  <td>{flow.nodes.filter((node) => node.type === "agent").length}</td>
-                  <td>{flow.edges.length} ({flow.edges.filter((edge) => edge.data?.kind === "optional").length} optional)</td>
+                  <td className="title"><Link href={`/flows/${encodeURIComponent(flow.id)}`}>{flow.name}</Link><br /><code className="muted">{flow.id}</code></td>
+                  <td className="muted">v{flow.version}</td>
+                  <td className="muted">{flow.agents} agent{flow.agents === 1 ? "" : "s"}, {flow.edges} edge{flow.edges === 1 ? "" : "s"}</td>
                   <td className="muted">{formatTime(flow.updatedAt)}</td>
+                  <td>
+                    {flow.lastExecution
+                      ? <Link href={`/executions/${encodeURIComponent(flow.lastExecution.id)}`} className="exec-link"><StatusBadge tone={flow.lastExecution.status} /> <span className="muted">{formatTime(flow.lastExecution.startedAt)}</span></Link>
+                      : <span className="faint">never run</span>}
+                  </td>
                   <td className="actions">
-                    <Link href={`/flows/${flow.id}`}><button type="button" className="secondary small">Open</button></Link>
+                    <button type="button" className="small" onClick={() => setRunning(flow)} disabled={flow.agents === 0}>Run</button>
+                    <Link href={`/flows/${encodeURIComponent(flow.id)}`}><button type="button" className="secondary small">Open</button></Link>
                     <button type="button" className="danger small" onClick={() => remove(flow)}>Delete</button>
                   </td>
                 </tr>
@@ -72,6 +73,7 @@ export function FlowsList() {
           </table>
         </div>
       )}
+      {running && <RunDialog flowId={running.id} flowName={running.name} onClose={() => setRunning(null)} />}
     </>
   );
 }

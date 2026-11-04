@@ -1,65 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { clearExecutions, listExecutions, onExecutionsChange } from "@/lib/executionStore";
+import { useRouter } from "next/navigation";
 import { formatTime } from "@/lib/format";
-import type { ExecutionRecord } from "@/models/ExecutionRecord";
+import { progressPercent } from "@/lib/stepLooks";
+import type { ExecutionView } from "@/lib/views";
 import { StatusBadge } from "./StatusBadge";
 
-// The mocked executions of this browser session, newest first; one chip per agent node with its runs.
-export function ExecutionsList() {
-  const [executions, setExecutions] = useState<ExecutionRecord[] | null>(null);
-
-  useEffect(() => {
-    const refresh = () => setExecutions(listExecutions());
-
-    refresh();
-
-    return onExecutionsChange(refresh);
-  }, []);
+// The vault's executions, newest first, one flow or all of them: status, progress (done steps over the steps the
+// execution reaches) and the target in the web app.
+export function ExecutionsList({ executions, flows, flowId }: { executions: ExecutionView[]; flows: { id: string; name: string }[]; flowId: string | null }) {
+  const router = useRouter();
 
   return (
     <>
       <div className="flows-head">
         <h1>Executions</h1>
-        {executions && executions.length > 0 && <button type="button" className="secondary" onClick={clearExecutions}>Clear</button>}
+        <label className="inline">
+          Flow
+          <select value={flowId ?? ""} onChange={(event) => router.push(event.target.value ? `/executions?flow=${encodeURIComponent(event.target.value)}` : "/executions")}>
+            <option value="">all flows</option>
+            {flows.map((flow) => <option key={flow.id} value={flow.id}>{flow.name}</option>)}
+          </select>
+        </label>
       </div>
-      <p className="muted">Mocked (phase 0): nothing reached PowerLoom. The list lives in this browser tab&apos;s session.</p>
-      {executions === null ? (
-        <p className="muted">Loading…</p>
-      ) : executions.length === 0 ? (
-        <div className="card empty">No executions yet. Open a flow and press Run (mock).</div>
+      {executions.length === 0 ? (
+        <div className="card empty">No executions yet. Run a flow from the Flows page or its editor.</div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
+                <th>Execution</th>
                 <th>Flow</th>
+                <th>Target</th>
                 <th>Status</th>
+                <th>Progress</th>
                 <th>Started</th>
                 <th>Finished</th>
-                <th>Nodes</th>
               </tr>
             </thead>
             <tbody>
               {executions.map((execution) => (
                 <tr key={execution.id}>
-                  <td className="title"><Link href={`/flows/${execution.flowId}`}>{execution.flowName}</Link><br /><code className="muted">{execution.id}</code></td>
-                  <td><StatusBadge status={execution.status} /></td>
-                  <td className="muted">{formatTime(execution.startedAt)}</td>
-                  <td className="muted">{formatTime(execution.finishedAt)}</td>
+                  <td><Link href={`/executions/${encodeURIComponent(execution.id)}`}><code>{execution.id}</code></Link></td>
+                  <td className="title"><Link href={`/flows/${encodeURIComponent(execution.flowId)}`}>{execution.flowName}</Link> <span className="faint">v{execution.flowVersion}</span></td>
+                  <td><a href={execution.target.url} target="_blank" rel="noreferrer">{execution.target.label} ↗</a></td>
+                  <td><StatusBadge tone={execution.status} /></td>
                   <td>
-                    <div className="exec-nodes">
-                      {execution.nodes.map((node) => (
-                        <span key={node.nodeId} className={`exec-node ${node.status}`} title={node.title}>
-                          <span className="id">{node.agentId}</span>
-                          <span>{node.kind}</span>
-                          <span className="runs">{node.runsDone}/{node.runs}</span>
-                        </span>
-                      ))}
+                    <div className="progress-cell" title={`${execution.progress.done} of ${execution.progress.total} steps done`}>
+                      <div className={`progress${execution.status === "done" ? " done" : ""}`}><span style={{ width: `${progressPercent(execution.progress)}%` }} /></div>
+                      <span className="muted">{execution.progress.done} / {execution.progress.total}</span>
                     </div>
                   </td>
+                  <td className="muted">{formatTime(execution.startedAt)}</td>
+                  <td className="muted">{formatTime(execution.finishedAt)}</td>
                 </tr>
               ))}
             </tbody>

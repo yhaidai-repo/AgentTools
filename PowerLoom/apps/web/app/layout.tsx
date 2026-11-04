@@ -9,6 +9,7 @@ import { VaultsDialog } from "@/components/VaultsDialog";
 import { freeVaultFolders } from "@/lib/freeVaultFolders";
 import { vaultsHostRoot } from "@/lib/obsidian";
 import { vaultChoice } from "@/lib/currentVault";
+import { flowUrl } from "@/lib/flowUrl";
 import "./globals.css";
 import "./styles/shell.css";
 import "./styles/panels.css";
@@ -48,7 +49,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <header className="bar">
             <Link href="/dashboard" className="brand">PowerLoom</Link>
             <span className="bar-sep" />
-            <NavLinks />
+            <NavLinks flowUrl={flowUrl()} />
             <span className="bar-sep" />
             <VaultSelect vaults={vaults} current={current} dialog={<VaultsDialog vaults={vaults} vaultsRoot={vaultsHostRoot() ?? "the vaults root"} freeFolders={await freeVaultFolders(vaults)} />} />
           </header>

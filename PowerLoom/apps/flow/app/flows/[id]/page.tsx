@@ -1,12 +1,24 @@
+import { readFlowExecutions } from "@powerloom/core/src/flows";
+import { notFound } from "next/navigation";
 import { FlowEditor } from "@/components/FlowEditor";
+import { NoVault } from "@/components/NoVault";
 import { loadAgentPalette } from "@/lib/agents";
+import { currentVault } from "@/lib/currentVault";
+import { getDb } from "@/lib/db";
+import { getFlow } from "@/lib/flows";
 
-// The agents come from the DB at request time (server component); the flow itself lives in the browser.
 export const dynamic = "force-dynamic";
 
+// The editor of a saved flow: the agents and the flow come from the database at request time.
 export default async function FlowPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const palette = await loadAgentPalette();
+  const vault = await currentVault();
 
-  return <FlowEditor flowId={id} palette={palette} />;
+  if (!vault) return <NoVault title="Flow" />;
+
+  const id = decodeURIComponent((await params).id);
+  const [flow, palette, executions] = await Promise.all([getFlow(id, vault), loadAgentPalette(), readFlowExecutions(getDb(), vault, { flowId: id, limit: 500 })]);
+
+  if (!flow) notFound();
+
+  return <FlowEditor flow={{ id: flow.id, name: flow.name, version: flow.version, updatedAt: flow.updatedAt.toISOString(), definition: flow.definition, executions: executions.length }} palette={palette} />;
 }

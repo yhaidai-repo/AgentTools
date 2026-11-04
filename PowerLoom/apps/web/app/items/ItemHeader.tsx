@@ -8,7 +8,7 @@ import { NoteLink } from "@/components/NoteLink";
 import { PbiLinkedText } from "@/components/PbiLinkedText";
 import { RunWatch } from "@/components/RunWatch";
 import { RunningStrip } from "@/components/RunningStrip";
-import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
+import { FlowTag, TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
 import { formatAge } from "@/lib/format";
 import { GRID_REFRESH_MS } from "@/lib/gridRefresh";
@@ -40,7 +40,7 @@ export function ItemHeader({ detail }: { detail: ItemDetail }) {
       <section className="pbi-hero">
         <div className="hero-top">
           <div className="hero-title">
-            <div className="hero-id"><span className="id">{item.id}</span><TaskKindTag kind={item.kind} /><TaskStatePill task={item} /></div>
+            <div className="hero-id"><span className="id">{item.id}</span><TaskKindTag kind={item.kind} /><FlowTag data={item.data} /><TaskStatePill task={item} /></div>
             <h1 className="item-title-head"><PbiLinkedText text={item.title} /></h1>
           </div>
           <div className="hero-actions">

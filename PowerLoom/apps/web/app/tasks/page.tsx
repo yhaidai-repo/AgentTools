@@ -5,7 +5,7 @@ import { NoVault } from "@/components/NoVault";
 import { Pager } from "@/components/Pager";
 import { RememberFilters } from "@/components/RememberFilters";
 import { SelectAll } from "@/components/SelectAll";
-import { TaskKindTag, TaskStatePill } from "@/components/TaskTags";
+import { FlowTag, TaskKindTag, TaskStatePill } from "@/components/TaskTags";
 import { TimeAgo } from "@/components/TimeAgo";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
@@ -110,6 +110,7 @@ function TaskRowView({ row }: { row: TaskRow }) {
         <Link href={itemPath(row)} className="row-title" title={row.title}>{row.title}</Link>
         <div className="row-facts">
           <TaskKindTag kind={row.kind} />
+          <FlowTag data={row.data} />
           {isHumanWork(row) && <span className="for-who">{bucket === "you" ? "for you" : "yours"}</span>}
           {row.pbiId === null ? <span>no PBI</span> : <Link href={`/pbis/${row.pbiId}`}>PBI-{row.pbiId}</Link>}
           {row.parentId && <span>from {row.parentId}</span>}

@@ -70,7 +70,8 @@ function executionOf(view: components["schemas"]["FlowExecutionView"]): FlowExec
     startedAt: new Date(view.startedAt),
     finishedAt: view.finishedAt ? new Date(view.finishedAt) : null,
     definition: definitionOf(view.definition),
-    steps: view.steps.map((step) => ({ nodeId: step.nodeId, itemId: step.itemId ?? null, status: step.status as FlowExecution["steps"][number]["status"], runs: step.runs, agent: step.agent, kind: step.kind })),
+    // The API's step view carries no run id; the Flow app re-reads the execution from the database, which does.
+    steps: view.steps.map((step) => ({ nodeId: step.nodeId, itemId: step.itemId ?? null, status: step.status as FlowExecution["steps"][number]["status"], runs: step.runs, lastRunId: null, agent: step.agent, kind: step.kind })),
   };
 }
 

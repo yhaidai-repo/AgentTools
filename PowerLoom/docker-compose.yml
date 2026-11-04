@@ -94,6 +94,7 @@ services:
       BACKLOG_MOUNT: /vault  # read-only here: "Continue with Claude" waits for the handoff note
       IMPORT_INBOX_PATH: ${IMPORT_INBOX_PATH:-./import-inbox}  # shown in Settings; only PowerLoom reads the folder
       SKILL_FOLDERS: /app/PowerLoom/skills:/skills:/app/DevSecrets/skills  # same as agent-runner, to list the skills an agent may use
+      FLOW_URL: http://127.0.0.1:${FLOW_PORT:-3120}  # the Flow app as the browser sees it: the header link and the flow tag on a task
       SKILLS_PATH: ${SKILLS_PATH}
       VAULTS_DIR: /vaults  # the Vault page reads the selected vault's notes and its VaultUsage log; Settings adds vaults from here
       # "Continue with Claude": PC paths in the claude:// link; the chat opens in the vaults root and adds the repos.
@@ -122,14 +123,16 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # PowerLoom Flow (design powerloom-flow, 2026-11-03): the agent-workflow canvas, phase 0 prototype. Same image as web; it
-  # reads the agents from the DB and keeps the flows in the browser. Header links point at the web app (WEB_URL).
+  # PowerLoom Flow (design powerloom-flow, 2026-11-03): the agent-workflow canvas (phase 3: flows, executions and the
+  # Run dialog on PowerLoom's API). Same image as web; it reads flows, executions, agents, PBIs and tasks from the DB and
+  # writes through PowerLoom (flow.save, flow.run, …). Its links into the web app use WEB_URL.
   flow:
     <<: *app
     command: ["npm", "run", "start", "-w", "@powerloom/flow"]
     environment:
       DATABASE_URL: *db-url
-      WEB_URL: http://127.0.0.1:${WEB_PORT:-3100}  # the web app as the browser sees it: Tasks and Agents links
+      POWERLOOM_URL: http://powerloom:8080  # the flow commands write through PowerLoom, as the web does
+      WEB_URL: http://127.0.0.1:${WEB_PORT:-3100}  # the web app as the browser sees it: task, run, agent and PBI links
     ports:
       - "127.0.0.1:${FLOW_PORT:-3120}:3000"
     depends_on:

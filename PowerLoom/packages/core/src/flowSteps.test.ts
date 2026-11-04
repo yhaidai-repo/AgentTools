@@ -21,20 +21,20 @@ const definition: FlowDefinition = {
 };
 
 function task(id: string, kind: string, status: FlowTaskRow["status"], data: Record<string, unknown>, options: Partial<FlowTaskRow> = {}): FlowTaskRow {
-  return { id, kind, status, assignee: "agent:someone", parentId: null, data, runs: 0, ...options };
+  return { id, kind, status, assignee: "agent:someone", parentId: null, data, runs: 0, lastRunId: null, ...options };
 }
 
 // The steps mirror the backend's FlowSteps: the engine's task by its key, an agent-created task for an optional-only
 // node by kind and parent, "pending" while running, "skipped" once finished.
 describe("flowStepsOf", () => {
   it("shows the engine's task of each node and pending for the rest while running", () => {
-    const tasks = [task("XT-1-001", "planning", "done", { flowExecutionId: "FX-001", flowNodeId: "plan", key: "FX-001:plan" }, { assignee: "agent:planner", runs: 2 })];
+    const tasks = [task("XT-1-001", "planning", "done", { flowExecutionId: "FX-001", flowNodeId: "plan", key: "FX-001:plan" }, { assignee: "agent:planner", runs: 2, lastRunId: 42 })];
 
     assert.deepEqual(flowStepsOf("FX-001", "running", definition, tasks), [
-      { nodeId: "plan", itemId: "XT-1-001", status: "done", runs: 2, agent: "planner", kind: "planning" },
-      { nodeId: "build", itemId: null, status: "pending", runs: 0, agent: "builder", kind: "implementation" },
-      { nodeId: "review", itemId: null, status: "pending", runs: 0, agent: "reviewer", kind: "review" },
-      { nodeId: "docs", itemId: null, status: "pending", runs: 0, agent: "writer", kind: "docs" },
+      { nodeId: "plan", itemId: "XT-1-001", status: "done", runs: 2, lastRunId: 42, agent: "planner", kind: "planning" },
+      { nodeId: "build", itemId: null, status: "pending", runs: 0, lastRunId: null, agent: "builder", kind: "implementation" },
+      { nodeId: "review", itemId: null, status: "pending", runs: 0, lastRunId: null, agent: "reviewer", kind: "review" },
+      { nodeId: "docs", itemId: null, status: "pending", runs: 0, lastRunId: null, agent: "writer", kind: "docs" },
     ]);
   });
 

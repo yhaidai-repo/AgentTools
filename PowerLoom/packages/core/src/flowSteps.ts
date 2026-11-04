@@ -25,6 +25,7 @@ export interface FlowTaskRow {
   parentId: string | null;
   data: unknown;
   runs: number;
+  lastRunId: number | null;
 }
 
 // The steps of an execution from its tasks, one per agent node in the definition's order (the backend's FlowSteps):
@@ -56,10 +57,10 @@ export function flowStepsOf(executionId: string, status: FlowExecutionStatus, de
 
 function stepOf(node: FlowAgentNode, task: FlowTaskRow | null, status: FlowExecutionStatus): FlowExecutionStep {
   if (!task) {
-    return { nodeId: node.id, itemId: null, status: status === "running" ? "pending" : "skipped", runs: 0, agent: node.agent, kind: node.kind };
+    return { nodeId: node.id, itemId: null, status: status === "running" ? "pending" : "skipped", runs: 0, lastRunId: null, agent: node.agent, kind: node.kind };
   }
 
-  return { nodeId: node.id, itemId: task.id, status: task.status, runs: task.runs, agent: agentOf(task.assignee) ?? node.agent, kind: task.kind };
+  return { nodeId: node.id, itemId: task.id, status: task.status, runs: task.runs, lastRunId: task.lastRunId, agent: agentOf(task.assignee) ?? node.agent, kind: task.kind };
 }
 
 // Fed by agent nodes through optional edges only, and not by the trigger: the engine never creates its task.

@@ -68,6 +68,10 @@
   transition: color var(--motion-fast), background var(--motion-fast);
 }
 
+.bar-nav a.external {
+  color: var(--faint);
+}
+
 .bar-nav a:hover {
   color: var(--text);
   background: var(--surface-hi);
