@@ -1,4 +1,4 @@
-import { ANY_AGENT, handoffHumanTaskBody, handoffQuestionBody, insertHandoff, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type HumanTaskData, type ItemPrefix, type NewHandoff } from "@powerloom/core";
+import { ANY_AGENT, handoffHumanTaskBody, handoffQuestionBody, insertHandoff, nextGlobalItemId, nextItemId, nextScopedItemId, renderHumanTaskBody, vaultOfPbiSql, type FlowMarkers, type HumanTaskData, type ItemPrefix, type NewHandoff } from "@powerloom/core";
 import { localItem, type PowerLoomDb } from "@powerloom/db";
 import { and, count, eq, isNotNull, like } from "drizzle-orm";
 import type { ActualizeTaskData } from "../techWriter/models/ActualizeTaskData";
@@ -81,7 +81,7 @@ function insertTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTa
 // `goal` in data is what the research message shows as the task's goal, so it carries the done-when.
 async function insertAgentTask(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask, target: TaskTarget): Promise<string> {
   const id = await nextId(db, target.prefix as ItemPrefix, context.pbiId);
-  const data = { ...decisionData(task), ...reposData(context), goal: task.doneWhen, depth: context.depth + 1 };
+  const data = { ...decisionData(task), ...reposData(context), ...flowData(context), goal: task.doneWhen, depth: context.depth + 1 };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: target.kind, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data });
 
@@ -107,7 +107,7 @@ async function insertDocsTask(db: PowerLoomDb, context: TaskCommitContext, task:
   };
 
   await db.insert(localItem).values({
-    id, kind: target.kind, pbiId: null, vault: context.docsVault, parentId: context.parentTaskId, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data: { ...data, ...decisionData(task) }, createdByRun: context.runId,
+    id, kind: target.kind, pbiId: null, vault: context.docsVault, parentId: context.parentTaskId, title: task.title, status: "open", assignee: ANY_AGENT, body: task.goal, data: { ...data, ...decisionData(task), ...flowData(context) }, createdByRun: context.runId,
   });
 
   return id;
@@ -117,14 +117,14 @@ async function insertUserTask(db: PowerLoomDb, context: TaskCommitContext, task:
   const id = await nextId(db, "HT", context.pbiId);
   const human = { why: task.reason, solves: task.goal, steps: task.steps };
 
-  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: humanTaskBodyOf(context, task, human), data: { ...human, ...decisionData(task) } });
+  await db.insert(localItem).values({ ...pbiItem(context, id), kind: "human", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: humanTaskBodyOf(context, task, human), data: { ...human, ...decisionData(task), ...flowData(context) } });
 
   return id;
 }
 
 async function insertQuestion(db: PowerLoomDb, context: TaskCommitContext, task: CreatedTask): Promise<string> {
   const id = await nextId(db, "Q", context.pbiId);
-  const data = { why: task.reason, options: task.options, ...decisionData(task) };
+  const data = { why: task.reason, options: task.options, ...decisionData(task), ...flowData(context) };
 
   await db.insert(localItem).values({ ...pbiItem(context, id), kind: "question", title: task.title, status: "open", assignee: USER_ASSIGNEE, body: questionBodyOf(context, task), data });
 
@@ -155,6 +155,12 @@ function targetKindOf(task: CreatedTask): NewHandoff["toKind"] {
   }
 
   return task.kind === "question" ? "question" : "human";
+}
+
+// A task created inside a flow execution carries the execution and the node of the task that created it (PowerLoom Flow
+// phase 2): the Flow app shows it with the execution, and the engine waits for it to close before the execution is done.
+function flowData(context: TaskCommitContext): Partial<FlowMarkers> {
+  return context.flow ? { flowExecutionId: context.flow.flowExecutionId, flowNodeId: context.flow.flowNodeId } : {};
 }
 
 // A task without a PBI names its own repos (the Tasks page's choice); one an agent creates inherits its run's.

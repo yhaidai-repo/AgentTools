@@ -2536,6 +2536,7 @@ export interface components {
             /** Format: date-time */
             finishedAt: null | string;
             definition: components["schemas"]["FlowDefinitionInput"];
+            steps: components["schemas"]["FlowStepView"][];
         };
         FlowInput: {
             id: null | string;
@@ -2558,6 +2559,15 @@ export interface components {
             x: number;
             /** Format: double */
             y: number;
+        };
+        FlowStepView: {
+            nodeId: string;
+            itemId: null | string;
+            status: string;
+            /** Format: int32 */
+            runs: number;
+            agent: string;
+            kind: string;
         };
         FlowTargetInput: {
             kind: string;

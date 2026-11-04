@@ -3,7 +3,7 @@ import type { PowerLoomClient } from "./createPowerLoomClient";
 import type { components } from "./schema";
 import { powerloomFailure } from "./powerloomFailure";
 
-// The Flow app's writes over PowerLoom's API (PowerLoom Flow phase 1).
+// The Flow app's writes over PowerLoom's API (PowerLoom Flow phase 1; the execution's steps since phase 2).
 export function flowWorkPort(powerloom: PowerLoomClient): FlowWorkPort {
   return {
     async saveFlow(input) {
@@ -70,6 +70,7 @@ function executionOf(view: components["schemas"]["FlowExecutionView"]): FlowExec
     startedAt: new Date(view.startedAt),
     finishedAt: view.finishedAt ? new Date(view.finishedAt) : null,
     definition: definitionOf(view.definition),
+    steps: view.steps.map((step) => ({ nodeId: step.nodeId, itemId: step.itemId ?? null, status: step.status as FlowExecution["steps"][number]["status"], runs: step.runs, agent: step.agent, kind: step.kind })),
   };
 }
 

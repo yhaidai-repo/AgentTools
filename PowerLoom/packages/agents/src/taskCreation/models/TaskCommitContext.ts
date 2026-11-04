@@ -1,3 +1,5 @@
+import type { FlowMarkers } from "@powerloom/core";
+
 // Where a successful run's created tasks are written.
 export interface TaskCommitContext {
   /** Null for a task without a PBI: what it creates is numbered across the app and lives in `vault`. */
@@ -14,4 +16,6 @@ export interface TaskCommitContext {
   docsVault: string;
   /** The creating run's repos: a research task without a PBI reads them (the PBI's otherwise). */
   repos?: string[];
+  /** The flow execution and node the creating task belongs to (PowerLoom Flow): what it creates inherits them. */
+  flow?: FlowMarkers | null;
 }

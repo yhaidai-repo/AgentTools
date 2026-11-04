@@ -107,6 +107,7 @@ import { cancelFlowExecutionCommand } from "./cancelFlowExecutionCommand";
 import { listFlowsCommand } from "./listFlowsCommand";
 import { getFlowCommand } from "./getFlowCommand";
 import { listFlowExecutionsCommand } from "./listFlowExecutionsCommand";
+import { getFlowExecutionCommand } from "./getFlowExecutionCommand";
 
 // Every command with a contract (user decision 2026-10-05): what an MCP server lists as tools. Web actions and later
 // callers run them through runCommand, so each change happens in one place.
@@ -198,6 +199,7 @@ export const COMMANDS: readonly Command<any, any>[] = [
   listFlowsCommand,
   getFlowCommand,
   listFlowExecutionsCommand,
+  getFlowExecutionCommand,
   listRunsCommand,
   getRunCommand,
   readLogsCommand,

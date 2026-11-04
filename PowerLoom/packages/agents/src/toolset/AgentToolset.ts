@@ -48,7 +48,7 @@ import { createGitHubWriteTools, GITHUB_WRITE_INTEGRATION } from "../github/gith
 import { GitHubWorkspace } from "../github/GitHubWorkspace";
 import { createGoogleDriveTools, GOOGLE_DRIVE_INTEGRATION } from "../googleDrive/googleDriveTools";
 import { createAgentDocTools, outsideAccessContext } from "../stage";
-import { EVERY_AGENT, runRef, type RunHandoff } from "@powerloom/core";
+import { EVERY_AGENT, flowMarkersOf, runRef, type RunHandoff } from "@powerloom/core";
 import { addRunOutputs } from "../tasks/runOutputs";
 import { commitStep } from "../tasks/commitStep";
 import { commitCreatedTasks, resolveTask } from "../taskCreation/commitCreatedTasks";
@@ -193,7 +193,7 @@ export class AgentToolset {
   async commit(runId: number, stoppedEarly = false): Promise<CommittedToolset> {
     const { deps } = this.context;
     const repos = this.input.repos.repos.map((repo) => repo.name);
-    const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, agent: this.context.agent.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos };
+    const target = { pbiId: this.task.pbiId, vault: this.task.vault, parentTaskId: this.task.id, agent: this.context.agent.id, runId, depth: this.limits.depth, docsVault: deps.docsVaultName, repos, flow: flowMarkersOf(this.task.data) };
     const root = this.session.commitRootRunId ?? runId;
     const taskIds: string[] = [];
     for (const task of this.input.tasks ? [] : this.tasks) {

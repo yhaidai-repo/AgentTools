@@ -6387,7 +6387,8 @@
           "error",
           "startedAt",
           "finishedAt",
-          "definition"
+          "definition",
+          "steps"
         ],
         "type": "object",
         "properties": {
@@ -6442,6 +6443,12 @@
           },
           "definition": {
             "$ref": "#/components/schemas/FlowDefinitionInput"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowStepView"
+            }
           }
         }
       },
@@ -6533,6 +6540,41 @@
           "y": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "FlowStepView": {
+        "required": [
+          "nodeId",
+          "itemId",
+          "status",
+          "runs",
+          "agent",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "agent": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
           }
         }
       },

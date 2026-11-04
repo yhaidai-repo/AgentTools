@@ -148,11 +148,15 @@ export { cancelFlowExecutionCommand } from "./commands/cancelFlowExecutionComman
 export { listFlowsCommand } from "./commands/listFlowsCommand";
 export { getFlowCommand } from "./commands/getFlowCommand";
 export { listFlowExecutionsCommand } from "./commands/listFlowExecutionsCommand";
+export { getFlowExecutionCommand } from "./commands/getFlowExecutionCommand";
 export { readFlows, readFlow, readFlowExecutions, readFlowExecution } from "./flows";
 export { TRIGGER_NODE_ID, FLOW_EDGE_KINDS, flowDefinitionSchema, flowNodeSchema, flowEdgeSchema, triggerNodeSchema, agentNodeSchema, flowDefinitionProblems, agentNodesOf } from "./models/FlowDefinition";
 export type { FlowDefinition, FlowNode, FlowAgentNode, FlowTriggerNode, FlowEdge, FlowEdgeKind } from "./models/FlowDefinition";
 export type { Flow } from "./models/Flow";
 export type { FlowExecution } from "./models/FlowExecution";
+export type { FlowExecutionStep, FlowStepStatus } from "./models/FlowExecutionStep";
+export { flowStepsOf, flowMarkersOf } from "./flowSteps";
+export type { FlowMarkers, FlowTaskRow } from "./flowSteps";
 export type { FlowSaveInput } from "./models/FlowSaveInput";
 export type { FlowTarget } from "./models/FlowTarget";
 export type { FlowWorkPort } from "./models/FlowWorkPort";

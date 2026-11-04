@@ -26,11 +26,14 @@ public static class FlowSteps
         return definition.Nodes.Where(node => node.Type == FlowNodeTypes.Agent).Select(node => StepOf(execution, node, tasks.Of(node.Id), runs)).ToList();
     }
 
+    // The pinned agent; a task for any agent of its kind shows the node's.
+    private static string? AgentOf(LocalItem task) => task.Assignee == AgentStages.AnyAgent ? null : AgentStages.AgentIdOf(task.Assignee);
+
     private static FlowStepView StepOf(FlowExecution execution, FlowNodeInput node, LocalItem? task, Dictionary<string, int> runs)
     {
         if (task is null)
             return new FlowStepView(node.Id, null, execution.Status == FlowStatuses.Running ? Pending : Skipped, 0, node.Agent ?? "", node.Kind ?? "");
 
-        return new FlowStepView(node.Id, task.Id, Labels.TranslateMemberName(task.Status.ToString()), runs.GetValueOrDefault(task.Id), AgentStages.AgentIdOf(task.Assignee) ?? node.Agent ?? "", task.Kind);
+        return new FlowStepView(node.Id, task.Id, Labels.TranslateMemberName(task.Status.ToString()), runs.GetValueOrDefault(task.Id), AgentOf(task) ?? node.Agent ?? "", task.Kind);
     }
 }
