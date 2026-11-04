@@ -12,4 +12,9 @@ public sealed record FlowExecutionView(
     string? Error,
     DateTime StartedAt,
     DateTime? FinishedAt,
-    FlowDefinitionInput Definition);
+    FlowDefinitionInput Definition,
+    List<FlowStepView> Steps);
+
+// One agent node of the execution and the task that stands for it (phase 2): the task's status (kebab-case, as the
+// item_status enum spells it), or "pending" while the execution runs without one, "skipped" once it finished without.
+public sealed record FlowStepView(string NodeId, string? ItemId, string Status, int Runs, string Agent, string Kind);

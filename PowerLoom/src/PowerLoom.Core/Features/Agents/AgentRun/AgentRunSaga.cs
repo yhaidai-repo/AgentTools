@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PowerLoom.Domain.Tasks;
+using PowerLoom.Features.Flows.Engine;
 using PowerLoom.Features.Tasks;
 using PowerLoom.Infrastructure.AgentConfig;
 using PowerLoom.Infrastructure.Runner;
@@ -54,11 +55,18 @@ public sealed class AgentRunSaga : Saga
         return [message.DelayedFor(options.Value.BusyRetry)];
     }
 
-    public async Task Handle(AgentRunCompleted message, PowerLoomDbContext db, IMessageBus bus, ILogger<AgentRunSaga> logger, CancellationToken cancellation)
+    public async Task Handle(AgentRunCompleted message, PowerLoomDbContext db, IMessageBus bus, FlowAdvancer flows, ILogger<AgentRunSaga> logger, CancellationToken cancellation)
     {
-        // No hand-on: agents create the next tasks themselves (create_task; user decision 2026-10-13).
+        // No hand-on: agents create the next tasks themselves (create_task; user decision 2026-10-13). A task of a flow
+        // execution is the exception: the flow engine creates what the flow says follows it (PowerLoom Flow phase 2).
         logger.LogInformation("run {Task}: {Agent} ended with {Outcome}{Error}", Id, AgentId, message.Outcome, message.Error is null ? "" : $" ({message.Error})");
         await PbiChanges.PublishAsync(db, bus, PbiId, Actor, cancellation);
+
+        var task = await db.LocalItems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id, cancellation);
+
+        if (task is not null)
+            await flows.AdvanceForTaskAsync(task, cancellation);
+
         MarkCompleted();
     }
 

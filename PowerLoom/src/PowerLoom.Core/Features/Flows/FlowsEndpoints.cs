@@ -7,7 +7,7 @@ using Wolverine.Http;
 namespace PowerLoom.Features.Flows;
 
 // The Flow app's writes (PowerLoom Flow phase 1): flows are saved, deleted and run here; the app reads them from the
-// database as the web does. The engine that turns an execution into tasks is phase 2.
+// database as the web does. A run starts the engine (FlowAdvancer) that turns the execution into tasks.
 public static class FlowsEndpoints
 {
     [WolverinePut("/api/flows")]
@@ -31,7 +31,7 @@ public static class FlowsEndpoints
     {
         var started = await executions.RunAsync(id, input, cancellation);
 
-        return started.Ok ? TypedResults.Ok(FlowExecutions.View(started.Value)) : started.Problem.ToProblemResult();
+        return started.Ok ? TypedResults.Ok(await executions.ViewAsync(started.Value!, cancellation)) : started.Problem.ToProblemResult();
     }
 
     [WolverinePost("/api/flow-executions/{id}/cancel")]
@@ -40,6 +40,6 @@ public static class FlowsEndpoints
     {
         var cancelled = await executions.CancelAsync(id, cancellation);
 
-        return cancelled.Ok ? TypedResults.Ok(FlowExecutions.View(cancelled.Value)) : cancelled.Problem.ToProblemResult();
+        return cancelled.Ok ? TypedResults.Ok(await executions.ViewAsync(cancelled.Value!, cancellation)) : cancelled.Problem.ToProblemResult();
     }
 }

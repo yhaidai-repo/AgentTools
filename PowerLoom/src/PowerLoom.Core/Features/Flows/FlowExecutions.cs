@@ -1,18 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using PowerLoom.Contracts;
+using PowerLoom.Domain.Pbis;
 using PowerLoom.Domain.Tasks;
+using PowerLoom.Features.Flows.Engine;
 using PowerLoom.Features.Flows.Models;
+using PowerLoom.Features.Tasks;
 using PowerLoom.Persistence;
 using PowerLoom.Persistence.Entities;
 using PowerLoom.Persistence.Enums;
+using PowerLoom.Persistence.Items;
+using Wolverine;
 
 namespace PowerLoom.Features.Flows;
 
-// A flow's executions: started here with the definition as it is now (phase 1 records the execution; the engine that
-// creates the nodes' tasks is phase 2), cancelled by the user.
-public sealed class FlowExecutions(PowerLoomDbContext db)
+// A flow's executions: started here with the definition as it is now (the engine creates the first nodes' tasks at once
+// and the rest as their predecessors finish: FlowAdvancer), cancelled by the user (its waiting agent tasks with it; a
+// running one finishes its run first, as a person's cancel works today).
+public sealed class FlowExecutions(PowerLoomDbContext db, FlowAdvancer advancer, IMessageBus bus)
 {
     private const string IdPrefix = "FX";
+    private const string CancelActor = "human";
+
+    private static readonly ItemStatus[] Waiting = [ItemStatus.Open, ItemStatus.Blocked];
 
     public async Task<Outcome<FlowExecution>> RunAsync(string flowId, RunFlowInput input, CancellationToken cancellation)
     {
@@ -42,6 +51,7 @@ public sealed class FlowExecutions(PowerLoomDbContext db)
 
         db.FlowExecutions.Add(execution);
         await db.SaveChangesAsync(cancellation);
+        await advancer.AdvanceAsync(execution.Id, cancellation);
 
         return Outcome<FlowExecution>.Success(execution);
     }
@@ -60,12 +70,22 @@ public sealed class FlowExecutions(PowerLoomDbContext db)
         execution.FinishedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellation);
 
+        foreach (var task in await FlowExecutionTasks.LoadAllAsync(db, id, cancellation))
+        {
+            if (AgentStages.IsAgentTask(task.Assignee) && Waiting.Contains(task.Status) && task.Kind != ItemKinds.ResearchResult)
+                await ItemStatusChange.SetAsync(db, task, ItemStatus.Cancelled, CancelActor, null, cancellation);
+        }
+
+        await PbiChanges.PublishAsync(db, bus, await FlowAdvancer.TargetPbiIdAsync(db, execution, cancellation), CancelActor, cancellation);
+
         return Outcome<FlowExecution>.Success(execution);
     }
 
-    public static FlowExecutionView View(FlowExecution row)
+    public async Task<FlowExecutionView> ViewAsync(FlowExecution row, CancellationToken cancellation)
     {
-        return new FlowExecutionView(row.Id, row.FlowId, row.FlowVersion, row.Vault, row.TargetKind, row.PbiId, row.ItemId, row.Status, row.Error, row.StartedAt, row.FinishedAt, FlowJson.Parse(row.Definition));
+        var steps = await FlowSteps.ComputeAsync(db, row, cancellation);
+
+        return new FlowExecutionView(row.Id, row.FlowId, row.FlowVersion, row.Vault, row.TargetKind, row.PbiId, row.ItemId, row.Status, row.Error, row.StartedAt, row.FinishedAt, FlowJson.Parse(row.Definition), steps);
     }
 
     // The target is a PBI or a task of the flow's vault (a deleted task doesn't count).

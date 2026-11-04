@@ -1,3 +1,6 @@
+using PowerLoom.Features.Flows.Engine;
+using PowerLoom.Infrastructure.Scheduling;
+
 namespace PowerLoom.Features.Flows;
 
 public static class FlowsFeature
@@ -6,6 +9,8 @@ public static class FlowsFeature
     {
         services.AddScoped<FlowCatalogue>();
         services.AddScoped<FlowExecutions>();
+        services.AddScoped<FlowAdvancer>();
+        services.AddSingleton<ICronSource, FlowCronSource>();
 
         return services;
     }

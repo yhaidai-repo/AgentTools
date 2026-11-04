@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using PowerLoom.Domain.Tasks;
 using PowerLoom.Domain.Tasks.Models;
+using PowerLoom.Features.Flows.Engine;
 using PowerLoom.Features.Tasks.CloseItem.Models;
 using PowerLoom.Infrastructure.Http;
 using PowerLoom.Persistence;
@@ -12,7 +13,8 @@ namespace PowerLoom.Features.Tasks.CloseItem;
 
 // Answer / dismiss a question or finding, finish / cancel a human task, cancel an open or blocked agent task. The PBI's
 // status follows and its notes are rendered (PbiChanged). The web stores the answer's uploads between a dry run and the
-// close. A finished access request reopens the agent tasks anchored to it (user decision 2026-10-13).
+// close. A finished access request reopens the agent tasks anchored to it (user decision 2026-10-13). An item of a flow
+// execution advances the execution (a cancelled node task fails it; PowerLoom Flow phase 2).
 public static class CloseItemEndpoint
 {
     public const string Closable = "closable";
@@ -20,7 +22,7 @@ public static class CloseItemEndpoint
     private const string Actor = "human";
 
     [WolverinePost("/api/items/{id}/close")]
-    public static async Task<Results<Ok<ClosedItem>, ProblemHttpResult>> Post(string id, CloseRequest request, PowerLoomDbContext db, IMessageBus bus, CancellationToken cancellation)
+    public static async Task<Results<Ok<ClosedItem>, ProblemHttpResult>> Post(string id, CloseRequest request, PowerLoomDbContext db, IMessageBus bus, FlowAdvancer flows, CancellationToken cancellation)
     {
         var closeRequest = new CloseItemRequest(id, request.AdoId, request.Decision, string.IsNullOrWhiteSpace(request.Resolution) ? null : request.Resolution.Trim(), request.HasAttachment);
         var found = await ItemClosing.FindClosableAsync(db, closeRequest, cancellation);
@@ -35,6 +37,7 @@ public static class CloseItemEndpoint
 
         await AccessAnchors.AfterCloseAsync(db, found.Value!, status, cancellation);
         await PbiChanges.PublishAsync(db, bus, request.AdoId, Actor, cancellation);
+        await flows.AdvanceForTaskAsync(found.Value!, cancellation);
 
         return TypedResults.Ok(new ClosedItem(id, new KebabCaseNameTranslator().TranslateMemberName(status.ToString())));
     }
