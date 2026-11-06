@@ -1,11 +1,13 @@
 import { readFlowExecutions } from "@powerloom/core/src/flows";
 import { notFound } from "next/navigation";
 import { FlowEditor } from "@/components/FlowEditor";
+import { FlowTablesMissing } from "@/components/FlowTablesMissing";
 import { NoVault } from "@/components/NoVault";
 import { loadAgentPalette } from "@/lib/agents";
 import { currentVault } from "@/lib/currentVault";
 import { getDb } from "@/lib/db";
 import { getFlow } from "@/lib/flows";
+import { unlessFlowTablesMissing } from "@/lib/flowTables";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,11 @@ export default async function FlowPage({ params }: { params: Promise<{ id: strin
   if (!vault) return <NoVault title="Flow" />;
 
   const id = decodeURIComponent((await params).id);
-  const [flow, palette, executions] = await Promise.all([getFlow(id, vault), loadAgentPalette(), readFlowExecutions(getDb(), vault, { flowId: id, limit: 500 })]);
+  const loaded = await unlessFlowTablesMissing(() => Promise.all([getFlow(id, vault), loadAgentPalette(), readFlowExecutions(getDb(), vault, { flowId: id, limit: 500 })]));
+
+  if (!loaded) return <FlowTablesMissing title={id} />;
+
+  const [flow, palette, executions] = loaded;
 
   if (!flow) notFound();
 

@@ -148,7 +148,7 @@ function Editor({ flow, palette }: { flow: EditorFlow | null; palette: AgentPale
         </span>
         <span className="spacer" />
         <button type="button" onClick={save} disabled={busy || !dirty}>{busy ? "Working…" : "Save"}</button>
-        <button type="button" className="secondary" onClick={() => setRunOpen(true)} disabled={busy || saved === null || dirty || agentCount === 0} title={saved === null || dirty ? "Save first" : "Run the saved flow for a PBI or a task"}>Run</button>
+        <button type="button" className="secondary" onClick={() => setRunOpen(true)} disabled={busy} title={saved === null || dirty ? "Save first" : "Run the saved flow for a PBI or a task"}>Run</button>
         {saved && <Link href={`/executions?flow=${encodeURIComponent(saved.id)}`} className="muted">{saved.executions} execution{saved.executions === 1 ? "" : "s"}</Link>}
         {saved && <button type="button" className="danger" onClick={remove} disabled={busy}>Delete</button>}
       </div>
@@ -181,7 +181,7 @@ function Editor({ flow, palette }: { flow: EditorFlow | null; palette: AgentPale
           </ReactFlow>
         </div>
       </div>
-      {runOpen && saved && <RunDialog flowId={saved.id} flowName={saved.name} onClose={() => setRunOpen(false)} />}
+      {runOpen && <RunDialog flowId={saved?.id ?? "FL-000"} flowName={saved?.name ?? name} onClose={() => setRunOpen(false)} />}
     </div>
   );
 }

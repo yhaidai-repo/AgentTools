@@ -45,4 +45,6 @@ tag on a task of an execution (`data.flowExecutionId`).
 | `/api/executions/<id>` | the execution as the page draws it (JSON) |
 | `/api/targets` | the Run dialog's PBIs and open tasks |
 
-Screenshots: `docs/` (phase 0 `01`–`05`, phase 3 `phase3-*`).
+Screenshots: `docs/` (phase 0 `01`–`05`; they show the mocked prototype, phase 3 has none yet).
+
+State and next steps: `PowerLoom/docs/flow-handoff.md`.

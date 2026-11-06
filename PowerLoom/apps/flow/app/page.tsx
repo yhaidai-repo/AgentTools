@@ -1,7 +1,9 @@
+import { FlowTablesMissing } from "@/components/FlowTablesMissing";
 import { FlowsList } from "@/components/FlowsList";
 import { NoVault } from "@/components/NoVault";
 import { currentVault } from "@/lib/currentVault";
 import { listFlows } from "@/lib/flows";
+import { unlessFlowTablesMissing } from "@/lib/flowTables";
 
 export const dynamic = "force-dynamic";
 
@@ -11,5 +13,9 @@ export default async function FlowsPage() {
 
   if (!vault) return <NoVault title="Flows" />;
 
-  return <FlowsList flows={await listFlows(vault)} />;
+  const flows = await unlessFlowTablesMissing(() => listFlows(vault));
+
+  if (!flows) return <FlowTablesMissing title="Flows" />;
+
+  return <FlowsList flows={flows} />;
 }
